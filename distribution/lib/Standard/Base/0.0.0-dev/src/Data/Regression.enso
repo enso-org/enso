@@ -4,7 +4,7 @@ import project.Data.Statistics.Statistic
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
 

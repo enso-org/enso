@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Base.Data.Text.Extensions import slice_text
 from Standard.Visualization.Text import get_chunk_from_line
-import Standard.Base.Error.Common.Not_Found
+import Standard.Base.Errors.Common.Not_Found
 import Standard.Table as Table_Module
 
 

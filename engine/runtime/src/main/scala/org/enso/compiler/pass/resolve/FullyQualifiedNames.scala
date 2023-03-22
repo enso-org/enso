@@ -6,12 +6,18 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Resolution.MissingLibraryImportInFQNError
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ModuleReference, Resolution}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ModuleReference,
+  Resolution,
+  ResolvedType
+}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.editions.LibraryName
+import org.enso.interpreter.runtime.Module
 
 /** Partially resolves fully qualified names corresponding to the library names
   *
@@ -65,8 +71,64 @@ case object FullyQualifiedNames extends IRPass {
           moduleContext.pkgRepo
         )
       )
-    ir.copy(bindings = new_bindings)
 
+    // Detect potential name conflicts of exported types in Main modules
+    // when using fully qualified names.
+    // Consider that `Standard.Base.Main` exports `Standard.Base.Error.Error`
+    // and module `Standard.Base.Error` defines `Error` type in it.
+    // If there exists a module in that namespace, like
+    // `Standard.Base.Error.Foo`, then accessing it via a fully qualified name,
+    // `Standard.Base.Error.Foo`, will always lead to name conflicts with
+    // the exported type `Error`.
+    if (isMainModule(moduleContext.module)) {
+      scopeMap.resolvedExports.foreach {
+        case ExportedModule(
+              resolution @ ResolvedType(exportedModuleRef, tpe),
+              exportedAs,
+              _
+            ) =>
+          val tpeName        = exportedAs.getOrElse(tpe.name)
+          val exportedModule = exportedModuleRef.unsafeAsModule()
+          if (
+            exportedModuleRef.getName.path.length == 2 && exportedModuleRef.getName.item == tpeName && !exportedModule.isSynthetic
+          ) {
+            val allStarting = moduleContext.pkgRepo
+              .map(
+                _.getLoadedModules.filter(m =>
+                  exportedModuleRef.getName != m.getName && m
+                    .getName()
+                    .toString
+                    .startsWith(exportedModuleRef.getName.toString + ".")
+                )
+              )
+              .getOrElse(Nil)
+            if (allStarting.nonEmpty) {
+              ir.exports.foreach { export =>
+                export match {
+                  case m: IR.Module.Scope.Export.Module
+                      if m.name.name == resolution.qualifiedName.toString =>
+                    m.addDiagnostic(
+                      IR.Warning.Shadowed.TypeInModuleNameConflicts(
+                        exportedModule.getName.toString,
+                        tpeName,
+                        allStarting.head.getName.toString,
+                        m,
+                        m.location
+                      )
+                    )
+                  case _ =>
+                }
+              }
+            }
+          }
+        case _ =>
+      }
+    }
+    ir.copy(bindings = new_bindings)
+  }
+
+  private def isMainModule(module: Module): Boolean = {
+    module.getName.item == Imports.mainModuleName.name && module.getName.path.length == 2
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed

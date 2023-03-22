@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Unimplemented.Unimplemented
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 from Standard.Table import Aggregate_Column, Join_Kind
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
