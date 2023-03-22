@@ -239,15 +239,32 @@ spec =
             pattern = Regex_2.compile "."
             pattern.replace "abc" "$100" . should_fail_with Too_Many_Groups
 
-         Text.specify "should correctly evaluate documentation examples" <|
-            pattern1 = Regex_2.compile 'aa'
-            pattern1.replace 'aaa' 'b' . should_equal 'ba'
-            pattern2 = Regex_2.compile '[lo]'
-            pattern2.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
-            pattern3 = Regex_2.compile 'l'
-            pattern3.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
-            pattern4 = Regex_2.compile '"(.*?)"'
-            pattern4.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
+         Text.group "should correctly evaluate documentation examples" <|
+            Test.specify "example 1" <|
+                pattern = Regex_2.compile 'aa'
+                pattern.replace 'aaa' 'b' . should_equal 'ba'
+
+            Test.specify "example 2" <|
+                pattern = Regex_2.compile '[lo]'
+                pattern.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
+
+            Test.specify "example 3" <|
+                pattern = Regex_2.compile 'l'
+                pattern.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
+
+            Test.specify "example 4" <|
+                pattern = Regex_2.compile '"(.*?)"'
+                pattern.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
+
+            Test.specify "example 5" <|
+                pattern = Regex_2.compile "aa"
+                input = "aa ab aa ac ad aa aa ax"
+                match = pattern.replace input "xyz"
+                match . should_equal "xyz ab xyz ac ad xyz xyz ax"
+
+            Test.specify "example 6" <|
+                pattern = Regex_2.compile "([a-z]+)"
+                pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
 
     Test.group "Match.text" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []

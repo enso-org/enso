@@ -47,7 +47,7 @@ type Replacer
     ## Build a replacement string from a match
 
        Arguments:
-       - match: the match from the original string that is to be replaced,
+       - match: the match from the original string that is to be replaced.
     replace : Match_2 -> Text
     replace self match =
         string_builder = StringBuilder.new
@@ -119,7 +119,7 @@ build_replacement_vector replacement_string pattern =
    Arguments:
    - pattern: the Pattern_2 used to initiate the replacement. This is used
      to identify and validate capture groups.
-   - match: the match of the replacement string against group_reference_regex
+   - match: the match of the replacement string against group_reference_regex.
 
    Returns a Replacement: a group number, or, in the case of `$$`, a literal.
 
@@ -137,8 +137,8 @@ parse_group_number pattern match = case match.text.take 2 of
             Error.throw (Too_Many_Groups.Error n)
 
 type Replacement
-    ## A string literal to replace with
+    ## A string literal to replace with.
     Literal (text : Text)
 
-    ## Target group to insert
+    ## Target group to insert.
     Substitution (group_number : Integer)

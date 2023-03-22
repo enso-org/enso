@@ -108,42 +108,46 @@ type Pattern_2
        regex. The following syntaxes are supported:
            $0: the entire match string
            $&: the entire match string
-           $nn: group #nn
+           $n: the nth group (n<100)
            $<foo>: Named group `foo`
 
        > Example
-         Replace letters in the text "aaa".
+         Replace letters in the text "aa".
 
-             'aaa'.replace 'aa' 'b' == 'ba'
+             pattern = Regex_2.compile 'aa'
+             pattern.replace 'aaa' 'b' == 'ba'
 
        > Example
          Replace all occurrences of letters 'l' and 'o' with '#'.
 
-             "Hello World!".replace "[lo]" "#" == "He### W#r#d!"
+              pattern = Regex_2.compile '[lo]'
+              pattern.replace 'Hello World!' '#' == 'He### W#r#d!'
 
        > Example
          Replace the first occurrence of letter 'l' with '#'.
 
-             "Hello World!".replace "l" "#" only_first=True == "He#lo World!"
+             pattern = Regex_2.compile 'l'
+             pattern.replace 'Hello World!' '#' only_first=True == 'He#lo World!'
 
        > Example
          Replace texts in quotes with parentheses.
 
-              '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher == '(abc) foo (bar) baz'
+              pattern = Regex_2.compile '"(.*?)"'
+              pattern.replace '"abc" foo "bar" baz' '($1)' == '(abc) foo (bar) baz'
 
        > Example
          Replace a literal string with a replacement value.
 
-            pattern = Regex_2.compile "aa"
-            input = "aa ab aa ac ad aa aa ax"
-            match = pattern.replace input "xyz"
-            match . should_equal "xyz ab xyz ac ad xyz xyz ax"
+             pattern = Regex_2.compile "aa"
+             input = "aa ab aa ac ad aa aa ax"
+             match = pattern.replace input "xyz"
+             match == "xyz ab xyz ac ad xyz xyz ax"
 
        > Example
          Replace each word with the same word surrounded by `[]`.
 
-            pattern = Regex_2.compile "([a-z]+)"
-            pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
+             pattern = Regex_2.compile "([a-z]+)"
+             pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
 
     replace : Text -> Text -> Boolean -> Text
     replace self input replacement only_first=False =

@@ -78,7 +78,7 @@ type No_Such_Group
    Note that it is not considered an error for a regex to have more than 100
    groups; the error only occurs when a replacement string attempts to refer
    to a group above $99. There is no limitation on the use of named groups
-   a replacement string
+   a replacement string.
 
    Arguments:
    - id: The identifier of the group that was asked for but does not exist.

@@ -327,7 +327,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
             compiled_pattern.split self mode=Regex_Mode.All
 
 ## ALIAS Replace Text
-   Perform a regex replace.
+   Perform a text or regex replace.
 
    Returns the text with all matched elements replaced by the provided
    replacement. If `input` is empty, the function returns the input unchanged.
@@ -336,12 +336,12 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    regex. The following syntaxes are supported:
        $0: the entire match string
        $&: the entire match string
-       $n: group #nn
+       $n: the nth group (n<100)
        $<foo>: Named group `foo`
 
    Arguments:
-   - regex: The term to find.
-   - replacement: The text to replace matches with
+   - term: The string or regex to find.
+   - replacement: The text to replace matches with.
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
@@ -356,7 +356,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    > Example
      Replace all occurrences of letters 'l' and 'o' with '#'.
 
-         "Hello World!".replace "[lo]" "#" == "He### W#r#d!"
+         "Hello World!".replace "[lo]" "#" use_regex=True == "He### W#r#d!"
 
    > Example
      Replace the first occurrence of letter 'l' with '#'.
@@ -366,7 +366,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    > Example
      Replace texts in quotes with parentheses.
 
-          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher == '(abc) foo (bar) baz'
+          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' use_regex=True == '(abc) foo (bar) baz'
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,
