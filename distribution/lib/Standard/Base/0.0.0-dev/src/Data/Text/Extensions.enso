@@ -10,6 +10,7 @@ import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Helpers
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
@@ -393,7 +394,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
 
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
 
-Text.replace : Text -> Text -> Boolean -> Boolean -> Text
+Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Text
 Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if term.is_empty then self else
     case use_regex of
         False ->
@@ -412,9 +413,10 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
         True ->
-            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-            pattern = Regex_2.compile term case_insensitive=case_insensitive
-            pattern.replace self replacement only_first
+            Helpers.regex_assume_default_locale case_sensitivity <|
+                case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                pattern = Regex_2.compile term case_insensitive=case_insensitive
+                pattern.replace self replacement only_first
 
 ## ALIAS Get Words
 
