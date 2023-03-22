@@ -16,7 +16,7 @@ public class Replacer_Cache {
   private static final List<Pair<String, Value>> lru = new ArrayList<>(lruSize);
 
   static {
-    for (int i=0; i < lruSize; ++i) {
+    for (int i = 0; i < lruSize; ++i) {
       lru.add(null);
     }
   }
@@ -36,7 +36,7 @@ public class Replacer_Cache {
 
   // Visible for testing.
   public static Value get(String key) {
-    for (int i=0; i < lruSize; ++i) {
+    for (int i = 0; i < lruSize; ++i) {
       Pair<String, Value> pair = lru.get(i);
       if (pair != null && pair.getLeft().equals(key)) {
         return lru.get(i).getRight();
