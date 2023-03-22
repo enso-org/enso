@@ -323,13 +323,12 @@ fn restore_edited_node_in_graph(
                 graph.remove_node(node_id)?;
                 md_entry.remove();
             }
-            Some(NodeEditStatus::Edited { previous_expression, previous_intended_method }) => {
+            Some(NodeEditStatus::Edited { previous_expression }) => {
                 debug!(
                     "Restoring edited node {node_id} to original expression \
                                     \"{previous_expression}\"."
                 );
                 graph.edit_node(node_id, Parser::new().parse_line_ast(previous_expression)?)?;
-                md_entry.get_mut().intended_method = previous_intended_method;
             }
             None => {}
         }
