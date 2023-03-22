@@ -34,7 +34,7 @@ spec detailed setup =
 
     epsilon=0.0000000001
 
-    tester expression value = Test.with_clue "expr="+expression+" " <|
+    tester expression value = Test.with_clue "{expr = {"+expression+"}}: " <|
         new_column = test_table.compute expression
         expected = case value of
             _ : Vector -> value

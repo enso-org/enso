@@ -119,7 +119,7 @@ type SQLite_Type_Mapping
             if inputs_types.first == inputs_types.second then return inputs_types.first else
                 infer_default_type
 
-        always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
+        always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
         always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]
         preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL"]
         others = [["IIF", handle_iif]]
