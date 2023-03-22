@@ -109,7 +109,6 @@ export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: st
 // === Bundling ===
 // ================
 
-// FIXME[sb]: import dashboard builder
 /**
  * Generate the builder options.
  */
