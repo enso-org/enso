@@ -16,14 +16,15 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 
 const PORT = 8081
 const HTTP_STATUS_OK = 200
-const OPTS = bundler.bundleOptions()
+const ARGS: bundler.Arguments = { ...bundler.argumentsFromEnv(), devMode: true }
+const OPTS = bundler.bundlerOptions(ARGS)
+OPTS.entryPoints.push(path.resolve(THIS_PATH, 'src', 'index.html'))
 
 // ===============
 // === Watcher ===
 // ===============
 
 async function watch() {
-    OPTS.entryPoints.push(path.resolve(THIS_PATH, 'src', 'index.html'))
     const builder = await esbuild.context(OPTS)
     await builder.watch()
     await builder.serve({

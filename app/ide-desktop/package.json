@@ -33,7 +33,7 @@
     "eslint-plugin-jsdoc": "^40.0.2"
   },
   "scripts": {
-    "dev": "ENSO_BUILD_GUI_ASSETS=/tmp/enso-dashboard/assets/ ENSO_BUILD_GUI=/tmp/enso-dashboard/ npm run watch --workspace enso-dashboard",
-    "watch": "npm run watch --workspace enso-content"
+    "watch": "npm run watch --workspace enso-content",
+    "watch-dashboard": "ENSO_BUILD_GUI_ASSETS=/tmp/enso-dashboard/assets/ ENSO_BUILD_GUI=/tmp/enso-dashboard/ npm run watch --workspace enso-dashboard"
   }
 }
