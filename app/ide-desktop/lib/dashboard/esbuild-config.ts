@@ -8,6 +8,7 @@
  * See the bundlers documentation for more information:
  * https://esbuild.github.io/getting-started/#bundling-for-node.
  */
+import * as childProcess from 'node:child_process'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as url from 'node:url'
@@ -21,6 +22,8 @@ import esbuildPluginTime from 'esbuild-plugin-time'
 // =================
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+const TAILWIND_BINARY_PATH = path.resolve(THIS_PATH, '../../node_modules/.bin/tailwindcss')
+const TAILWIND_CSS_PATH = path.resolve(THIS_PATH, 'src', 'tailwind.css')
 
 // =============================
 // === Environment variables ===
@@ -29,8 +32,49 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 export interface Arguments {
     /** Path where bundled files are output. */
     outputPath: string
+    /** Directory with assets. Its contents are to be copied. */
+    assetsPath: string
     /** `true` if in development mode (live-reload), `false` if in production mode. */
     devMode: boolean
+}
+
+// ======================
+// === Inline plugins ===
+// ======================
+
+function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esbuild.Plugin {
+    return {
+        name: 'enso-generate-tailwind',
+        setup: build => {
+            // Required since `onStart` is called on every rebuild.
+            let firstRun = true
+            build.onStart(() => {
+                if (firstRun) {
+                    const dest = path.join(args.assetsPath, 'tailwind.css')
+                    const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
+                    console.log(`Generating tailwind css from '${TAILWIND_CSS_PATH}' to '${dest}'.`)
+                    const child = childProcess.spawn(`node`, [
+                        TAILWIND_BINARY_PATH,
+                        '-i',
+                        TAILWIND_CSS_PATH,
+                        '-o',
+                        dest,
+                        '-c',
+                        config,
+                        '--minify',
+                    ])
+                    firstRun = false
+                    return new Promise(resolve =>
+                        child.on('close', () => {
+                            resolve({})
+                        })
+                    )
+                } else {
+                    return {}
+                }
+            })
+        },
+    }
 }
 
 // ================
@@ -39,7 +83,7 @@ export interface Arguments {
 
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
-    const { outputPath } = args
+    const { outputPath, assetsPath } = args
     const buildOptions = {
         absWorkingDir: THIS_PATH,
         bundle: true,
@@ -54,6 +98,7 @@ export function bundlerOptions(args: Arguments) {
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
+            esbuildPluginGenerateTailwind({ assetsPath }),
         ],
         define: {
             // We are defining a constant, so it should be `CONSTANT_CASE`.
@@ -79,7 +124,8 @@ export function bundlerOptions(args: Arguments) {
  * (e.g. watch vs. build). */
 export function defaultBundlerOptions(args: Pick<Arguments, 'devMode'>) {
     // FIXME[sb]: This `outputPath` is extremely hacky.
-    return bundlerOptions({ outputPath: path.join(os.tmpdir(), 'enso-dashboard'), devMode: args.devMode })
+    const outputPath = path.join(os.tmpdir(), 'enso-dashboard')
+    return bundlerOptions({ outputPath, assetsPath: outputPath, devMode: args.devMode })
 }
 
 /** ESBuild options for bundling (one-off build) the package.

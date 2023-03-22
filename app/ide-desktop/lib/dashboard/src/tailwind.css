@@ -43,8 +43,11 @@
         );
     }
 
-    #dashboard body {
+    body {
         margin: 0; /* 1 */
+    }
+    
+    #dashboard {
         line-height: inherit; /* 2 */
     }
 

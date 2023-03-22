@@ -3,8 +3,8 @@ import * as path from 'node:path'
 
 import * as esbuild from 'esbuild'
 
-import * as paths from './paths.js'
-import * as utils from '../../utils.js'
+import * as paths from './paths'
+import * as utils from '../../utils'
 
 // ===================================================
 // === Constants provided through the environment. ===

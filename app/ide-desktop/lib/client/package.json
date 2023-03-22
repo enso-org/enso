@@ -39,6 +39,7 @@
     "enso-copy-plugin": "^1.0.0",
     "esbuild": "^0.17.0",
     "fast-glob": "^3.2.12",
+    "portfinder": "^1.0.32",
     "tsx": "^3.12.6"
   },
   "optionalDependencies": {

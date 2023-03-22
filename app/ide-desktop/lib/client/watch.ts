@@ -18,7 +18,7 @@ import * as esbuild from 'esbuild'
 
 import * as clientBundler from './esbuild-config'
 import * as contentBundler from '../content/esbuild-config'
-import * as paths from './paths.js'
+import * as paths from './paths'
 
 /** Set of esbuild watches for the client and content. */
 interface Watches {
@@ -38,6 +38,8 @@ const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         console.log('Bundling client.')
         const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv()
         clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
+        // Eslint is wrong here; this is actually `undefined`.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         ;(clientBundlerOpts.plugins ??= []).push({
             name: 'enso-on-rebuild',
             setup: build => {
@@ -60,7 +62,7 @@ const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
 
         console.log('Bundling content.')
         const contentOpts = contentBundler.bundlerOptionsFromEnv()
-        ;(contentOpts.plugins ??= []).push({
+        contentOpts.plugins.push({
             name: 'enso-on-rebuild',
             setup: build => {
                 build.onEnd(() => {
