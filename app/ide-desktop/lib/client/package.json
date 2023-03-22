@@ -44,9 +44,9 @@
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11",
-    "esbuild-darwin-64": "^0.15.18",
-    "esbuild-linux-64": "^0.15.18",
-    "esbuild-windows-64": "^0.15.18"
+    "esbuild-darwin-64": "^0.17.0",
+    "esbuild-linux-64": "^0.17.0",
+    "esbuild-windows-64": "^0.17.0"
   },
   "scripts": {
     "typecheck": "npx tsc --noEmit",
