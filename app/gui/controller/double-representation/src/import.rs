@@ -73,7 +73,8 @@ impl Info {
         }
     }
 
-    /// Obtain the qualified name of the module.
+    /// Return the module path as [`QualifiedName`]. Returns [`Err`] if the path is not a valid
+    /// module name.
     pub fn qualified_module_name(&self) -> FallibleResult<QualifiedName> {
         QualifiedName::from_all_segments(&self.module)
     }
@@ -107,12 +108,6 @@ impl Info {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
         hasher.finish()
-    }
-
-    /// Return the module path as [`QualifiedName`]. Returns [`Err`] if the path is not a valid
-    /// module name.
-    pub fn module_qualified_name(&self) -> FallibleResult<QualifiedName> {
-        QualifiedName::from_all_segments(self.module.iter())
     }
 }
 

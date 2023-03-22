@@ -580,7 +580,7 @@ mod tests {
             components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
+        let snippet = component::hardcoded::Snippet { name: "test snippet".into(), ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         builder.insert_virtual_components_in_favorites_group(GROUP_NAME, project, snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
@@ -607,7 +607,7 @@ mod tests {
             components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
+        let snippet = component::hardcoded::Snippet { name: "test snippet".into(), ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         const GROUP_2_NAME: &str = "Group 2";
         builder.insert_virtual_components_in_favorites_group(GROUP_2_NAME, project, snippet_iter);
