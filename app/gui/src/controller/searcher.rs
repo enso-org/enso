@@ -1218,7 +1218,8 @@ impl Searcher {
             let requests = return_types_for_engine.into_iter().map(|return_type| {
                 info!("Requesting suggestions for returnType {return_type:?}.");
                 let file = graph.module.path().file_path();
-                ls.completion(file, &position, &this_type, &return_type, &tags, &Some(false))
+                let is_static = if this_type.is_some() { Some(false) } else { None };
+                ls.completion(file, &position, &this_type, &return_type, &tags, &is_static)
             });
             let responses: Result<Vec<language_server::response::Completion>, _> =
                 futures::future::join_all(requests).await.into_iter().collect();
@@ -1749,7 +1750,7 @@ pub mod test {
                 self_type   = self_type.map(Into::into),
                 return_type = return_type.map(Into::into),
                 tag         = None,
-                is_static   = None
+                is_static   = Some(false)
             ) => Ok(completion_response));
         }
     }
