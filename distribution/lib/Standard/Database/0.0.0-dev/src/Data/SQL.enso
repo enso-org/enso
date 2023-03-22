@@ -8,58 +8,12 @@ import project.Data.SQL_Statement.SQL_Statement
 
 ## UNSTABLE
 
-   Creates a Builder representing and empty code fragment.
-empty : Builder
-empty = Builder.Value (Vector_Builder.empty)
-
-## UNSTABLE
-
-   Creates a Builder representing a code fragment containing the specified raw
-   code.
-
-   Arguments:
-   - text: The raw SQL code.
-code : Text -> Builder
-code text =
-    vec = if text.is_empty then [] else [SQL_Fragment.Code_Part text]
-    Builder.Value (Vector_Builder.from_vector vec)
-
-## UNSTABLE
-
-   Creates a Builder representing an interpolation of the given object.
-
-   Arguments:
-   - sql_type: The expected SQL type of `object`.
-   - object: The object to be interpolated into the query as if it has the type
-     given by `sql_type`.
-interpolation : SQL_Type -> Any -> Builder
-interpolation sql_type object = Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation sql_type object])
-
-## UNSTABLE
-
-   Joins a vector of code fragments with the provided separator.
-
-   Arguments:
-   - separator: The separator to use when joining the code fragments.
-   - statements: The SQL statements to join using `separator`.
-join : Builder | Text -> Vector Builder -> Builder
-join separator statements =
-    sep = case separator of
-        Builder.Value _ -> separator
-        _ -> code separator
-
-    if statements.length == 0 then empty else
-        (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
-
-## UNSTABLE
-
    A fragment of a SQL query.
 
    It can either be a SQL_Fragment.Code_Part that represents raw SQL code or
    SQL_Fragment.Interpolation which represents an object that will be
    interpolated into the query.
 type SQL_Fragment
-
     ## UNSTABLE
 
        A SQL fragment that represents raw SQL code.
@@ -80,6 +34,42 @@ type SQL_Fragment
     Interpolation sql_type:SQL_Type object:Any
 
 type Builder
+    ## Creates a Builder representing and empty code fragment.
+    empty : Builder
+    empty = Builder.Value (Vector_Builder.empty)
+
+    ## Creates a Builder representing a code fragment containing the specified raw
+       code.
+
+       Arguments:
+       - text: The raw SQL code.
+    code : Text -> Builder
+    code text =
+        vec = if text.is_empty then [] else [SQL_Fragment.Code_Part text]
+        Builder.Value (Vector_Builder.from_vector vec)
+
+    ## Creates a Builder representing an interpolation of the given object.
+
+       Arguments:
+       - sql_type: The expected SQL type of `object`.
+       - object: The object to be interpolated into the query as if it has the type
+         given by `sql_type`.
+    interpolation : SQL_Type -> Any -> Builder
+    interpolation sql_type object = Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation sql_type object])
+
+    ## Joins a vector of code fragments with the provided separator.
+
+       Arguments:
+       - separator: The separator to use when joining the code fragments.
+       - statements: The SQL statements to join using `separator`.
+    join : Builder | Text -> Vector Builder -> Builder
+    join separator statements =
+        sep = case separator of
+            Builder.Value _ -> separator
+            _ -> Builder.code separator
+
+        if statements.length == 0 then Builder.empty else
+            (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
 
     ## PRIVATE
 
@@ -100,7 +90,7 @@ type Builder
        - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
     ++ self other = case other of
-        text : Text -> if text == "" then self else Builder.Value (self.fragments ++ (code text).fragments)
+        text : Text -> if text == "" then self else Builder.Value (self.fragments ++ (Builder.code text).fragments)
         _ -> Builder.Value (self.fragments ++ other.fragments)
 
     ## UNSTABLE
@@ -121,7 +111,7 @@ type Builder
 
        Wraps the code fragment in parentheses.
     paren : Builder
-    paren self = code "(" ++ self ++ ")"
+    paren self = Builder.code "(" ++ self ++ ")"
 
     ## UNSTABLE
 
@@ -135,7 +125,7 @@ type Builder
     prefix_if_present self prefix =
         pref = case prefix of
             _ : Builder -> prefix
-            _ -> code prefix
+            _ -> Builder.code prefix
         if self.is_empty then self else pref++self
 
 ## PRIVATE

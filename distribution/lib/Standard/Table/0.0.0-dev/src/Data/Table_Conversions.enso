@@ -5,9 +5,9 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
 import project.Delimited.Delimited_Format.Delimited_Format
-import project.Delimited.Delimited_Reader
-import project.Delimited.Delimited_Writer
 import project.Errors.Invalid_JSON_Format
+import project.Internal.Delimited_Reader
+import project.Internal.Delimited_Writer
 
 Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
     case format of
