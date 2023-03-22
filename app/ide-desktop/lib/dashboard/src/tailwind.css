@@ -8,10 +8,10 @@
   #dashboard *,
   #dashboard ::before,
   #dashboard ::after {
-    box-sizing: border-box; /* 1 */
-    border-width: 0; /* 2 */
-    border-style: solid; /* 2 */
-    border-color: theme("borderColor.DEFAULT", currentColor); /* 2 */
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: theme("borderColor.DEFAULT", currentColor);
   }
 
   #dashboard ::before,
@@ -48,17 +48,17 @@
   }
 
   body {
-    margin: 0; /* 1 */
+    margin: 0;
   }
 
   #dashboard {
-    line-height: inherit; /* 2 */
+    line-height: inherit;
   }
 
   #dashboard hr {
-    height: 0; /* 1 */
-    color: inherit; /* 2 */
-    border-top-width: 1px; /* 3 */
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
   }
 
   #dashboard abbr:where([title]) {
@@ -99,8 +99,8 @@
       "Liberation Mono",
       "Courier New",
       monospace
-    ); /* 1 */
-    font-size: 1em; /* 2 */
+    );
+    font-size: 1em;
   }
 
   #dashboard small {
@@ -124,9 +124,9 @@
   }
 
   #dashboard table {
-    text-indent: 0; /* 1 */
-    border-color: inherit; /* 2 */
-    border-collapse: collapse; /* 3 */
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
   }
 
   #dashboard button,
@@ -134,13 +134,13 @@
   #dashboard optgroup,
   #dashboard select,
   #dashboard textarea {
-    font-family: inherit; /* 1 */
-    font-size: 100%; /* 1 */
-    font-weight: inherit; /* 1 */
-    line-height: inherit; /* 1 */
-    color: inherit; /* 1 */
-    margin: 0; /* 2 */
-    padding: 0; /* 3 */
+    font-family: inherit;
+    font-size: 100%;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+    margin: 0;
+    padding: 0;
   }
 
   #dashboard button,
@@ -231,8 +231,8 @@
 
   #dashboard input::placeholder,
   #dashboard textarea::placeholder {
-    opacity: 1; /* 1 */
-    color: theme("colors.gray.400", #9ca3af); /* 2 */
+    opacity: 1;
+    color: theme("colors.gray.400", #9ca3af);
   }
 
   #dashboard button,

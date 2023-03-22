@@ -99,7 +99,7 @@ export function bundlerOptions(args: Arguments) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         loader: { '.html': 'copy' },
         entryPoints: [
-            path.resolve(THIS_PATH, 'src', 'index.tsx'),
+            path.resolve(THIS_PATH, 'src', 'dashboard.tsx'),
             path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
             path.resolve(THIS_PATH, 'src', 'tailwind.css'),
         ],
