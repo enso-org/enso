@@ -44,7 +44,7 @@ type Replacer
     new replacement_string pattern =
         Replacer.Value (build_replacement_vector_cached replacement_string pattern)
 
-    ## Build a replacement string from a match
+    ## Build a replacement string from a match.
 
        Arguments:
        - match: the match from the original string that is to be replaced.
@@ -72,6 +72,7 @@ replacer_cache_lookup replacement_string = Replacer_Cache.get replacement_string
 
 ## PRIVATE
 group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
+maximum_regex_group_number = 99
 
 ## PRIVATE
 
@@ -109,7 +110,7 @@ build_replacement_vector replacement_string pattern =
         Match_Iterator_Value.Last filler ->
             builder.append (Replacement.Literal filler.text)
     result = go it
-    if result.is_error then Error.throw result else
+    result.if_not_error <|
         builder.to_vector
 
 ## PRIVATE
@@ -128,12 +129,13 @@ parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group ! Too_M
 parse_group_number pattern match = case match.text.take 2 of
     "$$" -> Replacement.Literal "$"
     "$<" ->
+        # Group 6 contains the group name without the `<>`.
         group_name = match.text 6
         Replacement.Substitution (pattern.lookup_group group_name)
     "$&" -> Replacement.Substitution 0
     _ -> 
         n = Integer.parse <| match.text 2
-        if n < 100 then Replacement.Substitution (pattern.lookup_group n) else
+        if n <= maximum_regex_group_number then Replacement.Substitution (pattern.lookup_group n) else
             Error.throw (Too_Many_Groups.Error n)
 
 type Replacement

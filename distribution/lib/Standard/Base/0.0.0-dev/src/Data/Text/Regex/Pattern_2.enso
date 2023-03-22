@@ -185,7 +185,7 @@ type Pattern_2
        this method, it returns the corresponding group number.
 
        If a group number is passed to `lookup_group` and it is valid, it will
-       simply return the group nubmer.
+       simply return the group number.
 
        Note that it is possible for a group to "not participate in the match",
        for example with a disjunction. In the example below, the "(d)" group
