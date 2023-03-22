@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Matching
-import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Errors.Common.No_Such_Method
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions

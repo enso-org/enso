@@ -4,12 +4,12 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Nothing.Nothing
-import project.Error.Illegal_State.Illegal_State
+import project.Errors.Illegal_State.Illegal_State
 
 from project.Data.Boolean import Boolean, True, False
 

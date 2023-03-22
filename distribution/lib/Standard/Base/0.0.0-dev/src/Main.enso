@@ -7,6 +7,7 @@ import project.Data.Map.Map
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors
 import project.Function
 import project.IO
 import project.Math
@@ -37,6 +38,7 @@ export project.Data.Map.Map
 export project.Data.Text.Text
 export project.Data.Vector.Vector
 export project.Error.Error
+export project.Errors
 export project.IO
 export project.Math
 export project.Meta
@@ -108,7 +110,7 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Error.Problem_Behavior.Problem_Behavior
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.Extensions
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -160,7 +162,7 @@ export project.Data.Time.Period.Period
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
-export project.Error.Problem_Behavior.Problem_Behavior
+export project.Errors.Problem_Behavior.Problem_Behavior
 export project.Network.Extensions
 export project.Network.HTTP.HTTP
 export project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -173,9 +175,9 @@ from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
 
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
-from project.Error.Problem_Behavior.Problem_Behavior import all
+from project.Errors.Problem_Behavior.Problem_Behavior import all
 from project.System.File_Format.Plain_Text_Format import Plain_Text
 
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
-from project.Error.Problem_Behavior.Problem_Behavior export all
+from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.System.File_Format.Plain_Text_Format export Plain_Text

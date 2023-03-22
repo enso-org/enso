@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from project.Errors import Invalid_Value_Type, No_Such_Column, Missing_Input_Columns, Column_Indexes_Out_Of_Range
 import project.Data.Join_Condition.Join_Condition

@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Arithmetic_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Equality, Unquoted_Characters_In_Output, Unquoted_Delimiter, Additional_Warnings
 
