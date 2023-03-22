@@ -27,13 +27,6 @@ import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
-// =================
-// === Constants ===
-// =================
-
-const TAILWIND_BINARY_PATH = '../../node_modules/.bin/tailwindcss'
-const TAILWIND_CSS_PATH = path.resolve(THIS_PATH, 'src', 'tailwind.css')
-
 // =============================
 // === Environment variables ===
 // =============================
