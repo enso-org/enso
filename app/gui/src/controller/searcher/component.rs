@@ -401,7 +401,7 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(filter.clone_ref())
         }
-        let filtering_enabled = !pattern.is_empty() || !filter.context.is_none();
+        let filtering_enabled = !pattern.is_empty() || filter.context.is_some();
         let submodules_order =
             if filtering_enabled { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
         let favorites_order = if filtering_enabled { Order::ByMatch } else { Order::Initial };
