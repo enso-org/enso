@@ -1,5 +1,5 @@
 /** @file This module defines the Project Manager endpoint. */
-import * as utils from './utils'
+import * as newtype from './newtype'
 
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 
@@ -17,16 +17,17 @@ interface Result<T> {
     result: T
 }
 
-export type Uuid = utils.Brand<'Uuid'> & string
-export type ProjectName = utils.Brand<'ProjectName'> & string
-export type UTCDateTime = utils.Brand<'UTCDateTime'> & string
+// This intentionally has the same brand as in the cloud backend API.
+type ProjectId = newtype.Newtype<string, 'ProjectId'>
+type ProjectName = newtype.Newtype<string, 'ProjectName'>
+type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
 
 interface ProjectMetadata {
     name: ProjectName
     namespace: string
-    id: Uuid
-    engineVersion: string | undefined
-    lastOpened: UTCDateTime | undefined
+    id: ProjectId
+    engineVersion: string | null
+    lastOpened: UTCDateTime | null
 }
 
 interface IpWithSocket {
@@ -39,7 +40,7 @@ interface ProjectList {
 }
 
 interface CreateProject {
-    projectId: Uuid
+    projectId: ProjectId
 }
 
 interface OpenProject {
@@ -55,12 +56,12 @@ interface OpenProject {
 // ================================
 
 export interface OpenProjectParams {
-    projectId: Uuid
+    projectId: ProjectId
     missingComponentAction: MissingComponentAction
 }
 
 export interface CloseProjectParams {
-    projectId: Uuid
+    projectId: ProjectId
 }
 
 export interface ListProjectsParams {
@@ -75,16 +76,16 @@ export interface CreateProjectParams {
 }
 
 export interface RenameProjectParams {
-    projectId: Uuid
+    projectId: ProjectId
     name: ProjectName
 }
 
 export interface DeleteProjectParams {
-    projectId: Uuid
+    projectId: ProjectId
 }
 
 export interface ListSamplesParams {
-    projectId: Uuid
+    projectId: ProjectId
 }
 
 // =======================

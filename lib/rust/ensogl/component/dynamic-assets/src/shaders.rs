@@ -1,6 +1,7 @@
 //! Offline optimization of runtime-generated shader programs.
 
 use enso_prelude::*;
+
 use ensogl_core::system::web::JsValue;
 use ensogl_core::system::web::Map;
 

@@ -936,9 +936,7 @@ final class TreeToIr {
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
         switch (translateExpression(un.getRhs(), false)) {
-          // AstToIr doesn't construct negative floating-point literals.
-          // Match that behavior for testing during the transition.
-          case IR$Literal$Number n when !n.copy$default$2().contains(".") -> n.copy(
+          case IR$Literal$Number n -> n.copy(
             n.copy$default$1(),
             "-" + n.copy$default$2(),
             n.copy$default$3(),

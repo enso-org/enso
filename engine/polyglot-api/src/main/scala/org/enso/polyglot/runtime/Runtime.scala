@@ -9,7 +9,7 @@ import com.fasterxml.jackson.module.scala.{
 }
 import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
-import org.enso.pkg.ComponentGroups
+import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
@@ -276,6 +276,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.BackgroundJobsStartedNotification],
         name  = "backgroundJobsStartedNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SerializeModule],
+        name  = "serializeModule"
       )
     )
   )
@@ -1678,6 +1682,12 @@ object Runtime {
 
     /** A notification about started background jobs. */
     final case class BackgroundJobsStartedNotification() extends ApiNotification
+
+    /** A request to serialize the module.
+      *
+      * @param module qualified module name
+      */
+    final case class SerializeModule(module: QualifiedName) extends ApiRequest
 
     private lazy val mapper = {
       val factory = new CBORFactory()

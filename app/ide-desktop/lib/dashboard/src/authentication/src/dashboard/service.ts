@@ -5,11 +5,14 @@
 import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
-import * as utils from '../utils'
+import * as newtype from '../newtype'
 
 // =================
 // === Constants ===
 // =================
+
+/** HTTP status indicating that the request was successful. */
+const STATUS_OK = 200
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: OpenProjectRequestBody = {
@@ -88,36 +91,36 @@ function deleteTagPath(tagId: TagId) {
 // =============
 
 /** Unique identifier for a user/organization. */
-export type UserOrOrganizationId = utils.Brand<'UserOrOrganizationId'> & string
+export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
 
 /** Unique identifier for a directory. */
-export type DirectoryId = utils.Brand<'DirectoryId'> & string
+export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 
 /** Unique identifier for a user's project. */
-export type ProjectId = utils.Brand<'ProjectId'> & string
+export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 
 /** Unique identifier for an uploaded file. */
-export type FileId = utils.Brand<'FileId'> & string
+export type FileId = newtype.Newtype<string, 'FileId'>
 
 /** Unique identifier for a secret environment variable. */
-export type SecretId = utils.Brand<'SecretId'> & string
+export type SecretId = newtype.Newtype<string, 'SecretId'>
 
 /** Unique identifier for a file tag or project tag. */
-export type TagId = utils.Brand<'TagId'> & string
+export type TagId = newtype.Newtype<string, 'TagId'>
 
 /** A URL. */
-export type Address = utils.Brand<'Address'> & string
+export type Address = newtype.Newtype<string, 'Address'>
 
 /** An email address. */
-export type EmailAddress = utils.Brand<'EmailAddress'> & string
+export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
 
 /** An AWS S3 file path. */
-export type S3FilePath = utils.Brand<'S3FilePath'> & string
+export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
 
-export type Ami = utils.Brand<'Ami'> & string
+export type Ami = newtype.Newtype<string, 'Ami'>
 
 /** An RFC 3339 DateTime string. */
-export type Rfc3339DateTime = utils.Brand<'Rfc3339DateTime'> & string
+export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
@@ -258,7 +261,7 @@ export interface VersionNumber {
 /** A version describing a release of the backend or IDE. */
 export interface Version {
     number: VersionNumber
-    ami: Ami | undefined
+    ami: Ami | null
     created: Rfc3339DateTime
     // This does not follow our naming convention because it's defined this way in the backend, so we need to match it.
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -277,7 +280,7 @@ export interface ResourceUsage {
 
 /** Metadata uniquely identifying a directory entry.
  * Thes can be Projects, Files, Secrets, or other directories. */
-interface Asset_ {
+interface BaseAsset {
     title: string
     id: string
     parentId: string
@@ -299,7 +302,7 @@ export interface IdType {
 
 /** Metadata uniquely identifying a directory entry.
  * Thes can be Projects, Files, Secrets, or other directories. */
-export interface Asset<Type extends AssetType = AssetType> extends Asset_ {
+export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
     type: Type
     id: IdType[Type]
 }
@@ -386,7 +389,7 @@ export interface ListVersionsRequestParams {
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListDirectoryResponseBody {
-    assets: Asset_[]
+    assets: BaseAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
@@ -448,8 +451,15 @@ export class Backend {
         // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
         // set.
         if (!this.client.defaultHeaders?.has('Authorization')) {
-            throw new Error('Authorization header not set.')
+            return this.throw('Authorization header not set.')
+        } else {
+            return
         }
+    }
+    
+    throw(message: string): never {
+        this.logger.error(message);
+        throw new Error(message);
     }
 
     /** Sets the username of the current user, on the Cloud backend API. */
@@ -463,11 +473,7 @@ export class Backend {
      * @returns `null` if status code 401 or 404 was received. */
     async usersMe(): Promise<UserOrOrganization | null> {
         const response = await this.get<UserOrOrganization>(USERS_ME_PATH)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
+        if (response.status !== STATUS_OK) {
             return null
         } else {
             return await response.json()
@@ -487,17 +493,19 @@ export class Backend {
                     ...(query.parentId ? { parent_id: query.parentId } : {}),
                 }).toString()
         )
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to list directory.')
+        if (response.status !== STATUS_OK) {
+            if (query.parentId) {
+                return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
+            } else {
+                return this.throw('Unable to list root directory.')
+            }
+        } else {
+            return (await response.json()).assets.map(
+                // This type assertion is safe; it is only needed to convert `type` to a newtype.
+                // eslint-disable-next-line no-restricted-syntax
+                asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as Asset)
+            )
         }
-
-        return (await response.json()).assets.map(
-            asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as Asset)
-        )
     }
 
     /** Creates a directory, on the Cloud backend API.
@@ -505,15 +513,11 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async createDirectory(body: CreateDirectoryRequestBody): Promise<Directory> {
         const response = await this.post<Directory>(CREATE_DIRECTORY_PATH, body)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to create directory.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to create directory with name '${body.title}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Returns a list of projects belonging to the current user, from the Cloud backend API.
@@ -522,15 +526,11 @@ export class Backend {
      */
     async listProjects(): Promise<ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to list projects.')
+        if (response.status !== STATUS_OK) {
+            return this.throw('Unable to list projects.')
+        } else {
+            return (await response.json()).projects
         }
-
-        return (await response.json()).projects
     }
 
     /** Creates a project for the current user, on the Cloud backend API.
@@ -538,15 +538,11 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async createProject(body: CreateProjectRequestBody): Promise<CreatedProject> {
         const response = await this.post<CreatedProject>(CREATE_PROJECT_PATH, body)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to create project.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to create project with name '${body.projectName}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Closes the project identified by the given project ID, on the Cloud backend API.
@@ -554,12 +550,10 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async closeProject(projectId: ProjectId): Promise<void> {
         const response = await this.post(closeProjectPath(projectId), {})
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to close project.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to close project with ID '${projectId}'.`)
+        } else {
+            return
         }
     }
 
@@ -568,15 +562,11 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async getProjectDetails(projectId: ProjectId): Promise<Project> {
         const response = await this.get<Project>(getProjectDetailsPath(projectId))
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to get project details.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to get details of project with ID '${projectId}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Sets project to an open state, on the Cloud backend API.
@@ -587,12 +577,10 @@ export class Backend {
         body: OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
     ): Promise<void> {
         const response = await this.post(openProjectPath(projectId), body)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to open project.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to open project with ID '${projectId}'.`)
+        } else {
+            return
         }
     }
 
@@ -601,15 +589,11 @@ export class Backend {
         body: ProjectUpdateRequestBody
     ): Promise<UpdatedProject> {
         const response = await this.put<UpdatedProject>(projectUpdatePath(projectId), body)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to open project.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to update project with ID '${projectId}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Deletes project, on the Cloud backend API.
@@ -617,12 +601,10 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async deleteProject(projectId: ProjectId): Promise<void> {
         const response = await this.delete(deleteProjectPath(projectId))
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to delete project.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to delete project with ID '${projectId}'.`)
+        } else {
+            return
         }
     }
 
@@ -631,15 +613,11 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async checkResources(projectId: ProjectId): Promise<ResourceUsage> {
         const response = await this.get<ResourceUsage>(checkResourcesPath(projectId))
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to get resource usage for project.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to get resource usage for project with ID '${projectId}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Returns a list of files accessible by the current user, from the Cloud backend API.
@@ -647,15 +625,11 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async listFiles(): Promise<File[]> {
         const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to list files.')
+        if (response.status !== STATUS_OK) {
+            return this.throw('Unable to list files.')
+        } else {
+            return (await response.json()).files
         }
-
-        return (await response.json()).files
     }
 
     /** Uploads a file, to the Cloud backend API.
@@ -676,28 +650,28 @@ export class Backend {
                 }).toString(),
             body
         )
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to upload file.')
+        if (response.status !== STATUS_OK) {
+            if (params.fileName) {
+                return this.throw(`Unable to upload file with name '${params.fileName}'.`)
+            } else if (params.fileId) {
+                return this.throw(`Unable to upload file with ID '${params.fileId}'.`)
+            } else {
+                return this.throw('Unable to upload file.')
+            }
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
-    /** Deletes a file, to the Cloud backend API.
+    /** Deletes a file, on the Cloud backend API.
      *
      * @throws An error if a 401 or 404 status code was received. */
     async deleteFile(fileId: FileId): Promise<void> {
         const response = await this.delete(deleteFilePath(fileId))
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to delete file.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to delete file with ID '${fileId}'.`)
+        } else {
+            return
         }
     }
 
@@ -712,15 +686,11 @@ export class Backend {
             parent_directory_id: body.parentDirectoryId,
             /* eslint-enable @typescript-eslint/naming-convention */
         })
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to create secret.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to create secret with name '${body.secretName}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Returns a secret environment variable, from the Cloud backend API.
@@ -728,15 +698,11 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async getSecret(secretId: SecretId): Promise<Secret> {
         const response = await this.get<Secret>(getSecretPath(secretId))
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to get secret.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to get secret with ID '${secretId}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Returns the secret environment variables accessible by the user, from the Cloud backend API.
@@ -744,28 +710,22 @@ export class Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async listSecrets(): Promise<SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to list secrets.')
+        if (response.status !== STATUS_OK) {
+            return this.throw('Unable to list secrets.')
+        } else {
+            return (await response.json()).secrets
         }
-
-        return (await response.json()).secrets
     }
 
-    /** Deletes a secret environment variable, to the Cloud backend API.
+    /** Deletes a secret environment variable, on the Cloud backend API.
      *
      * @throws An error if a 401 or 404 status code was received. */
     async deleteSecret(secretId: SecretId): Promise<void> {
         const response = await this.delete(deleteSecretPath(secretId))
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to delete secret.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to delete secret with ID '${secretId}'.`)
+        } else {
+            return
         }
     }
 
@@ -781,15 +741,11 @@ export class Backend {
             object_id: body.objectId,
             /* eslint-enable @typescript-eslint/naming-convention */
         })
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to create create tag.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to create create tag with name '${body.name}'.`)
+        } else {
+            return await response.json()
         }
-
-        return await response.json()
     }
 
     /** Returns file tags or project tags accessible by the user, from the Cloud backend API.
@@ -804,28 +760,22 @@ export class Backend {
                     tag_type: params.tagType,
                 }).toString()
         )
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to list tags.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to list tags of type '${params.tagType}'.`)
+        } else {
+            return (await response.json()).tags
         }
-
-        return (await response.json()).tags
     }
 
-    /** Deletes a secret environment variable, to the Cloud backend API.
+    /** Deletes a secret environment variable, on the Cloud backend API.
      *
      * @throws An error if a 401 or 404 status code was received. */
     async deleteTag(tagId: TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to delete secret.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to delete tag with ID '${tagId}'.`)
+        } else {
+            return
         }
     }
 
@@ -842,15 +792,11 @@ export class Backend {
                     default: String(params.default),
                 }).toString()
         )
-
-        if (
-            response.status === http.HttpStatus.unauthorized ||
-            response.status === http.HttpStatus.notFound
-        ) {
-            throw new Error('Unable to list versions.')
+        if (response.status !== STATUS_OK) {
+            return this.throw(`Unable to list versions of type '${params.versionType}'.`)
+        } else {
+            return (await response.json()).versions
         }
-
-        return (await response.json()).versions
     }
 
     /** Sends an HTTP GET request to the given path. */

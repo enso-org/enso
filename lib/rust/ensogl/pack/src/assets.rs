@@ -10,9 +10,11 @@
 //! files, so that if a calculated output path already exists, it is already up-to-date; otherwise,
 //! it must be built. This design may be familiar to users of the Nix or Guix package managers.
 
-use crate::Paths;
-use enso_prelude::anyhow;
 use ide_ci::prelude::*;
+
+use crate::Paths;
+
+use enso_prelude::anyhow;
 use ide_ci::programs::shaderc::Glslc;
 use ide_ci::programs::shaderc::SpirvOpt;
 use ide_ci::programs::spirv_cross::SpirvCross;

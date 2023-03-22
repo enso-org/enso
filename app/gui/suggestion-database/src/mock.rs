@@ -12,12 +12,10 @@ use double_representation::name::QualifiedName;
 use enso_text::Location;
 
 
+// ==============
+// === Export ===
+// ==============
 
-// ===============
-// === Exports ===
-// ===============
-
-// Re-exported here so it can be referenced by macro-generated code.
 pub use enso_doc_parser;
 
 
