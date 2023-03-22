@@ -19,6 +19,7 @@ const HTTP_STATUS_OK = 200
 const ARGS: bundler.Arguments = { ...bundler.argumentsFromEnv(), devMode: true }
 const OPTS = bundler.bundlerOptions(ARGS)
 OPTS.entryPoints.push(path.resolve(THIS_PATH, 'src', 'index.html'))
+OPTS.write = false
 
 // ===============
 // === Watcher ===
