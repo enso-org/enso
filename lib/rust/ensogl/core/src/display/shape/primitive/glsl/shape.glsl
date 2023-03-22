@@ -49,7 +49,7 @@ Color unpremultiply(PremultipliedColor c) {
     return color(rgb, alpha);
 }
 
-PremultipliedColor blend_by_ratio(PremultipliedColor bg, PremultipliedColor fg, float ratio) {
+PremultipliedColor blend_with_ratio(PremultipliedColor bg, PremultipliedColor fg, float ratio) {
     vec4 raw = fg.repr.raw + (1.0 - ratio) * bg.repr.raw;
     return PremultipliedColor(rgba(raw));
 }
@@ -57,7 +57,7 @@ PremultipliedColor blend_by_ratio(PremultipliedColor bg, PremultipliedColor fg, 
 /// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
 /// in the [`Color`]'s color space. See docs of [`Color`] to learn more.
 PremultipliedColor blend(PremultipliedColor bg, PremultipliedColor fg) {
-    return blend_by_ratio(bg, fg, fg.repr.raw.a);
+    return blend_with_ratio(bg, fg, fg.repr.raw.a);
 }
 
 Srgba srgba(PremultipliedColor color) {
@@ -398,8 +398,8 @@ Shape unify (Shape bg, Shape fg) {
 // that even if these shapes overlap and the foreground is semi-transparent, it will blend with
 // the background only in the anti-aliased areas.
 Shape unify_exclusive (Shape bg, Shape fg) {
-    float t = render(fg.sdf);
-    return shape(bg.id, unify(bg.sdf, fg.sdf), blend_by_ratio(bg.color, fg.color, t));
+    float ratio = render(fg.sdf);
+    return shape(bg.id, unify(bg.sdf, fg.sdf), blend_with_ratio(bg.color, fg.color, ratio));
 }
 
 Shape difference (Shape s1, Shape s2) {
