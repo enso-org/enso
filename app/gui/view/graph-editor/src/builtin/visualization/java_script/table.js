@@ -231,8 +231,19 @@ class TableVisualization extends Visualization {
             const height = this.dom.getAttributeNS(null, 'height')
             const tblViewStyle = `width: ${width}px; height: ${height}px; overflow: scroll;`
             this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
-            // Ensure that this.tabElem and this.dom have been updated before calling
-            // sizeColumnsToFit() to get the latest element styles.
+            /**
+             * By observation, calling `sizeColumnsToFit()` outside of the `requestAnimationFrame` callback function
+             * sometimes has no effect.
+             * This is because the browser's reflow mechanism may prevent `sizeColumnsToFit()` from obtaining
+             * the latest width of `this.tabElem` internally,
+             * resulting in the computed column width being the same as before and having no effect.
+             * Therefore, using `requestAnimationFrame` function ensures that the latest available width is correctly obtained
+             * within `sizeColumnsToFit()` to solve this issue.
+             *
+             * But I couldn't reproduce a simple demo, even after examining the source code corresponding to agGrid.
+             * It's also possible that this is due to the interaction with wasm,
+             * so this theory may also be incorrect.
+             */
             window.requestAnimationFrame(() => {
                 this.agGridOptions.api.sizeColumnsToFit()
             })
