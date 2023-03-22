@@ -1204,15 +1204,23 @@ type Table
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
             new_ctx = self.context.set_groups key_expressions
+            ## TODO [RW] here we will perform as many fetches as there are
+               aggregate columns, but technically we could perform just one
+               fetch fetching all column types - TODO we should do that. We can
+               do it here by creating a builder that will gather all requests
+               from the executed callbacks and create Lazy references that all
+               point to a single query.
+            infer_from_database_callback expression =
+                    SQL_Type_Reference.new self.connection self.context expression
+            dialect = self.connection.dialect
+            type_mapping = dialect.get_type_mapping
+            infer_return_type op_kind columns expression =
+                type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
             results = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
-                expression = Aggregate_Helper.make_expression agg self.connection.dialect
-                result = expression.if_not_error <|
-                    # TODO [RW] here we will perform as many fetches as there are aggregate columns, but technically we could perform just one fetch fetching all column types - TODO we should do that
-                    sql_type_ref = SQL_Type_Reference.new self.connection new_ctx expression
-                    Internal_Column.Value new_name sql_type_ref expression
-                ## If the `expression` did contain an error, we catch it to be
+                result = Aggregate_Helper.make_aggregate_column agg new_name dialect infer_return_type
+                ## If the `result` did contain an error, we catch it to be
                    able to store it in a vector and then we will partition the
                    created columns and failures.
                 result.catch

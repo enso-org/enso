@@ -1,11 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
+import Standard.Table.Data.Column.Column
+import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 polyglot java import java.sql.Types
 
@@ -84,24 +88,35 @@ type SQLite_Type_Mapping
        particular, if the operations accept multiple arguments, they will
        override the return type to boolean if all the input arguments had
        boolean type.
-    infer_return_type : Connection -> Context -> Text -> Vector -> Expression -> SQL_Type_Reference
-    infer_return_type connection context op_name arguments expression =
-        return_boolean =
-            SQL_Type_Reference.from_constant (SQLite_Types.boolean)
+    infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        return value_type =
+            sql_type = SQLite_Type_Mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+            SQL_Type_Reference.from_constant sql_type
         infer_default_type =
-            SQL_Type_Reference.new connection context expression
+            infer_from_database_callback expression
 
-        find_type arg = case arg
-        always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN"]
-        preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN"]
-        case always_boolean_ops.contains op_name of
-            True -> return_boolean
-            False -> case preserve_input_type_ops.contains op_name of
-                True ->
-                    inputs_types = arguments.map find_type
-                    if inputs_types.all (== Value_Type.Boolean) then return_boolean else
-                        infer_default_type
-                False -> infer_default_type
+        find_type arg = case arg of
+            column : Column -> column.value_type
+            enso_value -> Enso_Types.most_specific_value_type enso_value
+
+        handle_always_boolean _ = return Value_Type.Boolean
+        handle_preserve_input_type _ =
+            inputs_types = arguments.map find_type
+            if inputs_types.is_empty then infer_default_type else
+                first_type = inputs_types.first
+                if inputs_types.all (== first_type) then return first_type else
+                    infer_default_type
+
+        always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
+        preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL"]
+        others = [["ADD_TEXT", _ -> return Value_Type.Char]]
+        mapping = Map.from_vector <|
+            v1 = always_boolean_ops.map [_, handle_always_boolean]
+            v2 = preserve_input_type_ops.map [_, handle_preserve_input_type]
+            v1 + v2 + others
+        handler = mapping.get op_name (_ -> infer_default_type)
+        handler Nothing
 
 ## The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
    SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,
@@ -115,7 +130,8 @@ type SQLite_Type_Mapping
 simple_types_map = Map.from_vector <|
     ints = [Types.TINYINT, Types.SMALLINT, Types.BIGINT, Types.INTEGER] . map x-> [x, Value_Type.Integer Bits.Bits_64]
     floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, Value_Type.Float Bits.Bits_64]
-    numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Decimal]
+    # We treat numeric as a float, since that is what really sits in SQLite under the hood.
+    numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Float Bits.Bits_64]
     strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, Value_Type.Char size=Nothing variable=True]
     blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Mixed]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]

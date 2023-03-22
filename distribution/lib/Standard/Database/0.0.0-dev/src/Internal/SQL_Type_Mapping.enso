@@ -4,6 +4,8 @@ import Standard.Base.Error.Unimplemented.Unimplemented
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 polyglot java import java.sql.ResultSetMetaData
 
@@ -31,22 +33,23 @@ type SQL_Type_Mapping
         Unimplemented.throw "This is an interface only."
 
     ## Returns a `SQL_Type_Reference` that will resolve to the resulting type of
-       the given operation in a given context.
+       the given operation.
 
-       In most cases this will just delegate to `SQL_Type_Reference.new` which
-       will ask the particular database backend to infer the type, but some
-       specific cases may override the default behavior. The notable example is
-       the ability to support Boolean types in SQLite.
+       In most cases this will just delegate to `infer_from_database_callback`
+       which should ask the particular database backend to infer the type, but
+       some specific cases may override the default behavior. The notable
+       example is the ability to support Boolean types in SQLite.
 
        The particular operation is identified by its name. It also gets a vector
        of supplied arguments in case the result type may depend on them. The
        arguments are passed as-is, i.e. they may be Database columns or raw Enso
-       values. Additionally, the generated IR expression is also provided as
+       values. The generated IR expression is also provided as
        depending on the backend the raw arguments or the target expression may
-       be more useful to create the return type.
-    infer_return_type : Connection -> Context -> Text -> Vector -> Expression -> SQL_Type_Reference
-    infer_return_type connection context op_name arguments expression =
-        _ = [connection, context, op_name, arguments, expression]
+       be more useful to create the return type. In particular, the expression
+       may be used as an argument for the `infer_from_database_callback`.
+    infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        _ = [infer_from_database_callback, op_name, arguments, expression]
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

@@ -90,11 +90,13 @@ spec connection db_name =
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal default_text
 
-            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "c"]
+            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
             t2.at "b" . value_type . should_equal default_text
             t2.at "Sum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-            t2.at "Minimum c" . value_type . should_equal Value_Type.Boolean
+            t2.at "Count Not Nothing c" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Concatenate b" . value_type . should_equal default_text
+            t2.at "Count" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
             # Postgres does not try to be clever and two fixed-length columns concatenated get promoted to a varying column.
             t3 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
@@ -114,11 +116,11 @@ spec connection db_name =
             t2.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
             t2.at "c" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
 
-    Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
-        # TODO this will be tested once the cast operator is implemented
-        # Binary 10 variable=False -> Binary max_int4 variable=True
-        # Byte -> Integer Bits.Bits_16
-        Nothing
+        Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
+            # TODO this will be tested once the cast operator is implemented
+            # Binary 10 variable=False -> Binary max_int4 variable=True
+            # Byte -> Integer Bits.Bits_16
+            Nothing
 
 main = Test_Suite.run_main (test_with_connection spec)
 

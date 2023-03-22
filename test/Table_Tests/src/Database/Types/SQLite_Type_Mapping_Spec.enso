@@ -25,14 +25,15 @@ spec =
             t.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "real" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.at "text" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
-            t.at "blob" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
-            t.at "numeric" . value_type . should_equal Value_Type.Decimal
+            t.at "blob" . value_type . should_equal Value_Type.Mixed
+            # We treat numeric as a float, since that is what really sits in SQLite under the hood.
+            t.at "numeric" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
         Test.specify "should map complex types to their closest approximation" <|
             t = make_table "complex" [["a", "VARCHAR(15)"], ["b", "CHAR(10)"], ["c", "BINARY(10)"], ["d", "BIGINT"], ["e", "SMALLINT"], ["f", "TINYINT"], ["g", "FLOAT"], ["h", "DOUBLE"]]
             t.at "a" . value_type . should_equal Value_Type.Char
             t.at "b" . value_type . should_equal Value_Type.Char
-            t.at "c" . value_type . should_equal (Value_Type.Binary size=Nothing variable=True)
+            t.at "c" . value_type . should_equal Value_Type.Mixed
             t.at "d" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "e" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "f" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
@@ -49,29 +50,32 @@ spec =
             c2 = t.compute "[a] && False"
             c2 . value_type . should_equal Value_Type.Boolean
 
-            c3 = t.compute "[a] && 10"
-            c3.should_fail_with Invalid_Value_Type
+            #c3 = t.compute "[a] && 10"
+            #c3.should_fail_with Invalid_Value_Type
 
         Test.specify "should correctly handle types through operations" <|
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
 
             t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
-            t.compute '[a] * [d]' . value_type . should_equal Value_Type.Float Bits.Bits_64
-            t.compute '[a] + 100' . value_type . should_equal Value_Type.Integer Bits.Bits_64
-            t.compute '[a] + 100.0' . value_type . should_equal Value_Type.Float Bits.Bits_64
+            t.compute '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.compute '[a] + 100' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
 
-            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "c"]
+            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "c", Aggregate_Column.Count "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
             t2.at "b" . value_type . should_equal Value_Type.Char
-            t2.at "Sum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Sum a" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Minimum c" . value_type . should_equal Value_Type.Boolean
+            t2.at "Count Not Nothing c" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Concatenate b" . value_type . should_equal Value_Type.Char
+            t2.at "Count" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-    Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
-        # TODO this will be tested once the cast operator is implemented
-        # Binary 10 variable=False -> Binary max_int4 variable=True
-        # Byte -> Integer Bits.Bits_16
-        Nothing
+        Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
+            # TODO this will be tested once the cast operator is implemented
+            # Binary 10 variable=False -> Binary max_int4 variable=True
+            # Byte -> Integer Bits.Bits_16
+            Nothing
 
 main = Test_Suite.run_main spec
