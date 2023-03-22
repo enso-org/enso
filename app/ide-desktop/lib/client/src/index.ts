@@ -24,6 +24,8 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import * as project from "./projectManagement";
+import {openFile} from "./projectManagement";
 
 const logger = contentConfig.logger
 
@@ -34,14 +36,19 @@ const logger = contentConfig.logger
 /** Indent size for outputting JSON. */
 const INDENT_SIZE = 4
 
+/** Check if the given arguments show that we've been invoked with a file to open.
+ *
+ * For example, this happens when the user double-clicks on a file in the file explorer.
+ *
+ * @returns The path to the file to open, or `null` if no file was specified.
+ **/
 export function attemptingToOpenFile(clientArgs: string[]): string | null {
     // If we are invoked with exactly one argument and this argument is a file, we assume that we have been
-    // invoked with a file to open (e.g. through double-clicking on a file in the file explorer).
-    //
-    // In this case, we must translate this path to the actual argument that'd open the project containing this file.
+    // invoked with a file to open. In this case, we must translate this path to the actual argument that'd open the
+    // project containing this file.
     if (clientArgs.length === 1 && clientArgs[0] !== undefined) {
         try {
-            fss.accessSync(clientArgs[0])
+            fsSync.accessSync(clientArgs[0])
             return clientArgs[0]
         } catch (e) {
             console.log(`The single argument '${clientArgs[0]}' does not denote a readable file: ${e}`)
@@ -63,16 +70,28 @@ class App {
     isQuitting = false
 
     async run() {
-        const { args, windowSize, chromeOptions } = configParser.parseArgs()
-        this.args = args
+        const { windowSize, chromeOptions, openedFile } = this.processArguments()
+        if(openedFile !== null) {
+            try {
+                this.handleOpenFile(openedFile)
+            } catch (e: unknown) {
+                let message = `Cannot open file: ${e}.`
+                if (e instanceof Error) {
+                    console.error(e)
+                    message += `\n\nDetails:\n${e.stack}`
+                }
+                console.error(e)
+                electron.dialog.showErrorBox('Enso', message)
+            }
+        }
         if (this.args.options.version.value) {
             await this.printVersion()
-            process.exit()
+            electron.app.quit()
         } else if (this.args.groups.debug.options.info.value) {
             await electron.app.whenReady().then(async () => {
                 await debug.printInfo()
+                electron.app.quit()
             })
-            process.exit()
         } else {
             this.setChromeOptions(chromeOptions)
             security.enableAll()
@@ -87,6 +106,23 @@ class App {
                 void this.main(windowSize)
             })
             this.registerShortcuts()
+        }
+    }
+
+    processArguments() {
+        console.debug(`Client arguments: ${paths.clientArguments}`)
+        let openedFile = attemptingToOpenFile(paths.clientArguments)
+        let argsToParse = openedFile ? [] : paths.clientArguments
+        console.log(`Parsing arguments: ${argsToParse}`)
+        return {...configParser.parseArgs(argsToParse), openedFile}
+    }
+
+    handleOpenFile(openedFile: string) {
+        try {
+            return project.openFile(openedFile)
+        } catch (e) {
+            const message = `Cannot open file: ${e}`
+            throw new Error(message)
         }
     }
 
@@ -365,6 +401,12 @@ class App {
 // ===================
 // === App startup ===
 // ===================
+
+process.on('uncaughtException', (err, origin) => {
+    console.error(`Uncaught exception: ${err}\nException origin: ${origin}`)
+    electron.dialog.showErrorBox('Enso', err.stack ?? err.toString())
+    electron.app.exit(1)
+})
 
 const APP = new App()
 void APP.run()

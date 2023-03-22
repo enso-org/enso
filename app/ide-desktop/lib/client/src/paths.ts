@@ -54,20 +54,3 @@ export function isProjectRoot(candidatePath: string): boolean {
         return false
     }
 }
-
-/** Get the ID from the project metadata. */
-export function getProjectId(projectRoot: string): string {
-    let metadataPath = path.join(projectRoot, projectMetadataRelative)
-    let jsonText = fss.readFileSync(metadataPath, 'utf8')
-    let parsedMetadata = JSON.parse(jsonText)
-    return parsedMetadata.id
-}
-
-/** Get the project root path from its subtree. */
-export function getProjectRoot(subtreePath: string): string {
-    let currentPath = subtreePath
-    while (!isProjectRoot(currentPath)) {
-        currentPath = path.dirname(currentPath)
-    }
-    return currentPath
-}

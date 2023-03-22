@@ -271,8 +271,11 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 export function parseArgs(clientArgs: string[] = clientArguments) {
     const args = config.CONFIG
     const { argv, chromeOptions } = argvAndChromeOptions(
-        fixArgvNoPrefix(yargsHelpers.hideBin(clientArgs))
+        fixArgvNoPrefix(clientArgs)
     )
+
+    console.log(`Chrome options: ${chromeOptions}`)
+    console.log(`Arguments after stripping Chrome options: ${argv}`)
     const yargsOptions = args
         .optionsRecursive()
         .reduce((opts: Record<string, yargsModule.Options>, option) => {
