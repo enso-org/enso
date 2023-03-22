@@ -1,4 +1,4 @@
-//! Example scene showing the usage of display object auto-layout.
+//! Example scene showing the usage of built-in high-level shapes.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -66,7 +66,21 @@ mod rectangle {
 }
 
 
+/// A rectangle shape with the following configurable properties:
+/// - The body color of the shape.
+/// - The corner radius of the shape.
+/// - The inset, padding between edge of the frame and shape itself.
+/// - The border width and color.
+/// - The clipping of the shape (e.g. clipping bottom half of the shape).
+///
+/// # Performance
+/// This shape has been specifically designed to be utilized across various sections of the GUI. Its
+/// numerous parameters enable a highly adaptable approach to drawing a diverse range of shapes,
+/// such as circles, rings, or ring segments. The advantage of having a singular shape for these
+/// cases is that a single draw call can be used to render multiple GUI elements, which ultimately
+/// enhances performance.
 #[derive(Clone, CloneRef, Debug, Deref, Default)]
+#[allow(missing_docs)]
 pub struct Rectangle {
     pub view: rectangle::View,
 }
