@@ -40,6 +40,10 @@ spec detailed setup =
             _ : Vector -> value
             _ -> Vector.new test_table.row_count _->value
 
+        if expression == "1+1*2+2" then
+            new_column.to_table.print
+            new_column.to_table.info.print
+
         values = new_column.to_vector
         values . each_with_index i->v->
             e = expected.at i
