@@ -5,9 +5,9 @@ import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Error.File_Error.File_Error
-import project.Error.Problem_Behavior.Problem_Behavior
-import project.Error.Unimplemented.Unimplemented
+import project.Errors.File_Error.File_Error
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI

@@ -3,7 +3,7 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Problem_Behavior.Problem_Behavior
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Panic.Panic
 import project.Panic.Wrapped_Dataflow_Error
 

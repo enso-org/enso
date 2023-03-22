@@ -1,8 +1,8 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Incomparable_Values
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Common.Type_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
 import Standard.Table.Main as Table_Module

@@ -108,7 +108,7 @@ class TextTest extends InterpreterTest {
         """
           |import Standard.Base.Any.Any
           |import Standard.Base.Data.List.List
-          |from Standard.Base.Error.Common import all
+          |from Standard.Base.Errors.Common import all
           |import Standard.Base.Panic.Panic
           |import Standard.Base.IO
           |import Standard.Base.Nothing
