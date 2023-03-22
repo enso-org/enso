@@ -220,10 +220,16 @@ impl Layer {
     }
 
     /// Instantiate the provided [`ShapeProxy`].
-    pub fn instantiate<S>(&self, data: &S::ShapeData) -> (ShapeInstance<S>, LayerShapeBinding)
-    where S: Shape {
+    pub fn instantiate<S>(
+        &self,
+        data: &S::ShapeData,
+        virtual_id: VirtualLayerId,
+    ) -> (ShapeInstance<S>, LayerShapeBinding)
+    where
+        S: Shape,
+    {
         let (shape_system_info, symbol_id, shape_instance, global_instance_id) =
-            self.shape_system_registry.instantiate(data);
+            self.shape_system_registry.instantiate(data, virtual_id);
         self.add_shape(shape_system_info, symbol_id);
         (shape_instance, LayerShapeBinding::new(self, global_instance_id))
     }
@@ -352,12 +358,13 @@ pub struct LayerModel {
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
     elements: RefCell<BTreeSet<LayerItem>>,
-    symbols_renderable: Rc<RefCell<RenderGroup>>,
+    symbols_renderable: RefCell<RenderGroup>,
     depth_order: RefCell<DependencyGraph<LayerItem>>,
     depth_order_dirty: dirty::SharedBool<OnDepthOrderDirty>,
     parent: Rc<RefCell<Option<Sublayers>>>,
-    global_element_depth_order: Rc<RefCell<DependencyGraph<LayerItem>>>,
+    global_element_depth_order: RefCell<DependencyGraph<LayerItem>>,
     sublayers: Sublayers,
+    virtual_sublayer_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
     mask: RefCell<Option<WeakLayer>>,
     scissor_box: RefCell<Option<ScissorBox>>,
     mem_mark: Rc<()>,
@@ -385,38 +392,28 @@ impl Drop for LayerModel {
 impl LayerModel {
     fn new(name: impl Into<String>, flags: LayerFlags) -> Self {
         let name = name.into();
-        let camera = default();
-        let shape_system_registry = default();
-        let shape_system_to_symbol_info_map = default();
-        let symbol_to_shape_system_map = default();
-        let elements = default();
-        let symbols_renderable = default();
-        let depth_order = default();
         let parent = default();
         let on_mut = on_depth_order_dirty(&parent);
         let depth_order_dirty = dirty::SharedBool::new(on_mut);
-        let global_element_depth_order = default();
         let sublayers = Sublayers::new(&parent);
-        let mask = default();
-        let scissor_box = default();
-        let mem_mark = default();
         Self {
             name,
-            camera,
-            shape_system_registry,
-            shape_system_to_symbol_info_map,
-            symbol_to_shape_system_map,
-            elements,
-            symbols_renderable,
-            depth_order,
             depth_order_dirty,
-            parent,
-            global_element_depth_order,
             sublayers,
-            mask,
-            scissor_box,
-            mem_mark,
             flags,
+            parent,
+            camera: default(),
+            shape_system_registry: default(),
+            shape_system_to_symbol_info_map: default(),
+            symbol_to_shape_system_map: default(),
+            elements: default(),
+            symbols_renderable: default(),
+            depth_order: default(),
+            global_element_depth_order: default(),
+            virtual_sublayer_buffer_partitions: default(),
+            mask: default(),
+            scissor_box: default(),
+            mem_mark: default(),
         }
     }
 
@@ -768,7 +765,6 @@ impl LayerModel {
         layer
     }
 
-
     /// Create a new sublayer to this layer. It will inherit this layer's camera, but will not be
     /// rendered as a part of standard layer stack. Instead, it will only be rendered as a mask for
     /// other layers. See [`Layer::set_mask`] for more information. Note that this will not set up
@@ -778,6 +774,31 @@ impl LayerModel {
         let layer = Layer::new_with_flags(name, LayerFlags::INHERIT_PARENT_CAMERA);
         self.add_sublayer(&layer);
         layer
+    }
+
+    /// Create a virtual sublayer of this layer. The order of virtual layer creation determines
+    /// depth ordering of their content objects of the type specified in the virtual layers' type
+    /// parameter.
+    pub fn create_virtual_sublayer<S: Shape>(
+        self: &Rc<Self>,
+        _name: impl Into<String>,
+    ) -> VirtualLayer<S> {
+        let system_id = ShapeSystem::<S>::id();
+        let mut partitions = self.virtual_sublayer_buffer_partitions.borrow_mut();
+        let index = partitions.entry(system_id).or_default();
+        let id = VirtualLayerId { index: *index };
+        *index += 1;
+        VirtualLayer { layer: WeakLayer { model: self.downgrade() }, id, shape: default() }
+    }
+
+    /// Create a virtual sublayer of this layer. The virtual layer will manage objects of the same
+    /// type as the provided parameter; the value is not used.
+    pub fn create_virtual_sublayer_for_shape_view_type<S: Shape>(
+        self: &Rc<Self>,
+        _view: &crate::gui::component::ShapeView<S>,
+        name: impl Into<String>,
+    ) -> VirtualLayer<S> {
+        self.create_virtual_sublayer::<S>(name)
     }
 
     /// The layer's mask, if any.
@@ -889,6 +910,50 @@ impl AsRef<LayerModel> for Layer {
 impl std::borrow::Borrow<LayerModel> for Layer {
     fn borrow(&self) -> &LayerModel {
         &self.model
+    }
+}
+
+
+// === Virtual layers ===
+
+/// A virtual layer within a parent [`Layer`].
+#[derive(Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct VirtualLayer<S> {
+    layer: WeakLayer,
+    id:    VirtualLayerId,
+    shape: PhantomData<*const S>,
+}
+
+/// Identifies a virtual layer within a parent [`Layer`].
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct VirtualLayerId {
+    index: usize,
+}
+
+impl<S: Shape> VirtualLayer<S> {
+    /// Add the display object to this layer and remove it from a layer it was assigned to, if any.
+    ///
+    /// Note that, as virtual layers are type-specific, only children of type `S` will be assigned
+    /// to this virtual layer; children of any other type be treated as if they are in the parent
+    /// [`Layer`].
+    pub fn add(&self, object: impl display::Object) {
+        if let Some(layer) = self.layer.upgrade() {
+            let assignment = display::object::VirtualSublayerAssignment {
+                shape_system: ShapeSystem::<S>::id(),
+                virtual_id:   self.id,
+            };
+            object.display_object().add_to_virtual_display_layer(&layer, assignment);
+        } else {
+            error!("Shape added to virtual sublayer of non-existent layer.");
+        }
+    }
+
+    /// Remove the display object from a layer it was assigned to, if any.
+    pub fn remove(&self, object: impl display::Object) {
+        if let Some(layer) = self.layer.upgrade() {
+            object.display_object().remove_from_display_layer(&layer);
+        }
     }
 }
 
@@ -1149,12 +1214,14 @@ pub struct ShapeSystemRegistryData {
 impl {
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
-    (&mut self, data: &S::ShapeData) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
+    (&mut self, data: &S::ShapeData, virtual_id: VirtualLayerId) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
     where S : Shape {
         self.with_get_or_register_mut::<S,_,_>(data, |entry| {
             let system = entry.shape_system;
             let system_id = ShapeSystem::<S>::id();
-            let (shape_instance, global_instance_id) = system.instantiate();
+            let VirtualLayerId { index } = virtual_id;
+            let partition_id = crate::system::gpu::data::BufferPartitionId { index };
+            let (shape_instance, global_instance_id) = system.instantiate(partition_id);
             let symbol_id = system.sprite_system().symbol.id;
             let above = S::always_above().to_vec();
             let below = S::always_below().to_vec();
