@@ -1548,8 +1548,7 @@ type Table
    Arguments:
    - connection: The connection to a database.
    - table_name: The name of the table to get.
-   - columns: The names of the columns to get.
-     Pairs of name and type.
+   - columns: List of columns to fetch. Each column is represented by a pair of column name and its expected SQL Type.
    - ctx: The context to use for the table.
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
