@@ -1,20 +1,24 @@
 //! Definition of the `ActionBar` component for the `visualization::Container`.
 
-
-
-pub mod icon;
-
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use enso_config::ARGS;
 use enso_frp as frp;
+use ensogl::application::tooltip;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ColorableShape;
 use ensogl_component::toggle_button::ToggleButton;
 use ensogl_hardcoded_theme as theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod icon;
 
 
 
@@ -89,11 +93,12 @@ struct Icons {
 }
 
 impl Icons {
-    fn new() -> Self {
+    fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
-        let freeze = ToggleButton::new();
-        let visibility = ToggleButton::new();
-        let skip = ToggleButton::new();
+        let freeze = ToggleButton::new(app, tooltip::Style::set_label("Freeze".to_owned()));
+        let visibility =
+            ToggleButton::new(app, tooltip::Style::set_label("Show preview".to_owned()));
+        let skip = ToggleButton::new(app, tooltip::Style::set_label("Skip".to_owned()));
         display_object.add_child(&visibility);
         if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             display_object.add_child(&freeze);
@@ -136,7 +141,7 @@ impl Model {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let hover_area = hover_area::View::new();
-        let icons = Icons::new();
+        let icons = Icons::new(app);
         let shapes = compound::events::MouseEvents::default();
         let size = default();
         let styles = StyleWatch::new(&scene.style_sheet);
@@ -322,5 +327,36 @@ impl ActionBar {
 impl display::Object for ActionBar {
     fn display_object(&self) -> &display::object::Instance {
         self.model.display_object()
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_tooltips() {
+        let app = Application::new("root");
+        let action_bar = ActionBar::new(&app);
+        let visibility_icon = &action_bar.model.icons.visibility;
+
+        // By default, the tooltip shouldn't be shown
+        assert_eq!(app.frp.tooltip.value().content(), None);
+
+        // Move the mouse over the visibility button
+        visibility_icon.view().events.mouse_over.emit(());
+
+        // We expect the button to be hovered by the mouse
+        assert!(visibility_icon.frp.is_hovered.value());
+
+        // We expect the tooltip to be shown now
+        assert_eq!(app.frp.tooltip.value().content(), Some("Show preview"));
+
+        // Move the mouse away again
+        visibility_icon.view().events.mouse_out.emit(());
+
+        // We expect the tooltip to be gone
+        assert_eq!(app.frp.tooltip.value().content(), None);
     }
 }
