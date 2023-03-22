@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Unimplemented.Unimplemented
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Base.Data.Noise.Generator
 import Standard.Base.Data.Noise.Deterministic_Random

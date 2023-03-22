@@ -4,11 +4,11 @@ import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Pattern_2.Pattern_2
 import project.Data.Text.Text
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Syntax_Error
+from project.Errors.Common import Syntax_Error
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 

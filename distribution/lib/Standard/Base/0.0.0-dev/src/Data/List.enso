@@ -4,8 +4,8 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Common.Index_Out_Of_Bounds
-import project.Error.Common.Not_Found
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Not_Found
 import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing

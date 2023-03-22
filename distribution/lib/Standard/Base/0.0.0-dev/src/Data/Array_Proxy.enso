@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Numbers.Integer
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 
 ## A helper type used for creating an array from a length and a callback
    providing its elements.

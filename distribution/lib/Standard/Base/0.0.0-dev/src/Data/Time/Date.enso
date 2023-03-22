@@ -14,10 +14,10 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Time_Error.Time_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Time_Error.Time_Error
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
@@ -176,7 +176,7 @@ type Date
          Recover from an error due to a wrong format.
 
              from Standard.Base import Date
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err = Date.parse "my birthday" . catch Time_Error _->
                  Date.new 2000 1 1
@@ -192,7 +192,7 @@ type Date
          Recover from the parse error.
 
              from Standard.Base import Date
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"

@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Common.Incomparable_Values
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Incomparable_Values
 
 from Standard.Table import Sort_Column
 from Standard.Table.Errors import all

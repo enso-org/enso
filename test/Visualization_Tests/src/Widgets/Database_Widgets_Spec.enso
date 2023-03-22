@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Metadata.Choice
 import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.Display
 
@@ -18,26 +19,29 @@ spec =
 
     Test.group "Widgets for In-Database Connection with table types" <|
         Test.specify "works for `tables`" <|
-            result = Widgets.get_full_annotations_json connection "tables" ["types"]
+            result = Widgets.get_widget_json connection "tables" ["types"]
             result.contains "'TABLE'" . should_be_true
             result.contains "'VIEW'" . should_be_true
 
     Test.group "Widgets for In-Database Connection with table name sets" <|
         Test.specify "works for `query` and `read`" <|
-            expect = [["query", Widget.Single_Choice (["'a_table'", "'another'", "'mock_table'"]) Nothing Display.Always]] . to_json
-            Widgets.get_full_annotations_json connection "query" ["query"] . should_equal expect
-            Widgets.get_full_annotations_json connection "read" ["query"] . should_equal expect
+            choices = ['a_table', 'another', 'mock_table'] . map n-> Choice.Option n n.pretty
+            expect = [["query", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            Widgets.get_widget_json connection "query" ["query"] . should_equal expect
+            Widgets.get_widget_json connection "read" ["query"] . should_equal expect
 
     Test.group "Widgets for In-Database Table with column name sets" <|
         mock_table = connection.query "mock_table"
 
         Test.specify "works for `get` and `at`" <|
-            expect = [["selector", Widget.Single_Choice (mock_table.column_names.map .pretty) Nothing Display.Always]] . to_json
-            Widgets.get_full_annotations_json mock_table "get" ["selector"] . should_equal expect
-            Widgets.get_full_annotations_json mock_table "at" ["selector"] . should_equal expect
+            choices = mock_table.column_names . map n-> Choice.Option n n.pretty
+            expect = [["selector", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            Widgets.get_widget_json mock_table "get" ["selector"] . should_equal expect
+            Widgets.get_widget_json mock_table "at" ["selector"] . should_equal expect
 
         Test.specify "works for `filter`" <|
-            expect = [["column", Widget.Single_Choice (mock_table.column_names.map .pretty) Nothing Display.Always]] . to_json
-            Widgets.get_full_annotations_json mock_table "filter" ["column"] . should_equal expect
+            choices = mock_table.column_names . map n-> Choice.Option n n.pretty
+            expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            Widgets.get_widget_json mock_table "filter" ["column"] . should_equal expect
 
 main = Test_Suite.run_main spec

@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Average, Count, Group_By, Sum
 import Standard.Table.Data.Expression.Expression_Error
