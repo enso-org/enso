@@ -1744,13 +1744,14 @@ pub mod test {
             result: &[SuggestionId],
         ) {
             let completion_response = completion_response(result);
+            let is_static = if self_type.is_some() { Some(false) } else { None };
             expect_call!(client.completion(
                 module      = self.graph.module.path.file_path().clone(),
                 position    = self.code_location,
                 self_type   = self_type.map(Into::into),
                 return_type = return_type.map(Into::into),
                 tag         = None,
-                is_static   = Some(false)
+                is_static   = is_static
             ) => Ok(completion_response));
         }
     }
