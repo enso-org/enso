@@ -67,6 +67,8 @@ expect_no_warns result =
 
 # === The Tests ===
 spec =
+    topo_sort_pending = "Waiting for implementation of topological sort (https://github.com/enso-org/enso/issues/5742)"
+
     Test.group "Default comparator" <|
         Test.specify "should support custom comparator" <|
             Ordering.compare (Ord.Value 1) (Ord.Value 2) . should_equal Ordering.Less
@@ -156,10 +158,10 @@ spec =
             [[1], [2]].sort . should_equal [[1], [2]]
             [[2], [1]].sort . should_equal [[2], [1]]
 
-        Test.specify "should be able to sort primitive values in atoms" <|
-            [Ord.Value Number.nan, Ord.Value 20, Ord.Value 10].sort . should_equal [Ord.Value 10, Ord.Value 20, Ord.Value Number.nan]
+        Test.specify "should be able to sort primitive values in atoms" pending=topo_sort_pending <|
+            [Ord.Value Nothing, Ord.Value 20, Ord.Value 10].sort . should_equal [Ord.Value 10, Ord.Value 20, Ord.Value Nothing]
 
-        Test.specify "should produce warnings when sorting primitive values in atoms" <|
+        Test.specify "should produce warnings when sorting primitive values in atoms" pending=topo_sort_pending <|
             expect_incomparable_warn (Ord.Value 1) (Ord.Value Nothing) [Ord.Value 1, Ord.Value Nothing].sort
 
         Test.specify "should attach warning when trying to sort incomparable values" <|

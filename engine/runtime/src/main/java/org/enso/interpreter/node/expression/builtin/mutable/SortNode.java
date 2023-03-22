@@ -142,6 +142,7 @@ public abstract class SortNode extends Node {
       } else if (res == greater) {
         return 1;
       } else {
+        // res is either null, or Incomparable_Values was thrown.
         invalidCompareResultProfile.enter();
         throw new CompareException(o1, o2);
       }

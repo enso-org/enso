@@ -851,6 +851,7 @@ type Vector a
          elements, returning an an `Ordering` if the two elements are comparable
          or `Nothing` if they are not. If set to `Nothing` (the default argument),
          `Ordering.compare _ _` method will be used.
+         Must be a static method.
 
        By default, elements are sorted in ascending order.
 
@@ -906,50 +907,10 @@ type Vector a
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Vector Any ! Incomparable_Values
     sort self (order = Sort_Direction.Ascending) on=x->x by=Nothing =
-        comps = self.map (it-> Comparable.from (on it)) . distinct
-        optimized_case = comps == [Default_Comparator] && by == Nothing
-        # In optimize_case, forward to Vector.sort_builtin, otherwise split to groups
-        # based on different comparators, and forward to Array.sort
-        case optimized_case of
-            True ->
-                elems = if on == Nothing then self else self.map it-> on it
-                elems.sort_builtin order.to_sign
-            False ->
-                # The "default value" of `by` parameter is `Ordering.compare _ _`, but because
-                # there is no function equality, the real default value is Nothing.
-                by_non_null = if by == Nothing then (Ordering.compare _ _) else by
-                # Groups of elements with different comparators
-                groups = comps.map comp->
-                    self.filter it->
-                        Comparable.from (on it) == comp
-                case groups.length of
-                    # self consists only of elements with the same comparator, that
-                    # is not `Default_Comparator`.
-                    # Forward to Array.sort
-                    1 ->
-                        comp_ascending l r  = by_non_null (on l) (on r)
-                        comp_descending l r = by_non_null (on r) (on l)
-                        compare = if order == Sort_Direction.Ascending then comp_ascending else
-                            comp_descending
-                        new_vec_arr = self.to_array.sort compare
-                        if new_vec_arr.is_error then Error.throw new_vec_arr else
-                            Vector.from_polyglot_array new_vec_arr
-                    _ ->
-                        # Partition into groups sorted by FQN of their comparator's name,
-                        # with the default comparator as the first group.
-                        groups_with_comps_sorted_by_fqn = groups.zip comps . sort by=pair_1->pair_2->
-                            comp_1 = pair_1.last
-                            comp_2 = pair_2.last
-                            if comp_1 == Default_Comparator then Ordering.Less else
-                                if comp_2 == Default_Comparator then Ordering.Greater else
-                                    comp_1_fqn = Meta.get_qualified_type_name comp_1
-                                    comp_2_fqn = Meta.get_qualified_type_name comp_2
-                                    Ordering.compare comp_1_fqn comp_2_fqn
-                        # Recurse on each group
-                        sorted_groups = groups_with_comps_sorted_by_fqn.map it-> it.first.sort order on by
-                        # Merge the groups and attach a warning
-                        comparators_warn_text = groups_with_comps_sorted_by_fqn.map (it-> it.last) . to_text
-                        Warning.attach ("Different comparators: " + comparators_warn_text) sorted_groups.flatten
+        elems = self.map (it-> on it)
+        comps = elems.map (it-> Comparable.from it)
+        compare_funcs = comps.map (it-> it.compare)
+        elems.sort_builtin order.to_sign comps compare_funcs by
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
