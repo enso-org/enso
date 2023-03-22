@@ -89,7 +89,6 @@ export function alwaysCopiedFiles(wasmArtifacts: string) {
         path.resolve(THIS_PATH, 'src', 'run.js'),
         path.resolve(THIS_PATH, 'src', 'style.css'),
         path.resolve(THIS_PATH, 'src', 'docsStyle.css'),
-        path.resolve(THIS_PATH, 'src', 'tailwind.css'),
         ...wasmArtifacts.split(path.delimiter),
     ]
 }
@@ -126,7 +125,7 @@ function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esb
                         TAILWIND_BINARY_PATH,
                         '-i',
                         TAILWIND_CSS_PATH,
-                        'o',
+                        '-o',
                         dest,
                         '-c',
                         config,

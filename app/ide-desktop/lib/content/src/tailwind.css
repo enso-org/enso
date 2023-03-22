@@ -1,3 +1,268 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Copied from https://unpkg.com/tailwindcss@3.2.7/src/css/preflight.css. */
+/* This is required because these styles should not affect the IDE. */
+@layer base {
+  #dashboard *,
+  #dashboard ::before,
+  #dashboard ::after {
+    box-sizing: border-box; /* 1 */
+    border-width: 0; /* 2 */
+    border-style: solid; /* 2 */
+    border-color: theme("borderColor.DEFAULT", currentColor); /* 2 */
+  }
+
+  #dashboard ::before,
+  #dashboard ::after {
+    --tw-content: "";
+  }
+
+  #dashboard div {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    -moz-tab-size: 4;
+    tab-size: 4;
+    font-family: theme(
+      "fontFamily.sans",
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      "Noto Sans",
+      sans-serif,
+      "Apple Color Emoji",
+      "Segoe UI Emoji",
+      "Segoe UI Symbol",
+      "Noto Color Emoji"
+    );
+    font-feature-settings: theme(
+      "fontFamily.sans[1].fontFeatureSettings",
+      normal
+    );
+  }
+
+  body {
+    margin: 0; /* 1 */
+  }
+
+  #dashboard {
+    line-height: inherit; /* 2 */
+  }
+
+  #dashboard hr {
+    height: 0; /* 1 */
+    color: inherit; /* 2 */
+    border-top-width: 1px; /* 3 */
+  }
+
+  #dashboard abbr:where([title]) {
+    text-decoration: underline dotted;
+  }
+
+  #dashboard h1,
+  #dashboard h2,
+  #dashboard h3,
+  #dashboard h4,
+  #dashboard h5,
+  #dashboard h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  #dashboard a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  #dashboard b,
+  #dashboard strong {
+    font-weight: bolder;
+  }
+
+  #dashboard code,
+  #dashboard kbd,
+  #dashboard samp,
+  #dashboard pre {
+    font-family: theme(
+      "fontFamily.mono",
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      "Liberation Mono",
+      "Courier New",
+      monospace
+    ); /* 1 */
+    font-size: 1em; /* 2 */
+  }
+
+  #dashboard small {
+    font-size: 80%;
+  }
+
+  #dashboard sub,
+  #dashboard sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+
+  #dashboard sub {
+    bottom: -0.25em;
+  }
+
+  #dashboard sup {
+    top: -0.5em;
+  }
+
+  #dashboard table {
+    text-indent: 0; /* 1 */
+    border-color: inherit; /* 2 */
+    border-collapse: collapse; /* 3 */
+  }
+
+  #dashboard button,
+  #dashboard input,
+  #dashboard optgroup,
+  #dashboard select,
+  #dashboard textarea {
+    font-family: inherit; /* 1 */
+    font-size: 100%; /* 1 */
+    font-weight: inherit; /* 1 */
+    line-height: inherit; /* 1 */
+    color: inherit; /* 1 */
+    margin: 0; /* 2 */
+    padding: 0; /* 3 */
+  }
+
+  #dashboard button,
+  #dashboard select {
+    text-transform: none;
+  }
+
+  #dashboard button,
+  #dashboard [type="button"],
+  #dashboard [type="reset"],
+  #dashboard [type="submit"] {
+    -webkit-appearance: button;
+    background-color: transparent;
+    background-image: none;
+  }
+
+  #dashboard :-moz-focusring {
+    outline: auto;
+  }
+
+  #dashboard :-moz-ui-invalid {
+    box-shadow: none;
+  }
+
+  #dashboard progress {
+    vertical-align: baseline;
+  }
+
+  #dashboard ::-webkit-inner-spin-button,
+  #dashboard ::-webkit-outer-spin-button {
+    height: auto;
+  }
+
+  #dashboard [type="search"] {
+    -webkit-appearance: textfield;
+    outline-offset: -2px;
+  }
+
+  #dashboard ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+
+  #dashboard ::-webkit-file-upload-button {
+    -webkit-appearance: button;
+    font: inherit;
+  }
+
+  #dashboard summary {
+    display: list-item;
+  }
+
+  #dashboard blockquote,
+  #dashboard dl,
+  #dashboard dd,
+  #dashboard h1,
+  #dashboard h2,
+  #dashboard h3,
+  #dashboard h4,
+  #dashboard h5,
+  #dashboard h6,
+  #dashboard hr,
+  #dashboard figure,
+  #dashboard p,
+  #dashboard pre {
+    margin: 0;
+  }
+
+  #dashboard fieldset {
+    margin: 0;
+    padding: 0;
+  }
+
+  #dashboard legend {
+    padding: 0;
+  }
+
+  #dashboard ol,
+  #dashboard ul,
+  #dashboard menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  #dashboard textarea {
+    resize: vertical;
+  }
+
+  #dashboard input::placeholder,
+  #dashboard textarea::placeholder {
+    opacity: 1; /* 1 */
+    color: theme("colors.gray.400", #9ca3af); /* 2 */
+  }
+
+  #dashboard button,
+  #dashboard [role="button"] {
+    cursor: pointer;
+  }
+
+  #dashboard :disabled {
+    cursor: default;
+  }
+
+  #dashboard img,
+  #dashboard svg,
+  #dashboard video,
+  #dashboard canvas,
+  #dashboard audio,
+  #dashboard iframe,
+  #dashboard embed,
+  #dashboard object {
+    display: block;
+    vertical-align: middle;
+  }
+
+  #dashboard img,
+  #dashboard video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  #dashboard [hidden] {
+    display: none;
+  }
+}
