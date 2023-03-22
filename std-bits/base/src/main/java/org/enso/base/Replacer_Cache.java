@@ -6,13 +6,14 @@ import org.graalvm.polyglot.Value;
 import java.util.ArrayList;
 import java.util.function.Function;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Replacer_Cache {
   private static final int lruSize = 5;
 
   // Circular buffer containing the most recent cache keys.
-  private static final ArrayList<Pair<String, Value>> lru = new ArrayList<>(lruSize);
+  private static final List<Pair<String, Value>> lru = new ArrayList<>(lruSize);
 
   static {
     for (int i=0; i < lruSize; ++i) {
