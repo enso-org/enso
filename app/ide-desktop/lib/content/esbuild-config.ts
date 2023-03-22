@@ -106,7 +106,10 @@ export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: st
     console.log('Generator for files to copy finished.')
 }
 
+// ======================
 // === Inline plugins ===
+// ======================
+
 function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
