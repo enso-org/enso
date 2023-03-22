@@ -157,8 +157,7 @@ type Pattern_2
             _ ->
                 replacer = Replacer.new replacement self
 
-                ## Checking if an error to fail fast.
-                if replacer.is_error then replacer else
+                replacer.if_not_error <|
                     go next current = case next of
                         Match_Iterator_Value.Next filler match next_it ->
                             new_value = current + filler.text + (replacer.replace match)
