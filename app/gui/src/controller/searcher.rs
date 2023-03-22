@@ -652,7 +652,7 @@ impl Searcher {
         debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
-        let has_this = self.this_var().is_none();
+        let has_this = self.this_var().is_some();
         let preview_change =
             self.data.borrow().input.after_inserting_suggestion(&picked_suggestion, has_this)?;
         let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
