@@ -11,17 +11,18 @@ import project.Data.Type.Value_Type.Bits
    for integers it will return 64-bit integers even if the value could fit in a
    smaller one; and for Text values variable-length text will be preferred over
    fixed-length.
-
-   TODO [RW]: Add `use_smallest` flag to allow for smaller types to be used.
-
-   TODO: once we add Enso Native Object Type Value Type, we probably want to prefer it over Mixed
 most_specific_value_type : Any -> Value_Type
-most_specific_value_type value = case value of
-    _ : Integer     -> Value_Type.Integer Bits.Bits_64
-    _ : Decimal     -> Value_Type.Float Bits.Bits_64
-    _ : Text        -> Value_Type.Char size=Nothing variable=True
-    _ : Boolean     -> Value_Type.Boolean
-    _ : Date        -> Value_Type.Date
-    _ : Time_Of_Day -> Value_Type.Time
-    _ : Date_Time   -> Value_Type.Date_Time
-    _               -> Value_Type.Mixed
+most_specific_value_type value use_smallest=False =
+    ## TODO implement the `use_smallest` logic
+    _ = use_smallest
+    case value of
+        _ : Integer     -> Value_Type.Integer Bits.Bits_64
+        _ : Decimal     -> Value_Type.Float Bits.Bits_64
+        _ : Text        -> Value_Type.Char size=Nothing variable=True
+        _ : Boolean     -> Value_Type.Boolean
+        _ : Date        -> Value_Type.Date
+        _ : Time_Of_Day -> Value_Type.Time
+        _ : Date_Time   -> Value_Type.Date_Time
+        ## TODO [RW] once we add Enso Native Object Type Value Type, we probably
+           want to prefer it over Mixed
+        _               -> Value_Type.Mixed

@@ -103,7 +103,7 @@ type SQLite_Type_Mapping
             column : Column -> column.value_type
             internal_column : Internal_Column ->
                 SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
-            enso_value -> Enso_Types.most_specific_value_type enso_value
+            enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
 
         handle_preserve_input_type _ =
             inputs_types = arguments.map find_type

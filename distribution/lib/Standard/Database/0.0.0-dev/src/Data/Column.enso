@@ -141,7 +141,7 @@ type Column
                    Or we can just find the smallest value type that will hold
                    it. That will be simpler and should give the same effect. So
                    just use the `use_smallest` argument once it is implemented.
-                operand_value_type = Enso_Types.most_specific_value_type constant
+                operand_value_type = Enso_Types.most_specific_value_type constant use_smallest=True
                 operand_type = type_mapping.value_type_to_sql operand_value_type
                 SQL_Expression.Constant operand_type constant
 
@@ -456,8 +456,7 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        # TODO do this based on argument types instead
-        op = "%" # if new_type == SQL_Type.integer then "%" else "mod"
+        op = if self.value_type.is_integer && (argument_type other).is_integer then "%" else "mod"
         new_name = self.naming_helpers.binary_operation_name "%" self other
         self.make_binary_op op other new_name
 
@@ -968,6 +967,13 @@ get_approximate_type value default = case value of
     _ : Column -> value.sql_type
     Nothing -> default
     _ -> SQL_Type.approximate_type value
+
+## PRIVATE
+argument_type : Any -> Value_Type
+argument_type value = case value of
+    _ : Column -> value.value_type
+    _ : Internal_Column -> Panic.throw (Illegal_State.Error "This path is not implemented. If this is ever reached, that is a bug in the Database library.")
+    _ -> Enso_Types.most_specific_value_type value use_smallest=True
 
 ## PRIVATE
    Helper for case case_sensitivity based text operations

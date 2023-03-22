@@ -876,11 +876,21 @@ spec setup =
                 columns.first.length  . should_equal 1 frames_to_skip=1
                 columns.first . at 0
 
-            t1 = table_builder [["A", []]]
+            # TODO currently our builder does not allow all-null tables, so we create one with a 0 and remove it by filter.
+            t0 = table_builder [["A", [0]]]
+            t1 = t0.filter "A" (Filter_Condition.Not_Equal 0)
+            t1.row_count . should_equal 0
+            t1.at "A" . to_vector . should_equal []
+
             get_value (t1.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
             get_value (t1.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 0
 
-            t2 = table_builder [["A", [Nothing, Nothing]]]
+            # TODO currently our builder does not allow all-null tables, so we create one with a 0 and remove it by filter.
+            t0_2 = table_builder [["A", [0, Nothing, Nothing]]]
+            t2 = t0_2.filter "A" (Filter_Condition.Not_Equal 0)
+            t2.row_count . should_equal 2
+            t2.at "A" . to_vector . should_equal [Nothing, Nothing]
+
             get_value (t2.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
             get_value (t2.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 1
 

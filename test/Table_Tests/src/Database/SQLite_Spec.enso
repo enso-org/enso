@@ -88,15 +88,15 @@ sqlite_specific_spec prefix connection =
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN", "REAL"]
         Test.specify "should infer standard types correctly" <|
-            t.at "strs" . sql_type . is_definitely_text . should_be_true
-            t.at "ints" . sql_type . is_definitely_integer . should_be_true
-            t.at "bools" . sql_type . is_definitely_boolean . should_be_true
-            t.at "reals" . sql_type . is_definitely_double . should_be_true
+            t.at "strs" . value_type . is_text . should_be_true
+            t.at "ints" . value_type . is_integer . should_be_true
+            t.at "bools" . value_type . is_boolean . should_be_true
+            t.at "reals" . value_type . is_floating_point . should_be_true
 
-            t.at "ints" . sql_type . is_definitely_text . should_be_false
-            t.at "strs" . sql_type . is_definitely_integer . should_be_false
-            t.at "reals" . sql_type . is_definitely_boolean . should_be_false
-            t.at "bools" . sql_type . is_definitely_double . should_be_false
+            t.at "ints" . value_type . is_text . should_be_false
+            t.at "strs" . value_type . is_integer . should_be_false
+            t.at "reals" . value_type . is_boolean . should_be_false
+            t.at "bools" . value_type . is_double . should_be_false
 
     Test.group prefix+"Dialect-specific codegen" <|
         Test.specify "should generate queries for the Distinct operation" <|

@@ -129,6 +129,13 @@ type Value_Type
         _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Boolean value_type)
 
     ## UNSTABLE
+       Checks if the `Value_Type` represents a boolean type.
+    is_boolean : Boolean
+    is_boolean self = case self of
+        Value_Type.Boolean -> True
+        _ -> False
+
+    ## UNSTABLE
        Checks if the `Value_Type` represents a floating-point number type.
     is_floating_point : Boolean
     is_floating_point self = case self of
@@ -143,11 +150,20 @@ type Value_Type
         _ -> False
 
     ## UNSTABLE
+       Checks if the `Value_Type` represents any numeric type - integer,
+       floating point or decimal.
     is_numeric : Boolean
     is_numeric self = case self of
         Value_Type.Integer _ -> True
         Value_Type.Float _   -> True
         Value_Type.Decimal _ _ -> True
+        _ -> False
+
+    ## UNSTABLE
+       Checks if the `Value_Type` represents an integer type.
+    is_integer : Boolean
+    is_integer self = case self of
+        Value_Type.Integer _ -> True
         _ -> False
 
     # TODO move these functions below to a separate file
