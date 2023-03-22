@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 /* Copied from https://unpkg.com/tailwindcss@3.2.7/src/css/preflight.css. */
+/* This is required because these styles should not affect the IDE. */
 @layer base {
     #dashboard *, #dashboard ::before, #dashboard ::after {
         box-sizing: border-box; /* 1 */

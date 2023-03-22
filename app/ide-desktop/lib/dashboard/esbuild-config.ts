@@ -8,13 +8,16 @@
  * See the bundlers documentation for more information:
  * https://esbuild.github.io/getting-started/#bundling-for-node.
  */
-import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginTime from 'esbuild-plugin-time'
+
+import postcss from 'postcss'
+import tailwindcss from 'tailwindcss'
 
 import * as utils from '../../utils'
 
@@ -23,8 +26,6 @@ import * as utils from '../../utils'
 // =================
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-const TAILWIND_BINARY_PATH = path.resolve(THIS_PATH, '../../node_modules/.bin/tailwindcss')
-const TAILWIND_CSS_PATH = path.resolve(THIS_PATH, 'src', 'tailwind.css')
 
 // =============================
 // === Environment variables ===
@@ -53,36 +54,31 @@ export function argumentsFromEnv(): Arguments {
 // === Inline plugins ===
 // ======================
 
-function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esbuild.Plugin {
+function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
+            interface CacheEntry {
+                contents: string
+                lastModified: number
+            }
             // Required since `onStart` is called on every rebuild.
-            let firstRun = true
-            build.onStart(() => {
-                if (firstRun) {
-                    const dest = path.join(args.assetsPath, 'tailwind.css')
-                    const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
-                    console.log(`Generating tailwind css from '${TAILWIND_CSS_PATH}' to '${dest}'.`)
-                    const child = childProcess.spawn(`node`, [
-                        TAILWIND_BINARY_PATH,
-                        '-i',
-                        TAILWIND_CSS_PATH,
-                        '-o',
-                        dest,
-                        '-c',
-                        config,
-                        '--minify',
-                    ])
-                    firstRun = false
-                    return new Promise(resolve =>
-                        child.on('close', () => {
-                            resolve({})
-                        })
-                    )
-                } else {
-                    return {}
+            let cachedOutput: Record<string, CacheEntry> = {}
+            const tailwindPostcssPlugin = tailwindcss({
+                config: path.resolve(THIS_PATH, 'tailwind.config.ts'),
+            })
+            const cssProcessor = postcss([tailwindPostcssPlugin])
+            build.onLoad({ filter: /\.css$/ }, async loadArgs => {
+                const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
+                let output = cachedOutput[loadArgs.path]
+                if (!output || output.lastModified !== lastModified) {
+                    console.log(`Processing CSS file '${loadArgs.path}'.`)
+                    const result = await cssProcessor.process(await fs.readFile(loadArgs.path, 'utf8'), { from: loadArgs.path })
+                    console.log(`Processed CSS file '${loadArgs.path}'.`)
+                    output = { contents: result.css, lastModified }
+                    cachedOutput[loadArgs.path] = output
                 }
+                return { contents: output.contents, loader: 'css' }
             })
         },
     }
@@ -94,7 +90,7 @@ function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esb
 
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
-    const { outputPath, assetsPath } = args
+    const { outputPath } = args
     const buildOptions = {
         absWorkingDir: THIS_PATH,
         bundle: true,
@@ -103,13 +99,14 @@ export function bundlerOptions(args: Arguments) {
         entryPoints: [
             path.resolve(THIS_PATH, 'src', 'index.tsx'),
             path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
+            path.resolve(THIS_PATH, 'src', 'tailwind.css'),
         ],
         outdir: outputPath,
         outbase: 'src',
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
-            esbuildPluginGenerateTailwind({ assetsPath }),
+            esbuildPluginGenerateTailwind(),
         ],
         define: {
             // We are defining a constant, so it should be `CONSTANT_CASE`.
