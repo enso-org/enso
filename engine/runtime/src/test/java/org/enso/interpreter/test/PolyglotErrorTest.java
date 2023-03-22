@@ -39,7 +39,7 @@ public class PolyglotErrorTest {
     var code = """
     import Standard.Base.Panic.Panic
     import Standard.Base.Error.Error
-    import Standard.Base.Error.Illegal_State.Illegal_State
+    import Standard.Base.Errors.Illegal_State.Illegal_State
     import Standard.Base.Nothing.Nothing
     import Standard.Base.Warning.Warning
     polyglot java import org.enso.interpreter.test.PolyglotErrorTest
