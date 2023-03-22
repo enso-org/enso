@@ -12,15 +12,14 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 // === Configuration ===
 // =====================
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-    content: [THIS_PATH + '/src/**/*.tsx'],
-    important: '#dashboard',
-    theme: {
-        extend: {},
-    },
-    corePlugins: {
-        preflight: false,
-    },
-    plugins: [],
+// This is a third-party API that we do not control.
+/* eslint-disable no-restricted-syntax */
+export const content = [THIS_PATH + '/src/**/*.tsx']
+export const important = '#dashboard'
+export const theme = {
+    extend: {},
 }
+export const corePlugins = {
+    preflight: false,
+}
+export const plugins = []
