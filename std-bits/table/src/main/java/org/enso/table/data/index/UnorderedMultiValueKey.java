@@ -1,15 +1,18 @@
 package org.enso.table.data.index;
 
+import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Context;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -21,6 +24,19 @@ import org.enso.table.data.column.storage.Storage;
  * Enso-defined objects, as hashing of such objects is not yet implemented properly.
  */
 public class UnorderedMultiValueKey extends MultiValueKeyBase {
+  private static Function<Object, Long> EnsoHashCodeCallback;
+
+  private static long getEnsoHashCode(Object value) {
+    if (EnsoHashCodeCallback == null) {
+      var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
+      var type = module.getMember("Comparable");
+      var function = module.invokeMember("get_method", type, "hash_callback");
+    }
+    return EnsoHashCodeCallback.apply(value);
+  }
+
+
+
   private final int hashCodeValue;
   private final List<TextFoldingStrategy> textFoldingStrategy;
 
