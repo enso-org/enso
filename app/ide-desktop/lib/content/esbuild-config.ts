@@ -121,11 +121,21 @@ function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esb
                     const dest = path.join(args.assetsPath, 'tailwind.css')
                     const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
                     console.log(`Generating tailwind css from '${TAILWIND_CSS_PATH}' to '${dest}'.`)
-                    const tailwindOpts = [TAILWIND_BINARY_PATH, '-i', TAILWIND_CSS_PATH]
-                    const outputOpts = ['-o', dest]
-                    const configOpts = ['-c', config, '--minify']
-                    const child = childProcess.spawn(`node`, [...tailwindOpts, ...outputOpts, ...configOpts])
-                    return new Promise(resolve => child.on('close', () => { resolve({}) }))
+                    const child = childProcess.spawn(`node`, [
+                        TAILWIND_BINARY_PATH,
+                        '-i',
+                        TAILWIND_CSS_PATH,
+                        'o',
+                        dest,
+                        '-c',
+                        config,
+                        '--minify',
+                    ])
+                    return new Promise(resolve =>
+                        child.on('close', () => {
+                            resolve({})
+                        })
+                    )
                 } else {
                     firstRun = false
                     return {}
