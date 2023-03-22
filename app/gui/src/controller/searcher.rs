@@ -2207,7 +2207,6 @@ pub mod test {
                     "from mock_namespace.MockProject.Table.Data.Table import Table".to_string(),
                 ],
             },
-            // TODO
             Case {
                 entry:            "mock_namespace.MockProject.project_method".to_string(),
                 input:            "mock_namespace.MockProject.".to_string(),
