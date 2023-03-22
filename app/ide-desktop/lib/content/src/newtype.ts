@@ -25,7 +25,9 @@ interface NotNewtype {
     _$type?: never
 }
 
-export function asNewtype<T extends Newtype<unknown, string>>(s: NotNewtype & Omit<T, '_$type'>): T {
+export function asNewtype<T extends Newtype<unknown, string>>(
+    s: NotNewtype & Omit<T, '_$type'>
+): T {
     // This cast is unsafe.
     // `T` has an extra property `_$type` which is used purely for typechecking
     // and does not exist at runtime.
