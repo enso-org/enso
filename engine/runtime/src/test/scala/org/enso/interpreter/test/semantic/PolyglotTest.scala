@@ -112,12 +112,13 @@ class PolyglotTest extends InterpreterTest {
     "fail to match on Polyglot symbol when imported everything from stdlib" in {
       val code =
         """from Standard.Base import all
+          |import Standard.Base.Polyglot as Polyglot_Module
           |polyglot java import java.util.Random
           |
           |main =
           |    random_gen = Random.new
           |    case random_gen of
-          |        Polyglot -> IO.println "OK"
+          |        Polyglot_Module -> IO.println "OK"
           |        _ -> IO.println "FAIL"
           |""".stripMargin
       eval(code)
@@ -127,7 +128,7 @@ class PolyglotTest extends InterpreterTest {
 
     "match on Polyglot type when explicitly importing everything from Polyglot module" in {
       val code =
-        """from Standard.Base.Polyglot import all
+        """import Standard.Base.Polyglot.Polyglot
           |import Standard.Base.IO
           |polyglot java import java.util.Random
           |
