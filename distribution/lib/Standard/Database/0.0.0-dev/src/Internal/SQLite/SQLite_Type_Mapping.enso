@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Function import const
 
 import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Type.Enso_Types
@@ -8,6 +9,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
@@ -98,9 +100,10 @@ type SQLite_Type_Mapping
 
         find_type arg = case arg of
             column : Column -> column.value_type
+            internal_column : Internal_Column ->
+                SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
             enso_value -> Enso_Types.most_specific_value_type enso_value
 
-        handle_always_boolean _ = return Value_Type.Boolean
         handle_preserve_input_type _ =
             inputs_types = arguments.map find_type
             if inputs_types.is_empty then infer_default_type else
@@ -109,12 +112,13 @@ type SQLite_Type_Mapping
                     infer_default_type
 
         always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
+        always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]
         preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL"]
-        others = [["ADD_TEXT", _ -> return Value_Type.Char]]
         mapping = Map.from_vector <|
-            v1 = always_boolean_ops.map [_, handle_always_boolean]
+            v1 = always_boolean_ops.map [_, const (return Value_Type.Boolean)]
             v2 = preserve_input_type_ops.map [_, handle_preserve_input_type]
-            v1 + v2 + others
+            v3 = always_text_ops.map [_, const (return default_text)]
+            v1 + v2 + v3
         handler = mapping.get op_name (_ -> infer_default_type)
         handler Nothing
 
@@ -132,7 +136,7 @@ simple_types_map = Map.from_vector <|
     floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, Value_Type.Float Bits.Bits_64]
     # We treat numeric as a float, since that is what really sits in SQLite under the hood.
     numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Float Bits.Bits_64]
-    strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, Value_Type.Char size=Nothing variable=True]
+    strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, default_text]
     blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Mixed]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
     ints + floats + numerics + strings + blobs + special_types
@@ -156,3 +160,6 @@ type SQLite_Types
     ## PRIVATE
        The artificial 6th affinity that is used to distinguish boolean columns.
     boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
+
+## PRIVATE
+default_text = Value_Type.Char size=Nothing variable=True

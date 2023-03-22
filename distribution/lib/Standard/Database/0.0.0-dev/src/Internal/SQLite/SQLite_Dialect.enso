@@ -68,7 +68,7 @@ type SQLite_Dialect
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
-    prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
+    prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type_reference.get.is_likely_text of
         True ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of

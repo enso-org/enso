@@ -63,14 +63,16 @@ spec =
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
 
-            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "c", Aggregate_Column.Count "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
+            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "d", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
             t2.at "b" . value_type . should_equal Value_Type.Char
             t2.at "Sum a" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
-            t2.at "Minimum c" . value_type . should_equal Value_Type.Boolean
+            t2.at "Minimum d" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t2.at "Count Not Nothing c" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Concatenate b" . value_type . should_equal Value_Type.Char
             t2.at "Count" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            # First is not currently implemented in SQLite
+            # t2.at "First c" . value_type . should_equal Value_Type.Boolean
 
         Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
             # TODO this will be tested once the cast operator is implemented
