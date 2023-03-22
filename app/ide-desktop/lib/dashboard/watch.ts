@@ -25,7 +25,7 @@ const OPTS = bundler.bundlerOptions(ARGS)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
     path.resolve(THIS_PATH, 'src', 'index.tsx'),
-    path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
+    path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.write = false
 
