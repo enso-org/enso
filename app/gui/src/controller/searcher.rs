@@ -2131,7 +2131,7 @@ pub mod test {
     fn recognize_qualified_names() {
         fn database() -> Rc<SuggestionDatabase> {
             mock_suggestion_database! {
-                local.Project {
+                mock_namespace.MockProject {
                     mod Foo {
                         mod Bar {
                             type Baz {
@@ -2146,7 +2146,7 @@ pub mod test {
                         mod Data {
                             mod Table {
                                 type Table {
-                                    static fn new() -> local.Project.Table.Data.Table.Table;
+                                    static fn new() -> mock_namespace.MockProject.Table.Data.Table.Table;
                                 }
                             }
                         }
@@ -2168,62 +2168,64 @@ pub mod test {
 
         let cases = vec![
             Case {
-                entry:            "local.Project.Foo.Bar.Baz.baz_method".to_string(),
+                entry:            "mock_namespace.MockProject.Foo.Bar.Baz.baz_method".to_string(),
                 input:            "Foo.Bar.".to_string(),
                 expected_code:    "operator1 = Foo.Bar.Baz.baz_method".to_string(),
-                expected_imports: vec!["import local.Project.Foo".to_string()],
+                expected_imports: vec!["import mock_namespace.MockProject.Foo".to_string()],
             },
             Case {
-                entry:            "local.Project.Foo.Bar.Baz.baz_method".to_string(),
+                entry:            "mock_namespace.MockProject.Foo.Bar.Baz.baz_method".to_string(),
                 input:            "Bar.".to_string(),
                 expected_code:    "operator1 = Bar.Baz.baz_method".to_string(),
-                expected_imports: vec!["import local.Project.Foo.Bar".to_string()],
+                expected_imports: vec!["import mock_namespace.MockProject.Foo.Bar".to_string()],
             },
             Case {
-                entry:            "local.Project.Foo.Bar.bar_method".to_string(),
+                entry:            "mock_namespace.MockProject.Foo.Bar.bar_method".to_string(),
                 input:            "Bar.".to_string(),
                 expected_code:    "operator1 = Bar.bar_method".to_string(),
-                expected_imports: vec!["import local.Project.Foo.Bar".to_string()],
+                expected_imports: vec!["import mock_namespace.MockProject.Foo.Bar".to_string()],
             },
             Case {
-                entry:            "local.Project.Foo.Bar.bar_method".to_string(),
+                entry:            "mock_namespace.MockProject.Foo.Bar.bar_method".to_string(),
                 input:            "Foo.Gee.".to_string(),
                 expected_code:    "operator1 = Bar.bar_method".to_string(),
-                expected_imports: vec!["import local.Project.Foo.Bar".to_string()],
+                expected_imports: vec!["import mock_namespace.MockProject.Foo.Bar".to_string()],
             },
             Case {
-                entry:            "local.Project.Foo.Bar.bar_method".to_string(),
-                input:            "local.Project.Foo.Bar.".to_string(),
-                expected_code:    "operator1 = local.Project.Foo.Bar.bar_method".to_string(),
+                entry:            "mock_namespace.MockProject.Foo.Bar.bar_method".to_string(),
+                input:            "mock_namespace.MockProject.Foo.Bar.".to_string(),
+                expected_code:    "operator1 = mock_namespace.MockProject.Foo.Bar.bar_method"
+                    .to_string(),
                 expected_imports: vec![],
             },
             Case {
-                entry:            "local.Project.Table.Data.Table.Table.new".to_string(),
+                entry:            "mock_namespace.MockProject.Table.Data.Table.Table.new"
+                    .to_string(),
                 input:            "Table.".to_string(),
                 expected_code:    "operator1 = Table.new".to_string(),
                 expected_imports: vec![
-                    "from local.Project.Table.Data.Table import Table".to_string()
+                    "from mock_namespace.MockProject.Table.Data.Table import Table".to_string(),
                 ],
             },
-            // TODO: test cases below actually don't work as desired because the searcher is not
-            // using `local.Project.Main` as it's code position.
+            // TODO
             Case {
-                entry:            "local.Project.project_method".to_string(),
-                input:            "local.Project.".to_string(),
-                expected_code:    "operator1 = local.Project.project_method".to_string(),
+                entry:            "mock_namespace.MockProject.project_method".to_string(),
+                input:            "mock_namespace.MockProject.".to_string(),
+                expected_code:    "operator1 = mock_namespace.MockProject.project_method"
+                    .to_string(),
                 expected_imports: vec![],
             },
             Case {
-                entry:            "local.Project.project_method".to_string(),
-                input:            "Project.".to_string(),
-                expected_code:    "operator1 = Project.project_method".to_string(),
-                expected_imports: vec!["import local.Project".to_string()],
+                entry:            "mock_namespace.MockProject.project_method".to_string(),
+                input:            "MockProject.".to_string(),
+                expected_code:    "operator1 = MockProject.project_method".to_string(),
+                expected_imports: vec!["import mock_namespace.MockProject".to_string()],
             },
             Case {
-                entry:            "local.Project.Foo.Bar.bar_method".to_string(),
-                input:            "Project.".to_string(),
-                expected_code:    "operator1 = Project.Foo.Bar.bar_method".to_string(),
-                expected_imports: vec!["import local.Project".to_string()],
+                entry:            "mock_namespace.MockProject.Foo.Bar.bar_method".to_string(),
+                input:            "MockProject.".to_string(),
+                expected_code:    "operator1 = MockProject.Foo.Bar.bar_method".to_string(),
+                expected_imports: vec!["import mock_namespace.MockProject".to_string()],
             },
         ];
 
