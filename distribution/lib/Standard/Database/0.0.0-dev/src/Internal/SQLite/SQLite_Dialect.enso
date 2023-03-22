@@ -55,14 +55,6 @@ type SQLite_Dialect
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
@@ -141,33 +133,6 @@ make_internal_generator_dialect =
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool
     Base_Generator.base_dialect . extend_with my_mappings
-
-## PRIVATE
-   The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_aggregate` first.
-resolve_target_sql_type aggregate = case aggregate of
-    Group_By c _ -> c.sql_type
-    Count _ -> SQL_Type.integer
-    Count_Distinct columns _ _ ->
-        if columns.length == 1 then SQL_Type.integer else
-            unsupported "Count_Distinct on multiple columns"
-    Count_Not_Nothing _ _ -> SQL_Type.integer
-    Count_Nothing _ _ -> SQL_Type.integer
-    Count_Not_Empty _ _ -> SQL_Type.integer
-    Count_Empty _ _ -> SQL_Type.integer
-    Percentile _ _ _ -> unsupported "Percentile"
-    Mode _ _ -> unsupported "Mode"
-    First _ _ _ _ -> unsupported "First"
-    Last _ _ _ _ -> unsupported "Last"
-    Maximum c _ -> c.sql_type
-    Minimum c _ -> c.sql_type
-    Shortest _ _ -> unsupported "Shortest"
-    Longest _ _ -> unsupported "Longest"
-    Standard_Deviation _ _ _ -> SQL_Type.real
-    Concatenate _ _ _ _ _ _ -> SQL_Type.text
-    Sum c _ -> c.sql_type
-    Average _ _ -> SQL_Type.real
-    Median _ _ -> unsupported "Median"
 
 ## PRIVATE
 unsupported name =

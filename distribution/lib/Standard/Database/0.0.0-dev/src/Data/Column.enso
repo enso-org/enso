@@ -456,7 +456,7 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        op = if self.value_type.is_integer && (argument_type other).is_integer then "%" else "mod"
+        op = if self.value_type.is_integer && (find_argument_type other).is_integer then "%" else "mod"
         new_name = self.naming_helpers.binary_operation_name "%" self other
         self.make_binary_op op other new_name
 
@@ -557,10 +557,8 @@ type Column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values = case values of
         _ : Vector ->
-            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
-            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                new_name = self.naming_helpers.function_name "coalesce" [self]+values
-                self.make_op "COALESCE" values new_name
+            new_name = self.naming_helpers.function_name "coalesce" [self]+values
+            self.make_op "COALESCE" values new_name
         _ : Array -> self.coalesce (Vector.from_polyglot_array values)
         _ -> self.coalesce [values]
 
@@ -578,10 +576,8 @@ type Column
     min : (Any | Vector Any) -> Column
     min self values = case values of
         _ : Vector ->
-            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
-            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                new_name = self.naming_helpers.function_name "min" [self]+values
-                self.make_op "ROW_MIN" values new_name
+            new_name = self.naming_helpers.function_name "min" [self]+values
+            self.make_op "ROW_MIN" values new_name
         _ : Array -> self.min (Vector.from_polyglot_array values)
         _ -> self.min [values]
 
@@ -599,10 +595,8 @@ type Column
     max : (Any | Vector Any) -> Column
     max self values = case values of
         _ : Vector ->
-            fold_type = values.fold self.sql_type c->v-> SQL_Type.merge_type c (get_approximate_type v self.sql_type)
-            if fold_type.is_error then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
-                new_name = self.naming_helpers.function_name "max" [self]+values
-                self.make_op "ROW_MAX" values new_name
+            new_name = self.naming_helpers.function_name "max" [self]+values
+            self.make_op "ROW_MAX" values new_name
         _ : Array -> self.max (Vector.from_polyglot_array values)
         _ -> self.max [values]
 
@@ -962,15 +956,8 @@ type Column
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
 ## PRIVATE
-   TODO: Revisit this as part of the column value type work.
-get_approximate_type value default = case value of
-    _ : Column -> value.sql_type
-    Nothing -> default
-    _ -> SQL_Type.approximate_type value
-
-## PRIVATE
-argument_type : Any -> Value_Type
-argument_type value = case value of
+find_argument_type : Any -> Value_Type
+find_argument_type value = case value of
     _ : Column -> value.value_type
     _ : Internal_Column -> Panic.throw (Illegal_State.Error "This path is not implemented. If this is ever reached, that is a bug in the Database library.")
     _ -> Enso_Types.most_specific_value_type value use_smallest=True

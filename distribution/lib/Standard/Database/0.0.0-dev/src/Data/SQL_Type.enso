@@ -108,21 +108,6 @@ type SQL_Type
     null : SQL_Type
     null = SQL_Type.Value Types.NULL "NULL"
 
-    ## DEPRECATED: use `Enso_Types.most_specific_value_type` instead.
-       Given an Enso value gets the approximate SQL type.
-    approximate_type : Any -> SQL_Type ! Illegal_Argument
-    approximate_type value = case value of
-        _ : Column -> value.sql_type
-        _ : Boolean -> SQL_Type.boolean
-        _ : Integer -> if value.abs >= 2^32 then SQL_Type.bigint else SQL_Type.integer
-        _ : Decimal -> SQL_Type.double
-        _ : Text -> SQL_Type.text
-        _ : Date -> SQL_Type.date
-        _ : Time_Of_Day -> SQL_Type.time
-        _ : Date_Time -> SQL_Type.date_time
-        Nothing -> SQL_Type.null
-        _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")
-
     ## PRIVATE
        Returns the SQL type that is the result of applying an  operation to the
        two given types.

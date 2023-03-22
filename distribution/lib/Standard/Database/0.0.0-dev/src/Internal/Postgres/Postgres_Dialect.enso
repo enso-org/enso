@@ -58,14 +58,6 @@ type Postgres_Dialect
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
@@ -125,37 +117,6 @@ make_internal_generator_dialect =
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool
     Base_Generator.base_dialect . extend_with my_mappings
-
-## PRIVATE
-   The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_aggregate` first.
-resolve_target_sql_type aggregate = case aggregate of
-    Group_By c _ -> c.sql_type
-    Count _ -> SQL_Type.bigint
-    Count_Distinct _ _ _ -> SQL_Type.bigint
-    Count_Not_Nothing _ _ -> SQL_Type.bigint
-    Count_Nothing _ _ -> SQL_Type.bigint
-    Count_Not_Empty _ _ -> SQL_Type.bigint
-    Count_Empty _ _ -> SQL_Type.bigint
-    Percentile _ _ _ -> SQL_Type.double
-    Mode c _ -> c.sql_type
-    First c _ _ _ -> c.sql_type
-    Last c _ _ _ -> c.sql_type
-    Maximum c _ -> c.sql_type
-    Minimum c _ -> c.sql_type
-    Shortest c _ -> c.sql_type
-    Longest c _ -> c.sql_type
-    Standard_Deviation _ _ _ -> SQL_Type.double
-    Concatenate _ _ _ _ _ _ -> SQL_Type.text
-    Sum c _ ->
-        if (c.sql_type == SQL_Type.integer) || (c.sql_type == SQL_Type.smallint) then SQL_Type.bigint else
-            if c.sql_type == SQL_Type.bigint then SQL_Type.numeric else
-                c.sql_type
-    Average c _ ->
-        if c.sql_type.is_definitely_integer then SQL_Type.numeric else
-            if c.sql_type.is_definitely_double then SQL_Type.double else
-                c.sql_type
-    Median _ _ -> SQL_Type.double
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->

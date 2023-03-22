@@ -39,16 +39,6 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate =
-        _ = [aggregate]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering

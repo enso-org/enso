@@ -42,6 +42,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Data.Column import find_argument_type
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
@@ -668,11 +669,12 @@ type Table
     compute : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     compute self expression on_problems=Report_Warning =
         get_column name = self.at name
+        type_mapping = self.connection.dialect.get_type_mapping
         make_constant value =
-            # TODO [RW] what shall we do with this type approximation? keep it?
-            new_type = SQL_Type.approximate_type value
-            expr = SQL_Expression.Constant new_type value
-            new_type_ref = SQL_Type_Reference.from_constant new_type
+            argument_value_type = find_argument_type value
+            sql_type = type_mapping.value_type_to_sql_type argument_value_type Problem_Behavior.Ignore
+            expr = SQL_Expression.Constant sql_type value
+            new_type_ref = SQL_Type_Reference.from_constant sql_type
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value

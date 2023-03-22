@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Table, Value_Type
 
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 import Standard.Database.Connection.SQLite_Format.SQLite_Format
@@ -86,7 +87,7 @@ sqlite_specific_spec prefix connection =
             i = t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
-            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN", "REAL"]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
         Test.specify "should infer standard types correctly" <|
             t.at "strs" . value_type . is_text . should_be_true
             t.at "ints" . value_type . is_integer . should_be_true
@@ -96,7 +97,7 @@ sqlite_specific_spec prefix connection =
             t.at "ints" . value_type . is_text . should_be_false
             t.at "strs" . value_type . is_integer . should_be_false
             t.at "reals" . value_type . is_boolean . should_be_false
-            t.at "bools" . value_type . is_double . should_be_false
+            t.at "bools" . value_type . is_floating_point . should_be_false
 
     Test.group prefix+"Dialect-specific codegen" <|
         Test.specify "should generate queries for the Distinct operation" <|

@@ -45,15 +45,6 @@ type Redshift_Dialect
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate =
-        Postgres_Dialect.resolve_target_sql_type aggregate
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
