@@ -67,7 +67,7 @@ make_unary_op name =
     arguments ->
         case arguments.length == 1 of
             True ->
-                (code name+" ")++(arguments.at 0) . paren
+                (Builder.code name+" ")++(arguments.at 0) . paren
             False ->
                 Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name)
 
@@ -128,7 +128,7 @@ make_right_unary_op name =
 make_function : Text -> (Vector Builder -> Builder)
 make_function name =
     arguments ->
-        (code name) ++ (Builder.join ", " arguments . paren)
+        (Builder.code name) ++ (Builder.join ", " arguments . paren)
 
 ## PRIVATE
 
@@ -195,7 +195,7 @@ make_iif arguments = case arguments.length of
         expr = arguments.at 0
         when_true = arguments.at 1
         when_false = arguments.at 2
-        (code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
+        (Builder.code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
@@ -353,7 +353,7 @@ generate_select_context dialect ctx =
 
     orders = ctx.orders.map (generate_order dialect)
     order_part = (Builder.join ", " orders) . prefix_if_present " ORDER BY "
-    (code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
+    (Builder.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
 
 ## PRIVATE
 

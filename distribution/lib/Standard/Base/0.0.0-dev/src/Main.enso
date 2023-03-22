@@ -10,11 +10,11 @@ import project.Error.Error
 import project.Errors
 import project.Function.Function
 import project.IO
-import project.Java
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Polyglot.Java
 import project.Polyglot.Polyglot
 import project.Runtime
 import project.System
@@ -41,11 +41,11 @@ export project.Error.Error
 export project.Errors
 export project.Function.Function
 export project.IO
-export project.Java
 export project.Math
 export project.Meta
 export project.Nothing.Nothing
 export project.Panic.Panic
+export project.Polyglot.Java
 export project.Polyglot.Polyglot
 export project.Runtime
 export project.System

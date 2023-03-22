@@ -90,7 +90,7 @@ type Builder
        - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
     ++ self other = case other of
-        text : Text -> if text == "" then self else Builder.Value (self.fragments ++ (code text).fragments)
+        text : Text -> if text == "" then self else Builder.Value (self.fragments ++ (Builder.code text).fragments)
         _ -> Builder.Value (self.fragments ++ other.fragments)
 
     ## UNSTABLE
