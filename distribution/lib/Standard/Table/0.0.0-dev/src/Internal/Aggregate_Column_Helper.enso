@@ -111,7 +111,7 @@ default_aggregate_column_name aggregate_column include_column=True =
             prefix + " " + (if include_column then c.name else "")
 
 ## PRIVATE
-   Utility function to check if all same column
+   Utility function to check if all aggregates are operating on the same source column.
 all_same_column : Vector Aggregate_Column -> Boolean
 all_same_column aggregates =
     is_not_count c = case c of
