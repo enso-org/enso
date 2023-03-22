@@ -12,6 +12,7 @@ import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Polyglot
@@ -57,17 +58,19 @@ type Pattern_2
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match_all : Text -> Vector Match_2
+    match_all : Text -> Vector Match_2 ! Illegal_Argument
     match_all self input =
-        builder = Vector.new_builder
-        it = Match_Iterator.new self input
-        go it = case it.next of
-            Match_Iterator_Value.Next _ match next_it ->
-                builder.append match
-                go next_it
-            Match_Iterator_Value.Last _ -> Nothing
-        go it
-        builder.to_vector
+        pattern_is_empty = self.internal_regex_object.pattern == ''
+        if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
+            builder = Vector.new_builder
+            it = Match_Iterator.new self input
+            go it = case it.next of
+                Match_Iterator_Value.Next _ match next_it ->
+                    builder.append match
+                    go next_it
+                Match_Iterator_Value.Last _ -> Nothing
+            go it
+            builder.to_vector
 
     ## Tries to match the provided `input` against the pattern `self`.
 

@@ -8,8 +8,8 @@ import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
+import project.Errors.Common.Index_Out_Of_Bounds
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -271,7 +271,7 @@ type Match_2
        Arguments:
        - id: The integer index or name of that group.
        - if_missing: The value to return if the index is out of bounds.
-    get : Integer -> Any -> Any
+    get : Integer -> Any -> Text
     get self index ~if_missing=Nothing =
         self.text index . catch No_Such_Group (_-> if_missing)
 
@@ -282,6 +282,6 @@ type Match_2
        Arguments:
        - id: The integer index or name of that group.
        - if_missing: The value to return if the index is out of bounds.
-    at : Integer -> Any ! Index_Out_Of_Bounds
+    at : Integer -> Text ! Index_Out_Of_Bounds
     at self index =
         self.get index if_missing=(Error.throw (Index_Out_Of_Bounds.Error index self.pattern.group_count))

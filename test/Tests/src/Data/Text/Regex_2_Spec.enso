@@ -8,6 +8,7 @@ import Standard.Base.Data.Text.Regex_2
 import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 import Standard.Base.Data.Text.Regex_2.Too_Many_Groups
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Text.Regex.Replacer import get_lru_size, replacer_cache_lookup
 from Standard.Test import Test, Test_Suite
@@ -60,7 +61,7 @@ spec =
             match . should_equal Nothing
 
         Test.specify "should be able to `match` the all instances of the pattern in the input" <|
-            pattern = Regex_2.compile "(..)" []
+            pattern = Regex_2.compile "(..)"
             input = "abcdefghij"
             matches = pattern.match_all input
             matches.length . should_equal 5
@@ -76,21 +77,16 @@ spec =
             match = pattern.match_all input
             match . should_equal []
 
-        Test.specify "should correctly handle empty patterns" pending="Figure out how to make Regex correctly handle empty patterns." <|
-           pattern = Regex_2.compile "" []
-           match_1 = pattern.match ""
-           match_1.length . should_equal 1
-           match_1.at 0 . start 0 . should_equal 0
-           match_1.at 0 . end 0 . should_equal 0
+        Test.specify "should correctly handle empty patterns in `match`" <|
+            pattern = Regex_2.compile ""
+            match = pattern.match ""
+            match.groups.length . should_equal 1
+            match.start 0 . should_equal 0
+            match.end 0 . should_equal 0
 
-           match_2 = pattern.match "ABC"
-           match_2.length . should_equal 4
-           match_2.at 0 . start 0 . should_equal 0
-           match_2.at 0 . end 0 . should_equal 0
-           match_2.at 1 . start 0 . should_equal 1
-           match_2.at 1 . end 0 . should_equal 1
-           match_2.at 3 . start 0 . should_equal 3
-           match_2.at 3 . end 0 . should_equal 3
+        Test.specify "should refuse to `match_all` with an empty pattern" <|
+            pattern = Regex_2.compile ""
+            pattern.match_all "ABC" . should_fail_with Illegal_Argument
 
     Test.group "Pattern_2.find" <|
         Test.specify "should be able to `find` the first instance of the pattern in the input" <|
