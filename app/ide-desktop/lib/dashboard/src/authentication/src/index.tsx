@@ -13,7 +13,6 @@
 import * as React from "react";
 import * as reactDOM from "react-dom/client";
 
-import "./styles/index.css";
 import * as loggerProvider from "./providers/logger";
 import * as platformModule from "./platform";
 import App, * as app from "./components/app";
