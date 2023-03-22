@@ -125,7 +125,7 @@ function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esb
                     const outputOpts = ['-o', dest]
                     const configOpts = ['-c', config, '--minify']
                     const child = childProcess.spawn(`node`, [...tailwindOpts, ...outputOpts, ...configOpts])
-                    return new Promise(resolve => child.on('close', () => { console.log('done'); resolve({}); }))
+                    return new Promise(resolve => child.on('close', () => { resolve({}) }))
                 } else {
                     firstRun = false
                     return {}
