@@ -456,10 +456,10 @@ export class Backend {
             return
         }
     }
-    
+
     throw(message: string): never {
-        this.logger.error(message);
-        throw new Error(message);
+        this.logger.error(message)
+        throw new Error(message)
     }
 
     /** Sets the username of the current user, on the Cloud backend API. */
