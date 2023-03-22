@@ -89,8 +89,7 @@ type Too_Many_Groups
 
        Provides a human-readable representation of the `No_Such_Group`.
     to_display_text : Text
-    to_display_text self = case self.id of
-        _ : Integer -> "Group numbers must be below 100: " + self.id.to_text + "."
+    to_display_text self = "Group numbers must be below 100: " + self.id.to_text + "."
 
 ## A syntax error reported by the Truffle regex compiler.
 type Regex_Syntax_Error

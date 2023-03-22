@@ -17,7 +17,6 @@ import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 
-polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
 
