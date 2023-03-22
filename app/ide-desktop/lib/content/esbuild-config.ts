@@ -10,7 +10,7 @@
  */
 
 import * as childProcess from 'node:child_process'
-import * as fs from 'node:fs'
+import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
@@ -27,6 +27,13 @@ import * as utils from '../../utils.js'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+
+// =================
+// === Constants ===
+// =================
+
+const TAILWIND_BINARY_PATH = '../../node_modules/.bin/tailwindcss'
+const TAILWIND_CSS_PATH = path.resolve(THIS_PATH, 'src', 'tailwind.css')
 
 // =============================
 // === Environment variables ===
@@ -93,10 +100,49 @@ export function alwaysCopiedFiles(wasmArtifacts: string) {
 export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: string) {
     console.log('Preparing a new generator for files to copy.')
     yield* alwaysCopiedFiles(wasmArtifacts)
-    for (const file of await fs.promises.readdir(assetsPath)) {
+    for (const file of await fs.readdir(assetsPath)) {
         yield path.resolve(assetsPath, file)
     }
     console.log('Generator for files to copy finished.')
+}
+
+// ======================
+// === Inline plugins ===
+// ======================
+
+function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esbuild.Plugin {
+    return {
+        name: 'enso-generate-tailwind',
+        setup: build => {
+            // Required since `onStart` is called on every rebuild.
+            let firstRun = true
+            build.onStart(() => {
+                if (firstRun) {
+                    const dest = path.join(args.assetsPath, 'tailwind.css')
+                    const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
+                    console.log(`Generating tailwind css from '${TAILWIND_CSS_PATH}' to '${dest}'.`)
+                    const child = childProcess.spawn(`node`, [
+                        TAILWIND_BINARY_PATH,
+                        '-i',
+                        TAILWIND_CSS_PATH,
+                        'o',
+                        dest,
+                        '-c',
+                        config,
+                        '--minify',
+                    ])
+                    firstRun = false
+                    return new Promise(resolve =>
+                        child.on('close', () => {
+                            resolve({})
+                        })
+                    )
+                } else {
+                    return {}
+                }
+            })
+        },
+    }
 }
 
 // ================
@@ -125,6 +171,8 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
             esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
+            // This must run before the copy plugin so that the generated `tailwind.css` is used.
+            esbuildPluginGenerateTailwind({ assetsPath }),
             esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
         ],
         define: {
