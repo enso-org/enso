@@ -30,7 +30,12 @@ public class Polyglot_Utils {
       return item.asTime();
     }
 
-    return item.as(Object.class);
+    if (item.isDuration() || item.isTimeZone() || item.isBoolean() || item.isNumber() || item.isString()) {
+      return item.asString();
+    }
+
+    // No Java representation, so we just return the Value.
+    return item;
   }
 
   /**

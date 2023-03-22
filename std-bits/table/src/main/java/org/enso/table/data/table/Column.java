@@ -12,6 +12,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -127,8 +128,12 @@ public class Column {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     // to revert replace with: for (Value item : items) {
     for (Object item : items) {
-      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
-      builder.appendNoGrow(converted);
+      if (item instanceof Value v) {
+        Object converted = Polyglot_Utils.convertPolyglotValue(v);
+        builder.appendNoGrow(converted);
+      } else {
+        builder.appendNoGrow(item);
+      }
     }
     var storage = builder.seal();
     return new Column(name, storage);
