@@ -131,13 +131,13 @@ function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esb
                         config,
                         '--minify',
                     ])
+                    firstRun = false
                     return new Promise(resolve =>
                         child.on('close', () => {
                             resolve({})
                         })
                     )
                 } else {
-                    firstRun = false
                     return {}
                 }
             })
