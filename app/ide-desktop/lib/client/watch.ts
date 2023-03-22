@@ -18,11 +18,13 @@ import * as esbuild from 'esbuild'
 
 import * as clientBundler from './esbuild-config'
 import * as contentBundler from '../content/esbuild-config'
+import * as dashboardBundler from '../dashboard/esbuild-config'
 import * as paths from './paths'
 
 /** Set of esbuild watches for the client and content. */
 interface Watches {
     client: esbuild.BuildResult
+    dashboard: esbuild.BuildResult
     content: esbuild.BuildResult
 }
 
@@ -33,7 +35,7 @@ console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })
 
-const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
+const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
         console.log('Bundling client.')
         const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv()
@@ -60,6 +62,26 @@ const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         console.log('Result of client bundling: ', client)
         void clientBuilder.watch()
 
+        console.log('Bundling dashboard.')
+        const dashboardOpts = dashboardBundler.bundleOptions()
+        dashboardOpts.plugins.push({
+            name: 'enso-on-rebuild',
+            setup: build => {
+                build.onEnd(() => {
+                    console.log('Dashboard bundle updated.')
+                })
+            }
+        })
+        dashboardOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
+        const dashboardBuilder = await esbuild.context(dashboardOpts)
+        const dashboard = await dashboardBuilder.rebuild()
+        console.log('Result of dashboard bundling: ', dashboard)
+        // We do not need to serve the dashboard as it outputs to the same directory.
+        // It will not rebuild on request, but it is not intended to rebuild on request anyway.
+        // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
+        // before the copy plugin runs.
+        void dashboardBuilder.watch()
+
         console.log('Bundling content.')
         const contentOpts = contentBundler.bundlerOptionsFromEnv()
         contentOpts.plugins.push({
@@ -75,11 +97,12 @@ const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         const content = await contentBuilder.rebuild()
         console.log('Result of content bundling: ', content)
         void contentBuilder.watch()
-        resolve({ client, content })
+
+        resolve({ client, dashboard, content })
     })()
 })
 
-await BOTH_BUNDLES_READY
+await ALL_BUNDLES_READY
 console.log('Exposing Project Manager bundle.')
 await fs.symlink(
     PROJECT_MANAGER_BUNDLE_PATH,

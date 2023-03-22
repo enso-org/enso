@@ -30,12 +30,10 @@
     "@typescript-eslint/parser": "^5.55.0",
     "cross-env": "^7.0.3",
     "eslint": "^8.36.0",
-    "eslint-plugin-jsdoc": "^40.0.2",
-    "patch-package": "^6.4.7"
+    "eslint-plugin-jsdoc": "^40.0.2"
   },
   "scripts": {
-    "dev": "PORT=8081 npm exec --workspace enso-dashboard -- tsx watch.ts",
-    "watch": "npm run watch --workspace enso-content",
-    "postinstall": "patch-package"
+    "dev": "ENSO_BUILD_GUI_ASSETS=/tmp/enso-dashboard/assets/ ENSO_BUILD_GUI=/tmp/enso-dashboard/ npm run watch --workspace enso-dashboard",
+    "watch": "npm run watch --workspace enso-content"
   }
 }

@@ -1,7 +1,15 @@
 {
   "name": "enso-dashboard",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
+  "scripts": {
+    "typecheck": "npx tsc --noEmit",
+    "lint": "npx --yes eslint src",
+    "build": "npx tsx bundle.ts",
+    "watch": "npx tsx watch.ts",
+    "start": "npx tsx start.ts"
+  },
   "dependencies": {
     "@heroicons/react": "^2.0.15",
     "@types/node": "^16.18.11",

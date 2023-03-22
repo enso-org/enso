@@ -16,7 +16,7 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 
 const PORT = 8081
 const HTTP_STATUS_OK = 200
-const OPTS = bundler.defaultBundlerOptions({ devMode: true })
+const OPTS = bundler.bundleOptions()
 
 // ===============
 // === Watcher ===

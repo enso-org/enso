@@ -9,13 +9,14 @@
  * https://esbuild.github.io/getting-started/#bundling-for-node.
  */
 import * as childProcess from 'node:child_process'
-import * as os from 'node:os'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginTime from 'esbuild-plugin-time'
+
+import * as utils from '../../utils'
 
 // =================
 // === Constants ===
@@ -36,6 +37,16 @@ export interface Arguments {
     assetsPath: string
     /** `true` if in development mode (live-reload), `false` if in production mode. */
     devMode: boolean
+}
+
+
+/**
+ * Get arguments from the environment.
+ */
+export function argumentsFromEnv(): Arguments {
+    const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
+    const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+    return { assetsPath, outputPath, devMode: false }
 }
 
 // ======================
@@ -118,19 +129,9 @@ export function bundlerOptions(args: Arguments) {
     return correctlyTypedBuildOptions
 }
 
-/** Common settings for the bundler.
- *
- * Note that they should be further customized as per the needs of the specific workflow
- * (e.g. watch vs. build). */
-export function defaultBundlerOptions(args: Pick<Arguments, 'devMode'>) {
-    // FIXME[sb]: This `outputPath` is extremely hacky.
-    const outputPath = path.join(os.tmpdir(), 'enso-dashboard')
-    return bundlerOptions({ outputPath, assetsPath: outputPath, devMode: args.devMode })
-}
-
 /** ESBuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set. */
 export function bundleOptions() {
-    return defaultBundlerOptions({ devMode: false })
+    return bundlerOptions(argumentsFromEnv())
 }
