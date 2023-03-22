@@ -132,6 +132,11 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Union(self, that)
     }
 
+    /// Unify the shape with another one.
+    fn union_exclusive<S: IntoOwned>(&self, that: S) -> UnionExclusive<Self, Owned<S>> {
+        UnionExclusive(self, that)
+    }
+
     /// Subtracts the argument from this shape.
     fn difference<S: IntoOwned>(&self, that: S) -> Difference<Self, Owned<S>> {
         Difference(self, that)
