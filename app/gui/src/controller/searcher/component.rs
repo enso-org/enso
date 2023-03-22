@@ -229,10 +229,12 @@ impl Component {
         // Filter out components with FQN not matching the context.
         if let Some(context) = filter.context {
             if let Data::FromDatabase { entry, .. } = &self.data {
-                let defined_in = entry.reexported_in.as_ref().unwrap_or(&entry.defined_in);
-                if !defined_in.to_string().contains(context.as_str()) {
+                if !entry.qualified_name().to_string().contains(context.as_str()) {
                     *self.match_info.borrow_mut() = MatchInfo::DoesNotMatch;
                 }
+            } else {
+                // Remove virtual entries if the context is present.
+                *self.match_info.borrow_mut() = MatchInfo::DoesNotMatch;
             }
         }
     }
@@ -399,17 +401,17 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(filter.clone_ref())
         }
-        let pattern_not_empty = !pattern.is_empty();
+        let filtering_enabled = !pattern.is_empty() || !filter.context.is_none();
         let submodules_order =
-            if pattern_not_empty { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
-        let favorites_order = if pattern_not_empty { Order::ByMatch } else { Order::Initial };
+            if filtering_enabled { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
+        let favorites_order = if filtering_enabled { Order::ByMatch } else { Order::Initial };
         for group in self.all_groups_not_in_favorites() {
             group.update_match_info_and_sorting(submodules_order);
         }
         for group in self.favorites.iter() {
             group.update_match_info_and_sorting(favorites_order);
         }
-        self.filtered.set(pattern_not_empty);
+        self.filtered.set(filtering_enabled);
     }
 
     /// All groups from [`List`] without the groups found in [`List::favorites`].
