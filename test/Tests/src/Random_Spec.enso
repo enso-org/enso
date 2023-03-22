@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Base.Random
 
