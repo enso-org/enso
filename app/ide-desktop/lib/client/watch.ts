@@ -55,7 +55,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
                         console.log('Client bundle updated.')
                     }
                 })
-            }
+            },
         })
         const clientBuilder = await esbuild.context(clientBundlerOpts)
         const client = await clientBuilder.rebuild()
@@ -70,7 +70,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
                 build.onEnd(() => {
                     console.log('Dashboard bundle updated.')
                 })
-            }
+            },
         })
         dashboardOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
         const dashboardBuilder = await esbuild.context(dashboardOpts)
@@ -90,7 +90,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
                 build.onEnd(() => {
                     console.log('Content bundle updated.')
                 })
-            }
+            },
         })
         contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
         const contentBuilder = await esbuild.context(contentOpts)

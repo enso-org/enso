@@ -34,7 +34,7 @@ async function watch() {
             if (args.status !== HTTP_STATUS_OK) {
                 console.error(`HTTP error ${args.status} when serving path '${args.path}'.`)
             }
-        }
+        },
     })
 }
 

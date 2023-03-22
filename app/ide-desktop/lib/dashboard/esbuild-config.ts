@@ -40,7 +40,6 @@ export interface Arguments {
     devMode: boolean
 }
 
-
 /**
  * Get arguments from the environment.
  */
@@ -73,7 +72,10 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 let output = cachedOutput[loadArgs.path]
                 if (!output || output.lastModified !== lastModified) {
                     console.log(`Processing CSS file '${loadArgs.path}'.`)
-                    const result = await cssProcessor.process(await fs.readFile(loadArgs.path, 'utf8'), { from: loadArgs.path })
+                    const result = await cssProcessor.process(
+                        await fs.readFile(loadArgs.path, 'utf8'),
+                        { from: loadArgs.path }
+                    )
                     console.log(`Processed CSS file '${loadArgs.path}'.`)
                     output = { contents: result.css, lastModified }
                     cachedOutput[loadArgs.path] = output

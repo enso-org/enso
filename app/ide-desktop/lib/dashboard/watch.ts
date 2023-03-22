@@ -37,7 +37,9 @@ async function watch() {
         servedir: OPTS.outdir,
         onRequest(args) {
             if (args.status !== HTTP_STATUS_OK) {
-                console.error(chalk.red(`HTTP error ${args.status} when serving path '${args.path}'.`))
+                console.error(
+                    chalk.red(`HTTP error ${args.status} when serving path '${args.path}'.`)
+                )
             }
         },
     })
