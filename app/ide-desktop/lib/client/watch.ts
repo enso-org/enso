@@ -16,8 +16,8 @@ import process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
-import * as clientBundler from './esbuild-config.js'
-import * as contentBundler from '../content/esbuild-config.js'
+import * as clientBundler from './esbuild-config'
+import * as contentBundler from '../content/esbuild-config'
 import * as paths from './paths.js'
 
 /** Set of esbuild watches for the client and content. */
@@ -36,32 +36,43 @@ await fs.mkdir(IDE_DIR_PATH, { recursive: true })
 const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
         console.log('Bundling client.')
-        const clientBundlerOpts: esbuild.BuildOptions = {
-            ...clientBundler.bundlerOptionsFromEnv(),
-            outdir: path.resolve(IDE_DIR_PATH),
-            watch: {
-                onRebuild(error) {
-                    if (error) {
+        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv()
+        clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
+        ;(clientBundlerOpts.plugins ??= []).push({
+            name: 'enso-on-rebuild',
+            setup: build => {
+                build.onEnd(result => {
+                    if (result.errors.length) {
                         // We cannot carry on if the client failed to build, because electron executable
                         // would immediately exit with an error.
-                        console.error('Client watch bundle failed:', error)
-                        reject(error)
+                        console.error('Client watch bundle failed:', result.errors[0])
+                        reject(result.errors[0])
                     } else {
                         console.log('Client bundle updated.')
                     }
-                },
-            },
-        }
-        const client = await esbuild.build(clientBundlerOpts)
+                })
+            }
+        })
+        const clientBuilder = await esbuild.context(clientBundlerOpts)
+        const client = await clientBuilder.rebuild()
         console.log('Result of client bundling: ', client)
+        void clientBuilder.watch()
 
         console.log('Bundling content.')
-        const contentOpts = contentBundler.watchOptions(() => {
-            console.log('Content bundle updated.')
+        const contentOpts = contentBundler.bundlerOptionsFromEnv()
+        ;(contentOpts.plugins ??= []).push({
+            name: 'enso-on-rebuild',
+            setup: build => {
+                build.onEnd(() => {
+                    console.log('Content bundle updated.')
+                })
+            }
         })
         contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        const content = await esbuild.build(contentOpts)
+        const contentBuilder = await esbuild.context(contentOpts)
+        const content = await contentBuilder.rebuild()
         console.log('Result of content bundling: ', content)
+        void contentBuilder.watch()
         resolve({ client, content })
     })()
 })

@@ -22,7 +22,6 @@ import esbuildPluginAlias from 'esbuild-plugin-alias'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as esbuildWatch from '../../esbuild-watch.js'
 import * as utils from '../../utils.js'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
@@ -103,19 +102,17 @@ export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: st
 // === Bundling ===
 // ================
 
+// FIXME[sb]: import dashboard builder
 /**
  * Generate the builder options.
  */
 export function bundlerOptions(args: Arguments) {
     const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath } = args
-    // This is required to make the `true` properties be typed as `boolean`.
-    // eslint-disable-next-line no-restricted-syntax
-    let trueBoolean = true as boolean
     const buildOptions = {
         // Disabling naming convention because these are third-party options.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
-        bundle: trueBoolean,
+        bundle: true,
         entryPoints: [path.resolve(THIS_PATH, 'src', 'index.ts')],
         outdir: outputPath,
         outbase: 'src',
@@ -132,14 +129,12 @@ export function bundlerOptions(args: Arguments) {
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
         },
-        sourcemap: trueBoolean,
-        minify: trueBoolean,
-        metafile: trueBoolean,
+        sourcemap: true,
+        minify: true,
+        metafile: true,
         format: 'esm',
-        publicPath: '/assets',
         platform: 'browser',
-        incremental: trueBoolean,
-        color: trueBoolean,
+        color: true,
         logOverride: {
             // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
             //    1 │ ...typeof module!=="undefined"){module["exports"]=Module}process["o...
@@ -164,32 +159,10 @@ export function bundlerOptionsFromEnv() {
     return bundlerOptions(argumentsFromEnv())
 }
 
-/** ESBuild options for spawning a watcher, that will continuously rebuild the package. */
-export function watchOptions(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
-    return esbuildWatch.toWatchOptions(bundlerOptionsFromEnv(), onRebuild, inject)
-}
-
 /** ESBuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set.
  */
 export function bundleOptions() {
-    const ret = bundlerOptionsFromEnv()
-    ret.watch = false
-    ret.incremental = false
-    return ret
+    return bundlerOptionsFromEnv()
 }
-
-/**
- * Bundles the package.
- */
-export async function bundle() {
-    try {
-        return esbuild.build(bundleOptions())
-    } catch (error) {
-        console.error(error)
-        throw error
-    }
-}
-
-export default { watchOptions, bundle, bundleOptions }

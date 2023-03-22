@@ -1,5 +1,10 @@
 /** @file Index file declaring main DOM structure for the app. */
 
+if (IS_DEV_MODE) {
+    new EventSource('/esbuild').addEventListener('change', () => { location.reload(); })
+    void navigator.serviceWorker.register('/serviceWorker.js')
+}
+
 import * as authentication from "enso-authentication";
 
 import * as platform from "./authentication/src/platform";

@@ -5,7 +5,7 @@ import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 
-import * as esbuildConfig from './esbuild-config.js'
+import * as bundler from './esbuild-config'
 
 // =================
 // === Constants ===
@@ -17,5 +17,5 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 // === Bundling ===
 // ================
 
-const BUNDLER_OPTIONS: esbuild.BuildOptions = esbuildConfig.bundlerOptionsFromEnv()
+const BUNDLER_OPTIONS: esbuild.BuildOptions = bundler.bundlerOptionsFromEnv()
 await esbuild.build(BUNDLER_OPTIONS)
