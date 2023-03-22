@@ -41,6 +41,10 @@ spec setup =
             t2 = t.filter "X" (Filter_Condition.Equal to=100)
             t2 . at "X" . to_vector . should_equal [100]
             t2 . at "ix" . to_vector . should_equal [1]
+            t3 = t.filter "X" (Filter_Condition.Not_Equal to=100)
+            t3 . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
+            t3 . at "ix" . to_vector . should_equal [2, 3, 4, 5]
+
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
@@ -48,6 +52,7 @@ spec setup =
                 False -> v.should_fail_with SQL_Error
 
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (Filter_Condition.Not_Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 3]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 12]
