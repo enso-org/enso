@@ -291,7 +291,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
         Sort_Direction.Descending -> Nulls_Order.Last
-    case internal_column.sql_type.is_likely_text of
+    case internal_column.sql_type_reference.get.is_likely_text of
         True ->
             ## In the future we can modify this error to suggest using a custom defined collation.
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else

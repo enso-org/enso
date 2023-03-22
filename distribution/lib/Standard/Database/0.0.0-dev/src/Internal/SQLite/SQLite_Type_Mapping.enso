@@ -1,13 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Function import const
 
-import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
+import project.Data.Column.Column
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -111,14 +112,22 @@ type SQLite_Type_Mapping
                 if inputs_types.all (== first_type) then return first_type else
                     infer_default_type
 
+        handle_iif _ =
+            if arguments.length != 3 then
+                Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
+            inputs_types = arguments.drop 1 . map find_type
+            if inputs_types.first == inputs_types.second then return inputs_types.first else
+                infer_default_type
+
         always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
         always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]
-        preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL"]
+        preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL"]
+        others = [["IIF", handle_iif]]
         mapping = Map.from_vector <|
             v1 = always_boolean_ops.map [_, const (return Value_Type.Boolean)]
             v2 = preserve_input_type_ops.map [_, handle_preserve_input_type]
             v3 = always_text_ops.map [_, const (return default_text)]
-            v1 + v2 + v3
+            v1 + v2 + v3 + others
         handler = mapping.get op_name (_ -> infer_default_type)
         handler Nothing
 

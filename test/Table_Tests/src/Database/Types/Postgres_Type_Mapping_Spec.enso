@@ -89,6 +89,12 @@ spec connection db_name =
             t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal default_text
+            t.compute 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
+            t.compute 'fill_empty([b], "<NA>")' . value_type . should_equal default_text
+            t.compute 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
+            t.compute 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
+            t.compute 'is_nan([d])' . value_type . should_equal Value_Type.Boolean
+            t.compute 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
 
             t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count, (Aggregate_Column.First "c" order_by="a")]
             t2.at "b" . value_type . should_equal default_text
