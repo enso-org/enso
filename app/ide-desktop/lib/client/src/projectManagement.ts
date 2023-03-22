@@ -57,11 +57,16 @@ export function importBundle(bundlePath: string): string {
     //   directory name;
     // * contain the project files directly - in this case the archive filename will be used to generate a new target
     //   directory name.
-    // tar.x({
-    //     C: targetDirectory,
-    // })
-    // make unique id
-    // return getProjectId(targetDirectory)
+    // We know that the archive must contain `package.yaml` file, so we can use it to determine the project root.
+    // There is however a possibility that user has put file with such a name as a project resource (or generally
+    // in any random place).
+
+    tar.x({
+        file: bundlePath,
+        cwd: targetDirectory,
+        sync: true,
+    });
+    return getProjectId(targetDirectory)
 }
 
 /** Import the project, so it becomes visible to Project Manager.
