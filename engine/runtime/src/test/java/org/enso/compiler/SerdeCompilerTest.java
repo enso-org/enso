@@ -35,16 +35,16 @@ public class SerdeCompilerTest {
   }
 
   private void parseSerializedModule(String projectName, String forbiddenMessage)
-  throws InterruptedException, ExecutionException, IOException, TimeoutException {
+      throws InterruptedException, ExecutionException, IOException, TimeoutException {
     IR.Module old;
     var pkgPath = new File(getClass().getClassLoader().getResource(projectName).getPath());
     var pkg = PackageManager.Default().fromDirectory(pkgPath).get();
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, true)) {
       var ensoContext =
-              (EnsoContext)
+          (EnsoContext)
               ctx.getBindings(LanguageInfo.ID)
-                      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                      .asHostObject();
+                  .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+                  .asHostObject();
       var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
       var compiler = ensoContext.getCompiler();
 
@@ -69,10 +69,10 @@ public class SerdeCompilerTest {
 
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, false)) {
       var ensoContext =
-              (EnsoContext)
+          (EnsoContext)
               ctx.getBindings(LanguageInfo.ID)
-                      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                      .asHostObject();
+                  .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+                  .asHostObject();
       var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
       var compiler = ensoContext.getCompiler();
 
