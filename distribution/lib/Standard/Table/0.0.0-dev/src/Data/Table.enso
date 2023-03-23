@@ -1009,9 +1009,6 @@ type Table
         column = self.compute expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## PRIVATE
-    with_no_rows self = self.take (First 0)
-
     ## Creates a new Table with the specified range of rows from the input
        Table.
 
