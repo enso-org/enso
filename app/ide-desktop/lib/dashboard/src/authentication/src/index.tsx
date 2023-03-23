@@ -51,7 +51,7 @@ export function run(
   } else {
     // FIXME[sb]: This is a temporary workaround and will be fixed
     // when IDE support is properly integrated into the dashboard.
-    const ide = document.getElementById(IDE_ELEMENT_ID)
+    const ide = document.getElementById(IDE_ELEMENT_ID);
     if (ide != null) {
       ide.style.display = "none";
     }
