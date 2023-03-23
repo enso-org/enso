@@ -230,8 +230,9 @@ Text.characters self =
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    Regex_2.compile pattern case_insensitive=case_insensitive . match self
+    Helpers.regex_assume_default_locale case_sensitivity <|
+        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+        Regex_2.compile pattern case_insensitive=case_insensitive . match self
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -250,10 +251,11 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
-Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error
+Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error ! Illegal_Argument
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    Regex_2.compile pattern case_insensitive=case_insensitive . match_all self
+    Helpers.regex_assume_default_locale case_sensitivity <|
+        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+        Regex_2.compile pattern case_insensitive=case_insensitive . match_all self
 
 ## ALIAS Check Matches
 
@@ -277,9 +279,10 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
 Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-    compiled_pattern.matches self
+    Helpers.regex_assume_default_locale case_sensitivity <|
+        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+        compiled_pattern.matches self
 
 ## ALIAS Split Text
 

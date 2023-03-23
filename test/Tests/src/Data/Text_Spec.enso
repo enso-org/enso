@@ -1212,18 +1212,10 @@ spec =
             accents.find 'h' . text 0 . should_equal 'h'
             accents.find 'e\u{301}' . text 0 . should_equal 'e\u{301}'
 
-        Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
+        Test.specify "should correctly handle regex edge cases in `find`" <|
             regex = Regex_Matcher.Value
-            "".match "foo" matcher=regex . should_equal Nothing
-            "".match "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
-            "".match_all "foo" matcher=regex . should_equal []
-            "".match "" matcher=regex . should_equal ""
-            "".match_all "" matcher=regex . should_equal [""]
-            "".match "" matcher=regex mode=Matching_Mode.Last . should_equal ""
-            abc = 'A\u{301}ßC'
-            abc.match "" matcher=regex . should_equal abc
-            abc.match_all "" matcher=regex . should_equal ["", "", "", "", ""]
-            abc.match "" matcher=regex mode=Matching_Mode.Last . should_equal ""
+            "".find "foo" . should_equal Nothing
+            "".find_all "foo" . should_equal []
 
         Test.specify "should handle overlapping matches as shown in the examples" <|
             "aaa".locate "aa" mode=Matching_Mode.Last case_sensitivity=Case_Sensitivity.Sensitive . should_equal (Span.Value (1.up_to 3) "aaa")
@@ -1331,8 +1323,13 @@ spec =
         Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
             'e\u{301}'.find '\u{301}' . text 0 . should_equal 'e\u{301}'
 
+        Test.specify "should not allow non-default case insensitivity" <|
+            locale = Locale.new "en" "GB" "UTF-8"
+            'a'.find 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
+            'a'.find_all 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
+
     Test.group "Text.match" <|
-        Test.specify "should default to regex" <|
+        Test.specify "should work correctly" <|
             "My Text: Goes Here".match "^My Text: (.+)$" . should_be_true
             "555-801-1923".match "^\d{3}-\d{3}-\d{4}$" . should_be_true
             "Hello".match "^[a-z]+$" . should_be_false
@@ -1349,6 +1346,10 @@ spec =
 
         Test.specify "should be possible in case-insensitive mode" <|
             "MY".match "my" Case_Sensitivity.Insensitive . should_be_true
+
+        Test.specify "should not allow non-default case insensitivity" <|
+            locale = Locale.new "en" "GB" "UTF-8"
+            'a'.match 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|
