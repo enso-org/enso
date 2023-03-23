@@ -20,7 +20,7 @@ type SQL_Type_Mapping
        to the `on_problems` setting.
 
        If the conversion is exact, it should be reversible, i.e.
-       `sql_type_to_value_type (value_type_to_sql x) = x`.
+       `sql_type_to_value_type (value_type_to_sql x Problem_Behavior.Report_Error) = x`.
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems =
         _ = [value_type, on_problems]

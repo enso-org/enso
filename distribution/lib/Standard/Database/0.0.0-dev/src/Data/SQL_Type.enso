@@ -103,8 +103,7 @@ type SQL_Type
     date_time : SQL_Type
     date_time = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMP"
 
-    ## DEPRECATED
-       The SQL type representing a null column.
+    ## The SQL type representing a null value.
     null : SQL_Type
     null = SQL_Type.Value Types.NULL "NULL"
 
