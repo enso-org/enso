@@ -37,6 +37,8 @@ mod rectangle {
             let canvas_height = Var::<Pixels>::from("input_size.y");
 
             // === Clip ===
+            // Clipping scales the shape in such a way, that the visible part will occupy whole
+            // canvas area. Thus, we need to recompute the new canvas size for the scaled shape.
             let canvas_clip_height_diff = &canvas_height * (clip.y() * 2.0);
             let canvas_clip_width_diff = &canvas_width * (clip.x() * 2.0);
             let canvas_height = canvas_height + &canvas_clip_height_diff;
