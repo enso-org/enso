@@ -73,7 +73,7 @@ class App {
         const { windowSize, chromeOptions, openedFile } = this.processArguments()
         if(openedFile !== null) {
             try {
-                this.handleOpenFile(openedFile)
+                 this.args.groups.startup.options.project.value = this.handleOpenFile(openedFile)
             } catch (e: unknown) {
                 let message = `Cannot open file: ${e}.`
                 if (e instanceof Error) {
@@ -117,7 +117,11 @@ class App {
         return {...configParser.parseArgs(argsToParse), openedFile}
     }
 
-    handleOpenFile(openedFile: string) {
+    /** Handle the case where IDE is invoked with a file to open.
+     *
+     * Imports project if necessary. Returns the ID of the project to open.
+     **/
+    handleOpenFile(openedFile: string): string {
         try {
             return project.openFile(openedFile)
         } catch (e) {

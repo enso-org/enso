@@ -4,7 +4,6 @@ import electron from "electron";
 import crypto from "node:crypto";
 
 import {isProjectRoot, projectMetadataRelative} from "./paths";
-import pathModule from "node:path";
 import fsSync from "node:fs";
 import {BUNDLED_PROJECT_EXTENSION} from "../paths";
 import * as tar from "tar";
@@ -43,30 +42,61 @@ export function openFile(openedPath: string): string {
     }
 }
 
+/** Get the common prefix of the two strings. */
+export function getCommonPrefix(a: string, b: string): string {
+    let i = 0
+    while (i < a.length && i < b.length && a[i] === b[i]) {
+        i++
+    }
+    return a.slice(0, i)
+}
+
+
+/** If the bundle consists of a single directory, return its name. Otherwise, return null. */
+export function bundleRootDirectory(bundlePath: string): string | null {
+    // We need to look up the root directory among the tarball entries.
+    let commonPrefix: string | null = null
+    tar.list({
+        file: bundlePath,
+        sync: true,
+        onentry: (entry) => {
+            // We normalize to get rid of leading `.` (if any).
+            let path = entry.path.normalize()
+            commonPrefix = commonPrefix === null ? path : getCommonPrefix(commonPrefix, path)
+            console.log(`Entry: ${entry.path}, common prefix: ${commonPrefix}`)
+        }
+    })
+    if (commonPrefix !== null && commonPrefix !== '') {
+        return path.basename(commonPrefix)
+    } else {
+        return null
+    }
+}
+
 /** Import the project from a bundle.
 
  @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
 export function importBundle(bundlePath: string): string {
     // The bundle is a tarball, so we just need to extract it to the right location.
-    const targetDirectory = generateDirectoryName(bundlePath)
-
-    // To be more resilient against different ways that user's might attempt to create a bundle, we try tu support
+    const bundleRoot = bundleRootDirectory(bundlePath)
+    const targetDirectory = bundleRoot ? generateDirectoryName(bundleRoot) : generateDirectoryName(bundlePath)
+    fss.mkdirSync(targetDirectory, {recursive: true})
+    // To be more resilient against different ways that user might attempt to create a bundle, we try to support
     // both archives that:
     // * contain a single directory with the project files - that directory name will be used to generate a new target
     //   directory name;
-    // * contain the project files directly - in this case the archive filename will be used to generate a new target
+    // * contain the project files directly - in this case, the archive filename will be used to generate a new target
     //   directory name.
-    // We know that the archive must contain `package.yaml` file, so we can use it to determine the project root.
-    // There is however a possibility that user has put file with such a name as a project resource (or generally
-    // in any random place).
-
+    // We try to tell apart these two cases by looking at the common prefix of the paths of the files in the archive.
+    // If there is any, everything is under a single directory, and we need to strip it.
     tar.x({
         file: bundlePath,
         cwd: targetDirectory,
         sync: true,
+        strip: bundleRoot !== null ? 1 : 0,
     });
-    return getProjectId(targetDirectory)
+    return updateId(targetDirectory)
 }
 
 /** Import the project, so it becomes visible to Project Manager.
@@ -103,7 +133,7 @@ export function importDirectory(rootPath: string): string {
  **/
 export function generateDirectoryName(name: string): string {
     // Use only the last path component.
-    name = path.basename(name)
+    name = path.parse(name).name
 
     // If the name already consists a suffix, reuse it.
     let match = name.match(/^(.*)_(\d+)$/)
@@ -191,6 +221,5 @@ export function updateId(projectRoot: string): string {
     return updateMetadata(projectRoot, metadata => ({
         ...metadata,
         id: generateId(),
-        importedFromId: metadata.id,
     })).id
 }
