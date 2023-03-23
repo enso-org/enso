@@ -118,6 +118,11 @@ type Comparable
     hash_callback atom = (Comparable.from atom).hash atom
 
     ## PRIVATE
+       A callback allowing to compare two atoms with a custom comparator.
+    are_equal : Atom -> Atom -> Boolean
+    are_equal atom that = (Comparable.from atom).compare atom that == Ordering.Equal
+
+    ## PRIVATE
        A custom comparator is any comparator that is different than the
        default ones.
     has_custom_comparator : Atom -> Boolean
