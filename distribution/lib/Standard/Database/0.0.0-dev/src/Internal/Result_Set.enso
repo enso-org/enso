@@ -40,13 +40,7 @@ result_set_to_table result_set type_overrides=Nothing last_row_only=False =
                     Nothing -> metadata_type
                     _       -> overridden_type
             effective_types
-    # FIXME remove debug prints
-    IO.println "Column names:   "+column_names.to_text
-    IO.println "Type overrides: "+type_overrides.to_text
-    IO.println "Metadata types: "+metadata_types.to_text
-    IO.println "Effective types: "+column_types.to_text
     column_builders = column_types.map create_builder
-    IO.println "Builders: "+column_builders.to_text
     case last_row_only of
         True ->
             ## Not using the `ResultSet.last` as not supported by all connection types.
@@ -61,9 +55,6 @@ result_set_to_table result_set type_overrides=Nothing last_row_only=False =
             go result_set.next Nothing
         False ->
             go has_next = if has_next.not then Nothing else
-                metadata2 = result_set.getMetaData
-                metadata_types2 = Vector.new ncols ix-> SQL_Type_Mapping.from_metadata metadata2 ix+1
-                IO.println "Per-row metadata types: "+metadata_types2.to_text
                 column_builders.map_with_index ix-> builder->
                     builder.fetch_and_append result_set ix+1
                 @Tail_Call go result_set.next

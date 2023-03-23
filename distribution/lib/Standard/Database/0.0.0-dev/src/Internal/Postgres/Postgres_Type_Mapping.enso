@@ -82,6 +82,15 @@ type Postgres_Type_Mapping
         _ = [op_name, arguments]
         infer_from_database_callback expression
 
+    ## PRIVATE
+       We want to respect any overriding references, but references that rely on
+       computing the type by the database are resolved to Nothing to just rely
+       on the `ResultSet` metadata and decrease overhead.
+    prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
+    prepare_type_overrides column_type_suggestions = case column_type_suggestions of
+        Nothing -> Nothing
+        _ : Vector -> column_type_suggestions.map .to_type_override
+
 ## PRIVATE
 simple_types_map = Map.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]

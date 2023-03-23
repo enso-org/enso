@@ -131,6 +131,15 @@ type SQLite_Type_Mapping
         handler = mapping.get op_name (_ -> infer_default_type)
         handler Nothing
 
+    ## PRIVATE
+       SQLite `ResultSet` metadata may differ row-by-row, so we cannot rely on
+       this metadata. Instead, we get the types inferred for each colum,
+       regardless if it was initially overridden or not.
+    prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
+    prepare_type_overrides column_type_suggestions = case column_type_suggestions of
+        Nothing -> Nothing
+        _ : Vector -> column_type_suggestions.map .get
+
 ## The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
    SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,
    TIMESTAMP, CHAR, VARCHAR, BINARY, BLOB, CLOB.

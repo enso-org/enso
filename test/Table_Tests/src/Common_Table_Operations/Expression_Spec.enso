@@ -40,12 +40,6 @@ spec detailed setup =
             _ : Vector -> value
             _ -> Vector.new test_table.row_count _->value
 
-        if expression == "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" then
-            IO.println expression
-            IO.println new_column.to_sql.prepare
-            new_column.print
-            new_column.to_table.info.print
-
         values = new_column.to_vector
         values . each_with_index i->v->
             e = expected.at i

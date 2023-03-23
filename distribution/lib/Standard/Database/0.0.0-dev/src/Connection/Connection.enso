@@ -169,9 +169,7 @@ type Connection
          Defaults to false.
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Materialized_Table
     read_statement self statement column_type_suggestions=Nothing last_row_only=False =
-        type_overrides = case column_type_suggestions of
-            Nothing -> Nothing
-            _ -> column_type_suggestions.map .to_type_override
+        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         self.jdbc_connection.with_prepared_statement statement stmt->
             result_set_to_table stmt.executeQuery type_overrides last_row_only
 
