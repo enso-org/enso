@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Encoding_Error.Encoding_Error
-import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
+import Standard.Base.Errors.File_Error.File_Error
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions

@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 from Standard.Database import SQL_Query

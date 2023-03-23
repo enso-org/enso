@@ -1,7 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Error.Encoding_Error.Encoding_Error
-import Standard.Base.Error.File_Error.File_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Match_Columns, Delimited
 from Standard.Table.Errors import all

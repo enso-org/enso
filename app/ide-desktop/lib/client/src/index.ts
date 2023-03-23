@@ -242,7 +242,7 @@ class App {
         electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
             logger.error(`IPC error: ${JSON.stringify(data)}`)
         })
-        const argProfiles = this.args.groups.profile.options.loadProfile.value
+        const argProfiles = this.args.groups.profile.options.load.value
         const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
             fs.readFile(path, 'utf8')
         )
@@ -252,7 +252,7 @@ class App {
                 event.reply('profiles-loaded', profiles)
             })
         })
-        const profileOutPath = this.args.groups.profile.options.saveProfile.value
+        const profileOutPath = this.args.groups.profile.options.save.value
         if (profileOutPath) {
             electron.ipcMain.on(ipc.Channel.saveProfile, (_event, data: string) => {
                 fsSync.writeFileSync(profileOutPath, data)

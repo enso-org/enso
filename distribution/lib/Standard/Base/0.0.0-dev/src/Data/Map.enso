@@ -3,8 +3,8 @@ import project.Data.Vector.Vector
 import project.Data.Pair.Pair
 import project.Data.Text.Extensions
 import project.Data.Text.Text
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.No_Such_Key.No_Such_Key
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.No_Such_Key.No_Such_Key
 
 from project.Data.Boolean import Boolean, True, False
 from project import Error, Nothing, Any, Panic

@@ -4,6 +4,13 @@ import * as authentication from 'enso-authentication'
 
 import * as platform from './authentication/src/platform'
 
+if (IS_DEV_MODE) {
+    new EventSource('/esbuild').addEventListener('change', () => {
+        location.reload()
+    })
+    void navigator.serviceWorker.register('/serviceWorker.js')
+}
+
 const logger = console
 /** This package is a standalone React app (i.e., IDE deployed to the Cloud), so we're not
  * running on the desktop. */

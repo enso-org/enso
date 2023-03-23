@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 polyglot java import java.nio.CharBuffer
 
