@@ -391,10 +391,10 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    > Example
      Extended partial matches in case-insensitive mode.
 
-          # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
-         'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+         # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
+         'ß'.replace 'ß' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
-         'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
+         'aﬃb'.replace 'ﬃ' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
 
    > Example
      Regexp replace.
@@ -1106,9 +1106,9 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
-         match = text . locate term matcher=(Text_Matcher Case_Insensitive)
-         term.length == 6
-         match.length == 7
+         match = text . locate term case_sensitivity=Case_Sensitivity.Insensitive
+         term.length . should_equal 6
+         match.length . should_equal 7
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,
@@ -1256,11 +1256,8 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
    - term: The term to find.
    - start: The index to start searching from. If the index is negative, it
      is counted from the end of the vector.
-   - matcher: Specifies how the term is matched against the input:
-     - If a `Text_Matcher`, the text is compared using case-sensitively rules
-       specified in the matcher.
-     - If a `Regex_Matcher`, the `term` is used as a regular expression and
-       matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -1292,11 +1289,8 @@ Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
    - term: The term to find.
    - start: The index to start searching backwards from. If the index is
      negative, it is counted from the end of the vector.
-   - matcher: Specifies how the term is matched against the input:
-     - If a `Text_Matcher`, the text is compared using case-sensitively rules
-       specified in the matcher.
-     - If a `Regex_Matcher`, the `term` is used as a regular expression and
-       matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
