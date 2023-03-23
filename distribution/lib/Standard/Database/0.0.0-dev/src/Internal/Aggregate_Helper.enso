@@ -36,7 +36,7 @@ make_aggregate_column aggregate new_name dialect infer_return_type =
         sql_type_ref = infer_return_type op_kind [column] expression
         Internal_Column.Value new_name sql_type_ref expression
 
-    case aggregate of
+    dialect.check_aggregate_support aggregate . if_not_error <| case aggregate of
         Group_By c _ ->
             Internal_Column.Value new_name c.sql_type_reference c.expression
         Count _ -> simple_aggregate "COUNT_ROWS" []

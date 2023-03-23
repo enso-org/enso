@@ -15,6 +15,9 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -75,3 +78,15 @@ type Redshift_Dialect
        given backend.
     get_naming_helpers : Naming_Helpers
     get_naming_helpers self = Naming_Helpers
+
+    ## PRIVATE
+       Returns the mapping between SQL types of this dialect and Enso
+       `Value_Type`.
+    get_type_mapping : SQL_Type_Mapping
+    get_type_mapping self = Postgres_Type_Mapping
+
+    ## PRIVATE
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate =
+        _ = aggregate
+        True

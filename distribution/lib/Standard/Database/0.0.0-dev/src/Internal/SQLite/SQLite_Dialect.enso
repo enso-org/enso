@@ -23,7 +23,6 @@ import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
-
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
@@ -125,6 +124,32 @@ type SQLite_Dialect
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self = SQLite_Type_Mapping
+
+    ## PRIVATE
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate = case aggregate of
+        Group_By _ _ -> True
+        Count _ -> True
+        Count_Distinct columns _ _ ->
+            if columns.length == 1 then True else
+                unsupported "Count_Distinct on multiple columns"
+        Count_Not_Nothing _ _ -> True
+        Count_Nothing _ _ -> True
+        Count_Not_Empty _ _ -> True
+        Count_Empty _ _ -> True
+        Percentile _ _ _ -> unsupported "Percentile"
+        Mode _ _ -> unsupported "Mode"
+        First _ _ _ _ -> unsupported "First"
+        Last _ _ _ _ -> unsupported "Last"
+        Maximum _ _ -> True
+        Minimum _ _ -> True
+        Shortest _ _ -> unsupported "Shortest"
+        Longest _ _ -> unsupported "Longest"
+        Standard_Deviation _ _ _ -> True
+        Concatenate _ _ _ _ _ _ -> True
+        Sum _ _ -> True
+        Average _ _ -> True
+        Median _ _ -> unsupported "Median"
 
 ## PRIVATE
 make_internal_generator_dialect =

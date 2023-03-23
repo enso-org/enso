@@ -17,6 +17,7 @@ import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Redshift.Redshift_Dialect
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -83,6 +84,15 @@ type Dialect
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks if the given aggregate is supported.
+
+       Should raise an appropriate dataflow error if not, or just return `True`.
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate =
+        _ = aggregate
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE
