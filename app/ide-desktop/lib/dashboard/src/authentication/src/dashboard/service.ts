@@ -420,16 +420,6 @@ interface ListVersionsResponseBody {
     versions: Version[]
 }
 
-export interface ListVersionsRequestParams {
-    versionType: VersionType
-    default: boolean
-}
-
-/** HTTP response body for the "list versions" endpoint. */
-interface ListVersionsResponseBody {
-    versions: Version[]
-}
-
 // ===================
 // === Type guards ===
 // ===================

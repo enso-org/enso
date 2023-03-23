@@ -310,7 +310,7 @@ export default [
             ],
             'no-redeclare': 'off',
             // Important to warn on accidental duplicated `interface`s e.g. when writing API wrappers.
-            '@typescript-eslint/no-redeclare': 'error',
+            '@typescript-eslint/no-redeclare': ['error', { ignoreDeclarationMerge: false }],
             'no-shadow': 'off',
             '@typescript-eslint/no-shadow': 'warn',
             'no-unused-expressions': 'off',
