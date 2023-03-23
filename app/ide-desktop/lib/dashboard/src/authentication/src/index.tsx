@@ -13,7 +13,7 @@
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 
-import './styles/index.css'
+import * as loggerProvider from './providers/logger'
 import * as platformModule from './platform'
 import App, * as app from './components/app'
 
@@ -23,6 +23,8 @@ import App, * as app from './components/app'
 
 /** The `id` attribute of the root element that the app will be rendered into. */
 const ROOT_ELEMENT_ID = 'dashboard'
+/** The `id` attribute of the element that the IDE will be rendered into. */
+const IDE_ELEMENT_ID = 'root'
 
 // ===========
 // === run ===
@@ -43,6 +45,13 @@ export function run(props: app.AppProps) {
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
     } else {
+        // FIXME[sb]: This is a temporary workaround and will be fixed
+        // when IDE support is properly integrated into the dashboard.
+        const ide = document.getElementById(IDE_ELEMENT_ID)
+        if (ide != null) {
+            ide.style.display = 'none'
+        }
+        const props = { logger, platform, onAuthenticated }
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }

@@ -28,7 +28,7 @@ type Unimplemented
        > Example
          Throwing an error to show that something is unimplemented.
 
-             import Standard.Base.Error.Common as Errors
+             import Standard.Base.Errors.Common as Errors
 
              example_unimplemented = Errors.Unimplemented.throw
     throw : Text -> Nothing

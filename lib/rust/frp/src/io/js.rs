@@ -85,88 +85,44 @@ fn event_listener_options() -> enso_web::AddEventListenerOptions {
 // === JsEventHandler ===
 // ======================
 
-/// Handler of currently processed js event.
-///
-/// Managed js event by this structure will be NOT propagated further to DOM elements, unless the
-/// `pass_to_dom` event will be emitted.
-///
-/// To make this class manage js event, you should wrap the closure passed as event listener using
-/// `make_event_handler` function.
+/// FRP wrapper for JS events. You can use the [`Self::handler`] method to generate a new event
+/// handler closure. When event is fired, it will be emitted as [`Self::event`] stream. After the
+/// event stops propagating, [`None`] will be emitted instead.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
-pub struct CurrentJsEvent {
-    /// Currently handled js event.
-    pub event:       frp::Stream<Option<enso_web::Event>>,
-    /// Emitting this signal while handling js event (`current_js_event` is Some) makes this event
-    /// pass to the DOM elements. Otherwise the js event propagation will be stopped.
-    pub pass_to_dom: frp::Source,
-    event_source:    frp::Source<Option<enso_web::Event>>,
-    network:         frp::Network,
+pub struct JsEvent {
+    pub event:    frp::Stream<Option<enso_web::Event>>,
+    event_source: frp::Source<Option<enso_web::Event>>,
+    network:      frp::Network,
 }
 
-impl Default for CurrentJsEvent {
+impl Default for JsEvent {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CurrentJsEvent {
+impl JsEvent {
     /// Constructor
     pub fn new() -> Self {
         frp::new_network! { network
-            event_source           <- source();
-            pass_to_dom            <- source();
-            event_is_passed_to_dom <- any(...);
-            event_is_passed_to_dom <+ pass_to_dom.constant(true);
-            event                  <- any(...);
-
-            new_event <- event_source.map3(&event,&event_is_passed_to_dom,Self::on_event_change);
-
-            event_is_passed_to_dom <+ new_event.constant(false);
-            event                  <+ new_event;
+            event_source <- source();
         }
-        let event = event.into();
-        Self { event, pass_to_dom, event_source, network }
+        let event = event_source.clone().into();
+        Self { event, event_source, network }
     }
 
-    /// A helper function for creating mouse event handlers.
-    ///
-    /// This wraps the `processing_fn` so before processing the current js event is
-    /// set to the received js event, and after processing it is set back to `None`.
-    pub fn make_event_handler<Event>(
-        &self,
-        mut processing_fn: impl FnMut(&Event),
-    ) -> impl FnMut(&Event)
-    where
-        Event: AsRef<enso_web::Event>,
-    {
-        let event_source = self.event_source.clone_ref();
-        move |event| {
+    /// Creates an event handler which wraps the event in an FRP network. The event will be emitted
+    /// on the `event` output stream. After the event is emitted, `None` will be emitted.
+    pub fn handler<Event>(&self, mut processing_fn: impl FnMut(&Event)) -> impl FnMut(&Event)
+    where Event: AsRef<enso_web::Event> {
+        let event_source = &self.event_source;
+        f!([event_source] (event) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "event_handler");
             let js_event = event.as_ref().clone();
             event_source.emit(Some(js_event));
             processing_fn(event);
             event_source.emit(None);
-        }
-    }
-
-
-    // The bool is passed by reference to match the signatures expected by FRP eval.
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn on_event_change(
-        new: &Option<enso_web::Event>,
-        current: &Option<enso_web::Event>,
-        is_passed: &bool,
-    ) -> Option<enso_web::Event> {
-        // Whenever the current js event change, we pass the processed one to the dom if someone
-        // asked to.
-        if let Some(e) = current {
-            if !is_passed {
-                // Prevent events from propagating to user agent, so default browser actions will
-                // not be triggered.
-                e.prevent_default();
-                e.stop_propagation();
-            }
-        }
-        new.clone()
+        })
     }
 }

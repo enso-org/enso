@@ -21,8 +21,8 @@ import project.Data.Text.Regex.Regex_Option.Regex_Option
 import project.Data.Text.Regex.Invalid_Option
 import project.Data.Text.Regex.Pattern.Pattern
 import project.Data.Vector.Vector
-import project.Error.Common.Compile_Error
-import project.Error.Unimplemented.Unimplemented
+import project.Errors.Common.Compile_Error
+import project.Errors.Unimplemented.Unimplemented
 
 ## The `Data.Text.Regex.Engine.Engine` interface.
 type Engine
