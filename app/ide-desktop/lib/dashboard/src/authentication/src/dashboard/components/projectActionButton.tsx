@@ -83,8 +83,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { accessToken } = auth.useFullUserSession()
     const logger = loggerProvider.useLogger()
     const backendService = backend.createBackend(accessToken, logger)
-    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | undefined>(
-        undefined
+    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(
+        null
     )
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
@@ -92,8 +92,10 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         void backendService.closeProject(project.id)
 
         reactDom.unstable_batchedUpdates(() => {
-            setCheckStatusInterval(undefined)
-            clearInterval(checkStatusInterval)
+            setCheckStatusInterval(null)
+            if (checkStatusInterval != null) {
+                clearInterval(checkStatusInterval)
+            }
             onClose()
         })
     }
@@ -113,8 +115,10 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             const response = await backendService.getProjectDetails(project.id)
 
             if (response.state.type === backend.ProjectState.opened) {
-                setCheckStatusInterval(undefined)
-                clearInterval(checkStatusInterval)
+                setCheckStatusInterval(null)
+                if (checkStatusInterval != null) {
+                    clearInterval(checkStatusInterval)
+                }
                 onOpen()
                 setSpinnerState(SpinnerState.done)
             }
