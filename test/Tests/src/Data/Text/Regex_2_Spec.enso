@@ -25,6 +25,9 @@ spec =
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             Regex_2.compile "ab(c(((((((" . should_fail_with Regex_Syntax_Error
 
+        Test.specify "should disallow empty patterns in `compile`" <|
+            Regex_2.compile "" . should_fail_with Illegal_Argument
+
     Test.group "Escape" <|
         Test.specify "should escape an expression for use as a literal" <|
             pattern = "http://example.com"
@@ -45,6 +48,10 @@ spec =
             pattern = Regex_2.compile "f.o" []
             pattern.matches "foo" . should_be_true
             pattern.matches "foobar" . should_be_false
+
+        Test.specify "should refuse to `matches` with an empty pattern" <|
+            pattern = Regex_2.compile ""
+            pattern.match_all "ABC" . should_fail_with Illegal_Argument
 
     Test.group "Pattern.match" <|
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
@@ -77,12 +84,9 @@ spec =
             match = pattern.match_all input
             match . should_equal []
 
-        Test.specify "should correctly handle empty patterns in `match`" <|
+        Test.specify "should refuse to `match` with an empty pattern" <|
             pattern = Regex_2.compile ""
-            match = pattern.match ""
-            match.groups.length . should_equal 1
-            match.start 0 . should_equal 0
-            match.end 0 . should_equal 0
+            pattern.match_all "ABC" . should_fail_with Illegal_Argument
 
         Test.specify "should refuse to `match_all` with an empty pattern" <|
             pattern = Regex_2.compile ""

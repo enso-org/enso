@@ -1213,7 +1213,6 @@ spec =
             accents.find 'e\u{301}' . text 0 . should_equal 'e\u{301}'
 
         Test.specify "should correctly handle regex edge cases in `find`" <|
-            regex = Regex_Matcher.Value
             "".find "foo" . should_equal Nothing
             "".find_all "foo" . should_equal []
 
