@@ -40,18 +40,18 @@ impl Elements {
     fn set_elements<'a>(&self, codes: impl IntoIterator<Item = &'a str>) {
         let mut codes = codes.into_iter();
         let mut items = self.items.borrow_mut();
+        let mut remaining_count = 0;
         for (element, code) in items.iter_mut().zip(&mut codes) {
+            remaining_count += 1;
             if element.content.value().to_string() != code {
-                warn!("Updating content to {code:?}");
                 element.set_content(ImString::new(code));
             }
         }
+        items.truncate(remaining_count);
         for code in codes {
             let new_element = ensogl_component::text::Text::new(&self.app);
             self.display_object.add_child(&new_element);
-            warn!("Setting new content to {code:?}");
             new_element.set_content(ImString::new(code));
-            new_element.set_alignment_center_x();
             self.app.display.default_scene.layers.label.add(&new_element);
             items.push(new_element);
         }
@@ -145,9 +145,15 @@ impl Model {
     }
 
     fn parse_array_code(code: &str) -> impl Iterator<Item = &str> {
-        let without_braces = code.trim_start_matches([' ', '[']).trim_end_matches([' ', ']']);
-        warn!("{without_braces:?}");
-        let elements_with_trailing_spaces = without_braces.split(',');
-        elements_with_trailing_spaces.map(|s| s.trim())
+        let looks_like_array = code.starts_with('[') && code.ends_with(']');
+        warn!("Code \"{code}\": {looks_like_array}");
+        let opt_iterator = if looks_like_array {
+            let without_braces = code.trim_start_matches([' ', '[']).trim_end_matches([' ', ']']);
+            let elements_with_trailing_spaces = without_braces.split(',');
+            Some(elements_with_trailing_spaces.map(|s| s.trim()))
+        } else {
+            None
+        };
+        opt_iterator.into_iter().flatten()
     }
 }

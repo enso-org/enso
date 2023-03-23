@@ -524,17 +524,16 @@ impl Model {
                     area_frp.source.pointer_style <+ pointer_style;
                 }
 
-                if let Some((widget_bind, widget)) = self.init_port_widget(port, size, call_info) {
+                let port_range = port.span();
+                let port_code = &expression.code[port_range];
+                if let Some((widget_bind, widget)) = self.init_port_widget(port, size, call_info, port_code) {
                     widgets_map.insert(widget_bind, crumbs.clone_ref());
                     widget.set_x(position_x);
                     builder.parent.add_child(&widget);
-
                     if port.is_argument() {
-                        let range = port.span();
-                        let code = &expression.code[range];
-                        warn!("Setting current value while range is {range:?}, code is \"{code}\" \
+                        debug!("Setting current value while range is {port_range:?}, code is \"{port_code}\" \
                             and full expression is \"{}\".", expression.code);
-                        widget.set_current_value(Some(code.into()));
+                        widget.set_current_value(Some(port_code.into()));
                     } else {
                         widget.set_current_value(None);
                     }
@@ -577,6 +576,7 @@ impl Model {
         port: &mut PortRefMut,
         port_size: Vector2<f32>,
         call_info: &CallInfoMap,
+        port_code: &str,
     ) -> Option<(WidgetBind, widget::View)> {
         let call_id = port.kind.call_id().filter(|id| call_info.has_target(id))?;
         let argument_name = port.kind.argument_name()?.to_owned();
