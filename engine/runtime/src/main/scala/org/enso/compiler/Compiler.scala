@@ -474,9 +474,9 @@ class Compiler(
 
     def joinAllFutures[T](
       futures: List[CompletableFuture[T]]
-      ): CompletableFuture[List[T]] = {
-        CompletableFuture.allOf(futures: _*).thenApply(_ => futures.map(_.join()))
-      }
+    ): CompletableFuture[List[T]] = {
+      CompletableFuture.allOf(futures: _*).thenApply(_ => futures.map(_.join()))
+    }
 
     joinAllFutures(parsingTasks).get()
 
