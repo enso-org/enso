@@ -370,17 +370,9 @@ impl View {
 
             frp.source.is_hovered <+ model.overlay.events.mouse_over.constant(true);
             frp.source.is_hovered <+ model.overlay.events.mouse_out.constant(false);
-            let mouse_up = scene.mouse.frp.up.clone_ref();
-            let mouse_down = scene.mouse.frp.down.clone_ref();
-            let mouse_wheel = scene.mouse.frp.wheel.clone_ref();
-            let mouse_position = scene.mouse.frp.position.clone_ref();
-            caught_mouse <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
-            pass_to_dom <- caught_mouse.gate(&frp.source.is_hovered);
-            eval_ pass_to_dom(scene.current_js_event.pass_to_dom.emit(()));
         }
         init.emit(());
         style.init.emit(());
-        visualization.pass_events_to_dom_if_active(scene, network);
         self
     }
 }

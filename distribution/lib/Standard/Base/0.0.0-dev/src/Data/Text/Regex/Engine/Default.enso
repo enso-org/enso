@@ -52,7 +52,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Compile_Error, Syntax_Error
+from project.Errors.Common import Compile_Error, Syntax_Error
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IndexOutOfBoundsException

@@ -76,7 +76,8 @@ object SearchApi {
       position: Position,
       selfType: Option[String],
       returnType: Option[String],
-      tags: Option[Seq[SuggestionKind]]
+      tags: Option[Seq[SuggestionKind]],
+      isStatic: Option[Boolean]
     )
 
     case class Result(results: Seq[SuggestionId], currentVersion: Long)

@@ -43,8 +43,6 @@ pub enum Metadata {
     RpcRequest(json_rpc::log::RpcRequest),
     /// A message between the Language Server and the Engine.
     BackendMessage(backend::Message),
-    /// Performance stats gathered from the EnsoGL rendering engine.
-    RenderStats(ensogl_core::debug::StatsData),
     /// Any other metadata type.
     ///
     /// The types defined above are handled specially by `enso-profiler-enso-data` tools: E.g. the
@@ -63,7 +61,6 @@ impl Display for Metadata {
             Metadata::RpcEvent(name) => f.collect_str(name),
             Metadata::RpcRequest(method) => f.collect_str(&method.to_string()),
             Metadata::BackendMessage(backend::Message { endpoint, .. }) => f.collect_str(endpoint),
-            Metadata::RenderStats(stats) => f.collect_str(&format!("{stats:#?}")),
             Metadata::Other => f.collect_str("<value>"),
         }
     }

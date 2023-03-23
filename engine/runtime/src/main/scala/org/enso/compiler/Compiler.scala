@@ -466,9 +466,12 @@ class Compiler(
     val parsingTasks: List[CompletableFuture[Unit]] =
       modulesImportedWithCachedBindings.map { module =>
         if (config.parallelParsing) {
-          CompletableFuture.supplyAsync(() => ensureParsed(module), pool)
+          CompletableFuture.supplyAsync(
+            () => ensureParsedAndAnalyzed(module),
+            pool
+          )
         } else {
-          CompletableFuture.completedFuture(ensureParsed(module))
+          CompletableFuture.completedFuture(ensureParsedAndAnalyzed(module))
         }
       }
 
@@ -487,6 +490,33 @@ class Compiler(
     val sortedCachedModules =
       new ExportsResolution(this).runSort(modulesImportedWithCachedBindings)
     sortedCachedModules ++ requiredModules
+  }
+
+  private def ensureParsedAndAnalyzed(module: Module): Unit = {
+    ensureParsed(module)
+    if (module.isSynthetic) {
+      // Synthetic modules need to be import-analyzed
+      // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
+      // because we do not generate (and deserialize) IR for them
+      // TODO: consider generating IR for synthetic modules, if possible.
+      val bindings = importExportBindings(module);
+      val converted = bindings
+        .toConcrete(packageRepository.getModuleMap)
+        .map { concreteBindings =>
+          concreteBindings
+        }
+      val ir = module.getIr
+      val currentLocal = ir.unsafeGetMetadata(
+        BindingAnalysis,
+        "Synthetic parsed module missing bindings"
+      )
+      currentLocal.resolvedImports =
+        converted.map(_.resolvedImports).getOrElse(Nil)
+      currentLocal.resolvedExports =
+        converted.map(_.resolvedExports).getOrElse(Nil)
+      currentLocal.exportedSymbols =
+        converted.map(_.exportedSymbols).getOrElse(Map.empty)
+    }
   }
 
   /** Runs the initial passes of the compiler to gather the import statements,
@@ -741,7 +771,7 @@ class Compiler(
     * Given module A/B/C.enso
     * ````
     *   type C
-    *       type C a
+    *       C a
     * ````
     * it is possible to
     * ```

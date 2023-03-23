@@ -15,6 +15,9 @@
 
 use enso_prelude::*;
 
+use crate::display::world;
+use crate::display::SymbolId;
+
 use enso_types::unit2::Duration;
 use enso_web::Performance;
 use enso_web::TimeProvider;
@@ -42,7 +45,7 @@ pub type Stats = StatsWithTimeProvider<Performance>;
 /// Contains all the gathered stats, and provides methods for modifying and retrieving their
 /// values.
 /// Uses [`T`] to access current time for calculating time-dependent stats (e.g. FPS).
-#[derive(Debug, CloneRef)]
+#[derive(Debug, Deref, CloneRef)]
 pub struct StatsWithTimeProvider<T> {
     rc: Rc<RefCell<FramedStatsData<T>>>,
 }
@@ -61,22 +64,31 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
         Self { rc }
     }
 
-    /// Starts tracking data for a new animation frame.
-    /// Also, calculates the [`fps`] stat.
-    /// Returns a snapshot of statistics data for the previous frame.
-    ///
-    /// Note: the code works under an assumption that [`begin_frame()`] and [`end_frame()`] are
-    /// called, respectively, at the beginning and end of every frame. The very first time
-    /// [`begin_frame()`] is called, it returns `None`, because it does not have complete
-    /// statistics data for the preceding frame.
-    pub fn begin_frame(&self, time: Duration) -> Option<StatsData> {
-        self.rc.borrow_mut().begin_frame(time)
+    /// Calculate FPS for the last frame. This function should be called on the very beginning of
+    /// every frame. Please note, that it does not clean the per-frame statistics. You want to run
+    /// the [`reset_per_frame_statistics`] function before running rendering operations.
+    pub fn calculate_prev_frame_fps(&self, time: Duration) {
+        self.rc.borrow_mut().calculate_prev_frame_fps(time)
+    }
+
+    /// Clean the per-frame statistics, such as the per-frame number of draw calls. This function
+    /// should be called before any rendering calls were made.
+    pub fn reset_per_frame_statistics(&self) {
+        self.rc.borrow_mut().reset_per_frame_statistics()
     }
 
     /// Ends tracking data for the current animation frame.
     /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
     pub fn end_frame(&self) {
         self.rc.borrow_mut().end_frame();
+    }
+
+    /// Register a new draw call for the given symbol.
+    pub fn register_draw_call(&self, symbol_id: SymbolId) {
+        let label = world::with_context(|ctx| {
+            ctx.get_symbol(symbol_id).map(|t| t.label).unwrap_or("Unknown")
+        });
+        self.rc.borrow_mut().stats_data.register_draw_call(label);
     }
 }
 
@@ -86,10 +98,12 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
 // === FramedStatsData ===
 // =======================
 
+/// Internal representation of [`StatsWithTimeProvider`].
+#[allow(missing_docs)]
 #[derive(Debug)]
-struct FramedStatsData<T> {
+pub struct FramedStatsData<T> {
     time_provider:    T,
-    stats_data:       StatsData,
+    pub stats_data:   StatsData,
     frame_begin_time: Option<f64>,
 }
 
@@ -101,19 +115,14 @@ impl<T: TimeProvider> FramedStatsData<T> {
         Self { time_provider, stats_data, frame_begin_time }
     }
 
-    /// Starts tracking data for a new animation frame. The time is provided explicitly from the
-    /// JS `requestAnimationFrame` callback in order to be sure that we measure all the time,
-    /// including operations happening before calling this function.
-    fn begin_frame(&mut self, time: Duration) -> Option<StatsData> {
+    /// Calculate FPS for the last frame. This function should be called on the very beginning of
+    /// every frame. Please note, that it does not clean the per-frame statistics. You want to run
+    /// the [`reset_per_frame_statistics`] function before running rendering operations.
+    fn calculate_prev_frame_fps(&mut self, time: Duration) {
         let time = time.unchecked_raw() as f64;
-        let mut previous_frame_stats = self.stats_data;
-        self.reset_per_frame_statistics();
-        let previous_frame_begin_time = self.frame_begin_time.replace(time);
-        previous_frame_begin_time.map(|begin_time| {
-            let end_time = time;
-            previous_frame_stats.fps = 1000.0 / (end_time - begin_time);
-            previous_frame_stats
-        })
+        if let Some(previous_frame_begin_time) = self.frame_begin_time.replace(time) {
+            self.stats_data.fps = 1000.0 / (time - previous_frame_begin_time);
+        }
     }
 
     fn end_frame(&mut self) {
@@ -131,8 +140,10 @@ impl<T: TimeProvider> FramedStatsData<T> {
         }
     }
 
+    /// Clean the per-frame statistics, such as the per-frame number of draw calls. This function
+    /// should be called before any rendering calls were made.
     fn reset_per_frame_statistics(&mut self) {
-        self.stats_data.draw_call_count = 0;
+        self.stats_data.draw_calls = default();
         self.stats_data.shader_compile_count = 0;
         self.stats_data.data_upload_count = 0;
         self.stats_data.data_upload_size = 0;
@@ -150,7 +161,7 @@ impl<T: TimeProvider> FramedStatsData<T> {
 macro_rules! emit_if_integer {
     (u32, $($block:tt)*) => ($($block)*);
     (usize, $($block:tt)*) => ($($block)*);
-    (f64, $($block:tt)*) => ();
+    ($other:ty, $($block:tt)*) => ();
 }
 
 /// Emits the StatsData struct, and extends StatsWithTimeProvider with accessors to StatsData
@@ -162,7 +173,7 @@ macro_rules! gen_stats {
         // === StatsData ===
 
         /// Raw data of all the gathered stats.
-        #[derive(Debug,Default,Clone,Copy,serde::Serialize,serde::Deserialize)]
+        #[derive(Debug, Default, Clone)]
         #[allow(missing_docs)]
         pub struct StatsData {
             $(pub $field : $field_type),*
@@ -174,7 +185,7 @@ macro_rules! gen_stats {
         impl<T: TimeProvider> StatsWithTimeProvider<T> { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
-                self.rc.borrow().stats_data.$field
+                self.rc.borrow().stats_data.$field.clone()
             }
 
             /// Field setter.
@@ -189,7 +200,6 @@ macro_rules! gen_stats {
                 self.[<set _ $field>](value);
             }
 
-            // FIXME: saturating_add is proper solution, but even without it it should not crash, but it does. To be investigated.
             emit_if_integer!($field_type,
                 /// Increments field's value.
                 pub fn [<inc _ $field>](&self) {
@@ -211,7 +221,7 @@ gen_stats! {
     fps                  : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
-    draw_call_count      : usize,
+    draw_calls           : Vec<&'static str>,
     buffer_count         : usize,
     data_upload_count    : usize,
     data_upload_size     : u32,
@@ -221,6 +231,13 @@ gen_stats! {
     mesh_count           : usize,
     shader_count         : usize,
     shader_compile_count : usize,
+}
+
+impl StatsData {
+    /// Register a new draw call for the given symbol.
+    pub fn register_draw_call(&mut self, symbol_name: &'static str) {
+        self.draw_calls.push(symbol_name);
+    }
 }
 
 /// Keeps the body if the `statistics` compilation flag was enabled.

@@ -114,9 +114,10 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
-#![warn(missing_docs)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_docs)]
 
 use ide_ci::prelude::*;
 
@@ -128,13 +129,12 @@ use std::path::Path;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-pub mod assets;
-
-
 
 // ==============
 // === Export ===
 // ==============
+
+pub mod assets;
 
 pub use ide_ci::prelude;
 

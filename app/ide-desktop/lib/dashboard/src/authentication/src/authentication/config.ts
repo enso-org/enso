@@ -86,7 +86,7 @@ export interface AmplifyConfig {
     region: AwsRegion
     userPoolId: UserPoolId
     userPoolWebClientId: UserPoolWebClientId
-    urlOpener?: OAuthUrlOpener
+    urlOpener: OAuthUrlOpener | null
     domain: OAuthDomain
     scope: OAuthScope[]
     redirectSignIn: OAuthRedirect
@@ -130,7 +130,7 @@ export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfi
         userPoolWebClientId: config.userPoolWebClientId,
         oauth: {
             options: {
-                urlOpener: config.urlOpener,
+                ...(config.urlOpener ? { urlOpener: config.urlOpener } : {}),
             },
             domain: config.domain,
             scope: config.scope,

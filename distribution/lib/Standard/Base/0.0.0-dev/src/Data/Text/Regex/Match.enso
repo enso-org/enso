@@ -5,7 +5,7 @@ import project.Data.Text.Span.Span
 import project.Data.Text.Text
 import project.Data.Text.Regex.No_Such_Group
 import project.Data.Vector.Vector
-import project.Error.Unimplemented.Unimplemented
+import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 
 ## The `Data.Text.Regex.Engine.Match` interface.

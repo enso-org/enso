@@ -7106,6 +7106,31 @@ object IR {
           Array(typeName, moduleName, shadower)
 
       }
+
+      /** Used when the exported type of the module can name conflict with fully qualified names of submodules.
+        *
+        * @param name the module name
+        * @param tpeName the name of the exported type leading to conflicts
+        * @param firstConflict the name of the module that can be innaccessible because of the name conflict
+        * @param shadower the export statement leading to a conflict
+        * @param location the location of the export statement
+        */
+      sealed case class TypeInModuleNameConflicts(
+        name: String,
+        tpeName: String,
+        firstConflict: String,
+        override val shadower: IR,
+        override val location: Option[IdentifiedLocation]
+      ) extends Shadowed {
+        override def message: String =
+          s"The exported type `$tpeName` in `$name` module will cause name conflict " +
+          s"when attempting to use a fully qualified name of the `$firstConflict` module."
+
+        /** The important keys identifying identity of the diagnostic
+          */
+        override def diagnosticKeys(): Array[Any] =
+          Array(name, tpeName, shadower)
+      }
     }
 
     /** A warning raised when a call is annotated with `@Auto_Parallel`, but the
@@ -8747,6 +8772,7 @@ object IR {
       case class ModuleDoesNotExist(name: String) extends Reason {
         override def message: String = s"The module $name does not exist."
       }
+
     }
 
     /** An erroneous import or export statement.

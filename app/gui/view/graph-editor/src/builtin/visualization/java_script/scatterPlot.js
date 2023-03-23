@@ -234,7 +234,6 @@ class ScatterPlot extends Visualization {
             .attr('width', boxWidth)
             .attr('height', boxHeight)
             .style('fill', 'none')
-            .style('pointer-events', 'all')
             .call(zoom)
 
         let transformedScale = Object.assign({}, scaleAndAxis)
@@ -355,6 +354,18 @@ class ScatterPlot extends Visualization {
         return { zoomElem, zoom, transformedScale }
     }
 
+    /** Removing `pointer-events` handling from brush element, as we want it to be inherited. D3 inserts
+     * `pointer-events: all` in the brush element and some of its children on brush creation and after brushing ends.
+     * There is no documentation on that topic as far as we are aware, so this was observed and tested manually. */
+    removePointerEventsAttrsFromBrush(brushElem) {
+        brushElem.attr('pointer-events', null)
+        brushElem.select(function () {
+            for (const child of this.childNodes) {
+                child.removeAttribute('pointer-events')
+            }
+        })
+    }
+
     /**
      * Adds brushing functionality to the plot.
      *
@@ -377,6 +388,7 @@ class ScatterPlot extends Visualization {
         // events working at the same time. See https://stackoverflow.com/a/59757276 .
         let brushElem = zoom.zoomElem.append('g').attr('class', brushClass).call(brush)
 
+        this.removePointerEventsAttrsFromBrush(brushElem)
         let self = this
 
         /**
@@ -426,6 +438,7 @@ class ScatterPlot extends Visualization {
             selectedZoomBtn.style.display = 'none'
             selectedZoomBtn.removeEventListener('click', zoomIn, true)
             document.removeEventListener('keydown', zoomInKeyEvent, true)
+            this.removePointerEventsAttrsFromBrush(brushElem)
         }
 
         let endEvents = ['click', 'auxclick', 'contextmenu', 'scroll']

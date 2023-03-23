@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Metadata.Choice import Option
