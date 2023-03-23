@@ -38,6 +38,9 @@ type Redshift_Dialect
     name self = "redshift"
 
     ## PRIVATE
+    to_text self = "Redshift_Dialect"
+
+    ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement

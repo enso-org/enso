@@ -195,7 +195,7 @@ make_iif arguments = case arguments.length of
         expr = arguments.at 0
         when_true = arguments.at 1
         when_false = arguments.at 2
-        (Builder.code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
+        (Builder.code "CASE WHEN " ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 

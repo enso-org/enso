@@ -48,6 +48,9 @@ type SQLite_Dialect
     name self = "SQLite"
 
     ## PRIVATE
+    to_text self = "SQLite_Dialect"
+
+    ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement

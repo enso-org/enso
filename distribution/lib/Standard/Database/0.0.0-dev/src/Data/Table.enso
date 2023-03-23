@@ -713,29 +713,25 @@ type Table
         self.read max_rows=max_rows . rows
 
     ## Returns the first row of the table.
-
-       In the database backend, it first materializes the table to in-memory.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
         self.read max_rows=1 . rows . first
 
     ## Returns the second row of the table.
-
-       In the database backend, it first materializes the table to in-memory.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
         self.read max_rows=2 . rows . second
 
     ## Returns the last row of the table.
 
-       In the database backend, it first materializes the table to in-memory.
+       In the database backend, it will still have to iterate through the whole query.
     last_row : Row ! Index_Out_Of_Bounds
     last_row self =
         if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             sql = self.to_sql
-            type_overrides = self.internal_columns.map ic->
-                ic.sql_type_reference.to_type_override
-            self.connection.read_last_row sql expected_types=type_overrides . rows . first
+            column_type_suggestions = self.internal_columns.map .sql_type_reference
+            table = self.connection.read_statement sql column_type_suggestions last_row_only=True
+            table.rows.first
 
     ## ALIAS sort
        Sorts the rows of the table according to the specified columns and order.
@@ -1380,9 +1376,8 @@ type Table
                 Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
             False ->
                 sql = preprocessed.to_sql
-                type_overrides = preprocessed.internal_columns.map ic->
-                    ic.sql_type_reference.to_type_override
-                self.connection.read_statement sql expected_types=type_overrides
+                column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
+                self.connection.read_statement sql column_type_suggestions
 
     ## UNSTABLE
 

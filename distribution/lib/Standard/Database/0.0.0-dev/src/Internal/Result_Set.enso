@@ -26,25 +26,27 @@ read_column result_set column_name =
 
 ## PRIVATE
    Converts a ResultSet into a Materialized_Table.
-result_set_to_table : ResultSet -> (Vector | Nothing) -> Boolean -> Materialized_Table
-result_set_to_table result_set expected_types=Nothing last_row_only=False =
+result_set_to_table : ResultSet -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Materialized_Table
+result_set_to_table result_set type_overrides=Nothing last_row_only=False =
     metadata = result_set.getMetaData
     ncols = metadata.getColumnCount
     column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
     metadata_types = Vector.new ncols ix-> SQL_Type_Mapping.from_metadata metadata ix+1
-    column_types = case expected_types of
+    column_types = case type_overrides of
         Nothing -> metadata_types
         _ : Vector ->
-            effective_types = expected_types.zip metadata_types overridden_type-> metadata_type->
+            effective_types = type_overrides.zip metadata_types overridden_type-> metadata_type->
                 case overridden_type of
                     Nothing -> metadata_type
                     _       -> overridden_type
             effective_types
     # FIXME remove debug prints
-    #IO.println "Column names:   "+column_names.to_text
-    #IO.println "Expected types: "+expected_types.to_text
-    #IO.println "Metadata types: "+metadata_types.to_text
+    IO.println "Column names:   "+column_names.to_text
+    IO.println "Type overrides: "+type_overrides.to_text
+    IO.println "Metadata types: "+metadata_types.to_text
+    IO.println "Effective types: "+column_types.to_text
     column_builders = column_types.map create_builder
+    IO.println "Builders: "+column_builders.to_text
     case last_row_only of
         True ->
             ## Not using the `ResultSet.last` as not supported by all connection types.
@@ -59,6 +61,9 @@ result_set_to_table result_set expected_types=Nothing last_row_only=False =
             go result_set.next Nothing
         False ->
             go has_next = if has_next.not then Nothing else
+                metadata2 = result_set.getMetaData
+                metadata_types2 = Vector.new ncols ix-> SQL_Type_Mapping.from_metadata metadata2 ix+1
+                IO.println "Per-row metadata types: "+metadata_types2.to_text
                 column_builders.map_with_index ix-> builder->
                     builder.fetch_and_append result_set ix+1
                 @Tail_Call go result_set.next

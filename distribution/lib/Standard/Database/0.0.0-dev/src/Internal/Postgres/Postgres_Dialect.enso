@@ -51,6 +51,9 @@ type Postgres_Dialect
     name self = "PostgreSQL"
 
     ## PRIVATE
+    to_text self = "Postgres_Dialect"
+
+    ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
