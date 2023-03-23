@@ -1330,7 +1330,7 @@ spec =
         Test.specify "should expand a partial-grapheme match to the whole grapheme" <|
             'e\u{301}'.find '\u{301}' . text 0 . should_equal 'e\u{301}'
 
-        Test.specify "should not allow non-default case insensitivity" <|
+        Test.specify "should not allow non-default locale" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.find 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
             'a'.find_all 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
@@ -1357,7 +1357,7 @@ spec =
         Test.specify "should be possible in case-insensitive mode" <|
             "MY".match "my" Case_Sensitivity.Insensitive . should_be_true
 
-        Test.specify "should not allow non-default case insensitivity" <|
+        Test.specify "should not allow non-default locale" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.match 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
@@ -1512,11 +1512,11 @@ spec =
             '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True . should_equal 'content is at url'
             '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '$<text> is at $<address>' use_regex=True . should_equal 'content is at url'
 
-        Test.specify "should not allow non-default case insensitivity in regex replace" <|
+        Test.specify "should not allow non-default locale in regex replace" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.replace 'a' 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) use_regex=True . should_fail_with Illegal_Argument
 
-        Test.specify "should allow non-default case insensitivity in text replace" <|
+        Test.specify "should allow non-default locale in text replace" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.replace 'a' 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_equal 'b'
 
