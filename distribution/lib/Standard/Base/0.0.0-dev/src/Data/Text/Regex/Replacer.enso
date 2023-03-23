@@ -6,7 +6,6 @@ import project.Data.Text.Regex.Pattern_2.Match_Iterator_Value
 import project.Data.Text.Regex.Pattern_2.Pattern_2
 import project.Data.Text.Regex_2
 import project.Data.Text.Regex_2.No_Such_Group
-import project.Data.Text.Regex_2.Too_Many_Groups
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -40,7 +39,7 @@ type Replacer
        Arguments
        - replacement_string: a string, possibly containing group references,
          that will be used to provide a replacement in a regex match.
-    new : Text -> Pattern_2 -> Replacer ! No_Such_Group ! Too_Many_Groups
+    new : Text -> Pattern_2 -> Replacer ! No_Such_Group
     new replacement_string pattern =
         Replacer.Value (build_replacement_vector_cached replacement_string pattern)
 
@@ -72,7 +71,6 @@ replacer_cache_lookup replacement_string = Replacer_Cache.get replacement_string
 
 ## PRIVATE
 group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
-maximum_regex_group_number = 99
 
 ## PRIVATE
 
@@ -83,7 +81,7 @@ maximum_regex_group_number = 99
 
    Uses Replacement_Cache to avoid rebuilding the vector for recently used
    replacement strings.
-build_replacement_vector_cached : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group ! Too_Many_Groups
+build_replacement_vector_cached : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group
 build_replacement_vector_cached replacement_string pattern =
     Replacer_Cache.get_or_set replacement_string _->
         build_replacement_vector replacement_string pattern
@@ -94,7 +92,7 @@ build_replacement_vector_cached replacement_string pattern =
 
    Parse the replacement string into an alternating series of literal
    strings and group reference numbers.
-build_replacement_vector : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group ! Too_Many_Groups
+build_replacement_vector : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group
 build_replacement_vector replacement_string pattern =
     replacement_pattern = Regex_2.compile group_reference_regex
     it = replacement_pattern.iterator replacement_string
@@ -125,7 +123,7 @@ build_replacement_vector replacement_string pattern =
    Returns a Replacement: a group number, or, in the case of `$$`, a literal.
 
    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group ! Too_Many_Groups
+parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
 parse_group_number pattern match = case match.text.take 2 of
     "$$" -> Replacement.Literal "$"
     "$<" ->
@@ -135,8 +133,7 @@ parse_group_number pattern match = case match.text.take 2 of
     "$&" -> Replacement.Substitution 0
     _ -> 
         n = Integer.parse <| match.text 2
-        if n <= maximum_regex_group_number then Replacement.Substitution (pattern.lookup_group n) else
-            Error.throw (Too_Many_Groups.Error n)
+        Replacement.Substitution (pattern.lookup_group n)
 
 type Replacement
     ## A string literal to replace with.

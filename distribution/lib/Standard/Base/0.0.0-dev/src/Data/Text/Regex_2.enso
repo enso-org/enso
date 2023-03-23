@@ -75,24 +75,6 @@ type No_Such_Group
         _ : Integer -> "No group exists with the index " + self.id.to_text + "."
         _ : Text -> "No group exists with the name " + self.id + "."
 
-## An error that is emitted when a replacement string has more than 100 groups.
-
-   Note that it is not considered an error for a regex to have more than 100
-   groups; the error only occurs when a replacement string attempts to refer
-   to a group above $99. There is no limitation on the use of named groups
-   a replacement string.
-
-   Arguments:
-   - id: The identifier of the group that was asked for but does not exist.
-type Too_Many_Groups
-    Error (id : Integer)
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the `No_Such_Group`.
-    to_display_text : Text
-    to_display_text self = "Group numbers must be below 100: " + self.id.to_text + "."
-
 ## A syntax error reported by the Truffle regex compiler.
 type Regex_Syntax_Error
     ## PRIVATE

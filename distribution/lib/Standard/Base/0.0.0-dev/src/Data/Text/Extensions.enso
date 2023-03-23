@@ -344,7 +344,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    regex. The following syntaxes are supported:
        $0: the entire match string
        $&: the entire match string
-       $n: the nth group (n<100)
+       $n: the nth group
        $<foo>: Named group `foo`
 
    Arguments:
