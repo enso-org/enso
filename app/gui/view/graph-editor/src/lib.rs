@@ -72,6 +72,8 @@ use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::Easing;
+use ensogl_component::text;
+use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
 
@@ -590,13 +592,13 @@ ensogl::define_endpoints_2! {
 
         // === VCS Status ===
 
-        set_node_vcs_status     ((NodeId,Option<node::vcs::Status>)),
+        set_node_vcs_status     ((NodeId, Option<node::vcs::Status>)),
 
 
         set_detached_edge_targets    (EdgeEndpoint),
         set_detached_edge_sources    (EdgeEndpoint),
-        set_edge_source              ((EdgeId,EdgeEndpoint)),
-        set_edge_target              ((EdgeId,EdgeEndpoint)),
+        set_edge_source              ((EdgeId, EdgeEndpoint)),
+        set_edge_target              ((EdgeId, EdgeEndpoint)),
         unset_edge_source            (EdgeId),
         unset_edge_target            (EdgeId),
         connect_nodes                ((EdgeEndpoint,EdgeEndpoint)),
@@ -611,6 +613,7 @@ ensogl::define_endpoints_2! {
         edit_node                    (NodeId),
         collapse_nodes               ((Vec<NodeId>,NodeId)),
         set_node_expression          ((NodeId,node::Expression)),
+        edit_node_expression         ((NodeId, text::Range<text::Byte>, ImString)),
         set_node_skip                ((NodeId,bool)),
         set_node_freeze              ((NodeId,bool)),
         set_node_comment             ((NodeId,node::Comment)),
@@ -618,10 +621,10 @@ ensogl::define_endpoints_2! {
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
         update_node_widgets          ((NodeId,WidgetUpdates)),
         cycle_visualization          (NodeId),
-        set_visualization            ((NodeId,Option<visualization::Path>)),
+        set_visualization            ((NodeId, Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
-        set_visualization_data       ((NodeId,visualization::Data)),
-        set_error_visualization_data ((NodeId,visualization::Data)),
+        set_visualization_data       ((NodeId, visualization::Data)),
+        set_error_visualization_data ((NodeId, visualization::Data)),
         enable_visualization         (NodeId),
         disable_visualization        (NodeId),
 
@@ -693,11 +696,12 @@ ensogl::define_endpoints_2! {
         node_hovered              (Option<Switch<NodeId>>),
         node_selected             (NodeId),
         node_deselected           (NodeId),
-        node_position_set         ((NodeId, Vector2)),
-        node_position_set_batched ((NodeId, Vector2)),
-        node_expression_set       ((NodeId, ImString)),
+        node_position_set         ((NodeId,Vector2)),
+        node_position_set_batched ((NodeId,Vector2)),
+        node_expression_set       ((NodeId,ImString)),
         node_expression_span_set  ((NodeId, span_tree::Crumbs, ImString)),
-        node_comment_set          ((NodeId, String)),
+        node_expression_edited    ((NodeId,ImString,Vec<Selection<text::Byte>>)),
+        node_comment_set          ((NodeId,String)),
         node_entered              (NodeId),
         node_exited               (),
         node_editing_started      (NodeId),
@@ -1588,6 +1592,7 @@ impl GraphEditorModelWithNetwork {
                 ));
 
             eval node.expression((t) model.frp.private.output.node_expression_set.emit((node_id,t.into())));
+
             eval node.expression_span([model]((crumbs,code)) {
                 let args = (node_id, crumbs.clone(), code.clone());
                 model.frp.private.output.node_expression_span_set.emit(args)
@@ -1598,6 +1603,10 @@ impl GraphEditorModelWithNetwork {
                 model.frp.private.output.widgets_requested.emit(args)
             });
 
+            let node_expression_edit = node.model().input.expression_edit.clone_ref();
+            model.frp.private.output.node_expression_edited <+ node_expression_edit.map(
+                move |(expr, selection)| (node_id, expr.clone_ref(), selection.clone())
+            );
             model.frp.private.output.request_import <+ node.request_import;
 
 
@@ -1944,6 +1953,20 @@ impl GraphEditorModel {
         }
         for edge_id in self.node_out_edges(node_id) {
             self.refresh_edge_source_size(edge_id);
+        }
+    }
+
+    fn edit_node_expression(
+        &self,
+        node_id: impl Into<NodeId>,
+        range: impl Into<text::Range<text::Byte>>,
+        inserted_str: impl Into<ImString>,
+    ) {
+        let node_id = node_id.into();
+        let range = range.into();
+        let inserted_str = inserted_str.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.edit_expression(range, inserted_str);
         }
     }
 
@@ -2809,8 +2832,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
         let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-        node_expression_set <- source();
-        out.node_expression_set <+ node_expression_set;
 
         on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
         on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
@@ -3144,15 +3165,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         (model_clone.nodes.all_selected(),empty_id)
     );
     out.nodes_collapsed <+ nodes_to_collapse;
-    }
-
-
-    // === Set Node Expression ===
-    frp::extend! { network
-
-    set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
-    out.node_expression_set <+ set_node_expression_string;
-
     }
 
 
@@ -3642,8 +3654,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     model.profiling_statuses.remove <+ out.node_removed;
     out.on_visualization_select <+ out.node_removed.map(|&id| Switch::Off(id));
 
-    eval inputs.set_node_expression (((id,expr)) model.set_node_expression(id,expr));
-    port_to_refresh <= inputs.set_node_expression.map(f!(((id,_))model.node_in_edges(id)));
+    eval inputs.set_node_expression (((id, expr)) model.set_node_expression(id, expr));
+    eval inputs.edit_node_expression (((id, range, ins)) model.edit_node_expression(id, range, ins));
+    port_to_refresh <= inputs.set_node_expression.map(f!(((id, _))model.node_in_edges(id)));
     eval port_to_refresh ((id) model.set_edge_target_connection_status(*id,true));
 
     // === Remove implementation ===

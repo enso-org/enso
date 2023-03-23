@@ -10,7 +10,7 @@ from project.Data.Boolean import True, False
 
 polyglot java import org.enso.base.ObjectComparator
 
-## ADVANCED
+## PRIVATE
    Creates a Java Comparator object which can call back to Enso for comparison
    of non-primitive types.
 
@@ -26,7 +26,7 @@ new custom_comparator=Nothing =
         Nothing -> ObjectComparator.getInstance (comparator_to_java Ordering.compare)
         _ -> ObjectComparator.new (comparator_to_java custom_comparator)
 
-## ADVANCED
+## PRIVATE
    Create a Java Comparator with the specified Text_Ordering
 
    Arguments:
