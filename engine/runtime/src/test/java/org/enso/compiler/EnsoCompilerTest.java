@@ -1319,16 +1319,10 @@ public class EnsoCompilerTest {
   }
 
   private static void equivalenceTest(String code1, String code2) throws IOException {
-    Function<IR, String> filter = (f) -> simplifyIR(f, true, true, false);
-    var ir1 = filter.apply(compile(code1));
-    var ir2 = filter.apply(compile(code2));
-    if (!ir1.equals(ir2)) {
-      var name = findTestMethodName();
-      var home = new File(System.getProperty("user.home")).toPath();
-      Files.writeString(home.resolve(name + ".1") , ir1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      Files.writeString(home.resolve(name + ".2") , ir2, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      assertEquals("IR for " + code1 + " shall be equal to IR for " + code2, ir1, ir2);
-    }
+    var old = compile(code1);
+    var now = compile(code2);
+    var msg = "IR for " + code1 + " shall be equal to IR for " + code2;
+    CompilerTest.assertIR(msg, old, now);
   }
 
   private static IR.Module compile(String code) {
@@ -1340,14 +1334,5 @@ public class EnsoCompilerTest {
     var ir = c.compile(src);
     assertNotNull("IR was generated", ir);
     return ir;
-  }
-
-  private static String findTestMethodName() {
-    for (var e : new Exception().getStackTrace()) {
-      if (e.getMethodName().startsWith("test")) {
-        return e.getMethodName();
-      }
-    }
-    throw new IllegalStateException();
   }
 }

@@ -5,11 +5,14 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
+import org.enso.compiler.core.IR;
 
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.PackageManager;
@@ -21,39 +24,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
 
-public class ExecSimpleTest {
+public class SerdeCompilerTest {
   private final MockHandler mockHandler = new MockHandler();
 
-  public Context ensoContextForPackage(String name, File pkgFile, boolean disableIrCaching)
-      throws IOException {
-    Context ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(true)
-            .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "" + disableIrCaching)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .logHandler(mockHandler)
-            .option("log.enso.org.enso.compiler.Compiler.level", "FINE")
-            .allowAllAccess(true)
-            .build();
-    assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
-    return ctx;
+  @Test
+  public void testFibTest() throws Exception {
+    var testName = "Fib_Test";
+    final String forbiddenMessage = null; // "Parsing module [local.Fib_Test.Arith].";
+    parseSerializedModule(testName, forbiddenMessage);
   }
 
-  @Test
-  public void testSerializationOfFQNs() throws Exception {
-    var testName = "Fib_Test";
-    var pkgPath = new File(getClass().getClassLoader().getResource(testName).getPath());
+  private void parseSerializedModule(String projectName, String forbiddenMessage)
+  throws InterruptedException, ExecutionException, IOException, TimeoutException {
+    IR.Module old;
+    var pkgPath = new File(getClass().getClassLoader().getResource(projectName).getPath());
     var pkg = PackageManager.Default().fromDirectory(pkgPath).get();
-    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath, true)) {
+    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, true)) {
       var ensoContext =
-          (EnsoContext)
+              (EnsoContext)
               ctx.getBindings(LanguageInfo.ID)
-                  .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                  .asHostObject();
+                      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+                      .asHostObject();
       var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
       var compiler = ensoContext.getCompiler();
 
@@ -68,17 +59,20 @@ public class ExecSimpleTest {
       var future2 = compiler.compile(false, true);
       var persisted = future2.get(5, TimeUnit.SECONDS);
       assertEquals("Fib_Test library has been persisted", true, persisted);
+
+      old = module.getIr();
       ctx.leave();
     }
 
-    // mockHandler.failOnMessage("Parsing module [local.Fib_Test.Arith].");
+    IR.Module now;
+    mockHandler.failOnMessage(forbiddenMessage);
 
-    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(testName, pkgPath, false)) {
+    try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, false)) {
       var ensoContext =
-          (EnsoContext)
+              (EnsoContext)
               ctx.getBindings(LanguageInfo.ID)
-                  .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                  .asHostObject();
+                      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+                      .asHostObject();
       var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
       var compiler = ensoContext.getCompiler();
 
@@ -95,8 +89,30 @@ public class ExecSimpleTest {
       var mainValue = ctx.asValue(main);
       assertEquals(42, mainValue.execute().asInt());
 
+      now = module.getIr();
+
       ctx.leave();
     }
+    CompilerTest.assertIR("Serialized and deserialized IR for " + projectName, old, now);
+  }
+
+  private Context ensoContextForPackage(String name, File pkgFile, boolean disableIrCaching)
+      throws IOException {
+    Context ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .allowIO(true)
+            .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "" + disableIrCaching)
+            .option(
+                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .logHandler(mockHandler)
+            .option("log.enso.org.enso.compiler.Compiler.level", "FINE")
+            .allowAllAccess(true)
+            .build();
+    assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
+    return ctx;
   }
 
   private static class MockHandler extends Handler {
