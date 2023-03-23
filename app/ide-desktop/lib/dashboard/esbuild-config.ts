@@ -18,6 +18,7 @@ import esbuildPluginTime from 'esbuild-plugin-time'
 
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
+import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
 import * as utils from '../../utils'
 
@@ -34,8 +35,6 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 export interface Arguments {
     /** Path where bundled files are output. */
     outputPath: string
-    /** Directory with assets. Its contents are to be copied. */
-    assetsPath: string
     /** `true` if in development mode (live-reload), `false` if in production mode. */
     devMode: boolean
 }
@@ -44,9 +43,8 @@ export interface Arguments {
  * Get arguments from the environment.
  */
 export function argumentsFromEnv(): Arguments {
-    const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
     const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
-    return { assetsPath, outputPath, devMode: false }
+    return { outputPath, devMode: false }
 }
 
 // ======================
@@ -63,10 +61,12 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
             }
             // Required since `onStart` is called on every rebuild.
             let cachedOutput: Record<string, CacheEntry> = {}
-            const tailwindPostcssPlugin = tailwindcss({
-                config: path.resolve(THIS_PATH, 'tailwind.config.ts'),
-            })
-            const cssProcessor = postcss([tailwindPostcssPlugin])
+            const cssProcessor = postcss([
+                tailwindcss({
+                    config: path.resolve(THIS_PATH, 'tailwind.config.ts'),
+                }),
+                tailwindcssNesting(),
+            ])
             build.onLoad({ filter: /\.css$/ }, async loadArgs => {
                 const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
                 let output = cachedOutput[loadArgs.path]

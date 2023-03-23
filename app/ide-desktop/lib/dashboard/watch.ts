@@ -18,9 +18,8 @@ const PORT = 8081
 const HTTP_STATUS_OK = 200
 // `assetsPath` and `outputPath` do not have to be real directories because `write` is `false`,
 // meaning that files will not be written to the filesystem.
-// However, they should still have the correct paths relative to each other
-// in order for `esbuild.serve` to work properly.
-const ARGS: bundler.Arguments = { assetsPath: '/', outputPath: '/', devMode: true }
+// However, they should still have non-empty paths in order for `esbuild.serve` to work properly.
+const ARGS: bundler.Arguments = { outputPath: '/', devMode: true }
 const OPTS = bundler.bundlerOptions(ARGS)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
