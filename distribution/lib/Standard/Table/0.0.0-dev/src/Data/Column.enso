@@ -1267,7 +1267,12 @@ type Column
             new_col = self.java_column.applyMask mask
             Column.Value new_col
         _ ->
-            sorted = self.to_vector.sort order by=by
+            wrapped a b = case a of
+                Nothing -> if b.is_nothing then Ordering.Equal else if missing_last then Ordering.Greater else Ordering.Less
+                _ -> case b of
+                    Nothing -> if missing_last then Ordering.Less else Ordering.Greater
+                    _ -> by a b
+            sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
     ## Creates a new Column with the specified range of rows from the input

@@ -692,7 +692,7 @@ type Table
                 False -> case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default -> ObjectComparator.DEFAULT
                     Case_Sensitivity.Sensitive -> ObjectComparator.DEFAULT
-                    Case_Sensitivity.Insensitive locale -> ObjectComparator.new True locale.java_locale
+                    Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy java_columns.to_array directions.to_array comparator
