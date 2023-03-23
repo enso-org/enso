@@ -522,6 +522,25 @@ impl Chain {
     pub fn all_operands_set(&self) -> bool {
         self.target.is_some() && self.args.iter().all(|arg| arg.operand.is_some())
     }
+
+    /// Try to convert the chain into a list of qualified name segments. Qualified name consists of
+    /// identifiers chained by [`ACCESS`] operator.
+    pub fn as_qualified_name_segments(&self) -> Option<Vec<ImString>> {
+        let every_operator_is_access = self
+            .enumerate_operators()
+            .all(|opr| opr.item.ast().repr() == crate::opr::predefined::ACCESS);
+        let name_segments: Option<Vec<_>> = self
+            .enumerate_operands()
+            .flatten()
+            .map(|opr| crate::identifier::name(&opr.item.arg).map(ImString::new))
+            .collect();
+        let name_segments = name_segments?;
+        if every_operator_is_access {
+            Some(name_segments)
+        } else {
+            None
+        }
+    }
 }
 
 impl From<Chain> for Ast {

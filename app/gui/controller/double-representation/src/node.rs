@@ -500,6 +500,9 @@ impl ast::HasTokens for MainLine {
 
 #[cfg(test)]
 mod tests {
+    use crate::name::QualifiedName;
+    use crate::name::QualifiedNameRef;
+
     use super::*;
     use parser::Parser;
 
@@ -677,40 +680,128 @@ mod tests {
         assert_eq!(node.id(), id);
     }
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum ContextSwitch {
+        Enable,
+        Disable,
+    }
+
+    impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
+        type Error = ();
+
+        fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
+            const ENABLE: [&str; 4] = ["Standard", "Base", "Runtime", "enable_context"];
+            const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "disable_context"];
+            // Unwraps are safe, because the conversion is tested.
+            let enable_name = QualifiedName::from_all_segments(ENABLE).unwrap();
+            let disable_name = QualifiedName::from_all_segments(DISABLE).unwrap();
+
+            if qualified_name == enable_name {
+                Ok(ContextSwitch::Enable)
+            } else if qualified_name == disable_name {
+                Ok(ContextSwitch::Disable)
+            } else {
+                Err(())
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Context {
+        Output,
+    }
+
+    impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
+        type Error = ();
+
+        fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
+            const OUTPUT: [&str; 4] = ["Standard", "Base", "Context", "Output"];
+            // Unwrap is safe, because the conversion is tested.
+            let output_name = QualifiedName::from_all_segments(OUTPUT).unwrap();
+
+            if qualified_name == output_name {
+                Ok(Context::Output)
+            } else {
+                Err(())
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    struct ContextSwitchExpression {
+        pub switch:  ContextSwitch,
+        pub context: Context,
+    }
+
+    fn parse_context_switch_expression(ast: &Ast) -> Option<ContextSwitchExpression> {
+        let infix = known::Infix::try_new(ast.clone()).ok()?;
+        let opr = ast::identifier::name(&infix.opr)?;
+        if opr == "<|" {
+            let prefix = known::Prefix::try_new(infix.larg.clone()).ok()?;
+            let infix_chain = ast::opr::Chain::try_new(&prefix.func)?;
+            let name_segments = infix_chain.as_qualified_name_segments()?;
+            let qualified_name = QualifiedName::from_all_segments(&name_segments).ok()?;
+            let switch = ContextSwitch::try_from(qualified_name.as_ref()).ok()?;
+            let context = ast::opr::Chain::try_new(&prefix.arg)?;
+            let context_segments = context.as_qualified_name_segments()?;
+            let context_name = QualifiedName::from_all_segments(&context_segments).ok()?;
+            let context = Context::try_from(context_name.as_ref()).ok()?;
+            Some(ContextSwitchExpression {
+                switch,
+                context,
+            })
+        } else {
+            None
+        }
+    }
+
     #[test]
     fn test_recognizing_execution_context_switch() {
-        use ast::opr::Chain;
+        #[derive(Debug)]
+        struct Case {
+            input:    &'static str,
+            expected: Option<ContextSwitchExpression>,
+        }
+
+        #[rustfmt::skip]
+        let cases = vec![
+            Case { 
+                input: "foo <| bar", 
+                expected: None 
+            },
+            Case { 
+                input: "Runtime.enable_context blabla <| bar", 
+                expected: None,
+            },
+            Case { 
+                input: "Runtime.enable_context Context.Output <| bar", 
+                expected: None,
+            },
+            Case { 
+                input: "Standard.Base.Runtime.enable_context Context.Output <| bar", 
+                expected: None,
+            },
+            Case {
+                input: "Standard.Base.Runtime.enable_context Standard.Base.Context.Output <| bar",
+                expected: Some(ContextSwitchExpression {
+                    switch:  ContextSwitch::Enable,
+                    context: Context::Output,
+                }),
+            },
+            Case {
+                input: "Standard.Base.Runtime.disable_context Standard.Base.Context.Output <| bar",
+                expected: Some(ContextSwitchExpression {
+                    switch:  ContextSwitch::Disable,
+                    context: Context::Output,
+                }),
+            },
+        ];
+
         let parser = Parser::new();
-        let expr = parser
-            .parse_line_ast("Standard.Base.Runtime.enable_context \"Output\" <| 2 + 2")
-            .unwrap();
-        if let Ok(infix) = known::Infix::try_new(expr) {
-            let opr = ast::identifier::name(&infix.opr).unwrap();
-            if opr == "<|" {
-                if let Ok(prefix) = known::Prefix::try_new(infix.larg.clone()) {
-                    if let Some(infix_chain) = Chain::try_new(&prefix.func) {
-                        let every_operator_is_access = infix_chain
-                            .enumerate_operators()
-                            .all(|opr| opr.item.ast().repr() == ast::opr::predefined::ACCESS);
-                        let name_segments = infix_chain
-                            .enumerate_operands()
-                            .flatten()
-                            .filter_map(|opr| {
-                                ast::identifier::name(&opr.item.arg).map(ImString::new)
-                            })
-                            .collect_vec();
-                        eprintln!("Name: {:?}", name_segments);
-                    } else {
-                        panic!("Not infix chain");
-                    }
-                } else {
-                    panic!("Not prefix");
-                }
-            } else {
-                panic!("Not <|");
-            }
-        } else {
-            panic!("Not infix")
+        for case in cases.iter() {
+            let ast = parser.parse_line_ast(case.input).unwrap();
+            let result = parse_context_switch_expression(&ast);
+            assert_eq!(result, case.expected, "{case:?}");
         }
     }
 
