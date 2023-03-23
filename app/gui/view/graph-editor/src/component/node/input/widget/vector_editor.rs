@@ -4,6 +4,7 @@ use crate::component::node::input::widget::triangle;
 use crate::component::node::input::widget::SampledFrp;
 use crate::component::node::input::widget::ACTIVATION_SHAPE_COLOR;
 use crate::component::node::input::widget::ACTIVATION_SHAPE_SIZE;
+use crate::component::node::input::widget::ACTIVATION_SHAPE_Y_OFFSET;
 
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -28,7 +29,7 @@ impl Elements {
         let display_object = display::object::Instance::new();
         let items = default();
         display_object.use_auto_layout().set_gap_x(GAP);
-        display_object.set_size_y(0.0);
+        display_object.set_size_y(Self::HEIGHT);
         Self { app, display_object, items }
     }
 
@@ -55,14 +56,6 @@ impl Elements {
             items.push(new_element);
         }
     }
-
-    fn show(&self) {
-        self.display_object.set_size_y(Self::HEIGHT);
-    }
-
-    fn hide(&self) {
-        self.display_object.set_size_y(0.0);
-    }
 }
 
 impl display::Object for Elements {
@@ -73,43 +66,48 @@ impl display::Object for Elements {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    network:          frp::Network,
-    display_object:   display::object::Instance,
-    activation_shape: triangle::View,
-    elements:         Elements,
+    network:            frp::Network,
+    display_object:     display::object::Instance,
+    elements_container: display::object::Instance,
+    activation_shape:   triangle::View,
+    elements:           Elements,
+    pub set_port_size:  frp::Source<Vector2>,
 }
 
 impl Model {
     pub fn new(app: &Application, parent: &display::object::Instance, frp: &SampledFrp) -> Self {
         let network = frp::Network::new("vector_editor::Model");
         let display_object = display::object::Instance::new();
+        let elements_container = display::object::Instance::new();
         let activation_shape = triangle::View::new();
         let elements = Elements::new(app);
 
         activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
-        display_object.add_child(&elements);
+        display_object.add_child(&elements_container);
         display_object.add_child(&activation_shape);
         display_object
             .use_auto_layout()
             .set_column_count(1)
             .set_gap_y(GAP)
             .set_children_alignment_center();
-        display_object.set_size_x_to_hug();
+        display_object.set_size_hug();
+        elements_container.set_size_hug();
         parent.add_child(&display_object);
 
         frp::extend! { network
             init <- source_();
+            set_port_size <- source::<Vector2>();
             let dot_clicked = activation_shape.events.mouse_down_primary.clone_ref();
             toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
             set_focused <- any(toggle_focus, frp.set_focused);
-            eval set_focused([display_object, elements](focus) match focus {
+            eval set_focused([display_object, elements_container, elements](focus) match focus {
                 true => {
                     display_object.focus();
-                    elements.show();
+                    elements_container.add_child(&elements);
                 },
                 false => {
                     display_object.blur();
-                    elements.hide();
+                    elements_container.remove_child(&elements);
                 },
             });
 
@@ -120,15 +118,30 @@ impl Model {
                 activation_shape.color.set(color::Rgba::from(color).into());
             });
 
-            non_empty_value <- frp.set_current_value.filter_map(|v| v.clone());
-            trace frp.set_current_value;
-            empty_value <- frp.set_current_value.filter_map(|v| v.is_none().then_some(()));
+            value <- all(frp.set_current_value, init)._0();
+            non_empty_value <- value.filter_map(|v| v.clone());
+            empty_value <- value.filter_map(|v| v.is_none().then_some(()));
             eval non_empty_value ((val) elements.set_elements(Self::parse_array_code(val.as_str())));
             eval empty_value ((()) elements.clear_elements());
+
+            widget_size <- display_object.on_updated.map(f!((()) display_object.computed_size())).on_change();
+            port_and_widget_size <- all(&set_port_size, &widget_size);
+            eval port_and_widget_size ([display_object]((port_sz, sz)) {
+                warn!("port_sz: {port_sz}, sz: {sz}");
+                display_object.set_x(port_sz.x() / 2.0 - sz.x() / 2.0);
+                display_object.set_y(-port_sz.y() - sz.y() - 5.0);
+            });
         }
         init.emit(());
 
-        Self { network, display_object, activation_shape, elements }
+        Self {
+            network,
+            display_object,
+            activation_shape,
+            elements,
+            elements_container,
+            set_port_size,
+        }
     }
 
     fn parse_array_code(code: &str) -> impl Iterator<Item = &str> {
@@ -136,11 +149,5 @@ impl Model {
         warn!("{without_braces:?}");
         let elements_with_trailing_spaces = without_braces.split(',');
         elements_with_trailing_spaces.map(|s| s.trim())
-    }
-
-    pub fn set_port_size(&self, port_size: Vector2) {
-        // let height = ACTIVATION_SHAPE_SIZE.y() + GAP + Elements::HEIGHT;
-        self.display_object.set_x(port_size.x() / 2.0);
-        // self.display_object.set_y(-port_size.y() / 2.0 - height);
     }
 }

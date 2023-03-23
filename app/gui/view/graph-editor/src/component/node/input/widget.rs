@@ -321,7 +321,7 @@ impl KindModel {
             }
             KindModel::VectorEditor(inner) => {
                 warn!("VectorEditor updated with metadata {meta:#?} and node data {node_data:#?}.");
-                inner.set_port_size(node_data.port_size);
+                inner.set_port_size.emit(node_data.port_size);
             }
         }
     }
