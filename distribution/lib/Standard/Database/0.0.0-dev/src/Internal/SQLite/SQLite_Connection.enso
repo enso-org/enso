@@ -107,32 +107,6 @@ type SQLite_Connection
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing = self.connection.read query limit
 
-    ## PRIVATE
-       Internal read function for a statement with optional types.
-
-       Arguments:
-       - statement: SQL_Statement to execute.
-       - column_type_suggestions: A vector of SQL type references that can act
-         as suggested column types. The SQLite backend will use all suggested
-         types, even the ones that normally would be inferred from metadata,
-         because when running the actual query the metadata is varying between
-         particular rows which is problematic - and the suggested type can be
-         safely applied to the whole column.
-       - last_row_only: If set true, only the last row of the query is fetched.
-         Defaults to false.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Materialized_Table
-    read_statement self statement column_type_suggestions=Nothing last_row_only=False =
-        ## We force to override all column types if they are provided, to ensure
-           consistent types across all rows (which column metadata may not
-           provide in SQLite).
-        IO.println "read_statement "+statement.to_text+" ["+column_type_suggestions.to_text+"]:"
-        updated_suggestions = case column_type_suggestions of
-            Nothing -> Nothing
-            _ -> column_type_suggestions.map ref->
-                SQL_Type_Reference.from_constant ref.get
-        IO.println "updated to ["+updated_suggestions.to_text+"]:"
-        self.connection.read_statement statement updated_suggestions last_row_only
-
     ## ADVANCED
 
        Executes a raw update query. If the query was inserting, updating or

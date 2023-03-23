@@ -114,20 +114,6 @@ type Postgres_Connection
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing = self.connection.read query limit
 
-    ## PRIVATE
-       Internal read function for a statement with optional types.
-
-       Arguments:
-       - statement: SQL_Statement to execute.
-       - column_type_suggestions: A vector of SQL type references that can act
-         as suggested column types. The Postgres backend relies on the default
-         behavior.
-       - last_row_only: If set true, only the last row of the query is fetched.
-         Defaults to false.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Materialized_Table
-    read_statement self statement column_type_suggestions=Nothing last_row_only=False =
-        self.connection.read_statement statement column_type_suggestions last_row_only
-
     ## ADVANCED
 
        Executes a raw update query. If the query was inserting, updating or
