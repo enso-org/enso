@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from project.Data.Ordering import all
+from Standard.Base.Data.Ordering import all
+
 import project.Data.Column.Column
 
 polyglot java import java.sql.Types
