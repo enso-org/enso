@@ -31,6 +31,9 @@ const BUTTON_OFFSET: f32 = 0.5;
 /// Grow the hover area in x direction by this amount. Used to close the gap between action
 /// icons and node.
 const HOVER_EXTENSION_X: f32 = 15.0;
+const FREEZE_TOOLTIP_LABEL: &str = "Freeze";
+const SKIP_TOOLTIP_LABEL: &str = "Skip";
+const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
 
 
 // ===============
@@ -95,10 +98,9 @@ struct Icons {
 impl Icons {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
-        let freeze = ToggleButton::new(app, tooltip::Style::set_label("Freeze".to_owned()));
-        let visibility =
-            ToggleButton::new(app, tooltip::Style::set_label("Show preview".to_owned()));
-        let skip = ToggleButton::new(app, tooltip::Style::set_label("Skip".to_owned()));
+        let freeze = labeled_button(app, FREEZE_TOOLTIP_LABEL);
+        let visibility = labeled_button(app, VISIBILITY_TOOLTIP_LABEL);
+        let skip = labeled_button(app, SKIP_TOOLTIP_LABEL);
         display_object.add_child(&visibility);
         if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             display_object.add_child(&freeze);
@@ -118,6 +120,11 @@ impl display::Object for Icons {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
+}
+
+fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> ToggleButton<Icon> {
+    let tooltip_style = tooltip::Style::set_label(label.to_owned());
+    ToggleButton::new(app, tooltip_style)
 }
 
 
@@ -330,6 +337,11 @@ impl display::Object for ActionBar {
     }
 }
 
+
+
+// ============
+// === Test ===
+// ============
 
 #[cfg(test)]
 mod test {

@@ -219,8 +219,10 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         let color = color::Animation::new(network);
         let icon = &model.icon.events;
 
-        // Explicitly define the tooltip placement if the default was used, to ensure that, when
-        // multiple tooltips are being used, we always override to the one we want.
+        // Explicitly define the tooltip placement if none was set. This ensures that this tooltip
+        // is always correctly placed even when other components use tooltips as well. Otherwise,
+        // the explicit placement setting of other tooltips would be used, since other tooltips use
+        // the same application-level FRP node for setting the style.
         let tooltip_style = {
             let placement = tooltip_style.placement().unwrap_or_default();
             tooltip_style.with_placement(placement)
@@ -244,8 +246,8 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             frp.source.mouse_over <+ icon.mouse_over;
             frp.source.mouse_out  <+ icon.mouse_out;
-            frp.source.is_hovered <+ bool(&icon.mouse_out,&icon.mouse_over);
-            frp.source.is_pressed <+ bool(&icon.mouse_up_primary,&icon.mouse_down_primary);
+            frp.source.is_hovered <+ bool(&icon.mouse_out, &icon.mouse_over);
+            frp.source.is_pressed <+ bool(&icon.mouse_up_primary, &icon.mouse_down_primary);
 
 
             // === Color ===
