@@ -13,7 +13,7 @@ import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Polyglot
+import project.Polyglot.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 

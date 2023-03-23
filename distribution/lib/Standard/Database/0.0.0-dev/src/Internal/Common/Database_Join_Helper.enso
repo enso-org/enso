@@ -78,6 +78,7 @@ type Join_Subquery_Setup
             self.old_columns.zip self.new_columns old-> new->
                 [old.name, new]
 
+## PRIVATE
 prepare_subqueries : Table -> Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries left right needs_left_indicator needs_right_indicator =
     ## If a self-join, make sure we are able to distinguish the left and

@@ -24,7 +24,8 @@ polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.read.QuoteStrippingParser
 polyglot java import org.enso.table.parsing.problems.MismatchedQuote
 
-## Reads a delimited file according to the provided format.
+## PRIVATE
+   Reads a delimited file according to the provided format.
 
    Arguments:
    - format: The specification of the delimited file format.
@@ -45,6 +46,7 @@ read_file format file on_problems =
     result.catch Mismatched_Quote error->
         Error.throw (File_Error.Corrupted_Format file error.to_display_text error)
 
+## PRIVATE
 read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
 read_text text format on_problems =
     java_reader = StringReader.new text
@@ -134,6 +136,7 @@ type Detected_Headers
     ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
     None (column_count : Integer)
 
+## PRIVATE
 type Detected_File_Metadata
     ## PRIVATE
        An internal type representing metadata describing the format of a specific

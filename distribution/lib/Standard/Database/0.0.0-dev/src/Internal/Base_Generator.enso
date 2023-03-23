@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.SQL
 import project.Data.SQL.Builder
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -10,7 +9,6 @@ import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
-from project.Data.SQL import code
 
 from project.Errors import Unsupported_Database_Operation
 
@@ -69,7 +67,7 @@ make_unary_op name =
     arguments ->
         case arguments.length == 1 of
             True ->
-                (code name+" ")++(arguments.at 0) . paren
+                (Builder.code name+" ")++(arguments.at 0) . paren
             False ->
                 Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name)
 
@@ -130,7 +128,7 @@ make_right_unary_op name =
 make_function : Text -> (Vector Builder -> Builder)
 make_function name =
     arguments ->
-        (code name) ++ (SQL.join ", " arguments . paren)
+        (Builder.code name) ++ (Builder.join ", " arguments . paren)
 
 ## PRIVATE
 
@@ -142,7 +140,7 @@ make_constant : Text -> (Vector Builder -> Builder)
 make_constant sql_code =
     arguments ->
         if arguments.not_empty then Error.throw <| Illegal_State.Error "No arguments were expected" else
-            code sql_code
+            Builder.code sql_code
 
 ## PRIVATE
 
@@ -157,7 +155,7 @@ make_constant sql_code =
 wrap_in_quotes : Text -> Builder
 wrap_in_quotes identifier =
     escaped = identifier.replace '"' '""'
-    code '"'+escaped+'"'
+    Builder.code '"'+escaped+'"'
 
 ## PRIVATE
 
@@ -197,7 +195,7 @@ make_iif arguments = case arguments.length of
         expr = arguments.at 0
         when_true = arguments.at 1
         when_false = arguments.at 2
-        (code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
+        (Builder.code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
@@ -218,14 +216,14 @@ make_is_in arguments = case arguments.length of
     0 -> Error.throw <| Illegal_State.Error ("The operation IS_IN requires at least one argument.")
     ## If only the self argument is provided, no value will ever be in the empty list, so we just short circuit to false.
        `IN ()` would be more meaningful, but it is a syntax error.
-    1 -> code 'FALSE' . paren
+    1 -> Builder.code 'FALSE' . paren
     _ ->
         expr = arguments.first
         list = arguments.drop 1
-        is_in = expr ++ " IN (" ++ (SQL.join ", " list) ++ ")"
+        is_in = expr ++ " IN (" ++ (Builder.join ", " list) ++ ")"
         ## We ensure that even `NULL IN (...)` is coalesced to False, so that
            negation will work as expected.
-        code "COALESCE(" ++ is_in ++ ", FALSE)"
+        Builder.code "COALESCE(" ++ is_in ++ ", FALSE)"
 
 ## PRIVATE
 make_is_in_column : Vector Builder -> Builder
@@ -234,9 +232,9 @@ make_is_in_column arguments = case arguments.length of
         expr = arguments.at 0
         in_query = arguments.at 1
         has_nulls_query = arguments.at 2
-        is_in = code "COALESCE(" ++ expr ++ " IN (" ++ in_query ++ "), FALSE)"
+        is_in = Builder.code "COALESCE(" ++ expr ++ " IN (" ++ in_query ++ "), FALSE)"
         has_nulls = has_nulls_query.paren ++ " = TRUE"
-        code "CASE WHEN " ++ expr ++ " IS NULL THEN " ++ has_nulls ++ " ELSE " ++ is_in ++ " END"
+        Builder.code "CASE WHEN " ++ expr ++ " IS NULL THEN " ++ has_nulls ++ " ELSE " ++ is_in ++ " END"
     _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
 
 ## PRIVATE
@@ -250,7 +248,7 @@ generate_expression : Internal_Dialect -> SQL_Expression | Order_Descriptor | Qu
 generate_expression dialect expr = case expr of
     SQL_Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-    SQL_Expression.Constant sql_type value -> SQL.interpolation sql_type value
+    SQL_Expression.Constant sql_type value -> Builder.interpolation sql_type value
     SQL_Expression.Operation kind arguments ->
         op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
@@ -269,7 +267,7 @@ generate_expression dialect expr = case expr of
 alias : Internal_Dialect -> Text -> Builder
 alias dialect name =
     wrapped = dialect.wrap_identifier name
-    code " AS " ++ wrapped
+    Builder.code " AS " ++ wrapped
 
 ## PRIVATE
 
@@ -283,11 +281,11 @@ generate_from_part dialect from_spec = case from_spec of
     From_Spec.Table name as_name ->
         dialect.wrap_identifier name ++ alias dialect as_name
     From_Spec.Query raw_sql as_name ->
-        code raw_sql . paren ++ alias dialect as_name
+        Builder.code raw_sql . paren ++ alias dialect as_name
     From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
-        ons = SQL.join " AND " (on.map (generate_expression dialect)) . prefix_if_present " ON "
+        ons = Builder.join " AND " (on.map (generate_expression dialect)) . prefix_if_present " ON "
         left ++ (" " + kind.to_sql + " ") ++ right ++ ons
     From_Spec.Sub_Query columns context as_name ->
         sub = generate_query dialect (Query.Select columns context)
@@ -295,7 +293,7 @@ generate_from_part dialect from_spec = case from_spec of
 
 ## PRIVATE
 fold_case = lift_unary_op "FOLD_CASE" arg->
-    code "LOWER(UPPER(" ++ arg ++ "))"
+    Builder.code "LOWER(UPPER(" ++ arg ++ "))"
 
 ## PRIVATE
 make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
@@ -303,7 +301,7 @@ make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
 
 ## PRIVATE
 simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
-    code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
+    Builder.code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
 
 ## PRIVATE
 make_equals a b =
@@ -347,15 +345,15 @@ generate_select_context : Internal_Dialect -> Context -> Builder
 generate_select_context dialect ctx =
     gen_exprs exprs = exprs.map (generate_expression dialect)
     from_part = generate_from_part dialect ctx.from_spec
-    where_part = (SQL.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
-    group_part = (SQL.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+    where_part = (Builder.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
+    group_part = (Builder.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
     limit_part = case ctx.limit of
         Nothing -> ""
         _ : Integer -> " LIMIT " + ctx.limit.to_text
 
     orders = ctx.orders.map (generate_order dialect)
-    order_part = (SQL.join ", " orders) . prefix_if_present " ORDER BY "
-    (code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
+    order_part = (Builder.join ", " orders) . prefix_if_present " ORDER BY "
+    (Builder.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
 
 ## PRIVATE
 
@@ -368,11 +366,11 @@ generate_select_context dialect ctx =
      expression returning a value.
 generate_insert_query : Internal_Dialect -> Text -> Vector Any -> Builder
 generate_insert_query dialect table_name pairs =
-    names = SQL.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
-    values = SQL.join ", " <| pairs.map (.second >> generate_expression dialect)
+    names = Builder.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
+    values = Builder.join ", " <| pairs.map (.second >> generate_expression dialect)
     into = dialect.wrap_identifier table_name
 
-    code "INSERT INTO " ++ into ++ " (" ++ names ++ ") VALUES (" ++ values ++ ")"
+    Builder.code "INSERT INTO " ++ into ++ " (" ++ names ++ ") VALUES (" ++ values ++ ")"
 
 ## PRIVATE
 
@@ -386,15 +384,15 @@ generate_query dialect query = case query of
     Query.Select columns ctx ->
         gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
         cols = case columns of
-            Nothing -> code "*"
-            _ -> SQL.join ", " (columns.map gen_column)
+            Nothing -> Builder.code "*"
+            _ -> Builder.join ", " (columns.map gen_column)
         prefix = case ctx.distinct_on of
-            Nothing -> code ""
+            Nothing -> Builder.code ""
             expressions : Vector ->
                 # TODO I just realised this does not make sense in other backends than Postgres, so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
-                generated = SQL.join ", " (expressions.map (generate_expression dialect))
-                code "DISTINCT ON (" ++ generated ++ ") "
-        code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
+                generated = Builder.join ", " (expressions.map (generate_expression dialect))
+                Builder.code "DISTINCT ON (" ++ generated ++ ") "
+        Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type."
@@ -437,10 +435,10 @@ make_concat make_raw_concat_expr make_contains_expr has_quote args =
                 includes_quote = make_contains_expr expr quote
                 is_empty = expr ++ " = ''"
                 needs_quoting = includes_separator.paren ++ " OR " ++ includes_quote.paren ++ " OR " ++ is_empty.paren
-                escaped = code "replace(" ++ expr ++ ", " ++ quote ++ ", " ++ quote ++ append ++ quote ++ ")"
+                escaped = Builder.code "replace(" ++ expr ++ ", " ++ quote ++ ", " ++ quote ++ append ++ quote ++ ")"
                 quoted = quote ++ append ++ escaped ++ append ++ quote
-                code "CASE WHEN " ++ needs_quoting ++ " THEN " ++ quoted ++ " ELSE " ++ expr ++ " END"
+                Builder.code "CASE WHEN " ++ needs_quoting ++ " THEN " ++ quoted ++ " ELSE " ++ expr ++ " END"
             False -> expr
-        transformed_expr = code "CASE WHEN " ++ expr ++ " IS NULL THEN '' ELSE " ++ possibly_quoted.paren ++ " END"
+        transformed_expr = Builder.code "CASE WHEN " ++ expr ++ " IS NULL THEN '' ELSE " ++ possibly_quoted.paren ++ " END"
         concatenated = make_raw_concat_expr transformed_expr separator
         prefix.paren ++ append ++ concatenated ++ append ++ suffix.paren

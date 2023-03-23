@@ -36,7 +36,8 @@ type Table_Update
         Json.from_pairs [chunks, table_specification_update]
 
 
-## Return a sub-window of a table. The window is defined by a cell row/col and line/chunk
+## PRIVATE
+   Return a sub-window of a table. The window is defined by a cell row/col and line/chunk
    coordinate as origin and the extent of the window in text chunks and lines. The size of
    a chunk (the characters in it) is defined by `chunk_width`. The output is formatted as a message
    that can be sent to the IDE's lazy text visualisation.
@@ -88,7 +89,8 @@ compute_table_update table table_cell_position text_window_position text_window_
     layout = Table_Specification_Update.Value row_heights column_widths column_names []
     Table_Update.Value chunks layout
 
-## Returns a vector that contains a pairs of row index and vector of corresponding lines indices.
+## PRIVATE
+   Returns a vector that contains a pairs of row index and vector of corresponding lines indices.
 compute_vertical_indices table start_row end_row start_line lines_to_get =
     ## agg is a Vector of `[processed_lines, initial_offset, result_indices]`
     process_line agg row_ix =
@@ -114,7 +116,8 @@ compute_vertical_indices table start_row end_row start_line lines_to_get =
     result_agg = row_ix_iter.to_vector.fold agg process_line
     result_agg.get 2 . flatten
 
-## Compute the text chunks for the row/line defined by the given indices limited to the given
+## PRIVATE
+   Compute the text chunks for the row/line defined by the given indices limited to the given
    column indices. The number of chunks to get is defined by `chunks_to_get`.
 get_chunks_for_row table row_ix line_ix initial_chunk_offset column_range chunk_size chunks_to_get =
     process_cell agg column_ix =
@@ -136,27 +139,32 @@ get_chunks_for_row table row_ix line_ix initial_chunk_offset column_range chunk_
     if column_indices == [] then [] else
         (fold_map [0, initial_chunk_offset] process_cell column_indices).flatten
 
-## Return the max value in the given vector.
+## PRIVATE
+   Return the max value in the given vector.
 max : Vector Integer -> Integer
 max vector =
     vector.fold 0 (l -> r -> Math.max l r)
 
-## Return the longest line in the given text.
+## PRIVATE
+   Return the longest line in the given text.
 get_longest_line : Text -> Integer
 get_longest_line text =
     max (text.lines.map (line -> line.length))
 
-## Return the length of the longest line in the given column.
+## PRIVATE
+   Return the length of the longest line in the given column.
 get_column_width column =
     max (column.to_vector.map (x -> get_longest_line x.to_text))
 
-## Return the height of the row defined by the given index.
+## PRIVATE
+   Return the height of the row defined by the given index.
 get_row_height table row_ix =
     columns = table.columns
     row = columns.map (column -> column.at row_ix)
     max (row.map (x -> x.to_text.lines.length))
 
-## Return the index of the first item in the given vector that brings the cummulative sum of items
+## PRIVATE
+   Return the index of the first item in the given vector that brings the cummulative sum of items
    above the target value. If no such item exists, return `Nothing`.
 find_first_over_cum_sum : Vector Integer -> Integer -> Integer | Nothing
 find_first_over_cum_sum items target  =
@@ -166,7 +174,8 @@ find_first_over_cum_sum items target  =
         Not_Found -> Nothing
         value -> value.get 0
 
-## Return the index of the column that is at the end of the given text width, when starting from the
+## PRIVATE
+   Return the index of the column that is at the end of the given text width, when starting from the
    given start column index.
 find_end_column table start_column_ix chunks chunk_size =
     table_columns_count = table.columns.length
@@ -178,7 +187,8 @@ find_end_column table start_column_ix chunks chunk_size =
         Nothing -> table_columns_count - 1
         value -> value + start_column_ix
 
-## Return the index of the row that is at the end of the given text height, when starting from the
+## PRIVATE
+   Return the index of the row that is at the end of the given text height, when starting from the
    given start row index.
 find_end_row table start_row_ix max_height =
     table_row_count = (table.columns.get 0).length
@@ -189,7 +199,8 @@ find_end_row table start_row_ix max_height =
         Nothing -> table_row_count - 1
         value -> value + start_row_ix
 
-## Helper for fold_map that takes a function, an accumulator value and the current item and returns
+## PRIVATE
+   Helper for fold_map that takes a function, an accumulator value and the current item and returns
    a tuple of the new accumulator value and the result of the function.
 fold_map_inner f acc item =
     previous_mappings = acc.first
@@ -200,20 +211,23 @@ fold_map_inner f acc item =
     new_mappings = previous_mappings + [current_mapping]
     Pair.new new_mappings new_acc_value
 
-## Map a function over a vectors, but also pass on a accumulator value from one step to the next.
-    The function must return a tuple of the result of the function and the new accumulator value.
+## PRIVATE
+   Map a function over a vectors, but also pass on a accumulator value from one step to the next.
+   The function must return a tuple of the result of the function and the new accumulator value.
 fold_map acc f iterable =
     result = iterable.fold (Pair.new [] acc) (fold_map_inner f)
     result.first
 
-## Return a vector of the cumulative sum of the given vector.
+## PRIVATE
+   Return a vector of the cumulative sum of the given vector.
 map_to_cumulative_sum iterable =
     map_running_sums previous_sum current =
         running_sum = previous_sum + current
         [running_sum, running_sum]
     fold_map 0 map_running_sums iterable
 
-## Return the given vector where each item is mapped to itself and its index in the vector.
+## PRIVATE
+   Return the given vector where each item is mapped to itself and its index in the vector.
 enumerate : Vector Any -> Vector Any
 enumerate vector =
     (0.up_to vector.length).to_vector.zip vector
