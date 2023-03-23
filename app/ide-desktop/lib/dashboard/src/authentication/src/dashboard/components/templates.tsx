@@ -1,5 +1,4 @@
 /** @file Renders the list of templates that can be used to create a project from. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as React from 'react'
 
 // =================
@@ -48,7 +47,7 @@ interface TemplatesRenderProps {
     templates: Template[]
     onTemplateClick(name?: string): void
 }
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onTemplateClick }) => {
     /** Unify the border color and the text color. */
 
@@ -64,7 +63,6 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onTemplate
     /** The action button for creating an empty project.
      * So there is no need to pass a value to onChange function.
      */
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const CreateEmptyTemplate = (
         <button
             className="h-40 cursor-pointer"
@@ -131,7 +129,7 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onTemplate
 interface TemplatesProps {
     onTemplateClick(name?: string): void
 }
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 const Templates: React.FC<TemplatesProps> = ({ onTemplateClick }) => {
     return (
         <div className="bg-white">

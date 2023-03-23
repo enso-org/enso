@@ -14,7 +14,7 @@ function Dashboard() {
     return (
         <>
             {/* These are placeholders. When implementing a feature,
-             * please replace the appropriate placeholder with the actual element.*/}
+              * please replace the appropriate placeholder with the actual element.*/}
             <div id="header" />
             <Templates onTemplateClick={onTemplateClick} />
             <div id="drive-header" />
