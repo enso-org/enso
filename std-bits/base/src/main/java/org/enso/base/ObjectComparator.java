@@ -25,7 +25,7 @@ public class ObjectComparator implements Comparator<Object> {
       EnsoCompareCallback = (v, u) -> {
         var result = are_equal.execute(null, v, u);
         if (result.isNull()) {
-          throw new ClassCastException( "Unable to compare " + v.toString() + " and " + u.toString());
+          throw new CompareException(u, v);
         } else {
           return result.asInt();
         }
@@ -38,16 +38,16 @@ public class ObjectComparator implements Comparator<Object> {
     return EnsoCompareCallback.apply(value, other);
   }
 
-  private static BiFunction<String, String, Integer> textComparator;
+  private final BiFunction<String, String, Integer> textComparator;
 
   public ObjectComparator() {
-    this(false, Locale.ROOT);
+    this(true, Locale.ROOT);
   }
 
   public ObjectComparator(boolean caseSensitive, Locale locale) {
     if (caseSensitive) {
         textComparator = Text_Utils::compare_normalized;
-        } else {
+    } else {
         textComparator = (a, b) -> Text_Utils.compare_normalized_ignoring_case(a, b, locale);
     }
   }

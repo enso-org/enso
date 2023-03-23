@@ -24,10 +24,7 @@ public class OrderBuilder {
      * @param missingLast whether or not missing values should be placed at the start or end of the
      *     ordering
      */
-    public OrderRule(
-        Column column,
-        boolean ascending,
-        boolean missingLast) {
+    public OrderRule(Column column, boolean ascending, boolean missingLast) {
       this.column = column;
       this.ascending = ascending;
       this.missingLast = missingLast;
