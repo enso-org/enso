@@ -18,9 +18,9 @@ interface Result<T> {
 }
 
 // This intentionally has the same brand as in the cloud backend API.
-type ProjectId = newtype.Newtype<string, 'ProjectId'>
-type ProjectName = newtype.Newtype<string, 'ProjectName'>
-type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
+export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+export type ProjectName = newtype.Newtype<string, 'ProjectName'>
+export type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
 
 interface ProjectMetadata {
     name: ProjectName
