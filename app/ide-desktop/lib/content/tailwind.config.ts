@@ -1,7 +1,8 @@
 /** @file Configuration for Tailwind. */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: ['./src/**/*.tsx'],
+    // FIXME[sb]: Tailwind building should be in `dashboard/`.
+    content: ['../dashboard/src/authentication/src/**/*.tsx'],
     theme: {
         extend: {},
     },

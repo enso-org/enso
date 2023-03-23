@@ -3,33 +3,11 @@ from Standard.Base import all
 ## PRIVATE
    Basic preprocessor for widgets metadata visualization.
 
-   Returns simplified annotation data for all requested arguments.
-   Values are replaced with just Text of the code.
-get_full_annotations_json : Any -> Text -> Vector Text -> Text
-get_full_annotations_json value call_name argument_names =
-    read_annotation argument =
-        annotation = Meta.get_annotation value call_name argument
-        widget = case annotation of
-            _ : Function -> annotation value
-            _ -> annotation
-
-        js_widget = widget.to_js_object
-        if js_widget.get "values" . is_nothing then js_widget else
-            js_codes = js_widget.get "values" . map (_.get "value")
-            fields = js_widget.field_names
-            values = fields.map f-> if f=="values" then js_codes else js_widget.get f
-            JS_Object.from_pairs (fields.zip values)
-    annotations = argument_names.map (arg -> [arg, read_annotation arg])
-    annotations.to_json
-
-## PRIVATE
-   Basic preprocessor for widgets metadata visualization.
-
    Returns full annotation data for all requested arguments.
 get_widget_json : Any -> Text -> Vector Text -> Text
 get_widget_json value call_name argument_names =
     read_annotation argument =
-        annotation = Meta.get_annotation value call_name argument
+        annotation = Warning.clear <| Meta.get_annotation value call_name argument
         case annotation of
             _ : Function -> annotation value
             _ -> annotation

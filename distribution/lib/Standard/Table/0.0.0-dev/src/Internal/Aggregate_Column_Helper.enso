@@ -110,7 +110,8 @@ default_aggregate_column_name aggregate_column include_column=True =
             c = aggregate_column.column
             prefix + " " + (if include_column then c.name else "")
 
-## Utility function to check if all same column
+## PRIVATE
+   Utility function to check if all aggregates are operating on the same source column.
 all_same_column : Vector Aggregate_Column -> Boolean
 all_same_column aggregates =
     is_not_count c = case c of
