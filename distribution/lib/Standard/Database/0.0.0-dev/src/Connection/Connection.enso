@@ -221,7 +221,7 @@ type Connection
 
         db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant col.sql_type_reference.get Nothing]
+            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant Nothing]
             insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
             self.jdbc_connection.load_table insert_template db_table table batch_size

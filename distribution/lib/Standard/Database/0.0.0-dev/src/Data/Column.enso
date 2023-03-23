@@ -133,26 +133,7 @@ type Column
                 if Helpers.check_integrity self other_column then other_column.expression else
                     Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
-                ## TODO [RW] later we should try to make sure the type is close
-                   to the column type - i.e. if I do x+10 if `x` is int16, then
-                   I should treat 10 as int16. Currently it will be the default
-                   (int64), but in a latter stage we should try to make the
-                   types match more closely.
-                   Or we can just find the smallest value type that will hold
-                   it. That will be simpler and should give the same effect. So
-                   just use the `use_smallest` argument once it is implemented.
-                operand_value_type = find_argument_type constant
-                ## We do not warn here, because we just try to find the closest
-                   matching Value Type, but then coerce it to whatever is
-                   closest supported in the given Database. So slight inexact
-                   type coercions here are fine - we just want to provide this
-                   value as a closest SQL type as possible. We could detect
-                   stuff here like Dates not supported in a given backend, but
-                   this can be handled better elsewhere.
-                operand_type = case operand_value_type of
-                    Nothing -> SQL_Type.null
-                    _ -> type_mapping.value_type_to_sql operand_value_type Problem_Behavior.Ignore
-                SQL_Expression.Constant operand_type constant
+                SQL_Expression.Constant constant
 
         expressions = operands.map prepare_operand
         new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)

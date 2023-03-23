@@ -248,7 +248,7 @@ generate_expression : Internal_Dialect -> SQL_Expression | Order_Descriptor | Qu
 generate_expression dialect expr = case expr of
     SQL_Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-    SQL_Expression.Constant sql_type value -> Builder.interpolation sql_type value
+    SQL_Expression.Constant value -> Builder.interpolation value
     SQL_Expression.Operation kind arguments ->
         op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)

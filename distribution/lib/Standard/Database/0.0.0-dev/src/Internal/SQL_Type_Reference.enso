@@ -46,7 +46,7 @@ type SQL_Type_Reference
     new connection context expression =
         do_fetch =
             # TODO [RW] remove type from here ?
-            empty_context = context.add_where_filters [SQL_Expression.Constant SQL_Type.boolean False]
+            empty_context = context.add_where_filters [SQL_Expression.Constant False]
             statement = connection.dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
             columns = connection.jdbc_connection.fetch_columns statement
             only_column = columns.first

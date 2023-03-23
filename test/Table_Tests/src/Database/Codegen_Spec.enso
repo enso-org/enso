@@ -34,7 +34,7 @@ spec =
             q1 = t1.filter (t1.at "A" == 42) . to_json
 
             part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
-            part2_sub = JS_Object.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
+            part2_sub = JS_Object.from_pairs [["value", 42]]
             part2 = JS_Object.from_pairs [["sql_interpolation", part2_sub]]
             part3 = JS_Object.from_pairs [["sql_code", ")"]]
             expected = JS_Object.from_pairs [["query", [part1, part2, part3]]] . to_text

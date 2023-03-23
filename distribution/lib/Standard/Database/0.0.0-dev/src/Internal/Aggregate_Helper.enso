@@ -50,7 +50,7 @@ make_aggregate_column aggregate new_name dialect infer_return_type =
         Count_Empty c _ -> simple_aggregate "COUNT_EMPTY" [c]
         Percentile p c _ ->
             op_kind = "PERCENTILE"
-            expression = SQL_Expression.Operation op_kind [SQL_Expression.Constant SQL_Type.double p, c.expression]
+            expression = SQL_Expression.Operation op_kind [SQL_Expression.Constant p, c.expression]
             sql_type_ref = infer_return_type op_kind [c] expression
             Internal_Column.Value new_name sql_type_ref expression
         Mode c _ -> simple_aggregate "MODE" [c]
@@ -76,13 +76,13 @@ make_aggregate_column aggregate new_name dialect infer_return_type =
             True -> simple_aggregate "STDDEV_POP" [c]
             False -> simple_aggregate "STDDEV_SAMP" [c]
         Concatenate c _ separator prefix suffix quote_char ->
-            base_args = [c.expression, SQL_Expression.Constant SQL_Type.text separator, SQL_Expression.Constant SQL_Type.text prefix, SQL_Expression.Constant SQL_Type.text suffix]
+            base_args = [c.expression, SQL_Expression.Constant separator, SQL_Expression.Constant prefix, SQL_Expression.Constant suffix]
             op_kind = case quote_char.is_empty of
                 True -> "CONCAT"
                 False -> "CONCAT_QUOTE_IF_NEEDED"
             effective_args = case op_kind of
                 "CONCAT_QUOTE_IF_NEEDED" ->
-                    base_args+[SQL_Expression.Constant SQL_Type.text quote_char]
+                    base_args+[SQL_Expression.Constant quote_char]
                 "CONCAT" -> base_args
             expression = SQL_Expression.Operation op_kind effective_args
             sql_type_ref = infer_return_type op_kind [c] expression
