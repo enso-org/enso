@@ -39,7 +39,7 @@ public abstract class CompilerTest {
   }
 
   static void assertIR(String msg, IR.Module old, IR.Module now) throws IOException {
-    Function<IR, String> filter = f -> EnsoCompilerTest.simplifyIR(f, true, true, false);
+    Function<IR, String> filter = f -> simplifyIR(f, true, true, false);
     String ir1 = filter.apply(old);
     String ir2 = filter.apply(now);
     if (!ir1.equals(ir2)) {
@@ -58,5 +58,61 @@ public abstract class CompilerTest {
       }
     }
     throw new IllegalStateException();
+  }
+
+  private static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
+    String txt = i.pretty();
+    if (noIds) {
+      txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
+    }
+    if (noLocations) {
+      for (;;) {
+        final String pref = " Location(";
+        int at = txt.indexOf(pref);
+        if (at == -1) {
+          break;
+        }
+        int to = at + pref.length();
+        int depth = 1;
+        while (depth > 0) {
+          switch (txt.charAt(to)) {
+            case '(' -> depth++;
+            case ')' -> depth--;
+          }
+          to++;
+        }
+        txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
+      }
+    }
+    if (lessDocs) {
+      for (;;) {
+        final String pref = "IR.Comment.Documentation(";
+        int at = txt.indexOf(pref);
+        if (at == -1) {
+          break;
+        }
+        int to = txt.indexOf("location =", at + pref.length());
+        txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+      }
+      for (;;) {
+        final String pref = "IR.Case.Pattern.Doc(";
+        int at = txt.indexOf(pref);
+        if (at == -1) {
+          break;
+        }
+        int to = txt.indexOf("location =", at + pref.length());
+        txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+      }
+    }
+    for (;;) {
+      final String pref = "IR.Error.Syntax(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("reason =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Error.Syntax (" + txt.substring(to);
+    }
+    return txt;
   }
 }
