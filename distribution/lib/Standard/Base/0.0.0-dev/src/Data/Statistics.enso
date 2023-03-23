@@ -3,7 +3,6 @@ import project.Data.Array.Array
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-import project.Data.Ordering.Comparator
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Range.Extensions
