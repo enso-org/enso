@@ -1,6 +1,6 @@
 /** @file File system paths used by the application. */
 
-import fss from "node:fs";
+import fss from 'node:fs'
 import * as path from 'node:path'
 
 import * as electron from 'electron'
@@ -41,10 +41,12 @@ export const PROJECT_MANAGER_PATH = path.join(
 export const projectMetadataRelative = path.join('.enso', 'project.json')
 
 /** Get the arguments, excluding the initial program name and any electron dev mode arguments. */
-export const clientArguments = electronIsDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(1)
+export const clientArguments = electronIsDev
+    ? process.argv.slice(process.argv.indexOf('--') + 1)
+    : process.argv.slice(1)
 
-    /** Check if the given path represents the root of an Enso project. This is decided by the presence of Project Manager's metadata.
-    */
+/** Check if the given path represents the root of an Enso project. This is decided by the presence of Project Manager's metadata.
+ */
 export function isProjectRoot(candidatePath: string): boolean {
     let project_json_path = path.join(candidatePath, projectMetadataRelative)
     try {

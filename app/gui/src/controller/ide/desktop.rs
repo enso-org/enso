@@ -4,19 +4,20 @@
 
 use crate::prelude::*;
 
+use crate::config::ProjectToOpen;
 use crate::controller::ide::ManagingProjectAPI;
 use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
 use crate::controller::ide::API;
 use crate::ide::initializer;
 
-use crate::config::ProjectToOpen;
 use double_representation::name::project;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
 use engine_protocol::project_manager::ProjectName;
 use parser::Parser;
+
 
 
 // =================

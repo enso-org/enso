@@ -24,8 +24,8 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
-import * as project from "./projectManagement";
-import {openFile} from "./projectManagement";
+import * as project from './projectManagement'
+import { openFile } from './projectManagement'
 
 const logger = contentConfig.logger
 
@@ -51,7 +51,9 @@ export function attemptingToOpenFile(clientArgs: string[]): string | null {
             fsSync.accessSync(clientArgs[0])
             return clientArgs[0]
         } catch (e) {
-            console.log(`The single argument '${clientArgs[0]}' does not denote a readable file: ${e}`)
+            console.log(
+                `The single argument '${clientArgs[0]}' does not denote a readable file: ${e}`
+            )
         }
     }
     return null
@@ -71,9 +73,9 @@ class App {
 
     async run() {
         const { windowSize, chromeOptions, openedFile } = this.processArguments()
-        if(openedFile !== null) {
+        if (openedFile !== null) {
             try {
-                 this.args.groups.startup.options.project.value = this.handleOpenFile(openedFile)
+                this.args.groups.startup.options.project.value = this.handleOpenFile(openedFile)
             } catch (e: unknown) {
                 let message = `Cannot open file: ${e}.`
                 if (e instanceof Error) {
@@ -114,7 +116,7 @@ class App {
         let openedFile = attemptingToOpenFile(paths.clientArguments)
         let argsToParse = openedFile ? [] : paths.clientArguments
         console.log(`Parsing arguments: ${argsToParse}`)
-        return {...configParser.parseArgs(argsToParse), openedFile}
+        return { ...configParser.parseArgs(argsToParse), openedFile }
     }
 
     /** Handle the case where IDE is invoked with a file to open.

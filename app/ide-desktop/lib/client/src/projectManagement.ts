@@ -1,13 +1,21 @@
-import path from "node:path";
-import fss from "node:fs";
-import electron from "electron";
-import crypto from "node:crypto";
+/** @file This module contains functions for importing projects into the Project Manager.
+ *
+ * Eventually this module should be replaced with a new Project Manager API that supports importing projects.
+ * For now, we basically do the following:
+ * - if the project is already in the Project Manager's location, we just open it;
+ * - if the project is in a different location, we copy it to the Project Manager's location and open it.
+ * - if the project is a bundle, we extract it to the Project Manager's location and open it.
+ **/
 
-import {isProjectRoot, projectMetadataRelative} from "./paths";
-import fsSync from "node:fs";
-import {BUNDLED_PROJECT_EXTENSION} from "../paths";
-import * as tar from "tar";
+import path from 'node:path'
+import fss from 'node:fs'
+import electron from 'electron'
+import crypto from 'node:crypto'
 
+import { isProjectRoot, projectMetadataRelative } from './paths'
+import fsSync from 'node:fs'
+import { BUNDLED_PROJECT_EXTENSION } from '../paths'
+import * as tar from 'tar'
 
 interface ProjectMetadata {
     id: string
@@ -19,10 +27,10 @@ interface ProjectMetadata {
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
 export function openFile(openedPath: string): string {
-    if(path.extname(openedPath).endsWith(BUNDLED_PROJECT_EXTENSION)) {
+    if (path.extname(openedPath).endsWith(BUNDLED_PROJECT_EXTENSION)) {
         // The second part of condition is for the case when someone names a directory like `my-project.enso-project`
         // and stores the project there. Not the most fortunate move, but...
-        if(isProjectRoot(openedPath)) {
+        if (isProjectRoot(openedPath)) {
             return importDirectory(openedPath)
         } else {
             // Project bundle was provided, so we need to extract it first.
@@ -51,7 +59,6 @@ export function getCommonPrefix(a: string, b: string): string {
     return a.slice(0, i)
 }
 
-
 /** If the bundle consists of a single directory, return its name. Otherwise, return null. */
 export function bundleRootDirectory(bundlePath: string): string | null {
     // We need to look up the root directory among the tarball entries.
@@ -59,12 +66,12 @@ export function bundleRootDirectory(bundlePath: string): string | null {
     tar.list({
         file: bundlePath,
         sync: true,
-        onentry: (entry) => {
+        onentry: entry => {
             // We normalize to get rid of leading `.` (if any).
             let path = entry.path.normalize()
             commonPrefix = commonPrefix === null ? path : getCommonPrefix(commonPrefix, path)
             console.log(`Entry: ${entry.path}, common prefix: ${commonPrefix}`)
-        }
+        },
     })
     if (commonPrefix !== null && commonPrefix !== '') {
         return path.basename(commonPrefix)
@@ -80,8 +87,10 @@ export function bundleRootDirectory(bundlePath: string): string | null {
 export function importBundle(bundlePath: string): string {
     // The bundle is a tarball, so we just need to extract it to the right location.
     const bundleRoot = bundleRootDirectory(bundlePath)
-    const targetDirectory = bundleRoot ? generateDirectoryName(bundleRoot) : generateDirectoryName(bundlePath)
-    fss.mkdirSync(targetDirectory, {recursive: true})
+    const targetDirectory = bundleRoot
+        ? generateDirectoryName(bundleRoot)
+        : generateDirectoryName(bundlePath)
+    fss.mkdirSync(targetDirectory, { recursive: true })
     // To be more resilient against different ways that user might attempt to create a bundle, we try to support
     // both archives that:
     // * contain a single directory with the project files - that directory name will be used to generate a new target
@@ -95,7 +104,7 @@ export function importBundle(bundlePath: string): string {
         cwd: targetDirectory,
         sync: true,
         strip: bundleRoot !== null ? 1 : 0,
-    });
+    })
     return updateId(targetDirectory)
 }
 
@@ -113,7 +122,7 @@ export function importDirectory(rootPath: string): string {
 
     console.debug(`Importing a project copy from: ${rootPath}`)
     const targetDirectory = generateDirectoryName(rootPath)
-    if(fsSync.existsSync(targetDirectory)) {
+    if (fsSync.existsSync(targetDirectory)) {
         const message = `Project directory already exists: ${targetDirectory}.`
         throw new Error(message)
     }
@@ -145,7 +154,10 @@ export function generateDirectoryName(name: string): string {
 
     let projectsDirectory = getProjectsDirectory()
     for (; ; suffix++) {
-        let candidatePath = path.join(projectsDirectory, `${name}${suffix === 0 ? '' : '_' + suffix}`)
+        let candidatePath = path.join(
+            projectsDirectory,
+            `${name}${suffix === 0 ? '' : '_' + suffix}`
+        )
         console.log(`Checking if ${candidatePath} exists?`)
         if (!fss.existsSync(candidatePath)) {
             return candidatePath

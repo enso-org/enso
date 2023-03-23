@@ -1,7 +1,6 @@
 //! This module provides IDE configuration structures.
 
 use crate::prelude::*;
-use failure::ResultExt;
 
 use crate::constants;
 
@@ -9,6 +8,7 @@ use engine_protocol::project_manager::ProjectMetadata;
 use engine_protocol::project_manager::ProjectName;
 use enso_config::Args;
 use enso_config::ARGS;
+use failure::ResultExt;
 
 
 
@@ -206,8 +206,8 @@ impl FromStr for ProjectToOpen {
 impl Display for ProjectToOpen {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ProjectToOpen::Name(name) => write!(f, "{}", name),
-            ProjectToOpen::Id(id) => write!(f, "{}", id),
+            ProjectToOpen::Name(name) => write!(f, "{name}"),
+            ProjectToOpen::Id(id) => write!(f, "{id}"),
         }
     }
 }

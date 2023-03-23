@@ -3,17 +3,18 @@
 use crate::prelude::*;
 
 use crate::config;
+use crate::config::ProjectToOpen;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
 use crate::FailedIde;
 
-use crate::config::ProjectToOpen;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use enso_web::sleep;
 use ensogl::application::Application;
 use std::time::Duration;
 use uuid::Uuid;
+
 
 
 // =================
@@ -316,7 +317,8 @@ mod test {
         expect_call!(mock_client.list_projects(count) => Ok(project_lists));
 
         let project_manager = Rc::new(mock_client);
-        let initializer = WithProjectManager { project_manager, project_name };
+        let project_to_open = ProjectToOpen::Name(project_name);
+        let initializer = WithProjectManager { project_manager, project_to_open };
         let project = initializer.get_project_or_create_new().await;
         assert_eq!(expected_id, project.expect("Couldn't get project."))
     }

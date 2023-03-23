@@ -12,7 +12,7 @@ import * as contentConfig from 'enso-content-config'
 import * as config from 'config'
 import * as naming from 'naming'
 
-import {clientArguments} from "../paths";
+import { clientArguments } from '../paths'
 
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
@@ -271,9 +271,7 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 /** Parses command line arguments. */
 export function parseArgs(clientArgs: string[] = clientArguments) {
     const args = config.CONFIG
-    const { argv, chromeOptions } = argvAndChromeOptions(
-        fixArgvNoPrefix(clientArgs)
-    )
+    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
 
     console.log(`Chrome options: ${chromeOptions}`)
     console.log(`Arguments after stripping Chrome options: ${argv}`)
