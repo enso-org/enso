@@ -1037,6 +1037,7 @@ use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
 use data::opt_vec::OptVec;
+use enso_types::Dim;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
 use transformation::CachedTransformation;
@@ -1712,7 +1713,7 @@ impl Model {
     pub fn update(&self, scene: &Scene) {
         self.refresh_layout();
         let origin0 = Matrix4::identity();
-        self.update_with_origin(scene, origin0, false, false, None)
+        self.update_with_origin(scene, origin0, false, false, None);
     }
 
     /// Update the display object tree transformations based on the parent object origin. See docs
@@ -3058,20 +3059,29 @@ where
 
 impl Model {
     /// Reset size of this display object to values that can be computed statically. This is, use
-    /// the size property if it is set to pixels or to percent of the parent size. Otherwise, set
-    /// the size to zero.
+    /// the size property if it is set to pixels or to percent of the parent size. If the size is
+    /// set to hug and will be chainged in next layout reftesh, the size is set to 0.0. Otherwise,
+    /// the size does not change.
     fn reset_size_to_static_values<Dim>(&self, x: Dim, parent_size: f32)
     where Dim: ResolutionDim {
         let size = match self.layout.size.get_dim(x) {
             Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
-            Size::Hug => 0.0,
+            Size::Hug
+                if self.dirty.transformation.check()
+                    || self.dirty.modified_children.check_all()
+                    || self.dirty.removed_children.check_all() =>
+                0.0,
+            Size::Hug => self.layout.computed_size.get_dim(x),
         };
         self.layout.computed_size.set_dim(x, size);
     }
 
     /// The main entry point from the recursive auto-layout algorithm.
     fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
-        if self.dirty.transformation.check() || self.dirty.modified_children.check_all() {
+        if self.dirty.transformation.check()
+            || self.dirty.modified_children.check_all()
+            || self.dirty.removed_children.check_all()
+        {
             if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
                 match pass {
                     LayoutResolutionPass::X => self.refresh_grid_layout(X, layout, pass),
@@ -4459,6 +4469,7 @@ mod hierarchy_tests {
 #[cfg(test)]
 mod layout_tests {
     use super::*;
+    use crate::display;
     use crate::display::world::World;
 
 
@@ -4500,8 +4511,17 @@ mod layout_tests {
                     $(self.[<node $num>].set_position(Vector3(0.0, 0.0, 0.0));)*
                 }
 
-                fn run(&self) -> &Self {
-                    self.world.display_object().update(&self.world.default_scene);
+                fn run(&self, assertions: impl Fn()) -> &Self {
+                    let update = || self.world.display_object().update(&self.world.default_scene);
+                    update();
+                    assertions();
+                    // Nothing should change if nothing happened.
+                    update();
+                    assertions();
+                    // Check also if the world being dirty also does not affect the `root`.
+                    self.world.display_object().set_position((0.0, 0.0, 0.0));
+                    update();
+                    assertions();
                     self
                 }
 
@@ -4609,20 +4629,25 @@ mod layout_tests {
         r1.set_size((2.0, 0.0)).allow_grow_y();
         r2.set_size((3.0, 0.0)).allow_grow_y();
 
-        root.update(&world.default_scene);
+        let check = || {
+            root.update(&world.default_scene);
 
-        assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(l.position().xy(), Vector2(0.0, 3.0));
-        assert_eq!(r.position().xy(), Vector2(7.0, 0.0));
-        assert_eq!(l1.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(r2.position().xy(), Vector2(0.0, 5.0));
+            assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
+            assert_eq!(l.position().xy(), Vector2(0.0, 3.0));
+            assert_eq!(r.position().xy(), Vector2(7.0, 0.0));
+            assert_eq!(l1.position().xy(), Vector2(0.0, 0.0));
+            assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
+            assert_eq!(r2.position().xy(), Vector2(0.0, 5.0));
 
-        assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
-        assert_eq!(l.computed_size(), Vector2(7.0, 4.0));
-        assert_eq!(r.computed_size(), Vector2(3.0, 10.0));
-        assert_eq!(r1.computed_size(), Vector2(2.0, 5.0));
-        assert_eq!(r2.computed_size(), Vector2(3.0, 5.0));
+            assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
+            assert_eq!(l.computed_size(), Vector2(7.0, 4.0));
+            assert_eq!(r.computed_size(), Vector2(3.0, 10.0));
+            assert_eq!(r1.computed_size(), Vector2(2.0, 5.0));
+            assert_eq!(r2.computed_size(), Vector2(3.0, 5.0));
+        };
+        check();
+        // Check if nothing happens when nothing happens.
+        check();
     }
 
     /// ```text
@@ -4645,15 +4670,16 @@ mod layout_tests {
         test.node1.set_size((1.0, 1.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((3.0, 3.0));
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(1.0, 0.0)
-            .assert_node3_position(3.0, 0.0)
-            .assert_root_computed_size(6.0, 3.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(3.0, 3.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(1.0, 0.0)
+                .assert_node3_position(3.0, 0.0)
+                .assert_root_computed_size(6.0, 3.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(3.0, 3.0);
+        });
     }
 
     /// ```text
@@ -4683,18 +4709,19 @@ mod layout_tests {
         test.node1.set_size((1.0, 1.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((3.0, 3.0));
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 1.0)
-            .assert_node3_position(0.0, 3.0)
-            .assert_root_computed_size(3.0, 6.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(3.0, 3.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 1.0)
+                .assert_node3_position(0.0, 3.0)
+                .assert_root_computed_size(3.0, 6.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(3.0, 3.0);
+        });
     }
 
-    /// ```text                                       
+    /// ```text
     /// ╔ root ══════════════ ▶ ◀ ═════════════════════╗
     /// ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────┬──── ▶ ◀ ────╮  ║
     /// ║ │  ╭ node1 ╮  ┆  ╭ node2 ╮  ┆  ╭ node3 ╮  │  ║
@@ -4710,15 +4737,16 @@ mod layout_tests {
         test.root.use_auto_layout();
         test.node1.set_size_hug_y(1.0);
         test.node2.set_size((2.0, 2.0));
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 0.0)
-            .assert_node3_position(2.0, 0.0)
-            .assert_root_computed_size(2.0, 2.0)
-            .assert_node1_computed_size(0.0, 1.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(0.0, 0.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node3_position(2.0, 0.0)
+                .assert_root_computed_size(2.0, 2.0)
+                .assert_node1_computed_size(0.0, 1.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(0.0, 0.0);
+        });
     }
 
     /// ```text
@@ -4739,15 +4767,16 @@ mod layout_tests {
         test.node1.set_size_hug_y(1.0);
         test.node2.set_size((2.0, 2.0)).allow_grow_x();
         test.node3.set_size((3.0, 3.0));
-        test.run()
-            .assert_root_computed_size(10.0, 3.0)
-            .assert_node1_computed_size(0.0, 1.0)
-            .assert_node2_computed_size(7.0, 2.0)
-            .assert_node3_computed_size(3.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 0.0)
-            .assert_node3_position(7.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 3.0)
+                .assert_node1_computed_size(0.0, 1.0)
+                .assert_node2_computed_size(7.0, 2.0)
+                .assert_node3_computed_size(3.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node3_position(7.0, 0.0);
+        });
     }
 
     /// ```text
@@ -4768,15 +4797,16 @@ mod layout_tests {
         test.node1.set_size_hug_y(1.0);
         test.node2.set_size((2.0, 2.0)).allow_grow_x().set_max_size_x(4.0);
         test.node3.set_size((3.0, 3.0));
-        test.run()
-            .assert_root_computed_size(10.0, 3.0)
-            .assert_node1_computed_size(0.0, 1.0)
-            .assert_node2_computed_size(4.0, 2.0)
-            .assert_node3_computed_size(3.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 0.0)
-            .assert_node3_position(4.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 3.0)
+                .assert_node1_computed_size(0.0, 1.0)
+                .assert_node2_computed_size(4.0, 2.0)
+                .assert_node3_computed_size(3.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node3_position(4.0, 0.0);
+        });
     }
 
     /// ```text
@@ -4797,15 +4827,16 @@ mod layout_tests {
         test.node1.set_size_hug_y(1.0);
         test.node2.set_size((2.0, 2.0)).allow_grow_x().set_max_size_x(4.0);
         test.node3.set_size((2.0, 3.0)).allow_grow_x();
-        test.run()
-            .assert_root_computed_size(10.0, 3.0)
-            .assert_node1_computed_size(0.0, 1.0)
-            .assert_node2_computed_size(4.0, 2.0)
-            .assert_node3_computed_size(6.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 0.0)
-            .assert_node3_position(4.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 3.0)
+                .assert_node1_computed_size(0.0, 1.0)
+                .assert_node2_computed_size(4.0, 2.0)
+                .assert_node3_computed_size(6.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node3_position(4.0, 0.0);
+        });
     }
 
     /// ```text
@@ -4826,15 +4857,16 @@ mod layout_tests {
         test.node1.set_size((1.0, 1.0));
         test.node2.set_size((2.0, 2.0)).allow_shrink_x().set_min_size_x(1.0);
         test.node3.set_size((3.0, 3.0));
-        test.run()
-            .assert_root_computed_size(4.0, 3.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(1.0, 2.0)
-            .assert_node3_computed_size(3.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(1.0, 0.0)
-            .assert_node3_position(2.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(4.0, 3.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(1.0, 2.0)
+                .assert_node3_computed_size(3.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(1.0, 0.0)
+                .assert_node3_position(2.0, 0.0);
+        });
     }
 
     /// ```text
@@ -4842,7 +4874,7 @@ mod layout_tests {
     /// ║ ╭──── ▶ ◀ ────┬──────── ▶ ◀ ────────┬──── ▶ ◀ ────╮ ║
     /// ║ │             ┆                  △  ┆             │ ║
     /// ║ ▼             ┆  ╭ node2 ────────┼─▷┆  ╭ node3 ╮  │ ║
-    /// ║ ▲  ╭ node1 ╮  ┆  │  ╭ node2_1 ╮  ▼  ┆  │       │  │ ▼     
+    /// ║ ▲  ╭ node1 ╮  ┆  │  ╭ node2_1 ╮  ▼  ┆  │       │  │ ▼
     /// ║ │  │       │  ┆  │  ╰─────────╯  ▲  ┆  │       │  │ ▲
     /// ║ │  ╰───────╯  ┆  ╰───── ▶ ◀ ─────╯  ┆  ╰───────╯  │ ║
     /// ║ ╰─────────────┴─────────────────────┴─────────────╯ ║
@@ -4861,15 +4893,16 @@ mod layout_tests {
         test.node2.allow_grow_x().allow_grow_y();
         node2_1.set_size((1.0, 1.0));
         test.node3.set_size((3.0, 3.0));
-        test.run()
-            .assert_root_computed_size(10.0, 3.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(6.0, 3.0)
-            .assert_node3_computed_size(3.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(1.0, 0.0)
-            .assert_node3_position(7.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 3.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(6.0, 3.0)
+                .assert_node3_computed_size(3.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(1.0, 0.0)
+                .assert_node3_position(7.0, 0.0);
+        });
         assert_eq!(node2_1.computed_size(), Vector2(1.0, 1.0));
         assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
     }
@@ -4896,15 +4929,16 @@ mod layout_tests {
         test.node3.set_size((3.0, 3.0));
         test.node2.set_margin_left(10.0);
         test.node2.set_margin_right(1.0);
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(11.0, 0.0)
-            .assert_node3_position(14.0, 0.0)
-            .assert_root_computed_size(17.0, 3.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(3.0, 3.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(11.0, 0.0)
+                .assert_node3_position(14.0, 0.0)
+                .assert_root_computed_size(17.0, 3.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(3.0, 3.0);
+        });
     }
 
     /// ```text
@@ -4929,15 +4963,16 @@ mod layout_tests {
         test.node1.set_size((1.0, 1.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((3.0, 3.0));
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(10.0, 10.0)
-            .assert_node2_position(11.0, 10.0)
-            .assert_node3_position(13.0, 10.0)
-            .assert_root_computed_size(26.0, 23.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(3.0, 3.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(10.0, 10.0)
+                .assert_node2_position(11.0, 10.0)
+                .assert_node3_position(13.0, 10.0)
+                .assert_root_computed_size(26.0, 23.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(3.0, 3.0);
+        });
     }
 
     /// ```text
@@ -4962,15 +4997,16 @@ mod layout_tests {
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
-        test.run()
-            .assert_root_computed_size(4.0, 4.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(2.0, 0.0)
-            .assert_node3_position(0.0, 2.0);
+        test.run(|| {
+            test.assert_root_computed_size(4.0, 4.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 2.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(2.0, 0.0)
+                .assert_node3_position(0.0, 2.0);
+        });
     }
 
     /// ```text
@@ -4995,15 +5031,16 @@ mod layout_tests {
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
-        test.run()
-            .assert_root_computed_size(4.0, 4.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 2.0)
-            .assert_node3_position(2.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(4.0, 4.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 2.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 2.0)
+                .assert_node3_position(2.0, 0.0);
+        });
     }
 
     /// ```text
@@ -5028,15 +5065,16 @@ mod layout_tests {
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
-        test.run()
-            .assert_root_computed_size(4.0, 4.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(2.0, 0.0)
-            .assert_node2_position(0.0, 0.0)
-            .assert_node3_position(2.0, 2.0);
+        test.run(|| {
+            test.assert_root_computed_size(4.0, 4.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 2.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(2.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node3_position(2.0, 2.0);
+        });
     }
 
     /// ```text
@@ -5061,15 +5099,16 @@ mod layout_tests {
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
-        test.run()
-            .assert_root_computed_size(4.0, 4.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 2.0)
-            .assert_node2_position(2.0, 2.0)
-            .assert_node3_position(0.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(4.0, 4.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 2.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 2.0)
+                .assert_node2_position(2.0, 2.0)
+                .assert_node3_position(0.0, 0.0);
+        });
     }
 
     /// ```text
@@ -5096,15 +5135,16 @@ mod layout_tests {
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
-        test.run()
-            .assert_root_computed_size(9.0, 7.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(7.0, 0.0)
-            .assert_node3_position(0.0, 5.0);
+        test.run(|| {
+            test.assert_root_computed_size(9.0, 7.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 2.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(7.0, 0.0)
+                .assert_node3_position(0.0, 5.0);
+        });
     }
 
     /// ```text
@@ -5124,13 +5164,23 @@ mod layout_tests {
         test.root.use_auto_layout().set_size_x(10.0);
         test.node1.set_size((30.pc(), 1.0));
         test.node2.set_size((70.pc(), 2.0));
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(3.0, 0.0)
-            .assert_root_computed_size(10.0, 2.0)
-            .assert_node1_computed_size(3.0, 1.0)
-            .assert_node2_computed_size(7.0, 2.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(3.0, 0.0)
+                .assert_root_computed_size(10.0, 2.0)
+                .assert_node1_computed_size(3.0, 1.0)
+                .assert_node2_computed_size(7.0, 2.0);
+        });
+        test.root.set_size_x(20.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(6.0, 0.0)
+                .assert_root_computed_size(20.0, 2.0)
+                .assert_node1_computed_size(6.0, 1.0)
+                .assert_node2_computed_size(14.0, 2.0);
+        });
     }
 
     /// ```text
@@ -5153,19 +5203,31 @@ mod layout_tests {
         test.node1.set_size((1.fr(), 1.0));
         test.node2.set_size((40.pc(), 2.0));
         test.node3.set_size((2.fr(), 3.0));
-        test.run()
-            .assert_root_computed_size(10.0, 3.0)
-            .assert_node1_computed_size(2.0, 1.0)
-            .assert_node2_computed_size(4.0, 2.0)
-            .assert_node3_computed_size(4.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(2.0, 0.0)
-            .assert_node3_position(6.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 3.0)
+                .assert_node1_computed_size(2.0, 1.0)
+                .assert_node2_computed_size(4.0, 2.0)
+                .assert_node3_computed_size(4.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(2.0, 0.0)
+                .assert_node3_position(6.0, 0.0);
+        });
+        test.root.set_size_x(20.0);
+        test.run(|| {
+            test.assert_root_computed_size(20.0, 3.0)
+                .assert_node1_computed_size(4.0, 1.0)
+                .assert_node2_computed_size(8.0, 2.0)
+                .assert_node3_computed_size(8.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(4.0, 0.0)
+                .assert_node3_position(12.0, 0.0);
+        });
     }
 
     /// ```text
-    /// ```text                                        
+    /// ```text
     /// ╔ root ══════════════ ▶ ◀ ════════════════════╗
     /// ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
     /// ║ │             ┆             ┆  ╭ node3 ╮  │ ║
@@ -5176,7 +5238,7 @@ mod layout_tests {
     /// ║ │  ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │ ║
     /// ║ ╰─────────────┴─────────────┴─────────────╯ ║
     /// ╚═════════════════════════════════════════════╝
-    ///                       10                       
+    ///                       10
     /// ```
     #[test]
     fn test_horizontal_hug_layout_with_fraction_and_percentage_children() {
@@ -5185,15 +5247,16 @@ mod layout_tests {
         test.node1.set_size((1.fr(), 1.0));
         test.node2.set_size((40.pc(), 2.0));
         test.node3.set_size((2.fr(), 3.0));
-        test.run()
-            .assert_root_computed_size(0.0, 3.0)
-            .assert_node1_computed_size(0.0, 1.0)
-            .assert_node2_computed_size(0.0, 2.0)
-            .assert_node3_computed_size(0.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 0.0)
-            .assert_node3_position(0.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(0.0, 3.0)
+                .assert_node1_computed_size(0.0, 1.0)
+                .assert_node2_computed_size(0.0, 2.0)
+                .assert_node3_computed_size(0.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node3_position(0.0, 0.0);
+        });
     }
 
     /// ```text
@@ -5207,7 +5270,7 @@ mod layout_tests {
     /// ║ │  ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │ ║
     /// ║ ╰─────────────┴─────────────┴─────────────╯ ║
     /// ╚═════════════════════════════════════════════╝
-    ///         1fr           2fr           3fr         
+    ///         1fr           2fr           3fr
     /// ```
     #[test]
     fn test_fractional_column_layout() {
@@ -5219,15 +5282,16 @@ mod layout_tests {
         test.node1.set_size((1.0, 1.0));
         test.node2.set_size((1.0, 2.0));
         test.node3.set_size((1.0, 3.0));
-        test.run()
-            .assert_root_computed_size(12.0, 3.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(1.0, 2.0)
-            .assert_node3_computed_size(1.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(2.0, 0.0)
-            .assert_node3_position(6.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(12.0, 3.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(1.0, 2.0)
+                .assert_node3_computed_size(1.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(2.0, 0.0)
+                .assert_node3_position(6.0, 0.0);
+        });
     }
 
     /// ```text
@@ -5240,8 +5304,8 @@ mod layout_tests {
     /// ║ │  │       │  ┆  │          ┆  │ │        │ ║    │
     /// ║ │  ╰───────╯  ┆  ╰──────────┼──┴─╯────────┼─║────╯
     /// ║ ╰─────────────┴─────────────┴─────────────╯ ║
-    /// ╚═════════════════════════════════════════════╝  
-    ///         2.0           2.0           2.0         
+    /// ╚═════════════════════════════════════════════╝
+    ///         2.0           2.0           2.0
     /// ```
     #[test]
     fn test_fixed_column_layout() {
@@ -5253,15 +5317,16 @@ mod layout_tests {
         test.node1.set_size((1.0, 1.0));
         test.node2.set_size((3.0, 2.0));
         test.node3.set_size((4.0, 3.0));
-        test.run()
-            .assert_root_computed_size(6.0, 3.0)
-            .assert_node1_computed_size(1.0, 1.0)
-            .assert_node2_computed_size(3.0, 2.0)
-            .assert_node3_computed_size(4.0, 3.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(2.0, 0.0)
-            .assert_node3_position(4.0, 0.0);
+        test.run(|| {
+            test.assert_root_computed_size(6.0, 3.0)
+                .assert_node1_computed_size(1.0, 1.0)
+                .assert_node2_computed_size(3.0, 2.0)
+                .assert_node3_computed_size(4.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(2.0, 0.0)
+                .assert_node3_position(4.0, 0.0);
+        });
     }
 
 
@@ -5275,7 +5340,7 @@ mod layout_tests {
     /// ║ │╱╱  │   2   │  ╱╱┆╱╱  │   2   │  ╱╱┆╱╱  │   2   │  ╱╱│ ║
     /// ║ │.5fr╰───────╯   1fr   ╰───────╯   1fr   ╰───────╯.5fr│ ║
     /// ║ ╰─────────────────┴─────────────────┴─────────────────╯ ║
-    /// ╚═════════════════════════════════════════════════════════╝                 
+    /// ╚═════════════════════════════════════════════════════════╝
     ///                              12
     /// ```
     #[test]
@@ -5290,15 +5355,16 @@ mod layout_tests {
         test.node1.set_size((2.0, 1.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 3.0));
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(1.0, 0.0)
-            .assert_node2_position(5.0, 0.0)
-            .assert_node3_position(9.0, 0.0)
-            .assert_root_computed_size(12.0, 3.0)
-            .assert_node1_computed_size(2.0, 1.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 3.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(1.0, 0.0)
+                .assert_node2_position(5.0, 0.0)
+                .assert_node3_position(9.0, 0.0)
+                .assert_root_computed_size(12.0, 3.0)
+                .assert_node1_computed_size(2.0, 1.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 3.0);
+        });
     }
 
     /// ```text
@@ -5311,7 +5377,7 @@ mod layout_tests {
     /// ║ │╱╱  │   0   │  ╱╱┆╱╱  │   0   │  ╱╱┆╱╱  │   0   │  ╱╱│ ║
     /// ║ │.5fr╰───────╯   1fr   ╰───────╯   1fr   ╰───────╯.5fr│ ║
     /// ║ ╰─────────────────┴─────────────────┴─────────────────╯ ║
-    /// ╚═════════════════════════════════════════════════════════╝                 
+    /// ╚═════════════════════════════════════════════════════════╝
     ///                             12
     /// ```
     #[test]
@@ -5326,15 +5392,16 @@ mod layout_tests {
         test.node1.set_size((0.0, 1.0)).allow_grow_x();
         test.node2.set_size((0.0, 2.0)).allow_grow_x();
         test.node3.set_size((0.0, 3.0)).allow_grow_x();
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(4.0, 0.0)
-            .assert_node3_position(8.0, 0.0)
-            .assert_root_computed_size(12.0, 3.0)
-            .assert_node1_computed_size(4.0, 1.0)
-            .assert_node2_computed_size(4.0, 2.0)
-            .assert_node3_computed_size(4.0, 3.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(4.0, 0.0)
+                .assert_node3_position(8.0, 0.0)
+                .assert_root_computed_size(12.0, 3.0)
+                .assert_node1_computed_size(4.0, 1.0)
+                .assert_node2_computed_size(4.0, 2.0)
+                .assert_node3_computed_size(4.0, 3.0);
+        });
     }
 
     /// ```text
@@ -5347,7 +5414,7 @@ mod layout_tests {
     /// ║ │ ╱╱╱  │   2   │  ╱╱╱ ┆ ╱╱╱  │   2   │  ╱╱╱ ┆ ╱╱╱  │   2   │  ╱╱╱ │ ║
     /// ║ │ 1fr  ╰───────╯  2fr ┆ 3fr  ╰───────╯  4fr ┆ 5fr  ╰───────╯  6fr │ ║
     /// ║ ╰─────────────────────┴─────────────────────┴─────────────────────╯ ║
-    /// ╚═════════════════════════════════════════════════════════════════════╝                             
+    /// ╚═════════════════════════════════════════════════════════════════════╝
     ///              5                     9                    13
     /// ```
     #[test]
@@ -5360,15 +5427,16 @@ mod layout_tests {
         test.node1.set_size((2.0, 1.0)).set_margin_left(1.fr()).set_margin_right(2.fr());
         test.node2.set_size((2.0, 2.0)).set_margin_left(3.fr()).set_margin_right(4.fr());
         test.node3.set_size((2.0, 3.0)).set_margin_left(5.fr()).set_margin_right(6.fr());
-        test.run()
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(1.0, 0.0)
-            .assert_node2_position(8.0, 0.0)
-            .assert_node3_position(19.0, 0.0)
-            .assert_root_computed_size(27.0, 3.0)
-            .assert_node1_computed_size(2.0, 1.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 3.0);
+        test.run(|| {
+            test.assert_root_position(0.0, 0.0)
+                .assert_node1_position(1.0, 0.0)
+                .assert_node2_position(8.0, 0.0)
+                .assert_node3_position(19.0, 0.0)
+                .assert_root_computed_size(27.0, 3.0)
+                .assert_node1_computed_size(2.0, 1.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 3.0);
+        });
     }
 
     /// ```text
@@ -5379,7 +5447,7 @@ mod layout_tests {
     /// │   │    │ ╭────────╮ ╰───┼────╯
     /// ╰───┼────╯ │ node2  │     │
     ///     ╰──────┼────────┼─────╯
-    ///   ╱        │        │           
+    ///   ╱        │        │
     /// ◎          ╰────────╯
     /// ```
     #[test]
@@ -5392,16 +5460,17 @@ mod layout_tests {
         test.node1.set_xy((-1.0, 0.0));
         test.node2.set_xy((1.0, -1.0));
         test.node3.set_xy((3.0, 1.0));
-        test.run()
-            .assert_root_computed_size(3.0, 2.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_content_origin(-1.0, -1.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(-1.0, 0.0)
-            .assert_node2_position(1.0, -1.0)
-            .assert_node3_position(3.0, 1.0);
+        test.run(|| {
+            test.assert_root_computed_size(3.0, 2.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 2.0)
+                .assert_root_content_origin(-1.0, -1.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(-1.0, 0.0)
+                .assert_node2_position(1.0, -1.0)
+                .assert_node3_position(3.0, 1.0);
+        });
     }
 
     /// ```text
@@ -5413,7 +5482,7 @@ mod layout_tests {
     /// │   │    │ ╭────────╮ ╰────────╯    ▲
     /// ╰───┼────╯ │ node2  │               │
     ///     ╰──────┼────────┼───────────────╯
-    ///   ╱        │        │           
+    ///   ╱        │        │
     /// ◎          ╰────────╯
     /// ```
     #[test]
@@ -5425,16 +5494,17 @@ mod layout_tests {
         test.node1.set_xy((-1.0, 0.0));
         test.node2.set_xy((1.0, -1.0));
         test.node3.set_xy((3.0, 1.0));
-        test.run()
-            .assert_root_computed_size(6.0, 4.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_node2_computed_size(2.0, 2.0)
-            .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_content_origin(-1.0, -1.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(-1.0, 0.0)
-            .assert_node2_position(1.0, -1.0)
-            .assert_node3_position(3.0, 1.0);
+        test.run(|| {
+            test.assert_root_computed_size(6.0, 4.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_node2_computed_size(2.0, 2.0)
+                .assert_node3_computed_size(2.0, 2.0)
+                .assert_root_content_origin(-1.0, -1.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(-1.0, 0.0)
+                .assert_node2_position(1.0, -1.0)
+                .assert_node3_position(3.0, 1.0);
+        });
     }
 
     /// ```text
@@ -5473,27 +5543,27 @@ mod layout_tests {
         node2_1.set_xy((-1.0, 0.0));
         node2_2.set_xy((1.0, -1.0));
 
-        test.run();
+        test.run(|| {
+            assert_eq!(node1_1.position().xy(), Vector2(-1.0, 0.0));
+            assert_eq!(node1_2.position().xy(), Vector2(1.0, -1.0));
+            assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(node1_2.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
+            assert_eq!(test.node1.computed_size(), Vector2(4.0, 3.0));
 
-        assert_eq!(node1_1.position().xy(), Vector2(-1.0, 0.0));
-        assert_eq!(node1_2.position().xy(), Vector2(1.0, -1.0));
-        assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(node1_2.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(test.node1.computed_size(), Vector2(4.0, 3.0));
+            assert_eq!(node2_1.position().xy(), Vector2(-1.0, 0.0));
+            assert_eq!(node2_2.position().xy(), Vector2(1.0, -1.0));
+            assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(node2_2.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
+            assert_eq!(test.node2.computed_size(), Vector2(4.0, 3.0));
 
-        assert_eq!(node2_1.position().xy(), Vector2(-1.0, 0.0));
-        assert_eq!(node2_2.position().xy(), Vector2(1.0, -1.0));
-        assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(node2_2.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(test.node2.computed_size(), Vector2(4.0, 3.0));
-
-        test.assert_node1_position(1.0, 1.0)
-            .assert_node2_position(5.0, 1.0)
-            .assert_root_computed_size(8.0, 3.0)
-            .assert_root_content_origin(0.0, 0.0)
-            .assert_root_position(0.0, 0.0);
+            test.assert_node1_position(1.0, 1.0)
+                .assert_node2_position(5.0, 1.0)
+                .assert_root_computed_size(8.0, 3.0)
+                .assert_root_content_origin(0.0, 0.0)
+                .assert_root_position(0.0, 0.0);
+        });
     }
 
     /// ```text
@@ -5527,13 +5597,14 @@ mod layout_tests {
         test.node1
             .set_size((2.0, 2.0))
             .unsafe_set_forced_origin_alignment(alignment::Dim2::center());
-        test.run()
-            .assert_root_computed_size(10.0, 10.0)
-            .assert_node1_computed_size(2.0, 2.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(5.0, 5.0)
-            .assert_root_content_origin(0.0, 0.0)
-            .assert_node1_content_origin(-1.0, -1.0);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 10.0)
+                .assert_node1_computed_size(2.0, 2.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(5.0, 5.0)
+                .assert_root_content_origin(0.0, 0.0)
+                .assert_node1_content_origin(-1.0, -1.0);
+        });
     }
 
     /// ```text
@@ -5553,18 +5624,19 @@ mod layout_tests {
         let test = TestFlatChildren1::new();
         test.root.set_size((10.0, 10.0));
         test.node1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
-        test.run()
-            .assert_root_computed_size(10.0, 10.0)
-            .assert_node1_computed_size(10.0, 10.0)
-            .assert_root_position(0.0, 0.0)
-            .assert_node1_position(0.0, 0.0)
-            .assert_node1_content_origin(-5.0, -5.0)
-            .assert_root_content_origin(-5.0, -5.0);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 10.0)
+                .assert_node1_computed_size(10.0, 10.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node1_content_origin(-5.0, -5.0)
+                .assert_root_content_origin(-5.0, -5.0);
+        });
     }
 
-    /// ```text                                                             
-    ///          ╭────── ▶ ◀ ──────────────╮    ╭────── ▶ ◀ ─────────────╮  
-    ///          │ node1                   │    │ node2                  │  
+    /// ```text
+    ///          ╭────── ▶ ◀ ──────────────╮    ╭────── ▶ ◀ ─────────────╮
+    ///          │ node1                   │    │ node2                  │
     /// ╔════════╪═══════════════════ ▶ ◀ ═╪════╪════════════════════════╪╗
     /// ║ ╭──────┼───────────────────────┬─┼────┼──────────────────────╮ │║
     /// ║ │ root │                       ┆ │    │                      │ │║
@@ -5590,21 +5662,91 @@ mod layout_tests {
         node1_1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
         node2_1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
 
-        test.run();
+        test.run(|| {
+            assert_eq!(node1_1.position().xy(), Vector2(0.0, 0.0));
+            assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
+            assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(node1_1.content_origin(), Vector2(-1.0, -1.0));
+            assert_eq!(node2_1.content_origin(), Vector2(-1.0, -1.0));
+            assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
+            assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
+            assert_eq!(test.node1.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(test.node2.computed_size(), Vector2(2.0, 2.0));
+            assert_eq!(test.node1.position().xy(), Vector2(1.0, 1.0));
+            assert_eq!(test.node2.position().xy(), Vector2(3.0, 1.0));
 
-        assert_eq!(node1_1.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(node1_1.content_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(node2_1.content_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(test.node1.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(test.node2.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(test.node1.position().xy(), Vector2(1.0, 1.0));
-        assert_eq!(test.node2.position().xy(), Vector2(3.0, 1.0));
+            test.assert_root_position(0.0, 0.0);
+        });
+    }
 
-        test.assert_root_position(0.0, 0.0);
+    #[test]
+    fn test_automatic_layout_update_after_removing_and_adding_children() {
+        let test = TestFlatChildren2::new();
+        test.root.use_auto_layout();
+        test.node1.set_size((10.0, 10.0));
+        test.node2.set_size((10.0, 10.0));
+
+        test.run(|| {
+            test.assert_root_computed_size(20.0, 10.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(10.0, 0.0);
+        });
+
+        test.root.remove_child(&test.node1);
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 10.0).assert_node2_position(0.0, 0.0);
+        });
+
+        test.root.add_child(&test.node1);
+        test.run(|| {
+            test.assert_root_computed_size(20.0, 10.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(10.0, 0.0);
+        });
+
+        let node3 = Instance::new();
+        node3.set_size((12.0, 10.0));
+        test.root.add_child(&node3);
+        test.run(|| {
+            test.assert_root_computed_size(32.0, 10.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(10.0, 0.0);
+        });
+        assert_eq!(node3.position().xy(), Vector2(20.0, 0.0));
+    }
+
+    #[test]
+    fn test_automatic_layout_update_after_resizing_children() {
+        let test = TestFlatChildren2::new();
+        test.root.use_auto_layout();
+        test.node1.set_size((10.0, 10.0));
+        test.node2.set_size((10.0, 10.0));
+
+        test.run(|| {
+            test.assert_root_computed_size(20.0, 10.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(10.0, 0.0);
+        });
+
+        test.node1.set_size((20.0, 10.0));
+        test.node2.set_size((10.0, 20.0));
+        test.run(|| {
+            test.assert_root_computed_size(30.0, 20.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(20.0, 0.0);
+        });
+    }
+
+    #[test]
+    fn test_size_hug_double_update() {
+        let world = World::new();
+        let root = Instance::new_named("Root");
+        let child = root.new_child();
+        child.set_size((10.0, 10.0));
+        root.update(&world.default_scene);
+        assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
+        root.update(&world.default_scene);
+        assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
     }
 }
