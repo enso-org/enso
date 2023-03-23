@@ -45,7 +45,7 @@ type SQL_Type_Reference
     new : Connection -> Context -> SQL_Expression -> SQL_Type_Reference
     new connection context expression =
         do_fetch =
-            # TODO remove type from here ?
+            # TODO [RW] remove type from here ?
             empty_context = context.add_where_filters [SQL_Expression.Constant SQL_Type.boolean False]
             statement = connection.dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
             columns = connection.jdbc_connection.fetch_columns statement
