@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 /** @file The top-bar of dashboard. */
 import { FC, useState } from 'react'
 
@@ -72,7 +71,6 @@ interface TopBarProps {
  * The {@link TopBarProps["bindSearchVal"]} params is used to communicate with the parent component.
  * Because searchVal maybe change parent component's project list.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const TopBar: FC<TopBarProps> = props => {
     const { bindSearchVal } = props
 

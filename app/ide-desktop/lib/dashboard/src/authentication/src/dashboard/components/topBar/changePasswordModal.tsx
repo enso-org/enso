@@ -15,7 +15,6 @@ interface ResetPasswordModalProps {
 // === ResetPasswordModal ===
 // ==========================
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const ChangePasswordModal: React.FC<ResetPasswordModalProps> = props => {
     const { visible, handleCancel } = props
     const { changePassword } = auth.useAuth()

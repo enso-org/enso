@@ -14,7 +14,6 @@ interface UserMenuItemProps {
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const UserMenuItem: React.FC<PropsWithChildren<UserMenuItemProps>> = ({
     children,
     needHoverClass = false,
@@ -37,7 +36,6 @@ const UserMenuItem: React.FC<PropsWithChildren<UserMenuItemProps>> = ({
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const UserMenu: React.FC = () => {
     const { signOut } = auth.useAuth()
     const { organization } = auth.useFullUserSession()
