@@ -1,117 +1,160 @@
 ## A module representing interactions with polyglot languages.
     Polyglot is a term that refers to other languages (such as Java) that are
     running on the same JVM.
-
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Nothing.Nothing
 import project.Runtime.Source_Location.Source_Location
 
 @Builtin_Type
 type Polyglot
+    ## Reads the number of elements in a given polyglot array object.
 
-## Reads the number of elements in a given polyglot array object.
+       Arguments:
+       - array: a polyglot array object, originating in any supported language.
+    get_array_size : Any -> Integer
+    get_array_size array = @Builtin_Method "Polyglot.get_array_size"
 
-   Arguments:
-   - array: a polyglot array object, originating in any supported language.
-get_array_size : Any -> Integer
-get_array_size array = @Builtin_Method "Polyglot.get_array_size"
+    ## Reads the element in a given polyglot array object.
 
-## Reads the element in a given polyglot array object.
+       Arguments:
+       - index: The index to get the element from.
+    read_array_element : Any -> Integer -> Any
+    read_array_element array index = @Builtin_Method "Polyglot.read_array_element"
 
-   Arguments:
-   - index: The index to get the element from.
-read_array_element : Any -> Integer -> Any
-read_array_element array index = @Builtin_Method "Polyglot.read_array_element"
+    ## Executes a polyglot function object (e.g. a lambda).
 
-## Executes a polyglot function object (e.g. a lambda).
+       Arguments:
+       - callable: The polyglot function object to execute.
+       - arguments: A vector of arguments to callable.
+    execute : Any -> Vector -> Any
+    execute callable arguments = @Builtin_Method "Polyglot.execute"
 
-   Arguments:
-   - callable: The polyglot function object to execute.
-   - arguments: A vector of arguments to callable.
-execute : Any -> Vector -> Any
-execute callable arguments = @Builtin_Method "Polyglot.execute"
+    ## Performs a by-name lookup for a member in a polyglot object.
 
-## Performs a by-name lookup for a member in a polyglot object.
+        Arguments:
+        - object: The polyglot object on which to perform the member lookup.
+        - member_name: The textual name of the member to lookup.
 
-    Arguments:
-    - object: The polyglot object on which to perform the member lookup.
-    - member_name: The textual name of the member to lookup.
+        > Example
+          Look up the field a on an object o.
+              Polyglot.get_member o "a"
+    get_member : Any -> Text -> Any
+    get_member object member_name = @Builtin_Method "Polyglot.get_member"
 
-    > Example
-      Look up the field a on an object o.
-          Polyglot.get_member o "a"
-get_member : Any -> Text -> Any
-get_member object member_name = @Builtin_Method "Polyglot.get_member"
+    ## Returns a polyglot array of all of the members of the provided object.
 
-## Returns a polyglot array of all of the members of the provided object.
+        Arguments:
+        - object: The object from which to get a list of member names.
 
-    Arguments:
-    - object: The object from which to get a list of member names.
+        > Example
+          Get a list of the fields for an object o.
+              Polyglot.get_members o
+    get_members : Any -> Array
+    get_members object = @Builtin_Method "Polyglot.get_members"
 
-    > Example
-      Get a list of the fields for an object o.
-          Polyglot.get_members o
-get_members : Any -> Array
-get_members object = @Builtin_Method "Polyglot.get_members"
+    ## Instantiates a polyglot object using the provided constructor.
 
-## Instantiates a polyglot object using the provided constructor.
+        Arguments:
+        - constructor: The constructor with which to instantiate the object.
+        - arguments: A vector of the arguments to pass to the polyglot
+         constructor.
 
-    Arguments:
-    - constructor: The constructor with which to instantiate the object.
-    - arguments: A vector of the arguments to pass to the polyglot
-     constructor.
+        > Example
+         Instantiate a new Java Integer with the value 1.
+             Polyglot.new Integer [1]
+    new : Any -> Vector -> Any
+    new constructor arguments = @Builtin_Method "Polyglot.new"
 
-    > Example
-     Instantiate a new Java Integer with the value 1.
-         Polyglot.new Integer [1]
-new : Any -> Vector -> Any
-new constructor arguments = @Builtin_Method "Polyglot.new"
+    ## Invokes a method on a polyglot object by name.
 
-## Invokes a method on a polyglot object by name.
+        Arguments:
+        - target: The polyglot object on which to call the method.
+        - name: The name of the method.
+        - arguments: The arguments to pass to the method given by name.
+    invoke : Any -> Text -> Vector -> Any
+    invoke target name arguments = @Builtin_Method "Polyglot.invoke"
 
-    Arguments:
-    - target: The polyglot object on which to call the method.
-    - name: The name of the method.
-    - arguments: The arguments to pass to the method given by name.
-invoke : Any -> Text -> Vector -> Any
-invoke target name arguments = @Builtin_Method "Polyglot.invoke"
+    ## ADVANCED
+       UNSTABLE
 
-## ADVANCED
-   UNSTABLE
+        Checks if `value` defines a source location.
 
-    Checks if `value` defines a source location.
+        Source locations are typically exposed by functions, classes, sometimes
+        also other objects to specify their allocation sites.
+    has_source_location : Any -> Boolean
+    has_source_location value = @Builtin_Method "Polyglot.has_source_location"
 
-    Source locations are typically exposed by functions, classes, sometimes
-    also other objects to specify their allocation sites.
-has_source_location : Any -> Boolean
-has_source_location value = @Builtin_Method "Polyglot.has_source_location"
+    ## ADVANCED
+       UNSTABLE
 
-## ADVANCED
-   UNSTABLE
+        Gets the source location of `value`.
 
-    Gets the source location of `value`.
+        Source locations are typically exposed by functions, classes, sometimes
+        also other objects to specify their allocation sites.
+        This method will throw a polyglot exception if
+        `Polyglot.has_source_location value` returns `False`.
+    get_source_location : Any -> Source_Location
+    get_source_location value = @Builtin_Method "Polyglot.get_source_location"
 
-    Source locations are typically exposed by functions, classes, sometimes
-    also other objects to specify their allocation sites.
-    This method will throw a polyglot exception if
-    `Polyglot.has_source_location value` returns `False`.
-get_source_location : Any -> Source_Location
-get_source_location value = @Builtin_Method "Polyglot.get_source_location"
+    ## Checks if a polyglot language is installed in the runtime environment.
 
-## Checks if a polyglot language is installed in the runtime environment.
+        Arguments:
+        - langauge_name: The name of the language to test
+    is_language_installed : Text -> Boolean
+    is_language_installed language_name = @Builtin_Method "Polyglot.is_language_installed"
 
-    Arguments:
-    - langauge_name: The name of the language to test
-is_language_installed : Text -> Boolean
-is_language_installed language_name = @Builtin_Method "Polyglot.is_language_installed"
+    ## ADVANCED
+       UNSTABLE
 
-## ADVANCED
-   UNSTABLE
+       Returns the executable name of a polyglot object.
+    get_executable_name : Any -> Text
+    get_executable_name value = @Builtin_Method "Polyglot.get_executable_name"
 
-   Returns the executable name of a polyglot object.
-get_executable_name : Any -> Text
-get_executable_name value = @Builtin_Method "Polyglot.get_executable_name"
+## Utilities for working with Java polyglot objects.
+type Java
+    ## Adds the provided entry to the host class path.
+
+       Arguments:
+       - path: The java classpath entry to add.
+
+       Use of the actual polyglot imports system should be preferred to use of
+       this method.
+
+       > Example
+         Adding Random to the classpath.
+
+            Java.add_to_class_path "java.util.Random"
+    add_to_class_path : Text -> Nothing
+    add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+
+    ## Looks up a java symbol on the classpath by name.
+
+       Arguments:
+       - name: The name of the java symbol to look up.
+
+       Use of the actual polyglot imports system should be preferred to use of
+       this method.
+
+       > Example
+         Look up java's Random class.
+
+             Java.lookup_class "java.util.Random"
+    lookup_class : Text -> Any
+    lookup_class name = @Builtin_Method "Java.lookup_class"
+
+    ## PRIVATE
+
+       Checks whether an object is an instance of a given class.
+
+       Arguments:
+       - object: The object to check for class membership.
+       - class: The java class to check for membership in.
+    is_instance : Any -> Any -> Boolean
+    is_instance object class =
+        class_object = class.class
+        class_object.isInstance object

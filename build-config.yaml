@@ -3,8 +3,9 @@
 wasm-size-limit: 15.50 MiB
 
 required-versions:
+  # NB. The Rust version is pinned in rust-toolchain.toml.
+  # NB. The Node version is pinned in .node-version.
   cargo-watch: ^8.1.1
-  node: =18.14.1
   wasm-pack: ^0.10.2
 #  TODO [mwu]: Script can install `flatc` later on (if `conda` is present), so this is not required. However it should
 #              be required, if `conda` is missing.

@@ -268,23 +268,37 @@ make_field_name_selector : JS_Object -> Display -> Single_Choice
 make_field_name_selector js_object display=Display.Always =
     Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
 
+## PRIVATE
+   Make a new JavaScript object.
 foreign js new_object = """
     return {}
 
+## PRIVATE
+   Parse a text value into JavaScript object.
 foreign js json_parse text = """
     return JSON.parse(text)
 
+## PRIVATE
+   Convert a JavaScript object to a text value.
 foreign js json_stringify js_object = """
     return JSON.stringify(js_object)
 
+## PRIVATE
+   Check a JavaScript object has a given property.
 foreign js has_property js_object key = """
     return js_object.hasOwnProperty(key)
 
+## PRIVATE
+   Get a value from a JavaScript object.
 foreign js get_value object key = """
     return object[key]
 
+## PRIVATE
+   Set a value on a JavaScript object and return the new object.
 foreign js set_value object key value = """
     return {...object, [key]: value}
 
+## PRIVATE
+   Gets all the property names of a JavaScript object.
 foreign js get_property_names object = """
     return Object.getOwnPropertyNames(object)
