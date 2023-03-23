@@ -5,14 +5,13 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.enso.base.polyglot.EnsoObjectWrapper;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
-import org.graalvm.polyglot.Context;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -24,77 +23,6 @@ import org.graalvm.polyglot.Context;
  * Enso-defined objects, as hashing of such objects is not yet implemented properly.
  */
 public class UnorderedMultiValueKey extends MultiValueKeyBase {
-  private static Function<Object, Integer> EnsoHashCodeCallback = null;
-  private static BiFunction<Object, Object, Boolean> EnsoAreEqualCallback = null;
-
-  private static void initCallbacks() {
-    if (EnsoHashCodeCallback == null) {
-      var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
-      var type = module.invokeMember("get_type", "Comparable");
-
-      var hash_callback = module.invokeMember("get_method", type, "hash_callback");
-      EnsoHashCodeCallback = v -> {
-        var result = hash_callback.execute(null, v);
-        if (result.isNull()) {
-          throw new IllegalArgumentException(
-                  "Unable to object hash in UnorderedMultiValueKey for " + v.toString());
-        } else {
-          return result.asInt();
-        }
-      };
-
-      var are_equal = module.invokeMember("get_method", type, "are_equal");
-      EnsoAreEqualCallback = (v, u) -> {
-        var result = are_equal.execute(null, v, u);
-        if (result.isNull()) {
-          throw new IllegalArgumentException(
-                  "Unable to check equality in UnorderedMultiValueKey for " + v.toString() + " and " + u.toString());
-        } else {
-          return result.asBoolean();
-        }
-      };
-    }
-
-  }
-
-  private static int getEnsoHashCode(Object value) {
-    initCallbacks();
-    return EnsoHashCodeCallback.apply(value);
-  }
-
-  private static boolean areEqual(Object value, Object other) {
-    initCallbacks();
-    return EnsoAreEqualCallback.apply(value, other);
-  }
-
-  private static class WrappedEnsoValue {
-    private final Object value;
-    private final int ensoHashCode;
-
-    public WrappedEnsoValue(Object value) {
-      this.value = value;
-      this.ensoHashCode = getEnsoHashCode(value);
-    }
-
-    public Object getValue() {
-      return value;
-    }
-
-    @Override
-    public int hashCode() {
-      return ensoHashCode;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj instanceof WrappedEnsoValue that) {
-        return areEqual(this.value, that.value);
-      } else {
-        return false;
-      }
-    }
-  }
-
   private final int hashCodeValue;
   private final List<TextFoldingStrategy> textFoldingStrategy;
 
@@ -153,7 +81,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
       return value;
     }
 
-    return new WrappedEnsoValue(value);
+    return new EnsoObjectWrapper(value);
   }
 
   /**

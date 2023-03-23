@@ -66,7 +66,7 @@ type Rank_Method
             Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand)
 
         handle_cmp_exc <| handle_nullpointer <|
-            java_ranks = Rank.rank input.to_array Comparator.new java_method
+            java_ranks = Rank.rank input.to_array java_method
             Vector.from_polyglot_array java_ranks
 
 type Statistic

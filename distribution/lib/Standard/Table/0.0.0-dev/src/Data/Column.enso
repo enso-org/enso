@@ -1258,15 +1258,18 @@ type Column
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort self order=Sort_Direction.Ascending missing_last=True by=Nothing =
-        order_bool = case order of
-            Sort_Direction.Ascending -> True
-            Sort_Direction.Descending -> False
-        java_cmp = Comparator.new by
-        rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
-        mask = OrderBuilder.buildOrderMask [rule].to_array
-        new_col = self.java_column.applyMask mask
-        Column.Value new_col
+    sort self order=Sort_Direction.Ascending missing_last=True by=Nothing = case by of
+        Nothing ->
+            order_bool = case order of
+                Sort_Direction.Ascending -> True
+                Sort_Direction.Descending -> False
+            rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last else
+            mask = OrderBuilder.buildOrderMask [rule].to_array
+            new_col = self.java_column.applyMask mask
+            Column.Value new_col
+        _ ->
+            sorted = self.to_vector.sort order by=by
+            Column.from_vector self.name sorted
 
     ## Creates a new Column with the specified range of rows from the input
        Column.

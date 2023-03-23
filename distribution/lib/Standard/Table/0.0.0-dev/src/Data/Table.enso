@@ -1280,11 +1280,8 @@ type Table
                 join_resolution = make_join_helpers self right . resolve on on_problems
                 right_columns_to_drop = join_resolution.redundant_column_names
 
-                object_comparator = Comparator.new
-                equality_fallback = .==
-
                 java_conditions = join_resolution.conditions
-                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
+                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
 
                 on_problems.attach_problems_after (Table.Value new_java_table) <|
                     problems = new_java_table.getProblems
