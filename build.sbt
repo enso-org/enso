@@ -444,8 +444,8 @@ val icuVersion = "71.1"
 
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.12"
-val zioInteropCatsVersion = "3.2.9.0"
+val zioVersion            = "2.0.10"
+val zioInteropCatsVersion = "23.0.0.2"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
