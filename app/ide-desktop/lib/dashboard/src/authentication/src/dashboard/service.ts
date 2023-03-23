@@ -13,6 +13,9 @@ import * as newtype from '../newtype'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_OK = 200
+/** HTTP status indicating that the request was valid,
+ * but the server encountered an unrecoverable error. */
+const STATUS_SERVER_ERROR = 500
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: OpenProjectRequestBody = {
@@ -494,7 +497,11 @@ export class Backend {
                 }).toString()
         )
         if (response.status !== STATUS_OK) {
-            if (query.parentId) {
+            // FIXME[sb]: The backend currently returns this error when a directory is empty.
+            // This should be changed when it is fixed on the backend.
+            if (response.status === STATUS_SERVER_ERROR) {
+                return []
+            } else if (query.parentId) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
                 return this.throw('Unable to list root directory.')
@@ -679,13 +686,7 @@ export class Backend {
      *
      * @throws An error if a 401 or 404 status code was received. */
     async createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo> {
-        const response = await this.post<SecretAndInfo>(CREATE_SECRET_PATH, {
-            /* eslint-disable @typescript-eslint/naming-convention */
-            secret_name: body.secretName,
-            secret_value: body.secretValue,
-            parent_directory_id: body.parentDirectoryId,
-            /* eslint-enable @typescript-eslint/naming-convention */
-        })
+        const response = await this.post<SecretAndInfo>(CREATE_SECRET_PATH, body)
         if (response.status !== STATUS_OK) {
             return this.throw(`Unable to create secret with name '${body.secretName}'.`)
         } else {
