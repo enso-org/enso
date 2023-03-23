@@ -11,7 +11,11 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 
 async function bundle() {
     try {
-        await fs.rm('./build', { recursive: true })
+        try {
+            await fs.rm('./build', { recursive: true })
+        } catch {
+            // Ignored.
+        }
         const opts = bundler.bundlerOptions({
             outputPath: './build',
             devMode: false,
