@@ -136,13 +136,13 @@ spec setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = table.aggregate [First "Index" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
-            materialized.columns.at 0 . at 0 . should_equal 5
+            materialized.columns.at 0 . at 0 . should_equal 9
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
