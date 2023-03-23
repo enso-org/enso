@@ -9,6 +9,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, True, False
 from project.Errors.Common import Syntax_Error
+import project.IO
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 

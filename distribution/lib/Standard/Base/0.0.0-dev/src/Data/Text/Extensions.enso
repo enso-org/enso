@@ -32,6 +32,8 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
+import project.IO
+import project.IO
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
@@ -400,9 +402,9 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
 
 Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Text
-Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if term.is_empty then self else
+Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
     case use_regex of
-        False ->
+        False -> if term.is_empty then self else
             array_from_single_result result = case result of
                 Nothing -> Array.empty
                 _ -> Array.new_1 result

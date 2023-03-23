@@ -49,9 +49,9 @@ spec =
             pattern.matches "foo" . should_be_true
             pattern.matches "foobar" . should_be_false
 
-        Test.specify "should refuse to `matches` with an empty pattern" <|
+        Test.specify "`matches` with an empty pattern should be an error" <|
             pattern = Regex_2.compile ""
-            pattern.match_all "ABC" . should_fail_with Illegal_Argument
+            pattern.matches "ABC" . should_fail_with Illegal_Argument
 
     Test.group "Pattern.match" <|
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
@@ -84,15 +84,15 @@ spec =
             match = pattern.match_all input
             match . should_equal []
 
-        Test.specify "should refuse to `match` with an empty pattern" <|
+        Test.specify "`match` with an empty pattern should be an error" <|
+            pattern = Regex_2.compile ""
+            pattern.match "ABC" . should_fail_with Illegal_Argument
+
+        Test.specify "`match_all` with an empty pattern should be an error" <|
             pattern = Regex_2.compile ""
             pattern.match_all "ABC" . should_fail_with Illegal_Argument
 
-        Test.specify "should refuse to `match_all` with an empty pattern" <|
-            pattern = Regex_2.compile ""
-            pattern.match_all "ABC" . should_fail_with Illegal_Argument
-
-    Test.group "Pattern_2.find" <|
+    Test.group "Pattern_2.find and .find_all" <|
         Test.specify "should be able to `find` the first instance of the pattern in the input" <|
             pattern = Regex_2.compile "(..)"
             input = "abcdefghij"
@@ -127,6 +127,14 @@ spec =
             Regex_2.compile "(a+|1+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
             Regex_2.compile "([a]+|[1]+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
             Regex_2.compile "([0-9]+|[^0-9]+)" . find_all "a1b2" . should_equal ["a", "1", "b", "2"]
+
+        Test.specify "`find` with an empty pattern should be an error" <|
+            pattern = Regex_2.compile ""
+            pattern.find "ABC" . should_fail_with Illegal_Argument
+
+        Test.specify "`find_all` with an empty pattern should be an error" <|
+            pattern = Regex_2.compile ""
+            pattern.find_all "ABC" . should_fail_with Illegal_Argument
 
     ##
         Test.group "The default regex engine's Pattern.split" <|
@@ -265,6 +273,10 @@ spec =
             Test.specify "example 6" <|
                 pattern = Regex_2.compile "([a-z]+)"
                 pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
+
+        Test.specify "`replace` with an empty pattern should be an error" <|
+            pattern = Regex_2.compile ""
+            pattern.replace "ABC" . should_fail_with Illegal_Argument
 
     Test.group "Match.text" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []

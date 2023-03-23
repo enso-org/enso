@@ -7,6 +7,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.IO
 
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
@@ -15,6 +16,7 @@ from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+import Standard.Base.Data.Text.Extensions
 
 type Auto
     Value a
@@ -1247,6 +1249,12 @@ spec =
             txt.find "^m..a..z.a$" . text 0 . should_equal "maza건반zaa"
             txt.find "a..z" . text 0 . should_equal "a건반z"
 
+        Test.specify "`find` with an empty pattern should be an error" <|
+            'b'.find '' . should_fail_with Illegal_Argument
+
+        Test.specify "`find_all` with an empty pattern should be an error" <|
+            'b'.find_all '' . should_fail_with Illegal_Argument
+
         Test.specify "should be possible in case-insensitive mode" <|
             "MY".find "my" Case_Sensitivity.Insensitive . text 0 . should_equal "MY"
 
@@ -1340,6 +1348,9 @@ spec =
             "abcd".match "abc" . should_be_false
             "x".match "[a-z]" . should_be_true
 
+        Test.specify "`match` with an empty pattern should be an error" <|
+                'b'.match '' . should_fail_with Illegal_Argument
+
         Test.specify "should be possible on unicode text" <|
             "Korean: 건반".match "^Korean: (.+)$" . should_be_true
 
@@ -1413,7 +1424,6 @@ spec =
         Test.specify "should correctly handle empty-string edge cases" <|
             [True, False] . each only_first->
                 'aaa'.replace '' 'foo' only_first=only_first . should_equal 'aaa'
-                ''.replace '' '' only_first=only_first . should_equal ''
                 'a'.replace 'a' '' only_first=only_first . should_equal ''
                 ''.replace 'a' 'b' only_first=only_first . should_equal ''
 
@@ -1424,6 +1434,9 @@ spec =
         Test.specify "should correctly handle first, all and last matching with overlapping occurrences" <|
             "aaa aaa".replace "aa" "c" . should_equal "ca ca"
             "aaa aaa".replace "aa" "c" only_first=True . should_equal "ca aaa"
+
+        Test.specify "Regex `replace` with an empty pattern should be an error" <|
+                'b'.replace '' 'c' use_regex=True . should_fail_with Illegal_Argument
 
         Test.specify "should correctly handle case-insensitive matches" <|
             'AaąĄ' . replace "A" "-" case_sensitivity=Case_Sensitivity.Insensitive . should_equal '--ąĄ'
