@@ -221,6 +221,8 @@ Text.characters self =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
+   If an empty regex is used, `find` throws an Illegal_Argument error.
+
    > Example
      Find the first substring matching the regex.
 
@@ -230,7 +232,7 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
-Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error
+Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -244,6 +246,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
+
+   If an empty regex is used, `find_all` throws an Illegal_Argument error.
 
    > Example
      Find the substring matching the regex.
@@ -269,6 +273,8 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
+
+   If an empty regex is used, `match` throws an Illegal_Argument error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -356,6 +362,8 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    - only_first: If True, only replace the first match.
    - use_regex: If true, the term is used as a regular expression.
 
+   If an empty regex is used, `replace` throws an Illegal_Argument error.
+
    > Example
      Replace letters in the text "aaa".
 
@@ -401,7 +409,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
 
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
 
-Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Text
+Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Text | Illegal_Argument
 Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
     case use_regex of
         False -> if term.is_empty then self else

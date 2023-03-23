@@ -18,10 +18,12 @@ polyglot java import java.util.regex.Pattern as Java_Pattern
 
    Arguments
    - expression: The text representing the regular expression that you want to
-     compile.
+     compile. Must be non-empty.
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
+
+   If an empty regex is used, `compile` throws an Illegal_Argument error.
 
    ? Why Compile?
      While many regex engines are able to cache ad-hoc patterns, it is often
