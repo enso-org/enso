@@ -236,6 +236,15 @@ export class Cognito {
     private customState() {
         return this.platform === platformModule.Platform.desktop ? window.location.pathname : null
     }
+
+    /** Change a password for current authenticated user.
+     *
+     * Allow users to independently modify their passwords. Based on the old password, change it
+     * to a new one, and changePasswordModal will prompt the user to repeat the new password to
+     * confirm the modification of the new password. */
+    changePassword(oldPassword: string, newPassword: string) {
+        return changePassword(oldPassword, newPassword)
+    }
 }
 
 // ===================
@@ -288,7 +297,7 @@ const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
     kind: 'NoCurrentUser',
 } as const
 
-type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
+type CurrentSessionErrorKind = typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR['kind']
 
 function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
@@ -345,8 +354,8 @@ const SIGN_UP_INVALID_PARAMETER_ERROR = {
 } as const
 
 type SignUpErrorKind =
-    | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
-    | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
+    | typeof SIGN_UP_INVALID_PARAMETER_ERROR['kind']
+    | typeof SIGN_UP_USERNAME_EXISTS_ERROR['kind']
 
 export interface SignUpError {
     kind: SignUpErrorKind
@@ -387,7 +396,7 @@ const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     kind: 'UserAlreadyConfirmed',
 } as const
 
-type ConfirmSignUpErrorKind = (typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR)['kind']
+type ConfirmSignUpErrorKind = typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR['kind']
 
 export interface ConfirmSignUpError {
     kind: ConfirmSignUpErrorKind
@@ -573,4 +582,30 @@ async function signOut(logger: loggerProvider.Logger) {
     } finally {
         await amplify.Auth.signOut()
     }
+}
+
+// ======================
+// === ChangePassword ===
+// ======================
+
+const currentAuthenticatedUser = () =>
+    results.Result.wrapAsync(
+        () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
+    ).then(result => result.mapErr(intoAmplifyErrorOrThrow))
+
+const changePassword = async (oldPassword: string, newPassword: string) => {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+        const cognitoUser = cognitoUserResult.unwrap()
+        return (
+            results.Result.wrapAsync(() =>
+                amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+            )
+                // We don't care about the details in the success case, just that it happened.
+                .then(result => result.map(() => null))
+                .then(result => result.mapErr(intoAmplifyErrorOrThrow))
+        )
+    }
+
+    return results.Err(cognitoUserResult.val)
 }
