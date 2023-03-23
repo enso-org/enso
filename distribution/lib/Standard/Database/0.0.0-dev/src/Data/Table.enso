@@ -1224,16 +1224,17 @@ type Table
                 ## If the `result` did contain an error, we catch it to be
                    able to store it in a vector and then we will partition the
                    created columns and failures.
-                result.catch
+                result.catch Any error->
+                    Wrapped_Error.Value error
 
-            partitioned = results.partition (_.is_a Internal_Column)
+            partitioned = results.partition (_.is_a Wrapped_Error)
 
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
                the `lift_aggregate` method to push the aggregates into a
                subquery.
-            new_columns = partitioned.first
-            problems = partitioned.second
+            new_columns = partitioned.second
+            problems = partitioned.first.map .value
             on_problems.attach_problems_before problems <|
                 self.updated_context_and_columns new_ctx new_columns subquery=True
 
@@ -1651,3 +1652,8 @@ freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Colum
 freshen_columns used_names columns =
     new_names = fresh_names used_names (columns.map .name)
     Helpers.rename_internal_columns columns new_names
+
+## PRIVATE
+type Wrapped_Error
+    ## PRIVATE
+    Value value

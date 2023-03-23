@@ -48,7 +48,11 @@ make_aggregate_column aggregate new_name dialect infer_return_type =
         Count_Nothing c _ -> simple_aggregate "COUNT_IS_NULL" [c]
         Count_Not_Empty c _ -> simple_aggregate "COUNT_NOT_EMPTY" [c]
         Count_Empty c _ -> simple_aggregate "COUNT_EMPTY" [c]
-        Percentile p c _ -> SQL_Expression.Operation "PERCENTILE" [SQL_Expression.Constant SQL_Type.double p, c.expression]
+        Percentile p c _ ->
+            op_kind = "PERCENTILE"
+            expression = SQL_Expression.Operation op_kind [SQL_Expression.Constant SQL_Type.double p, c.expression]
+            sql_type_ref = infer_return_type op_kind [c] expression
+            Internal_Column.Value new_name sql_type_ref expression
         Mode c _ -> simple_aggregate "MODE" [c]
         First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.")
