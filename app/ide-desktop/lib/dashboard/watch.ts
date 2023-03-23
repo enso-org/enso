@@ -3,7 +3,6 @@ import * as path from 'node:path'
 import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
-import * as portfinder from 'portfinder'
 import chalk from 'chalk'
 
 import * as bundler from './esbuild-config'
@@ -14,6 +13,7 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 // === Constants ===
 // =================
 
+/** This must be port `8081` because it is defined as such in AWS. */
 const PORT = 8081
 const HTTP_STATUS_OK = 200
 // `assetsPath` and `outputPath` do not have to be real directories because `write` is `false`,
@@ -36,7 +36,7 @@ async function watch() {
     const builder = await esbuild.context(OPTS)
     await builder.watch()
     await builder.serve({
-        port: await portfinder.getPortPromise({ port: PORT }),
+        port: PORT,
         servedir: OPTS.outdir,
         onRequest(args) {
             if (args.status !== HTTP_STATUS_OK) {

@@ -59,7 +59,6 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 contents: string
                 lastModified: number
             }
-            // Required since `onStart` is called on every rebuild.
             let cachedOutput: Record<string, CacheEntry> = {}
             const cssProcessor = postcss([
                 tailwindcss({
