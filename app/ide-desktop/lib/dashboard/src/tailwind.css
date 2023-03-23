@@ -1,6 +1,10 @@
 /* These styles MUST still be copied as `#dashboard body` and `#dashboard html` make no sense. */
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap");
+
 body {
   margin: 0;
+  font-family: "M PLUS 1";
+  font-weight: 500;
 }
 
 #dashboard {
@@ -18,4 +22,93 @@ body {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
+
+  @layer components {
+    .quadrant-top-left {
+      clip-path: polygon(
+        0 0,
+        calc(50% - 2px) 0,
+        calc(50% - 2px) calc(50% - 2px),
+        0 calc(50% - 2px)
+      );
+    }
+
+    .quadrant-top-right {
+      clip-path: polygon(
+        calc(50% + 2px) 0,
+        100% 0,
+        100% calc(50% - 2px),
+        calc(50% + 2px) calc(50% - 2px)
+      );
+    }
+
+    .quadrant-bottom-left {
+      clip-path: polygon(
+        0 calc(50% + 2px),
+        calc(50% - 2px) calc(50% + 2px),
+        calc(50% - 2px) 100%,
+        0 100%
+      );
+    }
+
+    .quadrant-bottom-right {
+      clip-path: polygon(
+        calc(50% + 2px) calc(50% + 2px),
+        100% calc(50% + 2px),
+        100% 100%,
+        calc(50% + 2px) 100%
+      );
+    }
+
+    .selected-shadow {
+      box-shadow: 0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b,
+        0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011,
+        0 7.5px 33.4px 0 #00000014, 0 18px 80px 0 #0000001c;
+    }
+  }
+
+  /* Not sure why these don't work when inside a layer. */
+  .status-none {
+    background: #3e515f14;
+  }
+
+  .status-warning {
+    color: #ffffff;
+    background: #eab120;
+  }
+
+  .status-severe-warning {
+    color: #ffffff;
+    background: #e06740;
+  }
+
+  .spinner {
+    animation: rotate cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite;
+    transform-origin: center;
+    transition-property: stroke-dasharray;
+    transition-timing-function: linear;
+  }
+
+  .spinner-initial {
+    stroke-dasharray: calc(12 * 0.05 * 6.2832) calc(12 * 6.2832);
+  }
+
+  .spinner-loading {
+    stroke-dasharray: calc(12 * 0.75 * 6.2832) calc(12 * 6.2832);
+    transition-duration: 90s;
+  }
+
+  .spinner-done {
+    stroke-dasharray: calc(12 * 6.2832) 0;
+    transition-timing-function: ease-in;
+    transition-duration: 1s;
+  }
+
+  @keyframes rotate {
+    0% {
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
 }

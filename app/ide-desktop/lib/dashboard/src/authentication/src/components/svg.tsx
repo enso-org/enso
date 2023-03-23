@@ -11,13 +11,11 @@
 /** Path data for the SVG icons used in app. */
 export const PATHS = {
     /** Path data for the `@` icon SVG. */
-    at:
-        'M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 ' +
-        '8.959 0 01-4.5 1.207',
+    at: `M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 \
+8.959 0 01-4.5 1.207`,
     /** Path data for the lock icon SVG. */
-    lock:
-        'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 ' +
-        '0 00-8 0v4h8z',
+    lock: `M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 \
+0 00-8 0v4h8z`,
     /** Path data for the "right arrow" icon SVG. */
     rightArrow: 'M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z',
     /** Path data for the "create account" icon SVG. */
@@ -107,9 +105,9 @@ export const DIRECTORY_ICON = (
 
 /** Icon representing a secret. */
 export const SECRET_ICON = (
-    <svg>
+    <svg width={36} height={36} viewBox="0 0 24 24">
         <path
-            d="M11 10.3a4 4 0 1 1 2 0v10a1 1 0 0 1-1 1h-3a1 1 0 0 1 0 -2h2v-2h-2a1 1 0 0 1 0-2h2ZM12 3.5a1 1 0 1 1 0 2a1 1 0 1 1 0 -2"
+            d="M10.3 13a4 4 0 1 1 0-2h10a1 1 0 0 1 1 1v3a1 1 0 0 1-2 0v-2h-2v2a1 1 0 0 1-2 0v-2ZM3.5 12a1 1 0 1 1 2 0a1 1 0 1 1-2 0"
             fill="currentColor"
             fill-rule="evenodd"
         />
@@ -118,7 +116,7 @@ export const SECRET_ICON = (
 
 /** Icon representing a file whose filetype does not have an associated icon. */
 export const FILE_ICON = (
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg width={36} height={36} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path
             d="M6.5 3h8v2a2 2 0 0 0 2 2h2v13a1 1 0 0 1 -1 1h-11a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1ZM15 3v2a1.5 1.5 0 0 0 1.5 1.5h2"
             fill="currentColor"

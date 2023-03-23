@@ -64,23 +64,23 @@ function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps
             permissionBorder = (
                 <>
                     <div
-                        className={`border-perm-${
-                            permissions.write ? 'write' : 'none'
+                        className={`${
+                            permissions.write ? 'border-perm-write' : 'border-perm-none'
                         } quadrant-top-left border-2 rounded-full absolute w-full h-full`}
                     ></div>
                     <div
-                        className={`border-perm-${
-                            permissions.read ? 'read' : 'none'
+                        className={`${
+                            permissions.read ? 'border-perm-read' : 'border-perm-none'
                         } quadrant-top-right border-2 rounded-full absolute w-full h-full`}
                     ></div>
                     <div
-                        className={`border-perm-${
-                            permissions.exec ? 'exec' : 'none'
+                        className={`${
+                            permissions.exec ? 'border-perm-exec' : 'border-perm-none'
                         } quadrant-bottom-left border-2 rounded-full absolute w-full h-full`}
                     ></div>
                     <div
-                        className={`border-perm-${
-                            permissions.docsWrite ? 'docs-write' : 'none'
+                        className={`${
+                            permissions.docsWrite ? 'border-perm-docs-write' : 'border-perm-none'
                         } quadrant-bottom-right border-2 rounded-full absolute w-full h-full`}
                     ></div>
                 </>

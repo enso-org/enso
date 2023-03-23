@@ -8,9 +8,9 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
 import * as loggerProvider from '../../providers/logger'
+import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
-import * as utils from '../../utils'
 
 import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
@@ -152,9 +152,11 @@ function columnName(column: Column, assetType: backend.AssetType) {
     return column === Column.name ? ASSET_TYPE_NAME[assetType] : COLUMN_NAME[column]
 }
 
-/** Returns the id of the root directory for a  */
+/** Returns the id of the root directory for a user or organization. */
 function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
-    return `ROOT-${userOrOrganizationId}` as backend.DirectoryId
+    return newtype.asNewtype<backend.DirectoryId>(
+        userOrOrganizationId.replace(/^organization-/, `${backend.AssetType.directory}-`)
+    )
 }
 
 /** Returns the file extension of a file name. */
@@ -191,6 +193,7 @@ function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
+
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
@@ -209,7 +212,7 @@ function Dashboard(props: DashboardProps) {
     >([])
     const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
 
-    const [project, setProject] = react.useState<backend.Project | undefined>(undefined)
+    const [project, setProject] = react.useState<backend.Project | null>(null)
     const [projectStates, setProjectStates] = react.useState<
         Record<backend.ProjectId, backend.ProjectState>
     >({})
@@ -276,55 +279,10 @@ function Dashboard(props: DashboardProps) {
 
     const renderer = <Type extends backend.AssetType>(column: Column, assetType: Type) => {
         return column === Column.name
-            ? (nameRenderers[assetType] as (asset: backend.Asset<Type>) => JSX.Element)
+            ? // This is type-safe only if we pass enum literals as `assetType`.
+              // eslint-disable-next-line no-restricted-syntax
+              (nameRenderers[assetType] as (asset: backend.Asset<Type>) => JSX.Element)
             : COLUMN_RENDERER[column]
-    }
-
-    const getNewProjectName = (templateName: string | undefined): string => {
-        const prefix = `${templateName ?? 'New_Project'}_`
-        const numbers = projectAssets
-            .map(projectAsset => projectAsset.title)
-            .filter(title => title.startsWith(prefix))
-            .map(title => Number(title.slice(prefix.length)))
-        return prefix + (Math.max(...numbers) + 1).toString()
-    }
-
-    const handleCreateProject = async (templateName: string | undefined) => {
-        const newProjectName = getNewProjectName(templateName)
-
-        switch (platform) {
-            case platformModule.Platform.cloud: {
-                const newProject = await backendService.createProject({
-                    projectName: newProjectName,
-                    projectTemplateName: templateName?.toLowerCase(),
-                })
-                setProjectAssets([
-                    ...projectAssets,
-                    {
-                        type: backend.AssetType.project,
-                        id: newProject.projectId,
-                        parentId: directoryId,
-                        title: newProject.name,
-                    },
-                ])
-                break
-            }
-            case platformModule.Platform.desktop: {
-                const result = await props.projectManager.createProject({
-                    name: utils.brand<projectManagerModule.ProjectName>(newProjectName),
-                    projectTemplate: templateName,
-                })
-                const createdProject = result.result
-                const newProject: backend.Asset<backend.AssetType.project> = {
-                    type: backend.AssetType.project,
-                    id: createdProject.projectId,
-                    parentId: '',
-                    title: newProjectName,
-                }
-                setProjectAssets([...projectAssets, newProject])
-                break
-            }
-        }
     }
 
     react.useEffect(() => {
@@ -364,7 +322,7 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId])
 
     return (
-        <>
+        <div className="text-primary">
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
             <div id="header" />
@@ -373,28 +331,28 @@ function Dashboard(props: DashboardProps) {
                 <h1 className="text-xl font-bold mx-6 self-center">Drive</h1>
                 <div className="flex flex-row flex-nowrap mx-2">
                     <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-2 mx-0.5">
-                        {parentDirectory ? (
+                        {directory ? (
                             <>
-                                <span
+                                <button
                                     className="mx-2"
                                     onClick={() => {
-                                        setDirectoryId(parentDirectory.id)
+                                        setDirectoryId(
+                                            parentDirectory?.id ?? rootDirectoryId(organization.id)
+                                        )
                                         setDirectoryStack(
                                             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                                             directoryStack.slice(0, -1)
                                         )
                                     }}
                                 >
-                                    {parentDirectory.title}
-                                </span>
+                                    {parentDirectory?.title ?? '~'}
+                                </button>
                                 {svg.SMALL_RIGHT_ARROW_ICON}
                             </>
                         ) : (
                             <></>
                         )}
-                        <span className="mx-2">
-                            {parentDirectory ? directory!.title : directory?.title ?? '~'}
-                        </span>
+                        <span className="mx-2">{directory?.title ?? '~'}</span>
                     </div>
                     <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center p-2 mx-0.5">
                         <span className="mx-2">Shared with</span>
@@ -471,6 +429,7 @@ function Dashboard(props: DashboardProps) {
                 </div>
             </div>
             <table className="items-center w-full bg-transparent border-collapse">
+                <tr className="h-8" />
                 <Rows<backend.Asset<backend.AssetType.project>>
                     items={projectAssets}
                     getKey={proj => proj.id}
@@ -483,6 +442,7 @@ function Dashboard(props: DashboardProps) {
                         render: renderer(column, backend.AssetType.project),
                     }))}
                 />
+                <tr className="h-8" />
                 <Rows<backend.Asset<backend.AssetType.directory>>
                     items={directoryAssets}
                     getKey={proj => proj.id}
@@ -493,6 +453,7 @@ function Dashboard(props: DashboardProps) {
                         render: renderer(column, backend.AssetType.directory),
                     }))}
                 />
+                <tr className="h-8" />
                 <Rows<backend.Asset<backend.AssetType.secret>>
                     items={secretAssets}
                     getKey={proj => proj.id}
@@ -503,6 +464,7 @@ function Dashboard(props: DashboardProps) {
                         render: renderer(column, backend.AssetType.secret),
                     }))}
                 />
+                <tr className="h-8" />
                 <Rows<backend.Asset<backend.AssetType.file>>
                     items={fileAssets}
                     getKey={proj => proj.id}
@@ -514,7 +476,7 @@ function Dashboard(props: DashboardProps) {
                     }))}
                 />
             </table>
-        </>
+        </div>
     )
 }
 

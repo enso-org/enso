@@ -13,7 +13,6 @@
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 
-import * as loggerProvider from './providers/logger'
 import * as platformModule from './platform'
 import App, * as app from './components/app'
 
@@ -51,7 +50,6 @@ export function run(props: app.AppProps) {
         if (ide != null) {
             ide.style.display = 'none'
         }
-        const props = { logger, platform, onAuthenticated }
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }
