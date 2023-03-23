@@ -2,10 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::model::SuggestionDatabase;
-
 use double_representation::module::MethodId;
-use double_representation::name::QualifiedNameRef;
 use ordered_float::OrderedFloat;
 
 
@@ -21,7 +18,7 @@ pub mod hardcoded;
 // === Action ===
 // ==============
 
-#[derive(Clone, CloneRef, Debug, Eq, PartialEq)]
+#[derive(Clone, CloneRef, Debug, PartialEq)]
 /// Suggestion for code completion: possible functions, arguments, etc.
 pub enum Suggestion {
     /// The suggestion from Suggestion Database received from the Engine.
@@ -35,18 +32,7 @@ impl Suggestion {
     pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
         match self {
             Suggestion::FromDatabase(s) => s.code_to_insert(generate_this),
-            Suggestion::Hardcoded(s) => s.code.into(),
-        }
-    }
-
-    pub(crate) fn required_imports(
-        &self,
-        db: &SuggestionDatabase,
-        current_module: QualifiedNameRef,
-    ) -> impl IntoIterator<Item = model::suggestion_database::entry::Import> {
-        match self {
-            Suggestion::FromDatabase(s) => s.required_imports(db, current_module),
-            Suggestion::Hardcoded(_) => default(),
+            Suggestion::Hardcoded(s) => s.code.as_str().into(),
         }
     }
 
@@ -89,7 +75,7 @@ pub enum ProjectManagement {
 }
 
 /// A single action on the Searcher list. See also `controller::searcher::Searcher` docs.
-#[derive(Clone, CloneRef, Debug, Eq, PartialEq)]
+#[derive(Clone, CloneRef, Debug, PartialEq)]
 pub enum Action {
     /// Add to the searcher input a suggested code and commit editing (new node is inserted or
     /// existing is modified). This action can be also used to complete searcher input without
@@ -215,7 +201,7 @@ impl Eq for MatchInfo {}
 
 /// The single list entry.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ListEntry {
     pub category:   CategoryId,
     pub match_info: MatchInfo,

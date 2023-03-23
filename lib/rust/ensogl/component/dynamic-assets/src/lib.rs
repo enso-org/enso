@@ -13,9 +13,10 @@
 //! tools. However, the programs are generated at runtime, so build-time optimization requires
 //! dynamic analysis. Dynamic asset extraction fills this role.
 
+#![cfg(target_arch = "wasm32")]
+// === Features ===
 #![feature(local_key_cell_methods)]
 #![feature(let_chains)]
-#![cfg(target_arch = "wasm32")]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -34,15 +35,19 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-
 use enso_prelude::*;
+
 use enso_shapely::before_main;
 use ensogl_core::system::js;
 use ensogl_core::system::web::Closure;
 use ensogl_core::system::web::JsCast;
 use ensogl_core::system::web::JsValue;
 use ensogl_core::system::web::Map;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod fonts;
 pub mod shaders;

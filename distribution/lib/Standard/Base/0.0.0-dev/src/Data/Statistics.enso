@@ -8,9 +8,9 @@ import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
-import project.Error.Common.Incomparable_Values
+import project.Errors.Common.Incomparable_Values
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
@@ -18,7 +18,7 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Vector import Empty_Error
-from project.Error.Common import Unsupported_Argument_Types
+from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.Moments

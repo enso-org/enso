@@ -50,5 +50,7 @@ async function getInfo() {
 /** Print the current system information. */
 export async function printInfo() {
     const info = await getInfo()
+    // This function does not accept `null` as its second parameter.
+    // eslint-disable-next-line no-restricted-syntax
     console.log(JSON.stringify(info, undefined, INDENT_SIZE))
 }

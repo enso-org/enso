@@ -146,67 +146,67 @@ async function genIcons(outputDir) {
         return
     } else {
         console.log(`Generating icons to ${outputDir}`)
-    }
+        console.log('Generating SVG icons.')
+        await fs.mkdir(path.resolve(outputDir, 'svg'), { recursive: true })
+        await fs.mkdir(path.resolve(outputDir, 'png'), { recursive: true })
+        for (const size of sizes) {
+            let name = `icon_${size}x${size}.svg`
+            let logo = new Logo(size, true).generate()
+            await fs.writeFile(`${outputDir}/svg/${name}`, logo)
+        }
 
-    console.log('Generating SVG icons.')
-    await fs.mkdir(path.resolve(outputDir, 'svg'), { recursive: true })
-    await fs.mkdir(path.resolve(outputDir, 'png'), { recursive: true })
-    for (const size of sizes) {
-        let name = `icon_${size}x${size}.svg`
-        let logo = new Logo(size, true).generate()
-        await fs.writeFile(`${outputDir}/svg/${name}`, logo)
-    }
+        /// Please note that this function converts the SVG to PNG
+        /// AND KEEPS THE METADATA INFORMATION ABOUT DPI OF 144.
+        /// It is required to properly display png images on MacOS.
+        /// There is currently no other way in `sharp` to do it.
+        console.log('Generating PNG icons.')
+        for (const size of sizes) {
+            let inName = `icon_${size}x${size}.svg`
+            let outName = `icon_${size}x${size}.png`
+            await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
+                .png()
+                .resize({
+                    width: size,
+                    kernel: sharp.kernel.mitchell,
+                })
+                .toFile(`${outputDir}/png/${outName}`)
+        }
 
-    /// Please note that this function converts the SVG to PNG
-    /// AND KEEPS THE METADATA INFORMATION ABOUT DPI OF 144.
-    /// It is required to properly display png images on MacOS.
-    /// There is currently no other way in `sharp` to do it.
-    console.log('Generating PNG icons.')
-    for (const size of sizes) {
-        let inName = `icon_${size}x${size}.svg`
-        let outName = `icon_${size}x${size}.png`
-        await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
-            .png()
-            .resize({
-                width: size,
-                kernel: sharp.kernel.mitchell,
-            })
-            .toFile(`${outputDir}/png/${outName}`)
-    }
+        for (const size of sizes.slice(1)) {
+            let size2 = size / 2
+            let inName = `icon_${size}x${size}.svg`
+            let outName = `icon_${size2}x${size2}@2x.png`
+            await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
+                .png()
+                .resize({
+                    width: size,
+                    kernel: sharp.kernel.mitchell,
+                })
+                .toFile(`${outputDir}/png/${outName}`)
+        }
 
-    for (const size of sizes.slice(1)) {
-        let size2 = size / 2
-        let inName = `icon_${size}x${size}.svg`
-        let outName = `icon_${size2}x${size2}@2x.png`
-        await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
-            .png()
-            .resize({
-                width: size,
-                kernel: sharp.kernel.mitchell,
-            })
-            .toFile(`${outputDir}/png/${outName}`)
-    }
+        if (os.platform() === 'darwin') {
+            console.log('Generating ICNS.')
+            childProcess.execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
+            childProcess.execSync(
+                `iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`
+            )
+        }
 
-    if (os.platform() === 'darwin') {
-        console.log('Generating ICNS.')
-        childProcess.execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
-        childProcess.execSync(
-            `iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`
-        )
-    }
+        console.log('Generating ICO.')
+        let files = []
+        for (const size of winSizes) {
+            let inName = `icon_${size}x${size}.png`
+            let data = await fs.readFile(`${outputDir}/png/${inName}`)
+            files.push(data)
+        }
+        const icoBuffer = await toIco(files)
+        fsSync.writeFileSync(`${outputDir}/icon.ico`, icoBuffer)
 
-    console.log('Generating ICO.')
-    let files = []
-    for (const size of winSizes) {
-        let inName = `icon_${size}x${size}.png`
-        let data = await fs.readFile(`${outputDir}/png/${inName}`)
-        files.push(data)
+        let handle = await fs.open(donePath, 'w')
+        await handle.close()
+        return
     }
-    const icoBuffer = await toIco(files)
-    fsSync.writeFileSync(`${outputDir}/icon.ico`, icoBuffer)
-
-    let handle = await fs.open(donePath, 'w')
-    await handle.close()
 }
 
 /** Main entry function. */

@@ -19,11 +19,11 @@ use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::Placeholder;
+use enso_text as text;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
-use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
 
@@ -96,8 +96,8 @@ impl Model {
     }
 
     #[profile(Debug)]
-    fn input_changed(&self, new_input: &str) {
-        if let Err(err) = self.controller.set_input(new_input.to_owned()) {
+    fn input_changed(&self, new_input: &str, cursor_position: text::Byte) {
+        if let Err(err) = self.controller.set_input(new_input.to_owned(), cursor_position) {
             error!("Error while setting new searcher input: {err}.");
         }
     }
@@ -143,7 +143,7 @@ impl Model {
     fn suggestion_accepted(
         &self,
         id: component_grid::GroupEntryId,
-    ) -> Option<(ViewNodeId, node_view::Expression)> {
+    ) -> Option<(ViewNodeId, text::Range<text::Byte>, ImString)> {
         let provider = self.controller.provider();
         let component: FallibleResult<_> =
             provider.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
@@ -156,10 +156,9 @@ impl Model {
             self.controller.use_suggestion(suggestion)
         });
         match new_code {
-            Ok(new_code) => {
+            Ok(text::Change { range, text }) => {
                 self.update_breadcrumbs();
-                let new_code_and_trees = node_view::Expression::new_plain(new_code);
-                Some((self.input_view, new_code_and_trees))
+                Some((self.input_view, range, text.into()))
             }
             Err(err) => {
                 error!("Error while applying suggestion: {err}.");
@@ -248,7 +247,7 @@ impl Model {
                 component::Data::FromDatabase { id, .. } =>
                     self.controller.documentation_for_entry(*id),
                 component::Data::Virtual { snippet } =>
-                    snippet.documentation.as_ref().map_or_default(EntryDocumentation::builtin),
+                    snippet.documentation.clone().unwrap_or_default(),
             }
         } else {
             default()
@@ -292,9 +291,13 @@ impl Searcher {
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.view.graph().frp;
+        let browser = model.view.searcher();
 
         frp::extend! { network
-            eval model.view.searcher_input_changed ((expr) model.input_changed(expr));
+            eval model.view.searcher_input_changed ([model]((expr, selections)) {
+                let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
+                model.input_changed(expr, cursor_position);
+            });
 
             action_list_changed <- source::<()>();
 
@@ -302,7 +305,6 @@ impl Searcher {
                 model.controller.reload_list());
         }
 
-        let browser = model.view.searcher();
         let grid = &browser.model().list.model().grid;
         let navigator = &browser.model().list.model().section_navigator;
         let breadcrumbs = &browser.model().list.model().breadcrumbs;
@@ -316,8 +318,8 @@ impl Searcher {
                 let provider = provider::Component::provide_new_list(controller_provider, &grid);
                 *model.provider.borrow_mut() = Some(provider);
             });
-            new_input <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
-            graph.set_node_expression <+ new_input;
+            input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
+            graph.edit_node_expression <+ input_edit;
 
             entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
             selected_entry_changed <- entry_selected.on_change().constant(());
@@ -380,7 +382,7 @@ impl Searcher {
         /// The expression to be used for newly created nodes when initialising the searcher without
         /// an existing node.
         const DEFAULT_INPUT_EXPRESSION: &str = "Nothing";
-        let SearcherParams { input, source_node } = parameters;
+        let SearcherParams { input, source_node, .. } = parameters;
 
         let view_data = graph_editor.model.nodes.get_cloned_ref(&input);
 
@@ -443,6 +445,10 @@ impl Searcher {
         view: view::project::View,
         parameters: SearcherParams,
     ) -> FallibleResult<Self> {
+        // We get the position for searcher before initializing the input node, because the
+        // added node will affect the AST, and the position will become incorrect.
+        let position_in_code = graph_controller.graph().definition_end_location()?;
+
         let mode = Self::init_input_node(
             parameters,
             graph_presenter,
@@ -455,13 +461,15 @@ impl Searcher {
             &project_controller.model,
             graph_controller,
             mode,
+            parameters.cursor_position,
+            position_in_code,
         )?;
 
         // Clear input on a new node. By default this will be set to whatever is used as the default
         // content of the new node.
         if let Mode::NewNode { source_node, .. } = mode {
             if source_node.is_none() {
-                if let Err(e) = searcher_controller.set_input("".to_string()) {
+                if let Err(e) = searcher_controller.set_input("".to_string(), text::Byte(0)) {
                     error!("Failed to clear input when creating searcher for a new node: {e:?}.");
                 }
             }

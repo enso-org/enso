@@ -131,14 +131,16 @@ The following operating systems are supported for developing Enso:
 - macOS 10.14 and above
 - Linux 4.4 and above
 
-Currently we support `x86_64` (all mentioned OS) and `arm64` (Mac only)
+Currently, we support `x86_64` (all mentioned OS) and `arm64` (Mac only)
 architectures. You may be able to develop Enso on other systems, but issues
 arising from unsupported configurations will not be fixed by the core team.
 
 In order to build and run Enso you will need the following tools:
 
-- [NodeJS](https://nodejs.org/) with the latest LTS version. We recommend using
-  [`nvm`](https://github.com/nvm-sh/nvm) for managing NodeJS installation.
+- [NodeJS](https://nodejs.org/) with the latest LTS version. We recommend
+  installing
+  [a Node version manager that automatically picks up the correct version](https://github.com/shadowspawn/node-version-usage#supporting-products),
+  like [fnm](https://github.com/Schniz/fnm).
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
   [`project/build.properties`](../project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.
@@ -227,6 +229,15 @@ enso$ cargo +stable install cargo-watch # To enable `./run wasm watch` utility
 
 The previous three steps shall be enough to build the IDE via
 `./run wasm build run wasm build --wasm-profile dev`.
+
+### Using Cargo Watch Plus
+
+Currently, `cargo-watch` has
+[many issues](https://github.com/enso-org/cargo-watch-plus), including not
+working on modern macOS properly. Thus, we've developed a replacement, the
+[Cargo Watch Plus](https://github.com/enso-org/cargo-watch-plus). To use it,
+simply export the `USE_CARGO_WATCH_PLUS=1` in your shell and the build system
+will pick it up instead of the `cargo-watch`.
 
 ### Getting Set Up (JVM)
 

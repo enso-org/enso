@@ -256,7 +256,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
 
             profile: new contentConfig.Group({
                 options: {
-                    loadProfile: new contentConfig.Option<string[]>({
+                    load: new contentConfig.Option<string[]>({
                         passToWebApplication: false,
                         value: [],
                         description:
@@ -264,13 +264,13 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `the 'profiling-run-graph' entry point.`,
                         primary: false,
                     }),
-                    saveProfile: new contentConfig.Option({
+                    save: new contentConfig.Option({
                         passToWebApplication: false,
-                        value: '',
+                        value: 'profile.json',
                         description:
                             `Record a performance profile and save it to a file. To view the ` +
                             `results, use the 'profiling-run-graph' entry point, such as ` +
-                            `'enso -startup.entry=profiling-run-graph -profile.load-profile=profile.json'.`,
+                            `'enso -startup.entry=profiling-run-graph -profile.load=profile.json'.`,
                         primary: false,
                     }),
                 },
