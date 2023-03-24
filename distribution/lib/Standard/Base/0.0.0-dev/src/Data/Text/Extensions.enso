@@ -409,7 +409,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
 
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
 
-Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Text | Illegal_Argument
+Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Text | Illegal_Argument
 Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
     case use_regex of
         False -> if term.is_empty then self else
