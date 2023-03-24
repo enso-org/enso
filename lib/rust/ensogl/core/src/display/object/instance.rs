@@ -3018,19 +3018,11 @@ impl Model {
     fn refresh_layout(&self) {
         if self.should_refresh_layout() {
             self.reset_size_to_static_values(X, 0.0);
-            self.refresh_layout_internal(LayoutResolutionPass::X, PassConfig::Default);
+            self.refresh_layout_internal(X, PassConfig::Default);
             self.reset_size_to_static_values(Y, 0.0);
-            self.refresh_layout_internal(LayoutResolutionPass::Y, PassConfig::Default);
+            self.refresh_layout_internal(Y, PassConfig::Default);
         }
     }
-}
-
-/// The layout is resolved in two passes, one for the X-axis, one for the Y-axis. See the docs of
-/// this module to learn more.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum LayoutResolutionPass {
-    X,
-    Y,
 }
 
 /// Pass configuration.
@@ -3040,7 +3032,7 @@ enum PassConfig {
     DoNotHugDirectChildren,
 }
 
-trait ResolutionDim = Copy + Debug
+trait ResolutionDim = Copy + Debug + ResolutionDimImpl
 where
     Vector2<Size>: DimSetter<Self>,
     Vector2<alignment::OptDim1>: DimSetter<Self>,
@@ -3053,6 +3045,21 @@ where
     (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>):
         DimRef<Self, Output = NonEmptyVec<ColumnOrRow>>;
 
+trait ResolutionDimImpl {
+    fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool;
+}
+
+impl ResolutionDimImpl for X {
+    fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool {
+        matches! { flow, AutoLayoutFlow::Row }
+    }
+}
+
+impl ResolutionDimImpl for Y {
+    fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool {
+        matches! { flow, AutoLayoutFlow::Column }
+    }
+}
 
 impl Model {
     /// Reset size of this display object to values that can be computed statically. This is, use
@@ -3080,17 +3087,12 @@ impl Model {
     }
 
     /// The main entry point from the recursive auto-layout algorithm.
-    fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
+    fn refresh_layout_internal<Dim>(&self, x: Dim, pass_cfg: PassConfig)
+    where Dim: ResolutionDim {
         if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
-            match pass {
-                LayoutResolutionPass::X => self.refresh_grid_layout(X, layout, pass),
-                LayoutResolutionPass::Y => self.refresh_grid_layout(Y, layout, pass),
-            }
+                self.refresh_grid_layout(x, layout);
         } else {
-            match pass {
-                LayoutResolutionPass::X => self.refresh_manual_layout(X, pass, pass_cfg),
-                LayoutResolutionPass::Y => self.refresh_manual_layout(Y, pass, pass_cfg),
-            }
+                self.refresh_manual_layout(x, pass_cfg);
         }
     }
 
@@ -3098,7 +3100,7 @@ impl Model {
     /// In order to make the code easy to understand, all variables in layout functions were named
     /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
     /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
-    fn refresh_manual_layout<Dim>(&self, x: Dim, pass: LayoutResolutionPass, pass_cfg: PassConfig)
+    fn refresh_manual_layout<Dim>(&self, x: Dim, pass_cfg: PassConfig)
     where Dim: ResolutionDim {
         let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
         let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
@@ -3115,7 +3117,7 @@ impl Model {
                 // modified since last update, it is guaranteed to already have correct size.
                 if child.should_propagate_parent_layout_refresh(x) {
                     child.reset_size_to_static_values(x, self.layout.computed_size.get_dim(x));
-                    child.refresh_layout_internal(pass, PassConfig::Default);
+                    child.refresh_layout_internal(x, PassConfig::Default);
                 }
                 let child_pos = child.position().get_dim(x);
                 let child_size = child.computed_size().get_dim(x);
@@ -3134,7 +3136,7 @@ impl Model {
             let current_child_size = child.computed_size().get_dim(x);
             if current_size != current_child_size || child.should_refresh_layout() {
                 child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
-                child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
+                child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
             }
             let child_pos = child.position().get_dim(x);
             let child_content_origin = child.content_origin().get_dim(x);
@@ -3186,21 +3188,18 @@ impl Model {
         &self,
         x: Dim,
         opts: &AutoLayout,
-        pass: LayoutResolutionPass,
         children: &[Instance],
     ) -> Vec<UnresolvedColumn>
     where
         Dim: ResolutionDim,
     {
-        let first_pass = pass == LayoutResolutionPass::X;
         let columns_defs = opts.columns_and_rows.get_dim(x);
         let prim_axis_item_count = match opts.flow {
             AutoLayoutFlow::Row => opts.columns_and_rows_count.get_dim(X),
             AutoLayoutFlow::Column => opts.columns_and_rows_count.get_dim(Y),
         };
         let prim_axis_item_count = prim_axis_item_count.unwrap_or(children.len());
-        let use_x_axis = first_pass == (opts.flow == AutoLayoutFlow::Row);
-        if use_x_axis {
+        if x.matches_flow_direction(opts.flow) {
             let column_defs = columns_defs.iter().cycle().enumerate().take(prim_axis_item_count);
             column_defs
                 .map(|(i, axis)| {
@@ -3233,7 +3232,6 @@ impl Model {
         &self,
         x: Dim,
         opts: &AutoLayout,
-        pass: LayoutResolutionPass,
         unresolved_columns: Vec<UnresolvedColumn>,
     ) -> Vec<ResolvedColumn>
     where
@@ -3258,7 +3256,7 @@ impl Model {
                     }
                     match child.layout.size.get_dim(x) {
                         Size::Hug if refresh_child =>
-                            child.refresh_layout_internal(pass, PassConfig::Default),
+                            child.refresh_layout_internal(x, PassConfig::Default),
                         Size::Fixed(unit) =>
                             max_child_fr = max(max_child_fr, unit.as_fraction_or_default()),
                         _ => {}
@@ -3331,15 +3329,15 @@ impl Model {
     /// In order to make the code easy to understand, all variables in layout functions were named
     /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
     /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
-    fn refresh_grid_layout<Dim>(&self, x: Dim, opts: &AutoLayout, pass: LayoutResolutionPass)
+    fn refresh_grid_layout<Dim>(&self, x: Dim, opts: &AutoLayout)
     where Dim: ResolutionDim {
         let children = self.children();
         if children.is_empty() {
             return;
         }
 
-        let unresolved_columns = self.divide_children_to_columns(x, opts, pass, &children);
-        let mut columns = self.resolve_columns(x, opts, pass, unresolved_columns);
+        let unresolved_columns = self.divide_children_to_columns(x, opts, &children);
+        let mut columns = self.resolve_columns(x, opts, unresolved_columns);
 
 
         // === Compute the static size (no grow, shrink, nor fraction yet) ===
@@ -3448,7 +3446,7 @@ impl Model {
                     // refresh layout of the same child. If the child size is set to hug, the
                     // child can grow, and the column size is greater than earlier computed hugged
                     // child size, we need to refresh the child layout again.
-                    child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
+                    child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
                 }
                 let child_width = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size_minus_margin - child_width);
