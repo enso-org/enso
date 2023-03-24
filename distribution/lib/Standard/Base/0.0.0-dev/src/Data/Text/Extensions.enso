@@ -308,19 +308,18 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Split the text on any occurrence of the separator `"::"`.
 
-         example_split =
-             text = "Namespace::package::package::Type"
-             text.split "::" == ["Namespace", "package", "package", "Type"]
+         text = "Namespace::package::package::Type"
+         text.split "::" == ["Namespace", "package", "package", "Type"]
 
    > Example
      Split the text on a regex pattern.
 
-         "abc--def==>ghi".split "[-=>]+" Regex_Matcher.Value == ["abc", "def", "ghi"]
+         "abc--def==>ghi".split "[-=>]+" use_regex=True == ["abc", "def", "ghi"]
 
    > Example
      Split the text on any whitespace.
 
-         'abc  def\tghi'.split '\\s+' Regex_Matcher.Value == ["abc", "def", "ghi"]
+         'abc  def\tghi'.split '\\s+' use_regex=True == ["abc", "def", "ghi"]
 Text.split : Text -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
     case use_regex of
