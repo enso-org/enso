@@ -3066,22 +3066,32 @@ impl Model {
     where Dim: ResolutionDim {
         let size = match self.layout.size.get_dim(x) {
             Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
-            Size::Hug
-                if self.dirty.transformation.check()
-                    || self.dirty.modified_children.check_all()
-                    || self.dirty.removed_children.check_all() =>
-                0.0,
+            // Size::Hug
+            //     if self.dirty.transformation.check()
+            //         || self.dirty.modified_children.check_all()
+            //         || self.dirty.removed_children.check_all() =>
+            //     0.0,
             Size::Hug => self.layout.computed_size.get_dim(x),
         };
         self.layout.computed_size.set_dim(x, size);
     }
 
-    /// The main entry point from the recursive auto-layout algorithm.
-    fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
-        if self.dirty.transformation.check()
+    fn should_refresh_layout(&self) -> bool {
+        self.dirty.transformation.check()
             || self.dirty.modified_children.check_all()
             || self.dirty.removed_children.check_all()
-        {
+    }
+
+    /// The main entry point from the recursive auto-layout algorithm.
+    fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
+        if self.should_refresh_layout() {
+            match pass {
+                LayoutResolutionPass::X if self.layout.size.get_dim(X).is_hug() =>
+                    self.layout.computed_size.set_dim(X, 0.0),
+                LayoutResolutionPass::Y if self.layout.size.get_dim(Y).is_hug() =>
+                    self.layout.computed_size.set_dim(Y, 0.0),
+                _ => {}
+            }
             if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
                 match pass {
                     LayoutResolutionPass::X => self.refresh_grid_layout(X, layout, pass),
@@ -4469,7 +4479,6 @@ mod hierarchy_tests {
 #[cfg(test)]
 mod layout_tests {
     use super::*;
-    use crate::display;
     use crate::display::world::World;
 
 
