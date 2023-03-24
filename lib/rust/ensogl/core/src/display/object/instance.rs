@@ -2395,7 +2395,7 @@ pub trait LayoutOps: Object {
     /// of the free space left after placing siblings with fixed sizes.
     ///
     /// In case the size was modified to a fixed pixels value, the [`computed_size`] will be updated
-    /// immediately for convinience. See the docs of this module to learn more.
+    /// immediately for convenience. See the docs of this module to learn more.
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
     fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
         self.display_object().modify_layout(|layout| {
@@ -3064,7 +3064,7 @@ impl ResolutionDimImpl for Y {
 impl Model {
     /// Reset size of this display object to values that can be computed statically. This is, use
     /// the size property if it is set to pixels or to percent of the parent size. If the size is
-    /// set to hug and will be chainged in next layout reftesh, the size is set to 0.0. Otherwise,
+    /// set to hug and will be changed in next layout refresh, the size is set to 0.0. Otherwise,
     /// the size does not change.
     fn reset_size_to_static_values<Dim>(&self, x: Dim, parent_size: f32)
     where Dim: ResolutionDim {
@@ -3135,7 +3135,7 @@ impl Model {
             let current_size = self.layout.computed_size.get_dim(x);
             let current_child_size = child.computed_size().get_dim(x);
             if current_size != current_child_size || child.should_refresh_layout() {
-                child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
+                child.layout.computed_size.set_dim(x, current_size);
                 child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
             }
             let child_pos = child.position().get_dim(x);
@@ -3248,18 +3248,25 @@ impl Model {
                 let mut max_child_size = 0.0;
                 let mut max_child_fr = Fraction::default();
                 for child in &children {
-                    let refresh_child = child.should_propagate_parent_layout_refresh(x);
+                    let child_grow_factor = child.layout.grow_factor.get_dim(x);
+                    let child_shrink_factor = child.layout.shrink_factor.get_dim(x);
+                    let child_can_grow_or_shrink =
+                        child_grow_factor > 0.0 || child_shrink_factor > 0.0;
+                    let refresh_child =
+                        child_can_grow_or_shrink || child.should_propagate_parent_layout_refresh(x);
+
+                    let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
                     if refresh_child {
-                        let self_const_size =
-                            self.layout.size.get_dim(x).resolve_pixels_or_default();
                         child.reset_size_to_static_values(x, self_const_size);
                     }
                     match child.layout.size.get_dim(x) {
-                        Size::Hug if refresh_child =>
-                            child.refresh_layout_internal(x, PassConfig::Default),
-                        Size::Fixed(unit) =>
-                            max_child_fr = max(max_child_fr, unit.as_fraction_or_default()),
-                        _ => {}
+                        Size::Hug =>
+                            if refresh_child {
+                                child.refresh_layout_internal(x, PassConfig::Default);
+                            },
+                        Size::Fixed(unit) => {
+                            max_child_fr = max(max_child_fr, unit.as_fraction_or_default());
+                        }
                     }
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
@@ -3267,8 +3274,8 @@ impl Model {
                         child.layout.min_size.get_dim(x).resolve_pixels_or_default();
                     let child_max_size = child.layout.max_size.get_dim(x).resolve_pixels();
                     let child_max_size = child_max_size.unwrap_or(f32::INFINITY);
-                    avg_child_grow += child.layout.grow_factor.get_dim(x);
-                    avg_child_shrink += child.layout.shrink_factor.get_dim(x);
+                    avg_child_grow += child_grow_factor;
+                    avg_child_shrink += child_shrink_factor;
                     max_child_min_size = f32::max(max_child_min_size, child_min_size);
                     min_child_max_size = f32::min(min_child_max_size, child_max_size);
                     max_child_size = f32::max(max_child_size, child_size);
@@ -5772,6 +5779,36 @@ mod layout_tests {
             test.assert_root_computed_size(30.0, 20.0)
                 .assert_node1_position(0.0, 0.0)
                 .assert_node2_position(20.0, 0.0);
+        });
+    }
+
+    #[test]
+    fn test_auto_layout_nested_grow_update() {
+        let test = TestFlatChildren2::new();
+        test.node1.use_auto_layout().allow_grow();
+        let inner = test.node1.new_child_named("inner");
+        inner.allow_grow();
+
+        test.node2.set_size((30.0, 10.0));
+        test.run(|| {
+            test.assert_root_computed_size(30.0, 10.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node1_computed_size(30.0, 10.0)
+                .assert_node2_computed_size(30.0, 10.0);
+            assert_eq!(inner.position().xy(), Vector2(0.0, 0.0));
+            assert_eq!(inner.computed_size(), Vector2(30.0, 10.0));
+        });
+
+        test.node2.set_size((25.0, 20.0));
+        test.run(|| {
+            test.assert_root_computed_size(25.0, 20.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(0.0, 0.0)
+                .assert_node1_computed_size(25.0, 20.0)
+                .assert_node2_computed_size(25.0, 20.0);
+            assert_eq!(inner.position().xy(), Vector2(0.0, 0.0));
+            assert_eq!(inner.computed_size(), Vector2(25.0, 20.0));
         });
     }
 
