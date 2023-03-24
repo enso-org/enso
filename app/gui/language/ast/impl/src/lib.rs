@@ -557,6 +557,17 @@ impl<T> Tree<T> {
     }
 }
 
+/// Helper getters.
+impl<T> Tree<T> {
+    pub fn as_text(&self) -> Option<&str> {
+        if self.type_info == TreeType::Expression && self.descriptive_name == Some("text") {
+            self.leaf_info.as_deref().map(|s| s.get(1..s.len() - 1)).flatten()
+        } else {
+            None
+        }
+    }
+}
+
 /// The semantic information about a node.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum TreeType {

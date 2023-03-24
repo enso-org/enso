@@ -486,8 +486,11 @@ impl MainLine {
     pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
         self.modify_expression(|ast| {
             let func: Ast = ast::opr::qualified_name_chain(ENABLE.into_iter()).unwrap().into();
-            let arg: Ast = ast::opr::qualified_name_chain(OUTPUT.into_iter()).unwrap().into();
-            let prefix: Ast = ast::Prefix { func, off: 1, arg }.into();
+            let context: Ast = ast::opr::qualified_name_chain(OUTPUT.into_iter()).unwrap().into();
+            let environment: Ast =
+                ast::Tree::text(format!("\"{}\"", context_switch_expr.environment.deref())).into();
+            let args = vec![context, environment];
+            let prefix: Ast = ast::prefix::Chain::new(func, args).into_ast();
             let infix = ast::Infix {
                 larg: prefix,
                 loff: 1,
@@ -499,12 +502,19 @@ impl MainLine {
         });
     }
 
-    pub fn clear_context_switch_expression(&mut self) {}
+    pub fn clear_context_switch_expression(&mut self) {
+        self.modify_expression(|ast| {
+            if parse_context_switch_expression(&ast).is_some() {
+                let rarg = ast.get(&ast::crumbs::InfixCrumb::RightOperand.into()).unwrap_or(&ast);
+                *ast = rarg.clone();
+            }
+        });
+    }
 }
 
-const OUTPUT: [&str; 4] = ["Standard", "Base", "Context", "Output"];
-const ENABLE: [&str; 4] = ["Standard", "Base", "Runtime", "enable_context"];
-const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "disable_context"];
+const OUTPUT: [&str; 5] = ["Standard", "Base", "Runtime", "Context", "Output"];
+const ENABLE: [&str; 4] = ["Standard", "Base", "Runtime", "with_enabled_context"];
+const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "with_disabled_context"];
 
 impl ast::HasTokens for MainLine {
     fn feed_to(&self, consumer: &mut impl ast::TokenConsumer) {
@@ -556,25 +566,37 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+im_string_newtype!(Environment);
+
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ContextSwitchExpression {
-    pub switch:  ContextSwitch,
-    pub context: Context,
+    pub switch:      ContextSwitch,
+    pub context:     Context,
+    pub environment: Environment,
 }
 
 fn parse_context_switch_expression(ast: &Ast) -> Option<ContextSwitchExpression> {
     let infix = known::Infix::try_new(ast.clone()).ok()?;
     if ast::opr::is_right_assoc_opr(&infix.opr) {
-        let prefix = known::Prefix::try_new(infix.larg.clone()).ok()?;
+        let prefix = ast::prefix::Chain::from_ast(&infix.larg)?;
         let infix_chain = ast::opr::Chain::try_new(&prefix.func)?;
         let name_segments = infix_chain.as_qualified_name_segments()?;
         let qualified_name = QualifiedName::from_all_segments(&name_segments).ok()?;
         let switch = ContextSwitch::try_from(qualified_name.as_ref()).ok()?;
-        let context = ast::opr::Chain::try_new(&prefix.arg)?;
-        let context_segments = context.as_qualified_name_segments()?;
-        let context_name = QualifiedName::from_all_segments(&context_segments).ok()?;
-        let context = Context::try_from(context_name.as_ref()).ok()?;
-        Some(ContextSwitchExpression { switch, context })
+        if let [context, environment] = &prefix.args[..] {
+            let context = ast::opr::Chain::try_new(&context.sast.wrapped)?;
+            let context_segments = context.as_qualified_name_segments()?;
+            let context_name = QualifiedName::from_all_segments(&context_segments).ok()?;
+            let context = Context::try_from(context_name.as_ref()).ok()?;
+            let environment = environment.sast.wrapped.clone();
+            let environment =
+                known::Tree::try_from(environment).ok().map(|t| t.as_text().map(Into::into));
+            let environment = environment.flatten()?;
+            Some(ContextSwitchExpression { switch, context, environment })
+        } else {
+            None
+        }
     } else {
         None
     }
@@ -780,29 +802,31 @@ mod tests {
                 expected: None,
             },
             Case { 
-                input: "Runtime.enable_context blabla <| bar", 
+                input: "Runtime.with_enabled_context blabla <| bar", 
                 expected: None,
             },
             Case { 
-                input: "Runtime.enable_context Context.Output <| bar", 
+                input: "Runtime.with_enabled_context Context.Output \"context\" <| bar", 
                 expected: None,
             },
             Case { 
-                input: "Standard.Base.Runtime.enable_context Context.Output <| bar", 
+                input: "Standard.Base.Runtime.with_enabled_context Context.Output \"context\" <| bar", 
                 expected: None,
             },
             Case {
-                input: "Standard.Base.Runtime.enable_context Standard.Base.Context.Output <| bar",
+                input: "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output \"context\" <| bar",
                 expected: Some(ContextSwitchExpression {
                     switch:  ContextSwitch::Enable,
                     context: Context::Output,
+                    environment: "context".into(),
                 }),
             },
             Case {
-                input: "Standard.Base.Runtime.disable_context Standard.Base.Context.Output <| bar",
+                input: "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output \"context_name\" <| bar",
                 expected: Some(ContextSwitchExpression {
                     switch:  ContextSwitch::Disable,
                     context: Context::Output,
+                    environment: "context_name".into(),
                 }),
             },
         ];
@@ -825,12 +849,13 @@ mod tests {
 
         assert_eq!(node.repr(), "foo = bar");
         node.set_context_switch(ContextSwitchExpression {
-            switch:  ContextSwitch::Enable,
-            context: Context::Output,
+            switch:      ContextSwitch::Enable,
+            context:     Context::Output,
+            environment: "design".into(),
         });
         assert_eq!(
             node.repr(),
-            "foo = Standard.Base.Runtime.enable_context Standard.Base.Context.Output <| bar"
+            "foo = Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output \"design\" <| bar"
         );
 
         node.clear_context_switch_expression();
