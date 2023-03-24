@@ -67,7 +67,7 @@ type Pattern_2
             go it = case it.next of
                 Match_Iterator_Value.Next _ match next_it ->
                     builder.append match
-                    go next_it
+                    @Tail_Call go next_it
                 Match_Iterator_Value.Last _ -> Nothing
             go it
             builder.to_vector
@@ -93,6 +93,63 @@ type Pattern_2
     find_all : Text -> Vector Text
     find_all self input =
         self.match_all input . map match_to_group_maybe
+
+    ## ADVANCED
+
+       Splits the `input` text based on the pattern described by `self`.
+
+       Arguments:
+       - input: The text to split based on the pattern described by `self`.
+       - mode: The splitting mode to use.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element.
+
+       > Example
+         Split the input on the first instance of the pattern `"aa"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "aa" []
+                 input = "abaaabbaabba"
+                 pattern.match input mode=Matching_Mode.First
+
+       > Example
+         Split on up to the first 3 instances of the pattern `"a"` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "a" []
+                 input = "bacadaeaf"
+                 pattern.match input mode=3
+
+       > Example
+         Split on all all instances of the pattern `"a"` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "a" []
+                 input = "bacadaeaf"
+                 pattern.match input
+    split : Text -> Boolean -> Vector Text
+    split self input only_first=False =
+        builder = Vector.new_builder
+        it = Match_Iterator.new self input
+        go next = case next of
+            Match_Iterator_Value.Next filler _ next_it ->
+                builder.append filler.text
+                next = if only_first then next_it.early_exit else next_it.next
+                @Tail_Call go next
+            Match_Iterator_Value.Last filler ->
+                builder.append filler.text
+        go it.next
+        builder.to_vector
 
     ## ADVANCED
 
@@ -151,7 +208,6 @@ type Pattern_2
 
              pattern = Regex_2.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
-
     replace : Text -> Text -> Boolean -> Text
     replace self input replacement only_first=False =
         it = Match_Iterator.new self input
