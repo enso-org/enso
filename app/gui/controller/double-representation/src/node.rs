@@ -3,6 +3,8 @@
 use crate::prelude::*;
 
 use crate::definition::ScopeKind;
+use crate::name::QualifiedName;
+use crate::name::QualifiedNameRef;
 use crate::LineKind;
 
 use ast::crumbs::Crumbable;
@@ -481,14 +483,100 @@ impl MainLine {
         }
     }
 
-    pub fn enable_execution_context(&mut self, context_name: &str) {}
+    pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
+        self.modify_expression(|ast| {
+            let func: Ast = ast::opr::qualified_name_chain(ENABLE.into_iter()).unwrap().into();
+            let arg: Ast = ast::opr::qualified_name_chain(OUTPUT.into_iter()).unwrap().into();
+            let prefix: Ast = ast::Prefix { func, off: 1, arg }.into();
+            let infix = ast::Infix {
+                larg: prefix,
+                loff: 1,
+                opr:  ast::opr::right_assoc().into(),
+                roff: 1,
+                rarg: ast.clone(),
+            };
+            *ast = infix.into();
+        });
+    }
 
-    pub fn disable_execution_context(&mut self, context_name: &str) {}
+    pub fn clear_context_switch_expression(&mut self) {}
 }
+
+const OUTPUT: [&str; 4] = ["Standard", "Base", "Context", "Output"];
+const ENABLE: [&str; 4] = ["Standard", "Base", "Runtime", "enable_context"];
+const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "disable_context"];
 
 impl ast::HasTokens for MainLine {
     fn feed_to(&self, consumer: &mut impl ast::TokenConsumer) {
         self.ast().feed_to(consumer)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ContextSwitch {
+    Enable,
+    Disable,
+}
+
+impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
+    type Error = ();
+
+    fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
+        // Unwraps are safe, because the conversion is tested.
+        let enable_name = QualifiedName::from_all_segments(ENABLE).unwrap();
+        let disable_name = QualifiedName::from_all_segments(DISABLE).unwrap();
+
+        if qualified_name == enable_name {
+            Ok(ContextSwitch::Enable)
+        } else if qualified_name == disable_name {
+            Ok(ContextSwitch::Disable)
+        } else {
+            Err(())
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Context {
+    Output,
+}
+
+impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
+    type Error = ();
+
+    fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
+        // Unwrap is safe, because the conversion is tested.
+        let output_name = QualifiedName::from_all_segments(OUTPUT).unwrap();
+
+        if qualified_name == output_name {
+            Ok(Context::Output)
+        } else {
+            Err(())
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ContextSwitchExpression {
+    pub switch:  ContextSwitch,
+    pub context: Context,
+}
+
+fn parse_context_switch_expression(ast: &Ast) -> Option<ContextSwitchExpression> {
+    let infix = known::Infix::try_new(ast.clone()).ok()?;
+    if ast::opr::is_right_assoc_opr(&infix.opr) {
+        let prefix = known::Prefix::try_new(infix.larg.clone()).ok()?;
+        let infix_chain = ast::opr::Chain::try_new(&prefix.func)?;
+        let name_segments = infix_chain.as_qualified_name_segments()?;
+        let qualified_name = QualifiedName::from_all_segments(&name_segments).ok()?;
+        let switch = ContextSwitch::try_from(qualified_name.as_ref()).ok()?;
+        let context = ast::opr::Chain::try_new(&prefix.arg)?;
+        let context_segments = context.as_qualified_name_segments()?;
+        let context_name = QualifiedName::from_all_segments(&context_segments).ok()?;
+        let context = Context::try_from(context_name.as_ref()).ok()?;
+        Some(ContextSwitchExpression { switch, context })
+    } else {
+        None
     }
 }
 
@@ -500,9 +588,6 @@ impl ast::HasTokens for MainLine {
 
 #[cfg(test)]
 mod tests {
-    use crate::name::QualifiedName;
-    use crate::name::QualifiedNameRef;
-
     use super::*;
     use parser::Parser;
 
@@ -680,81 +765,6 @@ mod tests {
         assert_eq!(node.id(), id);
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    enum ContextSwitch {
-        Enable,
-        Disable,
-    }
-
-    impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
-        type Error = ();
-
-        fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
-            const ENABLE: [&str; 4] = ["Standard", "Base", "Runtime", "enable_context"];
-            const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "disable_context"];
-            // Unwraps are safe, because the conversion is tested.
-            let enable_name = QualifiedName::from_all_segments(ENABLE).unwrap();
-            let disable_name = QualifiedName::from_all_segments(DISABLE).unwrap();
-
-            if qualified_name == enable_name {
-                Ok(ContextSwitch::Enable)
-            } else if qualified_name == disable_name {
-                Ok(ContextSwitch::Disable)
-            } else {
-                Err(())
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    enum Context {
-        Output,
-    }
-
-    impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
-        type Error = ();
-
-        fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
-            const OUTPUT: [&str; 4] = ["Standard", "Base", "Context", "Output"];
-            // Unwrap is safe, because the conversion is tested.
-            let output_name = QualifiedName::from_all_segments(OUTPUT).unwrap();
-
-            if qualified_name == output_name {
-                Ok(Context::Output)
-            } else {
-                Err(())
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    struct ContextSwitchExpression {
-        pub switch:  ContextSwitch,
-        pub context: Context,
-    }
-
-    fn parse_context_switch_expression(ast: &Ast) -> Option<ContextSwitchExpression> {
-        let infix = known::Infix::try_new(ast.clone()).ok()?;
-        let opr = ast::identifier::name(&infix.opr)?;
-        if opr == "<|" {
-            let prefix = known::Prefix::try_new(infix.larg.clone()).ok()?;
-            let infix_chain = ast::opr::Chain::try_new(&prefix.func)?;
-            let name_segments = infix_chain.as_qualified_name_segments()?;
-            let qualified_name = QualifiedName::from_all_segments(&name_segments).ok()?;
-            let switch = ContextSwitch::try_from(qualified_name.as_ref()).ok()?;
-            let context = ast::opr::Chain::try_new(&prefix.arg)?;
-            let context_segments = context.as_qualified_name_segments()?;
-            let context_name = QualifiedName::from_all_segments(&context_segments).ok()?;
-            let context = Context::try_from(context_name.as_ref()).ok()?;
-            Some(ContextSwitchExpression {
-                switch,
-                context,
-            })
-        } else {
-            None
-        }
-    }
-
     #[test]
     fn test_recognizing_execution_context_switch() {
         #[derive(Debug)]
@@ -765,9 +775,9 @@ mod tests {
 
         #[rustfmt::skip]
         let cases = vec![
-            Case { 
+            Case {
                 input: "foo <| bar", 
-                expected: None 
+                expected: None,
             },
             Case { 
                 input: "Runtime.enable_context blabla <| bar", 
@@ -814,10 +824,16 @@ mod tests {
         let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
 
         assert_eq!(node.repr(), "foo = bar");
-        node.enable_execution_context("Output");
-        assert_eq!(node.repr(), "foo = Standard.Base.Runtime.enable_context \"Output\" <| bar");
+        node.set_context_switch(ContextSwitchExpression {
+            switch:  ContextSwitch::Enable,
+            context: Context::Output,
+        });
+        assert_eq!(
+            node.repr(),
+            "foo = Standard.Base.Runtime.enable_context Standard.Base.Context.Output <| bar"
+        );
 
-        node.disable_execution_context("Output");
+        node.clear_context_switch_expression();
         assert_eq!(node.repr(), "foo = bar");
     }
 }
