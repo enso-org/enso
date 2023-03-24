@@ -14,7 +14,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +39,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
 
@@ -99,7 +99,8 @@ public abstract class SortVectorNode extends Node {
       @Cached TypeOfNode typeOfNode,
       @Cached AnyToTextNode toTextNode,
       @Cached BranchProfile warningEncounteredProfile,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "5") WarningsLibrary warningsLib) {
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
     try {
@@ -134,21 +135,16 @@ public abstract class SortVectorNode extends Node {
     }
   }
 
-  private TruffleObject sortPrimitiveVector(Object[] elems,
+  private Object sortPrimitiveVector(Object[] elems,
       PrimitiveValueComparator javaComparator, BranchProfile warningEncounteredProfile)
       throws CompareException {
     Arrays.sort(elems, javaComparator);
     var sortedVector = Vector.fromArray(new Array(elems));
 
-    if (javaComparator.encounteredWarnings()) {
+    if (javaComparator.hasWarnings()) {
       warningEncounteredProfile.enter();
       CompilerDirectives.transferToInterpreter();
-      Warning[] warns = javaComparator.getWarnings()
-          .stream()
-          .map(Text::create)
-          .map(text -> Warning.create(EnsoContext.get(this), text, this))
-          .toArray(Warning[]::new);
-      return WithWarnings.appendTo(sortedVector, new ArrayRope<>(warns));
+      return attachWarnings(sortedVector, javaComparator.getEncounteredWarnings());
     } else {
       return sortedVector;
     }
@@ -161,27 +157,28 @@ public abstract class SortVectorNode extends Node {
   Object sortGeneric(State state, Object self, long ascending, Object comparatorsArray,
       Object compareFuncsArray, Object byFunc,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "5") WarningsLibrary warningsLib,
       @Cached LessThanNode lessThanNode,
       @Cached EqualsNode equalsNode,
       @Cached TypeOfNode typeOfNode,
       @Cached AnyToTextNode toTextNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
     // Split into groups
-    List<Object> elems = readInteropArray(interop, self);
-    List<Type> comparators = readInteropArray(interop, comparatorsArray);
-    List<Function> compareFuncs = readInteropArray(interop, compareFuncsArray);
+    List<Object> elems = readInteropArray(interop, warningsLib, self);
+    List<Type> comparators = readInteropArray(interop, warningsLib, comparatorsArray);
+    List<Function> compareFuncs = readInteropArray(interop, warningsLib, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
 
-    // TODO: Attach warnings
     // Prepare input for PrimitiveValueComparator and GenericComparator and sort the elements within groups
     var ctx = EnsoContext.get(this);
     Atom less = ctx.getBuiltins().ordering().newLess();
     Atom equal = ctx.getBuiltins().ordering().newEqual();
     Atom greater = ctx.getBuiltins().ordering().newGreater();
+    Set<String> gatheredWarnings = new HashSet<>();
     List<Object> resultVec = new ArrayList<>();
     try {
       for (var group : groups) {
-        Comparator<Object> javaComparator;
+        Comparator javaComparator;
         if (isPrimitiveGroup(group)) {
           javaComparator = new PrimitiveValueComparator(
               lessThanNode,
@@ -196,17 +193,24 @@ public abstract class SortVectorNode extends Node {
               ascending > 0,
               compareFunc,
               group.comparator,
-              callNode,
+              callNode, toTextNode,
               state,
               less,
               equal,
-              greater
-          );
+              greater);
         }
         group.elems.sort(javaComparator);
+        if (javaComparator.hasWarnings()) {
+          gatheredWarnings.addAll(javaComparator.getEncounteredWarnings());
+        }
         resultVec.addAll(group.elems);
       }
-      return Vector.fromArray(new Array(resultVec.toArray()));
+      var sortedVector = Vector.fromArray(new Array(resultVec.toArray()));
+      // Attach gathered warnings and different comparators warning
+      return attachDifferentComparatorsWarning(
+          attachWarnings(sortedVector, gatheredWarnings),
+          groups
+      );
     } catch (CompareException e) {
       return DataflowError.withoutTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
@@ -256,6 +260,25 @@ public abstract class SortVectorNode extends Node {
         .collect(Collectors.toList());
   }
 
+  private Object attachWarnings(Object vector, Set<String> warnings) {
+    var warnArray = warnings
+        .stream()
+        .map(Text::create)
+        .map(text -> Warning.create(EnsoContext.get(this), text, this))
+        .toArray(Warning[]::new);
+    return WithWarnings.appendTo(vector, new ArrayRope<>(warnArray));
+  }
+
+  private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
+    var diffCompsMsg = groups.stream()
+        .map(Group::comparator)
+        .map(comparator -> comparator.getQualifiedName().toString())
+        .collect(Collectors.joining(", "));
+    var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
+    var warn = Warning.create(EnsoContext.get(this), text, this);
+    return WithWarnings.appendTo(vector, new ArrayRope<>(warn));
+  }
+
   private String getDefaultComparatorQualifiedName() {
     return EnsoContext.get(this).getBuiltins().defaultComparator().getType().getQualifiedName()
         .toString();
@@ -278,13 +301,17 @@ public abstract class SortVectorNode extends Node {
    * Helper slow-path method to conveniently gather elements from interop arrays into a java list
    */
   @SuppressWarnings("unchecked")
-  private <T> List<T> readInteropArray(InteropLibrary interop, Object vector) {
+  private <T> List<T> readInteropArray(InteropLibrary interop, WarningsLibrary warningsLib,
+      Object vector) {
     try {
       int size = (int) interop.getArraySize(vector);
       List<T> res = new ArrayList<>(size);
       for (int i = 0; i < size; i++) {
-        T elem = (T) interop.readArrayElement(vector, i);
-        res.add(elem);
+        Object elem = interop.readArrayElement(vector, i);
+        if (warningsLib.hasWarnings(elem)) {
+          elem = warningsLib.removeWarnings(elem);
+        }
+        res.add((T) elem);
       }
       return res;
     } catch (UnsupportedMessageException | InvalidArrayIndexException | ClassCastException e) {
@@ -391,25 +418,54 @@ public abstract class SortVectorNode extends Node {
   }
 
   /**
+   * Convenient base class that implements java.util.Comparator, and gathers warnings about
+   * incomparable values. The warnings are gathered as pure Strings in a hash set, so that they are
+   * not duplicated.
+   */
+  private static abstract class Comparator implements java.util.Comparator<Object> {
+
+    private final Set<String> warnings = new HashSet<>();
+    private final AnyToTextNode toTextNode;
+
+    protected Comparator(AnyToTextNode toTextNode) {
+      this.toTextNode = toTextNode;
+    }
+
+    @TruffleBoundary
+    protected void attachIncomparableValuesWarning(Object x, Object y) {
+      var xStr = toTextNode.execute(x).toString();
+      var yStr = toTextNode.execute(y).toString();
+      String warnText = "Values " + xStr + " and " + yStr + " are incomparable";
+      warnings.add(warnText);
+    }
+
+    public Set<String> getEncounteredWarnings() {
+      return warnings;
+    }
+
+    public boolean hasWarnings() {
+      return !warnings.isEmpty();
+    }
+  }
+
+  /**
    * Comparator for comparing primitive values (which implies that they have Default_Comparator),
    * which the default `by` method parameter.
    */
-  private class PrimitiveValueComparator implements java.util.Comparator<Object> {
+  private final class PrimitiveValueComparator extends Comparator {
 
     private final LessThanNode lessThanNode;
     private final EqualsNode equalsNode;
     private final TypeOfNode typeOfNode;
-    private final AnyToTextNode toTextNode;
     private final boolean ascending;
-    private final Set<String> warnings = new HashSet<>();
 
     private PrimitiveValueComparator(LessThanNode lessThanNode, EqualsNode equalsNode,
         TypeOfNode typeOfNode,
         AnyToTextNode toTextNode, boolean ascending) {
+      super(toTextNode);
       this.lessThanNode = lessThanNode;
       this.equalsNode = equalsNode;
       this.typeOfNode = typeOfNode;
-      this.toTextNode = toTextNode;
       this.ascending = ascending;
     }
 
@@ -466,22 +522,6 @@ public abstract class SortVectorNode extends Node {
         return getBuiltinTypeCost(type);
       }
     }
-
-    @TruffleBoundary
-    private void attachIncomparableValuesWarning(Object x, Object y) {
-      var xStr = toTextNode.execute(x).toString();
-      var yStr = toTextNode.execute(y).toString();
-      String warnText = "Values " + xStr + " and " + yStr + " are incomparable";
-      warnings.add(warnText);
-    }
-
-    private boolean encounteredWarnings() {
-      return !warnings.isEmpty();
-    }
-
-    private Set<String> getWarnings() {
-      return warnings;
-    }
   }
 
   /**
@@ -489,7 +529,7 @@ public abstract class SortVectorNode extends Node {
    * {@link #compareFunc}), rather than using compare nodes (i.e. {@link LessThanNode}). directly,
    * as opposed to {@link PrimitiveValueComparator}.
    */
-  private class GenericComparator implements java.util.Comparator<Object> {
+  private final class GenericComparator extends Comparator {
 
     private final boolean ascending;
     /**
@@ -508,8 +548,10 @@ public abstract class SortVectorNode extends Node {
     private GenericComparator(
         boolean ascending,
         Function compareFunc,
-        Type comparator, CallOptimiserNode callNode, State state, Atom less, Atom equal,
+        Type comparator, CallOptimiserNode callNode, AnyToTextNode toTextNode, State state,
+        Atom less, Atom equal,
         Atom greater) {
+      super(toTextNode);
       assert compareFunc != null;
       assert comparator != null;
       this.comparator = comparator;
