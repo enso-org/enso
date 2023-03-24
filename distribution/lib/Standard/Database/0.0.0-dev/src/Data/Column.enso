@@ -645,10 +645,11 @@ type Column
     is_blank : Boolean -> Column
     is_blank self treat_nans_as_blank=False =
         new_name = self.naming_helpers.function_name "is_blank" [self]
-        is_blank = case self.sql_type.is_definitely_text of
+        self_type = self.value_type
+        is_blank = case self_type.is_text of
             True -> self.is_empty
             False -> self.is_nothing
-        result = case treat_nans_as_blank && self.sql_type.is_definitely_double of
+        result = case treat_nans_as_blank && self_type.is_floating_point of
             True -> is_blank || self.is_nan
             False -> is_blank
         result.rename new_name

@@ -101,7 +101,8 @@ type Connection
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
-            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_array) .close result_set_to_table
+            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_array) .close result_set->
+                result_set_to_table result_set self.dialect.make_column_fetcher_for_type
             renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
@@ -171,7 +172,7 @@ type Connection
     read_statement self statement column_type_suggestions=Nothing last_row_only=False =
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         self.jdbc_connection.with_prepared_statement statement stmt->
-            result_set_to_table stmt.executeQuery type_overrides last_row_only
+            result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
 
     ## ADVANCED
 
@@ -224,6 +225,6 @@ type Connection
             pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant Nothing]
             insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
-            self.jdbc_connection.load_table insert_template db_table table batch_size
+            self.jdbc_connection.load_table insert_template table batch_size
 
         db_table

@@ -10,7 +10,6 @@ import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
-import project.Internal.SQL_Type_Mapping
 
 import project.Data.Table.Table as Database_Table
 
@@ -96,7 +95,7 @@ type JDBC_Connection
 
             resolve_column ix =
                 name = metadata.getColumnLabel ix+1
-                sql_type = SQL_Type_Mapping.from_metadata metadata ix+1
+                sql_type = SQL_Type.from_metadata metadata ix+1
                 [name, sql_type]
 
             Vector.new metadata.getColumnCount resolve_column
@@ -105,8 +104,8 @@ type JDBC_Connection
 
        Given an insert query template and the associated Database_Table, and a
        Materialized_Table of data, load to the database.
-    load_table : Text -> Database_Table -> Materialized_Table -> Integer -> Nothing
-    load_table self insert_template db_table table batch_size =
+    load_table : Text -> Materialized_Table -> Integer -> Nothing
+    load_table self insert_template table batch_size =
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False

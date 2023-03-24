@@ -9,6 +9,7 @@ import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
+import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -91,6 +92,14 @@ type Dialect
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
+    make_column_fetcher_for_type self sql_type =
+        _ = sql_type
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE

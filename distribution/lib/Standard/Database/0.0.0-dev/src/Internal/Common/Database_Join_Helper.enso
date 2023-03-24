@@ -32,9 +32,9 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
     resolve_right = resolve_target_expression right_column_mapping
 
     make_equals problem_builder left right =
-        if left.sql_type.is_definitely_double then
+        if left.value_type.is_floating_point then
             problem_builder.report_other_warning (Floating_Point_Equality.Error left.name)
-        if right.sql_type.is_definitely_double then
+        if right.value_type.is_floating_point then
             problem_builder.report_other_warning (Floating_Point_Equality.Error right.name)
         SQL_Expression.Operation "==" [resolve_left left, resolve_right right]
     make_equals_ignore_case _ left right locale =

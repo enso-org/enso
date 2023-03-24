@@ -13,6 +13,8 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -109,7 +111,10 @@ type SQLite_Dialect
         new_columns = setup.new_columns.first
         column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder)
+        type_mapping = self.get_type_mapping
+        distinct_expressions = new_key_columns.map column->
+            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
@@ -131,6 +136,15 @@ type SQLite_Dialect
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self = SQLite_Type_Mapping
+
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
+    make_column_fetcher_for_type self sql_type =
+        type_mapping = self.get_type_mapping
+        value_type = type_mapping.sql_type_to_value_type sql_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation

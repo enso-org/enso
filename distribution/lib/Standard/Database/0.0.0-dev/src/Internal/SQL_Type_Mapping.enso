@@ -7,8 +7,6 @@ import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-polyglot java import java.sql.ResultSetMetaData
-
 type SQL_Type_Mapping
     ## Converts the given Value_Type to its corresponding SQL_Type.
 
@@ -72,17 +70,3 @@ type SQL_Type_Mapping
     prepare_type_overrides column_type_suggestions =
         _ = column_type_suggestions
         Unimplemented.throw "This is an interface only."
-
-## PRIVATE
-from_metadata metadata ix =
-    typeid = metadata.getColumnType ix
-    typename = metadata.getColumnTypeName ix
-    precision = case metadata.getPrecision ix of
-        0 -> Nothing
-        p : Integer -> p
-    scale = metadata.getScale ix
-    nullable_id = metadata.isNullable ix
-    nullable = if nullable_id == ResultSetMetaData.columnNoNulls then False else
-        if nullable_id == ResultSetMetaData.columnNullable then True else
-            Nothing
-    SQL_Type.Value typeid typename precision scale nullable
