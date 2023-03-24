@@ -834,8 +834,8 @@ type Table
             parse_problem_builder.attach_problems_before on_problems <|
                 Table.new new_columns
 
-    ## Replaces the first, last, or all occurrences of `term` with
-       `new_text` in each text row of selected columns.
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       text row of selected columns.
        If `term` is empty, the function returns the table unchanged.
 
        This method follows the exact replacement semantics of the
