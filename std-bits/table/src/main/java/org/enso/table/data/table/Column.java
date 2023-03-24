@@ -12,7 +12,6 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;

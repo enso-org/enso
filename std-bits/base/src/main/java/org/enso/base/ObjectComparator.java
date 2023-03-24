@@ -13,29 +13,54 @@ import java.util.function.BiFunction;
 
 public final class ObjectComparator implements Comparator<Object> {
   public static final ObjectComparator DEFAULT = new ObjectComparator();
-
+  private static Function<Object, Integer> ensoHashCodeCallback = null;
   private static BiFunction<Object, Object, Integer> ensoCompareCallback = null;
+  private static BiFunction<Object, Object, Boolean> ensoAreEqualCallback = null;
 
   private static void initCallbacks() {
     if (ensoCompareCallback == null) {
       var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
       var type = module.invokeMember("get_type", "Comparable");
 
-      var are_equal = module.invokeMember("get_method", type, "compare_callback");
+      var hash_callback = module.invokeMember("get_method", type, "hash_callback");
+      ensoHashCodeCallback = v -> {
+        var result = hash_callback.execute(null, v);
+        if (result.isNull()) {
+          throw new IllegalStateException("Unable to object hash in EnsoObjectWrapper for " + v.toString());
+        } else {
+          return result.asInt();
+        }
+      };
+
+      var compare_callback = module.invokeMember("get_method", type, "compare_callback");
       ensoCompareCallback = (v, u) -> {
-        var result = are_equal.execute(null, v, u);
+        var result = compare_callback.execute(null, v, u);
         if (result.isNull()) {
           throw new CompareException(u, v);
         } else {
           return result.asInt();
         }
       };
+      ensoAreEqualCallback = (v, u) -> {
+        var result = compare_callback.execute(null, v, u);
+        return !result.isNull() && result.asInt() == 0;
+      };
     }
   }
 
-  public static int ensoCompare(Object value, Object other) throws ClassCastException {
+  public static int ensoCompare(Object value, Object other) throws CompareException {
     initCallbacks();
     return ensoCompareCallback.apply(value, other);
+  }
+
+  public static int ensoHashCode(Object value) {
+    initCallbacks();
+    return ensoHashCodeCallback.apply(value);
+  }
+
+  public static boolean areEqual(Object value, Object other) {
+    initCallbacks();
+    return ensoAreEqualCallback.apply(value, other);
   }
 
   private final BiFunction<String, String, Integer> textComparator;

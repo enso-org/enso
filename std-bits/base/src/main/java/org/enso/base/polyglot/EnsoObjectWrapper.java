@@ -1,46 +1,72 @@
 package org.enso.base.polyglot;
 
 import org.enso.base.ObjectComparator;
-import org.graalvm.polyglot.Context;
+import org.enso.base.text.TextFoldingStrategy;
 
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 
 public final class EnsoObjectWrapper implements Comparable<EnsoObjectWrapper> {
-    private static Function<Object, Integer> ensoHashCodeCallback = null;
-    private static BiFunction<Object, Object, Boolean> ensoAreEqualCallback = null;
-
-    private static void initCallbacks() {
-        if (ensoHashCodeCallback == null) {
-            var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
-            var type = module.invokeMember("get_type", "Comparable");
-
-            var hash_callback = module.invokeMember("get_method", type, "hash_callback");
-            ensoHashCodeCallback = v -> {
-                var result = hash_callback.execute(null, v);
-                if (result.isNull()) {
-                    throw new IllegalStateException("Unable to object hash in EnsoObjectWrapper for " + v.toString());
-                } else {
-                    return result.asInt();
-                }
-            };
-
-            var are_equal = module.invokeMember("get_method", type, "compare_callback");
-            ensoAreEqualCallback = (v, u) -> {
-                var result = are_equal.execute(null, v, u);
-                return !result.isNull() && result.asInt() == 0;
-            };
+    /**
+     * Folds the value to ensure consistency with Enso's equality.
+     * <p>Case-sensitivity of text folding is controlled by {@code textFoldingStrategy}.
+     */
+    public static Object foldObject(Object value, TextFoldingStrategy textFoldingStrategy) {
+        if (value == null) {
+            return null;
         }
+
+        if (value instanceof String s) {
+            return textFoldingStrategy.fold(s);
+        }
+
+        Object numeric = foldNumeric(value);
+        if (numeric != null) {
+            return numeric;
+        }
+
+        if (value instanceof Boolean) {
+            return value;
+        }
+
+        if (value instanceof LocalDate
+                || value instanceof LocalTime
+                || value instanceof ZonedDateTime) {
+            return value;
+        }
+
+        return new EnsoObjectWrapper(value);
     }
 
-    private static int getEnsoHashCode(Object value) {
-        initCallbacks();
-        return ensoHashCodeCallback.apply(value);
-    }
+    /**
+     * If the value is a numeric type, this method coerces it in such a way to ensure consistency with
+     * Enso.
+     *
+     * <p>Integer types are coerced to {@code Long} and floating point values are coerced to {@code
+     * Double} unless they represent a whole integer in which case they are also coerced to {@code
+     * Long}, to ensure the Enso property that {@code 2 == 2.0}.
+     *
+     * <p>Returns {@code null} if the value was not a numeric value.
+     */
+    private static Object foldNumeric(Object value) {
+        if (value instanceof Long) {
+            return value;
+        } else if (value instanceof Integer i) {
+            return i.longValue();
+        } else if (value instanceof Byte b) {
+            return b.longValue();
+        } else if (value instanceof Float f && f % 1 == 0) {
+            return f.longValue();
+        } else if (value instanceof Double d && d % 1 == 0) {
+            return d.longValue();
+        } else if (value instanceof Float f) {
+            return f.doubleValue();
+        } else if (value instanceof Double d) {
+            return d;
+        }
 
-    private static boolean areEqual(Object value, Object other) {
-        initCallbacks();
-        return ensoAreEqualCallback.apply(value, other);
+        return null;
     }
 
     private final Object value;
@@ -48,7 +74,7 @@ public final class EnsoObjectWrapper implements Comparable<EnsoObjectWrapper> {
 
     public EnsoObjectWrapper(Object value) {
         this.value = value;
-        this.ensoHashCode = getEnsoHashCode(value);
+        this.ensoHashCode = ObjectComparator.ensoHashCode(value);
     }
 
     public Object getValue() {
@@ -63,7 +89,7 @@ public final class EnsoObjectWrapper implements Comparable<EnsoObjectWrapper> {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof EnsoObjectWrapper that) {
-            return areEqual(this.value, that.value);
+            return ensoHashCode == that.ensoHashCode && ObjectComparator.areEqual(this.value, that.value);
         } else {
             return false;
         }
