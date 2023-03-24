@@ -4,11 +4,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "npx tsx bundle.ts",
-    "watch": "npx tsx watch.ts",
-    "start": "npx tsx start.ts"
+    "build": "tsx bundle.ts",
+    "watch": "tsx watch.ts",
+    "start": "tsx start.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.15",

@@ -238,8 +238,6 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             }
         },
 
-        // Third-party API specifies `null`, not `undefined`.
-        // eslint-disable-next-line no-restricted-syntax
         publish: null,
     }
 }
