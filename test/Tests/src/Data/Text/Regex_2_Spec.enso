@@ -35,17 +35,17 @@ spec =
 
     Test.group "Pattern.matches" <|
         Test.specify "should return True when the pattern matches against the input" <|
-            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
             pattern.matches input . should_be_true
 
         Test.specify "should return False when the pattern doesn't match against the input" <|
-            pattern = Regex_2.compile "aaz" []
+            pattern = Regex_2.compile "aaz"
             input = "aa ab abc a bc bcd"
             pattern.matches input . should_be_false
 
         Test.specify "should check for full matches" <|
-            pattern = Regex_2.compile "f.o" []
+            pattern = Regex_2.compile "f.o"
             pattern.matches "foo" . should_be_true
             pattern.matches "foobar" . should_be_false
 
@@ -62,7 +62,7 @@ spec =
             match.text 0 . should_equal input
 
         Test.specify "should return `Nothing` if there are no matches in first mode" <|
-            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "abc"
             match = pattern.match input
             match . should_equal Nothing
@@ -79,7 +79,7 @@ spec =
             matches.at 4 . text 0 . should_equal "ij"
 
         Test.specify "should return `[]` when an all match match fails" <|
-            pattern = Regex_2.compile "(aa)" []
+            pattern = Regex_2.compile "(aa)"
             input = "abcdefghij"
             match = pattern.match_all input
             match . should_equal []
@@ -273,7 +273,7 @@ spec =
             pattern.replace "ABC" . should_fail_with Illegal_Argument
 
     Test.group "Match.text" <|
-        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
         input = "aa ab abc a bc bcd"
         match = pattern.match input
         match . should_be_a Match_2
@@ -298,7 +298,7 @@ spec =
             match.text 2 . should_equal (match.text "letters")
 
     Test.group "Match.groups" <|
-        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
         input = "aa ab abc a bc bcd"
         match = pattern.match input
         match . should_be_a Match_2
