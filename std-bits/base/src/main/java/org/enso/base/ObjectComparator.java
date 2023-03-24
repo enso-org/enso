@@ -11,18 +11,18 @@ import java.util.Locale;
 import java.util.function.Function;
 import java.util.function.BiFunction;
 
-public class ObjectComparator implements Comparator<Object> {
+public final class ObjectComparator implements Comparator<Object> {
   public static final ObjectComparator DEFAULT = new ObjectComparator();
 
-  private static BiFunction<Object, Object, Integer> EnsoCompareCallback = null;
+  private static BiFunction<Object, Object, Integer> ensoCompareCallback = null;
 
   private static void initCallbacks() {
-    if (EnsoCompareCallback == null) {
+    if (ensoCompareCallback == null) {
       var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
       var type = module.invokeMember("get_type", "Comparable");
 
       var are_equal = module.invokeMember("get_method", type, "compare_callback");
-      EnsoCompareCallback = (v, u) -> {
+      ensoCompareCallback = (v, u) -> {
         var result = are_equal.execute(null, v, u);
         if (result.isNull()) {
           throw new CompareException(u, v);
@@ -35,7 +35,7 @@ public class ObjectComparator implements Comparator<Object> {
 
   public static int ensoCompare(Object value, Object other) throws ClassCastException {
     initCallbacks();
-    return EnsoCompareCallback.apply(value, other);
+    return ensoCompareCallback.apply(value, other);
   }
 
   private final BiFunction<String, String, Integer> textComparator;

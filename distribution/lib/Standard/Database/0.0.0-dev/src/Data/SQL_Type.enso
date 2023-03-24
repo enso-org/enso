@@ -191,6 +191,6 @@ type SQL_Type_Comparator
         if x.typeid == y.typeid then Ordering.Equal else
             Nothing
 
-    hash x = Comparable.hash_builtin x.typeid
+    hash x = x.typeid.hashCode
 
 Comparable.from (_:SQL_Type) = SQL_Type_Comparator

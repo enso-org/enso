@@ -6,17 +6,17 @@ import org.graalvm.polyglot.Context;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class EnsoObjectWrapper implements Comparable<EnsoObjectWrapper> {
-    private static Function<Object, Integer> EnsoHashCodeCallback = null;
-    private static BiFunction<Object, Object, Boolean> EnsoAreEqualCallback = null;
+public final class EnsoObjectWrapper implements Comparable<EnsoObjectWrapper> {
+    private static Function<Object, Integer> ensoHashCodeCallback = null;
+    private static BiFunction<Object, Object, Boolean> ensoAreEqualCallback = null;
 
     private static void initCallbacks() {
-        if (EnsoHashCodeCallback == null) {
+        if (ensoHashCodeCallback == null) {
             var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
             var type = module.invokeMember("get_type", "Comparable");
 
             var hash_callback = module.invokeMember("get_method", type, "hash_callback");
-            EnsoHashCodeCallback = v -> {
+            ensoHashCodeCallback = v -> {
                 var result = hash_callback.execute(null, v);
                 if (result.isNull()) {
                     throw new IllegalStateException("Unable to object hash in EnsoObjectWrapper for " + v.toString());
@@ -26,7 +26,7 @@ public class EnsoObjectWrapper implements Comparable<EnsoObjectWrapper> {
             };
 
             var are_equal = module.invokeMember("get_method", type, "compare_callback");
-            EnsoAreEqualCallback = (v, u) -> {
+            ensoAreEqualCallback = (v, u) -> {
                 var result = are_equal.execute(null, v, u);
                 return !result.isNull() && result.asInt() == 0;
             };
@@ -35,12 +35,12 @@ public class EnsoObjectWrapper implements Comparable<EnsoObjectWrapper> {
 
     private static int getEnsoHashCode(Object value) {
         initCallbacks();
-        return EnsoHashCodeCallback.apply(value);
+        return ensoHashCodeCallback.apply(value);
     }
 
     private static boolean areEqual(Object value, Object other) {
         initCallbacks();
-        return EnsoAreEqualCallback.apply(value, other);
+        return ensoAreEqualCallback.apply(value, other);
     }
 
     private final Object value;
