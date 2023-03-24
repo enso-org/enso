@@ -181,11 +181,13 @@ impl<T> Node<T> {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Child<T = ()> {
     /// A child node.
-    pub node:       Node<T>,
+    pub node:           Node<T>,
     /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset:     ByteDiff,
+    pub offset:         ByteDiff,
+    /// The offset counted from the end of previous sibling node.
+    pub sibling_offset: ByteDiff,
     /// AST crumbs which lead from parent to child associated AST node.
-    pub ast_crumbs: ast::Crumbs,
+    pub ast_crumbs:     ast::Crumbs,
 }
 
 impl<T> Child<T> {
@@ -194,7 +196,8 @@ impl<T> Child<T> {
         let node = self.node.map(f);
         let offset = self.offset;
         let ast_crumbs = self.ast_crumbs;
-        Child { node, offset, ast_crumbs }
+        let sibling_offset = self.sibling_offset;
+        Child { node, offset, sibling_offset, ast_crumbs }
     }
 }
 
@@ -319,15 +322,17 @@ impl InvalidCrumb {
 #[derivative(Clone(bound = ""))]
 pub struct Ref<'a, T = ()> {
     /// The span tree that the node is a part of.
-    pub span_tree:   &'a SpanTree<T>,
+    pub span_tree:      &'a SpanTree<T>,
     /// The node's ref.
-    pub node:        &'a Node<T>,
+    pub node:           &'a Node<T>,
     /// Span begin's offset counted from the root expression.
-    pub span_offset: Byte,
+    pub span_offset:    Byte,
+    /// The offset counted from the end of previous sibling node.
+    pub sibling_offset: ByteDiff,
     /// Crumbs specifying this node position related to root.
-    pub crumbs:      Crumbs,
+    pub crumbs:         Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
-    pub ast_crumbs:  ast::Crumbs,
+    pub ast_crumbs:     ast::Crumbs,
 }
 
 /// A result of `get_subnode_by_ast_crumbs`
@@ -343,10 +348,11 @@ impl<'a, T> Ref<'a, T> {
     /// Constructor.
     pub fn root(span_tree: &'a SpanTree<T>) -> Self {
         let span_offset = default();
+        let sibling_offset = default();
         let crumbs = default();
         let ast_crumbs = default();
         let node = &span_tree.root;
-        Self { span_tree, node, span_offset, crumbs, ast_crumbs }
+        Self { span_tree, node, span_offset, sibling_offset, crumbs, ast_crumbs }
     }
 
     /// Get span of current node.
@@ -358,16 +364,17 @@ impl<'a, T> Ref<'a, T> {
 
     /// Get the reference to child with given index. Fails if index if out of bounds.
     pub fn child(self, index: usize) -> FallibleResult<Self> {
-        let Ref { span_tree, node, mut span_offset, crumbs, mut ast_crumbs } = self;
+        let Ref { span_tree, node, mut span_offset, crumbs, mut ast_crumbs, .. } = self;
 
         match node.children.get(index) {
             None => Err(InvalidCrumb::new(node.children.len(), index, &crumbs).into()),
             Some(child) => {
                 let node = &child.node;
                 span_offset += child.offset;
+                let sibling_offset = child.sibling_offset;
                 let crumbs = crumbs.into_sub(index);
                 ast_crumbs.extend_from_slice(&child.ast_crumbs);
-                Ok(Self { span_tree, node, span_offset, crumbs, ast_crumbs })
+                Ok(Self { span_tree, node, span_offset, sibling_offset, crumbs, ast_crumbs })
             }
         }
     }

@@ -51,7 +51,7 @@ fn map_config(inner: response::WidgetSpecific) -> widget::Config {
     match inner {
         response::WidgetSpecific::SingleChoice { values } =>
             widget::single_choice::Config { entries: Rc::new(map_entries(&values)) }.into(),
-        _ => widget::label::Config.into(),
+        _ => widget::label::Config::default().into(),
     }
 }
 

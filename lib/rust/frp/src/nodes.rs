@@ -1779,12 +1779,29 @@ impl<Out: Data> OwnedSampler<Out> {
     pub fn value(&self) -> Out {
         self.value.borrow().clone()
     }
+
+    /// Perform scoped operation on sampler value without cloning it. The internal value is borrowed
+    /// for the duration of the passed function scope. Setting the sampler value inside the
+    /// function scope will cause a panic.
+    pub fn with<T>(&self, f: impl FnOnce(&Out) -> T) -> T {
+        let borrow = self.value.borrow();
+        f(&*borrow)
+    }
 }
 
 impl<Out: Data> Sampler<Out> {
     /// Sample the value.
     pub fn value(&self) -> Out {
         self.upgrade().map(|t| t.value.borrow().clone()).unwrap_or_default()
+    }
+
+    /// Perform scoped operation on sampler value without cloning it. The internal value is borrowed
+    /// for the duration of the passed function scope. Setting the sampler value inside the
+    /// function scope will cause a panic.
+    ///
+    /// If the sampler is already dropped, the function will return `None`.
+    pub fn with<T>(&self, f: impl FnOnce(&Out) -> T) -> Option<T> {
+        self.upgrade().map(|t| t.with(f))
     }
 }
 

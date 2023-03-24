@@ -93,6 +93,7 @@ impl<T: Payload> SpanTreeGenerator<T> for String {
 #[derivative(Default(bound = ""))]
 struct ChildGenerator<T> {
     current_offset: ByteDiff,
+    sibling_offset: ByteDiff,
     children:       Vec<node::Child<T>>,
 }
 
@@ -100,7 +101,9 @@ impl<T: Payload> ChildGenerator<T> {
     /// Add spacing to current generator state. It will be taken into account for the next generated
     /// children's offsets
     fn spacing(&mut self, size: usize) {
-        self.current_offset += (size as i32).byte_diff();
+        let offset = (size as i32).byte_diff();
+        self.current_offset += offset;
+        self.sibling_offset += offset;
     }
 
     fn generate_ast_node(
@@ -116,18 +119,22 @@ impl<T: Payload> ChildGenerator<T> {
 
     fn add_node(&mut self, ast_crumbs: ast::Crumbs, node: Node<T>) -> &mut node::Child<T> {
         let offset = self.current_offset;
-        let child = node::Child { node, offset, ast_crumbs };
+        let sibling_offset = self.sibling_offset;
+        let child = node::Child { node, offset, sibling_offset, ast_crumbs };
         self.current_offset += child.node.size;
+        self.sibling_offset = 0.byte_diff();
         self.children.push(child);
         self.children.last_mut().unwrap()
     }
 
     fn generate_empty_node(&mut self, insert_type: InsertionPointType) -> &mut node::Child<T> {
         let child = node::Child {
-            node:       Node::<T>::new().with_kind(insert_type),
-            offset:     self.current_offset,
-            ast_crumbs: vec![],
+            node:           Node::<T>::new().with_kind(insert_type),
+            offset:         self.current_offset,
+            sibling_offset: self.sibling_offset,
+            ast_crumbs:     vec![],
         };
+        self.sibling_offset = 0.byte_diff();
         self.children.push(child);
         self.children.last_mut().unwrap()
     }
@@ -812,24 +819,30 @@ fn tree_generate_node<T: Payload>(
         size = ByteDiff::from(leaf_info.len());
     } else {
         let mut offset = ByteDiff::from(0);
+        let mut sibling_offset = ByteDiff::from(0);
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
             match raw_span_info {
-                SpanSeed::Space(ast::SpanSeedSpace { space }) => offset += ByteDiff::from(space),
+                SpanSeed::Space(ast::SpanSeedSpace { space }) => {
+                    offset += ByteDiff::from(space);
+                    sibling_offset += ByteDiff::from(space);
+                }
                 SpanSeed::Token(ast::SpanSeedToken { token }) => {
                     let kind = node::Kind::Token;
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
                     let node = Node { kind, size, ..default() };
-                    children.push(node::Child { node, offset, ast_crumbs });
+                    children.push(node::Child { node, offset, sibling_offset, ast_crumbs });
                     offset += size;
+                    sibling_offset = 0.byte_diff();
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
                     let kind = node::Kind::argument();
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
-                    children.push(node::Child { node, offset, ast_crumbs });
+                    children.push(node::Child { node, offset, sibling_offset, ast_crumbs });
                     offset += child_size;
+                    sibling_offset = 0.byte_diff();
                 }
             }
         }

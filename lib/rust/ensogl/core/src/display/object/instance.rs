@@ -2021,9 +2021,17 @@ impl InstanceDef {
         })
     }
 
-    /// Replaces the parent binding with a new parent.
-    fn set_parent(&self, parent: &InstanceDef) {
-        parent.add_child(self);
+    /// Replaces the parent binding with a new parent. Does nothing if the provided parent is the
+    /// same as the current one.
+    pub fn set_parent(&self, parent: &InstanceDef) {
+        if !parent.is_parent_of(self) {
+            parent.add_child(self);
+        }
+    }
+
+    /// Checks if the provided object is a parent of the current one.
+    fn is_parent_of(&self, child: &InstanceDef) -> bool {
+        child.parent_bind.parent_and_child_index().map_or(false, |(parent, _)| &parent.def == self)
     }
 
     /// Removes the current parent binding.

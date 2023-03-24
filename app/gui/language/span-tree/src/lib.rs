@@ -261,7 +261,7 @@ impl<T> SpanTree<T> {
         }
 
         let mut buffer = String::new();
-        let span_padding = " ".repeat(code.len() + 1);
+        let span_padding = " ".repeat(code.len() + 2);
 
         struct PrintState {
             indent:       String,
@@ -271,15 +271,11 @@ impl<T> SpanTree<T> {
         self.root_ref().dfs_with_layer_data(state, |node, state| {
             let span = node.span();
             let node_code = &code[span];
-            buffer.push_str(&span_padding[0..node.span_offset.into()]);
-            let mut written = node.span_offset.into();
-            if node_code.is_empty() {
-                buffer.push('▲');
-                written += 1;
-            } else {
-                buffer.push_str(node_code);
-                written += node_code.len();
-            }
+            buffer.push_str(&span_padding[0..node.span_offset.value]);
+            buffer.push('▷');
+            buffer.push_str(node_code);
+            buffer.push('◁');
+            let written = node.span_offset.value + node_code.len() + 2;
             buffer.push_str(&span_padding[written..]);
 
             let indent = if let Some(index) = node.crumbs.last() {

@@ -2,23 +2,23 @@
 
 use crate::prelude::*;
 
-use crate::component::node::input::widget::Entry;
-
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
+use ensogl_component::text;
 
-
+use crate::component::node::input::area::TEXT_SIZE;
+use crate::component::node::input::widget::Entry;
 
 /// =================
 /// === Constants ===
 /// =================
 
 const ACTIVATION_SHAPE_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
-const ACTIVATION_SHAPE_Y_OFFSET: f32 = -5.0;
+const ACTIVATION_SHAPE_Y_OFFSET: f32 = 15.0;
 const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
 /// Distance between the dropdown and the bottom of the port.
 const DROPDOWN_Y_OFFSET: f32 = 5.0;
@@ -69,57 +69,69 @@ pub struct Config {
 #[derive(Debug)]
 pub struct Widget {
     #[allow(dead_code)]
-    network:          frp::Network,
-    dropdown:         Rc<RefCell<LazyDropdown>>,
+    network:           frp::Network,
+    set_current_value: frp::Source<Option<ImString>>,
+    current_crumbs:    frp::Any<span_tree::Crumbs>,
+    dropdown:          Rc<RefCell<LazyDropdown>>,
+    display_object:    display::object::Instance,
+    label:             text::Text,
     /// temporary click handling
-    activation_shape: triangle::View,
+    _activation_shape: triangle::View,
 }
 
 impl super::SpanWidget for Widget {
     type Config = Config;
-    fn new(config: &Config, ctx: super::ConfigContext<'_>) -> Self {
-        let super::ConfigContext { app, display_object, frp, .. } = ctx;
+    fn new(config: &Config, ctx: super::ConfigContext) -> Self {
+        let app = ctx.app();
+        let frp = ctx.frp();
 
+        let display_object = display::object::Instance::new();
+        display_object.use_auto_layout();
         let activation_shape = triangle::View::new();
+        let dot_color = color::Rgba::from(ACTIVATION_SHAPE_COLOR.with_alpha(1.0)).into();
+        activation_shape.color.set(dot_color);
         activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
+        activation_shape.set_alignment_center_x();
+        activation_shape.set_y(-ACTIVATION_SHAPE_SIZE.y() - ACTIVATION_SHAPE_Y_OFFSET);
+
+        let label = text::Text::new(app);
+        label.set_property_default(text::Size(TEXT_SIZE));
+        display_object.add_child(&label);
         display_object.add_child(&activation_shape);
 
         frp::new_network! { network
             init <- source_();
+            set_current_value <- source();
+            value_changed <- any(...);
+
             let focus_in = display_object.on_event::<event::FocusIn>();
             let focus_out = display_object.on_event::<event::FocusOut>();
             is_focused <- bool(&focus_out, &focus_in);
-            is_open <- frp.set_visible && is_focused;
-            is_open <- is_open.sampler();
+            is_open <- is_focused.sampler();
+            current_value_sampler <- set_current_value.sampler();
+            current_crumbs <- any(...);
+            frp.out_value_changed <+ value_changed.map2(&current_crumbs,
+                move |t: &Option<ImString>, crumbs: &span_tree::Crumbs| (crumbs.clone(), t.clone())
+            );
         };
 
-        let set_current_value = frp.set_current_value.clone_ref();
-        let dropdown_output = frp.out_value_changed.clone_ref();
         let request_import = frp.out_request_import.clone_ref();
         let dropdown = LazyDropdown::new(
             app,
-            display_object,
-            set_current_value,
+            &display_object,
+            current_value_sampler,
             is_open,
-            dropdown_output,
+            value_changed,
             request_import,
         );
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
             let dot_clicked = activation_shape.events.mouse_down_primary.clone_ref();
-            toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
-            set_focused <- any(toggle_focus, frp.set_focused);
+            set_focused <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
             eval set_focused([display_object](focus) match focus {
                 true => display_object.focus(),
                 false => display_object.blur(),
-            });
-
-            set_visible <- all(&frp.set_visible, &init)._0();
-            shape_alpha <- set_visible.map(|visible| if *visible { 1.0 } else { 0.0 });
-            shape_color <- shape_alpha.map(|a| ACTIVATION_SHAPE_COLOR.with_alpha(*a));
-            eval shape_color([activation_shape] (color) {
-                activation_shape.color.set(color::Rgba::from(color).into());
             });
 
             eval focus_in((_) dropdown.borrow_mut().initialize_on_open());
@@ -127,22 +139,34 @@ impl super::SpanWidget for Widget {
 
         init.emit(());
 
-        let mut this = Self { network, dropdown, activation_shape };
+        let mut this = Self {
+            display_object,
+            network,
+            set_current_value,
+            current_crumbs,
+            dropdown,
+            _activation_shape: activation_shape,
+            label,
+        };
         this.configure(config, ctx);
         this
     }
 
-    fn configure(&mut self, config: &Config, ctx: super::ConfigContext<'_>) {
-        // TODO: use auto layout to position the activation shape.
-        let port_size = ctx.display_object.size();
-        let port_size_x = port_size.x().as_pixels().expect("Port size is fixed.");
-        let port_size_y = port_size.y().as_pixels().expect("Port size is fixed.");
-        self.activation_shape.set_x(port_size_x / 2.0);
-        self.activation_shape
-            .set_y(-port_size_y / 2.0 - ACTIVATION_SHAPE_SIZE.y() - ACTIVATION_SHAPE_Y_OFFSET);
+    fn configure(&mut self, config: &Config, ctx: super::ConfigContext) {
+        self.display_object.set_parent(ctx.parent_instance);
+
         let mut dropdown = self.dropdown.borrow_mut();
-        dropdown.set_port_size(Vector2(port_size_x, port_size_y));
+        let content: ImString = ctx.expression_at(ctx.span_tree_node.span()).into();
         dropdown.set_entries(config.entries.clone());
+        self.set_current_value.emit(content.clone());
+        self.label.set_content(content);
+        self.current_crumbs.emit(ctx.span_tree_node.crumbs.clone());
+
+        // Do not increment the depth. If the dropdown is displayed, it should also display
+        // its arguments.
+        for child in ctx.span_tree_node.children_iter() {
+            ctx.builder.child_widget(&self.display_object, child, ctx.depth);
+        }
     }
 }
 
@@ -163,7 +187,6 @@ enum LazyDropdown {
     NotInitialized {
         app:               Application,
         display_object:    display::object::Instance,
-        dropdown_y:        f32,
         entries:           Rc<Vec<Entry>>,
         set_current_value: frp::Sampler<Option<ImString>>,
         is_open:           frp::Sampler<bool>,
@@ -172,7 +195,7 @@ enum LazyDropdown {
     },
     Initialized {
         _network:    frp::Network,
-        dropdown:    Dropdown<Entry>,
+        _dropdown:   Dropdown<Entry>,
         set_entries: frp::Any<Vec<Entry>>,
     },
 }
@@ -188,29 +211,15 @@ impl LazyDropdown {
     ) -> Self {
         let app = app.clone_ref();
         let display_object = display_object.clone_ref();
-        let dropdown_y = default();
         let entries = default();
         LazyDropdown::NotInitialized {
             app,
             display_object,
-            dropdown_y,
             entries,
             set_current_value,
             is_open,
             output_value,
             request_import,
-        }
-    }
-
-    fn set_port_size(&mut self, new_port_size: Vector2) {
-        let y = -new_port_size.y() - DROPDOWN_Y_OFFSET;
-        match self {
-            LazyDropdown::Initialized { dropdown, .. } => {
-                dropdown.set_y(y);
-            }
-            LazyDropdown::NotInitialized { dropdown_y, .. } => {
-                *dropdown_y = y;
-            }
         }
     }
 
@@ -233,7 +242,6 @@ impl LazyDropdown {
             LazyDropdown::NotInitialized {
                 app,
                 display_object,
-                dropdown_y,
                 entries,
                 is_open,
                 set_current_value,
@@ -243,7 +251,7 @@ impl LazyDropdown {
                 let dropdown = app.new_view::<Dropdown<Entry>>();
                 display_object.add_child(&dropdown);
                 app.display.default_scene.layers.above_nodes.add(&dropdown);
-                dropdown.set_y(*dropdown_y);
+                dropdown.set_y(20.0);
                 dropdown.set_max_open_size(Vector2(300.0, 500.0));
                 dropdown.allow_deselect_all(true);
 
@@ -283,7 +291,11 @@ impl LazyDropdown {
                 let entries = std::mem::take(Rc::make_mut(entries));
                 set_entries.emit(entries);
                 init.emit(());
-                *self = LazyDropdown::Initialized { _network: network, dropdown, set_entries };
+                *self = LazyDropdown::Initialized {
+                    _network: network,
+                    _dropdown: dropdown,
+                    set_entries,
+                };
             }
         }
     }

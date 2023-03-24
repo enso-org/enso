@@ -156,7 +156,7 @@ ensogl::define_endpoints! {
 pub struct Model {
     pub frp:         Frp,
     pub shape:       Option<Shape>,
-    pub widget:      Option<widget::View>,
+    pub widget:      Option<widget::Root>,
     pub index:       ByteDiff,
     pub local_index: ByteDiff,
     pub length:      ByteDiff,
@@ -188,14 +188,14 @@ impl Model {
 
     /// Widget initialization. Only nodes that represent function arguments or argument placeholders
     /// will have widgets created for them.
-    pub fn init_widget(&mut self, app: &Application) -> widget::View {
-        let widget = widget::View::new(app);
+    pub fn init_widget(&mut self, app: &Application) -> widget::Root {
+        let widget = widget::Root::new(app);
         self.widget = Some(widget.clone_ref());
         widget
     }
 
     /// Assign an existing widget to this port.
-    pub fn use_existing_widget(&mut self, widget: widget::View) -> widget::View {
+    pub fn use_existing_widget(&mut self, widget: widget::Root) -> widget::Root {
         self.widget = Some(widget.clone_ref());
         widget
     }
