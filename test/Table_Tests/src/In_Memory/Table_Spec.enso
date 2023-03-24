@@ -699,6 +699,17 @@ spec =
             r2 = table.aggregate [Count_Distinct "texts"]
             r2.at "Count Distinct texts" . to_vector . should_equal [3]
 
+        Test.specify "should be able to aggregate over enso Types" <|
+            weekday_table  = Table.new [["days", [Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Sunday]], ["group", [1,1,2,1,2]]]
+
+            r1 = weekday_table.aggregate [Group_By "days"] . order_by "days"
+            r1.at "days" . to_vector . should_equal [Day_Of_Week.Sunday, Day_Of_Week.Monday, Day_Of_Week.Tuesday]
+
+            r2 = weekday_table.aggregate [Group_By "group", Minimum "days" "min", Maximum "days" "max"] . order_by "group"
+            r2.at "group" . to_vector . should_equal [1, 2]
+            r2.at "min" . to_vector . should_equal [Day_Of_Week.Monday, Day_Of_Week.Sunday]
+            r2.at "max" . to_vector . should_equal [Day_Of_Week.Tuesday, Day_Of_Week.Monday]
+
     ## We have a separate set of tests for In-Memory distinct as it gives us
        more guarantees: preserving order of rows and always selecting the first
        row of ones sharing the same distinctness key. For database tests (to be
