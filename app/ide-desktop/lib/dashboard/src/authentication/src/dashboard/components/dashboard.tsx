@@ -351,7 +351,7 @@ function Dashboard(props: DashboardProps) {
                     projectName,
                 }
                 if (templateName) {
-                    body.projectTemplateName = templateName
+                    body.projectTemplateName = templateName.replace(/_/g, '').toLocaleLowerCase()
                 }
                 const project = await backendService.createProject(body)
                 setProjectAssets(p => [
