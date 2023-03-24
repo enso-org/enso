@@ -303,8 +303,8 @@
 //! ```
 //! // ╔ root ════════════════════════════ ▶ ◀ ══════════════════════════════════╗
 //! // ║ ╭─────────────┬────────────────────┬─────────────┬────────────────────╮ ║
-//! // ║ │             ┆  ╭ node2 ───────┬▷ ┆             ┆  ╭ node2 ───────┬▷ │ ║
-//! // ║ │  ╭ node1 ┬▷ ┆  │              │  ┆  ╭ node1 ┬▷ ┆  │              │  ▼ ▼
+//! // ║ │             ┆  ╭ node2 ───────┬▷ ┆             ┆  ╭ node4 ───────┬▷ │ ║
+//! // ║ │  ╭ node1 ┬▷ ┆  │              │  ┆  ╭ node3 ┬▷ ┆  │              │  ▼ ▼
 //! // ║ │  │       │  ┆  │              │  ┆  │       │  ┆  │              │  ▲ ▲
 //! // ║ │  ╰───────╯  ┆  ╰──────────────╯  ┆  ╰───────╯  ┆  ╰──────────────╯  │ ║
 //! // ║ ╰─────────────┴────────────────────┴─────────────┴────────────────────╯ ║
@@ -1424,8 +1424,9 @@ pub mod dirty {
     #[allow(missing_docs)]
     pub struct Flags {
         pub new_parent:        NewParent,
-        /// A set of children that were added, removed, transformed, moved to a different layer, or
-        /// whose ancestors were modified in such a way.
+        /// A set of children that were added, transformed, moved to a different layer, or
+        /// whose descendants were modified in such a way. Does not contain children that were
+        /// removed by themselves. Use `removed_children` flag to handle that case.
         pub modified_children: ModifiedChildren,
         pub removed_children:  RemovedChildren,
         pub transformation:    Transformation,
@@ -2779,15 +2780,9 @@ impl Model {
         &self,
         f: impl FnOnce(&mut AutoLayout) -> T,
     ) -> T {
-        if let Some(layout) = &mut *self.layout.auto_layout.borrow_mut() {
-            f(layout)
-        } else {
-            // Creating a new auto-layout, but not enabling it.
-            let mut layout = default();
-            let out = f(&mut layout);
-            *self.layout.auto_layout.borrow_mut() = Some(layout);
-            out
-        }
+        let mut borrow = self.layout.auto_layout.borrow_mut();
+        let layout = borrow.get_or_insert_with(default);
+        f(layout)
     }
 
     fn set_layout_dirty_flag(&self) {
@@ -3021,10 +3016,12 @@ impl Model {
     /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
     /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn refresh_layout(&self) {
-        self.reset_size_to_static_values(X, 0.0);
-        self.refresh_layout_internal(LayoutResolutionPass::X, PassConfig::Default);
-        self.reset_size_to_static_values(Y, 0.0);
-        self.refresh_layout_internal(LayoutResolutionPass::Y, PassConfig::Default);
+        if self.should_refresh_layout() {
+            self.reset_size_to_static_values(X, 0.0);
+            self.refresh_layout_internal(LayoutResolutionPass::X, PassConfig::Default);
+            self.reset_size_to_static_values(Y, 0.0);
+            self.refresh_layout_internal(LayoutResolutionPass::Y, PassConfig::Default);
+        }
     }
 }
 
@@ -3066,14 +3063,14 @@ impl Model {
     where Dim: ResolutionDim {
         let size = match self.layout.size.get_dim(x) {
             Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
-            // Size::Hug
-            //     if self.dirty.transformation.check()
-            //         || self.dirty.modified_children.check_all()
-            //         || self.dirty.removed_children.check_all() =>
-            //     0.0,
-            Size::Hug => self.layout.computed_size.get_dim(x),
+            Size::Hug => 0.0,
         };
         self.layout.computed_size.set_dim(x, size);
+    }
+
+    fn should_propagate_parent_layout_refresh<Dim>(&self, x: Dim) -> bool
+    where Dim: ResolutionDim {
+        self.layout.size.get_dim(x).depends_on_parent_size() || self.should_refresh_layout()
     }
 
     fn should_refresh_layout(&self) -> bool {
@@ -3084,24 +3081,15 @@ impl Model {
 
     /// The main entry point from the recursive auto-layout algorithm.
     fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
-        if self.should_refresh_layout() {
+        if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
             match pass {
-                LayoutResolutionPass::X if self.layout.size.get_dim(X).is_hug() =>
-                    self.layout.computed_size.set_dim(X, 0.0),
-                LayoutResolutionPass::Y if self.layout.size.get_dim(Y).is_hug() =>
-                    self.layout.computed_size.set_dim(Y, 0.0),
-                _ => {}
+                LayoutResolutionPass::X => self.refresh_grid_layout(X, layout, pass),
+                LayoutResolutionPass::Y => self.refresh_grid_layout(Y, layout, pass),
             }
-            if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
-                match pass {
-                    LayoutResolutionPass::X => self.refresh_grid_layout(X, layout, pass),
-                    LayoutResolutionPass::Y => self.refresh_grid_layout(Y, layout, pass),
-                }
-            } else {
-                match pass {
-                    LayoutResolutionPass::X => self.refresh_manual_layout(X, pass, pass_cfg),
-                    LayoutResolutionPass::Y => self.refresh_manual_layout(Y, pass, pass_cfg),
-                }
+        } else {
+            match pass {
+                LayoutResolutionPass::X => self.refresh_manual_layout(X, pass, pass_cfg),
+                LayoutResolutionPass::Y => self.refresh_manual_layout(Y, pass, pass_cfg),
             }
         }
     }
@@ -3123,8 +3111,12 @@ impl Model {
             if child.layout.grow_factor.get_dim(x) > 0.0 {
                 children_to_grow.push(child);
             } else {
-                child.reset_size_to_static_values(x, self.layout.computed_size.get_dim(x));
-                child.refresh_layout_internal(pass, PassConfig::Default);
+                // If the child is not growing, doesn't depend on parent size and by itself was not
+                // modified since last update, it is guaranteed to already have correct size.
+                if child.should_propagate_parent_layout_refresh(x) {
+                    child.reset_size_to_static_values(x, self.layout.computed_size.get_dim(x));
+                    child.refresh_layout_internal(pass, PassConfig::Default);
+                }
                 let child_pos = child.position().get_dim(x);
                 let child_size = child.computed_size().get_dim(x);
                 let child_content_origin = child.content_origin().get_dim(x);
@@ -3138,8 +3130,12 @@ impl Model {
             self.layout.computed_size.set_dim(x, max_x - min_x);
         }
         for child in children_to_grow {
-            child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
-            child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
+            let current_size = self.layout.computed_size.get_dim(x);
+            let current_child_size = child.computed_size().get_dim(x);
+            if current_size != current_child_size || child.should_refresh_layout() {
+                child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
+                child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
+            }
             let child_pos = child.position().get_dim(x);
             let child_content_origin = child.content_origin().get_dim(x);
             min_x = min_x.min(child_pos + child_content_origin);
@@ -3254,12 +3250,18 @@ impl Model {
                 let mut max_child_size = 0.0;
                 let mut max_child_fr = Fraction::default();
                 for child in &children {
-                    let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
-                    child.reset_size_to_static_values(x, self_const_size);
+                    let refresh_child = child.should_propagate_parent_layout_refresh(x);
+                    if refresh_child {
+                        let self_const_size =
+                            self.layout.size.get_dim(x).resolve_pixels_or_default();
+                        child.reset_size_to_static_values(x, self_const_size);
+                    }
                     match child.layout.size.get_dim(x) {
-                        Size::Hug => child.refresh_layout_internal(pass, PassConfig::Default),
+                        Size::Hug if refresh_child =>
+                            child.refresh_layout_internal(pass, PassConfig::Default),
                         Size::Fixed(unit) =>
                             max_child_fr = max(max_child_fr, unit.as_fraction_or_default()),
+                        _ => {}
                     }
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
@@ -3439,7 +3441,8 @@ impl Model {
                 }
 
                 let child_size_changed = child_size != child.layout.computed_size.get_dim(x);
-                let child_not_computed = child.layout.size.get_dim(x).is_fixed();
+                let child_not_computed =
+                    child.layout.size.get_dim(x).is_fixed() && child.should_refresh_layout();
                 if child_size_changed || child_not_computed {
                     // Child size changed. There is one case when this might be a second call to
                     // refresh layout of the same child. If the child size is set to hug, the
@@ -3502,6 +3505,13 @@ impl<T: Object + ?Sized> Object for &T {
     }
 }
 
+impl<T> Object for std::mem::ManuallyDrop<T>
+where T: Object
+{
+    fn display_object(&self) -> &Instance {
+        self.deref().display_object()
+    }
+}
 
 
 // ==================
@@ -4534,32 +4544,38 @@ mod layout_tests {
                     self
                 }
 
+                #[track_caller]
                 fn assert_root_content_origin(&self, x:f32, y:f32) -> &Self {
                     assert_eq!(self.root.content_origin(), Vector2(x,y));
                     self
                 }
 
+                #[track_caller]
                 fn assert_root_position(&self, x:f32, y:f32) -> &Self {
                     assert_eq!(self.root.position().xy(), Vector2(x,y));
                     self
                 }
 
+                #[track_caller]
                 fn assert_root_computed_size(&self, x:f32, y:f32) -> &Self {
                     assert_eq!(self.root.computed_size(), Vector2(x,y));
                     self
                 }
 
                 $(
+                    #[track_caller]
                     fn [<assert_node $num _content_origin>](&self, x:f32, y:f32) -> &Self {
                         assert_eq!(self.[<node $num>].content_origin(), Vector2(x,y));
                         self
                     }
 
+                    #[track_caller]
                     fn [<assert_node $num _position>](&self, x:f32, y:f32) -> &Self {
                         assert_eq!(self.[<node $num>].position().xy(), Vector2(x,y));
                         self
                     }
 
+                    #[track_caller]
                     fn [<assert_node $num _computed_size>](&self, x:f32, y:f32) -> &Self {
                         assert_eq!(self.[<node $num>].computed_size(), Vector2(x,y));
                         self
@@ -4594,6 +4610,20 @@ mod layout_tests {
         root.set_size_hug();
         root.update(&world.default_scene);
         assert_eq!(root.computed_size(), Vector2(0.0, 0.0));
+    }
+
+
+    #[test]
+    fn test_layout_double_update() {
+        let world = World::new();
+        let root = Instance::new_named("Root");
+        root.use_auto_layout();
+        let child = root.new_child();
+        child.set_size((10.0, 10.0));
+        root.update(&world.default_scene);
+        assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
+        root.update(&world.default_scene);
+        assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
     }
 
     /// Input:
