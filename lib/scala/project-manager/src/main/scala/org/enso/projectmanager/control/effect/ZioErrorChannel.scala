@@ -24,7 +24,7 @@ class ZioErrorChannel[R] extends ErrorChannel[ZIO[R, +*, +*]] {
   override def recoverWith[E, A, B >: A, E1 >: E](fa: ZIO[R, E, A])(
     recovery: PartialFunction[E, ZIO[R, E1, B]]
   ): ZIO[R, E1, B] =
-    fa.foldM(
+    fa.foldZIO(
       failure = { error =>
         if (recovery.isDefinedAt(error)) recovery(error)
         else ZIO.fail(error)
@@ -36,7 +36,7 @@ class ZioErrorChannel[R] extends ErrorChannel[ZIO[R, +*, +*]] {
   override def fallbackTo[E, A, B >: A, E1](fa: ZIO[R, E, A])(
     fallback: E => ZIO[R, E1, B]
   ): ZIO[R, E1, B] =
-    fa.foldM(
+    fa.foldZIO(
       failure = { error => fallback(error) },
       success = ZIO.succeed(_)
     )
@@ -59,7 +59,7 @@ class ZioErrorChannel[R] extends ErrorChannel[ZIO[R, +*, +*]] {
     fa: ZIO[R, E, A]
   )(cleanUp: PartialFunction[E, ZIO[R, Nothing, Unit]]): ZIO[R, E, A] =
     fa.onError { cause =>
-      if (cause.failed) {
+      if (cause.isFailure) {
         val failure = cause.failureOption.get
         if (cleanUp.isDefinedAt(failure)) cleanUp(failure)
         else ZIO.unit
@@ -73,7 +73,7 @@ class ZioErrorChannel[R] extends ErrorChannel[ZIO[R, +*, +*]] {
     fa: ZIO[R, E, A]
   )(cleanUp: PartialFunction[Throwable, ZIO[R, Nothing, Unit]]): ZIO[R, E, A] =
     fa.onError { cause =>
-      if (cause.died) {
+      if (cause.isDie) {
         val throwable = cause.dieOption.get
         if (cleanUp.isDefinedAt(throwable)) cleanUp(throwable)
         else ZIO.unit
