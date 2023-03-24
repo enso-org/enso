@@ -53,6 +53,14 @@ const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
     [backend.AssetType.directory]: 'Folders',
 } as const
 
+/** Forms to create each asset type. */
+const ASSET_TYPE_CREATE_FORM: Record<backend.AssetType, JSX.Element> = {
+    [backend.AssetType.project]: () => {},
+    [backend.AssetType.file]: () => {},
+    [backend.AssetType.secret]: () => {},
+    [backend.AssetType.directory]: () => {},
+}
+
 /** English names for every column except for the name column. */
 const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.lastModified]: 'Last modified',
@@ -64,6 +72,32 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.engine]: 'Engine',
     [Column.ide]: 'IDE',
 } as const
+
+/** The corresponding `Permissions` for each backend `PermissionAction`. */
+const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions> = {
+    [backend.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
+    [backend.PermissionAction.execute]: {
+        type: permissionDisplay.Permission.regular,
+        read: false,
+        write: false,
+        docsWrite: false,
+        exec: true,
+    },
+    [backend.PermissionAction.edit]: {
+        type: permissionDisplay.Permission.regular,
+        read: false,
+        write: true,
+        docsWrite: false,
+        exec: false,
+    },
+    [backend.PermissionAction.read]: {
+        type: permissionDisplay.Permission.regular,
+        read: true,
+        write: false,
+        docsWrite: false,
+        exec: false,
+    },
+}
 
 /** The list of columns displayed on each `ColumnDisplayMode`. */
 const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
@@ -97,10 +131,21 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 /** React components for every column except for the name column. */
 const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
-    (project: backend.Asset) => JSX.Element
+    (asset: backend.Asset) => JSX.Element
 > = {
     [Column.lastModified]: () => <>aa</>,
-    [Column.sharedWith]: () => <>aa</>,
+    [Column.sharedWith]: asset => (
+        <>
+            {(asset.permissions ?? []).map(user => (
+                <PermissionDisplay permissions={PERMISSION[user.permission]}>
+                    <img
+                        className="rounded-full h-8"
+                        src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
+                    />
+                </PermissionDisplay>
+            ))}
+        </>
+    ),
     [Column.docs]: () => <>aa</>,
     [Column.labels]: () => (
         <>
@@ -112,7 +157,7 @@ const COLUMN_RENDERER: Record<
     [Column.dataAccess]: () => (
         <>
             <PermissionDisplay permissions={{ type: permissionDisplay.Permission.admin }}>
-                ./user_data
+                <div className="px-4 py-1">./user_data</div>
             </PermissionDisplay>
             <PermissionDisplay
                 permissions={{
@@ -123,7 +168,7 @@ const COLUMN_RENDERER: Record<
                     docsWrite: true,
                 }}
             >
-                this folder
+                <div className="px-4 py-1">this folder</div>
             </PermissionDisplay>
             <PermissionDisplay
                 permissions={{
@@ -134,7 +179,7 @@ const COLUMN_RENDERER: Record<
                     docsWrite: false,
                 }}
             >
-                no access
+                <div className="px-4 py-1">no access</div>
             </PermissionDisplay>
         </>
     ),
@@ -147,9 +192,15 @@ const COLUMN_RENDERER: Record<
 // === Helper functions ===
 // ========================
 
-/** English names for every column. */
-function columnName(column: Column, assetType: backend.AssetType) {
-    return column === Column.name ? ASSET_TYPE_NAME[assetType] : COLUMN_NAME[column]
+/** Heading element for every column. */
+function ColumnHeading(column: Column, assetType: backend.AssetType) {
+    return column === Column.name ? (
+        <div>
+            {ASSET_TYPE_NAME[assetType]} <button>{svg.ADD_ICON}</button>
+        </div>
+    ) : (
+        <>{COLUMN_NAME[column]}</>
+    )
 }
 
 /** Returns the id of the root directory for a user or organization. */
@@ -199,7 +250,6 @@ function Dashboard(props: DashboardProps) {
         backend.Asset<backend.AssetType.directory>[]
     >([])
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.compact)
-    const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
 
     const [projectAssets, setProjectAssets] = react.useState<
         backend.Asset<backend.AssetType.project>[]
@@ -216,6 +266,13 @@ function Dashboard(props: DashboardProps) {
     const [projectStates, setProjectStates] = react.useState<
         Record<backend.ProjectId, backend.ProjectState>
     >({})
+
+    const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
+    // This must be a function so that it can re-render when state changes.
+    const [modal, setModal] = react.useState<(() => JSX.Element) | null>(null)
+    const [modalError, setModalError] = react.useState<string | null>(null)
+    const [uploadedFileName, setUploadedFileName] = react.useState<string | null>(null)
+    const [uploadedFile, setUploadedFile] = react.useState<File | null>(null)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -306,6 +363,7 @@ function Dashboard(props: DashboardProps) {
                             title: localProject.name,
                             id: localProject.id,
                             parentId: '',
+                            permissions: null,
                         })
                     }
                     break
@@ -362,7 +420,51 @@ function Dashboard(props: DashboardProps) {
                     <button
                         className="mx-1"
                         onClick={() => {
-                            /* TODO */
+                            setModal(() => () => (
+                                <form
+                                    className="rounded-md"
+                                    onSubmit={async () => {
+                                        if (uploadedFileName == null) {
+                                            setModalError('File name must not be blank.')
+                                        } else if (uploadedFile == null) {
+                                            //
+                                        } else {
+                                            await backendService.uploadFile(
+                                                {
+                                                    fileName: uploadedFileName,
+                                                    ...(directory
+                                                        ? { parentDirectoryId: directory.id }
+                                                        : {}),
+                                                },
+                                                uploadedFile
+                                            )
+                                            setUploadedFileName(null)
+                                            setUploadedFile(null)
+                                            setModal(null)
+                                        }
+                                    }}
+                                >
+                                    <input
+                                        type="text"
+                                        required
+                                        {...(uploadedFileName != null
+                                            ? { value: uploadedFileName }
+                                            : {})}
+                                    />
+                                    <input
+                                        type="file"
+                                        onChange={event => {
+                                            if (uploadedFileName == null) {
+                                                setUploadedFileName(
+                                                    event.target.files?.[0]?.name ?? null
+                                                )
+                                            }
+                                            setUploadedFile(event.target.files?.[0] ?? null)
+                                        }}
+                                    />
+                                    <input type="submit text-white bg-blue-700">Upload</input>
+                                </form>
+                            ))
                         }}
                     >
                         {svg.UPLOAD_ICON}
@@ -438,7 +540,7 @@ function Dashboard(props: DashboardProps) {
                     }
                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                         id: column,
-                        name: columnName(column, backend.AssetType.project),
+                        heading: ColumnHeading(column, backend.AssetType.project),
                         render: renderer(column, backend.AssetType.project),
                     }))}
                 />
@@ -449,7 +551,7 @@ function Dashboard(props: DashboardProps) {
                     placeholder={<>This directory does not contain any subdirectories.</>}
                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                         id: column,
-                        name: columnName(column, backend.AssetType.directory),
+                        heading: ColumnHeading(column, backend.AssetType.directory),
                         render: renderer(column, backend.AssetType.directory),
                     }))}
                 />
@@ -460,7 +562,7 @@ function Dashboard(props: DashboardProps) {
                     placeholder={<>This directory does not contain any secrets.</>}
                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                         id: column,
-                        name: columnName(column, backend.AssetType.secret),
+                        heading: ColumnHeading(column, backend.AssetType.secret),
                         render: renderer(column, backend.AssetType.secret),
                     }))}
                 />
@@ -471,11 +573,12 @@ function Dashboard(props: DashboardProps) {
                     placeholder={<>This directory does not contain any files.</>}
                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                         id: column,
-                        name: columnName(column, backend.AssetType.file),
+                        heading: ColumnHeading(column, backend.AssetType.file),
                         render: renderer(column, backend.AssetType.file),
                     }))}
                 />
             </table>
+            {modal ? <div className="fixed w-screen h-screen bg-primary/75">{modal()}</div> : <></>}
         </div>
     )
 }

@@ -172,6 +172,16 @@ export const ARROW_UP_ICON = (
     </svg>
 )
 
+export const ADD_ICON = (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
+        <g opacity={0.66}>
+            <rect x={11} y={6} width={2} height={12} fill="currentColor" />
+            <rect x={18} y={11} width={12} height={2} fill="currentColor" />
+        </g>
+    </svg>
+)
+
 // ===========
 // === Svg ===
 // ===========
