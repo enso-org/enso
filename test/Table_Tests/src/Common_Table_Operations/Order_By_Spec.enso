@@ -269,6 +269,10 @@ spec setup =
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
         if setup.is_database.not then
+            Test.specify "should allow ordering enso objects with a comparator" <|
+                t = table_builder [["X", [Day_Of_Week.Friday, Day_Of_Week.Monday, Nothing, Nothing, Day_Of_Week.Wednesday]]]
+                t.order_by "X" . at "X" . to_vector . should_equal [Nothing, Nothing, Day_Of_Week.Monday, Day_Of_Week.Wednesday, Day_Of_Week.Friday]
+
             Test.specify "should raise Incomparable_Values if ordering by incomparable values" <|
                 t = table_builder [["X", [My_Type.Foo 42, My_Type.Foo "a"]]]
                 t.order_by "X" . should_fail_with Incomparable_Values
