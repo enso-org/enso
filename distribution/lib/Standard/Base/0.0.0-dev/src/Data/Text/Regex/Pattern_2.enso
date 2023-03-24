@@ -15,7 +15,7 @@ import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
-import project.Polyglot
+import project.Polyglot.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 

@@ -51,6 +51,9 @@ pub const RAW_BLOCK_QUOTES: &str = "\"\"\"";
 /// Quotes opening block of the formatted text.
 pub const FMT_BLOCK_QUOTES: &str = "'''";
 
+/// A list of possible delimiters of the text literals.
+pub const STRING_DELIMITERS: &[&str] = &[RAW_BLOCK_QUOTES, FMT_BLOCK_QUOTES, "\"", "'"];
+
 
 
 // =============

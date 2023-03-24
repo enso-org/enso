@@ -9,8 +9,8 @@ import project.Data.Match_Columns.Match_Columns
 import project.Data.Storage.Storage
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
-import project.Delimited.Delimited_Reader
-import project.Delimited.Delimited_Reader.Detected_Headers
+import project.Internal.Delimited_Reader
+import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
 
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
@@ -24,7 +24,8 @@ polyglot java import java.io.StringWriter
 polyglot java import java.io.IOException
 polyglot java import java.io.Writer
 
-## Writes a delimited file according to the provided format.
+## PRIVATE
+   Writes a delimited file according to the provided format.
 
    Arguments:
    - table: The table to serialize.

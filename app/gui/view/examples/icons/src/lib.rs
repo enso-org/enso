@@ -21,6 +21,7 @@ use ide_view_component_list_panel_icons::SIZE;
 use ide_view_graph_editor::component::node::action_bar;
 
 
+
 // =============
 // === Frame ===
 // =============

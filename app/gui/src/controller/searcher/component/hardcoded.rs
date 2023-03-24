@@ -7,8 +7,11 @@
 
 use crate::prelude::*;
 
+use crate::controller::searcher::input;
+
 use double_representation::name::QualifiedName;
-use enso_doc_parser::DocSection;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::SuggestionDatabase;
 use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
 
@@ -20,6 +23,10 @@ use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as 
 /// Name of the favorites component group in the `Standard.Base` library where virtual components
 /// created from the [`INPUT_SNIPPETS`] should be added.
 pub const INPUT_GROUP_NAME: &str = "Input";
+/// Qualified name of the `Text` type.
+const TEXT_ENTRY: &str = "Standard.Base.Main.Data.Text.Text";
+/// Qualified name of the `Number` type.
+const NUMBER_ENTRY: &str = "Standard.Base.Main.Data.Numbers.Number";
 
 thread_local! {
     /// Snippets describing virtual components displayed in the [`INPUT_GROUP_NAME`] favorites
@@ -29,7 +36,7 @@ thread_local! {
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
         Snippet::new("text input", "\"\"", IconId::TextInput)
             .with_return_types(["Standard.Base.Data.Text.Text"])
-            .with_documentation(
+            .with_documentation_str(
                 "A text input node.\n\n\
                 An empty text. The value can be edited and used as an input for other nodes.",
             )
@@ -40,27 +47,12 @@ thread_local! {
                 "Standard.Base.Data.Numbers.Decimal",
                 "Standard.Base.Data.Numbers.Integer",
             ])
-            .with_documentation(
+            .with_documentation_str(
                 "A number input node.\n\n\
                  A zero number. The value can be edited and used as an input for other nodes.",
             )
             .into(),
     ];
-}
-
-
-// === Filtering by Return Type ===
-
-/// Return a filtered copy of [`INPUT_SNIPPETS`] containing only snippets which have at least one
-/// of their return types on the given list of return types.
-pub fn input_snippets_with_matching_return_type(
-    return_types: impl IntoIterator<Item = QualifiedName>,
-) -> Vec<Rc<Snippet>> {
-    let rt_set: HashSet<_> = return_types.into_iter().collect();
-    let rt_of_snippet_is_in_set =
-        |s: &&Rc<Snippet>| s.return_types.iter().any(|rt| rt_set.contains(rt));
-    INPUT_SNIPPETS
-        .with(|snippets| snippets.iter().filter(rt_of_snippet_is_in_set).cloned().collect_vec())
 }
 
 
@@ -70,18 +62,18 @@ pub fn input_snippets_with_matching_return_type(
 // ===============
 
 /// A hardcoded snippet of code with a description and syntactic metadata.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Snippet {
     /// The name displayed in the [Component Browser](crate::controller::searcher).
-    pub name:          &'static str,
+    pub name:          ImString,
     /// The code inserted when picking the snippet.
-    pub code:          &'static str,
+    pub code:          ImString,
     /// A list of types that the return value of this snippet's code typechecks as. Used by the
     /// [Component Browser](crate::controller::searcher) to decide whether to display the
     /// snippet when filtering components by return type.
     pub return_types:  Vec<QualifiedName>,
     /// The documentation bound to the snippet.
-    pub documentation: Option<Vec<DocSection>>,
+    pub documentation: Option<EntryDocumentation>,
     /// The ID of the icon bound to this snippet's entry in the [Component
     /// Browser](crate::controller::searcher).
     pub icon:          IconId,
@@ -89,8 +81,31 @@ pub struct Snippet {
 
 impl Snippet {
     /// Construct a hardcoded snippet with given name, code, and icon.
-    fn new(name: &'static str, code: &'static str, icon: IconId) -> Self {
-        Self { name, code, icon, ..default() }
+    fn new(name: &str, code: &str, icon: IconId) -> Self {
+        Self { name: name.into(), code: code.into(), icon, ..default() }
+    }
+
+    /// Construct a hardcoded snippet for a single literal.
+    pub fn from_literal(literal: &input::Literal, db: &SuggestionDatabase) -> Self {
+        use input::Literal::*;
+        let text_repr = literal.to_string();
+        let snippet = match literal {
+            Text { closing_delimiter: missing_quotation_mark, .. } => {
+                let missing_quote = missing_quotation_mark.as_ref();
+                let code = &missing_quote.map(ToString::to_string).unwrap_or_default();
+                Self::new(&text_repr, code, IconId::TextInput)
+            }
+            Number(_) => Self::new(&text_repr, "", IconId::NumberInput),
+        };
+        let entry_path = match literal {
+            Text { .. } => TEXT_ENTRY,
+            Number(_) => NUMBER_ENTRY,
+        };
+        // `unwrap()` is safe here, because we test the validity of `entry_path` in the tests.
+        let qualified_name = QualifiedName::from_text(entry_path).unwrap();
+        let entry = db.lookup_by_qualified_name(&qualified_name);
+        let docs = entry.map(|(entry_id, _)| db.documentation_for_entry(entry_id));
+        snippet.with_documentation(docs.unwrap_or_default())
     }
 
     /// Returns a modified suggestion with [`Snippet::return_types`] field set. This method is only
@@ -104,8 +119,34 @@ impl Snippet {
 
     /// Returns a modified suggestion with the [`Snippet::documentation`] field set. This method
     /// is only intended to be used when defining hardcoded suggestions.
-    fn with_documentation(mut self, documentation: &str) -> Self {
-        self.documentation = Some(enso_doc_parser::parse(documentation));
+    fn with_documentation_str(mut self, documentation: &str) -> Self {
+        let docs = EntryDocumentation::builtin(&enso_doc_parser::parse(documentation));
+        self.documentation = Some(docs);
         self
+    }
+
+    /// Returns a modified suggestion with the [`Snippet::documentation`] field set.
+    fn with_documentation(mut self, documentation: EntryDocumentation) -> Self {
+        self.documentation = Some(documentation);
+        self
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test that the qualified names used for hardcoded snippets can be constructed. We don't check
+    /// if the entries are actually available in the suggestion database.
+    #[test]
+    fn test_qualified_names_construction() {
+        QualifiedName::from_text(TEXT_ENTRY).unwrap();
+        QualifiedName::from_text(NUMBER_ENTRY).unwrap();
     }
 }

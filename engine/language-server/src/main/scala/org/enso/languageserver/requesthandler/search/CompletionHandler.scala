@@ -33,14 +33,15 @@ class CompletionHandler(
     case Request(
           Completion,
           id,
-          Completion.Params(file, pos, selfType, returnType, tags)
+          Completion.Params(file, pos, selfType, returnType, tags, isStatic)
         ) =>
       suggestionsHandler ! SearchProtocol.Completion(
         file,
         pos,
         selfType,
         returnType,
-        tags
+        tags,
+        isStatic
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
