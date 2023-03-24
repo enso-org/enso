@@ -392,7 +392,7 @@ function Dashboard(props: DashboardProps) {
                         <button
                             className={`${
                                 columnDisplayMode === ColumnDisplayMode.all
-                                    ? 'bg-white selected-shadow'
+                                    ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-2`}
                             onClick={() => {
@@ -404,7 +404,7 @@ function Dashboard(props: DashboardProps) {
                         <button
                             className={`${
                                 columnDisplayMode === ColumnDisplayMode.compact
-                                    ? 'bg-white selected-shadow'
+                                    ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-2`}
                             onClick={() => {
@@ -416,7 +416,7 @@ function Dashboard(props: DashboardProps) {
                         <button
                             className={`${
                                 columnDisplayMode === ColumnDisplayMode.docs
-                                    ? 'bg-white selected-shadow'
+                                    ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-2`}
                             onClick={() => {
@@ -428,7 +428,7 @@ function Dashboard(props: DashboardProps) {
                         <button
                             className={`${
                                 columnDisplayMode === ColumnDisplayMode.settings
-                                    ? 'bg-white selected-shadow'
+                                    ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-2`}
                             onClick={() => {

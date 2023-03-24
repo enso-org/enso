@@ -18,6 +18,13 @@ export enum Status {
 // === Constants ===
 // =================
 
+/** A mapping of label type to its corresponding tailwind classes. */
+const CSS_CLASS: Record<Status, string> = {
+    [Status.none]: 'bg-label',
+    [Status.warning]: 'text-white bg-warning',
+    [Status.severeWarning]: 'text-white bg-severe-warning',
+} as const
+
 /** A mapping of label type to its corresponding icon. */
 const STATUS_ICON: Record<Status, JSX.Element> = {
     [Status.none]: svg.NO_ICON,
@@ -37,7 +44,7 @@ export interface LabelProps {
 function Label({ status = Status.none, children }: react.PropsWithChildren<LabelProps>) {
     return (
         <div
-            className={`status-${status} whitespace-nowrap rounded-full inline-flex flex-row flex-nowrap align-middle leading-[27px] p-1 m-1`}
+            className={`${CSS_CLASS[status]} whitespace-nowrap rounded-full inline-flex flex-row flex-nowrap align-middle leading-[27px] p-1 m-1`}
         >
             {STATUS_ICON[status]}
             <div className="px-1">{children}</div>

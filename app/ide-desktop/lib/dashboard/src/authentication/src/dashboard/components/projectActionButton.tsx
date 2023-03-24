@@ -25,6 +25,12 @@ enum SpinnerState {
 /** The interval between requests checking whether the IDE is ready. */
 const STATUS_CHECK_INTERVAL = 10000
 
+const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
+    [SpinnerState.initial]: 'dasharray-5 ease-linear',
+    [SpinnerState.loading]: 'dasharray-75 duration-90000 ease-linear',
+    [SpinnerState.done]: 'dasharray-100 duration-1000 ease-in',
+} as const
+
 /** Displayed when a project is ready to stop. */
 function StopIcon(spinnerState: SpinnerState) {
     return (
@@ -58,7 +64,7 @@ function StopIcon(spinnerState: SpinnerState) {
                 stroke="currentColor"
                 strokeLinecap="round"
                 strokeWidth={3}
-                className={`spinner spinner-${spinnerState}`}
+                className={`animate-spin-ease origin-center transition-stroke-dasharray ${SPINNER_CSS_CLASSES[spinnerState]}`}
             />
         </svg>
     )
@@ -83,9 +89,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { accessToken } = auth.useFullUserSession()
     const logger = loggerProvider.useLogger()
     const backendService = backend.createBackend(accessToken, logger)
-    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(
-        null
-    )
+    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(null)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     const handleCloseProject = () => {
