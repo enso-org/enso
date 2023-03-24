@@ -172,11 +172,16 @@
   generated shaders differ per theme (only light theme is available, the dark
   theme has been disabled). We will support multiple themes in the future, but
   this is not on our priority list right now.
+- [Performance monitor was extended with the ability to print details of actions
+  performed in a given frame][5895]. In particular, you can now inspect names of
+  all symbols rendered in a given frame. You can also pause the performance
+  monitor and inspect results recorded in the past.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
 [4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
+[5895]: https://github.com/enso-org/enso/pull/5895
 
 #### Enso Standard Library
 
@@ -641,6 +646,7 @@
 - [Merge ordered and unordered comparators][5845]
 - [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
 - [Don't install Python component on Windows][5900]
+- [Detect potential name conflicts between exported types and FQNs][5966]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -742,6 +748,7 @@
 [5845]: https://github.com/enso-org/enso/pull/5845
 [5791]: https://github.com/enso-org/enso/pull/5791
 [5900]: https://github.com/enso-org/enso/pull/5900
+[5966]: https://github.com/enso-org/enso/pull/5966
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

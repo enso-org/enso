@@ -526,6 +526,7 @@ ops! { DocumentOps for Document
     trait {
         fn body_or_panic(&self) -> HtmlElement;
         fn create_element_or_panic(&self, local_name: &str) -> Element;
+        fn create_html_element_or_panic(&self, local_name: &str) -> HtmlElement;
         fn create_div_or_panic(&self) -> HtmlDivElement;
         fn create_canvas_or_panic(&self) -> HtmlCanvasElement;
         fn get_html_element_by_id(&self, id: &str) -> Option<HtmlElement>;
@@ -539,6 +540,10 @@ ops! { DocumentOps for Document
 
         fn create_element_or_panic(&self, local_name: &str) -> Element {
             self.create_element(local_name).unwrap()
+        }
+
+        fn create_html_element_or_panic(&self, local_name: &str) -> HtmlElement {
+            self.create_element(local_name).unwrap().unchecked_into()
         }
 
         fn create_div_or_panic(&self) -> HtmlDivElement {

@@ -69,7 +69,7 @@ public class FindExceptionMessageTest extends TestBase {
   public void testPanic() {
     String src = """
     from Standard.Base import Panic
-    import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
     main = Panic.throw (Illegal_Argument.Error 'Jejda!')
 

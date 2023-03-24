@@ -1,9 +1,12 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
@@ -22,6 +25,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -81,6 +87,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Child private InvokeConversionNode invokeConversionNode;
   @Child private ThunkExecutorNode thisExecutor;
   @Child private ThunkExecutorNode thatExecutor;
+  @Child private InvokeCallableNode childDispatch;
 
   private final boolean canApplyThis;
   private final boolean canApplyThat;
@@ -251,6 +258,53 @@ public abstract class InvokeCallableNode extends BaseNode {
     }
   }
 
+  @Specialization(guards = "warnings.hasWarnings(warning)")
+  public Object invokeWarnings(
+      Object warning,
+      VirtualFrame callerFrame,
+      State state,
+      Object[] arguments,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      if (childDispatch == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        Lock lock = getLock();
+        lock.lock();
+        try {
+          if (childDispatch == null) {
+            childDispatch =
+                    insert(
+                            build(
+                                    invokeFunctionNode.getSchema(),
+                                    invokeFunctionNode.getDefaultsExecutionMode(),
+                                    invokeFunctionNode.getArgumentsExecutionMode()));
+            childDispatch.setTailStatus(getTailStatus());
+            notifyInserted(childDispatch);
+          }
+        } finally {
+          lock.unlock();
+        }
+      }
+
+      var result = childDispatch.execute(
+                  warnings.removeWarnings(warning),
+                  callerFrame,
+                  state,
+                  arguments);
+
+      Warning[] extracted = warnings.getWarnings(warning, null);
+      if (result instanceof DataflowError) {
+        return result;
+      } else if (result instanceof WithWarnings withWarnings) {
+        return withWarnings.prepend(extracted);
+      } else {
+        return new WithWarnings(result, extracted);
+      }
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
+  }
+
   @Fallback
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
@@ -281,6 +335,9 @@ public abstract class InvokeCallableNode extends BaseNode {
     invokeFunctionNode.setTailStatus(isTail);
     invokeMethodNode.setTailStatus(isTail);
     invokeConversionNode.setTailStatus(isTail);
+    if (childDispatch != null) {
+      childDispatch.setTailStatus(isTail);
+    }
   }
 
   /** @return the source section for this node. */

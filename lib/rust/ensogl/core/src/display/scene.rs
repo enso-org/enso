@@ -30,7 +30,7 @@ use crate::system::web;
 use crate::system::web::EventListenerHandle;
 
 use enso_frp as frp;
-use enso_frp::io::js::CurrentJsEvent;
+use enso_frp::io::js::JsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
 use web::HtmlElement;
@@ -126,7 +126,7 @@ pub struct Mouse {
     pub click_count:   Uniform<i32>,
     pub hover_rgba:    Uniform<Vector4<u32>>,
     pub target:        Rc<Cell<PointerTargetId>>,
-    pub handles:       Rc<[callback::Handle; 4]>,
+    pub handles:       Rc<[callback::Handle; 6]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
 }
@@ -136,37 +136,41 @@ impl Mouse {
         scene_frp: &Frp,
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
-        current_js_event: &CurrentJsEvent,
+        js_event: &JsEvent,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
-        let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
-        let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        let last_position = Rc::new(Cell::new(Vector2::default()));
+        let position = variables.add_or_panic("mouse_position", Vector2::default());
         let click_count = variables.add_or_panic("mouse_click_count", 0);
-        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
+        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4::default());
         let target = Rc::new(Cell::new(target));
-        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
+        let shaped_dom = root.clone_ref().into();
+        let mouse_manager = MouseManager::new(&shaped_dom, root, &web::window);
         let frp = frp::io::Mouse::new();
-        let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
+        let on_move = mouse_manager.on_move.add(js_event.handler(
             f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
                 let shape = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio;
                 let screen_x = event.client_x();
                 let screen_y = event.client_y();
-
                 let new_pos = Vector2::new(screen_x,screen_y);
                 let pos_changed = new_pos != last_position.get();
                 if pos_changed {
                     last_position.set(new_pos);
                     let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
                     position.set(new_canvas_position);
-                    let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
+                    let position_bottom_left = Vector2(new_pos.x as f32, new_pos.y as f32);
+                    let position_top_left = Vector2(new_pos.x as f32, shape.height - new_pos.y as f32);
+                    let position = position_bottom_left - shape.center();
+                    frp.position_bottom_left.emit(position_bottom_left);
+                    frp.position_top_left.emit(position_top_left);
                     frp.position.emit(position);
                 }
             }),
         ));
-        let on_down = mouse_manager.on_down.add(current_js_event.make_event_handler(
+        let on_down = mouse_manager.on_down.add(js_event.handler(
             f!([frp, click_count, display_mode] (event:&mouse::OnDown) {
                 click_count.modify(|v| *v += 1);
                 if display_mode.get().allow_mouse_events() {
@@ -174,21 +178,27 @@ impl Mouse {
                 }
             }),
         ));
-        let on_up = mouse_manager.on_up.add(current_js_event.make_event_handler(
+        let on_up = mouse_manager.on_up.add(js_event.handler(
             f!([frp, display_mode] (event:&mouse::OnUp) {
                 if display_mode.get().allow_mouse_events() {
                     frp.up.emit(event.button())
                 }
             }),
         ));
-        let on_wheel = mouse_manager.on_wheel.add(current_js_event.make_event_handler(
-            f_!([frp, display_mode] {
-                if display_mode.get().allow_mouse_events() {
-                    frp.wheel.emit(())
-                }
-            }),
-        ));
-        let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
+        let on_wheel = mouse_manager.on_wheel.add(js_event.handler(f_!([frp, display_mode] {
+            if display_mode.get().allow_mouse_events() {
+                frp.wheel.emit(())
+            }
+        })));
+
+        let on_leave = mouse_manager.on_leave.add(js_event.handler(f_!(
+            scene_frp.focused_source.emit(false);
+        )));
+        let on_enter = mouse_manager.on_enter.add(js_event.handler(f_!(
+            scene_frp.focused_source.emit(true);
+        )));
+
+        let handles = Rc::new([on_move, on_down, on_up, on_wheel, on_leave, on_enter]);
         Self {
             mouse_manager,
             last_position,
@@ -243,7 +253,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new(current_event: &CurrentJsEvent) -> Self {
+    pub fn new(current_event: &JsEvent) -> Self {
         let frp = enso_frp::io::keyboard::Keyboard::default();
         let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp, current_event));
         Self { frp, bindings }
@@ -624,8 +634,10 @@ pub struct Frp {
     pub shape:             frp::Sampler<Shape>,
     pub camera_changed:    frp::Stream,
     pub frame_time:        frp::Stream<f32>,
+    pub focused:           frp::Stream<bool>,
     camera_changed_source: frp::Source,
     frame_time_source:     frp::Source<f32>,
+    focused_source:        frp::Source<bool>,
 }
 
 impl Frp {
@@ -633,18 +645,22 @@ impl Frp {
     pub fn new(shape: &frp::Sampler<Shape>) -> Self {
         frp::new_network! { network
             camera_changed_source <- source();
-            frame_time_source     <- source();
+            frame_time_source <- source();
+            focused_source <- source();
         }
         let shape = shape.clone_ref();
         let camera_changed = camera_changed_source.clone_ref().into();
         let frame_time = frame_time_source.clone_ref().into();
+        let focused = focused_source.clone_ref().into();
         Self {
             network,
             shape,
             camera_changed,
             frame_time,
+            focused,
             camera_changed_source,
             frame_time_source,
+            focused_source,
         }
     }
 }
@@ -701,7 +717,7 @@ pub struct SceneData {
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
     pub variables: UniformScope,
-    pub current_js_event: CurrentJsEvent,
+    pub js_event: JsEvent,
     pub mouse: Mouse,
     pub keyboard: Keyboard,
     pub uniforms: Uniforms,
@@ -743,11 +759,11 @@ impl SceneData {
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
-        let current_js_event = CurrentJsEvent::new();
+        let js_event = JsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, &display_mode);
+        let mouse = Mouse::new(&frp, &dom.root, &variables, &js_event, &display_mode);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
-        let keyboard = Keyboard::new(&current_js_event);
+        let keyboard = Keyboard::new(&js_event);
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
@@ -776,7 +792,7 @@ impl SceneData {
             context,
             context_lost_handler,
             variables,
-            current_js_event,
+            js_event,
             mouse,
             keyboard,
             uniforms,
@@ -822,8 +838,8 @@ impl SceneData {
         self.layers.main.camera()
     }
 
-    pub fn new_symbol(&self) -> Symbol {
-        world::with_context(|t| t.new())
+    pub fn new_symbol(&self, label: &'static str) -> Symbol {
+        world::with_context(|t| t.new(label))
     }
 
     fn update_shape(&self) -> bool {

@@ -504,13 +504,15 @@ object SearchProtocol {
     * @param selfType filter entries matching the self type
     * @param returnType filter entries matching the return type
     * @param tags filter entries by suggestion type
+    * @param isStatic filter entries by `static` field
     */
   case class Completion(
     file: Path,
     position: Position,
     selfType: Option[String],
     returnType: Option[String],
-    tags: Option[Seq[SuggestionKind]]
+    tags: Option[Seq[SuggestionKind]],
+    isStatic: Option[Boolean]
   )
 
   /** The reply to the [[Completion]] request.

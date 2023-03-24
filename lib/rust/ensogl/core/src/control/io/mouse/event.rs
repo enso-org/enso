@@ -98,5 +98,6 @@ define_events! {
     MouseEvent::OnUp,
     MouseEvent::OnMove,
     MouseEvent::OnLeave,
+    MouseEvent::OnEnter,
     WheelEvent::OnWheel,
 }

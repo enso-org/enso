@@ -86,7 +86,7 @@ export interface AmplifyConfig {
     region: AwsRegion
     userPoolId: UserPoolId
     userPoolWebClientId: UserPoolWebClientId
-    urlOpener?: OAuthUrlOpener
+    urlOpener: OAuthUrlOpener | null
     domain: OAuthDomain
     scope: OAuthScope[]
     redirectSignIn: OAuthRedirect
