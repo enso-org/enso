@@ -162,6 +162,10 @@ spec =
             match.at 3 . should_equal "e"
             match.at 4 . should_equal "f"
 
+        Test.specify "should split without normalization" <|
+            pattern = Regex_2.compile "s"
+            pattern.split 'aśsśs\u{301}śb' . should_equal ['aś', 'ś', '\u{301}śb']
+
     Test.group "Pattern_2.replace" <|
         Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
             pattern = Regex_2.compile "abc"
