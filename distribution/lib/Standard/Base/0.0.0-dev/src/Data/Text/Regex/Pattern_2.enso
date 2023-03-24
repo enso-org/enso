@@ -103,40 +103,28 @@ type Pattern_2
        - mode: The splitting mode to use.
 
        This method will _always_ return a vector. If no splits take place, the
-       vector will contain a single element.
+       vector will contain a single element (equal to the original string).
 
        > Example
-         Split the input on the first instance of the pattern `"aa"`.
-
-             import Standard.Base.Data.Text.Regex.Engine.Default
-
-             example_match =
-                 engine = Default.new
-                 pattern = engine.compile "aa" []
-                 input = "abaaabbaabba"
-                 pattern.match input mode=Matching_Mode.First
+         Split on the first instance of the pattern.
+             pattern = Regex_2.compile "cd"
+             input = "abcdefcdghij"
+             texts = pattern.split input only_first=True
+             texts . should_equal ["ab", "efcdghij"]
 
        > Example
-         Split on up to the first 3 instances of the pattern `"a"` in the input.
-
-             import Standard.Base.Data.Text.Regex.Engine.Default
-
-             example_match =
-                 engine = Default.new
-                 pattern = engine.compile "a" []
-                 input = "bacadaeaf"
-                 pattern.match input mode=3
+         Split on the all instances of the pattern in the input.
+            pattern = Regex_2.compile "a"
+            input = "bacadaeaf"
+            texts = pattern.split input
+            texts . should_equal ["b", "c", "d", "e", "f"]
 
        > Example
-         Split on all all instances of the pattern `"a"` in the input.
-
-             import Standard.Base.Data.Text.Regex.Engine.Default
-
-             example_match =
-                 engine = Default.new
-                 pattern = engine.compile "a" []
-                 input = "bacadaeaf"
-                 pattern.match input
+         Returns the original text if there are no matches.
+             pattern = Regex_2.compile "aa"
+             input = "abcdefghij"
+             texts = pattern.split input
+             texts . should_equal ["abcdefghij"]
     split : Text -> Boolean -> Vector Text
     split self input only_first=False =
         builder = Vector.new_builder

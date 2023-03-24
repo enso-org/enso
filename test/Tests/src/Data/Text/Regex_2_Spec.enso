@@ -139,28 +139,27 @@ spec =
     Test.group "Pattern_2.split" <|
         Test.specify "should be able to `split` on the first instance of the pattern" <|
             pattern = Regex_2.compile "cd"
-            input = "abcdefghij"
-            match = pattern.split input only_first=True
-            match.length . should_equal 2
-            match.at 0 . should_equal "ab"
-            match.at 1 . should_equal "efghij"
+            input = "abcdefcdghij"
+            texts = pattern.split input only_first=True
+            texts . should_equal ["ab", "efcdghij"]
 
         Test.specify "should return the original text if there are no matches in first mode" <|
-            pattern = Regex_2.compile "(aa)"
+            pattern = Regex_2.compile "aa"
             input = "abcdefghij"
-            match = pattern.split input only_first=True
-            match . should_equal ["abcdefghij"]
+            texts = pattern.split input only_first=True
+            texts . should_equal ["abcdefghij"]
+
+        Test.specify "should return the original text if there are no matches in all mode" <|
+            pattern = Regex_2.compile "aa"
+            input = "abcdefghij"
+            texts = pattern.split input
+            texts . should_equal ["abcdefghij"]
 
         Test.specify "should be able to `split` on the all instances of the pattern in the input" <|
-            pattern = Regex_2.compile "(a)"
+            pattern = Regex_2.compile "a"
             input = "bacadaeaf"
-            match = pattern.split input
-            match.length . should_equal 5
-            match.at 0 . should_equal "b"
-            match.at 1 . should_equal "c"
-            match.at 2 . should_equal "d"
-            match.at 3 . should_equal "e"
-            match.at 4 . should_equal "f"
+            texts = pattern.split input
+            texts . should_equal ["b", "c", "d", "e", "f"]
 
         Test.specify "should split without normalization" <|
             pattern = Regex_2.compile "s"
