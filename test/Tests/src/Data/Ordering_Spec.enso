@@ -46,6 +46,10 @@ Comparable.from (_ : UPair) = UPair_Comparator
 type Parent
     Value child
 
+# Just a type without custom comparator
+type No_Comp_Type
+    Value val
+
 
 ## Expects that `result` contains incomparable values warning.
    The values within the warning message can be switched - the order
@@ -177,6 +181,12 @@ spec =
             Problems.expect_warning "my_warn" <| [3, Warning.attach "my_warn" 2].sort
             expect_incomparable_warn 1 Number.nan [1, Warning.attach "my_warn" Number.nan].sort
             Problems.expect_warning "my_warn" <| [1, Warning.attach "my_warn" Number.nan].sort
+
+        Test.specify "should not fail when sorting incomparable types without custom comparator" <|
+            # Parent, and No_Comp_Type do not have custom comparators
+            [No_Comp_Type.Value 42, "hello"].sort . should_equal ["hello", No_Comp_Type.Value 42]
+            [Parent.Value 42, No_Comp_Type.Value 42].sort . should_equal [No_Comp_Type.Value 42, Parent.Value 42]
+            [No_Comp_Type.Value 42, Parent.Value 42].sort . should_equal [No_Comp_Type.Value 42, Parent.Value 42]
 
     Test.group "Sorting with multiple comparators" <|
         Test.specify "should sort primitive values with the default comparator as the first group" <|

@@ -7,7 +7,6 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
@@ -125,7 +124,7 @@ public abstract class SortVectorNode extends Node {
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw new IllegalStateException("Should not reach here", e);
     }
-    var javaComparator = new PrimitiveValueComparator(lessThanNode, equalsNode, typeOfNode,
+    var javaComparator = new DefaultComparator(lessThanNode, equalsNode, typeOfNode,
         toTextNode, ascending > 0);
     try {
       return sortPrimitiveVector(elems, javaComparator, warningEncounteredProfile);
@@ -136,7 +135,7 @@ public abstract class SortVectorNode extends Node {
   }
 
   private Object sortPrimitiveVector(Object[] elems,
-      PrimitiveValueComparator javaComparator, BranchProfile warningEncounteredProfile)
+      DefaultComparator javaComparator, BranchProfile warningEncounteredProfile)
       throws CompareException {
     Arrays.sort(elems, javaComparator);
     var sortedVector = Vector.fromArray(new Array(elems));
@@ -169,7 +168,7 @@ public abstract class SortVectorNode extends Node {
     List<Function> compareFuncs = readInteropArray(interop, warningsLib, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
 
-    // Prepare input for PrimitiveValueComparator and GenericComparator and sort the elements within groups
+    // Prepare input for DefaultComparator and GenericComparator and sort the elements within groups
     var ctx = EnsoContext.get(this);
     Atom less = ctx.getBuiltins().ordering().newLess();
     Atom equal = ctx.getBuiltins().ordering().newEqual();
@@ -180,7 +179,7 @@ public abstract class SortVectorNode extends Node {
       for (var group : groups) {
         Comparator javaComparator;
         if (isPrimitiveGroup(group)) {
-          javaComparator = new PrimitiveValueComparator(
+          javaComparator = new DefaultComparator(
               lessThanNode,
               equalsNode,
               typeOfNode,
@@ -449,17 +448,23 @@ public abstract class SortVectorNode extends Node {
   }
 
   /**
-   * Comparator for comparing primitive values (which implies that they have Default_Comparator),
-   * which the default `by` method parameter.
+   * Comparator for comparing all values that have Default_Comparator. These are either primitive
+   * types, or the types that do not provide their own comparator.
+   * <p>
+   * Note that it is essential for this class that the {@code by} method parameter to
+   * {@code Vector.sort} is set to the default value, which is {@code Ordering.compare}, because
+   * then, we know that the partial ordering for primitive types was not redefined by the user (we
+   * handle partial ordering for primitive types specifically, partial ordering for other types is
+   * not implemented yet - that requires topological sorting).
    */
-  private final class PrimitiveValueComparator extends Comparator {
+  private final class DefaultComparator extends Comparator {
 
     private final LessThanNode lessThanNode;
     private final EqualsNode equalsNode;
     private final TypeOfNode typeOfNode;
     private final boolean ascending;
 
-    private PrimitiveValueComparator(LessThanNode lessThanNode, EqualsNode equalsNode,
+    private DefaultComparator(LessThanNode lessThanNode, EqualsNode equalsNode,
         TypeOfNode typeOfNode,
         AnyToTextNode toTextNode, boolean ascending) {
       super(toTextNode);
@@ -471,10 +476,10 @@ public abstract class SortVectorNode extends Node {
 
     @Override
     public int compare(Object x, Object y) {
-      return comparePrimitiveValues(x, y);
+      return compareValuesWithDefaultComparator(x, y);
     }
 
-    int comparePrimitiveValues(Object x, Object y) {
+    int compareValuesWithDefaultComparator(Object x, Object y) {
       if (equalsNode.execute(x, y)) {
         return 0;
       } else {
@@ -483,7 +488,7 @@ public abstract class SortVectorNode extends Node {
         if (isNothing(xLessThanYRes)) {
           // x and y are incomparable - this can happen if x and y are different types
           attachIncomparableValuesWarning(x, y);
-          return handleIncomparablePrimitives(x, y);
+          return handleIncomparableValues(x, y);
         } else if (isTrue(xLessThanYRes)) {
           return ascending ? -1 : 1;
         } else {
@@ -494,9 +499,30 @@ public abstract class SortVectorNode extends Node {
           } else {
             // yLessThanXRes is either Nothing or False
             attachIncomparableValuesWarning(y, x);
-            return handleIncomparablePrimitives(y, x);
+            return handleIncomparableValues(y, x);
           }
         }
+      }
+    }
+
+    private int handleIncomparableValues(Object x, Object y) {
+      if (isPrimitiveValue(x) || isPrimitiveValue(y)) {
+        if (isPrimitiveValue(x) && isPrimitiveValue(y)) {
+          return handleIncomparablePrimitives(x, y);
+        } else if (isPrimitiveValue(x)) {
+          // Primitive values are always before non-primitive values - Default_Comparator
+          // group should be the first one.
+          return ascending ? -1 : 1;
+        } else if (isPrimitiveValue(y)) {
+          return ascending ? 1 : -1;
+        } else {
+          throw new IllegalStateException("Should not be reachable");
+        }
+      } else {
+        // Values other than primitives are compared just by their type's FQN.
+        var xTypeName = getQualifiedTypeName(x);
+        var yTypeName = getQualifiedTypeName(y);
+        return xTypeName.compareTo(yTypeName);
       }
     }
 
@@ -505,11 +531,24 @@ public abstract class SortVectorNode extends Node {
      * these cases are handled specifically - we hardcode the order of these incomparable values.
      */
     private int handleIncomparablePrimitives(Object x, Object y) {
-      // "Nothing > NaN"
       int xCost = getPrimitiveValueCost(x);
       int yCost = getPrimitiveValueCost(y);
       int res = Integer.compare(xCost, yCost);
       return ascending ? res : -res;
+    }
+
+    private boolean isPrimitiveValue(Object object) {
+      return isBuiltinType(typeOfNode.execute(object));
+    }
+
+    private String getQualifiedTypeName(Object object) {
+      var typeObj = typeOfNode.execute(object);
+      if (typeObj instanceof Type type) {
+        return type.getQualifiedName().toString();
+      } else {
+        throw new IllegalStateException(
+            "Object " + object + " must be an Atom, therefore, it must have Type");
+      }
     }
 
     private int getPrimitiveValueCost(Object object) {
@@ -527,7 +566,7 @@ public abstract class SortVectorNode extends Node {
   /**
    * Comparator for any values. This comparator compares the values by calling back to Enso (by
    * {@link #compareFunc}), rather than using compare nodes (i.e. {@link LessThanNode}). directly,
-   * as opposed to {@link PrimitiveValueComparator}.
+   * as opposed to {@link DefaultComparator}.
    */
   private final class GenericComparator extends Comparator {
 
