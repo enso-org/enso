@@ -89,9 +89,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { accessToken } = auth.useFullUserSession()
     const logger = loggerProvider.useLogger()
     const backendService = backend.createBackend(accessToken, logger)
-    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(
-        null
-    )
+    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(null)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     const handleCloseProject = () => {
