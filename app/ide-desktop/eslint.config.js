@@ -167,6 +167,10 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `node:` prefix to import builtin node modules',
     },
     {
+        selector: 'TSEnumDeclaration:not(:has(TSEnumMember))',
+        message: 'Enums must not be empty',
+    },
+    {
         selector:
             'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
         message:

@@ -122,6 +122,8 @@ export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
 
 export type Ami = newtype.Newtype<string, 'Ami'>
 
+export type Subject = newtype.Newtype<string, 'Subject'>
+
 /** An RFC 3339 DateTime string. */
 export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 
@@ -266,7 +268,8 @@ export interface Version {
     number: VersionNumber
     ami: Ami | null
     created: Rfc3339DateTime
-    // This does not follow our naming convention because it's defined this way in the backend, so we need to match it.
+    // This does not follow our naming convention because it's defined this way in the backend,
+    // so we need to match it.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     version_type: VersionType
 }
@@ -281,12 +284,34 @@ export interface ResourceUsage {
     storage: number
 }
 
+export interface User {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    pk: Subject
+    user_name: string
+    user_email: EmailAddress
+    organization_id: UserOrOrganizationId
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+export enum PermissionAction {
+    own = 'Own',
+    execute = 'Execute',
+    edit = 'Edit',
+    read = 'Read',
+}
+
+export interface UserPermission {
+    user: User
+    permission: PermissionAction
+}
+
 /** Metadata uniquely identifying a directory entry.
  * Thes can be Projects, Files, Secrets, or other directories. */
 interface BaseAsset {
     title: string
     id: string
     parentId: string
+    permissions: UserPermission[] | null
 }
 
 export enum AssetType {
