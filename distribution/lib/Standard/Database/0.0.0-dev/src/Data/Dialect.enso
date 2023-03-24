@@ -44,7 +44,14 @@ type Dialect
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
+
+       Arguments:
+       - internal_column: the column to order by.
+       - sort_direction: the direction of the ordering.
+       - text_ordering: If provided, specifies that the column should be treated
+         as text values according to the provided ordering. For non-text types,
+         it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         _ = [internal_column, sort_direction, text_ordering]
         Unimplemented.throw "This is an interface only."

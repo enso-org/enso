@@ -61,9 +61,18 @@ type SQLite_Dialect
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
-    prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type_reference.get.is_likely_text of
-        True ->
+
+       Arguments:
+       - internal_column: the column to order by.
+       - sort_direction: the direction of the ordering.
+       - text_ordering: If provided, specifies that the column should be treated
+         as text values according to the provided ordering. For non-text types,
+         it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
+    prepare_order_descriptor self internal_column sort_direction text_ordering = case text_ordering of
+        Nothing ->
+            Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
+        _ ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
@@ -75,8 +84,6 @@ type SQLite_Dialect
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
-        False ->
-            Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
 
     ## PRIVATE
        Prepares a join operation, returning a new table instance encapsulating a

@@ -31,7 +31,9 @@ make_aggregate_column aggregate new_name dialect infer_return_type =
         Internal_Column.Value new_name sql_type_ref expression
 
     aggregate_with_order_by op_kind column order_by =
-        order_bys = order_by.map sc-> dialect.prepare_order_descriptor sc.column.as_internal sc.direction Text_Ordering.Default
+        order_bys = order_by.map sc->
+            effective_ordering = if sc.column.value_type.is_text then Text_Ordering.Default else Nothing
+            dialect.prepare_order_descriptor sc.column.as_internal sc.direction effective_ordering
         expression = SQL_Expression.Operation op_kind [column.expression]+order_bys
         sql_type_ref = infer_return_type op_kind [column] expression
         Internal_Column.Value new_name sql_type_ref expression

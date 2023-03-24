@@ -798,13 +798,14 @@ type Table
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
             new_order_descriptors = columns_for_ordering.map selected_column->
-                internal_column = selected_column.column
+                column = selected_column.column
                 associated_selector = selected_column.associated_selector
+                effective_text_ordering = if column.value_type.is_text then text_ordering else Nothing
                 ## FIXME [RW] this is only needed because `Vector.map` does not
                    propagate dataflow errors correctly. See:
                    https://www.pivotaltracker.com/story/show/181057718
                 Panic.throw_wrapped_if_error <|
-                    self.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
+                    self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
 
