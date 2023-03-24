@@ -167,6 +167,10 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `node:` prefix to import builtin node modules',
     },
     {
+        selector: 'TSEnumDeclaration:not(:has(TSEnumMember))',
+        message: 'Enums must not be empty',
+    },
+    {
         selector:
             'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
         message:
@@ -310,7 +314,7 @@ export default [
             ],
             'no-redeclare': 'off',
             // Important to warn on accidental duplicated `interface`s e.g. when writing API wrappers.
-            '@typescript-eslint/no-redeclare': 'error',
+            '@typescript-eslint/no-redeclare': ['error', { ignoreDeclarationMerge: false }],
             'no-shadow': 'off',
             '@typescript-eslint/no-shadow': 'warn',
             'no-unused-expressions': 'off',
