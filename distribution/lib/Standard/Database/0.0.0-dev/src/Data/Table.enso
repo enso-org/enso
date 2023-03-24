@@ -1486,7 +1486,7 @@ type Table
             _ -> Error.throw <| Illegal_State.Error "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
-            [col.name, SQL_Expression.Constant col.sql_type_reference.get value]
+            [col.name, SQL_Expression.Constant value]
         query = self.connection.dialect.generate_sql <| Query.Insert table_name pairs
         affected_rows = self.connection.execute_update query
         case affected_rows == 1 of

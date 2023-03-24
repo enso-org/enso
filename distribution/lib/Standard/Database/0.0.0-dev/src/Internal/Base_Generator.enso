@@ -395,7 +395,7 @@ generate_query dialect query = case query of
         Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE
    Arguments:

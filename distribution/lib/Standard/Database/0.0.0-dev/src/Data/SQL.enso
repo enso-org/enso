@@ -49,10 +49,9 @@ type Builder
     ## Creates a Builder representing an interpolation of the given object.
 
        Arguments:
-       - sql_type: The expected SQL type of `object`.
        - object: The object to be interpolated into the query as if it has the type
          given by `sql_type`.
-    interpolation : SQL_Type -> Any -> Builder
+    interpolation : Any -> Builder
     interpolation object = Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation object])
 
     ## Joins a vector of code fragments with the provided separator.

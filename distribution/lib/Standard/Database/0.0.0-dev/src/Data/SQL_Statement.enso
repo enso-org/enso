@@ -56,7 +56,6 @@ type SQL_Statement
 
        Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.
-    # prepare : [Text, Vector Any]
     prepare self =
         to_code fragment = case fragment of
             SQL_Fragment.Code_Part code -> code

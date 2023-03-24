@@ -10,7 +10,7 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Sort_Column, Data_Formatter
 from Standard.Table.Data.Type.Value_Type import Value_Type, Auto
-from Standard.Table.Errors import Floating_Point_Equality
+from Standard.Table.Errors import Floating_Point_Equality,  Inexact_Type_Coercion
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -871,7 +871,11 @@ type Column
                 has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_nothing.expression]
                 has_nulls_subquery = Query.Select [Pair.new "has_nulls" has_nulls_expression] column.context
                 new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
-                Column.Value new_name self.connection SQL_Type.boolean new_expr self.context
+                # This mapping should never be imprecise, if there are errors we need to amend the implementation.
+                sql_type = self.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
+                new_type_ref = SQL_Type_Reference.from_constant sql_type . catch Inexact_Type_Coercion _->
+                    Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
+                Column.Value new_name self.connection new_type_ref new_expr self.context
 
     ## Parsing values is not supported in database columns.
     @type Widget_Helpers.parse_type_selector
