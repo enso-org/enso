@@ -6,6 +6,8 @@ import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
+import * as auth from '../authentication/providers/auth'
+import { useMemo } from 'react'
 
 // =================
 // === Constants ===
@@ -841,4 +843,12 @@ export function createBackend(accessToken: string, logger: loggerProvider.Logger
     headers.append('Authorization', `Bearer ${accessToken}`)
     const client = new http.Client(headers)
     return new Backend(client, logger)
+}
+
+/** Automatically create a backend service using the provider's data. */
+export const useBackendService = () => {
+    const { accessToken } = auth.useFullUserSession()
+    const logger = loggerProvider.useLogger()
+    const backendService = useMemo(() => createBackend(accessToken, logger), [accessToken, logger])
+    return backendService
 }

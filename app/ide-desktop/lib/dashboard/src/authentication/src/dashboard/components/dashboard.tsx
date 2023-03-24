@@ -16,6 +16,7 @@ import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
+import Templates from './templates'
 
 // =============
 // === Types ===
@@ -321,12 +322,76 @@ function Dashboard(props: DashboardProps) {
         })()
     }, [accessToken, directoryId])
 
+    const getNewProjectName = (templateName: string | undefined): string => {
+        const projectNameTemplateStart = templateName ? `${templateName}_` : 'New_Project_'
+        const projectNameTemplate = new RegExp(`^${projectNameTemplateStart}(?<projectIndex>\\d+)$`)
+        let lastProjectIndex = 0
+        projectAssets.forEach(projectItem => {
+            let projectIndex: string | number | undefined = projectNameTemplate.exec(
+                projectItem.title
+            )?.groups?.projectIndex
+            if (!projectIndex) {
+                return
+            }
+
+            projectIndex = parseInt(projectIndex, 10)
+            if (projectIndex > lastProjectIndex) {
+                lastProjectIndex = projectIndex
+            }
+        })
+        lastProjectIndex++
+
+        return projectNameTemplateStart + lastProjectIndex.toString()
+    }
+    const handleCreateProject = async (templateName: string | undefined) => {
+        const projectName = getNewProjectName(templateName)
+        switch (platform) {
+            case platformModule.Platform.cloud: {
+                const body: backend.CreateProjectRequestBody = {
+                    projectName,
+                }
+                if (templateName) {
+                    body.projectTemplateName = templateName
+                }
+                const project = await backendService.createProject(body)
+                setProjectAssets(p => [
+                    ...p,
+                    {
+                        type: backend.AssetType.project,
+                        title: project.name,
+                        id: project.projectId,
+                        parentId: '',
+                    },
+                ])
+                break
+            }
+            case platformModule.Platform.desktop: {
+                const body: projectManagerModule.CreateProjectParams = {
+                    name: newtype.asNewtype(projectName),
+                }
+                if (templateName) {
+                    body.projectTemplate = templateName
+                }
+                const project = (await props.projectManager.createProject(body)).result
+                setProjectAssets(p => [
+                    ...p,
+                    {
+                        type: backend.AssetType.project,
+                        title: projectName,
+                        id: project.projectId,
+                        parentId: '',
+                    },
+                ])
+                break
+            }
+        }
+    }
     return (
         <div className="text-primary">
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
             <div id="header" />
-            <div id="templates" />
+            <Templates onTemplateClick={handleCreateProject} />
             <div className="flex flex-row flex-nowrap">
                 <h1 className="text-xl font-bold mx-6 self-center">Drive</h1>
                 <div className="flex flex-row flex-nowrap mx-2">
