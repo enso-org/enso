@@ -2577,9 +2577,10 @@ pub trait LayoutOps: Object {
     }
 
     /// Set padding of all sides of the object. Padding is the free space inside the object.
-    fn set_padding_all(&self, value: impl Into<Unit>) {
+    fn set_padding_all(&self, value: impl Into<Unit>) -> &Self {
         let padding = SideSpacing::from(value.into());
         self.display_object().layout.padding.set(Vector2(padding, padding));
+        self
     }
 
     /// Set padding of all sides of the object. Padding is the free space inside the object.
@@ -2822,8 +2823,9 @@ impl InstanceDef {
 macro_rules! gen_layout_object_builder_alignment {
     ([$([$name:ident $x:ident $y:ident])*]) => { paste! { $(
         /// Set the default alignment of the children of this display object.
-        fn [<set_children_alignment_ $name>](&self) {
-            self.display_object().def.set_children_alignment(alignment::Dim2::$name())
+        fn [<set_children_alignment_ $name>](&self) -> &Self {
+            self.display_object().def.set_children_alignment(alignment::Dim2::$name());
+            self
         }
     )*}}
 }
