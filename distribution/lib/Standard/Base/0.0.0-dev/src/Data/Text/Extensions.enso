@@ -321,14 +321,14 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Split the text on any whitespace.
 
          'abc  def\tghi'.split '\\s+' Regex_Matcher.Value == ["abc", "def", "ghi"]
-Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
-Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
-    case matcher of
-        _ : Text_Matcher ->
-            delimiters = Vector.from_polyglot_array <| case matcher of
-                Text_Matcher.Case_Sensitive ->
+Text.split : Text -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
+Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
+    case use_regex of
+        False ->
+            delimiters = Vector.from_polyglot_array <| case case_sensitivity of
+                Case_Sensitivity.Sensitive ->
                     Text_Utils.span_of_all self delimiter
-                Text_Matcher.Case_Insensitive locale ->
+                Case_Sensitivity.Insensitive locale ->
                     Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
             Vector.new delimiters.length+1 i->
                 start = if i == 0 then 0 else
@@ -336,9 +336,12 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
                 end = if i == delimiters.length then (Text_Utils.char_length self) else
                     delimiters.at i . codeunit_start
                 Text_Utils.substring self start end
-        _ : Regex_Matcher ->
-            compiled_pattern = matcher.compile delimiter
-            compiled_pattern.split self mode=Regex_Mode.All
+        True ->
+            Helpers.regex_assume_default_locale case_sensitivity <|
+                case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+                compiled_pattern.if_not_error <|
+                    compiled_pattern.split self only_first
 
 ## ALIAS Replace Text
    Perform a text or regex replace.
