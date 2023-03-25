@@ -1,10 +1,10 @@
 package org.enso.table.data.table.join.scan;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+
+import org.enso.base.ObjectComparator;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
@@ -17,20 +17,11 @@ import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 
 public class MatcherFactory {
-  private final Comparator<Object> objectComparator;
-  private final BiFunction<Object, Object, Boolean> equalityFallback;
-
-  public MatcherFactory(
-      Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
-    this.objectComparator = objectComparator;
-    this.equalityFallback = equalityFallback;
-  }
-
   public Matcher create(JoinCondition condition) {
     return switch (condition) {
-      case Equals eq -> new EqualsMatcher(eq, equalityFallback);
+      case Equals eq -> new EqualsMatcher(eq);
       case EqualsIgnoreCase eq -> new EqualsIgnoreCaseMatcher(eq);
-      case Between between -> new BetweenMatcher(between, objectComparator);
+      case Between between -> new BetweenMatcher(between);
       default -> throw new UnsupportedOperationException(
           "Unsupported join condition: " + condition);
     };
@@ -50,7 +41,6 @@ public class MatcherFactory {
 
     @Override
     public boolean matches(int left, int right) {
-      boolean match = true;
       for (Matcher matcher : matchers) {
         if (!matcher.matches(left, right)) {
           return false;
@@ -68,8 +58,6 @@ public class MatcherFactory {
   }
 
   static final class EqualsMatcher implements Matcher {
-
-    private final BiFunction<Object, Object, Boolean> equalityFallback;
     private final Storage<?> leftStorage;
     private final Storage<?> rightStorage;
     private final String leftColumnName;
@@ -77,12 +65,11 @@ public class MatcherFactory {
 
     private final AggregatedProblems problems;
 
-    public EqualsMatcher(Equals eq, BiFunction<Object, Object, Boolean> equalityFallback) {
+    public EqualsMatcher(Equals eq) {
       leftStorage = eq.left().getStorage();
       rightStorage = eq.right().getStorage();
       leftColumnName = eq.left().getName();
       rightColumnName = eq.right().getName();
-      this.equalityFallback = equalityFallback;
       problems = new AggregatedProblems();
     }
 
@@ -99,9 +86,7 @@ public class MatcherFactory {
         problems.add(new FloatingPointGrouping(rightColumnName, right));
       }
 
-      // We could do a fast-path for some known primitive types, but it doesn't matter as it will be
-      // replaced with hashing soon anyway.
-      return equalityFallback.apply(leftValue, rightValue);
+      return ObjectComparator.areEqual(leftValue, rightValue);
     }
 
     @Override
@@ -150,14 +135,11 @@ public class MatcherFactory {
   }
 
   static final class BetweenMatcher implements Matcher {
-
-    private final Comparator<Object> objectComparator;
     private final Storage<?> leftStorage;
     private final Storage<?> rightLowerStorage;
     private final Storage<?> rightUpperStorage;
 
-    public BetweenMatcher(Between between, Comparator<Object> objectComparator) {
-      this.objectComparator = objectComparator;
+    public BetweenMatcher(Between between) {
       leftStorage = between.left().getStorage();
       rightLowerStorage = between.rightLower().getStorage();
       rightUpperStorage = between.rightUpper().getStorage();
@@ -175,10 +157,8 @@ public class MatcherFactory {
         return false;
       }
 
-      // We could do a fast-path for some known primitive types, but it doesn't matter as it should
-      // be replaced with sorting optimization soon(ish).
-      return objectComparator.compare(leftValue, rightLowerValue) >= 0
-          && objectComparator.compare(leftValue, rightUpperValue) <= 0;
+      return ObjectComparator.DEFAULT.compare(leftValue, rightLowerValue) >= 0
+          && ObjectComparator.DEFAULT.compare(leftValue, rightUpperValue) <= 0;
     }
   }
 }
