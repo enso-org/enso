@@ -1,18 +1,19 @@
-from project.Data.Boolean import Boolean, True, False
 import project.Data.Numbers.Integer
-import project.Data.Text.Span.Utf_16_Span
+import project.Data.Text.Extensions
 import project.Data.Text.Regex.Match_2.Match_2
 import project.Data.Text.Regex.Pattern_2.Match_Iterator_Value
 import project.Data.Text.Regex.Pattern_2.Pattern_2
 import project.Data.Text.Regex_2
 import project.Data.Text.Regex_2.No_Such_Group
-import project.Data.Text.Extensions
+import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
+
+from project.Data.Boolean import Boolean, True, False
 
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Replacer_Cache
