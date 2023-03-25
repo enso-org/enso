@@ -1,9 +1,9 @@
 use super::prelude::*;
 
+use crate::config::ProjectToOpen;
 use crate::ide;
 use crate::transport::test_utils::TestWithMockedTransport;
 
-use crate::config::ProjectToOpen;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use json_rpc::test_util::transport::mock::MockTransport;

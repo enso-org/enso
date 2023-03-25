@@ -8,6 +8,8 @@ import electronIsDev from 'electron-is-dev'
 
 import * as paths from '../paths'
 
+export { SOURCE_FILE_EXTENSION, BUNDLED_PROJECT_EXTENSION } from '../paths'
+
 // =============
 // === Paths ===
 // =============
