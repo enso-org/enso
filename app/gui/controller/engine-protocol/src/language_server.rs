@@ -177,6 +177,7 @@ trait API {
     , self_type   : Option<String>
     , return_type : Option<String>
     , tags        : Option<Vec<SuggestionEntryType>>
+    , is_static   : Option<bool>
     ) -> response::Completion;
 
     /// Get the list of component groups available in runtime.
