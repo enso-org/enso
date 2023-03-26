@@ -4,8 +4,8 @@ import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
-import org.enso.interpreter.test.FunctionCallTestInstrument;
 import org.enso.interpreter.test.Metadata;
+import org.enso.interpreter.test.NodeCountingTestInstrument;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class WarningInstrumentationTest {
 
     private Context context;
-    private FunctionCallTestInstrument instrument;
+    private NodeCountingTestInstrument instrument;
 
     @Before
     public void initContext() {
@@ -43,7 +43,7 @@ public class WarningInstrumentationTest {
         Map<String, Language> langs = engine.getLanguages();
         Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
 
-        instrument = engine.getInstruments().get(FunctionCallTestInstrument.INSTRUMENT_ID).lookup(FunctionCallTestInstrument.class);
+        instrument = engine.getInstruments().get(NodeCountingTestInstrument.INSTRUMENT_ID).lookup(NodeCountingTestInstrument.class);
         SourceSectionFilter builder = SourceSectionFilter.newBuilder()
                 .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
                 .tagIs(IdentifiedTag.class)
