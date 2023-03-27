@@ -66,7 +66,7 @@ pub struct Model<T> {
     items: Vec<T>,
 }
 
-impl<T: display::Object> VectorEditor<T> {
+impl<T> VectorEditor<T> {
     pub fn new() -> Self {
         let frp = Frp::new();
         let display_object = display::object::Instance::new();
@@ -85,7 +85,9 @@ impl<T: display::Object> VectorEditor<T> {
         }
         self
     }
+}
 
+impl<T: display::Object> VectorEditor<T> {
     fn append(&self, item: T) {
         self.add_child(&item);
         self.model.borrow_mut().items.push(item);
@@ -95,6 +97,12 @@ impl<T: display::Object> VectorEditor<T> {
 impl<T> display::Object for VectorEditor<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+impl<T> Default for VectorEditor<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

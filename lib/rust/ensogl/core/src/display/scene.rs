@@ -30,7 +30,6 @@ use crate::system::web;
 use crate::system::web::EventListenerHandle;
 
 use enso_frp as frp;
-use enso_frp::io::js::JsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
 use web::HtmlElement;
@@ -144,7 +143,6 @@ impl Mouse {
         scene_frp: &Frp,
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
-        js_event: &JsEvent,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
         pointer_target_registry: &PointerTargetRegistry,
     ) -> Self {
@@ -161,7 +159,7 @@ impl Mouse {
         let mouse_manager = MouseManager::new(&shaped_dom, root, &web::window);
         let frp = frp::io::Mouse::new();
         let last_move_event = Rc::new(RefCell::new(None));
-        let on_move = mouse_manager.on_move.add(js_event.handler(
+        let on_move = mouse_manager.on_move.add(
             f!([pointer_target_registry, target, frp, scene_frp, position, last_position, last_move_event]
             (event: &mouse::Move) {
                 last_move_event.borrow_mut().replace(event.clone());
@@ -187,8 +185,8 @@ impl Mouse {
                     });
                 }
             }),
-        ));
-        let on_down = mouse_manager.on_down.add(js_event.handler(
+        );
+        let on_down = mouse_manager.on_down.add(
             f!([pointer_target_registry, target, pressed, frp, click_count, display_mode]
             (event:&mouse::Down) {
                 click_count.modify(|v| *v += 1);
@@ -204,8 +202,8 @@ impl Mouse {
                     });
                 }
             }),
-        ));
-        let on_up = mouse_manager.on_up.add(js_event.handler(
+        );
+        let on_up = mouse_manager.on_up.add(
             f!([pointer_target_registry, target, pressed, frp, display_mode] (event: &mouse::Up) {
                 if display_mode.get().allow_mouse_events() {
                     let button = event.button();
@@ -224,8 +222,8 @@ impl Mouse {
                     });
                 }
             }),
-        ));
-        let on_wheel = mouse_manager.on_wheel.add(js_event.handler(
+        );
+        let on_wheel = mouse_manager.on_wheel.add(
             f!([pointer_target_registry, target, frp, display_mode] (event: &mouse::Wheel) {
                 if display_mode.get().allow_mouse_events() {
                     frp.wheel.emit(());
@@ -234,14 +232,14 @@ impl Mouse {
                     });
                 }
             }),
-        ));
+        );
 
-        let on_leave = mouse_manager.on_leave.add(js_event.handler(f_!(
+        let on_leave = mouse_manager.on_leave.add(f!((_event: &mouse::Leave)
             scene_frp.focused_source.emit(false);
-        )));
-        let on_enter = mouse_manager.on_enter.add(js_event.handler(f_!(
+        ));
+        let on_enter = mouse_manager.on_enter.add(f!((_event: &mouse::Enter)
             scene_frp.focused_source.emit(true);
-        )));
+        ));
 
         let handles = Rc::new([on_move, on_down, on_up, on_wheel, on_leave, on_enter]);
         Self {
@@ -299,10 +297,16 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new(current_event: &JsEvent) -> Self {
+    pub fn new() -> Self {
         let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp, current_event));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp));
         Self { frp, bindings }
+    }
+}
+
+impl Default for Keyboard {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -763,7 +767,6 @@ pub struct SceneData {
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
     pub variables: UniformScope,
-    pub js_event: JsEvent,
     pub mouse: Mouse,
     pub keyboard: Keyboard,
     pub uniforms: Uniforms,
@@ -805,18 +808,11 @@ impl SceneData {
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
-        let js_event = JsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(
-            &frp,
-            &dom.root,
-            &variables,
-            &js_event,
-            &display_mode,
-            &pointer_target_registry,
-        );
+        let mouse =
+            Mouse::new(&frp, &dom.root, &variables, &display_mode, &pointer_target_registry);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
-        let keyboard = Keyboard::new(&js_event);
+        let keyboard = Keyboard::new();
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
@@ -845,7 +841,6 @@ impl SceneData {
             context,
             context_lost_handler,
             variables,
-            js_event,
             mouse,
             keyboard,
             uniforms,
@@ -1016,36 +1011,10 @@ impl SceneData {
 // === Mouse ===
 
 impl SceneData {
-    /// Init handling of mouse up and down events. It is also responsible for discovering of the
-    /// mouse release events. To learn more see the documentation of [`PointerTarget`].
     fn init_mouse_down_and_up_events(&self) {
         let network = &self.frp.network;
-        let pointer_target_registry = &self.pointer_target_registry;
-        let target = &self.mouse.target;
         let pointer_position_changed = &self.pointer_position_changed;
-        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
-
         frp::extend! { network
-            // eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
-            //     let current_target = target.get();
-            //     pressed.borrow_mut().insert(*button,current_target);
-            //     pointer_target_registry.with_mouse_target(current_target, |t, d|
-            //         t.emit_mouse_down(*button)
-            //     );
-            // });
-            //
-            // eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
-            //     let current_target = target.get();
-            //     if let Some(last_target) = pressed.borrow_mut().remove(button) {
-            //         pointer_target_registry.with_mouse_target(last_target, |t, d|
-            //             t.emit_mouse_release(*button)
-            //         );
-            //     }
-            //     pointer_target_registry.with_mouse_target(current_target, |t, d|
-            //         t.emit_mouse_up(*button)
-            //     );
-            // });
-
             eval_ self.mouse.frp.position (pointer_position_changed.set(true));
         }
     }

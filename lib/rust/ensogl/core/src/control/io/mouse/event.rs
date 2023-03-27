@@ -44,6 +44,8 @@ where JsEvent: AsRef<web::MouseEvent>
         Self { js_event, shape, event_type }
     }
 
+    /// The X coordinate of the mouse pointer relative to the position of the padding edge of the
+    /// target node.
     pub fn offset_x(&self) -> i32 {
         self.js_event.as_ref().map(|t| t.as_ref().offset_x()).unwrap_or_default()
     }
@@ -55,6 +57,7 @@ where JsEvent: AsRef<web::MouseEvent>
             - self.js_event.as_ref().map(|t| t.as_ref().offset_y()).unwrap_or_default()
     }
 
+    /// The X coordinate of the mouse pointer in local (DOM content) coordinates.
     pub fn client_x(&self) -> i32 {
         self.js_event.as_ref().map(|t| t.as_ref().client_x()).unwrap_or_default()
     }
@@ -94,7 +97,7 @@ where JsEvent: AsRef<web::MouseEvent>
     /// Return the event handler that caught this event if it exists and if it is an HTML element.
     /// Returns  `None`  if the event was caught, for example, byt the window.
     fn try_get_current_target_element(&self) -> Option<web::Element> {
-        let target = self.js_event.as_ref().map(|t| t.as_ref().current_target()).flatten()?;
+        let target = self.js_event.as_ref().and_then(|t| t.as_ref().current_target())?;
         target.value_of().dyn_into::<web::Element>().ok()
     }
 
@@ -108,14 +111,17 @@ where JsEvent: AsRef<web::MouseEvent>
         Vector2::new(x as f32, y as f32)
     }
 
+    /// Check whether the `ctrl` key was pressed when the event was triggered.
     pub fn ctrl_key(&self) -> bool {
         self.js_event.as_ref().map(|t| t.as_ref().ctrl_key()).unwrap_or_default()
     }
 
+    /// Prevent the default action of the event.
     pub fn prevent_default(&self) {
         self.js_event.as_ref().map(|t| t.as_ref().prevent_default());
     }
 
+    /// Convert the event to a different type. No checks will be performed during this action.
     pub fn unchecked_convert_to<NewEventType: IsEvent>(
         self,
     ) -> Event<EventPhantomType<NewEventType>, JsEvent> {
@@ -220,6 +226,8 @@ define_events! {
     /// (typically a mouse).
     Wheel<WheelEvent>,
 
+    
+    
     // ==========================
     // === Non JS-like Events ===
     // ==========================
@@ -236,10 +244,12 @@ define_events! {
 }
 
 impl Wheel {
+    /// The horizontal scroll amount.
     pub fn delta_x(&self) -> f64 {
         self.js_event.as_ref().map(|t| t.delta_x()).unwrap_or_default()
     }
 
+    /// The vertical scroll amount.
     pub fn delta_y(&self) -> f64 {
         self.js_event.as_ref().map(|t| t.delta_y()).unwrap_or_default()
     }
