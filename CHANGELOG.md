@@ -126,6 +126,7 @@
   shortened labels for entries with long module paths. When an option is
   selected from the dropdown, the necessary module imports are inserted,
   eliminating the need for fully qualified names.
+- [File associations on Windows and macOS][6077]
 
 #### EnsoGL (rendering engine)
 
@@ -546,6 +547,7 @@
 [5863]: https://github.com/enso-org/enso/pull/5863
 [5917]: https://github.com/enso-org/enso/pull/5917
 [5705]: https://github.com/enso-org/enso/pull/5705
+[6077]: https://github.com/enso-org/enso/pull/6077
 
 #### Enso Compiler
 

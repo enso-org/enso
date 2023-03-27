@@ -243,8 +243,10 @@ impl WithProjectManager {
             info!("Attempting to create {}", name);
             self.create_project(name).await
         } else {
-            // TODO TODO TODO
-            panic!()
+            // This can happen only if we are told to open project by id but it cannot be found.
+            // We cannot fallback to creating a new project in this case, as we cannot create a
+            // project with a given id. Thus, we simply propagate the lookup result.
+            project
         }
     }
 }
