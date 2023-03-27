@@ -105,6 +105,20 @@ type JDBC_Connection
             Vector.new metadata.getColumnCount resolve_column
 
     ## PRIVATE
+       Checks that the query has no holes, and if it does, throws an error.
+    ensure_query_has_no_holes : Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self raw_sql =
+        self.with_prepared_statement raw_sql Statement_Setter.null stmt->
+            ## We cannot run this check on every query, because in some
+              backends (e.g. Postgres) running `getParameterMetaData`
+              seems to trigger logic for figuring out types of the holes.
+              In some of our generated queries, the driver is unable to
+              figure out the types and fails with an exception.
+            expected_parameter_count = stmt.getParameterMetaData.getParameterCount
+            if expected_parameter_count != 0 then
+                Error.throw <| Illegal_Argument.Error 'The provided raw SQL query should not contain any holes ("?").'
+
+    ## PRIVATE
 
        Given an insert query template and the associated Database_Table, and a
        Materialized_Table of data, load to the database.
@@ -178,12 +192,8 @@ handle_sql_errors ~action related_query=Nothing =
 
 ## PRIVATE
    Uses the provided `Statement_Setter` strategy to fill holes in a
-   provided `PreparedStatement` and ensures that the number of values
-   matches the number of holes.
+   provided `PreparedStatement`.
 set_statement_values stmt statement_setter values =
-    expected_parameter_count = stmt.getParameterMetaData.getParameterCount
-    if expected_parameter_count != values.length then
-        Panic.throw <| Illegal_State.Error "The number of values provided ("+values.length.to_text+") does not match the number of parameters ("+expected_parameter_count.to_text+") in the statement."
     values.each_with_index ix-> value->
         statement_setter.fill_hole stmt (ix + 1) value
 
