@@ -60,8 +60,22 @@ public abstract class CompilerTest {
     throw new IllegalStateException();
   }
 
-  private static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
-    String txt = i.pretty();
+  /** Takes an {@link IR} and converts it to text representation suitable for
+   * "diffing" while "simplifying" it.
+   *
+   * @param ir the intermediate representation
+   * @param noIds remove all UUIDs or keep them? Multiple runs usually assign
+   *   random/different UUIDs to various IR elements. Removing them is a best
+   *   way to make the converted text comparable
+   * @param noLocations locations may slightly differ. Usually off-by-one.
+   *   Especially when running old and new parser in parallel - removing them
+   *   may be useful
+   * @param lessDocs documentation often isn't an essential part of the IR
+   *   one can easily remove it by specifying {@code false}
+   * @return string representation of the IR
+   */
+  private static String simplifyIR(IR ir, boolean noIds, boolean noLocations, boolean lessDocs) {
+    String txt = ir.pretty();
     if (noIds) {
       txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
     }
