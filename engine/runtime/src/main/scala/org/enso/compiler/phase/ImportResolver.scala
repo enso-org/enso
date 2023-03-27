@@ -93,7 +93,7 @@ class ImportResolver(compiler: Compiler) {
             // Do we have bindings available for this modules' library?
             // - yes - extract the resolved imports but don't add them to the import/export resolution
             // - no - ensure they are parsed (load them from cache) and add them to the import/export resolution
-            compiler.importExportBindingsOption(current) match {
+            compiler.importExportBindings(current) match {
               case Some(bindings) =>
                 val converted = bindings
                   .toConcrete(compiler.packageRepository.getModuleMap)

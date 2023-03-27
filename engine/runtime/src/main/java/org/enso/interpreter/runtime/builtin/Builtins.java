@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 
 
-import org.enso.compiler.Compiler;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
@@ -205,17 +204,16 @@ public class Builtins {
   /**
    * Initialize the IR for the builtins module from the builtins source file.
    *
-   * @param c enso compiler object
    * @param freshNameSupply the compiler's fresh name supply
    * @param passes the passes manager for the compiler
    */
   @CompilerDirectives.TruffleBoundary
-  public void initializeBuiltinsIr(Compiler c, FreshNameSupply freshNameSupply, Passes passes) {
+  public void initializeBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
     try {
       if (module.getSource() == null) {
         initializeBuiltinsSource();
       }
-      BuiltinsIrBuilder.build(c, module, freshNameSupply, passes);
+      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
     } catch (IOException e) {
       e.printStackTrace();
     }

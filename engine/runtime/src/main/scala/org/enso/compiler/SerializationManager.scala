@@ -105,7 +105,7 @@ final class SerializationManager(
   ): Future[Boolean] = {
     logger.log(
       debugLogLevel,
-      "Requesting serialization for module [{0}].",
+      "Requesting serialization for module [{}].",
       module.getName
     )
     val duplicatedIr = compiler.updateMetadata(
@@ -149,7 +149,7 @@ final class SerializationManager(
   ): Future[Boolean] = {
     logger.log(
       Level.INFO,
-      "Requesting serialization for library [{0}].",
+      "Requesting serialization for library [{}].",
       libraryName
     )
 
@@ -186,7 +186,7 @@ final class SerializationManager(
 
     logger.log(
       debugLogLevel,
-      "Running serialization for bindings [{0}].",
+      "Running serialization for bindings [{}].",
       libraryName
     )
     startSerializing(libraryName.toQualifiedName)
@@ -291,14 +291,14 @@ final class SerializationManager(
         case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
           logger.log(
             Level.FINE,
-            "Restored suggestions for library [{0}].",
+            "Restored suggestions for library [{}].",
             libraryName
           )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            "Unable to load suggestions for library [{0}].",
+            "Unable to load suggestions for library [{}].",
             libraryName
           )
           None
@@ -320,14 +320,14 @@ final class SerializationManager(
         case result @ Some(_: ImportExportCache.CachedBindings) =>
           logger.log(
             Level.FINE,
-            "Restored bindings for library [{0}].",
+            "Restored bindings for library [{}].",
             libraryName
           )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            "Unable to load bindings for library [{0}].",
+            "Unable to load bindings for library [{}].",
             libraryName
           )
           None
@@ -369,7 +369,7 @@ final class SerializationManager(
           module.setLoadedFromCache(true)
           logger.log(
             debugLogLevel,
-            "Restored IR from cache for module [{0}] at stage [{1}].",
+            "Restored IR from cache for module [{}] at stage [{}].",
             Array(module.getName, loadedCache.compilationStage())
           )
 
@@ -377,14 +377,14 @@ final class SerializationManager(
             module.setHasCrossModuleLinks(true)
             logger.log(
               debugLogLevel,
-              "Restored links (early phase) in module [{0}].",
+              "Restored links (early phase) in module [{}].",
               module.getName
             )
             Some(true)
           } else {
             logger.log(
               debugLogLevel,
-              "Could not restore links (early phase) in module [{0}].",
+              "Could not restore links (early phase) in module [{}].",
               module.getName
             )
             module.setHasCrossModuleLinks(false)
@@ -393,7 +393,7 @@ final class SerializationManager(
         case None =>
           logger.log(
             debugLogLevel,
-            "Unable to load a cache for module [{0}].",
+            "Unable to load a cache for module [{}].",
             module.getName
           )
           None
@@ -490,7 +490,7 @@ final class SerializationManager(
         val jobCount = waitingCount + isSerializing.size
         logger.log(
           debugLogLevel,
-          "Waiting for #{0} serialization jobs to complete.",
+          "Waiting for #{} serialization jobs to complete.",
           jobCount
         )
 
@@ -554,7 +554,7 @@ final class SerializationManager(
 
     logger.log(
       debugLogLevel,
-      "Running serialization for module [{0}].",
+      "Running serialization for module [{}].",
       name
     )
     startSerializing(name)

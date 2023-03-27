@@ -1,6 +1,5 @@
 package org.enso.compiler.phase
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
 import org.enso.compiler.data.BindingsMap.{
@@ -9,6 +8,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule,
   SymbolRestriction
 }
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
 import scala.collection.mutable
@@ -21,7 +21,7 @@ case class ExportCycleException(modules: List[Module])
       "Compilation aborted due to a cycle in export statements."
     )
 
-class ExportsResolution(val compiler: Compiler) {
+class ExportsResolution {
 
   private case class Edge(
     exporter: Node,
@@ -38,7 +38,10 @@ class ExportsResolution(val compiler: Compiler) {
   }
 
   private def getBindings(module: Module): BindingsMap =
-    compiler.importExportBindings(module)
+    module.getIr.unsafeGetMetadata(
+      BindingAnalysis,
+      "module without binding analysis in Exports Resolution"
+    )
 
   private def buildGraph(modules: List[Module]): List[Node] = {
     val moduleTargets = modules.map(m => ResolvedModule(Concrete(m)))
