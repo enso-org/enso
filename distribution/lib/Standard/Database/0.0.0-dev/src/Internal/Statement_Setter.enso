@@ -10,18 +10,6 @@ type Statement_Setter
     Value (fill_hole : PreparedStatement -> Integer -> Any -> Nothing)
 
     ## PRIVATE
-       A helper that gets a list of values and fills their corresponding holes
-       in the prepared statement.
-
-       It assumes that the provided vector contains all values expected in this
-       prepared statement. It should not be called multiple times on the same
-       statement.
-    fill_values : PreparedStatement -> Vector Any -> Nothing
-    fill_values self stmt values =
-        values.each_with_index ix-> value->
-            self.fill_hole stmt (ix + 1) value
-
-    ## PRIVATE
        The default setter that is handling simple commonly supported types.
     default : Statement_Setter
     default = Statement_Setter.Value fill_hole_default

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
@@ -107,9 +108,7 @@ spec prefix connection =
 
         Test.specify "should not allow interpolations in raw user-built queries" <|
             r = connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
-            IO.println r
-            r.print
-            r.should_fail_with SQL_Error
+            r.should_fail_with Illegal_Argument
 
         Test.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
             r2 = connection.query "NONEXISTENT-TABLE"

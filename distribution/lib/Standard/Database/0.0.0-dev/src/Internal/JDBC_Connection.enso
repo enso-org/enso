@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
@@ -67,10 +68,16 @@ type JDBC_Connection
     with_prepared_statement self query statement_setter action =
         prepare template values = self.connection_resource.with java_connection->
             stmt = java_connection.prepareStatement template
-            Panic.catch Any (statement_setter.fill_values stmt values) caught_panic->
+            handle_illegal_state caught_panic =
+                Error.throw (Illegal_Argument.Error caught_panic.payload.message)
+            handle_any caught_panic =
                 stmt.close
                 Panic.throw caught_panic
-            stmt
+            result = Panic.catch Illegal_State handler=handle_illegal_state <|
+                Panic.catch Any handler=handle_any <|
+                    set_statement_values stmt statement_setter values
+            result.if_not_error <|
+                stmt
 
         go template values =
             handle_sql_errors related_query=template <|
@@ -118,7 +125,7 @@ type JDBC_Connection
                                     Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                     0.up_to num_rows . each row_id->
                         values = columns.map col-> col.at row_id
-                        statement_setter.fill_values stmt values
+                        set_statement_values stmt statement_setter values
                         stmt.addBatch
                         if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                     if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
@@ -168,6 +175,17 @@ handle_sql_errors ~action related_query=Nothing =
         case caught_panic.payload of
             exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
             exc -> Error.throw (SQL_Error.Error exc related_query)
+
+## PRIVATE
+   Uses the provided `Statement_Setter` strategy to fill holes in a
+   provided `PreparedStatement` and ensures that the number of values
+   matches the number of holes.
+set_statement_values stmt statement_setter values =
+    expected_parameter_count = stmt.getParameterMetaData.getParameterCount
+    if expected_parameter_count != values.length then
+        Panic.throw <| Illegal_State.Error "The number of values provided ("+values.length.to_text+") does not match the number of parameters ("+expected_parameter_count.to_text+") in the statement."
+    values.each_with_index ix-> value->
+        statement_setter.fill_hole stmt (ix + 1) value
 
 ## PRIVATE
    Given a Materialized_Table, create a SQL statement to build the table.
