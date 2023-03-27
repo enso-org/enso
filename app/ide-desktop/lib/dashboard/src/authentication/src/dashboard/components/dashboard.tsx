@@ -28,7 +28,6 @@ enum ColumnDisplayMode {
     settings = 'settings',
 }
 
-/** Column type. */
 enum Column {
     name = 'name',
     lastModified = 'last-modified',
@@ -39,6 +38,10 @@ enum Column {
     usagePlan = 'usage-plan',
     engine = 'engine',
     ide = 'ide',
+}
+
+enum Modal {
+    uploadFile = 'uploadFile',
 }
 
 // =================
@@ -53,12 +56,30 @@ const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
     [backend.AssetType.directory]: 'Folders',
 } as const
 
+function ProjectCreateForm() {
+    const [name, setName] = react.useState<string | null>(null)
+    const [template, setTemplate] = react.useState<string | null>(null)
+    return (
+        <form>
+            <label htmlFor="">Name: </label>
+            <input
+                type="text"
+                onChange={event => {
+                    setName(event.target.value)
+                }}
+            />
+            <input type="submit" value="Create" />
+        </form>
+    )
+}
+
 /** Forms to create each asset type. */
-const ASSET_TYPE_CREATE_FORM: Record<backend.AssetType, JSX.Element> = {
-    [backend.AssetType.project]: () => {},
-    [backend.AssetType.file]: () => {},
-    [backend.AssetType.secret]: () => {},
-    [backend.AssetType.directory]: () => {},
+// eslint-disable-next-line no-restricted-syntax
+const ASSET_TYPE_CREATE_FORM: Record<backend.AssetType, () => JSX.Element> = {
+    [backend.AssetType.project]: ProjectCreateForm,
+    [backend.AssetType.file]: asset => {},
+    [backend.AssetType.secret]: asset => {},
+    [backend.AssetType.directory]: asset => {},
 }
 
 /** English names for every column except for the name column. */
@@ -137,7 +158,10 @@ const COLUMN_RENDERER: Record<
     [Column.sharedWith]: asset => (
         <>
             {(asset.permissions ?? []).map(user => (
-                <PermissionDisplay permissions={PERMISSION[user.permission]}>
+                <PermissionDisplay
+                    key={user.user.organization_id}
+                    permissions={PERMISSION[user.permission]}
+                >
                     <img
                         className="rounded-full h-8"
                         src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
@@ -195,8 +219,8 @@ const COLUMN_RENDERER: Record<
 /** Heading element for every column. */
 function ColumnHeading(column: Column, assetType: backend.AssetType) {
     return column === Column.name ? (
-        <div>
-            {ASSET_TYPE_NAME[assetType]} <button>{svg.ADD_ICON}</button>
+        <div className="inline-flex">
+            {ASSET_TYPE_NAME[assetType]} <button className="mx-1">{svg.ADD_ICON}</button>
         </div>
     ) : (
         <>{COLUMN_NAME[column]}</>
@@ -218,6 +242,22 @@ function fileExtension(fileName: string) {
 /** Returns the appropriate icon for a specific file extension. */
 function fileIcon(_extension: string) {
     return svg.FILE_ICON
+}
+
+function toReadableSize(size: number) {
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    if (size < 2 ** 10) {
+        return String(size) + ' B'
+    } else if (size < 2 ** 20) {
+        return (size / 2 ** 10).toFixed(2) + ' kiB'
+    } else if (size < 2 ** 30) {
+        return (size / 2 ** 30).toFixed(2) + ' MiB'
+    } else if (size < 2 ** 40) {
+        return (size / 2 ** 40).toFixed(2) + ' GiB'
+    } else {
+        return (size / 2 ** 50).toFixed(2) + ' TiB'
+    }
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
 // =================
@@ -268,10 +308,9 @@ function Dashboard(props: DashboardProps) {
     >({})
 
     const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
-    // This must be a function so that it can re-render when state changes.
-    const [modal, setModal] = react.useState<(() => JSX.Element) | null>(null)
+    const [modal, setModal] = react.useState<Modal | null>(null)
     const [modalError, setModalError] = react.useState<string | null>(null)
-    const [uploadedFileName, setUploadedFileName] = react.useState<string | null>(null)
+    const [uploadedFileName, setUploadedFileName] = react.useState<string>('')
     const [uploadedFile, setUploadedFile] = react.useState<File | null>(null)
 
     const directory = directoryStack[directoryStack.length - 1]
@@ -334,12 +373,106 @@ function Dashboard(props: DashboardProps) {
         ),
     }
 
-    const renderer = <Type extends backend.AssetType>(column: Column, assetType: Type) => {
+    function renderer<Type extends backend.AssetType>(column: Column, assetType: Type) {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
+
               // eslint-disable-next-line no-restricted-syntax
               (nameRenderers[assetType] as (asset: backend.Asset<Type>) => JSX.Element)
             : COLUMN_RENDERER[column]
+    }
+
+    async function onFileUploadSubmit() {
+        if (uploadedFile == null) {
+            setModalError('Please upload a file.')
+        } else if (!uploadedFileName) {
+            setModalError('Please name the uploaded file.')
+        } else {
+            await backendService.uploadFile(
+                {
+                    fileName: uploadedFileName,
+                    ...(directory ? { parentDirectoryId: directory.id } : {}),
+                },
+                uploadedFile
+            )
+            setUploadedFileName('')
+            setUploadedFile(null)
+            setModal(null)
+        }
+    }
+
+    function RenderModal(modalArg: Modal) {
+        switch (modalArg) {
+            case Modal.uploadFile:
+                return (
+                    <form className="bg-white rounded-lg w-96 h-72 p-2">
+                        <div className="m-2">
+                            <label htmlFor="uploaded_file_name">File name</label>:{' '}
+                            <input
+                                id="uploaded_file_name"
+                                type="text"
+                                required
+                                className="border-primary"
+                                onChange={event => {
+                                    setUploadedFileName(event.target.value)
+                                }}
+                                defaultValue={uploadedFileName}
+                            />
+                        </div>
+                        <div className="m-2">
+                            <button className="text-white bg-blue-600 rounded-full px-4 py-1">
+                                <label htmlFor="uploaded_file">Select file</label>
+                            </button>
+                        </div>
+                        <div className="border border-primary rounded-md m-2">
+                            <input
+                                id="uploaded_file"
+                                type="file"
+                                className="hidden"
+                                onChange={event => {
+                                    setUploadedFileName(
+                                        uploadedFileName || (event.target.files?.[0]?.name ?? '')
+                                    )
+                                    setUploadedFile(event.target.files?.[0] ?? null)
+                                }}
+                            />
+                            <div className="inline-flex flex-row flex-nowrap w-full p-2">
+                                <div className="grow">
+                                    <div>{uploadedFile?.name ?? 'No file selected'}</div>
+                                    <div className="text-xs">
+                                        {uploadedFile
+                                            ? toReadableSize(uploadedFile.size)
+                                            : '\u00a0'}
+                                    </div>
+                                </div>
+                                <div>
+                                    {uploadedFile ? (
+                                        fileIcon(fileExtension(uploadedFile.name))
+                                    ) : (
+                                        <></>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="m-1">
+                            <button
+                                className="text-white bg-blue-600 rounded-full px-4 py-1 m-1"
+                                onClick={onFileUploadSubmit}
+                            >
+                                Upload
+                            </button>
+                            <button
+                                className="bg-gray-200 rounded-full px-4 py-1 m-1"
+                                onClick={() => {
+                                    setModal(null)
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                )
+        }
     }
 
     react.useEffect(() => {
@@ -380,7 +513,7 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId])
 
     return (
-        <div className="text-primary">
+        <div className="select-none text-primary">
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
             <div id="header" />
@@ -420,51 +553,9 @@ function Dashboard(props: DashboardProps) {
                     <button
                         className="mx-1"
                         onClick={() => {
-                            setModal(() => () => (
-                                <form
-                                    className="rounded-md"
-                                    onSubmit={async () => {
-                                        if (uploadedFileName == null) {
-                                            setModalError('File name must not be blank.')
-                                        } else if (uploadedFile == null) {
-                                            //
-                                        } else {
-                                            await backendService.uploadFile(
-                                                {
-                                                    fileName: uploadedFileName,
-                                                    ...(directory
-                                                        ? { parentDirectoryId: directory.id }
-                                                        : {}),
-                                                },
-                                                uploadedFile
-                                            )
-                                            setUploadedFileName(null)
-                                            setUploadedFile(null)
-                                            setModal(null)
-                                        }
-                                    }}
-                                >
-                                    <input
-                                        type="text"
-                                        required
-                                        {...(uploadedFileName != null
-                                            ? { value: uploadedFileName }
-                                            : {})}
-                                    />
-                                    <input
-                                        type="file"
-                                        onChange={event => {
-                                            if (uploadedFileName == null) {
-                                                setUploadedFileName(
-                                                    event.target.files?.[0]?.name ?? null
-                                                )
-                                            }
-                                            setUploadedFile(event.target.files?.[0] ?? null)
-                                        }}
-                                    />
-                                    <input type="submit text-white bg-blue-700">Upload</input>
-                                </form>
-                            ))
+                            setUploadedFileName('')
+                            setUploadedFile(null)
+                            setModal(Modal.uploadFile)
                         }}
                     >
                         {svg.UPLOAD_ICON}
@@ -531,54 +622,72 @@ function Dashboard(props: DashboardProps) {
                 </div>
             </div>
             <table className="items-center w-full bg-transparent border-collapse">
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.project>>
-                    items={projectAssets}
-                    getKey={proj => proj.id}
-                    placeholder={
-                        <>You have no project yet. Go ahead and create one using the form above.</>
-                    }
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        heading: ColumnHeading(column, backend.AssetType.project),
-                        render: renderer(column, backend.AssetType.project),
-                    }))}
-                />
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.directory>>
-                    items={directoryAssets}
-                    getKey={proj => proj.id}
-                    placeholder={<>This directory does not contain any subdirectories.</>}
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        heading: ColumnHeading(column, backend.AssetType.directory),
-                        render: renderer(column, backend.AssetType.directory),
-                    }))}
-                />
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.secret>>
-                    items={secretAssets}
-                    getKey={proj => proj.id}
-                    placeholder={<>This directory does not contain any secrets.</>}
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        heading: ColumnHeading(column, backend.AssetType.secret),
-                        render: renderer(column, backend.AssetType.secret),
-                    }))}
-                />
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.file>>
-                    items={fileAssets}
-                    getKey={proj => proj.id}
-                    placeholder={<>This directory does not contain any files.</>}
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        heading: ColumnHeading(column, backend.AssetType.file),
-                        render: renderer(column, backend.AssetType.file),
-                    }))}
-                />
+                <tbody>
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.project>>
+                        items={projectAssets}
+                        getKey={proj => proj.id}
+                        placeholder={
+                            <>
+                                You have no project yet. Go ahead and create one using the form
+                                above.
+                            </>
+                        }
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            heading: ColumnHeading(column, backend.AssetType.project),
+                            render: renderer(column, backend.AssetType.project),
+                        }))}
+                    />
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.directory>>
+                        items={directoryAssets}
+                        getKey={dir => dir.id}
+                        placeholder={<>This directory does not contain any subdirectories.</>}
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            heading: ColumnHeading(column, backend.AssetType.directory),
+                            render: renderer(column, backend.AssetType.directory),
+                        }))}
+                    />
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.secret>>
+                        items={secretAssets}
+                        getKey={secret => secret.id}
+                        placeholder={<>This directory does not contain any secrets.</>}
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            heading: ColumnHeading(column, backend.AssetType.secret),
+                            render: renderer(column, backend.AssetType.secret),
+                        }))}
+                    />
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.file>>
+                        items={fileAssets}
+                        getKey={file => file.id}
+                        placeholder={<>This directory does not contain any files.</>}
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            heading: ColumnHeading(column, backend.AssetType.file),
+                            render: renderer(column, backend.AssetType.file),
+                        }))}
+                    />
+                </tbody>
             </table>
-            {modal ? <div className="fixed w-screen h-screen bg-primary/75">{modal()}</div> : <></>}
+            {modal ? (
+                <div
+                    className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
+                    onClick={event => {
+                        if (event.target === event.currentTarget) {
+                            setModal(null)
+                        }
+                    }}
+                >
+                    {RenderModal(modal)}
+                </div>
+            ) : (
+                <></>
+            )}
         </div>
     )
 }

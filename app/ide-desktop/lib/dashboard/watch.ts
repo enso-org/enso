@@ -26,6 +26,7 @@ OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.tsx'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
+OPTS.minify = false
 OPTS.write = false
 
 // ===============

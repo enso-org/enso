@@ -109,7 +109,7 @@ export const SECRET_ICON = (
         <path
             d="M10.3 13a4 4 0 1 1 0-2h10a1 1 0 0 1 1 1v3a1 1 0 0 1-2 0v-2h-2v2a1 1 0 0 1-2 0v-2ZM3.5 12a1 1 0 1 1 2 0a1 1 0 1 1-2 0"
             fill="currentColor"
-            fill-rule="evenodd"
+            fillRule="evenodd"
         />
     </svg>
 )
@@ -173,11 +173,11 @@ export const ARROW_UP_ICON = (
 )
 
 export const ADD_ICON = (
-    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
         <g opacity={0.66}>
             <rect x={11} y={6} width={2} height={12} fill="currentColor" />
-            <rect x={18} y={11} width={12} height={2} fill="currentColor" />
+            <rect x={6} y={11} width={12} height={2} fill="currentColor" />
         </g>
     </svg>
 )
