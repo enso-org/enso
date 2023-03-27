@@ -51,7 +51,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     )
 
   /** ZIO runtime. */
-  implicit override val runtime: Runtime[ZAny] =
+  implicit override lazy val runtime: Runtime[ZAny] =
     zio.Unsafe.unsafe { implicit unsafe =>
       zio.Runtime.unsafe.fromLayer(
         zio.Runtime.setExecutor(
