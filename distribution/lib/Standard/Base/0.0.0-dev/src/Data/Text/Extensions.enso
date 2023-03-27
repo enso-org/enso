@@ -398,9 +398,9 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
      Extended partial matches in case-insensitive mode.
 
          # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
-         'ß'.replace 'ß' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
+         'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
-         'aﬃb'.replace 'ﬃ' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
+         'aﬃb'.replace 'i' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
 
    > Example
      Regexp replace.

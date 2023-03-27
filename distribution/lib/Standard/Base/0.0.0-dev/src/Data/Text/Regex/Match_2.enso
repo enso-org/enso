@@ -271,7 +271,7 @@ type Match_2
        Arguments:
        - id: The integer index or name of that group.
        - if_missing: The value to return if the index is out of bounds.
-    get : Integer -> Any -> Text
+    get : Integer -> Any -> Text | Any
     get self index ~if_missing=Nothing =
         self.text index . catch No_Such_Group (_-> if_missing)
 
