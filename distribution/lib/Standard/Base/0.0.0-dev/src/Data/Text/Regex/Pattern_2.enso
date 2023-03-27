@@ -99,7 +99,7 @@ type Pattern_2
 
        Arguments:
        - input: The text to split based on the pattern described by `self`.
-       - mode: The splitting mode to use.
+       - only_first: If True, only replace the first match.
 
        This method will _always_ return a vector. If no splits take place, the
        vector will contain a single element (equal to the original string).

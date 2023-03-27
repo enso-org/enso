@@ -15,13 +15,11 @@ import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
-import project.Data.Text.Regex_Matcher.Regex_Matcher
 import project.Data.Text.Regex_2
 import project.Data.Text.Regex_2.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
-import project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
@@ -305,9 +303,10 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
    Arguments:
    - delimiter: The pattern used to split the text.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
+   - only_first: If True, only replace the first match.
+   - use_regex: If true, the term is used as a regular expression.
 
    > Example
      Split the text on any occurrence of the separator `"::"`.
@@ -362,9 +361,8 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
    Arguments:
    - term: The string or regex to find.
    - replacement: The text to replace matches with.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
    - only_first: If True, only replace the first match.
    - use_regex: If true, the term is used as a regular expression.
 
