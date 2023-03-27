@@ -856,8 +856,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
-        staticOnLinux       = true,
-        initializeAtRuntime = Seq("scala.util.Random")
+        staticOnLinux = true,
+        initializeAtRuntime = Seq(
+          "scala.util.Random",
+          "zio.internal.ZScheduler$$anon$4",
+          "zio.Runtime$",
+          "zio.FiberRef$"
+        )
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(installNativeImage)
