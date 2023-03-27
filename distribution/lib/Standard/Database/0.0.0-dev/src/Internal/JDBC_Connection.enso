@@ -9,9 +9,9 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Internal.Base_Generator
-
 import project.Data.Table.Table as Database_Table
+import project.Internal.Base_Generator
+import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Errors import SQL_Error, SQL_Timeout
 
@@ -23,7 +23,6 @@ polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.ResultSet
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
-polyglot java import java.sql.Types as Java_Types
 
 polyglot java import org.enso.database.JDBCProxy
 

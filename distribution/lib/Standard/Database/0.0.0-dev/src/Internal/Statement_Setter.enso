@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 polyglot java import java.sql.PreparedStatement
+polyglot java import java.sql.Types as Java_Types
 
 type Statement_Setter
     ## PRIVATE

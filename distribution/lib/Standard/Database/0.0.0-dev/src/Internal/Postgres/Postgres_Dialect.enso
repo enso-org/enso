@@ -330,7 +330,7 @@ postgres_statement_setter =
     fill_holes stmt i value = case value of
         # TODO [RW] Postgres date handling
         _ : Date_Time ->
-            stmt.setTimestamp position (JDBCUtils.getTimestamp obj)
+            stmt.setTimestamp i (JDBCUtils.getTimestamp value)
         # _ : Date ->
         # _ : Time_Of_Day ->
         _ -> default.fill_holes stmt i value

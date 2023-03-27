@@ -37,9 +37,11 @@ type SQL_Error
 
        Convert the SQL error to a textual representation.
     to_text : Text
-    to_text self =
-        query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
-        "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
+    to_text self = case self of
+        SQL_Error -> "SQL_Error (type)"
+        SQL_Error.Error java_exception related_query ->
+            query = if related_query.is_nothing.not then " [Query was: " + related_query + "]" else ""
+            "There was an SQL error: " + java_exception.getMessage.to_text + "." + query
 
     ## UNSTABLE
 

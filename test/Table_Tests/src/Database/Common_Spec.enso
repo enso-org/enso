@@ -108,6 +108,7 @@ spec prefix connection =
         Test.specify "should not allow interpolations in raw user-built queries" <|
             r = connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
             IO.println r
+            r.print
             r.should_fail_with SQL_Error
 
         Test.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
