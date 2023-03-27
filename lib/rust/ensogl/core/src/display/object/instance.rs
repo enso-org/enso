@@ -2135,7 +2135,15 @@ impl InstanceDef {
 
     fn emit_event<T>(&self, payload: T)
     where T: 'static {
-        self.event.source.emit(event::SomeEvent::new(Some(self.downgrade()), payload));
+        let event = self.new_event(payload);
+        self.event.source.emit(event);
+    }
+
+    fn emit_event_without_bubbling<T>(&self, payload: T)
+    where T: 'static {
+        let event = self.new_event(payload);
+        event.set_bubbling(false);
+        self.event.source.emit(event);
     }
 
     fn focused_descendant(&self) -> Option<Instance> {
@@ -3771,6 +3779,13 @@ pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
     fn emit_event<T>(&self, event: T)
     where T: 'static {
         self.display_object().def.emit_event(event)
+    }
+
+    /// Emit a new event that does not participate in the bubbling propagation phase. See docs of
+    /// [`event::Event`] to learn more.
+    fn emit_event_without_bubbling<T>(&self, event: T)
+    where T: 'static {
+        self.display_object().def.emit_event_without_bubbling(event)
     }
 
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.

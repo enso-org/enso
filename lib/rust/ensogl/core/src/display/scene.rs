@@ -127,15 +127,16 @@ impl PointerTargetRegistry {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Mouse {
-    pub mouse_manager: MouseManager,
-    pub last_position: Rc<Cell<Vector2<i32>>>,
-    pub position:      Uniform<Vector2<i32>>,
-    pub click_count:   Uniform<i32>,
-    pub hover_rgba:    Uniform<Vector4<u32>>,
-    pub target:        Rc<Cell<PointerTargetId>>,
-    pub handles:       Rc<[callback::Handle; 6]>,
-    pub frp:           enso_frp::io::Mouse,
-    pub scene_frp:     Frp,
+    pub mouse_manager:   MouseManager,
+    pub last_position:   Rc<Cell<Vector2<i32>>>,
+    pub position:        Uniform<Vector2<i32>>,
+    pub click_count:     Uniform<i32>,
+    pub hover_rgba:      Uniform<Vector4<u32>>,
+    pub target:          Rc<Cell<PointerTargetId>>,
+    pub handles:         Rc<[callback::Handle; 6]>,
+    pub frp:             enso_frp::io::Mouse,
+    pub scene_frp:       Frp,
+    pub last_move_event: Rc<RefCell<Option<mouse::Move>>>,
 }
 
 impl Mouse {
@@ -159,8 +160,11 @@ impl Mouse {
         let shaped_dom = root.clone_ref().into();
         let mouse_manager = MouseManager::new(&shaped_dom, root, &web::window);
         let frp = frp::io::Mouse::new();
+        let last_move_event = Rc::new(RefCell::new(None));
         let on_move = mouse_manager.on_move.add(js_event.handler(
-            f!([frp, scene_frp, position, last_position] (event: &mouse::Move) {
+            f!([pointer_target_registry, target, frp, scene_frp, position, last_position, last_move_event]
+            (event: &mouse::Move) {
+                last_move_event.borrow_mut().replace(event.clone());
                 let shape = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio;
                 let screen_x = event.client_x();
@@ -177,11 +181,16 @@ impl Mouse {
                     frp.position_bottom_left.emit(position_bottom_left);
                     frp.position_top_left.emit(position_top_left);
                     frp.position.emit(position);
+
+                    pointer_target_registry.with_mouse_target(target.get(), |_, d| {
+                        d.emit_event(event.clone());
+                    });
                 }
             }),
         ));
         let on_down = mouse_manager.on_down.add(js_event.handler(
-            f!([pointer_target_registry, target, pressed, frp, click_count, display_mode] (event:&mouse::Down) {
+            f!([pointer_target_registry, target, pressed, frp, click_count, display_mode]
+            (event:&mouse::Down) {
                 click_count.modify(|v| *v += 1);
                 if display_mode.get().allow_mouse_events() {
                     let button = event.button();
@@ -206,7 +215,7 @@ impl Mouse {
                     if let Some(last_target) = pressed.borrow_mut().remove(&button) {
                         pointer_target_registry.with_mouse_target(last_target, |t, d| {
                             t.emit_mouse_release(button);
-                            d.emit_event(event.clone());
+                            d.emit_event(event.clone().unchecked_convert_to::<mouse::Release>());
                         });
                     }
                     pointer_target_registry.with_mouse_target(current_target, |t, d| {
@@ -216,11 +225,16 @@ impl Mouse {
                 }
             }),
         ));
-        let on_wheel = mouse_manager.on_wheel.add(js_event.handler(f_!([frp, display_mode] {
-            if display_mode.get().allow_mouse_events() {
-                frp.wheel.emit(())
-            }
-        })));
+        let on_wheel = mouse_manager.on_wheel.add(js_event.handler(
+            f!([pointer_target_registry, target, frp, display_mode] (event: &mouse::Wheel) {
+                if display_mode.get().allow_mouse_events() {
+                    frp.wheel.emit(());
+                    pointer_target_registry.with_mouse_target(target.get(), |_, d| {
+                        d.emit_event(event.clone());
+                    });
+                }
+            }),
+        ));
 
         let on_leave = mouse_manager.on_leave.add(js_event.handler(f_!(
             scene_frp.focused_source.emit(false);
@@ -240,6 +254,7 @@ impl Mouse {
             handles,
             frp,
             scene_frp,
+            last_move_event,
         }
     }
 
@@ -1045,10 +1060,24 @@ impl SceneData {
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);
-            self.pointer_target_registry
-                .with_mouse_target(current_target, |t, d| t.mouse_out.emit(()));
-            self.pointer_target_registry
-                .with_mouse_target(new_target, |t, d| t.mouse_over.emit(()));
+            self.pointer_target_registry.with_mouse_target(current_target, |t, d| {
+                t.mouse_out.emit(());
+                if let Some(event) = &*self.mouse.last_move_event.borrow() {
+                    let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
+                    let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
+                    d.emit_event(out_event);
+                    d.emit_event_without_bubbling(leave_event);
+                }
+            });
+            self.pointer_target_registry.with_mouse_target(new_target, |t, d| {
+                t.mouse_over.emit(());
+                if let Some(event) = &*self.mouse.last_move_event.borrow() {
+                    let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
+                    let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
+                    d.emit_event(over_event);
+                    d.emit_event_without_bubbling(enter_event);
+                }
+            });
             self.mouse.re_emit_position_event(); // See docs to learn why.
         }
     }
