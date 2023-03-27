@@ -17,8 +17,9 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Common.Database_Join_Helper
-import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
