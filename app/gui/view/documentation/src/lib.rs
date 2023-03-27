@@ -362,14 +362,14 @@ impl View {
 
             // === Mouse Cursor ===
 
-            app.frp.show_system_cursor <+ overlay.events.mouse_over;
-            app.frp.hide_system_cursor <+ overlay.events.mouse_out;
+            app.frp.show_system_cursor <+ overlay.events_deprecated.mouse_over;
+            app.frp.hide_system_cursor <+ overlay.events_deprecated.mouse_out;
 
 
             // === Hover ===
 
-            frp.source.is_hovered <+ model.overlay.events.mouse_over.constant(true);
-            frp.source.is_hovered <+ model.overlay.events.mouse_out.constant(false);
+            frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
+            frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
         }
         init.emit(());
         style.init.emit(());

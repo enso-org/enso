@@ -48,8 +48,8 @@ pub mod pointer_target;
 
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
-pub use pointer_target::PointerTarget;
 pub use pointer_target::PointerTargetId;
+pub use pointer_target::PointerTarget_DEPRECATED;
 
 
 
@@ -60,17 +60,17 @@ pub use pointer_target::PointerTargetId;
 shared! { PointerTargetRegistry
 #[derive(Debug)]
 pub struct ShapeRegistryData {
-    mouse_target_map : HashMap<PointerTargetId, (PointerTarget, display::object::Instance)>,
+    mouse_target_map : HashMap<PointerTargetId, (PointerTarget_DEPRECATED, display::object::Instance)>,
 }
 
 impl {
-    fn new(background_pointer_target: &PointerTarget, background: &display::object::Instance) -> Self {
+    fn new(background_pointer_target: &PointerTarget_DEPRECATED, background: &display::object::Instance) -> Self {
         let mouse_target_map = default();
         Self {mouse_target_map} . init(background_pointer_target, background)
     }
 
     pub fn insert
-    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>, display_object:&display::object::Instance) {
+    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget_DEPRECATED>, display_object:&display::object::Instance) {
         self.mouse_target_map.insert(id.into(),(target.into(), display_object.clone_ref()));
     }
 
@@ -79,7 +79,7 @@ impl {
         self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get(&self, target:PointerTargetId) -> Option<(PointerTarget, display::object::Instance)> {
+    pub fn get(&self, target:PointerTargetId) -> Option<(PointerTarget_DEPRECATED, display::object::Instance)> {
         self.mouse_target_map.get(&target).cloned()
     }
 }}
@@ -87,7 +87,7 @@ impl {
 impl ShapeRegistryData {
     fn init(
         mut self,
-        background: &PointerTarget,
+        background: &PointerTarget_DEPRECATED,
         display_object: &display::object::Instance,
     ) -> Self {
         self.mouse_target_map.insert(
@@ -99,14 +99,14 @@ impl ShapeRegistryData {
 }
 
 impl PointerTargetRegistry {
-    /// Runs the provided function on the [`PointerTarget`] associated with the provided
-    /// [`PointerTargetId`]. Please note that the [`PointerTarget`] will be cloned because during
-    /// evaluation of the provided function this registry might be changed, which would result in
-    /// double borrow mut otherwise.
+    /// Runs the provided function on the [`PointerTarget_DEPRECATED`] associated with the provided
+    /// [`PointerTargetId`]. Please note that the [`PointerTarget_DEPRECATED`] will be cloned
+    /// because during evaluation of the provided function this registry might be changed, which
+    /// would result in double borrow mut otherwise.
     pub fn with_mouse_target<T>(
         &self,
         target_id: PointerTargetId,
-        f: impl FnOnce(&PointerTarget, &display::object::Instance) -> T,
+        f: impl FnOnce(&PointerTarget_DEPRECATED, &display::object::Instance) -> T,
     ) -> Option<T> {
         match self.get(target_id) {
             Some(t) => Some(f(&t.0, &t.1)),
@@ -770,7 +770,7 @@ pub struct SceneData {
     pub mouse: Mouse,
     pub keyboard: Keyboard,
     pub uniforms: Uniforms,
-    pub background: PointerTarget,
+    pub background: PointerTarget_DEPRECATED,
     pub pointer_target_registry: PointerTargetRegistry,
     pub stats: Stats,
     pub dirty: Dirty,
@@ -803,7 +803,7 @@ impl SceneData {
         let dirty = Dirty::new(on_mut);
         let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
-        let background = PointerTarget::new();
+        let background = PointerTarget_DEPRECATED::new();
         let pointer_target_registry = PointerTargetRegistry::new(&background, &display_object);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);

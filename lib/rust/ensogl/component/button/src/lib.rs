@@ -310,7 +310,7 @@ impl<Shape: ButtonShape> View<Shape> {
 
         model.set_background_color(background_unconcerned_color.value());
         model.set_icon_color(icon_unconcerned_color.value());
-        let events = &model.shape.events;
+        let events = &model.shape.events_deprecated;
 
         frp::extend! { network
             eval frp.set_size ((&size) model.shape.set_size(size););
@@ -318,7 +318,7 @@ impl<Shape: ButtonShape> View<Shape> {
 
             // Mouse
             frp.source.is_hovered <+ bool(&events.mouse_out,&events.mouse_over);
-            pressed_on_me         <- model.shape.events.mouse_down_primary.gate(&frp.is_hovered);
+            pressed_on_me         <- model.shape.events_deprecated.mouse_down_primary.gate(&frp.is_hovered);
             tracking_for_release  <- bool(&mouse.up_primary,&pressed_on_me);
             mouse_released_on_me  <- mouse.up_primary.gate(&frp.is_hovered);
             was_clicked           <- tracking_for_release.previous();

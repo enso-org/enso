@@ -498,7 +498,7 @@ where E::Model: Default
 
             // === Mouse Position ===
 
-            let overlay_events = &model.overlay.events;
+            let overlay_events = &model.overlay.events_deprecated;
             mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             frp.source.is_mouse_over <+ mouse_in;
             mouse_moved <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD ).on_true();

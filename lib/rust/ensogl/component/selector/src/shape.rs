@@ -199,7 +199,7 @@ pub mod right_overflow {
 
 use enso_frp::Network;
 use ensogl_core::frp::io::Mouse;
-use ensogl_core::gui::component::PointerTarget;
+use ensogl_core::gui::component::PointerTarget_DEPRECATED;
 use ensogl_core::gui::component::ShapeView;
 
 pub use super::frp::*;
@@ -211,7 +211,7 @@ use ensogl_core::display::Scene;
 /// Dragging is ended by a mouse up.
 pub fn shape_is_dragged(
     network: &Network,
-    shape: &PointerTarget,
+    shape: &PointerTarget_DEPRECATED,
     mouse: &Mouse,
 ) -> enso_frp::Stream<bool> {
     enso_frp::extend! { network
@@ -234,7 +234,10 @@ pub fn relative_shape_down_position<T: 'static + Shape>(
     let mouse = &scene.mouse.frp;
     enso_frp::extend! { network
         mouse_down            <- mouse.down.constant(());
-        over_shape            <- bool(&shape.events.mouse_out,&shape.events.mouse_over);
+        over_shape            <- bool(
+            &shape.events_deprecated.mouse_out,
+            &shape.events_deprecated.mouse_over
+        );
         mouse_down_over_shape <- mouse_down.gate(&over_shape);
         click_positon         <- mouse.position.sample(&mouse_down_over_shape);
         click_positon         <- click_positon.map(f!([scene,shape](pos)
@@ -262,7 +265,7 @@ mod tests {
     fn test_shape_is_dragged() {
         let network = enso_frp::Network::new("TestNetwork");
         let mouse = enso_frp::io::Mouse::default();
-        let shape = PointerTarget::default();
+        let shape = PointerTarget_DEPRECATED::default();
 
         let is_dragged = shape_is_dragged(&network, &shape, &mouse);
         let _watch = is_dragged.register_watch();

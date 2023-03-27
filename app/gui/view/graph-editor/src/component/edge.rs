@@ -12,7 +12,7 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::gui::component::PointerTarget;
+use ensogl::gui::component::PointerTarget_DEPRECATED;
 use ensogl_hardcoded_theme as theme;
 use nalgebra::Rotation2;
 
@@ -74,7 +74,7 @@ trait EdgeShape: display::Object {
     fn id(&self) -> display::object::Id {
         self.display_object().id()
     }
-    fn events(&self) -> &PointerTarget;
+    fn events(&self) -> &PointerTarget_DEPRECATED;
     fn set_color(&self, color: color::Rgba);
     fn set_color_focus(&self, color: color::Rgba);
 
@@ -376,8 +376,8 @@ macro_rules! define_corner_start {
                     self.focus_split_angle.set(angle);
                 }
 
-                fn events(&self) -> &PointerTarget {
-                    &self.events
+                fn events(&self) -> &PointerTarget_DEPRECATED {
+                    &self.events_deprecated
                 }
 
                 fn set_color(&self, color: color::Rgba) {
@@ -473,8 +473,8 @@ macro_rules! define_corner_end {
                     self.focus_split_angle.set(angle);
                 }
 
-                fn events(&self) -> &PointerTarget {
-                    &self.events
+                fn events(&self) -> &PointerTarget_DEPRECATED {
+                    &self.events_deprecated
                 }
 
                 fn set_color(&self, color: color::Rgba) {
@@ -558,8 +558,8 @@ macro_rules! define_line {
                     self.focus_split_angle.set(angle);
                 }
 
-                fn events(&self) -> &PointerTarget {
-                    &self.events
+                fn events(&self) -> &PointerTarget_DEPRECATED {
+                    &self.events_deprecated
                 }
 
                 fn set_color(&self, color: color::Rgba) {
@@ -635,8 +635,8 @@ macro_rules! define_arrow { () => {
                  self.focus_split_angle.set(angle);
             }
 
-            fn events(&self) -> &PointerTarget {
-                &self.events
+            fn events(&self) -> &PointerTarget_DEPRECATED {
+                &self.events_deprecated
             }
 
             fn set_color(&self, color:color::Rgba) {
@@ -765,7 +765,7 @@ macro_rules! define_components {
         #[allow(missing_docs)]
         pub struct $name {
             pub display_object    : display::object::Instance,
-            pub shape_view_events : Rc<Vec<PointerTarget>>,
+            pub shape_view_events : Rc<Vec<PointerTarget_DEPRECATED>>,
             shape_type_map        : Rc<HashMap<display::object::Id,ShapeRole>>,
             $(pub $field : $field_type),*
         }
@@ -777,8 +777,8 @@ macro_rules! define_components {
                 let display_object = display::object::Instance::new();
                 $(let $field = <$field_type>::new();)*
                 $(display_object.add_child(&$field);)*
-                let mut shape_view_events:Vec<PointerTarget> = Vec::default();
-                $(shape_view_events.push($field.events.clone_ref());)*
+                let mut shape_view_events:Vec<PointerTarget_DEPRECATED> = Vec::default();
+                $(shape_view_events.push($field.events_deprecated.clone_ref());)*
                 let shape_view_events = Rc::new(shape_view_events);
 
                 let mut shape_type_map:HashMap<display::object::Id,ShapeRole> = default();

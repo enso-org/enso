@@ -141,11 +141,10 @@ pub fn main() {
     let glob_frp = glob::Frp::new();
     let glob_frp_network = glob_frp.network();
 
-    let shape1_display_object = shape1.display_object();
+    let shape1_over = shape1.on_event::<mouse::Over>();
     frp::extend! { glob_frp_network
-        eval_ shape1.events.mouse_over ([shape1_display_object] {
+        eval_ shape1_over ([] {
             warn!("Shape 1 over");
-            shape1_display_object.emit_event(MouseOver);
         });
     }
 
@@ -154,7 +153,6 @@ pub fn main() {
 
     let root = display::object::Instance::new();
     root.set_size(Vector2::new(300.0, 100.0));
-    // root.use_auto_layout().set_gap((10.0, 10.0));
     root.add_child(&vector_editor);
     world.add_child(&root);
 

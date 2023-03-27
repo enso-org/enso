@@ -389,11 +389,11 @@ impl ActionBar {
 
             frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
 
-            let reset_position_icon = &model.icons.reset_position_icon.events;
+            let reset_position_icon = &model.icons.reset_position_icon.events_deprecated;
             let reset_position_icon_down = reset_position_icon.mouse_down_primary.clone_ref();
             frp.source.on_container_reset_position <+ reset_position_icon_down;
 
-            let drag_icon      = &model.icons.drag_icon.events;
+            let drag_icon      = &model.icons.drag_icon.events_deprecated;
             let start_dragging = &drag_icon.mouse_down_primary;
             end_dragging       <- mouse.up.gate(&frp.source.container_drag_state);
             should_drag        <- bool(&end_dragging,start_dragging);

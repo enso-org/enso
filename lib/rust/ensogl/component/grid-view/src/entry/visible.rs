@@ -104,7 +104,7 @@ where EntryParams: frp::node::Data
                 contour_offset <- all(init, entry_frp.contour_offset)._1();
                 eval contour_offset ((off) overlay.set_xy(*off));
 
-                let events = &overlay.events;
+                let events = &overlay.events_deprecated;
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
                 self.entry_contour <+ all_with(&location, &contour, |&(r, c), &cont| (r, c, cont));

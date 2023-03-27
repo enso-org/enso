@@ -221,7 +221,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         let frp = &self.frp;
         let model = &self.model;
         let color = color::Animation::new(network);
-        let icon = &model.icon.events;
+        let icon = &model.icon.events_deprecated;
 
         frp::extend! { network
 
