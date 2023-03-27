@@ -126,6 +126,8 @@
   shortened labels for entries with long module paths. When an option is
   selected from the dropdown, the necessary module imports are inserted,
   eliminating the need for fully qualified names.
+- [Added tooltips to icon buttons][6035] for improved usability. Users can now
+  quickly understand each button's function.
 
 #### EnsoGL (rendering engine)
 
@@ -176,12 +178,14 @@
   performed in a given frame][5895]. In particular, you can now inspect names of
   all symbols rendered in a given frame. You can also pause the performance
   monitor and inspect results recorded in the past.
+- [ToggleButtons can now have tooltips][6035].
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
 [4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
 [5895]: https://github.com/enso-org/enso/pull/5895
+[6035]: https://github.com/enso-org/enso/pull/6035
 
 #### Enso Standard Library
 
