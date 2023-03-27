@@ -9,7 +9,7 @@ import Standard.Base.Metadata.Display
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Reader
+import project.Internal.Excel_Reader
 
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.apache.poi.ss.usermodel.Workbook

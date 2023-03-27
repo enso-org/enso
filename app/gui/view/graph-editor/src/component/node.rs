@@ -299,6 +299,7 @@ ensogl::define_endpoints_2! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
+        edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
         set_freeze_macro      (bool),
         set_comment           (Comment),
@@ -750,6 +751,7 @@ impl Node {
             );
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
+            model.input.edit_expression <+ input.edit_expression;
             out.expression                  <+ model.input.frp.expression;
             out.expression_span             <+ model.input.frp.on_port_code_update;
             out.requested_widgets           <+ model.input.frp.requested_widgets;
