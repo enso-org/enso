@@ -46,6 +46,7 @@ case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
   /** Execute Zio effect.
     *
     * @param op effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     * @return a future containing either a failure or a result
     */
   override def exec[E, A](
@@ -66,6 +67,7 @@ case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
     *
     * @param timeout execution timeout
     * @param op effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     * @return a future. On timeout future is failed with `TimeoutException`.
     * Otherwise future contains either a failure or a result.
     */
@@ -91,6 +93,7 @@ case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
   /** Execute long running task in background.
     *
     * @param op effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     */
   override def exec_[E <: Throwable, A](
     op: ZIO[ZAny, E, A]
