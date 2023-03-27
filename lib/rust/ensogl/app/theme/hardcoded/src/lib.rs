@@ -686,14 +686,13 @@ define_themes! { [light:0, dark:1]
             background = graph_editor::node::background , graph_editor::node::background;
             text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                offset = 00.0, 00.0;
+                offset = 0.0, 0.0;
                 size   = 12.0, 12.0;
                 font   = DEFAULT_FONT, DEFAULT_FONT;
             }
             padding_outer   = 20.0, 20.0;
-            padding_inner_x = 10.0, 10.0;
-            padding_inner_y = 2.0, 2.0;
-            height          = 30.0, 30.0;
+            padding_inner_x = 8.0, 8.0;
+            padding_inner_y = 6.0, 6.0;
         }
         slider {
             background = graph_editor::node::background , graph_editor::node::background;
