@@ -112,17 +112,30 @@ impl JsEvent {
         Self { event, event_source, network }
     }
 
+    // /// Creates an event handler which wraps the event in an FRP network. The event will be
+    // emitted /// on the `event` output stream. After the event is emitted, `None` will be
+    // emitted. pub fn handler<Event>(&self, mut processing_fn: impl FnMut(&Event)) -> impl
+    // FnMut(&Event)     where Event: AsRef<enso_web::Event> {
+    //     let event_source = &self.event_source;
+    //     f!([event_source] (event) {
+    //         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "event_handler");
+    //         let js_event = event.as_ref().clone();
+    //         event_source.emit(Some(js_event));
+    //         processing_fn(event);
+    //         event_source.emit(None);
+    //     })
+    // }
+
     /// Creates an event handler which wraps the event in an FRP network. The event will be emitted
     /// on the `event` output stream. After the event is emitted, `None` will be emitted.
-    pub fn handler<Event>(&self, mut processing_fn: impl FnMut(&Event)) -> impl FnMut(&Event)
-    where Event: AsRef<enso_web::Event> {
+    pub fn handler<Event>(&self, mut processing_fn: impl FnMut(&Event)) -> impl FnMut(&Event) {
         let event_source = &self.event_source;
         f!([event_source] (event) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "event_handler");
-            let js_event = event.as_ref().clone();
-            event_source.emit(Some(js_event));
+            // let js_event = event.as_ref().clone();
+            // event_source.emit(Some(js_event));
             processing_fn(event);
-            event_source.emit(None);
+            // event_source.emit(None);
         })
     }
 }

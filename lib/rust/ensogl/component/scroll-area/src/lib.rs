@@ -369,7 +369,7 @@ impl ScrollArea {
         }
 
         let mouse_manager = &mouse.mouse_manager;
-        let scroll_handler = f!([model](event:&mouse::OnWheel)
+        let scroll_handler = f!([model](event: &mouse::Wheel)
             if hovering.value() {
                 model.h_scrollbar.scroll_by(event.delta_x() as f32);
                 model.v_scrollbar.scroll_by(event.delta_y() as f32);

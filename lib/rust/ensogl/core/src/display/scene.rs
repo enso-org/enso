@@ -147,36 +147,6 @@ impl Mouse {
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
         pointer_target_registry: &PointerTargetRegistry,
     ) -> Self {
-        // let network = &self.frp.network;
-        // let pointer_target_registry = &self.pointer_target_registry;
-        // let target = &self.mouse.target;
-        // let pointer_position_changed = &self.pointer_position_changed;
-        // let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
-        //
-        // frp::extend! { network
-        //     eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
-        //         let current_target = target.get();
-        //         pressed.borrow_mut().insert(*button,current_target);
-        //         pointer_target_registry.with_mouse_target(current_target, |t, d|
-        //             t.emit_mouse_down(*button)
-        //         );
-        //     });
-        //
-        //     eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
-        //         let current_target = target.get();
-        //         if let Some(last_target) = pressed.borrow_mut().remove(button) {
-        //             pointer_target_registry.with_mouse_target(last_target, |t, d|
-        //                 t.emit_mouse_release(*button)
-        //             );
-        //         }
-        //         pointer_target_registry.with_mouse_target(current_target, |t, d|
-        //             t.emit_mouse_up(*button)
-        //         );
-        //     });
-        //
-        //     eval_ self.mouse.frp.position (pointer_position_changed.set(true));
-        // }
-        //
         let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         let scene_frp = scene_frp.clone_ref();
@@ -190,7 +160,7 @@ impl Mouse {
         let mouse_manager = MouseManager::new(&shaped_dom, root, &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(js_event.handler(
-            f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
+            f!([frp, scene_frp, position, last_position] (event: &mouse::Move) {
                 let shape = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio;
                 let screen_x = event.client_x();
@@ -211,7 +181,7 @@ impl Mouse {
             }),
         ));
         let on_down = mouse_manager.on_down.add(js_event.handler(
-            f!([pointer_target_registry, target, pressed, frp, click_count, display_mode] (event:&mouse::OnDown) {
+            f!([pointer_target_registry, target, pressed, frp, click_count, display_mode] (event:&mouse::Down) {
                 click_count.modify(|v| *v += 1);
                 if display_mode.get().allow_mouse_events() {
                     let button = event.button();
@@ -219,27 +189,30 @@ impl Mouse {
 
                     let current_target = target.get();
                     pressed.borrow_mut().insert(button, current_target);
-                    pointer_target_registry.with_mouse_target(current_target, |t, d|
-                        t.emit_mouse_down(button)
-                    );
+                    pointer_target_registry.with_mouse_target(current_target, |t, d| {
+                        t.emit_mouse_down(button);
+                        d.emit_event(event.clone());
+                    });
                 }
             }),
         ));
         let on_up = mouse_manager.on_up.add(js_event.handler(
-            f!([pointer_target_registry, target, pressed, frp, display_mode] (event:&mouse::OnUp) {
+            f!([pointer_target_registry, target, pressed, frp, display_mode] (event: &mouse::Up) {
                 if display_mode.get().allow_mouse_events() {
                     let button = event.button();
                     frp.up.emit(button);
 
                     let current_target = target.get();
                     if let Some(last_target) = pressed.borrow_mut().remove(&button) {
-                        pointer_target_registry.with_mouse_target(last_target, |t, d|
-                            t.emit_mouse_release(button)
-                        );
+                        pointer_target_registry.with_mouse_target(last_target, |t, d| {
+                            t.emit_mouse_release(button);
+                            d.emit_event(event.clone());
+                        });
                     }
-                    pointer_target_registry.with_mouse_target(current_target, |t, d|
-                        t.emit_mouse_up(button)
-                    );
+                    pointer_target_registry.with_mouse_target(current_target, |t, d| {
+                        t.emit_mouse_up(button);
+                        d.emit_event(event.clone());
+                    });
                 }
             }),
         ));

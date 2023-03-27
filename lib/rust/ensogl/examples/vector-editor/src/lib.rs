@@ -10,11 +10,11 @@ use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-
 
 
 // ==============
@@ -77,10 +77,10 @@ impl<T: display::Object> VectorEditor<T> {
 
     fn init(self) -> Self {
         let network = self.frp.network();
-        let event_handler = self.display_object.on_event::<MouseOver>();
+        let event_handler = self.display_object.on_event::<mouse::Up>();
         frp::extend! { network
             eval_ event_handler ([] {
-                warn!("Mouse over in parent");
+                warn!("Mouse up in parent");
             });
         }
         self
