@@ -1307,7 +1307,7 @@ pub struct TouchNetwork<T: frp::Data> {
 
 impl<T: frp::Data> TouchNetwork<T> {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
+    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
         frp::extend! { network
             down          <- source::<T> ();
             is_down       <- bool(&mouse.up_primary,&down);
@@ -1337,7 +1337,7 @@ pub struct TouchState {
 
 impl TouchState {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
+    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
         let nodes = TouchNetwork::<NodeId>::new(network, mouse);
         let background = TouchNetwork::<()>::new(network, mouse);
         Self { nodes, background }
@@ -1756,7 +1756,7 @@ impl GraphEditorModel {
         let edges = Edges::new();
         let vis_registry = visualization::Registry::with_default_visualizations();
         let visualisations = default();
-        let touch_state = TouchState::new(network, &scene.mouse.frp);
+        let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
         let app = app.clone_ref();
         let frp = frp.clone_ref();
@@ -1768,8 +1768,13 @@ impl GraphEditorModel {
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
-        let selection_controller =
-            selection::Controller::new(&frp, &app.cursor, &scene.mouse.frp, &touch_state, &nodes);
+        let selection_controller = selection::Controller::new(
+            &frp,
+            &app.cursor,
+            &scene.mouse.frp_deprecated,
+            &touch_state,
+            &nodes,
+        );
 
         Self {
             display_object,
@@ -2697,7 +2702,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let nodes = &model.nodes;
     let edges = &model.edges;
     let inputs = &model.frp;
-    let mouse = &scene.mouse.frp;
+    let mouse = &scene.mouse.frp_deprecated;
     let touch = &model.touch_state;
     let vis_registry = &model.vis_registry;
     let out = &frp.private.output;

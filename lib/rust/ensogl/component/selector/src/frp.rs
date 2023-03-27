@@ -7,7 +7,7 @@ use crate::shape::relative_shape_down_position;
 use crate::shape::shape_is_dragged;
 
 use enso_frp as frp;
-use enso_frp::io::Mouse;
+use enso_frp::io::Mouse_DEPRECATED;
 use enso_frp::Network;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
@@ -73,7 +73,7 @@ impl Frp {
         style: &StyleWatchFrp,
         network: &Network,
         size: frp::Stream<Vector2>,
-        mouse: &Mouse,
+        mouse: &Mouse_DEPRECATED,
     ) -> Frp {
         let net = &network;
         let scene = &model.app.display.default_scene;

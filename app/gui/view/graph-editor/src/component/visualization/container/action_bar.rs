@@ -355,7 +355,7 @@ impl ActionBar {
         let network = &self.frp.network;
         let frp = &self.frp;
         let model = &self.model;
-        let mouse = &app.display.default_scene.mouse.frp;
+        let mouse = &app.display.default_scene.mouse.frp_deprecated;
         let visualization_chooser = &model.visualization_chooser.frp;
 
         frp::extend! { network

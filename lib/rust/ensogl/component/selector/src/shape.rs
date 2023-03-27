@@ -198,7 +198,7 @@ pub mod right_overflow {
 // =======================
 
 use enso_frp::Network;
-use ensogl_core::frp::io::Mouse;
+use ensogl_core::frp::io::Mouse_DEPRECATED;
 use ensogl_core::gui::component::PointerTarget_DEPRECATED;
 use ensogl_core::gui::component::ShapeView;
 
@@ -212,7 +212,7 @@ use ensogl_core::display::Scene;
 pub fn shape_is_dragged(
     network: &Network,
     shape: &PointerTarget_DEPRECATED,
-    mouse: &Mouse,
+    mouse: &Mouse_DEPRECATED,
 ) -> enso_frp::Stream<bool> {
     enso_frp::extend! { network
         mouse_up              <- mouse.up.constant(());
@@ -231,7 +231,7 @@ pub fn relative_shape_down_position<T: 'static + Shape>(
     scene: &Scene,
     shape: &ShapeView<T>,
 ) -> enso_frp::Stream<Vector2> {
-    let mouse = &scene.mouse.frp;
+    let mouse = &scene.mouse.frp_deprecated;
     enso_frp::extend! { network
         mouse_down            <- mouse.down.constant(());
         over_shape            <- bool(

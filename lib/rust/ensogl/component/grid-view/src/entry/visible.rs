@@ -94,7 +94,7 @@ where EntryParams: frp::node::Data
         let init = if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
             let entry_network = entry_frp.network();
-            let mouse = &self.app.display.default_scene.mouse.frp;
+            let mouse = &self.app.display.default_scene.mouse.frp_deprecated;
             frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
                 init <- source_();
                 entry_frp.set_size <+ all(init, self.set_entry_size)._1();

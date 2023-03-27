@@ -344,7 +344,7 @@ impl View {
 
             // === Activation ===
 
-            mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
+            mouse_down_target <- scene.mouse.frp_deprecated.down.map(f_!(scene.mouse.target.get()));
             selected <- mouse_down_target.map(f!([model,visualization] (target){
                 if !model.overlay.is_this_target(*target) {
                     visualization.deactivate.emit(());

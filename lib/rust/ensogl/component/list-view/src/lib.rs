@@ -472,7 +472,7 @@ where E::Model: Default
         let network = &frp.network;
         let model = &self.model;
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let view_y = Animation::<f32>::new(network);
         let selection_y = Animation::<f32>::new(network);
         let selection_height = Animation::<f32>::new(network);

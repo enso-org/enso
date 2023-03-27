@@ -280,7 +280,7 @@ impl<Shape: ButtonShape> View<Shape> {
         let network = &frp.network;
         let scene = &app.display.default_scene;
         let style = StyleWatchFrp::new(&scene.style_sheet);
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         // Icon color initialization
         let default_icon_color_path = Shape::icon_color_path(State::Unconcerned);

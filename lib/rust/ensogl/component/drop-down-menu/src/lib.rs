@@ -229,7 +229,7 @@ impl DropDownMenu {
         let model = &self.model;
 
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         frp::extend! { network
 

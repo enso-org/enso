@@ -360,7 +360,7 @@ impl ScrollArea {
 
         let mouse = &scene.mouse;
         frp::extend! { network
-            hovering <- all_with(&mouse.frp.position,&frp.resize,
+            hovering <- all_with(&mouse.frp_deprecated.position, &frp.resize,
                 f!([scene,model](&pos,&size) {
                     let local_pos = scene.screen_to_object_space(&*model.display_object,pos);
                     (0.0..=size.x).contains(&local_pos.x) && (-size.y..=0.0).contains(&local_pos.y)
