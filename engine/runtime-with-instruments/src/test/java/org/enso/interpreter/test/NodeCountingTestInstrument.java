@@ -43,13 +43,13 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
   public void enable() {
     this.env
         .getInstrumenter()
-        .attachExecutionEventFactory(SourceSectionFilter.ANY, new CountingAmdFunctionCallFactory());
+        .attachExecutionEventFactory(SourceSectionFilter.ANY, new CountingAndFunctionCallFactory());
   }
 
   public void enable(SourceSectionFilter filter) {
     this.env
             .getInstrumenter()
-            .attachExecutionEventFactory(filter, new CountingAmdFunctionCallFactory());
+            .attachExecutionEventFactory(filter, new CountingAndFunctionCallFactory());
   }
 
   public Map<UUID, FunctionCallInfo> registeredCalls() {
@@ -93,7 +93,7 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
     }
   }
 
-  private final class CountingAmdFunctionCallFactory implements ExecutionEventNodeFactory {
+  private final class CountingAndFunctionCallFactory implements ExecutionEventNodeFactory {
     @Override
     public ExecutionEventNode create(EventContext context) {
       final Node node = context.getInstrumentedNode();
