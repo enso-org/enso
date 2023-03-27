@@ -327,11 +327,11 @@ mod_op = Base_Generator.lift_binary_op "mod" x-> y->
 postgres_statement_setter : Statement_Setter
 postgres_statement_setter =
     default = Statement_Setter.default
-    fill_holes stmt i value = case value of
+    fill_hole stmt i value = case value of
         # TODO [RW] Postgres date handling
         _ : Date_Time ->
             stmt.setTimestamp i (JDBCUtils.getTimestamp value)
         # _ : Date ->
         # _ : Time_Of_Day ->
-        _ -> default.fill_holes stmt i value
-    Statement_Setter.Value fill_holes
+        _ -> default.fill_hole stmt i value
+    Statement_Setter.Value fill_hole
