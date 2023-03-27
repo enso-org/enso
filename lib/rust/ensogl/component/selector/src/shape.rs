@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn test_shape_is_dragged() {
         let network = enso_frp::Network::new("TestNetwork");
-        let mouse = enso_frp::io::Mouse::default();
+        let mouse = enso_frp::io::Mouse_DEPRECATED::default();
         let shape = PointerTarget_DEPRECATED::default();
 
         let is_dragged = shape_is_dragged(&network, &shape, &mouse);

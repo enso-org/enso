@@ -9,6 +9,7 @@ use enso_frp::io::mouse;
 use web::dom::Shape;
 
 
+
 // =============
 // === Event ===
 // =============
@@ -226,8 +227,8 @@ define_events! {
     /// (typically a mouse).
     Wheel<WheelEvent>,
 
-    
-    
+
+
     // ==========================
     // === Non JS-like Events ===
     // ==========================

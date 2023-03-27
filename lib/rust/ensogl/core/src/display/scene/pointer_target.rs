@@ -15,10 +15,10 @@ use enso_frp as frp;
 // ================================
 
 /// Abstraction for objects that can interact with a mouse.
-/// 
+///
 /// # Deprecated
 /// This API is deprecated. Instead, use the display object's event API. For example, to get an FRP
-/// endpoint for mouse event, you can use the [`crate::display::Object::on_event`] function. 
+/// endpoint for mouse event, you can use the [`crate::display::Object::on_event`] function.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 #[allow(non_camel_case_types)]

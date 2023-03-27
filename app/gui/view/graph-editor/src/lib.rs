@@ -3941,13 +3941,13 @@ mod tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.emit_mouse_down(PrimaryButton);
-        port.events.emit_mouse_up(PrimaryButton);
+        port.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(graph_editor.edges().len(), 1);
         // Dropping edge.
         let mouse = &app.display.default_scene.mouse;
         let click_pos = Vector2(300.0, 300.0);
-        mouse.frp.position.emit(click_pos);
+        mouse.frp_deprecated.position.emit(click_pos);
         let click_on_background = |_: &GraphEditor| mouse.click_on_background();
         let (_, node_2) = graph_editor.add_node_by(&click_on_background);
         graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
@@ -3968,8 +3968,8 @@ mod tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.emit_mouse_down(PrimaryButton);
-        port.events.emit_mouse_up(PrimaryButton);
+        port.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.events_deprecated.emit_mouse_up(PrimaryButton);
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
@@ -3979,8 +3979,8 @@ mod tests {
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true, None);
         let port = node_2.model().input_port_shape().expect("No input port.");
-        port.hover.events.emit_mouse_down(PrimaryButton);
-        port.hover.events.emit_mouse_up(PrimaryButton);
+        port.hover.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.hover.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }
@@ -3995,7 +3995,7 @@ mod tests {
         editor: &GraphEditor,
         mouse_pos: Vector2,
     ) {
-        scene.mouse.frp.position.emit(mouse_pos);
+        scene.mouse.frp_deprecated.position.emit(mouse_pos);
         press_add_node_shortcut(editor);
     }
 
@@ -4145,7 +4145,7 @@ mod tests {
         app.set_screen_size_for_tests();
         let graph_editor = new_graph_editor(&app);
         let mouse = &app.display.default_scene.mouse;
-        mouse.frp.position.emit(Vector2::zeros());
+        mouse.frp_deprecated.position.emit(Vector2::zeros());
         (app, graph_editor)
     }
 }

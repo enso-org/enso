@@ -14,6 +14,7 @@ pub use constants::*;
 pub use primitive::*;
 
 
+
 // We have two Shape and two ShapeOps traits. This one takes precedence.
 mod precedence_resolver {
     use super::*;
