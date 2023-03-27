@@ -230,9 +230,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       Node node = context.getInstrumentedNode();
 
       if (node instanceof FunctionCallInstrumentationNode
-          && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
+          && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
         UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
-        onFunctionReturn(nodeId, result, context);
+        onFunctionReturn(nodeId, functionCall, context);
       } else if (node instanceof ExpressionNode) {
         onExpressionReturn(result, node, context);
       }
@@ -307,11 +307,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
 
     @CompilerDirectives.TruffleBoundary
-    private void onFunctionReturn(UUID nodeId, Object result, EventContext context) throws ThreadDeath {
+    private void onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
         calls.put(
-                nodeId, new FunctionCallInfo((FunctionCallInstrumentationNode.FunctionCall) result));
-        functionCallCallback.accept(
-                new ExpressionCall(nodeId, (FunctionCallInstrumentationNode.FunctionCall) result));
+                nodeId, new FunctionCallInfo(result));
+        functionCallCallback.accept(new ExpressionCall(nodeId, result));
         // Return cached value after capturing the enterable function call in `functionCallCallback`
         Object cachedResult = cache.get(nodeId);
         if (cachedResult != null) {
