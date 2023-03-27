@@ -1457,6 +1457,7 @@ spec =
         Test.specify "should correctly handle Unicode" <|
             'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
             'ß'.replace 'ß' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
+            'aﬃb'.replace 'i' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
             'aﬃb'.replace 'ﬃ' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
 
             'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'
