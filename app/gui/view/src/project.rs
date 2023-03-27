@@ -25,6 +25,8 @@ use ensogl::display;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::DEPRECATED_Animation;
+use ensogl_component::text;
+use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
 
@@ -49,19 +51,21 @@ const INPUT_CHANGE_DELAY_MS: i32 = 200;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SearcherParams {
     /// The node being an Expression Input.
-    pub input:       NodeId,
+    pub input:           NodeId,
     /// The node being a source for the edited node data - usually it's output shall be a `this`
     /// port for inserted expression.
-    pub source_node: Option<NodeSource>,
+    pub source_node:     Option<NodeSource>,
+    /// A position of the cursor in the input node.
+    pub cursor_position: text::Byte,
 }
 
 impl SearcherParams {
     fn new_for_new_node(node_id: NodeId, source_node: Option<NodeSource>) -> Self {
-        Self { input: node_id, source_node }
+        Self { input: node_id, source_node, cursor_position: default() }
     }
 
-    fn new_for_edited_node(node_id: NodeId) -> Self {
-        Self { input: node_id, source_node: None }
+    fn new_for_edited_node(node_id: NodeId, cursor_position: text::Byte) -> Self {
+        Self { input: node_id, source_node: None, cursor_position }
     }
 }
 
@@ -107,7 +111,7 @@ ensogl::define_endpoints! {
         /// Is **not** emitted with every graph's node expression change, only when
         /// [`INPUT_CHANGE_DELAY_MS`] passes since last change, so we won't needlessly update the
         /// Component Browser when user is quickly typing in the input.
-        searcher_input_changed         (ImString),
+        searcher_input_changed         (ImString, Vec<Selection<text::Byte>>),
         is_searcher_opened             (bool),
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
@@ -367,6 +371,7 @@ impl View {
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
         let input_change_delay = frp::io::timer::Timeout::new(network);
+        let searcher_open_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -456,20 +461,47 @@ impl View {
 
             // === Editing ===
 
-            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
-            frp.source.searcher <+ existing_node_edited.map(
-                |&node| Some(SearcherParams::new_for_edited_node(node))
-            );
-            searcher_input_change_opt <- graph.node_expression_set.map2(&frp.searcher, |(node_id, expr), searcher| {
-                (searcher.as_ref()?.input == *node_id).then(|| expr.clone_ref())
+            node_edited_by_user <- graph.node_being_edited.gate_not(&frp.adding_new_node);
+            existing_node_edited <- graph.node_expression_edited.gate_not(&frp.is_searcher_opened);
+            open_searcher <- existing_node_edited.map2(&node_edited_by_user,
+                |(id, _, _), edited| edited.map_or(false, |edited| *id == edited)
+            ).on_true();
+            searcher_open_delay.restart <+ open_searcher.constant(0);
+            cursor_position <- existing_node_edited.map2(
+                &node_edited_by_user,
+                |(node_id, _, selections), edited| {
+                    edited.map_or(None, |edited| {
+                        let position = || selections.last().map(|sel| sel.end).unwrap_or_default();
+                        (*node_id == edited).then(position)
+                    })
+                }
+            ).filter_map(|pos| *pos);
+            edited_node <- node_edited_by_user.filter_map(|node| *node);
+            position_and_edited_node <- cursor_position.map2(&edited_node, |pos, id| (*pos, *id));
+            prepare_params <- position_and_edited_node.sample(&searcher_open_delay.on_expired);
+            frp.source.searcher <+ prepare_params.map(|(pos, node_id)| {
+                Some(SearcherParams::new_for_edited_node(*node_id, *pos))
             });
-            searcher_input_change <- searcher_input_change_opt.filter_map(|expr| expr.clone());
+            searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
+                |(node_id, expr, selections), searcher| {
+                    let input_change = || (*node_id, expr.clone_ref(), selections.clone());
+                    (searcher.as_ref()?.input == *node_id).then(input_change)
+                }
+            );
+            searcher_input_change <- searcher_input_change_opt.filter_map(|change| change.clone());
             input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
             input_change_delay.cancel <+ update_searcher_input_on_commit;
             update_searcher_input <- any(&input_change_delay.on_expired, &update_searcher_input_on_commit);
-            frp.source.searcher_input_changed <+ searcher_input_change.sample(&update_searcher_input);
-
+            input_change_and_searcher <- map2(&searcher_input_change, &frp.searcher,
+                |c, s| (c.clone(), *s)
+            );
+            updated_input <- input_change_and_searcher.sample(&update_searcher_input);
+            input_changed <- updated_input.filter_map(|((node_id, expr, selections), searcher)| {
+                let input_change = || (expr.clone_ref(), selections.clone());
+                (searcher.as_ref()?.input == *node_id).then(input_change)
+            });
+            frp.source.searcher_input_changed <+ input_changed;
 
             // === Adding Node ===
 

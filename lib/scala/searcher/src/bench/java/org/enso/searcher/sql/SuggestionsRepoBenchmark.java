@@ -79,6 +79,7 @@ public class SuggestionsRepoBenchmark {
             CollectionConverters.ListHasAsScala(new ArrayList<String>()).asScala().toSeq(),
             none(),
             none(),
+            none(),
             none()),
         TIMEOUT);
   }
@@ -90,6 +91,7 @@ public class SuggestionsRepoBenchmark {
             none(),
             CollectionConverters.ListHasAsScala(new ArrayList<String>()).asScala().toSeq(),
             scala.Some.apply("MyType"),
+            none(),
             none(),
             none()),
         TIMEOUT);
@@ -103,6 +105,7 @@ public class SuggestionsRepoBenchmark {
         repo.search(
             none(),
             CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
+            none(),
             none(),
             none(),
             none()),
@@ -119,6 +122,7 @@ public class SuggestionsRepoBenchmark {
             CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
             scala.Some.apply("ReturnType"),
             none(),
+            none(),
             none()),
         TIMEOUT);
   }
@@ -133,7 +137,8 @@ public class SuggestionsRepoBenchmark {
             CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
             scala.Some.apply("ReturnType"),
             scala.Some.apply(kinds),
-            none()),
+            none(),
+            scala.Some.apply(false)),
         TIMEOUT);
   }
 

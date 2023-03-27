@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+from Standard.Base.Data.Ordering import all
+
 import project.Data.Column.Column
 
 polyglot java import java.sql.Types
@@ -14,11 +16,6 @@ type SQL_Type
        - typeid: a numerical type id, as defined in `java.sql.Types`.
        - name: a database-specific type name, used for pretty printing.
     Value typeid name
-
-    == self that = case that of
-        SQL_Type.Value that_id _ ->
-            self.typeid == that_id
-        _ -> False
 
     ## The SQL representation of `Boolean` type.
     boolean : SQL_Type
@@ -187,3 +184,13 @@ merge_number_type left right = if left.is_definitely_integer then merge_number_t
     if right_index.is_nothing then left else
         new_index = left_index.max right_index
         [SQL_Type.numeric, SQL_Type.decimal, SQL_Type.real, SQL_Type.real, SQL_Type.double].at new_index
+
+## PRIVATE
+type SQL_Type_Comparator
+    compare x y =
+        if x.typeid == y.typeid then Ordering.Equal else
+            Nothing
+
+    hash x = x.typeid.hashCode
+
+Comparable.from (_:SQL_Type) = SQL_Type_Comparator
