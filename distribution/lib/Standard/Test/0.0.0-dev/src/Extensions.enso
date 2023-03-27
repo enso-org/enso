@@ -45,6 +45,9 @@ Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 3+frames_to_skip
+        matcher_text = case matcher.to_text of
+            text : Text -> text
+            _ -> Meta.meta matcher . to_text
         Test.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
 ## Asserts that `self` value is equal to the expected value.
