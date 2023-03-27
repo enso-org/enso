@@ -126,7 +126,8 @@
   shortened labels for entries with long module paths. When an option is
   selected from the dropdown, the necessary module imports are inserted,
   eliminating the need for fully qualified names.
-- [Icon buttons now have tooltips.][6035]
+- [Added tooltips to icon buttons][6035] for improved usability. Users can now
+  quickly understand each button's function.
 
 #### EnsoGL (rendering engine)
 
