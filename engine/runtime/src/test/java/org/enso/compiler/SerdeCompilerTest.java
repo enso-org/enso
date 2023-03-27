@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Formatter;
@@ -53,13 +54,20 @@ public class SerdeCompilerTest {
       assertEquals("Two library modules are compiled", result.compiledModules().size(), 2);
       assertEquals(result.compiledModules().exists(m -> m == module), true);
       var serializationManager = ensoContext.getCompiler().getSerializationManager();
-      var future = serializationManager.serializeModule(module, true, true);
-      var serialized = future.get(5, TimeUnit.SECONDS);
-      assertEquals(serialized, true);
-      var future2 = compiler.compile(false, true);
-      var persisted = future2.get(5, TimeUnit.SECONDS);
-      assertEquals("Fib_Test library has been persisted", true, persisted);
-
+      var futures = new ArrayList<Future<?>>();
+      result
+          .compiledModules()
+          .foreach(
+              (m) -> {
+                var future = serializationManager.serializeModule(m, true, true);
+                futures.add(future);
+                return null;
+              });
+      futures.add(compiler.compile(false, true));
+      for (var f : futures) {
+        var persisted = f.get(10, TimeUnit.SECONDS);
+        assertEquals("Fib_Test library has been fully persisted", true, persisted);
+      }
       old = module.getIr();
       ctx.leave();
     }
