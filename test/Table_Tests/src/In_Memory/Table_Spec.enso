@@ -468,11 +468,19 @@ spec =
             r = c.sort
             r.to_vector.should_equal [My.Data 1 2, My.Data 2 1, My.Data 4 -1, My.Data 3 4, My.Data 5 2, My.Data 7 0]
 
+
         Test.specify 'should allow passing a custom comparator' <|
             c = Column.from_vector 'foo' [My.Data 1 2, My.Data 2 5, My.Data 3 4, My.Data 6 3, Nothing, My.Data 1 0]
             cmp a b = Ordering.compare (a.x-a.y).abs (b.x-b.y).abs
             r = c.sort by=cmp
             r.to_vector.should_equal [My.Data 1 2, My.Data 3 4, My.Data 1 0, My.Data 2 5, My.Data 6 3, Nothing]
+
+            d = Column.from_vector 'foo' [1,3,2,4,Nothing,5]
+            cmp2 a b = Ordering.compare -a -b
+            r2 = d.sort by=cmp2
+            r2.to_vector.should_equal [5,4,3,2,1,Nothing]
+            r3 = d.sort by=cmp2 missing_last=False
+            r3.to_vector.should_equal [Nothing,5,4,3,2,1]
 
         Test.specify 'should handle Unicode characters correctly' <|
             c = Column.from_vector 'c' ['z', 'a', 'd', 'f', 's', 'e\u0301', 'ś', 'ą', 's\u0301', 'w', 'b']
@@ -691,6 +699,17 @@ spec =
             r2 = table.aggregate [Count_Distinct "texts"]
             r2.at "Count Distinct texts" . to_vector . should_equal [3]
 
+        Test.specify "should be able to aggregate over enso Types" <|
+            weekday_table  = Table.new [["days", [Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Sunday]], ["group", [1,1,2,1,2]]]
+
+            r1 = weekday_table.aggregate [Group_By "days"] . order_by "days"
+            r1.at "days" . to_vector . should_equal [Day_Of_Week.Sunday, Day_Of_Week.Monday, Day_Of_Week.Tuesday]
+
+            r2 = weekday_table.aggregate [Group_By "group", Minimum "days" "min", Maximum "days" "max"] . order_by "group"
+            r2.at "group" . to_vector . should_equal [1, 2]
+            r2.at "min" . to_vector . should_equal [Day_Of_Week.Monday, Day_Of_Week.Sunday]
+            r2.at "max" . to_vector . should_equal [Day_Of_Week.Tuesday, Day_Of_Week.Monday]
+
     ## We have a separate set of tests for In-Memory distinct as it gives us
        more guarantees: preserving order of rows and always selecting the first
        row of ones sharing the same distinctness key. For database tests (to be
@@ -749,9 +768,12 @@ spec =
             problems2 = [Floating_Point_Equality.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
-        Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
+        Test.specify "should be able to create distinct on Enso objects" <|
             t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
-            t.distinct . should_fail_with Illegal_Argument
+            t.distinct ["X"] . at "X" . to_vector . should_equal [My.Data 1 2, My.Data 3 4]
+
+            t2 = Table.new [["X", [Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Wednesday]]]
+            t2.distinct ["X"] . at "X" . to_vector . should_equal [Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Wednesday]
 
     Test.group "[In-Memory] Table.filter" <|
         Test.specify "by a custom predicate" <|

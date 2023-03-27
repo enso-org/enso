@@ -32,8 +32,6 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
-import project.IO
-import project.IO
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
@@ -223,6 +221,8 @@ Text.characters self =
 
    If an empty regex is used, `find` throws an Illegal_Argument error.
 
+   If a non-default locale is used, `find` throws an Illegal_Argument error.
+
    > Example
      Find the first substring matching the regex.
 
@@ -249,6 +249,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
    If an empty regex is used, `find_all` throws an Illegal_Argument error.
 
+   If a non-default locale is used, `find_all` throws an Illegal_Argument error.
+
    > Example
      Find the substring matching the regex.
 
@@ -258,7 +260,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
-Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error ! Illegal_Argument
+Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -275,6 +277,8 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      sensitively.
 
    If an empty regex is used, `match` throws an Illegal_Argument error.
+
+   If a non-default locale is used, `match` throws an Illegal_Argument error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -366,6 +370,9 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
 
    If an empty regex is used, `replace` throws an Illegal_Argument error.
 
+   If a non-default locale is used with a regex, `replace` throws an
+   Illegal_Argument error.
+
    > Example
      Replace letters in the text "aaa".
 
@@ -402,16 +409,16 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
      Extended partial matches in case-insensitive mode.
 
          # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
-         'ß'.replace 'ß' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'A'
+         'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
-         'aﬃb'.replace 'ﬃ' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
+         'aﬃb'.replace 'i' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
 
    > Example
      Regexp replace.
 
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
 
-Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Text | Illegal_Argument
+Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Text ! Illegal_Argument
 Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
     case use_regex of
         False -> if term.is_empty then self else
