@@ -116,13 +116,15 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Long.class, Constants.INTEGER_64),
           new RetypeInfo(Double.class, Constants.FLOAT_64),
           new RetypeInfo(String.class, Constants.STRING),
-          // TODO [RW] I think BigDecimals should not be coerced to floats, we should add Decimal support to in-memory tables at some point
-          //new RetypeInfo(BigDecimal.class, StorageType.FLOAT_64),
+          // TODO [RW] I think BigDecimals should not be coerced to floats, we should add Decimal
+          // support to in-memory tables at some point
+          // new RetypeInfo(BigDecimal.class, StorageType.FLOAT_64),
           new RetypeInfo(LocalDate.class, Constants.DATE),
           new RetypeInfo(LocalTime.class, Constants.TIME_OF_DAY),
           new RetypeInfo(ZonedDateTime.class, Constants.DATE_TIME),
           new RetypeInfo(Float.class, Constants.FLOAT_64),
-          // Smaller integer types are upcast to 64-bit integers by default anyway. This logic does not apply only if a specific type is requested (so not in inferred builder).
+          // Smaller integer types are upcast to 64-bit integers by default anyway. This logic does
+          // not apply only if a specific type is requested (so not in inferred builder).
           new RetypeInfo(Integer.class, Constants.INTEGER_64),
           new RetypeInfo(Short.class, Constants.INTEGER_64),
           new RetypeInfo(Byte.class, Constants.INTEGER_64));

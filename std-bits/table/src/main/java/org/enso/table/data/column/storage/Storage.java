@@ -23,7 +23,7 @@ public abstract class Storage<T> {
   /** @return the number of NA elements in this column */
   public abstract int countMissing();
 
-  /** @return the type tag of this column's storage.*/
+  /** @return the type tag of this column's storage. */
   public abstract StorageType getType();
 
   /**
@@ -245,8 +245,8 @@ public abstract class Storage<T> {
    * counts[i]}.
    *
    * @param counts the mask specifying elements duplication
-   * @param total the sum of all elements in the mask, also interpreted as the length of the resulting
-   *     storage
+   * @param total the sum of all elements in the mask, also interpreted as the length of the
+   *     resulting storage
    * @return the storage masked according to the specified rules
    */
   public abstract Storage<T> countMask(int[] counts, int total);

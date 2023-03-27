@@ -15,7 +15,8 @@ import java.util.stream.Collectors;
 
 public class IndexJoin implements JoinStrategy {
   private record HashEqualityCondition(
-      Column left, Column right, TextFoldingStrategy textFoldingStrategy) {}
+      Column left, Column right, TextFoldingStrategy textFoldingStrategy) {
+  }
 
   @Override
   public JoinResult join(Table left, Table right, List<JoinCondition> conditions) {

@@ -12,6 +12,7 @@ import java.util.List;
 
 public class MixedStorageFacade extends Storage<Object> {
   private final Storage<?> underlyingStorage;
+
   public MixedStorageFacade(Storage<?> storage) {
     underlyingStorage = storage;
   }
@@ -47,12 +48,14 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return underlyingStorage.runVectorizedMap(name, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return underlyingStorage.runVectorizedZip(name, argument, problemBuilder);
   }
 

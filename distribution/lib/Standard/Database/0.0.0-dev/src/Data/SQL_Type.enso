@@ -28,7 +28,6 @@ type SQL_Type
     null : SQL_Type
     null = SQL_Type.Value Types.NULL "NULL"
 
-
     ## PRIVATE
        Constructs a `SQL_Type` from a `ResultSetMetaData` object.
     from_metadata metadata ix =

@@ -20,8 +20,8 @@ public abstract class TypedBuilder extends Builder {
   public abstract boolean canRetypeTo(StorageType type);
 
   /**
-   * Retype this builder to the given type. Can only be called if {@link #canRetypeTo(StorageType)} returns
-   * true for the type.
+   * Retype this builder to the given type. Can only be called if {@link #canRetypeTo(StorageType)}
+   * returns true for the type.
    *
    * @param type the target type
    * @return a retyped builder

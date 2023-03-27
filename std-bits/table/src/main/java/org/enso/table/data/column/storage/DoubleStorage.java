@@ -73,9 +73,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public StorageType getType() {
     return Constants.FLOAT_64;

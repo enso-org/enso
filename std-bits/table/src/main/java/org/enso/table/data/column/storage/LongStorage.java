@@ -20,9 +20,9 @@ import java.util.List;
 
 /** A column storing 64-bit integers. */
 public final class LongStorage extends NumericStorage<Long> {
-  // TODO at some point we will want to add separate storage classes for byte, short and int, for more compact
-  //  storage and more efficient handling of smaller integers; for now we will be handling this just by checking the
-  //  bounds
+  // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
+  // for more compact storage and more efficient handling of smaller integers; for now we will be
+  // handling this just by checking the bounds
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -80,18 +80,14 @@ public final class LongStorage extends NumericStorage<Long> {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public StorageType getType() {
     // TODO add possibility to set integer bit limit
     return Constants.INTEGER_64;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
