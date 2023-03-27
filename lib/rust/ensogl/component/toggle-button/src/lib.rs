@@ -21,6 +21,8 @@
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
+use ensogl_core::application::tooltip;
+use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::system::Shape;
@@ -202,26 +204,29 @@ pub struct ToggleButton<S: Shape> {
     model:   Rc<Model<S>>,
 }
 
-impl<Shape: ColorableShape + 'static> Default for ToggleButton<Shape> {
-    fn default() -> Self {
-        let frp = Frp::new();
-        let model = Rc::new(Model::<Shape>::new());
-        Self { frp, model }.init_frp()
-    }
-}
-
 impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new(app: &Application, tooltip_style: tooltip::Style) -> Self {
+        let frp = Frp::new();
+        let model = Rc::new(Model::<Shape>::new());
+        Self { frp, model }.init_frp(app, tooltip_style)
     }
 
-    fn init_frp(self) -> Self {
+    fn init_frp(self, app: &Application, tooltip_style: tooltip::Style) -> Self {
         let network = &self.frp.network;
         let frp = &self.frp;
         let model = &self.model;
         let color = color::Animation::new(network);
         let icon = &model.icon.events;
+
+        // Explicitly define the tooltip placement if none was set. This ensures that this tooltip
+        // is always correctly placed even when other components use tooltips as well. Otherwise,
+        // the explicit placement setting of other tooltips would be used, since other tooltips use
+        // the same application-level FRP node for setting the style.
+        let tooltip_style = {
+            let placement = tooltip_style.placement().unwrap_or_default();
+            tooltip_style.with_placement(placement)
+        };
 
         frp::extend! { network
 
@@ -241,6 +246,8 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             frp.source.mouse_over <+ icon.mouse_over;
             frp.source.mouse_out  <+ icon.mouse_out;
+            frp.source.is_hovered <+ bool(&icon.mouse_out, &icon.mouse_over);
+            frp.source.is_pressed <+ bool(&icon.mouse_up_primary, &icon.mouse_down_primary);
 
 
             // === Color ===
@@ -248,9 +255,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
             invisible <- frp.set_visibility.on_false().constant(0.0);
             color.target_alpha <+ invisible;
 
-            frp.source.visible    <+ frp.set_visibility;
-            frp.source.is_hovered <+ bool(&icon.mouse_out,&icon.mouse_over);
-            frp.source.is_pressed <+ bool(&icon.mouse_up_primary,&icon.mouse_down_primary);
+            frp.source.visible <+ frp.set_visibility;
 
             button_state <- all_with4(&frp.visible,&frp.state,&frp.is_hovered,&frp.is_pressed,
                 |a,b,c,d| ButtonState::new(*a,*b,*c,*d));
@@ -260,6 +265,18 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             color.target <+ color_target;
             eval color.value ((color) model.icon.set_color(color.into()));
+
+
+            // === Tooltip ===
+
+            tooltip <- frp.is_hovered.map(move |is_hovered| {
+                if *is_hovered {
+                    tooltip_style.clone()
+                } else {
+                    tooltip::Style::unset_label()
+                }
+            });
+            app.frp.set_tooltip <+ tooltip;
         }
 
         frp.set_state.emit(false);
