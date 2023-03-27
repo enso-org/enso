@@ -26,7 +26,6 @@ polyglot java import java.sql.SQLTimeoutException
 polyglot java import java.sql.Types as Java_Types
 
 polyglot java import org.enso.database.JDBCProxy
-polyglot java import org.enso.database.JDBCUtils
 
 type JDBC_Connection
     ## PRIVATE
@@ -65,11 +64,11 @@ type JDBC_Connection
 
        Runs the provided action with a prepared statement, adding contextual
        information to any thrown SQL errors.
-    with_prepared_statement : Text  | SQL_Statement -> (PreparedStatement -> Any) -> Any
-    with_prepared_statement self query action =
+    with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Any
+    with_prepared_statement self query statement_setter action =
         prepare template values = self.connection_resource.with java_connection->
             stmt = java_connection.prepareStatement template
-            Panic.catch Any (set_statement_values stmt values) caught_panic->
+            Panic.catch Any (statement_setter.fill_values stmt values) caught_panic->
                 stmt.close
                 Panic.throw caught_panic
             stmt
@@ -85,12 +84,11 @@ type JDBC_Connection
                 go compiled.first compiled.second
 
     ## PRIVATE
-
        Given a prepared statement, gets the column names and types for the
        result set.
-    fetch_columns : Text | SQL_Statement -> Any
-    fetch_columns self statement =
-        self.with_prepared_statement statement stmt->
+    fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
+    fetch_columns self statement statement_setter =
+        self.with_prepared_statement statement statement_setter stmt->
             metadata = stmt.executeQuery.getMetaData
 
             resolve_column ix =
@@ -104,8 +102,8 @@ type JDBC_Connection
 
        Given an insert query template and the associated Database_Table, and a
        Materialized_Table of data, load to the database.
-    load_table : Text -> Materialized_Table -> Integer -> Nothing
-    load_table self insert_template table batch_size =
+    load_table : Text -> Statement_Setter -> Materialized_Table -> Integer -> Nothing
+    load_table self insert_template statement_setter table batch_size =
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False
@@ -121,7 +119,7 @@ type JDBC_Connection
                                     Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                     0.up_to num_rows . each row_id->
                         values = columns.map col-> col.at row_id
-                        set_statement_values stmt values
+                        statement_setter.fill_values stmt values
                         stmt.addBatch
                         if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                     if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
@@ -171,18 +169,6 @@ handle_sql_errors ~action related_query=Nothing =
         case caught_panic.payload of
             exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
             exc -> Error.throw (SQL_Error.Error exc related_query)
-
-## PRIVATE
-   Sets values inside of a prepared statement.
-set_statement_values : PreparedStatement -> Vector Any -> Nothing
-set_statement_values stmt values =
-    values.map_with_index ix-> obj->
-        position = ix + 1
-        # TODO [RW] dialect specific logic!
-        case obj of
-            Nothing -> stmt.setNull position Java_Types.NULL
-            _ : Date_Time -> stmt.setTimestamp position (JDBCUtils.getTimestamp obj)
-            _ -> stmt.setObject position obj
 
 ## PRIVATE
    Given a Materialized_Table, create a SQL statement to build the table.

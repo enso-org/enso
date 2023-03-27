@@ -13,7 +13,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-
+import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
@@ -135,14 +135,16 @@ type Connection
                     False ->
                         Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
-            columns = self.jdbc_connection.fetch_columns raw_sql
+            columns = self.jdbc_connection.fetch_columns raw_sql Statement_Setter.null
             name = if alias == "" then (UUID.randomUUID.to_text) else alias
             ctx = Context.for_query raw_sql name
             Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
             result = handle_sql_errors <|
                 ctx = Context.for_table name (if alias == "" then name else alias)
-                columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select Nothing ctx))
+                statement = self.dialect.generate_sql (Query.Select Nothing ctx)
+                statement_setter = self.dialect.get_statement_setter
+                columns = self.jdbc_connection.fetch_columns statement statement_setter
                 Database_Table_Module.make_table self name columns ctx
             result.catch SQL_Error sql_error->
                 Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
@@ -171,7 +173,8 @@ type Connection
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Materialized_Table
     read_statement self statement column_type_suggestions=Nothing last_row_only=False =
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
-        self.jdbc_connection.with_prepared_statement statement stmt->
+        statement_setter = self.dialect.get_statement_setter
+        self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
 
     ## ADVANCED
@@ -185,7 +188,8 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        self.jdbc_connection.with_prepared_statement query stmt->
+        statement_setter = self.dialect.get_statement_setter
+        self.jdbc_connection.with_prepared_statement query statement_setter stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
 
@@ -225,6 +229,7 @@ type Connection
             pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant Nothing]
             insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
-            self.jdbc_connection.load_table insert_template table batch_size
+            statement_setter = self.dialect.get_statement_setter
+            self.jdbc_connection.load_table insert_template statement_setter table batch_size
 
         db_table

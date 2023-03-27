@@ -25,6 +25,7 @@ import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
@@ -145,6 +146,10 @@ type SQLite_Dialect
         type_mapping = self.get_type_mapping
         value_type = type_mapping.sql_type_to_value_type sql_type
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
+    ## PRIVATE
+    get_statement_setter : Statement_Setter
+    get_statement_setter self = Statement_Setter.default
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation

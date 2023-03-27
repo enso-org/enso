@@ -104,6 +104,10 @@ type Redshift_Dialect
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## PRIVATE
+    get_statement_setter : Statement_Setter
+    get_statement_setter self = Postgres_Dialect.postgres_statement_setter
+
+    ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
         _ = aggregate

@@ -18,6 +18,7 @@ import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Redshift.Redshift_Dialect
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
@@ -100,6 +101,16 @@ type Dialect
     make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
     make_column_fetcher_for_type self sql_type =
         _ = sql_type
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Returns a helper object that handles the logic of setting values in a
+       prepared statement.
+
+       This object may provide custom logic for handling dialect-specific
+       handling of some types.
+    get_statement_setter : Statement_Setter
+    get_statement_setter self =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE

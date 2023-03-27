@@ -45,10 +45,10 @@ type SQL_Type_Reference
     new : Connection -> Context -> SQL_Expression -> SQL_Type_Reference
     new connection context expression =
         do_fetch =
-            # TODO [RW] remove type from here ?
             empty_context = context.add_where_filters [SQL_Expression.Constant False]
             statement = connection.dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
-            columns = connection.jdbc_connection.fetch_columns statement
+            statement_setter = connection.dialect.get_statement_setter
+            columns = connection.jdbc_connection.fetch_columns statement statement_setter
             only_column = columns.first
             only_column.second
         SQL_Type_Reference.Computed_By_Database (Lazy.new do_fetch)

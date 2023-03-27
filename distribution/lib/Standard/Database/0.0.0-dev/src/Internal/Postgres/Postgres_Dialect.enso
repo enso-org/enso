@@ -26,9 +26,12 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
-import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
+
+polyglot java import org.enso.database.JDBCUtils
 
 ## PRIVATE
 
@@ -126,6 +129,10 @@ type Postgres_Dialect
         type_mapping = self.get_type_mapping
         value_type = type_mapping.sql_type_to_value_type sql_type
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
+    ## PRIVATE
+    get_statement_setter : Statement_Setter
+    get_statement_setter self = postgres_statement_setter
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
@@ -315,3 +322,16 @@ decimal_div = Base_Generator.lift_binary_op "/" x-> y->
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
+
+## PRIVATE
+postgres_statement_setter : Statement_Setter
+postgres_statement_setter =
+    default = Statement_Setter.default
+    fill_holes stmt i value = case value of
+        # TODO [RW] Postgres date handling
+        _ : Date_Time ->
+            stmt.setTimestamp position (JDBCUtils.getTimestamp obj)
+        # _ : Date ->
+        # _ : Time_Of_Day ->
+        _ -> default.fill_holes stmt i value
+    Statement_Setter.Value fill_holes
