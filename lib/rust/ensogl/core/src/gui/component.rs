@@ -189,7 +189,11 @@ impl<S: Shape> ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         let (shape, instance) = layer.instantiate(&*self.data.borrow());
-        scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
+        scene.pointer_target_registry.insert(
+            instance.global_instance_id,
+            self.events.clone_ref(),
+            self.display_object(),
+        );
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
     }

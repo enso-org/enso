@@ -26,7 +26,7 @@ macro_rules! define_events {
         impl $name {
 
             /// Constructor.
-            pub fn new(raw:web::$js_event,shape:Shape) -> Self {
+            pub fn new(raw:web::$js_event, shape:Shape) -> Self {
                 Self {raw,shape}
             }
 

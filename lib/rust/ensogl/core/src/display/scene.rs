@@ -61,18 +61,18 @@ pub use pointer_target::PointerTargetId;
 shared! { PointerTargetRegistry
 #[derive(Debug)]
 pub struct ShapeRegistryData {
-    mouse_target_map : HashMap<PointerTargetId, PointerTarget>,
+    mouse_target_map : HashMap<PointerTargetId, (PointerTarget, display::object::Instance)>,
 }
 
 impl {
-    fn new(background: &PointerTarget) -> Self {
+    fn new(background_pointer_target: &PointerTarget, background: &display::object::Instance) -> Self {
         let mouse_target_map = default();
-        Self {mouse_target_map} . init(background)
+        Self {mouse_target_map} . init(background_pointer_target, background)
     }
 
     pub fn insert
-    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>) {
-        self.mouse_target_map.insert(id.into(),target.into());
+    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>, display_object:&display::object::Instance) {
+        self.mouse_target_map.insert(id.into(),(target.into(), display_object.clone_ref()));
     }
 
     pub fn remove
@@ -80,14 +80,21 @@ impl {
         self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get(&self, target:PointerTargetId) -> Option<PointerTarget> {
+    pub fn get(&self, target:PointerTargetId) -> Option<(PointerTarget, display::object::Instance)> {
         self.mouse_target_map.get(&target).cloned()
     }
 }}
 
 impl ShapeRegistryData {
-    fn init(mut self, background: &PointerTarget) -> Self {
-        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
+    fn init(
+        mut self,
+        background: &PointerTarget,
+        display_object: &display::object::Instance,
+    ) -> Self {
+        self.mouse_target_map.insert(
+            PointerTargetId::Background,
+            (background.clone_ref(), display_object.clone_ref()),
+        );
         self
     }
 }
@@ -99,13 +106,13 @@ impl PointerTargetRegistry {
     /// double borrow mut otherwise.
     pub fn with_mouse_target<T>(
         &self,
-        target: PointerTargetId,
-        f: impl FnOnce(&PointerTarget) -> T,
+        target_id: PointerTargetId,
+        f: impl FnOnce(&PointerTarget, &display::object::Instance) -> T,
     ) -> Option<T> {
-        match self.get(target) {
-            Some(target) => Some(f(&target)),
+        match self.get(target_id) {
+            Some(t) => Some(f(&t.0, &t.1)),
             None => {
-                warn!("Internal error. Symbol ID {target:?} is not registered.");
+                warn!("Internal error. Symbol ID {target_id:?} is not registered.");
                 None
             }
         }
@@ -138,7 +145,40 @@ impl Mouse {
         variables: &UniformScope,
         js_event: &JsEvent,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+        pointer_target_registry: &PointerTargetRegistry,
     ) -> Self {
+        // let network = &self.frp.network;
+        // let pointer_target_registry = &self.pointer_target_registry;
+        // let target = &self.mouse.target;
+        // let pointer_position_changed = &self.pointer_position_changed;
+        // let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
+        //
+        // frp::extend! { network
+        //     eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
+        //         let current_target = target.get();
+        //         pressed.borrow_mut().insert(*button,current_target);
+        //         pointer_target_registry.with_mouse_target(current_target, |t, d|
+        //             t.emit_mouse_down(*button)
+        //         );
+        //     });
+        //
+        //     eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
+        //         let current_target = target.get();
+        //         if let Some(last_target) = pressed.borrow_mut().remove(button) {
+        //             pointer_target_registry.with_mouse_target(last_target, |t, d|
+        //                 t.emit_mouse_release(*button)
+        //             );
+        //         }
+        //         pointer_target_registry.with_mouse_target(current_target, |t, d|
+        //             t.emit_mouse_up(*button)
+        //         );
+        //     });
+        //
+        //     eval_ self.mouse.frp.position (pointer_position_changed.set(true));
+        // }
+        //
+        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
+
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::default()));
@@ -171,17 +211,35 @@ impl Mouse {
             }),
         ));
         let on_down = mouse_manager.on_down.add(js_event.handler(
-            f!([frp, click_count, display_mode] (event:&mouse::OnDown) {
+            f!([pointer_target_registry, target, pressed, frp, click_count, display_mode] (event:&mouse::OnDown) {
                 click_count.modify(|v| *v += 1);
                 if display_mode.get().allow_mouse_events() {
-                    frp.down.emit(event.button());
+                    let button = event.button();
+                    frp.down.emit(button);
+
+                    let current_target = target.get();
+                    pressed.borrow_mut().insert(button, current_target);
+                    pointer_target_registry.with_mouse_target(current_target, |t, d|
+                        t.emit_mouse_down(button)
+                    );
                 }
             }),
         ));
         let on_up = mouse_manager.on_up.add(js_event.handler(
-            f!([frp, display_mode] (event:&mouse::OnUp) {
+            f!([pointer_target_registry, target, pressed, frp, display_mode] (event:&mouse::OnUp) {
                 if display_mode.get().allow_mouse_events() {
-                    frp.up.emit(event.button())
+                    let button = event.button();
+                    frp.up.emit(button);
+
+                    let current_target = target.get();
+                    if let Some(last_target) = pressed.borrow_mut().remove(&button) {
+                        pointer_target_registry.with_mouse_target(last_target, |t, d|
+                            t.emit_mouse_release(button)
+                        );
+                    }
+                    pointer_target_registry.with_mouse_target(current_target, |t, d|
+                        t.emit_mouse_up(button)
+                    );
                 }
             }),
         ));
@@ -755,13 +813,20 @@ impl SceneData {
         let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
         let background = PointerTarget::new();
-        let pointer_target_registry = PointerTargetRegistry::new(&background);
+        let pointer_target_registry = PointerTargetRegistry::new(&background, &display_object);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let js_event = JsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &dom.root, &variables, &js_event, &display_mode);
+        let mouse = Mouse::new(
+            &frp,
+            &dom.root,
+            &variables,
+            &js_event,
+            &display_mode,
+            &pointer_target_registry,
+        );
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&js_event);
         let network = &frp.network;
@@ -973,25 +1038,25 @@ impl SceneData {
         let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         frp::extend! { network
-            eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
-                let current_target = target.get();
-                pressed.borrow_mut().insert(*button,current_target);
-                pointer_target_registry.with_mouse_target(current_target, |t|
-                    t.emit_mouse_down(*button)
-                );
-            });
-
-            eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
-                let current_target = target.get();
-                if let Some(last_target) = pressed.borrow_mut().remove(button) {
-                    pointer_target_registry.with_mouse_target(last_target, |t|
-                        t.emit_mouse_release(*button)
-                    );
-                }
-                pointer_target_registry.with_mouse_target(current_target, |t|
-                    t.emit_mouse_up(*button)
-                );
-            });
+            // eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
+            //     let current_target = target.get();
+            //     pressed.borrow_mut().insert(*button,current_target);
+            //     pointer_target_registry.with_mouse_target(current_target, |t, d|
+            //         t.emit_mouse_down(*button)
+            //     );
+            // });
+            //
+            // eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
+            //     let current_target = target.get();
+            //     if let Some(last_target) = pressed.borrow_mut().remove(button) {
+            //         pointer_target_registry.with_mouse_target(last_target, |t, d|
+            //             t.emit_mouse_release(*button)
+            //         );
+            //     }
+            //     pointer_target_registry.with_mouse_target(current_target, |t, d|
+            //         t.emit_mouse_up(*button)
+            //     );
+            // });
 
             eval_ self.mouse.frp.position (pointer_position_changed.set(true));
         }
@@ -1008,8 +1073,9 @@ impl SceneData {
         if new_target != current_target {
             self.mouse.target.set(new_target);
             self.pointer_target_registry
-                .with_mouse_target(current_target, |t| t.mouse_out.emit(()));
-            self.pointer_target_registry.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
+                .with_mouse_target(current_target, |t, d| t.mouse_out.emit(()));
+            self.pointer_target_registry
+                .with_mouse_target(new_target, |t, d| t.mouse_over.emit(()));
             self.mouse.re_emit_position_event(); // See docs to learn why.
         }
     }
