@@ -2,11 +2,11 @@ import project.Any.Any
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-import project.Error.Common.Incomparable_Values
-import project.Error.Common.Type_Error
+import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Illegal_State.Illegal_State
-import project.Error.Unimplemented.Unimplemented
+import project.Errors.Illegal_State.Illegal_State
+import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 import project.Meta
 import project.Meta.Atom
@@ -116,6 +116,13 @@ type Comparable
        a comparator different than `Default_Comparator`.
     hash_callback : Atom -> Integer
     hash_callback atom = (Comparable.from atom).hash atom
+
+    ## PRIVATE
+       A callback allowing to compare two atoms with a custom comparator.
+    compare_callback : Atom -> Atom -> Integer | Nothing
+    compare_callback atom that =
+        ordering = Ordering.compare atom that
+        if ordering.is_error then Nothing else ordering.to_sign
 
     ## PRIVATE
        A custom comparator is any comparator that is different than the

@@ -3,14 +3,13 @@ import project.Data.Array.Array
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-import project.Data.Ordering.Comparator
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
-import project.Error.Common.Incomparable_Values
+import project.Errors.Common.Incomparable_Values
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
@@ -18,7 +17,7 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Vector import Empty_Error
-from project.Error.Common import Unsupported_Argument_Types
+from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.Moments
@@ -66,7 +65,7 @@ type Rank_Method
             Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand)
 
         handle_cmp_exc <| handle_nullpointer <|
-            java_ranks = Rank.rank input.to_array Comparator.new java_method
+            java_ranks = Rank.rank input.to_array java_method
             Vector.from_polyglot_array java_ranks
 
 type Statistic
