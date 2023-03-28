@@ -189,4 +189,9 @@ public abstract class InvokeFunctionNode extends BaseNode {
   public void setId(UUID id) {
     functionCallInstrumentationNode.setId(id);
   }
+
+  /** Returns expression ID of this node. */
+  public UUID getId() {
+    return functionCallInstrumentationNode.getId();
+  }
 }
