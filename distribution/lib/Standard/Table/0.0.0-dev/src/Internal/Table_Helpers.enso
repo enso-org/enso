@@ -8,6 +8,7 @@ import project.Data.Position.Position
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
+import project.Data.Type.Value_Type_Helpers
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
@@ -388,7 +389,7 @@ unify_result_type_for_union column_set all_tables allow_type_widening problem_bu
     case allow_type_widening of
         True ->
             types = columns.filter Filter_Condition.Not_Nothing . map .value_type
-            common_type = Value_Type.find_common_type types strict=True
+            common_type = Value_Type_Helpers.find_common_type types strict=True
             if common_type.is_nothing then
                 problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
             common_type
