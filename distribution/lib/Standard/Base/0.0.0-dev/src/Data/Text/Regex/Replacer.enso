@@ -1,0 +1,144 @@
+import project.Data.Numbers.Integer
+import project.Data.Text.Extensions
+import project.Data.Text.Regex.Match_2.Match_2
+import project.Data.Text.Regex.Pattern_2.Match_Iterator_Value
+import project.Data.Text.Regex.Pattern_2.Pattern_2
+import project.Data.Text.Regex_2
+import project.Data.Text.Regex_2.No_Such_Group
+import project.Data.Text.Span.Utf_16_Span
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Nothing.Nothing
+import project.Panic.Panic
+
+from project.Data.Boolean import Boolean, True, False
+
+polyglot java import java.lang.StringBuilder
+polyglot java import org.enso.base.Replacer_Cache
+
+type Replacer
+    ## PRIVATE
+
+       Implements a replacement for a regular expression.
+
+       Pattern_2.replace uses a Replacer to replace each regex match with
+       a replacement string. This string can contain references to match
+       groups from the original regex.
+
+       The `new` smart constructor parses a Text into a vector of
+       Replacements. Each Replacement is either a literal string or a
+       group number. To provide a replacement for a regex match, the
+       Replacer iterates through the Replacement vector, substitutes
+       the match group contents for each group number, and concatenates
+       all the strings together to form the full replacement string.
+    Value (replacement : Vector Replacement)
+
+    ## Creates a new Replacer.
+
+       Arguments
+       - replacement_string: a string, possibly containing group references,
+         that will be used to provide a replacement in a regex match.
+    new : Text -> Pattern_2 -> Replacer ! No_Such_Group
+    new replacement_string pattern =
+        Replacer.Value (build_replacement_vector_cached replacement_string pattern)
+
+    ## Build a replacement string from a match.
+
+       Arguments:
+       - match: the match from the original string that is to be replaced.
+    replace : Match_2 -> Text
+    replace self match =
+        string_builder = StringBuilder.new
+        self.replacement.each replacement->
+            s = case replacement of
+                Replacement.Literal text -> text
+                Replacement.Substitution group_number -> match.text group_number
+            string_builder.append s
+        string_builder.toString
+
+## PRIVATE
+
+   Get the size of the Replacer LRU cache. For testing.
+get_lru_size : Integer
+get_lru_size = Replacer_Cache.getLruSize
+
+## PRIVATE
+
+   Look up a replacement string in the Replacer LRU cache. For testing.
+replacer_cache_lookup : Text -> Replacer | Nothing
+replacer_cache_lookup replacement_string = Replacer_Cache.get replacement_string
+
+## PRIVATE
+group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
+
+## PRIVATE
+
+   Build a replacement vector.
+
+   Parse the replacement string into an alternating series of literal
+   strings and group reference numbers.
+
+   Uses Replacement_Cache to avoid rebuilding the vector for recently used
+   replacement strings.
+build_replacement_vector_cached : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group
+build_replacement_vector_cached replacement_string pattern =
+    Replacer_Cache.get_or_set replacement_string _->
+        build_replacement_vector replacement_string pattern
+
+## PRIVATE
+
+   Build a replacement vector.
+
+   Parse the replacement string into an alternating series of literal
+   strings and group reference numbers.
+build_replacement_vector : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group
+build_replacement_vector replacement_string pattern =
+    replacement_pattern = Regex_2.compile group_reference_regex
+    it = replacement_pattern.iterator replacement_string
+
+    builder = Vector.new_builder
+    go it = case it.next of
+        Match_Iterator_Value.Next filler match next_it ->
+            replacement = parse_group_number pattern match
+            replacement.if_not_error <|
+                builder.append (Replacement.Literal filler.text)
+                builder.append replacement
+                @Tail_Call go next_it
+        Match_Iterator_Value.Last filler ->
+            builder.append (Replacement.Literal filler.text)
+    result = go it
+    result.if_not_error <|
+        builder.to_vector
+
+## PRIVATE
+
+   Parse a capture group reference.
+
+   Arguments:
+   - pattern: the Pattern_2 used to initiate the replacement. This is used
+     to identify and validate capture groups.
+   - match: the match of the replacement string against group_reference_regex.
+
+   Returns a Replacement: a group number, or, in the case of `$$`, a literal.
+
+   See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
+parse_group_number pattern match = case match.text.take 2 of
+    "$$" -> Replacement.Literal "$"
+    "$<" ->
+        # Group 6 contains the group name without the `<>`.
+        group_name = match.text 6
+        Replacement.Substitution (pattern.lookup_group group_name)
+    "$&" -> Replacement.Substitution 0
+    _ -> 
+        n = Integer.parse <| match.text 2
+        Replacement.Substitution (pattern.lookup_group n)
+
+type Replacement
+    ## A string literal to replace with.
+    Literal (text : Text)
+
+    ## Target group to insert.
+    Substitution (group_number : Integer)
