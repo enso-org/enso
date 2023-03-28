@@ -69,7 +69,7 @@ fn define_rect(width: f32, height: f32, network: &frp::Network) -> rectangle::Vi
 
     // Please note that this clones [`rect`] refs to closures, so [`network`] keeps them alive.
     frp::extend! { network
-        eval_ rect.events.mouse_down (rect.focus());
+        eval_ rect.events_deprecated.mouse_down (rect.focus());
 
         eval border_size.value ((size) rect.border_size.set(*size));
         eval border_color.value ((color) rect.border_color.set(color::Rgba::from(color).into()));

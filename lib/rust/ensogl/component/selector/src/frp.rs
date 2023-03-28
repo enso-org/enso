@@ -7,7 +7,7 @@ use crate::shape::relative_shape_down_position;
 use crate::shape::shape_is_dragged;
 
 use enso_frp as frp;
-use enso_frp::io::Mouse;
+use enso_frp::io::Mouse_DEPRECATED;
 use enso_frp::Network;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
@@ -73,20 +73,24 @@ impl Frp {
         style: &StyleWatchFrp,
         network: &Network,
         size: frp::Stream<Vector2>,
-        mouse: &Mouse,
+        mouse: &Mouse_DEPRECATED,
     ) -> Frp {
         let net = &network;
         let scene = &model.app.display.default_scene;
         let shadow = shadow::frp_from_style(style, theme::shadow);
         let text_size = style.get_number(theme::text::size);
 
-        let is_dragging_left_overflow = shape_is_dragged(net, &model.left_overflow.events, mouse);
-        let is_dragging_right_overflow = shape_is_dragged(net, &model.right_overflow.events, mouse);
-        let is_dragging_track = shape_is_dragged(net, &model.track.events, mouse);
-        let is_dragging_background = shape_is_dragged(net, &model.background.events, mouse);
-        let is_dragging_left_handle = shape_is_dragged(net, &model.track_handle_left.events, mouse);
+        let is_dragging_left_overflow =
+            shape_is_dragged(net, &model.left_overflow.events_deprecated, mouse);
+        let is_dragging_right_overflow =
+            shape_is_dragged(net, &model.right_overflow.events_deprecated, mouse);
+        let is_dragging_track = shape_is_dragged(net, &model.track.events_deprecated, mouse);
+        let is_dragging_background =
+            shape_is_dragged(net, &model.background.events_deprecated, mouse);
+        let is_dragging_left_handle =
+            shape_is_dragged(net, &model.track_handle_left.events_deprecated, mouse);
         let is_dragging_right_handle =
-            shape_is_dragged(net, &model.track_handle_right.events, mouse);
+            shape_is_dragged(net, &model.track_handle_right.events_deprecated, mouse);
         let background_click = relative_shape_down_position(net, scene, &model.background);
         let track_click = relative_shape_down_position(net, scene, &model.track);
 
@@ -136,7 +140,10 @@ impl Frp {
                 &is_dragging_handle,
             );
 
-            track_hover <- bool(&model.track.events.mouse_out,&model.track.events.mouse_over);
+            track_hover <- bool(
+                &model.track.events_deprecated.mouse_out,
+                &model.track.events_deprecated.mouse_over
+            );
         }
 
         init_shadow_padding.emit(());
