@@ -390,7 +390,7 @@ impl SingleChoiceModel {
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
-            let dot_clicked = activation_shape.events.mouse_down_primary.clone_ref();
+            let dot_clicked = activation_shape.events_deprecated.mouse_down_primary.clone_ref();
             toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
             set_focused <- any(toggle_focus, frp.set_focused);
             eval set_focused([display_object](focus) match focus {
