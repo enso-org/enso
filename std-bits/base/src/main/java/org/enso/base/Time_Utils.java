@@ -7,18 +7,14 @@ import org.enso.base.time.Time_Of_Day_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.graalvm.polyglot.Value;
 
-import java.time.DateTimeException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalField;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
@@ -149,16 +145,8 @@ public class Time_Utils {
    * @return parsed ZonedDateTime instance.
    */
   public static ZonedDateTime parse_datetime(String text, String pattern, Locale locale) {
-    TemporalAccessor time =
-        DateTimeFormatter.ofPattern(pattern)
-            .withLocale(locale)
-            .parseBest(text, ZonedDateTime::from, LocalDateTime::from);
-    if (time instanceof ZonedDateTime) {
-      return (ZonedDateTime) time;
-    } else if (time instanceof LocalDateTime) {
-      return ((LocalDateTime) time).atZone(ZoneId.systemDefault());
-    }
-    throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
+    var formatter = DateTimeFormatter.ofPattern(pattern).withLocale(locale);
+    return Core_Date_Utils.parseZonedDateTime(text, formatter);
   }
 
   /**

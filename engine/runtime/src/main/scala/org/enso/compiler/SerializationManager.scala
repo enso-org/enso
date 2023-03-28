@@ -5,7 +5,6 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.docs.sections.DocSectionsBuilder
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
@@ -28,8 +27,7 @@ import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
 
 final class SerializationManager(
-  compiler: Compiler,
-  docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
+  compiler: Compiler
 ) {
 
   import SerializationManager._
@@ -96,16 +94,18 @@ final class SerializationManager(
     *
     * @param module the module to serialize
     * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+    * @param useThreadPool if true, will perform serialization asynchronously
     * @return Future referencing the serialization task. On completion Future will return
     *         `true` if `module` has been successfully serialized, `false` otherwise
     */
   def serializeModule(
     module: Module,
-    useGlobalCacheLocations: Boolean
+    useGlobalCacheLocations: Boolean,
+    useThreadPool: Boolean = true
   ): Future[Boolean] = {
     logger.log(
       debugLogLevel,
-      "Requesting serialization for module [{}].",
+      "Requesting serialization for module [{0}].",
       module.getName
     )
     val duplicatedIr = compiler.updateMetadata(
@@ -122,7 +122,7 @@ final class SerializationManager(
       module.getSource,
       useGlobalCacheLocations
     )
-    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+    if (useThreadPool) {
       isWaitingForSerialization.synchronized {
         val future = pool.submit(task)
         isWaitingForSerialization.put(module.getName, future)
@@ -149,7 +149,7 @@ final class SerializationManager(
   ): Future[Boolean] = {
     logger.log(
       Level.INFO,
-      "Requesting serialization for library [{}].",
+      "Requesting serialization for library [{0}].",
       libraryName
     )
 
@@ -180,9 +180,13 @@ final class SerializationManager(
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = () => {
+    while (isSerializingLibrary(libraryName)) {
+      Thread.sleep(100)
+    }
+
     logger.log(
       debugLogLevel,
-      "Running serialization for bindings [{}].",
+      "Running serialization for bindings [{0}].",
       libraryName
     )
     startSerializing(libraryName.toQualifiedName)
@@ -238,7 +242,6 @@ final class SerializationManager(
               .build(module.getName, module.getIr)
               .toVector
           }
-          .map(generateDocumentation)
           .foreach(suggestions.add)
         val cachedSuggestions =
           new SuggestionsCache.CachedSuggestions(
@@ -249,7 +252,7 @@ final class SerializationManager(
               .map(_.listSourcesJava())
           )
         new SuggestionsCache(libraryName)
-          .save(cachedSuggestions, compiler.context, false)
+          .save(cachedSuggestions, compiler.context, useGlobalCacheLocations)
           .isPresent
       } catch {
         case e: NotSerializableException =>
@@ -288,14 +291,14 @@ final class SerializationManager(
         case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
           logger.log(
             Level.FINE,
-            "Restored suggestions for library [{}].",
+            "Restored suggestions for library [{0}].",
             libraryName
           )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            "Unable to load suggestions for library [{}].",
+            "Unable to load suggestions for library [{0}].",
             libraryName
           )
           None
@@ -317,14 +320,14 @@ final class SerializationManager(
         case result @ Some(_: ImportExportCache.CachedBindings) =>
           logger.log(
             Level.FINE,
-            "Restored bindings for library [{}].",
+            "Restored bindings for library [{0}].",
             libraryName
           )
           result
         case _ =>
           logger.log(
             Level.FINEST,
-            "Unable to load bindings for library [{}].",
+            "Unable to load bindings for library [{0}].",
             libraryName
           )
           None
@@ -350,7 +353,7 @@ final class SerializationManager(
       abort(module)
       None
     } else {
-      while (isSerializingModule(module)) {
+      while (isSerializingModule(module.getName)) {
         Thread.sleep(100)
       }
 
@@ -366,7 +369,7 @@ final class SerializationManager(
           module.setLoadedFromCache(true)
           logger.log(
             debugLogLevel,
-            "Restored IR from cache for module [{}] at stage [{}].",
+            "Restored IR from cache for module [{0}] at stage [{1}].",
             Array(module.getName, loadedCache.compilationStage())
           )
 
@@ -374,14 +377,14 @@ final class SerializationManager(
             module.setHasCrossModuleLinks(true)
             logger.log(
               debugLogLevel,
-              "Restored links (early phase) in module [{}].",
+              "Restored links (early phase) in module [{0}].",
               module.getName
             )
             Some(true)
           } else {
             logger.log(
               debugLogLevel,
-              "Could not restore links (early phase) in module [{}].",
+              "Could not restore links (early phase) in module [{0}].",
               module.getName
             )
             module.setHasCrossModuleLinks(false)
@@ -390,7 +393,7 @@ final class SerializationManager(
         case None =>
           logger.log(
             debugLogLevel,
-            "Unable to load a cache for module [{}].",
+            "Unable to load a cache for module [{0}].",
             module.getName
           )
           None
@@ -404,11 +407,11 @@ final class SerializationManager(
     * @return `true` if `module` is currently being serialized, `false`
     *         otherwise
     */
-  def isSerializingModule(module: Module): Boolean = {
-    isSerializing.contains(module.getName)
+  private def isSerializingModule(module: QualifiedName): Boolean = {
+    isSerializing.contains(module)
   }
 
-  def isSerializingLibrary(library: LibraryName): Boolean = {
+  private def isSerializingLibrary(library: LibraryName): Boolean = {
     isSerializing.contains(library.toQualifiedName)
   }
 
@@ -423,7 +426,7 @@ final class SerializationManager(
     * @param module the module to check
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
-  def isWaitingForSerialization(module: Module): Boolean = {
+  private def isWaitingForSerialization(module: Module): Boolean = {
     isWaitingForSerialization(module.getName)
   }
 
@@ -432,11 +435,11 @@ final class SerializationManager(
     * @param library the library to check
     * @return `true` if `library` is waiting for serialization, `false` otherwise
     */
-  def isWaitingForSerialization(library: LibraryName): Boolean = {
+  private def isWaitingForSerialization(library: LibraryName): Boolean = {
     isWaitingForSerialization(library.toQualifiedName)
   }
 
-  def abort(name: QualifiedName): Boolean = {
+  private def abort(name: QualifiedName): Boolean = {
     isWaitingForSerialization.synchronized {
       if (isWaitingForSerialization(name)) {
         isWaitingForSerialization
@@ -456,7 +459,7 @@ final class SerializationManager(
     * @return `true` if serialization for `module` was aborted, `false`
     *         otherwise
     */
-  def abort(module: Module): Boolean = {
+  private def abort(module: Module): Boolean = {
     abort(module.getName)
   }
 
@@ -469,7 +472,7 @@ final class SerializationManager(
     * @return `true` if serialization for `library` was aborted, `false`
     *         otherwise
     */
-  def abort(library: LibraryName): Boolean = {
+  private def abort(library: LibraryName): Boolean = {
     abort(library.toQualifiedName)
   }
 
@@ -487,7 +490,7 @@ final class SerializationManager(
         val jobCount = waitingCount + isSerializing.size
         logger.log(
           debugLogLevel,
-          "Waiting for #{} serialization jobs to complete.",
+          "Waiting for #{0} serialization jobs to complete.",
           jobCount
         )
 
@@ -545,9 +548,13 @@ final class SerializationManager(
     source: Source,
     useGlobalCacheLocations: Boolean
   ): Callable[Boolean] = { () =>
+    while (isSerializingModule(name)) {
+      Thread.sleep(100)
+    }
+
     logger.log(
       debugLogLevel,
-      "Running serialization for module [{}].",
+      "Running serialization for module [{0}].",
       name
     )
     startSerializing(name)
@@ -617,43 +624,6 @@ final class SerializationManager(
       )
       .asScala
   }
-
-  /** Generate the documentation for the given suggestion.
-    *
-    * @param suggestion the initial suggestion
-    * @return the suggestion with documentation fields set
-    */
-  private def generateDocumentation(suggestion: Suggestion): Suggestion =
-    suggestion match {
-      case module: Suggestion.Module =>
-        val docSections = module.documentation.map(docSectionsBuilder.build)
-        module.copy(documentationSections = docSections)
-
-      case constructor: Suggestion.Constructor =>
-        val docSections =
-          constructor.documentation.map(docSectionsBuilder.build)
-        constructor.copy(documentationSections = docSections)
-
-      case tpe: Suggestion.Type =>
-        val docSections = tpe.documentation.map(docSectionsBuilder.build)
-        tpe.copy(documentationSections = docSections)
-
-      case method: Suggestion.Method =>
-        val docSections = method.documentation.map(docSectionsBuilder.build)
-        method.copy(documentationSections = docSections)
-
-      case conversion: Suggestion.Conversion =>
-        val docSections = conversion.documentation.map(docSectionsBuilder.build)
-        conversion.copy(documentationSections = docSections)
-
-      case function: Suggestion.Function =>
-        val docSections = function.documentation.map(docSectionsBuilder.build)
-        function.copy(documentationSections = docSections)
-
-      case local: Suggestion.Local =>
-        val docSections = local.documentation.map(docSectionsBuilder.build)
-        local.copy(documentationSections = docSections)
-    }
 }
 
 object SerializationManager {

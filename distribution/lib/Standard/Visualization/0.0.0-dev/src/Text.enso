@@ -3,7 +3,6 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Extensions import slice_text
 
 ## PRIVATE
-
    Message to be sent to the IDE.
 type Message
 
@@ -19,7 +18,8 @@ type Message
         max_line_length = ["longest_line", self.max_line_length]
         Json.from_pairs [chunks, line_count, max_line_length]
 
-## Return a sub-window of a string. The window is defined by line/chunk coordinates. The size of
+## PRIVATE
+   Return a sub-window of a string. The window is defined by line/chunk coordinates. The size of
    a chunk is defined by `chunk_width`. The output is formatted as a message that can be sent to
    the IDE's lazy text visualisation.
 get_lazy_visualisation_text_window text pos size chunk_width =

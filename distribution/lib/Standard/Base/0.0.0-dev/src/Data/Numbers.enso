@@ -1,6 +1,6 @@
 import project.Data.Text.Text
 import project.Data.Locale.Locale
-import project.Error.Common.Arithmetic_Error
+import project.Errors.Common.Arithmetic_Error
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic

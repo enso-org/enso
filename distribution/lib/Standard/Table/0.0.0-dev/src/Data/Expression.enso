@@ -11,7 +11,7 @@ type Expression
        - expression: the expression to evaluate
        - get_column: a function that takes a column name and returns the
          associated Column object.
-       - make_constant`: a function that takes an object and returns a
+       - make_constant: a function that takes an object and returns a
          constant Column object.
        - module_name: the name of the Column module that the expression is
          being evaluated against.

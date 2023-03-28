@@ -5,18 +5,16 @@ import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 public class Last extends Aggregator {
   private final Storage<?> storage;
   private final Storage<?>[] orderByColumns;
   private final int[] orderByDirections;
-  private final Comparator<Object> objectComparator;
   private final boolean ignoreNothing;
 
   public Last(String name, Column column, boolean ignoreNothing) {
-    this(name, column, ignoreNothing, null, null, null);
+    this(name, column, ignoreNothing, null, null);
   }
 
   public Last(
@@ -24,8 +22,7 @@ public class Last extends Aggregator {
       Column column,
       boolean ignoreNothing,
       Column[] orderByColumns,
-      Long[] orderByDirections,
-      Comparator<Object> objectComparator) {
+      Long[] orderByDirections) {
     super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.orderByColumns =
@@ -36,7 +33,6 @@ public class Last extends Aggregator {
         orderByDirections == null
             ? new int[0]
             : Arrays.stream(orderByDirections).mapToInt(Long::intValue).toArray();
-    this.objectComparator = objectComparator;
     this.ignoreNothing = ignoreNothing;
   }
 
@@ -61,8 +57,7 @@ public class Last extends Aggregator {
       }
 
       OrderedMultiValueKey newKey =
-          new OrderedMultiValueKey(
-              this.orderByColumns, row, this.orderByDirections, objectComparator);
+          new OrderedMultiValueKey(this.orderByColumns, row, this.orderByDirections);
       if (key == null || key.compareTo(newKey) < 0) {
         key = newKey;
         current = storage.getItemBoxed(row);

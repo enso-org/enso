@@ -37,7 +37,8 @@ class FileManager(
   private def findContentRoot(
     id: UUID
   ): IO[FileSystemFailure, ContentRootWithFile] =
-    IO.fromFuture { ec => contentRootManager.findContentRoot(id)(ec) }
+    ZIO
+      .fromFuture { ec => contentRootManager.findContentRoot(id)(ec) }
       .mapError { _ => ContentRootNotFound }
       .absolve
 

@@ -842,7 +842,6 @@ impl Controller {
     ///
     /// Note that if the queue is already idle when a callback is attached, the callback will not be
     /// executed until work has been queued and completed.
-    #[must_use]
     pub fn on_idle(&self, f: impl FnMut() + 'static) -> callback::Handle {
         self.rc.borrow_mut().on_idle(f)
     }

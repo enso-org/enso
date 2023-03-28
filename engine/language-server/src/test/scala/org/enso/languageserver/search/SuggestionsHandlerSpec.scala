@@ -3,9 +3,7 @@ package org.enso.languageserver.search
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.docs.generator.DocsGenerator
-import org.enso.docs.sections.DocSectionsBuilder
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -364,20 +362,16 @@ class SuggestionsHandlerSpec
 
         val moduleName = "Test.Foo"
         val fooAtom = Suggestion.Constructor(
-          externalId            = None,
-          module                = moduleName,
-          name                  = "Foo",
-          arguments             = Vector(),
-          returnType            = moduleName,
-          documentation         = None,
-          documentationHtml     = None,
-          documentationSections = None
+          externalId    = None,
+          module        = moduleName,
+          name          = "Foo",
+          arguments     = Vector(),
+          returnType    = moduleName,
+          documentation = None
         )
         val module = Suggestion.Module(
-          module                = moduleName,
-          documentation         = None,
-          documentationHtml     = None,
-          documentationSections = None
+          module        = moduleName,
+          documentation = None
         )
 
         val tree = Tree.Root(
@@ -843,7 +837,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = None,
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -871,7 +866,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("MyType"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -895,7 +891,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("Integer"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -916,7 +913,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("Any"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -936,7 +934,8 @@ class SuggestionsHandlerSpec
           position   = Position(1, 10),
           selfType   = None,
           returnType = Some("IO"),
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -956,13 +955,47 @@ class SuggestionsHandlerSpec
           position   = Position(42, 0),
           selfType   = None,
           returnType = None,
-          tags       = Some(Seq(SearchProtocol.SuggestionKind.Local))
+          tags       = Some(Seq(SearchProtocol.SuggestionKind.Local)),
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
             Suggestions.all.length.toLong,
             Seq(localId).flatten
+          )
+        )
+    }
+
+    "search entries by static attribute" taggedAs Retry in withDb {
+      (config, repo, _, _, handler) =>
+        val all = Seq(
+          Suggestions.module,
+          Suggestions.tpe,
+          Suggestions.constructor,
+          Suggestions.method.copy(isStatic = true),
+          Suggestions.function,
+          Suggestions.local,
+          Suggestions.methodOnAny,
+          Suggestions.methodOnNumber,
+          Suggestions.methodOnInteger
+        )
+
+        val (_, Seq(_, _, _, methodId, _, _, _, _, _)) =
+          Await.result(repo.insertAll(all), Timeout)
+        handler ! SearchProtocol.Completion(
+          file       = mkModulePath(config, "Main.enso"),
+          position   = Position(42, 0),
+          selfType   = None,
+          returnType = None,
+          tags       = None,
+          isStatic   = Some(true)
+        )
+
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            all.length.toLong,
+            Seq(methodId).flatten
           )
         )
     }
@@ -1058,7 +1091,8 @@ class SuggestionsHandlerSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig()
+      ProfilingConfig(),
+      StartupConfig()
     )
   }
 
@@ -1127,9 +1161,10 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    val router          = TestProbe("session-router")
-    val connector       = TestProbe("runtime-connector")
-    val sqlDatabase     = SqlDatabase.inmem("testdb")
+    val router      = TestProbe("session-router")
+    val connector   = TestProbe("runtime-connector")
+    val sqlDatabase = SqlDatabase.inmem("testdb")
+    sqlDatabase.open()
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
     val handler = newInitializedSuggestionsHandler(
@@ -1149,11 +1184,6 @@ class SuggestionsHandlerSpec
 
   object TestSuggestion {
 
-    val htmlDocsGenerator: DocsGenerator =
-      DocsGenerator
-    val docSectionsBuilder: DocSectionsBuilder =
-      DocSectionsBuilder()
-
     val atom: Suggestion.Constructor =
       Suggestion.Constructor(
         externalId = None,
@@ -1163,24 +1193,20 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType            = "Pair",
-        documentation         = Some("Awesome"),
-        documentationHtml     = Some(htmlDocsGenerator.generate("Awesome", "Pair")),
-        documentationSections = Some(docSectionsBuilder.build("Awesome"))
+        returnType    = "Pair",
+        documentation = Some("Awesome")
       )
 
     val method: Suggestion.Method =
       Suggestion.Method(
-        externalId            = Some(UUID.randomUUID()),
-        module                = "Test.Main",
-        name                  = "main",
-        arguments             = Seq(),
-        selfType              = "Test.Main",
-        returnType            = "IO",
-        isStatic              = true,
-        documentation         = None,
-        documentationHtml     = None,
-        documentationSections = None
+        externalId    = Some(UUID.randomUUID()),
+        module        = "Test.Main",
+        name          = "main",
+        arguments     = Seq(),
+        selfType      = "Test.Main",
+        returnType    = "IO",
+        isStatic      = true,
+        documentation = None
       )
   }
 

@@ -72,10 +72,11 @@ const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
 const fn make_group(section: grid::SectionId, index: usize, size: usize) -> grid::content::Group {
     let group_id = grid::GroupId { section, index };
     grid::content::Group {
-        id:              group_id,
-        height:          size,
-        original_height: size,
-        color:           None,
+        id:               group_id,
+        height:           size,
+        original_height:  size,
+        color:            None,
+        best_match_score: 0.0,
     }
 }
 

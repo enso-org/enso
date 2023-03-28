@@ -30,7 +30,6 @@ use crate::system::web;
 use crate::system::web::EventListenerHandle;
 
 use enso_frp as frp;
-use enso_frp::io::js::CurrentJsEvent;
 use enso_shapely::shared;
 use std::any::TypeId;
 use web::HtmlElement;
@@ -49,8 +48,8 @@ pub mod pointer_target;
 
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
-pub use pointer_target::PointerTarget;
 pub use pointer_target::PointerTargetId;
+pub use pointer_target::PointerTarget_DEPRECATED;
 
 
 
@@ -61,18 +60,18 @@ pub use pointer_target::PointerTargetId;
 shared! { PointerTargetRegistry
 #[derive(Debug)]
 pub struct ShapeRegistryData {
-    mouse_target_map : HashMap<PointerTargetId, PointerTarget>,
+    mouse_target_map : HashMap<PointerTargetId, (PointerTarget_DEPRECATED, display::object::Instance)>,
 }
 
 impl {
-    fn new(background: &PointerTarget) -> Self {
+    fn new(background_pointer_target: &PointerTarget_DEPRECATED, background: &display::object::Instance) -> Self {
         let mouse_target_map = default();
-        Self {mouse_target_map} . init(background)
+        Self {mouse_target_map} . init(background_pointer_target, background)
     }
 
     pub fn insert
-    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>) {
-        self.mouse_target_map.insert(id.into(),target.into());
+    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget_DEPRECATED>, display_object:&display::object::Instance) {
+        self.mouse_target_map.insert(id.into(),(target.into(), display_object.clone_ref()));
     }
 
     pub fn remove
@@ -80,32 +79,39 @@ impl {
         self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get(&self, target:PointerTargetId) -> Option<PointerTarget> {
+    pub fn get(&self, target:PointerTargetId) -> Option<(PointerTarget_DEPRECATED, display::object::Instance)> {
         self.mouse_target_map.get(&target).cloned()
     }
 }}
 
 impl ShapeRegistryData {
-    fn init(mut self, background: &PointerTarget) -> Self {
-        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
+    fn init(
+        mut self,
+        background: &PointerTarget_DEPRECATED,
+        display_object: &display::object::Instance,
+    ) -> Self {
+        self.mouse_target_map.insert(
+            PointerTargetId::Background,
+            (background.clone_ref(), display_object.clone_ref()),
+        );
         self
     }
 }
 
 impl PointerTargetRegistry {
-    /// Runs the provided function on the [`PointerTarget`] associated with the provided
-    /// [`PointerTargetId`]. Please note that the [`PointerTarget`] will be cloned because during
-    /// evaluation of the provided function this registry might be changed, which would result in
-    /// double borrow mut otherwise.
+    /// Runs the provided function on the [`PointerTarget_DEPRECATED`] associated with the provided
+    /// [`PointerTargetId`]. Please note that the [`PointerTarget_DEPRECATED`] will be cloned
+    /// because during evaluation of the provided function this registry might be changed, which
+    /// would result in double borrow mut otherwise.
     pub fn with_mouse_target<T>(
         &self,
-        target: PointerTargetId,
-        f: impl FnOnce(&PointerTarget) -> T,
+        target_id: PointerTargetId,
+        f: impl FnOnce(&PointerTarget_DEPRECATED, &display::object::Instance) -> T,
     ) -> Option<T> {
-        match self.get(target) {
-            Some(target) => Some(f(&target)),
+        match self.get(target_id) {
+            Some(t) => Some(f(&t.0, &t.1)),
             None => {
-                warn!("Internal error. Symbol ID {target:?} is not registered.");
+                warn!("Internal error. Symbol ID {target_id:?} is not registered.");
                 None
             }
         }
@@ -120,15 +126,25 @@ impl PointerTargetRegistry {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Mouse {
-    pub mouse_manager: MouseManager,
-    pub last_position: Rc<Cell<Vector2<i32>>>,
-    pub position:      Uniform<Vector2<i32>>,
-    pub click_count:   Uniform<i32>,
-    pub hover_rgba:    Uniform<Vector4<u32>>,
-    pub target:        Rc<Cell<PointerTargetId>>,
-    pub handles:       Rc<[callback::Handle; 4]>,
-    pub frp:           enso_frp::io::Mouse,
-    pub scene_frp:     Frp,
+    pub mouse_manager:          MouseManager,
+    pub last_position:          Rc<Cell<Vector2<i32>>>,
+    pub position:               Uniform<Vector2<i32>>,
+    pub click_count:            Uniform<i32>,
+    /// The encoded value of pointer target ID. The offscreen canvas containing the encoded IDs is
+    /// sampled and the most recent sample is stored here. Please note, that this sample may be
+    /// from a few frames back, as it is not guaranteed when we will receive the data from GPU.
+    pub pointer_target_encoded: Uniform<Vector4<u32>>,
+    pub target:                 Rc<Cell<PointerTargetId>>,
+    pub handles:                Rc<[callback::Handle; 6]>,
+    pub scene_frp:              Frp,
+    /// Stored in order to be converted to [`mouse::Over`], [`mouse::Out`], [`mouse::Enter`], and
+    /// [`mouse::Leave`] when the mouse enters or leaves an element.
+    pub last_move_event:        Rc<RefCell<Option<mouse::Move>>>,
+    /// # Deprecated
+    /// This API is deprecated. Instead, use the display object's event API. For example, to get an
+    /// FRP endpoint for mouse event, you can use the [`crate::display::Object::on_event`]
+    /// function.
+    pub frp_deprecated:         enso_frp::io::Mouse_DEPRECATED,
 }
 
 impl Mouse {
@@ -136,69 +152,117 @@ impl Mouse {
         scene_frp: &Frp,
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
-        current_js_event: &CurrentJsEvent,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+        pointer_target_registry: &PointerTargetRegistry,
     ) -> Self {
+        let last_pressed_elem: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
+
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
-        let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
-        let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        let last_position = Rc::new(Cell::new(Vector2::default()));
+        let position = variables.add_or_panic("mouse_position", Vector2::default());
         let click_count = variables.add_or_panic("mouse_click_count", 0);
-        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
+        let pointer_target_encoded = variables.add_or_panic("mouse_hover_ids", Vector4::default());
         let target = Rc::new(Cell::new(target));
-        let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
-        let frp = frp::io::Mouse::new();
-        let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
-            f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
+        let shaped_dom = root.clone_ref().into();
+        let mouse_manager = MouseManager::new(&shaped_dom, root, &web::window);
+        let frp_deprecated = frp::io::Mouse_DEPRECATED::new();
+        let last_move_event = Rc::new(RefCell::new(None));
+        let on_move = mouse_manager.on_move.add(
+            f!([pointer_target_registry, target, frp_deprecated, scene_frp, position, last_position, last_move_event]
+            (event: &mouse::Move) {
+                last_move_event.borrow_mut().replace(event.clone());
                 let shape = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio;
                 let screen_x = event.client_x();
                 let screen_y = event.client_y();
-
                 let new_pos = Vector2::new(screen_x,screen_y);
                 let pos_changed = new_pos != last_position.get();
                 if pos_changed {
                     last_position.set(new_pos);
                     let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
                     position.set(new_canvas_position);
-                    let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
-                    frp.position.emit(position);
+                    let position_bottom_left = Vector2(new_pos.x as f32, new_pos.y as f32);
+                    let position_top_left = Vector2(new_pos.x as f32, shape.height - new_pos.y as f32);
+                    let position = position_bottom_left - shape.center();
+                    frp_deprecated.position_bottom_left.emit(position_bottom_left);
+                    frp_deprecated.position_top_left.emit(position_top_left);
+                    frp_deprecated.position.emit(position);
+
+                    pointer_target_registry.with_mouse_target(target.get(), |_, d| {
+                        d.emit_event(event.clone());
+                    });
                 }
             }),
-        ));
-        let on_down = mouse_manager.on_down.add(current_js_event.make_event_handler(
-            f!([frp, click_count, display_mode] (event:&mouse::OnDown) {
+        );
+        let on_down = mouse_manager.on_down.add(
+            f!([pointer_target_registry, target, last_pressed_elem, frp_deprecated, click_count, display_mode]
+            (event:&mouse::Down) {
                 click_count.modify(|v| *v += 1);
                 if display_mode.get().allow_mouse_events() {
-                    frp.down.emit(event.button());
+                    let button = event.button();
+                    frp_deprecated.down.emit(button);
+
+                    let current_target = target.get();
+                    last_pressed_elem.borrow_mut().insert(button, current_target);
+                    pointer_target_registry.with_mouse_target(current_target, |t, d| {
+                        t.emit_mouse_down(button);
+                        d.emit_event(event.clone());
+                    });
                 }
             }),
-        ));
-        let on_up = mouse_manager.on_up.add(current_js_event.make_event_handler(
-            f!([frp, display_mode] (event:&mouse::OnUp) {
+        );
+        let on_up = mouse_manager.on_up.add(
+            f!([pointer_target_registry, target, last_pressed_elem, frp_deprecated, display_mode]
+            (event: &mouse::Up) {
                 if display_mode.get().allow_mouse_events() {
-                    frp.up.emit(event.button())
+                    let button = event.button();
+                    frp_deprecated.up.emit(button);
+
+                    let current_target = target.get();
+                    if let Some(last_target) = last_pressed_elem.borrow_mut().remove(&button) {
+                        pointer_target_registry.with_mouse_target(last_target, |t, d| {
+                            t.emit_mouse_release(button);
+                            d.emit_event(event.clone().unchecked_convert_to::<mouse::Release>());
+                        });
+                    }
+                    pointer_target_registry.with_mouse_target(current_target, |t, d| {
+                        t.emit_mouse_up(button);
+                        d.emit_event(event.clone());
+                    });
                 }
             }),
-        ));
-        let on_wheel = mouse_manager.on_wheel.add(current_js_event.make_event_handler(
-            f_!([frp, display_mode] {
+        );
+        let on_wheel = mouse_manager.on_wheel.add(
+            f!([pointer_target_registry, target, frp_deprecated, display_mode] (event: &mouse::Wheel) {
                 if display_mode.get().allow_mouse_events() {
-                    frp.wheel.emit(())
+                    frp_deprecated.wheel.emit(());
+                    pointer_target_registry.with_mouse_target(target.get(), |_, d| {
+                        d.emit_event(event.clone());
+                    });
                 }
             }),
+        );
+
+        let on_leave = mouse_manager.on_leave.add(f!((_event: &mouse::Leave)
+            scene_frp.focused_source.emit(false);
         ));
-        let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
+        let on_enter = mouse_manager.on_enter.add(f!((_event: &mouse::Enter)
+            scene_frp.focused_source.emit(true);
+        ));
+
+        let handles = Rc::new([on_move, on_down, on_up, on_wheel, on_leave, on_enter]);
         Self {
             mouse_manager,
             last_position,
             position,
             click_count,
-            hover_rgba,
+            pointer_target_encoded,
             target,
             handles,
-            frp,
+            frp_deprecated,
             scene_frp,
+            last_move_event,
         }
     }
 
@@ -226,7 +290,7 @@ impl Mouse {
         let shape = self.scene_frp.shape.value();
         let new_pos = self.last_position.get();
         let position = Vector2(new_pos.x as f32, new_pos.y as f32) - shape.center();
-        self.frp.position.emit(position);
+        self.frp_deprecated.position.emit(position);
     }
 }
 
@@ -243,10 +307,16 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new(current_event: &CurrentJsEvent) -> Self {
+    pub fn new() -> Self {
         let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp, current_event));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp));
         Self { frp, bindings }
+    }
+}
+
+impl Default for Keyboard {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -624,8 +694,10 @@ pub struct Frp {
     pub shape:             frp::Sampler<Shape>,
     pub camera_changed:    frp::Stream,
     pub frame_time:        frp::Stream<f32>,
+    pub focused:           frp::Stream<bool>,
     camera_changed_source: frp::Source,
     frame_time_source:     frp::Source<f32>,
+    focused_source:        frp::Source<bool>,
 }
 
 impl Frp {
@@ -633,18 +705,22 @@ impl Frp {
     pub fn new(shape: &frp::Sampler<Shape>) -> Self {
         frp::new_network! { network
             camera_changed_source <- source();
-            frame_time_source     <- source();
+            frame_time_source <- source();
+            focused_source <- source();
         }
         let shape = shape.clone_ref();
         let camera_changed = camera_changed_source.clone_ref().into();
         let frame_time = frame_time_source.clone_ref().into();
+        let focused = focused_source.clone_ref().into();
         Self {
             network,
             shape,
             camera_changed,
             frame_time,
+            focused,
             camera_changed_source,
             frame_time_source,
+            focused_source,
         }
     }
 }
@@ -701,11 +777,10 @@ pub struct SceneData {
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
     pub variables: UniformScope,
-    pub current_js_event: CurrentJsEvent,
     pub mouse: Mouse,
     pub keyboard: Keyboard,
     pub uniforms: Uniforms,
-    pub background: PointerTarget,
+    pub background: PointerTarget_DEPRECATED,
     pub pointer_target_registry: PointerTargetRegistry,
     pub stats: Stats,
     pub dirty: Dirty,
@@ -738,16 +813,16 @@ impl SceneData {
         let dirty = Dirty::new(on_mut);
         let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
-        let background = PointerTarget::new();
-        let pointer_target_registry = PointerTargetRegistry::new(&background);
+        let background = PointerTarget_DEPRECATED::new();
+        let pointer_target_registry = PointerTargetRegistry::new(&background, &display_object);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
-        let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, &display_mode);
+        let mouse =
+            Mouse::new(&frp, &dom.root, &variables, &display_mode, &pointer_target_registry);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
-        let keyboard = Keyboard::new(&current_js_event);
+        let keyboard = Keyboard::new();
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
@@ -776,7 +851,6 @@ impl SceneData {
             context,
             context_lost_handler,
             variables,
-            current_js_event,
             mouse,
             keyboard,
             uniforms,
@@ -800,7 +874,7 @@ impl SceneData {
     }
 
     fn init(self) -> Self {
-        self.init_mouse_down_and_up_events();
+        self.init_pointer_position_changed_check();
         self
     }
 
@@ -822,8 +896,8 @@ impl SceneData {
         self.layers.main.camera()
     }
 
-    pub fn new_symbol(&self) -> Symbol {
-        world::with_context(|t| t.new())
+    pub fn new_symbol(&self, label: &'static str) -> Symbol {
+        world::with_context(|t| t.new(label))
     }
 
     fn update_shape(&self) -> bool {
@@ -947,43 +1021,18 @@ impl SceneData {
 // === Mouse ===
 
 impl SceneData {
-    /// Init handling of mouse up and down events. It is also responsible for discovering of the
-    /// mouse release events. To learn more see the documentation of [`PointerTarget`].
-    fn init_mouse_down_and_up_events(&self) {
+    fn init_pointer_position_changed_check(&self) {
         let network = &self.frp.network;
-        let pointer_target_registry = &self.pointer_target_registry;
-        let target = &self.mouse.target;
         let pointer_position_changed = &self.pointer_position_changed;
-        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
-
         frp::extend! { network
-            eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
-                let current_target = target.get();
-                pressed.borrow_mut().insert(*button,current_target);
-                pointer_target_registry.with_mouse_target(current_target, |t|
-                    t.emit_mouse_down(*button)
-                );
-            });
-
-            eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
-                let current_target = target.get();
-                if let Some(last_target) = pressed.borrow_mut().remove(button) {
-                    pointer_target_registry.with_mouse_target(last_target, |t|
-                        t.emit_mouse_release(*button)
-                    );
-                }
-                pointer_target_registry.with_mouse_target(current_target, |t|
-                    t.emit_mouse_up(*button)
-                );
-            });
-
-            eval_ self.mouse.frp.position (pointer_position_changed.set(true));
+            eval_ self.mouse.frp_deprecated.position (pointer_position_changed.set(true));
         }
     }
 
     /// Discover what object the mouse pointer is on.
     fn handle_mouse_over_and_out_events(&self) {
-        let opt_new_target = PointerTargetId::decode_from_rgba(self.mouse.hover_rgba.get());
+        let opt_new_target =
+            PointerTargetId::decode_from_rgba(self.mouse.pointer_target_encoded.get());
         let new_target = opt_new_target.unwrap_or_else(|err| {
             error!("{err}");
             default()
@@ -991,10 +1040,29 @@ impl SceneData {
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);
-            self.pointer_target_registry
-                .with_mouse_target(current_target, |t| t.mouse_out.emit(()));
-            self.pointer_target_registry.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
-            self.mouse.re_emit_position_event(); // See docs to learn why.
+            if let Some(event) = (*self.mouse.last_move_event.borrow()).clone() {
+                self.pointer_target_registry.with_mouse_target(current_target, |t, d| {
+                    t.mouse_out.emit(());
+                    let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
+                    let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
+                    d.emit_event(out_event);
+                    d.emit_event_without_bubbling(leave_event);
+                });
+                self.pointer_target_registry.with_mouse_target(new_target, |t, d| {
+                    t.mouse_over.emit(());
+                    let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
+                    let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
+                    d.emit_event(over_event);
+                    d.emit_event_without_bubbling(enter_event);
+                });
+
+                // Re-emitting position event. See the docs of [`re_emit_position_event`] to learn
+                // why.
+                self.pointer_target_registry.with_mouse_target(new_target, |_, d| {
+                    d.emit_event(event.clone());
+                });
+                self.mouse.re_emit_position_event();
+            }
         }
     }
 }
@@ -1254,8 +1322,8 @@ pub mod test_utils {
         fn click_on_background(&self) {
             self.target.set(PointerTargetId::Background);
             let left_mouse_button = frp::io::mouse::Button::Button0;
-            self.frp.down.emit(left_mouse_button);
-            self.frp.up.emit(left_mouse_button);
+            self.frp_deprecated.down.emit(left_mouse_button);
+            self.frp_deprecated.up.emit(left_mouse_button);
         }
     }
 }

@@ -29,7 +29,7 @@ use ide_view::graph_editor::WidgetUpdates;
 /// A module containing the widget visualization method.
 const WIDGET_VISUALIZATION_MODULE: &str = "Standard.Visualization.Widgets";
 /// A name of the widget visualization method.
-const WIDGET_VISUALIZATION_METHOD: &str = "get_full_annotations_json";
+const WIDGET_VISUALIZATION_METHOD: &str = "get_widget_json";
 
 
 
@@ -430,12 +430,26 @@ impl QueryData {
 struct VisualizationData {
     constructor: widget::Kind,
     display:     VisualizationDataDisplay,
-    values:      Vec<String>,
+    values:      Vec<VisualizationDataChoice>,
 }
 
 #[derive(Debug, serde::Deserialize)]
 struct VisualizationDataDisplay {
     constructor: widget::Display,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct VisualizationDataChoice {
+    value: String,
+    label: Option<String>,
+}
+
+impl From<&VisualizationDataChoice> for widget::Entry {
+    fn from(choice: &VisualizationDataChoice) -> Self {
+        let value: ImString = (&choice.value).into();
+        let label = choice.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
+        Self { required_import: None, value, label }
+    }
 }
 
 impl VisualizationData {

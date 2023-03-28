@@ -2,9 +2,9 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
-import project.Error.Common.Incomparable_Values
-import project.Error.Common.No_Such_Conversion
-import project.Error.Common.Type_Error
+import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.No_Such_Conversion
+import project.Errors.Common.Type_Error
 import project.Nothing.Nothing
 import project.Meta
 import project.Panic.Panic
@@ -433,7 +433,7 @@ type Any
          Multiply by 2 and then add 1 as a function applied to 2.
 
              (+1 << *2) 2
-    << : (Any -> Any) -> (Any -> Any) -> Any -> Any
+    << : (Any -> Any) -> (Any -> Any)
     << self ~that = x -> self (that x)
 
     ## Composes two functions together in the forward direction, for `f >> g`
@@ -446,7 +446,7 @@ type Any
          Add one and then multiply by two as a function applied to 2.
 
              (+1 >> *2) 2
-    >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
+    >> : (Any -> Any) -> (Any -> Any)
     >> self ~that = x -> that (self x)
 
 

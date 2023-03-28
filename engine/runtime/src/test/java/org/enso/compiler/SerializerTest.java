@@ -1,6 +1,5 @@
 package org.enso.compiler;
 
-import org.enso.docs.sections.DocSectionsBuilder;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
@@ -56,9 +55,9 @@ public class SerializerTest {
     ctx.enter();
     var result = compiler.run(module);
     assertEquals(result.compiledModules().exists(m -> m == module), true);
-    var serializationManager =
-        new SerializationManager(ensoContext.getCompiler(), DocSectionsBuilder.apply());
-    var future = serializationManager.serializeModule(module, true);
+    var serializationManager = new SerializationManager(ensoContext.getCompiler());
+    var useThreadPool = compiler.context().getEnvironment().isCreateThreadAllowed();
+    var future = serializationManager.serializeModule(module, true, useThreadPool);
     var serialized = future.get(5, TimeUnit.SECONDS);
     assertEquals(serialized, true);
     var deserialized = serializationManager.deserialize(module);

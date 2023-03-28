@@ -174,8 +174,12 @@ impl Translate {
                 if let Some(arg) = rhs {
                     let non_block_operand = "Unary operator cannot be applied to an (empty) block.";
                     let arg = self.translate(arg).expect(non_block_operand);
-                    let section = section_right(opr, arg).expect_unspaced();
-                    self.finish_ast(section, builder)
+                    let value = match arg.body.shape() {
+                        ast::Shape::Number(ast::Number { base, int }) =>
+                            (ast::Number { base: base.clone(), int: format!("-{int}") }).into(),
+                        _ => prefix(opr, arg).expect_unspaced(),
+                    };
+                    self.finish_ast(value, builder)
                 } else {
                     let opr = opr.expect_unspaced();
                     self.finish_ast(ast::SectionSides { opr }, builder)

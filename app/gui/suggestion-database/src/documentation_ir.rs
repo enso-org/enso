@@ -15,8 +15,8 @@ use crate::NoSuchEntry;
 use crate::SuggestionDatabase;
 
 use double_representation::name::QualifiedName;
-use engine_protocol::language_server::DocSection;
-use engine_protocol::language_server::Mark;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
 use std::cmp::Ordering;
 
 
@@ -32,10 +32,8 @@ use std::cmp::Ordering;
 pub enum EntryDocumentation {
     /// No documentation available.
     Placeholder(Placeholder),
-    /// Documentation of the entry provided by the Engine.
+    /// Documentation for the entry.
     Docs(Documentation),
-    /// Documentation of builtin components that are not included in the suggestion database.
-    Builtin(ImString),
 }
 
 impl Default for EntryDocumentation {
@@ -83,6 +81,12 @@ impl EntryDocumentation {
             EntryDocumentation::Docs(docs) => docs.function_name(),
             _ => None,
         }
+    }
+
+    /// Create documentation for a hard-coded builtin entry.
+    pub fn builtin(sections: impl IntoIterator<Item = &DocSection>) -> Self {
+        let sections = Rc::new(BuiltinDocumentation::from_doc_sections(sections.into_iter()));
+        Self::Docs(Documentation::Builtin(sections))
     }
 
     fn method_docs(
@@ -169,6 +173,7 @@ pub enum Documentation {
     ModuleMethod { name: Rc<QualifiedName>, module_docs: Rc<ModuleDocumentation> },
     Function(Rc<FunctionDocumentation>),
     Local(Rc<LocalDocumentation>),
+    Builtin(Rc<BuiltinDocumentation>),
 }
 
 impl Documentation {
@@ -327,6 +332,31 @@ impl LocalDocumentation {
         }
     }
 }
+
+
+
+// ============================
+// === BuiltinDocumentation ===
+// ============================
+
+/// Documentation of hard-coded builtin entries.
+#[derive(Debug, Clone, CloneRef, PartialEq)]
+#[allow(missing_docs)]
+pub struct BuiltinDocumentation {
+    pub synopsis: Synopsis,
+}
+
+impl BuiltinDocumentation {
+    /// Constructor.
+    pub fn from_doc_sections(sections: impl IntoIterator<Item = &DocSection>) -> Self {
+        let FilteredDocSections { tags, synopsis, examples } =
+            FilteredDocSections::new(sections.into_iter());
+        debug_assert!(tags.is_empty());
+        debug_assert!(examples.is_empty());
+        Self { synopsis }
+    }
+}
+
 
 
 // ============

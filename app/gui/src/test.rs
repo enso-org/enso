@@ -210,12 +210,12 @@ pub mod mock {
             &self,
             module: model::Module,
             db: Rc<model::SuggestionDatabase>,
-        ) -> crate::controller::Graph {
+        ) -> controller::Graph {
             let parser = self.parser.clone_ref();
             let method = self.method_pointer();
             let definition =
                 module.lookup_method(self.project_name.clone(), &method).expect("Lookup failed.");
-            crate::controller::Graph::new(module, db, parser, definition)
+            controller::Graph::new(module, db, parser, definition)
                 .expect("Graph could not be created")
         }
 
@@ -291,11 +291,14 @@ pub mod mock {
             let data = self.clone();
             let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
             let searcher_mode = controller::searcher::Mode::EditNode { node_id: searcher_target };
+            let position_in_code = executed_graph.graph().definition_end_location().unwrap();
             let searcher = controller::Searcher::new_from_graph_controller(
                 ide.clone_ref(),
                 &project,
                 executed_graph.clone_ref(),
                 searcher_mode,
+                enso_text::Byte(0),
+                position_in_code,
             )
             .unwrap();
             executor.run_until_stalled();
@@ -432,8 +435,11 @@ pub fn assert_call_info(
     entry: &model::suggestion_database::Entry,
 ) {
     assert_eq!(info.parameters.len(), entry.arguments.len());
+    let parser = parser::Parser::new();
+    let db = model::suggestion_database::SuggestionDatabase::new_empty();
     for (encountered, expected) in info.parameters.iter().zip(entry.arguments.iter()) {
-        let expected_info = model::suggestion_database::entry::to_span_tree_param(expected);
+        let expected_info =
+            model::suggestion_database::entry::to_span_tree_param(expected, &db, &parser);
         assert_eq!(encountered, &expected_info);
     }
 }

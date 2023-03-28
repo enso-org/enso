@@ -8,7 +8,7 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.epb.EpbParser
-import org.enso.syntax.text.{AST, Debug, Location}
+import org.enso.syntax.text.{Debug, Location}
 
 import java.util.UUID
 
@@ -157,14 +157,14 @@ object IR {
   type Identifier = UUID
 
   /** The type of external identifiers */
-  type ExternalId = AST.ID
+  type ExternalId = UUID
 
   /** Couples a location with a possible source identifier.
     *
     * @param location the code location.
     * @param id the identifier for the location.
     */
-  case class IdentifiedLocation(location: Location, id: Option[AST.ID]) {
+  case class IdentifiedLocation(location: Location, id: Option[UUID]) {
 
     /** @return the character index of the start of this source location.
       */
@@ -7106,6 +7106,31 @@ object IR {
           Array(typeName, moduleName, shadower)
 
       }
+
+      /** Used when the exported type of the module can name conflict with fully qualified names of submodules.
+        *
+        * @param name the module name
+        * @param tpeName the name of the exported type leading to conflicts
+        * @param firstConflict the name of the module that can be innaccessible because of the name conflict
+        * @param shadower the export statement leading to a conflict
+        * @param location the location of the export statement
+        */
+      sealed case class TypeInModuleNameConflicts(
+        name: String,
+        tpeName: String,
+        firstConflict: String,
+        override val shadower: IR,
+        override val location: Option[IdentifiedLocation]
+      ) extends Shadowed {
+        override def message: String =
+          s"The exported type `$tpeName` in `$name` module will cause name conflict " +
+          s"when attempting to use a fully qualified name of the `$firstConflict` module."
+
+        /** The important keys identifying identity of the diagnostic
+          */
+        override def diagnosticKeys(): Array[Any] =
+          Array(name, tpeName, shadower)
+      }
     }
 
     /** A warning raised when a call is annotated with `@Auto_Parallel`, but the
@@ -7635,13 +7660,13 @@ object IR {
 
     /** A representation of an Enso syntax error.
       *
-      * @param at the erroneous AST
+      * @param at the error location
       * @param reason the cause of this error
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
-      at: AnyRef,
+      at: IdentifiedLocation,
       reason: Syntax.Reason,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7653,11 +7678,9 @@ object IR {
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
-      def ast: AST = at.asInstanceOf[AST]
-
       /** Creates a copy of `this`.
         *
-        * @param ast the erroneous AST
+        * @param ast the error location
         * @param reason the cause of this error
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -7665,13 +7688,13 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ast: AnyRef                    = at,
+        at: IdentifiedLocation         = at,
         reason: Syntax.Reason          = reason,
         passData: MetadataStorage      = passData,
         diagnostics: DiagnosticStorage = diagnostics,
         id: Identifier                 = id
       ): Syntax = {
-        val res = Syntax(ast, reason, passData, diagnostics)
+        val res = Syntax(at, reason, passData, diagnostics)
         res.id = id
         res
       }
@@ -7696,13 +7719,7 @@ object IR {
         this
 
       /** @inheritdoc */
-      @annotation.nowarn
-      override val location: Option[IdentifiedLocation] =
-        at match {
-          case ast: AST                => ast.location.map(IdentifiedLocation(_, ast.id))
-          case loc: IdentifiedLocation => Some(loc)
-          case _                       => None
-        }
+      override val location: Option[IdentifiedLocation] = Option(at)
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
@@ -7711,7 +7728,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Error.Syntax(
-        |ast = $at,
+        |at = $at,
         |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},
@@ -8755,6 +8772,7 @@ object IR {
       case class ModuleDoesNotExist(name: String) extends Reason {
         override def message: String = s"The module $name does not exist."
       }
+
     }
 
     /** An erroneous import or export statement.
@@ -8897,9 +8915,10 @@ object IR {
       * @return a string representation of the pass data for [[ir]]
       */
     def showPassData: String = {
-      val metaString = ir.passData.map((p, m) => (p, m.metadataName)).values
-
-      s"$metaString"
+      val metaString: Seq[String] =
+        ir.passData.map((p, m) => (p, m.metadataName)).values.toSeq
+      val alphabetical = metaString.sorted
+      s"$alphabetical"
     }
   }
 

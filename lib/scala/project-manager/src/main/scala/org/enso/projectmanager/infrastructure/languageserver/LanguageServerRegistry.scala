@@ -46,7 +46,13 @@ class LanguageServerRegistry(
   private def running(
     serverControllers: Map[UUID, ActorRef] = Map.empty
   ): Receive = {
-    case msg @ StartServer(_, project, engineVersion, progressTracker) =>
+    case msg @ StartServer(
+          _,
+          project,
+          engineVersion,
+          progressTracker,
+          engineUpdate
+        ) =>
       if (serverControllers.contains(project.id)) {
         serverControllers(project.id).forward(msg)
       } else {
@@ -57,7 +63,7 @@ class LanguageServerRegistry(
               engineVersion,
               progressTracker,
               networkConfig,
-              bootloaderConfig,
+              bootloaderConfig.copy(skipGraalVMUpdater = engineUpdate),
               supervisionConfig,
               timeoutConfig,
               distributionConfiguration,

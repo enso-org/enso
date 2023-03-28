@@ -11,7 +11,7 @@ import scala.util.Try
 object NoopComponentUpdater extends RuntimeComponentUpdater {
 
   /** @inheritdoc */
-  override def list: Try[Seq[GraalVMComponent]] =
+  override def list(): Try[Seq[GraalVMComponent]] =
     Try(Seq())
 
   /** @inheritdoc */

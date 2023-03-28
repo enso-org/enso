@@ -58,6 +58,11 @@
           "value": false,
           "description": "Enables SpectorJS. This is a temporary flag to test Spector. It will be removed after all Spector integration issues are resolved. See: https://github.com/BabylonJS/Spector.js/issues/252.",
           "primary": false
+        },
+        "pixelReadPeriod": {
+          "value": "1",
+          "description": "Minimum number of frames from one pixel read pass to the next.",
+          "primary": false
         }
       }
     }
