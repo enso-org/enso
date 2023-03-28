@@ -177,25 +177,33 @@ impl Model {
         false
     }
 
-    /// TODO(#5930): Provide the current environment of the project.
-    fn environment(&self) -> &str {
+    /// TODO(#5930): Provide the current execution environment of the project.
+    fn execution_environment(&self) -> &str {
         "design"
     }
 
-    /// Add or remove context switch expression to node. Context switch expression allows to enable
-    /// or disable execution of a certain node in the Output context. See the table below for
-    /// the logic of this function. context enabled in env
-    ///     active -> add disable
-    ///     inactive -> clear
-    /// context disable in env
-    ///    active -> add enable
-    ///    inactive -> clear
+    /// Sets or clears a context switch expression for the specified node.
+    ///
+    /// A context switch expression allows enabling or disabling the execution of a particular node
+    /// in the Output context. This function adds or removes the context switch expression based on
+    /// the provided `active` flag (representing the state of the icon) and the current context
+    /// state.
+    ///
+    /// The behavior of this function can be summarized in the following table:
+    /// ```ignore
+    /// | Context Enabled | Active      | Action       |
+    /// |-----------------|-------------|--------------|
+    /// | Yes             | Yes         | Add Disable  |
+    /// | Yes             | No          | Clear        |
+    /// | No              | Yes         | Add Enable   |
+    /// | No              | No          | Clear        |
+    /// ```
     /// TODO(#5929): Connect this function with buttons on nodes.
     #[allow(dead_code)]
     fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
         let context = Context::Output;
         let current_state = self.output_context_enabled();
-        let environment = self.environment().into();
+        let environment = self.execution_environment().into();
         let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
         let expr = if active {
             Some(ContextSwitchExpression { switch, context, environment })
