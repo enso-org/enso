@@ -2,9 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::context_switch::ContextSwitchExpression;
 use crate::definition::ScopeKind;
-use crate::name::QualifiedName;
-use crate::name::QualifiedNameRef;
 use crate::LineKind;
 
 use ast::crumbs::Crumbable;
@@ -201,16 +200,20 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
     }
 }
 
+/// The information about AST content of the node.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct NodeAstInfo {
+    /// Information about SKIP and FREEZE macros used in the code.
     pub macros_info:    MacrosInfo,
+    /// Existing context switch expression, if any.
     pub context_switch: Option<ContextSwitchExpression>,
 }
 
 impl NodeAstInfo {
+    /// Constructor.
     pub fn from_ast(ast: &Ast) -> Self {
         let macros_info = MacrosInfo::from_ast(ast);
-        let context_switch = parse_context_switch_expression(ast);
+        let context_switch = ContextSwitchExpression::parse(ast);
         Self { macros_info, context_switch }
     }
 }
@@ -225,6 +228,7 @@ pub struct NodeInfo {
     #[deref]
     #[deref_mut]
     pub main_line:     MainLine,
+    /// Additional information about the AST.
     pub ast_info:      NodeAstInfo,
 }
 
@@ -257,9 +261,7 @@ impl NodeInfo {
     pub fn documentation_text(&self) -> Option<ImString> {
         self.documentation.as_ref().map(|doc| doc.pretty_text())
     }
-}
 
-impl NodeInfo {
     /// The info about macro calls in the expression.
     pub fn macros_info(&self) -> &MacrosInfo {
         &self.ast_info.macros_info
@@ -306,28 +308,14 @@ impl NodeInfo {
         self.main_line.clear_pattern();
     }
 
-    /// TODO
+    /// Add context switch expression to the node. Replaces the existing one, if any.
     pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
         if self.ast_info.context_switch.is_some() {
             self.clear_context_switch_expression();
         }
         self.main_line.modify_expression(|ast| {
             *ast = preserving_skip_and_freeze(ast, |ast| {
-                let func = match context_switch_expr.switch {
-                    ContextSwitch::Enable => ENABLE,
-                    ContextSwitch::Disable => DISABLE,
-                };
-                let context = match context_switch_expr.context {
-                    Context::Output => OUTPUT,
-                };
-                let func: Ast = ast::opr::qualified_name_chain(func.into_iter()).unwrap().into();
-                let context: Ast =
-                    ast::opr::qualified_name_chain(context.into_iter()).unwrap().into();
-                let environment: Ast =
-                    ast::Tree::text(format!("\"{}\"", context_switch_expr.environment.deref()))
-                        .into();
-                let args = vec![context, environment];
-                let prefix: Ast = ast::prefix::Chain::new(func, args).into_ast();
+                let prefix = context_switch_expr.to_ast();
                 let infix = ast::Infix {
                     larg: prefix,
                     loff: 1,
@@ -341,12 +329,12 @@ impl NodeInfo {
         self.ast_info.context_switch = Some(context_switch_expr);
     }
 
-    /// TODO
+    /// Remove existing context switch expression from the node.
     pub fn clear_context_switch_expression(&mut self) {
         if self.ast_info.context_switch.is_some() {
             self.main_line.modify_expression(|ast| {
                 *ast = preserving_skip_and_freeze(ast, |ast| {
-                    if parse_context_switch_expression(&ast).is_some() {
+                    if ContextSwitchExpression::parse(&ast).is_some() {
                         let rarg =
                             ast.get(&ast::crumbs::InfixCrumb::RightOperand.into()).unwrap_or(&ast);
                         *ast = rarg.clone();
@@ -551,96 +539,9 @@ impl MainLine {
     }
 }
 
-const OUTPUT: [&str; 5] = ["Standard", "Base", "Runtime", "Context", "Output"];
-const ENABLE: [&str; 4] = ["Standard", "Base", "Runtime", "with_enabled_context"];
-const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "with_disabled_context"];
-
 impl ast::HasTokens for MainLine {
     fn feed_to(&self, consumer: &mut impl ast::TokenConsumer) {
         self.ast().feed_to(consumer)
-    }
-}
-
-/// TODO
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextSwitch {
-    Enable,
-    Disable,
-}
-
-impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
-    type Error = ();
-
-    fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
-        // Unwraps are safe, because the conversion is tested.
-        let enable_name = QualifiedName::from_all_segments(ENABLE).unwrap();
-        let disable_name = QualifiedName::from_all_segments(DISABLE).unwrap();
-
-        if qualified_name == enable_name {
-            Ok(ContextSwitch::Enable)
-        } else if qualified_name == disable_name {
-            Ok(ContextSwitch::Disable)
-        } else {
-            Err(())
-        }
-    }
-}
-
-/// TODO
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Context {
-    Output,
-}
-
-impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
-    type Error = ();
-
-    fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
-        // Unwrap is safe, because the conversion is tested.
-        let output_name = QualifiedName::from_all_segments(OUTPUT).unwrap();
-
-        if qualified_name == output_name {
-            Ok(Context::Output)
-        } else {
-            Err(())
-        }
-    }
-}
-
-im_string_newtype!(Environment);
-
-
-/// TODO
-#[derive(Debug, Clone, PartialEq)]
-pub struct ContextSwitchExpression {
-    pub switch:      ContextSwitch,
-    pub context:     Context,
-    pub environment: Environment,
-}
-
-fn parse_context_switch_expression(ast: &Ast) -> Option<ContextSwitchExpression> {
-    let infix = known::Infix::try_new(ast.clone()).ok()?;
-    if ast::opr::is_right_assoc_opr(&infix.opr) {
-        let prefix = ast::prefix::Chain::from_ast(&infix.larg)?;
-        let infix_chain = ast::opr::Chain::try_new(&prefix.func)?;
-        let name_segments = infix_chain.as_qualified_name_segments()?;
-        let qualified_name = QualifiedName::from_all_segments(&name_segments).ok()?;
-        let switch = ContextSwitch::try_from(qualified_name.as_ref()).ok()?;
-        if let [context, environment] = &prefix.args[..] {
-            let context = ast::opr::Chain::try_new(&context.sast.wrapped)?;
-            let context_segments = context.as_qualified_name_segments()?;
-            let context_name = QualifiedName::from_all_segments(&context_segments).ok()?;
-            let context = Context::try_from(context_name.as_ref()).ok()?;
-            let environment = environment.sast.wrapped.clone();
-            let environment =
-                known::Tree::try_from(environment).ok().map(|t| t.as_text().map(Into::into));
-            let environment = environment.flatten()?;
-            Some(ContextSwitchExpression { switch, context, environment })
-        } else {
-            None
-        }
-    } else {
-        None
     }
 }
 
@@ -831,60 +732,6 @@ mod tests {
         node.set_skip(false);
         assert_eq!(node.repr(), format!("foo = bar"));
         assert_eq!(node.id(), id);
-    }
-
-    #[test]
-    fn test_recognizing_execution_context_switch() {
-        #[derive(Debug)]
-        struct Case {
-            input:    &'static str,
-            expected: Option<ContextSwitchExpression>,
-        }
-
-        #[rustfmt::skip]
-        let cases = vec![
-            Case {
-                input: "foo <| bar", 
-                expected: None,
-            },
-            Case { 
-                input: "Runtime.with_enabled_context blabla <| bar", 
-                expected: None,
-            },
-            Case { 
-                input: "Runtime.with_enabled_context Context.Output \"context\" <| bar", 
-                expected: None,
-            },
-            Case { 
-                input: "Standard.Base.Runtime.with_enabled_context Context.Output \"context\" <| bar", 
-                expected: None,
-            },
-            Case {
-                input: "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output \"context\" <| bar",
-                expected: Some(ContextSwitchExpression {
-                    switch:  ContextSwitch::Enable,
-                    context: Context::Output,
-                    environment: "context".into(),
-                }),
-            },
-            Case {
-                input: "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output \"context_name\" <| bar",
-                expected: Some(ContextSwitchExpression {
-                    switch:  ContextSwitch::Disable,
-                    context: Context::Output,
-                    environment: "context_name".into(),
-                }),
-            },
-        ];
-
-        let parser = Parser::new();
-        for case in cases.iter() {
-            let ast = parser.parse_line_ast(case.input).unwrap();
-            let result = parse_context_switch_expression(&ast);
-            assert_eq!(result, case.expected, "{case:?}");
-            let node_info = NodeInfo::from_main_line_ast(&ast).unwrap();
-            assert_eq!(node_info.ast_info.context_switch, case.expected, "{case:?}");
-        }
     }
 
     #[test]

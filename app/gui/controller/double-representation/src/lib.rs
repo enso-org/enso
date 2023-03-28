@@ -49,6 +49,7 @@ pub mod module;
 pub mod name;
 pub mod node;
 pub mod refactorings;
+pub mod context_switch;
 #[cfg(test)]
 pub mod test_utils;
 pub mod text;
