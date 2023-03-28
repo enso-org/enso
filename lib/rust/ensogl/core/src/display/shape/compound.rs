@@ -8,3 +8,4 @@
 pub mod events;
 pub mod from_cache;
 pub mod path;
+pub mod rectangle;
