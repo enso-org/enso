@@ -4,6 +4,7 @@ import java.io.OutputStream;
 import java.nio.file.Paths;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,5 +46,22 @@ public class ExecCompilerTest {
     assertEquals("minus one", minusOne.asString());
     var none = run.execute(33);
     assertEquals("none", none.asString());
+  }
+
+  @Test
+  public void testHalfAssignment() throws Exception {
+    var module = ctx.eval("enso", """
+    run value =
+        x = 4
+        y =
+        z = 5
+    """);
+    var run = module.invokeMember("eval_expression", "run");
+    try {
+        var never = run.execute(-1);
+        fail("Unexpected result: " + never);
+    } catch (PolyglotException ex) {
+        assertEquals("Syntax error: Unexpected expression.", ex.getMessage());
+    }
   }
 }
