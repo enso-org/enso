@@ -10,20 +10,18 @@ export interface ProjectCreateFormProps {
     close: () => void
 }
 
-function ProjectCreateForm(props: ProjectCreateFormProps) {
-    const { backend, directoryId } = props
+function DirectoryCreateForm(props: ProjectCreateFormProps) {
+    const { backend, directoryId, close } = props
     const [name, setName] = react.useState<string | null>(null)
-    const [template, setTemplate] = react.useState<string | null>(null)
 
     async function onSubmit(event: react.FormEvent) {
         event.preventDefault()
         if (name == null) {
             toast.toast.error('Please provide a project name.')
         } else {
-            await backend.createProject({
-                parentDirectoryId: directoryId,
-                projectName: name,
-                projectTemplateName: template,
+            await backend.createDirectory({
+                parentId: directoryId,
+                title: name,
             })
             close()
         }
@@ -31,31 +29,17 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
 
     return (
         <form className="bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
-            <h2 className="inline-block font-semibold m-2">New Project</h2>
+            <h2 className="inline-block font-semibold m-1">New Directory</h2>
             <div className="flex flex-row flex-nowrap m-1">
-                <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
+                <label className="inline-block flex-1 grow m-1" htmlFor="directory_name">
                     Name
                 </label>
                 <input
-                    id="project_name"
+                    id="directory_name"
                     type="text"
                     className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
                     onChange={event => {
                         setName(event.target.value)
-                    }}
-                />
-            </div>
-            <div className="flex flex-row flex-nowrap m-1">
-                {/* FIXME[sb]: Use the array of templates in a dropdown when it becomes available. */}
-                <label className="inline-block flex-1 grow m-1" htmlFor="project_template_name">
-                    Template
-                </label>
-                <input
-                    id="project_template_name"
-                    type="text"
-                    className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
-                    onChange={event => {
-                        setTemplate(event.target.value)
                     }}
                 />
             </div>
@@ -68,4 +52,4 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     )
 }
 
-export default ProjectCreateForm
+export default DirectoryCreateForm

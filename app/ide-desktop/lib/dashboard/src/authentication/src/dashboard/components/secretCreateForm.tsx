@@ -10,20 +10,23 @@ export interface ProjectCreateFormProps {
     close: () => void
 }
 
-function ProjectCreateForm(props: ProjectCreateFormProps) {
+function SecretCreateForm(props: ProjectCreateFormProps) {
     const { backend, directoryId } = props
     const [name, setName] = react.useState<string | null>(null)
-    const [template, setTemplate] = react.useState<string | null>(null)
+    const [value, setValue] = react.useState<string | null>(null)
 
     async function onSubmit(event: react.FormEvent) {
         event.preventDefault()
-        if (name == null) {
-            toast.toast.error('Please provide a project name.')
+        if (!name) {
+            toast.toast.error('Please provide a secret name.')
+        } else if (value == null) {
+            // Secret value explicitly can be empty.
+            toast.toast.error('Please provide a secret value.')
         } else {
-            await backend.createProject({
+            await backend.createSecret({
                 parentDirectoryId: directoryId,
-                projectName: name,
-                projectTemplateName: template,
+                secretName: name,
+                secretValue: value,
             })
             close()
         }
@@ -31,7 +34,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
 
     return (
         <form className="bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
-            <h2 className="inline-block font-semibold m-2">New Project</h2>
+            <h2 className="inline-block font-semibold m-2">New Secret</h2>
             <div className="flex flex-row flex-nowrap m-1">
                 <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
                     Name
@@ -46,16 +49,15 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                 />
             </div>
             <div className="flex flex-row flex-nowrap m-1">
-                {/* FIXME[sb]: Use the array of templates in a dropdown when it becomes available. */}
-                <label className="inline-block flex-1 grow m-1" htmlFor="project_template_name">
-                    Template
+                <label className="inline-block flex-1 grow m-1" htmlFor="secret_value">
+                    Value
                 </label>
                 <input
-                    id="project_template_name"
+                    id="secret_value"
                     type="text"
                     className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
                     onChange={event => {
-                        setTemplate(event.target.value)
+                        setValue(event.target.value)
                     }}
                 />
             </div>
@@ -68,4 +70,4 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     )
 }
 
-export default ProjectCreateForm
+export default SecretCreateForm

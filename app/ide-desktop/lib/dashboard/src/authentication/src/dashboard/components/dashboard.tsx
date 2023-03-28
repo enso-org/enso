@@ -3,6 +3,8 @@
 import * as react from 'react'
 import * as reactDom from 'react-dom'
 
+import * as toast from 'react-hot-toast'
+
 import * as projectManagerModule from 'enso-content/src/project_manager'
 
 import * as auth from '../../authentication/providers/auth'
@@ -52,7 +54,14 @@ enum Column {
 export interface ModalProps {
     backend: backend.Backend
     directoryId: backend.DirectoryId
-    closeModal: () => void
+    close: () => void
+}
+
+/** Values provided to modals. */
+export interface CreateFormProps {
+    backend: backend.Backend
+    directoryId: backend.DirectoryId
+    close: () => void
 }
 
 // =================
@@ -68,7 +77,7 @@ const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
 } as const
 
 /** Forms to create each asset type. */
-const ASSET_TYPE_CREATE_FORM: Record<backend.AssetType, () => JSX.Element> = {
+const ASSET_TYPE_CREATE_FORM: Record<backend.AssetType, (props: CreateFormProps) => JSX.Element> = {
     [backend.AssetType.project]: ProjectCreateForm,
     [backend.AssetType.file]: FileCreateForm,
     [backend.AssetType.secret]: SecretCreateForm,
@@ -209,17 +218,6 @@ const COLUMN_RENDERER: Record<
 // === Helper functions ===
 // ========================
 
-/** Heading element for every column. */
-function ColumnHeading(column: Column, assetType: backend.AssetType) {
-    return column === Column.name ? (
-        <div className="inline-flex">
-            {ASSET_TYPE_NAME[assetType]} <button className="mx-1">{svg.ADD_ICON}</button>
-        </div>
-    ) : (
-        <>{COLUMN_NAME[column]}</>
-    )
-}
-
 /** Returns the id of the root directory for a user or organization. */
 function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
     return newtype.asNewtype<backend.DirectoryId>(
@@ -275,6 +273,9 @@ function Dashboard(props: DashboardProps) {
     >({})
 
     const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
+    // TODO[sb]: `setVisibleCreateForm(null)` when a click happens anywhere outside a form.
+    const [visibleCreateForm, setVisibleCreateForm] = react.useState<backend.AssetType | null>(null)
+    const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
     const [Modal, setModal] = react.useState<((props: ModalProps) => JSX.Element) | null>(null)
 
     const directory = directoryStack[directoryStack.length - 1]
@@ -347,6 +348,42 @@ function Dashboard(props: DashboardProps) {
             : COLUMN_RENDERER[column]
     }
 
+    /** Heading element for every column. */
+    function ColumnHeading(column: Column, assetType: backend.AssetType) {
+        // This is a React component even though it doesn't contain JSX.
+        // eslint-disable-next-line no-restricted-syntax
+        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+        return column === Column.name ? (
+            <div className="inline-flex">
+                {ASSET_TYPE_NAME[assetType]}{' '}
+                {assetType === visibleCreateForm ? (
+                    <div className="relative font-medium mx-1">
+                        <div className="absolute z-10">
+                            <CreateForm
+                                backend={backendService}
+                                directoryId={directoryId}
+                                close={() => {
+                                    setVisibleCreateForm(null)
+                                }}
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <button
+                        className="mx-1"
+                        onClick={() => {
+                            setVisibleCreateForm(assetType)
+                        }}
+                    >
+                        {svg.ADD_ICON}
+                    </button>
+                )}
+            </div>
+        ) : (
+            <>{COLUMN_NAME[column]}</>
+        )
+    }
+
     react.useEffect(() => {
         void (async (): Promise<void> => {
             let assets: backend.Asset[]
@@ -383,6 +420,38 @@ function Dashboard(props: DashboardProps) {
             })
         })()
     }, [accessToken, directoryId])
+
+    react.useEffect(() => {
+        function onDragOver(event: DragEvent) {
+            if (Array.prototype.includes.call(event.dataTransfer?.types ?? [], 'Files')) {
+                setIsFileBeingDragged(true)
+            }
+        }
+
+        function onDrop(event: DragEvent) {
+            if (isFileBeingDragged) {
+                const fileCount = event.dataTransfer?.files.length ?? 0
+                if (fileCount === 0) {
+                    toast.toast.error('No files were dropped.')
+                } else if (fileCount > 1) {
+                    // FIXME[sb]: Waiting on https://github.com/timolins/react-hot-toast/issues/29.
+                    // TODO[sb]: Add colors.
+                    toast.toast('Multiple files were dropped; using the first file.', {
+                        icon: '⚠️',
+                    })
+                }
+                setIsFileBeingDragged(false)
+            }
+        }
+
+        document.addEventListener('dragover', onDragOver)
+        document.addEventListener('drop', onDrop)
+
+        return () => {
+            document.removeEventListener('dragover', onDragOver)
+            document.removeEventListener('drop', onDrop)
+        }
+    }, [])
 
     return (
         <div className="select-none text-primary">
@@ -425,7 +494,7 @@ function Dashboard(props: DashboardProps) {
                     <button
                         className="mx-1"
                         onClick={() => {
-                            setModal(UploadFileModal)
+                            setModal(() => UploadFileModal)
                         }}
                     >
                         {svg.UPLOAD_ICON}
@@ -544,6 +613,13 @@ function Dashboard(props: DashboardProps) {
                     />
                 </tbody>
             </table>
+            {isFileBeingDragged ? (
+                <div className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center">
+                    <span className="text-white text-lg">Drop to upload files.</span>
+                </div>
+            ) : (
+                <></>
+            )}
             {Modal ? (
                 <div
                     className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
@@ -556,7 +632,7 @@ function Dashboard(props: DashboardProps) {
                     <Modal
                         backend={backendService}
                         directoryId={directoryId}
-                        closeModal={() => {
+                        close={() => {
                             setModal(null)
                         }}
                     />
