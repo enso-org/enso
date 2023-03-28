@@ -375,9 +375,9 @@ impl Slider {
         let output = &self.frp.private.output;
         let model = &self.model;
         let scene = &self.app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let keyboard = &scene.keyboard.frp;
-        let component_events = &model.background.events;
+        let component_events = &model.background.events_deprecated;
 
         frp::extend! { network
 
@@ -621,7 +621,7 @@ impl Slider {
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
-        let component_events = &model.background.events;
+        let component_events = &model.background.events_deprecated;
         let popup_anim = DelayedAnimation::new(network);
 
         frp::extend! { network
@@ -655,7 +655,7 @@ impl Slider {
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
-        let component_events = &model.background.events;
+        let component_events = &model.background.events_deprecated;
         let tooltip_anim = DelayedAnimation::new(network);
 
         frp::extend! { network

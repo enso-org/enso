@@ -167,7 +167,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
 
     let method = |editor: &GraphEditor| {
         let port = node_1.model().output_port_shape().expect("No output port");
-        port.events.mouse_over.emit(());
+        port.events_deprecated.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };
     let (_, source, node_2) = add_node(&graph_editor, "+ 1", method).await;
@@ -285,7 +285,7 @@ async fn mouse_oriented_node_placement() {
         }
 
         fn check_tab_key(&self) {
-            self.scene.mouse.frp.position.emit(self.mouse_position);
+            self.scene.mouse.frp_deprecated.position.emit(self.mouse_position);
             let added_node = self.graph_editor.node_added.next_event();
             self.graph_editor.start_node_creation();
             self.check_searcher_opening_place(added_node);
@@ -293,9 +293,9 @@ async fn mouse_oriented_node_placement() {
 
         fn check_edge_drop(&self) {
             let port = self.source_node.view.model().output_port_shape().unwrap();
-            port.events.emit_mouse_down(PrimaryButton);
-            port.events.emit_mouse_up(PrimaryButton);
-            self.scene.mouse.frp.position.emit(self.mouse_position);
+            port.events_deprecated.emit_mouse_down(PrimaryButton);
+            port.events_deprecated.emit_mouse_up(PrimaryButton);
+            self.scene.mouse.frp_deprecated.position.emit(self.mouse_position);
             assert!(
                 self.graph_editor.has_detached_edge.value(),
                 "No detached edge after clicking port"

@@ -325,7 +325,6 @@ pub fn main() {
 
 /// Initialize a `SliderCollection` and do not drop it.
 fn init(app: &Application) {
-    let slider_collection = app.new_view::<SliderCollection>();
+    let slider_collection = app.new_view::<SliderCollection>().leak();
     app.display.add_child(&slider_collection);
-    Leak::new(slider_collection);
 }

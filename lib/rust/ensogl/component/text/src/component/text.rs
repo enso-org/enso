@@ -402,7 +402,7 @@ impl Text {
         let network = self.frp.network();
         let input = &self.frp.input;
         let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         frp::extend! { network
 
@@ -482,7 +482,7 @@ impl Text {
     fn init_selections(&self) {
         let m = &self.data;
         let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let network = self.frp.network();
         let input = &self.frp.input;
 

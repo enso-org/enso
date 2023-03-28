@@ -2980,6 +2980,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-vector-editor"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
@@ -3004,6 +3013,7 @@ dependencies = [
  "ensogl-example-sprite-system",
  "ensogl-example-sprite-system-benchmark",
  "ensogl-example-text-area",
+ "ensogl-example-vector-editor",
 ]
 
 [[package]]
