@@ -1,5 +1,5 @@
 import project.Data.Locale.Locale
-import project.Data.Text.Regex
+import project.Data.Text.Regex_2
 import project.Data.Text.Text
 
 from project.Data.Boolean import Boolean, True, False
@@ -42,7 +42,7 @@ type Case_Sensitivity
        Create matcher function
     create_match_function : Boolean -> (Text -> Text -> Boolean)
     create_match_function self use_regex=False = case use_regex of
-        True -> (name-> pattern-> Regex.compile pattern case_insensitive=self.is_case_insensitive_in_memory . matches name)
+        True -> (name-> pattern-> Regex_2.compile pattern case_insensitive=self.is_case_insensitive_in_memory . matches name)
         False -> case self of
             Case_Sensitivity.Default -> (==)
             Case_Sensitivity.Sensitive -> (==)
