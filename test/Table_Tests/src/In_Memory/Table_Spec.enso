@@ -644,7 +644,7 @@ spec =
             bools = ["bools", [False, False, True, True]]
             texts = ["texts", ["foo", "bar", "baz", "spam"]]
             table = Table.new [bools, texts]
-            actual = table.replace_text "texts" "(a|o)" "$1e" matcher=Regex_Matcher.Value
+            actual = table.replace_text "texts" "(a|o)" "$1e" use_regex=True
             actual.at "texts" . to_vector . should_equal ["foeoe", "baer", "baez", "spaem"]
             Problems.assume_no_problems actual
 
