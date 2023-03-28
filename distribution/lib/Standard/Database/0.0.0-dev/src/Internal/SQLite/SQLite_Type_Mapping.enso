@@ -180,4 +180,4 @@ type SQLite_Types
     boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
 
 ## PRIVATE
-default_text = Value_Type.Char size=Nothing variable=True
+default_text = Value_Type.Char size=Nothing variable_length=True

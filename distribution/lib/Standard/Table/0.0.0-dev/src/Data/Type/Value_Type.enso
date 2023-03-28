@@ -57,21 +57,36 @@ type Value_Type
        32-bit: -2,147,483,648 to -2,147,483,648
        64-bit: -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
        ANSI SQL: SMALLINT (16-bit), INT (32-bit), BIGINT (64-bit)
+
+       Arguments:
+       - size: the amount of bits used to store the values.
     Integer size:Bits=Bits.Bits_64
 
     ## Floating point value.
 
        ANSI SQL: REAL, FLOAT, DOUBLE
+
+       Arguments:
+       - size: the amount of bits used to store the values.
     Float size:Bits=Bits.Bits_64
 
     ## Arbitrary precision numerical value with a scale and precision.
 
        ANSI SQL: NUMERIC, DECIMAL
+
+       Arguments:
+       - precision: the total number of digits in the number.
+       - scale: the number of digits after the decimal point.
     Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=0
 
     ## Character string.
 
        ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB, NCLOB
+
+       Arguments:
+       - size: the maximum number of characters that can be stored in the
+         column.
+       - variable_length: whether the size is a maximum or a fixed length.
     Char size:(Integer|Nothing)=Nothing variable_length:Boolean=True
 
     ## Date
@@ -82,6 +97,9 @@ type Value_Type
     ## Date and Time
 
        ANSI SQL: TIMESTAMP / DateTime
+
+       Arguments:
+       - with_timezone: whether the values contain the timezone.
     Date_Time with_timezone:Boolean=True
 
     ## Time of day
@@ -93,13 +111,17 @@ type Value_Type
 
        ANSI SQL: BINARY, VARBINARY, LONGVARBINARY, BLOB
 
-       The size is expressed in bytes.
+       Arguments:
+       - size: the maximum number of bytes that can be stored in the
+         column.
+       - variable_length: whether the size is a maximum or a fixed length.
     Binary size:(Integer|Nothing)=Nothing variable_length:Boolean=False
 
     ## Unsupported SQL type.
 
-       Fallback provided to allow describing types that are not supported by Enso at this time.
-    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:SQL_Type=Nothing)
+       Fallback provided to allow describing types that are not supported by
+       Enso at this time.
+    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:SQL_Type|Nothing=Nothing)
 
     ## A mix of values can be stored in the Column.
 

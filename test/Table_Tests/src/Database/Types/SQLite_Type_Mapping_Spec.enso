@@ -24,7 +24,7 @@ spec =
             t = make_table "basics" [["int", "INTEGER"], ["real", "REAL"], ["text", "TEXT"], ["blob", "BLOB"], ["numeric", "NUMERIC"]]
             t.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "real" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.at "text" . value_type . should_equal (Value_Type.Char size=Nothing variable=True)
+            t.at "text" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
             t.at "blob" . value_type . should_equal Value_Type.Mixed
             # We treat numeric as a float, since that is what really sits in SQLite under the hood.
             t.at "numeric" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
@@ -82,7 +82,7 @@ spec =
 
         Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
             # TODO this will be tested once the cast operator is implemented
-            # Binary 10 variable=False -> Binary max_int4 variable=True
+            # Binary 10 variable_length=False -> Binary max_int4 variable_length=True
             # Byte -> Integer Bits.Bits_16
             Nothing
 

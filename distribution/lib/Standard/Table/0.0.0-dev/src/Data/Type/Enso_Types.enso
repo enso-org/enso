@@ -18,7 +18,7 @@ most_specific_value_type value use_smallest=False =
     case value of
         _ : Integer     -> Value_Type.Integer Bits.Bits_64
         _ : Decimal     -> Value_Type.Float Bits.Bits_64
-        _ : Text        -> Value_Type.Char size=Nothing variable=True
+        _ : Text        -> Value_Type.Char size=Nothing variable_length=True
         _ : Boolean     -> Value_Type.Boolean
         _ : Date        -> Value_Type.Date
         _ : Time_Of_Day -> Value_Type.Time

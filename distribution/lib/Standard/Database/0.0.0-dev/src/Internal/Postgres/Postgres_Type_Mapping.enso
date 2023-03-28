@@ -104,11 +104,11 @@ complex_types_map = Map.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
     make_varchar sql_type =
-        Value_Type.Char size=sql_type.precision variable=True
+        Value_Type.Char size=sql_type.precision variable_length=True
     make_char sql_type =
-        Value_Type.Char size=sql_type.precision variable=False
+        Value_Type.Char size=sql_type.precision variable_length=False
     make_binary variable sql_type =
-        Value_Type.Binary size=sql_type.precision variable=variable
+        Value_Type.Binary size=sql_type.precision variable_length=variable
     handle_bit sql_type =
         if sql_type.name == "bool" then Value_Type.Boolean else
             # We currently do not support bit types.

@@ -49,15 +49,15 @@ spec connection db_name =
 
         Test.specify "text" <|
             t = make_table "texts" [["a", "char(10)"], ["b", "varchar"], ["c", "varchar(20)"], ["d", "text"]]
-            t.at "a" . value_type . should_equal (Value_Type.Char size=10 variable=False)
+            t.at "a" . value_type . should_equal (Value_Type.Char size=10 variable_length=False)
             t.at "b" . value_type . should_equal default_text
-            t.at "c" . value_type . should_equal (Value_Type.Char size=20 variable=True)
+            t.at "c" . value_type . should_equal (Value_Type.Char size=20 variable_length=True)
             t.at "d" . value_type . should_equal default_text
 
         Test.specify "binary" <|
             # Postgres does not support a BLOB type, it has `bytea` instead.
             t = make_table "binaries" [["a", "bytea"]]
-            t.at "a" . value_type . should_equal (Value_Type.Binary size=max_int4 variable=True)
+            t.at "a" . value_type . should_equal (Value_Type.Binary size=max_int4 variable_length=True)
 
         Test.specify "datetime" <|
             t = make_table "dates" [["a", "date"]]
@@ -125,11 +125,11 @@ spec connection db_name =
 
         Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
             # TODO this will be tested once the cast operator is implemented
-            # Binary 10 variable=False -> Binary max_int4 variable=True
+            # Binary 10 variable_length=False -> Binary max_int4 variable_length=True
             # Byte -> Integer Bits.Bits_16
             Nothing
 
 main = Test_Suite.run_main (test_with_connection spec)
 
 max_int4 = 2147483647
-default_text = Value_Type.Char size=max_int4 variable=True
+default_text = Value_Type.Char size=max_int4 variable_length=True
