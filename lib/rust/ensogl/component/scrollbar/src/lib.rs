@@ -102,7 +102,7 @@ impl Frp {
         let frp = &self;
         let network = &frp.network;
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let thumb_position = OvershootAnimation::new(network);
         let thumb_color = color::Animation::new(network);
         let background_color = color::Animation::new(network);

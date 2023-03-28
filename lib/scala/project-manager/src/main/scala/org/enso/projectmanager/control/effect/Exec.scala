@@ -1,6 +1,6 @@
 package org.enso.projectmanager.control.effect
 
-import zio.ZEnv
+import zio.ZAny
 
 import scala.concurrent.Future
 
@@ -25,7 +25,7 @@ object Exec {
 
   def apply[F[_, _]](implicit exec: Exec[F]): Exec[F] = exec
 
-  implicit def zioExec(implicit runtime: zio.Runtime[ZEnv]): ZioEnvExec =
+  implicit def zioExec(implicit runtime: zio.Runtime[ZAny]): ZioEnvExec =
     new ZioEnvExec(runtime)
 
 }

@@ -126,6 +126,8 @@
   shortened labels for entries with long module paths. When an option is
   selected from the dropdown, the necessary module imports are inserted,
   eliminating the need for fully qualified names.
+- [Added tooltips to icon buttons][6035] for improved usability. Users can now
+  quickly understand each button's function.
 
 #### EnsoGL (rendering engine)
 
@@ -176,12 +178,14 @@
   performed in a given frame][5895]. In particular, you can now inspect names of
   all symbols rendered in a given frame. You can also pause the performance
   monitor and inspect results recorded in the past.
+- [ToggleButtons can now have tooltips][6035].
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
 [4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
 [5895]: https://github.com/enso-org/enso/pull/5895
+[6035]: https://github.com/enso-org/enso/pull/6035
 
 #### Enso Standard Library
 
@@ -650,6 +654,7 @@
 - [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
 - [Don't install Python component on Windows][5900]
 - [Detect potential name conflicts between exported types and FQNs][5966]
+- [Ensure calls involving warnings remain instrumented][6067]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -752,6 +757,7 @@
 [5791]: https://github.com/enso-org/enso/pull/5791
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
+[6067]: https://github.com/enso-org/enso/pull/6067
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

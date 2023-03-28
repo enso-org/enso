@@ -199,7 +199,7 @@ object DistributionPackage {
         path.globRecursive("*.enso").get().toSet
       ) { diff =>
         if (diff.modified.nonEmpty) {
-          println(s"Generating index for ${libName} ")
+          log.info(s"Generating index for $libName")
           val command = Seq(
             Platform.executableFileName(ensoExecutable.toString),
             "--no-compile-dependencies",
