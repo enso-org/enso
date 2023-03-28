@@ -430,8 +430,12 @@ CSV_FIELDNAMES = [
 
 
 def write_bench_reports_to_csv(bench_reports: List[JobReport], csv_fname: str) -> None:
-    logging.info(f"Writing {len(bench_reports)} benchmark reports to {csv_fname}")
+    logging.info(
+        f"Writing {len(bench_reports)} benchmark reports to {csv_fname}")
     assert len(bench_reports) > 0
+    if not path.exists(path.dirname(csv_fname)):
+        logging.debug(f"Creating directory {path.dirname(csv_fname)}")
+        os.mkdir(path.dirname(csv_fname))
     with open(csv_fname, "w") as csv_file:
         csv_writer = DictWriter(csv_file, CSV_FIELDNAMES)
         csv_writer.writeheader()

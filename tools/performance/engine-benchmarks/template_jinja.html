@@ -106,21 +106,29 @@
     <p>
       <b>Score</b> represents the amount of milliseconds it takes for one
       iteration of the benchmark to finish.
-      <br />
+      <br/>
       The smaller the score, the better.
     </p>
 
-    <br />
+    <br/>
     Note that only successful benchmark jobs are processed, so if there is a gap
     in the chart, it might be caused by failing jobs during that time period.
-    <br />
+    <br/>
+
+    <p>
+      Hovering over some point in a graph displays score, score diff (difference
+      with the previous score value) and date in a tooltip. You can click on a
+      particular point in the graph to display some additional information under
+      the graph like a link to PR, a commit message, commit author, etc.
+    </p>
+
     <p>
       The charts can be zoomed in by <code>dragToZoom</code> which means that
       you can left-click on the chart, hold it, and release it to zoom into a
       rectangular area. Then right-clicking to reset to the original zoom. See
       <code>explorer</code> configuration options in
       <a
-        href="https://developers.google.com/chart/interactive/docs/gallery/linechart#configuration-options"
+          href="https://developers.google.com/chart/interactive/docs/gallery/linechart#configuration-options"
       >
         https://developers.google.com/chart/interactive/docs/gallery/linechart#configuration-options
       </a>
