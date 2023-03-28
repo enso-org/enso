@@ -76,6 +76,8 @@ public class Regex_Utils {
    *
    * <p>Special regex characters present in the input pattern are quoted to match them literally
    * according to the SQL-like format.
+   *
+   * <p>This uses Java's built-in Pattern.quote(), even though Enso uses the Truffle regex library.
    */
   public static String sql_like_pattern_to_regex(String sql_pattern) {
     StringBuilder result = new StringBuilder();
@@ -87,7 +89,8 @@ public class Regex_Utils {
         // Before inserting the converted wildcard, we append the accumulated characters, quoting
         // them first.
         if (acc.length() > 0) {
-          result.append(Pattern.quote(acc.toString()));
+          //result.append(Pattern.quote(acc.toString()));
+          result.append(acc.toString());
           acc.setLength(0);
         }
 
@@ -103,7 +106,8 @@ public class Regex_Utils {
 
     // If any trailing characters were left, we append them too.
     if (acc.length() > 0) {
-      result.append(Pattern.quote(acc.toString()));
+      //result.append(Pattern.quote(acc.toString()));
+      result.append(acc.toString());
     }
 
     return result.toString();
