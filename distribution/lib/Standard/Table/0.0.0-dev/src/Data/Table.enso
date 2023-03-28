@@ -892,7 +892,8 @@ type Table
         selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
-        # TODO [RW] we should inherit the parent type here, but extend fixed length strings to varied length
+        ## TODO [RW] we should inherit the parent type here, but extend fixed length strings to varied length
+           To be done in #6106.
         map_preserve_name column f = column.map f . rename column.name
         do_replace = _.replace term new_text case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex
         do_replace_only_text = case _ of

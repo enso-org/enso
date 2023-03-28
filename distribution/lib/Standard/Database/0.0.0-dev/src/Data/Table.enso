@@ -1205,6 +1205,7 @@ type Table
                do it here by creating a builder that will gather all requests
                from the executed callbacks and create Lazy references that all
                point to a single query.
+               See #6118.
             infer_from_database_callback expression =
                     SQL_Type_Reference.new self.connection self.context expression
             dialect = self.connection.dialect

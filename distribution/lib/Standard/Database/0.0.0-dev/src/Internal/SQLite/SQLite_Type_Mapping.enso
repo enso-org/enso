@@ -43,9 +43,6 @@ polyglot java import java.sql.Types
 
    We map the BLOB affinity to our Mixed type to allow for Mixed type columns.
    One can still store binary data in such a column.
-   TODO [RW] do we want that or do we want to map to binary? but then we'd have
-   to disallow Mixed as it's impossible to distinguish, at least without
-   additional machinery
 
    See `JDBC3ResultSet::getColumnType` method in the `org.xerial.sqlite-jdbc`
    module for the logic JDBC is using to map the SQLite types.

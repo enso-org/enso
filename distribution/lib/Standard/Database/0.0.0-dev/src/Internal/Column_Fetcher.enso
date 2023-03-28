@@ -122,7 +122,8 @@ fallback_fetcher =
 default_fetcher_for_value_type : Value_Type -> Column_Fetcher
 default_fetcher_for_value_type value_type =
     case value_type of
-        # TODO [RW] once we support varying bit-width in storages, we should specify it
+        ## TODO [RW] once we support varying bit-width in storages, we should specify it
+           Revisit in #5159.
         Value_Type.Integer _ -> long_fetcher
         Value_Type.Float _ -> double_fetcher
         Value_Type.Char _ _ -> text_fetcher
