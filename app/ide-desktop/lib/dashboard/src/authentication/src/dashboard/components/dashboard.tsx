@@ -7,6 +7,7 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
+import * as fileInfo from '../../fileInfo'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
@@ -16,6 +17,13 @@ import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
+
+import UploadFileModal from './uploadFileModal'
+
+import DirectoryCreateForm from './directoryCreateForm'
+import FileCreateForm from './fileCreateForm'
+import ProjectCreateForm from './projectCreateForm'
+import SecretCreateForm from './secretCreateForm'
 
 // =============
 // === Types ===
@@ -40,8 +48,11 @@ enum Column {
     ide = 'ide',
 }
 
-enum Modal {
-    uploadFile = 'uploadFile',
+/** Values provided to modals. */
+export interface ModalProps {
+    backend: backend.Backend
+    directoryId: backend.DirectoryId
+    closeModal: () => void
 }
 
 // =================
@@ -56,30 +67,12 @@ const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
     [backend.AssetType.directory]: 'Folders',
 } as const
 
-function ProjectCreateForm() {
-    const [name, setName] = react.useState<string | null>(null)
-    const [template, setTemplate] = react.useState<string | null>(null)
-    return (
-        <form>
-            <label htmlFor="">Name: </label>
-            <input
-                type="text"
-                onChange={event => {
-                    setName(event.target.value)
-                }}
-            />
-            <input type="submit" value="Create" />
-        </form>
-    )
-}
-
 /** Forms to create each asset type. */
-// eslint-disable-next-line no-restricted-syntax
 const ASSET_TYPE_CREATE_FORM: Record<backend.AssetType, () => JSX.Element> = {
     [backend.AssetType.project]: ProjectCreateForm,
-    [backend.AssetType.file]: asset => {},
-    [backend.AssetType.secret]: asset => {},
-    [backend.AssetType.directory]: asset => {},
+    [backend.AssetType.file]: FileCreateForm,
+    [backend.AssetType.secret]: SecretCreateForm,
+    [backend.AssetType.directory]: DirectoryCreateForm,
 }
 
 /** English names for every column except for the name column. */
@@ -234,32 +227,6 @@ function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
     )
 }
 
-/** Returns the file extension of a file name. */
-function fileExtension(fileName: string) {
-    return fileName.match(/\.(.+?)$/)?.[1] ?? ''
-}
-
-/** Returns the appropriate icon for a specific file extension. */
-function fileIcon(_extension: string) {
-    return svg.FILE_ICON
-}
-
-function toReadableSize(size: number) {
-    /* eslint-disable @typescript-eslint/no-magic-numbers */
-    if (size < 2 ** 10) {
-        return String(size) + ' B'
-    } else if (size < 2 ** 20) {
-        return (size / 2 ** 10).toFixed(2) + ' kiB'
-    } else if (size < 2 ** 30) {
-        return (size / 2 ** 30).toFixed(2) + ' MiB'
-    } else if (size < 2 ** 40) {
-        return (size / 2 ** 40).toFixed(2) + ' GiB'
-    } else {
-        return (size / 2 ** 50).toFixed(2) + ' TiB'
-    }
-    /* eslint-enable @typescript-eslint/no-magic-numbers */
-}
-
 // =================
 // === Dashboard ===
 // =================
@@ -308,10 +275,7 @@ function Dashboard(props: DashboardProps) {
     >({})
 
     const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
-    const [modal, setModal] = react.useState<Modal | null>(null)
-    const [modalError, setModalError] = react.useState<string | null>(null)
-    const [uploadedFileName, setUploadedFileName] = react.useState<string>('')
-    const [uploadedFile, setUploadedFile] = react.useState<File | null>(null)
+    const [Modal, setModal] = react.useState<((props: ModalProps) => JSX.Element) | null>(null)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -368,7 +332,8 @@ function Dashboard(props: DashboardProps) {
         ),
         [backend.AssetType.file]: file => (
             <div className="flex text-left items-center align-middle whitespace-nowrap">
-                {fileIcon(fileExtension(file.title))} <span className="px-4">{file.title}</span>
+                {fileInfo.fileIcon(fileInfo.fileExtension(file.title))}{' '}
+                <span className="px-4">{file.title}</span>
             </div>
         ),
     }
@@ -380,99 +345,6 @@ function Dashboard(props: DashboardProps) {
               // eslint-disable-next-line no-restricted-syntax
               (nameRenderers[assetType] as (asset: backend.Asset<Type>) => JSX.Element)
             : COLUMN_RENDERER[column]
-    }
-
-    async function onFileUploadSubmit() {
-        if (uploadedFile == null) {
-            setModalError('Please upload a file.')
-        } else if (!uploadedFileName) {
-            setModalError('Please name the uploaded file.')
-        } else {
-            await backendService.uploadFile(
-                {
-                    fileName: uploadedFileName,
-                    ...(directory ? { parentDirectoryId: directory.id } : {}),
-                },
-                uploadedFile
-            )
-            setUploadedFileName('')
-            setUploadedFile(null)
-            setModal(null)
-        }
-    }
-
-    function RenderModal(modalArg: Modal) {
-        switch (modalArg) {
-            case Modal.uploadFile:
-                return (
-                    <form className="bg-white rounded-lg w-96 h-72 p-2">
-                        <div className="m-2">
-                            <label htmlFor="uploaded_file_name">File name</label>:{' '}
-                            <input
-                                id="uploaded_file_name"
-                                type="text"
-                                required
-                                className="border-primary"
-                                onChange={event => {
-                                    setUploadedFileName(event.target.value)
-                                }}
-                                defaultValue={uploadedFileName}
-                            />
-                        </div>
-                        <div className="m-2">
-                            <button className="text-white bg-blue-600 rounded-full px-4 py-1">
-                                <label htmlFor="uploaded_file">Select file</label>
-                            </button>
-                        </div>
-                        <div className="border border-primary rounded-md m-2">
-                            <input
-                                id="uploaded_file"
-                                type="file"
-                                className="hidden"
-                                onChange={event => {
-                                    setUploadedFileName(
-                                        uploadedFileName || (event.target.files?.[0]?.name ?? '')
-                                    )
-                                    setUploadedFile(event.target.files?.[0] ?? null)
-                                }}
-                            />
-                            <div className="inline-flex flex-row flex-nowrap w-full p-2">
-                                <div className="grow">
-                                    <div>{uploadedFile?.name ?? 'No file selected'}</div>
-                                    <div className="text-xs">
-                                        {uploadedFile
-                                            ? toReadableSize(uploadedFile.size)
-                                            : '\u00a0'}
-                                    </div>
-                                </div>
-                                <div>
-                                    {uploadedFile ? (
-                                        fileIcon(fileExtension(uploadedFile.name))
-                                    ) : (
-                                        <></>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="m-1">
-                            <button
-                                className="text-white bg-blue-600 rounded-full px-4 py-1 m-1"
-                                onClick={onFileUploadSubmit}
-                            >
-                                Upload
-                            </button>
-                            <button
-                                className="bg-gray-200 rounded-full px-4 py-1 m-1"
-                                onClick={() => {
-                                    setModal(null)
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                )
-        }
     }
 
     react.useEffect(() => {
@@ -553,9 +425,7 @@ function Dashboard(props: DashboardProps) {
                     <button
                         className="mx-1"
                         onClick={() => {
-                            setUploadedFileName('')
-                            setUploadedFile(null)
-                            setModal(Modal.uploadFile)
+                            setModal(UploadFileModal)
                         }}
                     >
                         {svg.UPLOAD_ICON}
@@ -674,7 +544,7 @@ function Dashboard(props: DashboardProps) {
                     />
                 </tbody>
             </table>
-            {modal ? (
+            {Modal ? (
                 <div
                     className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                     onClick={event => {
@@ -683,7 +553,13 @@ function Dashboard(props: DashboardProps) {
                         }
                     }}
                 >
-                    {RenderModal(modal)}
+                    <Modal
+                        backend={backendService}
+                        directoryId={directoryId}
+                        closeModal={() => {
+                            setModal(null)
+                        }}
+                    />
                 </div>
             ) : (
                 <></>

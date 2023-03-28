@@ -353,14 +353,14 @@ export interface CreateUserRequestBody {
 /** HTTP request body for the "create directory" endpoint. */
 export interface CreateDirectoryRequestBody {
     title: string
-    parentId?: DirectoryId
+    parentId: DirectoryId | null
 }
 
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
     projectName: string
-    projectTemplateName?: string
-    parentDirectoryId?: DirectoryId
+    projectTemplateName: string | null
+    parentDirectoryId: DirectoryId | null
 }
 
 /**
@@ -382,7 +382,7 @@ export interface OpenProjectRequestBody {
 export interface CreateSecretRequestBody {
     secretName: string
     secretValue: string
-    parentDirectoryId?: DirectoryId
+    parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
