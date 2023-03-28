@@ -10,6 +10,7 @@ import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Helpers
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
@@ -218,6 +219,10 @@ Text.characters self =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
+   If an empty regex is used, `find` throws an Illegal_Argument error.
+
+   If a non-default locale is used, `find` throws an Illegal_Argument error.
+
    > Example
      Find the first substring matching the regex.
 
@@ -227,10 +232,12 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
-Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error
+Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    Regex_2.compile pattern case_insensitive=case_insensitive . match self
+    Helpers.regex_assume_default_locale case_sensitivity <|
+        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+        compiled_pattern.if_not_error <| compiled_pattern.match self
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -239,6 +246,10 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
+
+   If an empty regex is used, `find_all` throws an Illegal_Argument error.
+
+   If a non-default locale is used, `find_all` throws an Illegal_Argument error.
 
    > Example
      Find the substring matching the regex.
@@ -249,10 +260,12 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
-Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error
+Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    Regex_2.compile pattern case_insensitive=case_insensitive . match_all self
+    Helpers.regex_assume_default_locale case_sensitivity <|
+        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+        compiled_pattern.if_not_error <| compiled_pattern.match_all self
 
 ## ALIAS Check Matches
 
@@ -262,6 +275,10 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
+
+   If an empty regex is used, `match` throws an Illegal_Argument error.
+
+   If a non-default locale is used, `match` throws an Illegal_Argument error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -274,11 +291,12 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              regex = ".+ct@.+"
              # Evaluates to true
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
-Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error
+Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-    compiled_pattern.matches self
+    Helpers.regex_assume_default_locale case_sensitivity <|
+        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+        compiled_pattern.if_not_error <| compiled_pattern.matches self
 
 ## ALIAS Split Text
 
@@ -327,21 +345,31 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
             compiled_pattern.split self mode=Regex_Mode.All
 
 ## ALIAS Replace Text
-   Replaces the first, last, or all occurrences of term with new_text in the
-   input. If `term` is empty, the function returns the input unchanged.
+   Perform a text or regex replace.
+
+   Returns the text with all matched elements replaced by the provided
+   replacement. If `input` is empty, the function returns the input unchanged.
+
+   The replacement string can contain references to groups matched by the
+   regex. The following syntaxes are supported:
+       $0: the entire match string
+       $&: the entire match string
+       $n: the nth group
+       $<foo>: Named group `foo`
 
    Arguments:
-   - term: The term to find.
-   - new_text: The new text to replace occurrences of `term` with.
-     If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
-     patterns (such as `$<n>`) for a marked group.
-   - mode: Specifies which occurences of term the engine tries to find. When the
-     mode is `First` or `Last`, this method replaces the first or last occurence
-     of term in the input. If set to `All`, it replaces all occurences of term in
-     the input.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - term: The string or regex to find.
+   - replacement: The text to replace matches with.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - only_first: If True, only replace the first match.
+   - use_regex: If true, the term is used as a regular expression.
+
+   If an empty regex is used, `replace` throws an Illegal_Argument error.
+
+   If a non-default locale is used with a regex, `replace` throws an
+   Illegal_Argument error.
 
    > Example
      Replace letters in the text "aaa".
@@ -351,17 +379,17 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    > Example
      Replace all occurrences of letters 'l' and 'o' with '#'.
 
-         "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher == "He### W#r#d!"
+         "Hello World!".replace "[lo]" "#" use_regex=True == "He### W#r#d!"
 
    > Example
      Replace the first occurrence of letter 'l' with '#'.
 
-         "Hello World!".replace "l" "#" mode=Matching_Mode.First == "He#lo World!"
+         "Hello World!".replace "l" "#" only_first=True == "He#lo World!"
 
    > Example
      Replace texts in quotes with parentheses.
 
-          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher == '(abc) foo (bar) baz'
+          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' use_regex=True == '(abc) foo (bar) baz'
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,
@@ -378,62 +406,40 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    > Example
      Extended partial matches in case-insensitive mode.
 
-          # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
-         'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+         # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
+         'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
-         'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
-
-   ! Last Match in Regex Mode
-     Regex always performs the search from the front and matching the last
-     occurrence means selecting the last of the matches while still generating
-     matches from the beginning. Regex does not return overlapping matches - it
-     will return a match at some position and then continue the search after that
-     match. This will lead to slightly different behavior for overlapping
-     occurrences of a pattern in Regex mode than in exact text matching mode
-     where the matches are searched for from the back.
+         'aﬃb'.replace 'i' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
 
    > Example
-     Comparing Matching in Last Mode in Regex and Text mode
+     Regexp replace.
 
-         "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "ac"
-         "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "ca"
+     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
 
-         "aaa aaa".replace "aa" "c" matcher=Text_Matcher . should_equal "ca ca"
-         "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher . should_equal "ca aaa"
-         "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "aaa ac"
-         "aaa aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca ca"
-         "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
-         "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
-Text.replace : Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Text
-Text.replace self term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive = if term.is_empty then self else
-    case matcher of
-        _ : Text_Matcher ->
+Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Text ! Illegal_Argument
+Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
+    case use_regex of
+        False -> if term.is_empty then self else
             array_from_single_result result = case result of
                 Nothing -> Array.empty
                 _ -> Array.new_1 result
-            spans_array = case matcher of
-                Text_Matcher.Case_Sensitive -> case mode of
-                    Regex_Mode.All ->
-                        Text_Utils.span_of_all self term
-                    Matching_Mode.First ->
-                        array_from_single_result <| Text_Utils.span_of self term
-                    Matching_Mode.Last ->
-                        array_from_single_result <| Text_Utils.last_span_of self term
-                    _ -> Error.throw (Illegal_Argument.Error "Invalid mode.")
-                Text_Matcher.Case_Insensitive locale -> case mode of
-                    Regex_Mode.All ->
+            spans_array = case case_sensitivity of
+                Case_Sensitivity.Sensitive -> case only_first of
+                    False -> Text_Utils.span_of_all self term
+                    True -> array_from_single_result <| Text_Utils.span_of self term
+                Case_Sensitivity.Insensitive locale -> case only_first of
+                    False ->
                         Text_Utils.span_of_all_case_insensitive self term locale.java_locale
-                    Matching_Mode.First ->
+                    True ->
                         array_from_single_result <|
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
-                    Matching_Mode.Last ->
-                        array_from_single_result <|
-                            Text_Utils.span_of_case_insensitive self term locale.java_locale True
-                    _ -> Error.throw (Illegal_Argument.Error "Invalid mode.")
-            Text_Utils.replace_spans self spans_array new_text
-        _ : Regex_Matcher ->
-            compiled_pattern = matcher.compile term
-            compiled_pattern.replace self new_text mode=mode
+            Text_Utils.replace_spans self spans_array replacement
+        True ->
+            Helpers.regex_assume_default_locale case_sensitivity <|
+                case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                compiled_pattern = Regex_2.compile term case_insensitive=case_insensitive
+                compiled_pattern.if_not_error <|
+                    compiled_pattern.replace self replacement only_first
 
 ## ALIAS Get Words
 
@@ -1115,9 +1121,9 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
-         match = text . locate term matcher=(Text_Matcher Case_Insensitive)
-         term.length == 6
-         match.length == 7
+         match = text . locate term case_sensitivity=Case_Sensitivity.Insensitive
+         term.length . should_equal 6
+         match.length . should_equal 7
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,
@@ -1265,11 +1271,8 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
    - term: The term to find.
    - start: The index to start searching from. If the index is negative, it
      is counted from the end of the vector.
-   - matcher: Specifies how the term is matched against the input:
-     - If a `Text_Matcher`, the text is compared using case-sensitively rules
-       specified in the matcher.
-     - If a `Regex_Matcher`, the `term` is used as a regular expression and
-       matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -1301,11 +1304,8 @@ Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
    - term: The term to find.
    - start: The index to start searching backwards from. If the index is
      negative, it is counted from the end of the vector.
-   - matcher: Specifies how the term is matched against the input:
-     - If a `Text_Matcher`, the text is compared using case-sensitively rules
-       specified in the matcher.
-     - If a `Regex_Matcher`, the `term` is used as a regular expression and
-       matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
