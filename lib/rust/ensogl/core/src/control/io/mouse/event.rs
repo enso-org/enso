@@ -45,37 +45,37 @@ where JsEvent: AsRef<web::MouseEvent>
         Self { js_event, shape, event_type }
     }
 
-    /// The X coordinate of the mouse pointer relative to the position of the padding edge of the
-    /// target node.
-    pub fn offset_x(&self) -> i32 {
-        self.js_event.as_ref().map(|t| t.as_ref().offset_x()).unwrap_or_default()
-    }
-
-    /// The Y coordinate of the mouse pointer relative to the position of the padding edge of the
-    /// target node.
-    pub fn offset_y(&self) -> i32 {
-        self.shape.height as i32
-            - self.js_event.as_ref().map(|t| t.as_ref().offset_y()).unwrap_or_default()
-    }
-
-    /// The X coordinate of the mouse pointer in local (DOM content) coordinates.
+    /// The horizontal coordinate within the application's viewport at which the event occurred (as
+    /// opposed to the coordinate within the page).
+    ///
+    /// For example, clicking on the left edge of the viewport will always result in a mouse event
+    /// with a [`client_x`] value of 0, regardless of whether the page is scrolled horizontally.
     pub fn client_x(&self) -> i32 {
         self.js_event.as_ref().map(|t| t.as_ref().client_x()).unwrap_or_default()
     }
 
-    /// The Y coordinate of the mouse pointer in local (DOM content) coordinates.
+    /// The vertical coordinate within the application's viewport at which the event occurred (as
+    /// opposed to the coordinate within the page).
+    ///
+    /// For example, clicking on the bottom edge of the viewport will always result in a mouse event
+    /// with a [`client_y`] value of 0, regardless of whether the page is scrolled horizontally.
     pub fn client_y(&self) -> i32 {
         self.shape.height as i32
             - self.js_event.as_ref().map(|t| t.as_ref().client_y()).unwrap_or_default()
     }
 
-    /// The Y coordinate of the mouse pointer in global (screen) coordinates.
+    /// The horizontal coordinate (offset) of the mouse pointer in global (screen) coordinates.
+    pub fn screen_x(&self) -> i32 {
+        self.js_event.as_ref().map(|t| t.as_ref().screen_x()).unwrap_or_default()
+    }
+
+    /// The vertical coordinate (offset) of the mouse pointer in global (screen) coordinates.
     pub fn screen_y(&self) -> i32 {
         self.shape.height as i32
             - self.js_event.as_ref().map(|t| t.as_ref().screen_y()).unwrap_or_default()
     }
 
-    /// Translation of the button property to Rust  `Button`  enum.
+    /// Indicates which button was pressed on the mouse to trigger the event.
     pub fn button(&self) -> mouse::Button {
         mouse::Button::from_code(
             self.js_event.as_ref().map(|t| t.as_ref().button().into()).unwrap_or_default(),

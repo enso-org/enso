@@ -126,20 +126,25 @@ impl PointerTargetRegistry {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Mouse {
-    pub mouse_manager:   MouseManager,
-    pub last_position:   Rc<Cell<Vector2<i32>>>,
-    pub position:        Uniform<Vector2<i32>>,
-    pub click_count:     Uniform<i32>,
-    pub hover_rgba:      Uniform<Vector4<u32>>,
-    pub target:          Rc<Cell<PointerTargetId>>,
-    pub handles:         Rc<[callback::Handle; 6]>,
-    pub scene_frp:       Frp,
-    pub last_move_event: Rc<RefCell<Option<mouse::Move>>>,
+    pub mouse_manager:          MouseManager,
+    pub last_position:          Rc<Cell<Vector2<i32>>>,
+    pub position:               Uniform<Vector2<i32>>,
+    pub click_count:            Uniform<i32>,
+    /// The encoded value of pointer target ID. The offscreen canvas containing the encoded IDs is
+    /// sampled and the most recent sample is stored here. Please note, that this sample may be
+    /// from a few frames back, as it is not guaranteed when we will receive the data from GPU.
+    pub pointer_target_encoded: Uniform<Vector4<u32>>,
+    pub target:                 Rc<Cell<PointerTargetId>>,
+    pub handles:                Rc<[callback::Handle; 6]>,
+    pub scene_frp:              Frp,
+    /// Stored in order to be converted to [`mouse::Over`], [`mouse::Out`], [`mouse::Enter`], and
+    /// [`mouse::Leave`] when the mouse enters or leaves an element.
+    pub last_move_event:        Rc<RefCell<Option<mouse::Move>>>,
     /// # Deprecated
     /// This API is deprecated. Instead, use the display object's event API. For example, to get an
     /// FRP endpoint for mouse event, you can use the [`crate::display::Object::on_event`]
     /// function.
-    pub frp_deprecated:  enso_frp::io::Mouse_DEPRECATED,
+    pub frp_deprecated:         enso_frp::io::Mouse_DEPRECATED,
 }
 
 impl Mouse {
@@ -157,7 +162,7 @@ impl Mouse {
         let last_position = Rc::new(Cell::new(Vector2::default()));
         let position = variables.add_or_panic("mouse_position", Vector2::default());
         let click_count = variables.add_or_panic("mouse_click_count", 0);
-        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4::default());
+        let pointer_target_encoded = variables.add_or_panic("mouse_hover_ids", Vector4::default());
         let target = Rc::new(Cell::new(target));
         let shaped_dom = root.clone_ref().into();
         let mouse_manager = MouseManager::new(&shaped_dom, root, &web::window);
@@ -252,7 +257,7 @@ impl Mouse {
             last_position,
             position,
             click_count,
-            hover_rgba,
+            pointer_target_encoded,
             target,
             handles,
             frp_deprecated,
@@ -1026,7 +1031,8 @@ impl SceneData {
 
     /// Discover what object the mouse pointer is on.
     fn handle_mouse_over_and_out_events(&self) {
-        let opt_new_target = PointerTargetId::decode_from_rgba(self.mouse.hover_rgba.get());
+        let opt_new_target =
+            PointerTargetId::decode_from_rgba(self.mouse.pointer_target_encoded.get());
         let new_target = opt_new_target.unwrap_or_else(|err| {
             error!("{err}");
             default()
