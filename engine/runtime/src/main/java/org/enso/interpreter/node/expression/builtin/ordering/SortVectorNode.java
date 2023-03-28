@@ -178,7 +178,7 @@ public abstract class SortVectorNode extends Node {
     try {
       for (var group : groups) {
         Comparator javaComparator;
-        if (isPrimitiveGroup(group)) {
+        if (isNothing(byFunc) && isPrimitiveGroup(group)) {
           javaComparator = new DefaultComparator(
               lessThanNode,
               equalsNode,
@@ -187,7 +187,7 @@ public abstract class SortVectorNode extends Node {
               ascending > 0
           );
         } else {
-          Function compareFunc = isNothing(byFunc) ? group.compareFunc : (Function) byFunc;
+          Object compareFunc = isNothing(byFunc) ? group.compareFunc : byFunc;
           javaComparator = new GenericComparator(
               ascending > 0,
               compareFunc,
@@ -215,6 +215,7 @@ public abstract class SortVectorNode extends Node {
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
+
 
   private List<Group> splitByComparators(List<Object> elements, List<Type> comparators,
       List<Function> compareFuncs) {
@@ -576,6 +577,7 @@ public abstract class SortVectorNode extends Node {
      * extracted from the comparator for the appropriate group.
      */
     private final Function compareFunc;
+    private final boolean compareFuncHasSelf;
     private final Type comparator;
     private final CallOptimiserNode callNode;
     private final State state;
@@ -586,7 +588,7 @@ public abstract class SortVectorNode extends Node {
 
     private GenericComparator(
         boolean ascending,
-        Function compareFunc,
+        Object compareFunc,
         Type comparator, CallOptimiserNode callNode, AnyToTextNode toTextNode, State state,
         Atom less, Atom equal,
         Atom greater) {
@@ -596,19 +598,22 @@ public abstract class SortVectorNode extends Node {
       this.comparator = comparator;
       this.state = state;
       this.ascending = ascending;
-      this.compareFunc = compareFunc;
+      this.compareFunc = checkAndConvertByParameter(compareFunc);
       this.callNode = callNode;
       this.less = less;
       this.equal = equal;
       this.greater = greater;
+      assert this.compareFunc.getSchema().getArgumentsCount()
+          >= 2 : "compareFunc should take more than 2 arguments";
+      this.compareFuncHasSelf = this.compareFunc.getSchema().getArgumentInfos()[0].getName()
+          .equals("self");
     }
 
     @Override
     public int compare(Object x, Object y) {
-      // We are calling a static method here, so we need to pass the Comparator type as the
-      // self (first) argument.
-      Object res = callNode.executeDispatch(compareFunc, null, state,
-          new Object[]{comparator, x, y});
+      // If compareFunc takes self parameter, it is `comparator`.
+      Object[] args = compareFuncHasSelf ? new Object[]{comparator, x, y} : new Object[]{x, y};
+      Object res = callNode.executeDispatch(compareFunc, null, state, args);
       if (res == less) {
         return ascending ? -1 : 1;
       } else if (res == equal) {
@@ -621,6 +626,31 @@ public abstract class SortVectorNode extends Node {
         // We cannot detect if the result was actually returned from the default comparator (it
         // could have been transitively called), so we just bailout.
         throw new CompareException(x, y);
+      }
+    }
+
+    /**
+     * Checks value given for {@code by} parameter and converts it to {@link Function}. Throw a
+     * dataflow error otherwise.
+     */
+    private Function checkAndConvertByParameter(Object byFuncObj) {
+      var ctx = EnsoContext.get(SortVectorNode.this);
+      var err = DataflowError.withoutTrace(
+          ctx.getBuiltins().error().makeUnsupportedArgumentsError(
+              new Object[]{byFuncObj},
+              "Unsupported argument for `by`, expected a method with two arguments"
+          ),
+          SortVectorNode.this
+      );
+      if (byFuncObj instanceof Function byFunc) {
+        var argCount = byFunc.getSchema().getArgumentsCount();
+        if (argCount == 2 || argCount == 3) {
+          return byFunc;
+        } else {
+          throw err;
+        }
+      } else {
+        throw err;
       }
     }
   }
