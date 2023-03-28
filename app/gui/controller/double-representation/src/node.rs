@@ -305,6 +305,45 @@ impl NodeInfo {
     pub fn clear_pattern(&mut self) {
         self.main_line.clear_pattern();
     }
+
+    /// TODO
+    pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
+        self.main_line.modify_expression(|ast| {
+            let func = match context_switch_expr.switch {
+                ContextSwitch::Enable => ENABLE,
+                ContextSwitch::Disable => DISABLE,
+            };
+            let context = match context_switch_expr.context {
+                Context::Output => OUTPUT,
+            };
+            let func: Ast = ast::opr::qualified_name_chain(func.into_iter()).unwrap().into();
+            let context: Ast = ast::opr::qualified_name_chain(context.into_iter()).unwrap().into();
+            let environment: Ast =
+                ast::Tree::text(format!("\"{}\"", context_switch_expr.environment.deref())).into();
+            let args = vec![context, environment];
+            let prefix: Ast = ast::prefix::Chain::new(func, args).into_ast();
+            let infix = ast::Infix {
+                larg: prefix,
+                loff: 1,
+                opr:  ast::opr::right_assoc().into(),
+                roff: 1,
+                rarg: ast.clone(),
+            };
+            *ast = infix.into();
+        });
+        self.ast_info.context_switch = Some(context_switch_expr);
+    }
+
+    /// TODO
+    pub fn clear_context_switch_expression(&mut self) {
+        self.main_line.modify_expression(|ast| {
+            if parse_context_switch_expression(&ast).is_some() {
+                let rarg = ast.get(&ast::crumbs::InfixCrumb::RightOperand.into()).unwrap_or(&ast);
+                *ast = rarg.clone();
+            }
+        });
+        self.ast_info.context_switch = None;
+    }
 }
 
 /// Representation of the main line of the node (as opposed to a documentation line).
@@ -497,43 +536,6 @@ impl MainLine {
                 *self = MainLine::Expression { ast: infix.rarg.clone_ref() },
             MainLine::Expression { .. } => {}
         }
-    }
-
-    /// TODO
-    pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
-        self.modify_expression(|ast| {
-            let func = match context_switch_expr.switch {
-                ContextSwitch::Enable => ENABLE,
-                ContextSwitch::Disable => DISABLE,
-            };
-            let context = match context_switch_expr.context {
-                Context::Output => OUTPUT,
-            };
-            let func: Ast = ast::opr::qualified_name_chain(func.into_iter()).unwrap().into();
-            let context: Ast = ast::opr::qualified_name_chain(context.into_iter()).unwrap().into();
-            let environment: Ast =
-                ast::Tree::text(format!("\"{}\"", context_switch_expr.environment.deref())).into();
-            let args = vec![context, environment];
-            let prefix: Ast = ast::prefix::Chain::new(func, args).into_ast();
-            let infix = ast::Infix {
-                larg: prefix,
-                loff: 1,
-                opr:  ast::opr::right_assoc().into(),
-                roff: 1,
-                rarg: ast.clone(),
-            };
-            *ast = infix.into();
-        });
-    }
-
-    /// TODO
-    pub fn clear_context_switch_expression(&mut self) {
-        self.modify_expression(|ast| {
-            if parse_context_switch_expression(&ast).is_some() {
-                let rarg = ast.get(&ast::crumbs::InfixCrumb::RightOperand.into()).unwrap_or(&ast);
-                *ast = rarg.clone();
-            }
-        });
     }
 }
 
@@ -864,6 +866,8 @@ mod tests {
             let ast = parser.parse_line_ast(case.input).unwrap();
             let result = parse_context_switch_expression(&ast);
             assert_eq!(result, case.expected, "{case:?}");
+            let node_info = NodeInfo::from_main_line_ast(&ast).unwrap();
+            assert_eq!(node_info.ast_info.context_switch, case.expected, "{case:?}");
         }
     }
 
@@ -876,6 +880,7 @@ mod tests {
             let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
             let node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
             assert_eq!(node.repr(), "foo = bar");
+            assert!(node.ast_info.context_switch.is_none());
             node
         };
         fn test_round_trip(
@@ -884,10 +889,12 @@ mod tests {
             context_switch: ContextSwitchExpression,
         ) {
             let original_repr = node.repr();
-            node.set_context_switch(context_switch);
+            node.set_context_switch(context_switch.clone());
+            assert_eq!(node.ast_info.context_switch, Some(context_switch));
             assert_eq!(node.repr(), expected);
             node.clear_context_switch_expression();
             assert_eq!(node.repr(), original_repr);
+            assert!(node.ast_info.context_switch.is_none());
         }
 
         const ENABLE_CONTEXT: &str = "Standard.Base.Runtime.with_enabled_context";
