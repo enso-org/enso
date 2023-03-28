@@ -4458,6 +4458,7 @@ dependencies = [
  "console",
  "number_prefix",
  "portable-atomic",
+ "tokio",
  "unicode-width",
 ]
 
