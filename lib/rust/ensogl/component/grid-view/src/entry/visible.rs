@@ -94,7 +94,7 @@ where EntryParams: frp::node::Data
         let init = if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
             let entry_network = entry_frp.network();
-            let mouse = &self.app.display.default_scene.mouse.frp;
+            let mouse = &self.app.display.default_scene.mouse.frp_deprecated;
             frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
                 init <- source_();
                 entry_frp.set_size <+ all(init, self.set_entry_size)._1();
@@ -104,7 +104,7 @@ where EntryParams: frp::node::Data
                 contour_offset <- all(init, entry_frp.contour_offset)._1();
                 eval contour_offset ((off) overlay.set_xy(*off));
 
-                let events = &overlay.events;
+                let events = &overlay.events_deprecated;
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
                 self.entry_contour <+ all_with(&location, &contour, |&(r, c), &cont| (r, c, cont));

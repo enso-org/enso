@@ -6,12 +6,12 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
-use ensogl_core::animation;
-use ensogl_core::data::color::Rgba;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
+use ensogl_core::animation;
+use ensogl_core::data::color::Rgba;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 

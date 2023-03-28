@@ -39,7 +39,12 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     //when
     val result = EditorOps.applyEdits(testSnippet, diffs)
     //then
-    result mustBe Left(InvalidPosition(Position(5, 4)))
+    result mustBe Left(
+      InvalidPosition(
+        Position(5, 4),
+        "text edit start line (5) outside of buffer's line count (4)"
+      )
+    )
   }
 
   it should "apply edit when end position is an empty line" in {

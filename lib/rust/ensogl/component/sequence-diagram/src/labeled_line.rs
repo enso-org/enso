@@ -61,7 +61,7 @@ impl component::Frp<Model> for Frp {
         model: &Model,
         _style: &StyleWatchFrp,
     ) {
-        let line = &model.line.events;
+        let line = &model.line.events_deprecated;
         frp::extend! { network
             eval api.input.set_size((size) model.set_size(*size));
             eval api.input.set_color((color) model.set_color(*color));
