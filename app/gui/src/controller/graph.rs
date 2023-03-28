@@ -841,14 +841,14 @@ impl Handle {
     pub fn add_node(&self, node: NewNodeInfo) -> FallibleResult<ast::Id> {
         info!("Adding node with expression `{}`", node.expression);
         let expression_ast = self.parse_node_expression(&node.expression)?;
-        let (main_line, macros_info) =
+        let (main_line, ast_info) =
             MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
         let documentation = node
             .doc_comment
             .as_ref()
             .and_then(|pretty_text| self.documentation_comment_from_pretty_text(pretty_text));
 
-        let mut node_info = NodeInfo { documentation, main_line, macros_info };
+        let mut node_info = NodeInfo { documentation, main_line, ast_info };
         if let Some(desired_id) = node.id {
             node_info.set_id(desired_id)
         }

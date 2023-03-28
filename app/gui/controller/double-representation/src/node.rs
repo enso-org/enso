@@ -184,13 +184,13 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
                     indexed_documentation = None;
                 }
                 line =>
-                    if let Some((main_line, macros_info)) = MainLine::from_discerned_line(line) {
+                    if let Some((main_line, info)) = MainLine::from_discerned_line(line) {
                         let (documentation_line, documentation) = match indexed_documentation {
                             Some((index, documentation)) => (Some(index), Some(documentation)),
                             None => (None, None),
                         };
 
-                        let node = NodeInfo { documentation, main_line, macros_info };
+                        let node = NodeInfo { documentation, main_line, ast_info: info };
                         let index = NodeLocation { main_line: index, documentation_line };
 
                         return Some(LocatedNode { index, node });
@@ -198,6 +198,20 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
             }
         }
         None
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct NodeAstInfo {
+    pub macros_info:    MacrosInfo,
+    pub context_switch: Option<ContextSwitchExpression>,
+}
+
+impl NodeAstInfo {
+    pub fn from_ast(ast: &Ast) -> Self {
+        let macros_info = MacrosInfo::from_ast(ast);
+        let context_switch = parse_context_switch_expression(ast);
+        Self { macros_info, context_switch }
     }
 }
 
@@ -211,7 +225,7 @@ pub struct NodeInfo {
     #[deref]
     #[deref_mut]
     pub main_line:     MainLine,
-    pub macros_info:   MacrosInfo,
+    pub ast_info:      NodeAstInfo,
 }
 
 impl NodeInfo {
@@ -234,9 +248,9 @@ impl NodeInfo {
 
     /// Construct node information for a single line, without documentation.
     pub fn from_main_line_ast(ast: &Ast) -> Option<Self> {
-        let (main_line, macros_info) = MainLine::from_ast(ast)?;
+        let (main_line, info) = MainLine::from_ast(ast)?;
         let documentation = None;
-        Some(Self { documentation, main_line, macros_info })
+        Some(Self { documentation, main_line, ast_info: info })
     }
 
     /// Obtain documentation text.
@@ -248,7 +262,7 @@ impl NodeInfo {
 impl NodeInfo {
     /// The info about macro calls in the expression.
     pub fn macros_info(&self) -> &MacrosInfo {
-        &self.macros_info
+        &self.ast_info.macros_info
     }
 
     // Modify AST, adding or removing `SKIP` macro call. Does nothing if [`skip`] argument already
@@ -260,7 +274,7 @@ impl NodeInfo {
             } else {
                 self.main_line.remove_skip_macro();
             }
-            self.macros_info.skip = skip;
+            self.ast_info.macros_info.skip = skip;
         }
     }
 
@@ -273,15 +287,15 @@ impl NodeInfo {
             } else {
                 self.main_line.remove_freeze_macro();
             }
-            self.macros_info.freeze = freeze;
+            self.ast_info.macros_info.freeze = freeze;
         }
     }
 
     /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
     /// assignment infix will be introduced.
     pub fn set_pattern(&mut self, pattern: Ast) {
-        if let Some(macros_info) = self.main_line.set_pattern(pattern) {
-            self.macros_info = macros_info;
+        if let Some(ast_info) = self.main_line.set_pattern(pattern) {
+            self.ast_info = ast_info;
         };
     }
 
@@ -310,22 +324,22 @@ pub enum MainLine {
 impl MainLine {
     /// Tries to interpret the whole binding as a node. Right-hand side will become node's
     /// expression.
-    pub fn new_binding(infix: known::Infix) -> Option<(MainLine, MacrosInfo)> {
+    pub fn new_binding(infix: known::Infix) -> Option<(MainLine, NodeAstInfo)> {
         infix.rarg.id?;
-        let macros_info = MacrosInfo::from_ast(&infix.rarg);
-        Some((MainLine::Binding { infix }, macros_info))
+        let ast_info = NodeAstInfo::from_ast(&infix.rarg);
+        Some((MainLine::Binding { infix }, ast_info))
     }
 
     /// Tries to interpret AST as node, treating whole AST as an expression.
-    pub fn new_expression(ast: Ast) -> Option<(MainLine, MacrosInfo)> {
+    pub fn new_expression(ast: Ast) -> Option<(MainLine, NodeAstInfo)> {
         ast.id?;
         // TODO what if we are given an assignment.
-        let macros_info = MacrosInfo::from_ast(&ast);
-        Some((MainLine::Expression { ast }, macros_info))
+        let ast_info = NodeAstInfo::from_ast(&ast);
+        Some((MainLine::Expression { ast }, ast_info))
     }
 
     /// Tries to interpret AST as node, treating whole AST as a node's primary line.
-    pub fn from_ast(ast: &Ast) -> Option<(MainLine, MacrosInfo)> {
+    pub fn from_ast(ast: &Ast) -> Option<(MainLine, NodeAstInfo)> {
         // By definition, there are no nodes in the root scope.
         // Being a node's line, we may assume that this is not a root scope.
         let scope = ScopeKind::NonRoot;
@@ -333,7 +347,7 @@ impl MainLine {
     }
 
     /// Try retrieving node information from an already discerned line data.
-    pub fn from_discerned_line(line: LineKind) -> Option<(MainLine, MacrosInfo)> {
+    pub fn from_discerned_line(line: LineKind) -> Option<(MainLine, NodeAstInfo)> {
         match line {
             LineKind::ExpressionPlain { ast } => Self::new_expression(ast),
             LineKind::ExpressionAssignment { ast } => Self::new_binding(ast),
@@ -343,7 +357,7 @@ impl MainLine {
     }
 
     /// Tries to interpret AST as node, treating whole AST as an expression.
-    pub fn from_block_line(line: &BlockLine<Option<Ast>>) -> Option<(MainLine, MacrosInfo)> {
+    pub fn from_block_line(line: &BlockLine<Option<Ast>>) -> Option<(MainLine, NodeAstInfo)> {
         Self::from_ast(line.elem.as_ref()?)
     }
 
@@ -408,8 +422,8 @@ impl MainLine {
         }
     }
 
-    /// See [`NodeInfo::set_pattern`]. Returns the macros info, if it was updated.
-    fn set_pattern(&mut self, pattern: Ast) -> Option<MacrosInfo> {
+    /// See [`NodeInfo::set_pattern`]. Returns the AST info if it was updated.
+    fn set_pattern(&mut self, pattern: Ast) -> Option<NodeAstInfo> {
         match self {
             MainLine::Binding { infix, .. } => {
                 // Setting infix operand never fails.
@@ -425,9 +439,9 @@ impl MainLine {
                     rarg: ast.clone(),
                 };
                 let infix = known::Infix::new(infix, None);
-                let macros_info = MacrosInfo::from_ast(&infix.rarg);
+                let ast_info = NodeAstInfo::from_ast(&infix.rarg);
                 *self = MainLine::Binding { infix };
-                Some(macros_info)
+                Some(ast_info)
             }
         }
     }
