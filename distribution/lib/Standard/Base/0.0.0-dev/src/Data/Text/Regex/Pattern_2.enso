@@ -3,6 +3,7 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
+import project.Data.Text.Helpers
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
@@ -31,10 +32,11 @@ type Pattern_2
 
        Arguments:
        - input: The text to check for matching.
-    matches : Text -> Boolean
+    matches : Text -> Boolean | Illegal_Argument
     matches self input =
-        m = self.internal_regex_object.exec input 0
-        m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
+        Helpers.expect_text input <|
+            m = self.internal_regex_object.exec input 0
+            m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
     ## Tries to match the provided `input` against the pattern `self`.
 
