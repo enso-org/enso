@@ -846,7 +846,8 @@ type Vector a
        Arguments:
        - order: The order in which the vector elements are sorted.
        - on: A projection from the element type to the value of that element
-         being sorted on.
+         being sorted on. If set to `Nothing` (the default argument),
+         identity function will be used.
        - by: A function that compares the result of applying `on` to two
          elements, returning an an `Ordering` if the two elements are comparable
          or `Nothing` if they are not. If set to `Nothing` (the default argument),
@@ -906,11 +907,12 @@ type Vector a
 
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) on=x->x by=Nothing =
-        elems = self.map (it-> on it)
-        comps = elems.map (it-> Comparable.from it)
+    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing =
+        comps = case on == Nothing of
+            True -> self.map it-> Comparable.from it
+            False -> self.map it-> Comparable.from (on it)
         compare_funcs = comps.map (it-> it.compare)
-        elems.sort_builtin order.to_sign comps compare_funcs by
+        self.sort_builtin order.to_sign comps compare_funcs by on
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.

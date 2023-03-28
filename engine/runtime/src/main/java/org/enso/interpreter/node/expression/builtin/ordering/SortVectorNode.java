@@ -69,14 +69,17 @@ public abstract class SortVectorNode extends Node {
    * @param ascending        -1 for descending, 1 for ascending
    * @param comparators      Vector of comparators, with the same length of self. This is gather in
    *                         the Enso code, because doing that in this builtin would be difficult.
+   *                         If {@code onFunc} parameter is not {@code Nothing}, comparators are
+   *                         gathered from the result of {@code onFunc} projection.
    * @param compareFunctions Vector of `Comparator.compare` functions gathered from the comparators
    * @param byFunc           If Nothing, then the default `by` function should be used. The default
    *                         `by` function is `Ordering.compare`.
-   * @return A new, sorted vector
+   * @param onFunc If Nothing, then the default identity function should be used.
+   * @return A new, sorted vector.
    */
   public abstract Object execute(State state, @AcceptsError Object self, long ascending,
       Object comparators,
-      Object compareFunctions, Object byFunc);
+      Object compareFunctions, Object byFunc, Object onFunc);
 
   /**
    * Sorts primitive values, i.e., values with only Default_Comparator. We can optimize this case.
@@ -88,10 +91,11 @@ public abstract class SortVectorNode extends Node {
   @Specialization(guards = {
       "interop.hasArrayElements(self)",
       "areAllDefaultComparators(interop, comparators)",
-      "isNothing(byFunc)"
+      "isNothing(byFunc)",
+      "isNothing(onFunc)"
   })
   Object sortPrimitives(State state, Object self, long ascending, Object comparators,
-      Object compareFunctions, Object byFunc,
+      Object compareFunctions, Object byFunc, Object onFunc,
       @Cached LessThanNode lessThanNode,
       @Cached EqualsNode equalsNode,
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
@@ -129,23 +133,8 @@ public abstract class SortVectorNode extends Node {
     try {
       return sortPrimitiveVector(elems, javaComparator, warningEncounteredProfile);
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(
+      throw DataflowError.withoutTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
-    }
-  }
-
-  private Object sortPrimitiveVector(Object[] elems,
-      DefaultComparator javaComparator, BranchProfile warningEncounteredProfile)
-      throws CompareException {
-    Arrays.sort(elems, javaComparator);
-    var sortedVector = Vector.fromArray(new Array(elems));
-
-    if (javaComparator.hasWarnings()) {
-      warningEncounteredProfile.enter();
-      CompilerDirectives.transferToInterpreter();
-      return attachWarnings(sortedVector, javaComparator.getEncounteredWarnings());
-    } else {
-      return sortedVector;
     }
   }
 
@@ -154,7 +143,7 @@ public abstract class SortVectorNode extends Node {
       "interop.hasArrayElements(self)",
   })
   Object sortGeneric(State state, Object self, long ascending, Object comparatorsArray,
-      Object compareFuncsArray, Object byFunc,
+      Object compareFuncsArray, Object byFunc, Object onFunc,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warningsLib,
       @Cached LessThanNode lessThanNode,
@@ -178,7 +167,7 @@ public abstract class SortVectorNode extends Node {
     try {
       for (var group : groups) {
         Comparator javaComparator;
-        if (isNothing(byFunc) && isPrimitiveGroup(group)) {
+        if (isNothing(byFunc) && isNothing(onFunc) && isPrimitiveGroup(group)) {
           javaComparator = new DefaultComparator(
               lessThanNode,
               equalsNode,
@@ -191,6 +180,7 @@ public abstract class SortVectorNode extends Node {
           javaComparator = new GenericComparator(
               ascending > 0,
               compareFunc,
+              onFunc,
               group.comparator,
               callNode, toTextNode,
               state,
@@ -216,6 +206,20 @@ public abstract class SortVectorNode extends Node {
     }
   }
 
+  private Object sortPrimitiveVector(Object[] elems,
+      DefaultComparator javaComparator, BranchProfile warningEncounteredProfile)
+      throws CompareException {
+    Arrays.sort(elems, javaComparator);
+    var sortedVector = Vector.fromArray(new Array(elems));
+
+    if (javaComparator.hasWarnings()) {
+      warningEncounteredProfile.enter();
+      CompilerDirectives.transferToInterpreter();
+      return attachWarnings(sortedVector, javaComparator.getEncounteredWarnings());
+    } else {
+      return sortedVector;
+    }
+  }
 
   private List<Group> splitByComparators(List<Object> elements, List<Type> comparators,
       List<Function> compareFuncs) {
@@ -577,7 +581,8 @@ public abstract class SortVectorNode extends Node {
      * extracted from the comparator for the appropriate group.
      */
     private final Function compareFunc;
-    private final boolean compareFuncHasSelf;
+    private final Function onFunc;
+    private final boolean hasCustomOnFunc;
     private final Type comparator;
     private final CallOptimiserNode callNode;
     private final State state;
@@ -589,6 +594,7 @@ public abstract class SortVectorNode extends Node {
     private GenericComparator(
         boolean ascending,
         Object compareFunc,
+        Object onFunc,
         Type comparator, CallOptimiserNode callNode, AnyToTextNode toTextNode, State state,
         Atom less, Atom equal,
         Atom greater) {
@@ -598,21 +604,38 @@ public abstract class SortVectorNode extends Node {
       this.comparator = comparator;
       this.state = state;
       this.ascending = ascending;
-      this.compareFunc = checkAndConvertByParameter(compareFunc);
+      this.compareFunc = checkAndConvertByFunc(compareFunc);
+      if (isNothing(onFunc)) {
+        this.hasCustomOnFunc = false;
+        this.onFunc = null;
+      } else {
+        this.hasCustomOnFunc = true;
+        this.onFunc = checkAndConvertOnFunc(onFunc);
+      }
       this.callNode = callNode;
       this.less = less;
       this.equal = equal;
       this.greater = greater;
-      assert this.compareFunc.getSchema().getArgumentsCount()
-          >= 2 : "compareFunc should take more than 2 arguments";
-      this.compareFuncHasSelf = this.compareFunc.getSchema().getArgumentInfos()[0].getName()
-          .equals("self");
     }
 
     @Override
     public int compare(Object x, Object y) {
-      // If compareFunc takes self parameter, it is `comparator`.
-      Object[] args = compareFuncHasSelf ? new Object[]{comparator, x, y} : new Object[]{x, y};
+      Object xConverted;
+      Object yConverted;
+      if (hasCustomOnFunc) {
+        // onFunc cannot have `self` argument, we assume it has just one argument.
+        xConverted = callNode.executeDispatch(onFunc, null, state, new Object[]{x});
+        yConverted = callNode.executeDispatch(onFunc, null, state, new Object[]{y});
+      } else {
+        xConverted = x;
+        yConverted = y;
+      }
+      Object[] args;
+      if (hasFunctionSelfArgument(compareFunc)) {
+        args = new Object[]{comparator, xConverted, yConverted};
+      } else {
+        args = new Object[]{xConverted, yConverted};
+      }
       Object res = callNode.executeDispatch(compareFunc, null, state, args);
       if (res == less) {
         return ascending ? -1 : 1;
@@ -629,23 +652,46 @@ public abstract class SortVectorNode extends Node {
       }
     }
 
+    private boolean hasFunctionSelfArgument(Function function) {
+      if (function.getSchema().getArgumentsCount() > 0) {
+        return function.getSchema().getArgumentInfos()[0].getName().equals("self");
+      } else {
+        return false;
+      }
+    }
+
     /**
      * Checks value given for {@code by} parameter and converts it to {@link Function}. Throw a
      * dataflow error otherwise.
      */
-    private Function checkAndConvertByParameter(Object byFuncObj) {
+    private Function checkAndConvertByFunc(Object byFuncObj) {
+      return checkAndConvertFunction(byFuncObj,
+          "Unsupported argument for `by`, expected a method with two arguments", 2, 3);
+    }
+
+    /**
+     * Checks the value given for {@code on} parameter and converts it to {@link Function}. Throws a
+     * dataflow error otherwise.
+     */
+    private Function checkAndConvertOnFunc(Object onFuncObj) {
+      return checkAndConvertFunction(onFuncObj,
+          "Unsupported argument for `on`, expected a method with one argument", 1, 1);
+    }
+
+    private Function checkAndConvertFunction(Object funcObj, String errMsg, int minArgCount,
+        int maxArgCount) {
       var ctx = EnsoContext.get(SortVectorNode.this);
       var err = DataflowError.withoutTrace(
           ctx.getBuiltins().error().makeUnsupportedArgumentsError(
-              new Object[]{byFuncObj},
-              "Unsupported argument for `by`, expected a method with two arguments"
+              new Object[]{funcObj},
+              errMsg
           ),
           SortVectorNode.this
       );
-      if (byFuncObj instanceof Function byFunc) {
-        var argCount = byFunc.getSchema().getArgumentsCount();
-        if (argCount == 2 || argCount == 3) {
-          return byFunc;
+      if (funcObj instanceof Function func) {
+        var argCount = func.getSchema().getArgumentsCount();
+        if (minArgCount <= argCount && argCount <= maxArgCount) {
+          return func;
         } else {
           throw err;
         }
