@@ -485,8 +485,15 @@ impl MainLine {
 
     pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
         self.modify_expression(|ast| {
-            let func: Ast = ast::opr::qualified_name_chain(ENABLE.into_iter()).unwrap().into();
-            let context: Ast = ast::opr::qualified_name_chain(OUTPUT.into_iter()).unwrap().into();
+            let func = match context_switch_expr.switch {
+                ContextSwitch::Enable => ENABLE,
+                ContextSwitch::Disable => DISABLE,
+            };
+            let context = match context_switch_expr.context {
+                Context::Output => OUTPUT,
+            };
+            let func: Ast = ast::opr::qualified_name_chain(func.into_iter()).unwrap().into();
+            let context: Ast = ast::opr::qualified_name_chain(context.into_iter()).unwrap().into();
             let environment: Ast =
                 ast::Tree::text(format!("\"{}\"", context_switch_expr.environment.deref())).into();
             let args = vec![context, environment];
@@ -841,24 +848,48 @@ mod tests {
 
     #[test]
     fn execution_context_switch_expressions() {
-        let id = uuid::Uuid::new_v4();
-        let larg = Ast::var("foo");
-        let rarg = Ast::var("bar").with_id(id);
-        let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
-        let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
+        let node = || {
+            let id = uuid::Uuid::new_v4();
+            let larg = Ast::var("foo");
+            let rarg = Ast::var("bar").with_id(id);
+            let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
+            let node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
+            assert_eq!(node.repr(), "foo = bar");
+            node
+        };
+        fn test_round_trip(
+            mut node: NodeInfo,
+            expected: &str,
+            context_switch: ContextSwitchExpression,
+        ) {
+            let original_repr = node.repr();
+            node.set_context_switch(context_switch);
+            assert_eq!(node.repr(), expected);
+            node.clear_context_switch_expression();
+            assert_eq!(node.repr(), original_repr);
+        }
 
-        assert_eq!(node.repr(), "foo = bar");
-        node.set_context_switch(ContextSwitchExpression {
+        const ENABLE_CONTEXT: &str = "Standard.Base.Runtime.with_enabled_context";
+        const DISABLE_CONTEXT: &str = "Standard.Base.Runtime.with_disabled_context";
+        const OUTPUT_CONTEXT: &str = "Standard.Base.Runtime.Context.Output";
+
+        let expected = format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"design\" <| bar");
+        test_round_trip(node(), &expected, ContextSwitchExpression {
             switch:      ContextSwitch::Enable,
             context:     Context::Output,
             environment: "design".into(),
         });
-        assert_eq!(
-            node.repr(),
-            "foo = Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output \"design\" <| bar"
-        );
-
-        node.clear_context_switch_expression();
-        assert_eq!(node.repr(), "foo = bar");
+        let expected = format!("foo = {DISABLE_CONTEXT} {OUTPUT_CONTEXT} \"design\" <| bar");
+        test_round_trip(node(), &expected, ContextSwitchExpression {
+            switch:      ContextSwitch::Disable,
+            context:     Context::Output,
+            environment: "design".into(),
+        });
+        let expected = format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar");
+        test_round_trip(node(), &expected, ContextSwitchExpression {
+            switch:      ContextSwitch::Enable,
+            context:     Context::Output,
+            environment: "env".into(),
+        });
     }
 }
