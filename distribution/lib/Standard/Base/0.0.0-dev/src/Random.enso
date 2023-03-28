@@ -4,7 +4,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Decimal
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.System
 
 polyglot java import java.lang.Integer as Java_Integer

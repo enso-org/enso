@@ -115,7 +115,6 @@ impl InstanceModel {
         let bg_blue = bg_color.blue * 255.0;
         let bg_hex = format!("rgba({},{},{},{})", bg_red, bg_green, bg_blue, bg_color.alpha);
         root_node.dom().set_style_or_warn("background", bg_hex);
-
         Ok(root_node)
     }
 
@@ -247,6 +246,11 @@ impl InstanceModel {
     fn set_layer(&self, layer: Layer) {
         layer.apply_for_html_component(&self.scene, &self.root_node)
     }
+
+    fn set_active(&self, active: bool) {
+        let attribute = if active { "all" } else { "none " };
+        self.root_node.set_style_or_warn("pointer-events", attribute);
+    }
 }
 
 
@@ -273,10 +277,11 @@ impl Instance {
         let frp = visualization::instance::Frp::new(&network);
         let model = InstanceModel::from_class(class, scene)?;
         model.set_dom_layer(&scene.dom.layers.back);
-        Ok(Instance { model, frp, network }.init_frp(scene).init_preprocessor_change_callback())
+        model.set_active(false);
+        Ok(Instance { model, frp, network }.init_frp().init_preprocessor_change_callback())
     }
 
-    fn init_frp(self, scene: &Scene) -> Self {
+    fn init_frp(self) -> Self {
         let network = &self.network;
         let model = self.model.clone_ref();
         let frp = self.frp.clone_ref();
@@ -288,8 +293,8 @@ impl Instance {
                 }
             });
             eval frp.set_layer ((layer) model.set_layer(*layer));
+            eval frp.is_active ((is_active) model.set_active(*is_active));
         }
-        frp.pass_events_to_dom_if_active(scene, network);
         self
     }
 

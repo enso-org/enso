@@ -1,5 +1,8 @@
 import project.Data.Numbers.Integer
+
+from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
+
 
 polyglot java import java.time.DayOfWeek
 
@@ -34,8 +37,9 @@ type Day_Of_Week
             Day_Of_Week.Friday -> 5
             Day_Of_Week.Saturday -> 6
 
-        shifted = if first_day == Day_Of_Week.Sunday then day_number else
-            (day_number + 7 - (first_day.to_integer start_at_zero=True)) % 7
+        shifted = case first_day of
+            Day_Of_Week.Sunday -> day_number
+            _ -> (day_number + 7 - (first_day.to_integer start_at_zero=True)) % 7
 
         shifted + if start_at_zero then 0 else 1
 
@@ -49,3 +53,14 @@ type Day_Of_Week
         Day_Of_Week.Thursday -> DayOfWeek.THURSDAY
         Day_Of_Week.Friday -> DayOfWeek.FRIDAY
         Day_Of_Week.Saturday -> DayOfWeek.SATURDAY
+
+## PRIVATE
+type Day_Of_Week_Comparator
+    compare x y =
+        x_int = x.to_integer
+        y_int = y.to_integer
+        Comparable.from x_int . compare x_int y_int
+
+    hash x = x.to_integer
+
+Comparable.from (_:Day_Of_Week) = Day_Of_Week_Comparator

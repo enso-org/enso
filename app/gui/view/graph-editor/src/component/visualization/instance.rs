@@ -8,7 +8,6 @@ use crate::data::enso;
 use enso_frp as frp;
 use ensogl::display;
 use ensogl::display::DomSymbol;
-use ensogl::display::Scene;
 
 
 
@@ -179,7 +178,7 @@ impl Frp {
             def preprocessor_change = any_mut();
             on_preprocessor_change  <- preprocessor_change.sampler();
             def data_receive_error  = source();
-            is_active               <- bool(&inputs.deactivate,&inputs.activate);
+            is_active               <- bool(&inputs.deactivate, &inputs.activate);
         };
         preprocessor_change.emit(PreprocessorConfiguration::default());
         let on_data_receive_error = data_receive_error.clone_ref().into();
@@ -190,26 +189,6 @@ impl Frp {
             is_active,
             data_receive_error,
             preprocessor_change,
-        }
-    }
-
-    /// Extend the FRP network with mechanism of passing all mouse and keyboard event to DOM when
-    /// visualization is active.
-    ///
-    /// Used mainly in visualizations based on DOM elements (e.g. JavaScript visualization).
-    pub fn pass_events_to_dom_if_active(&self, scene: &Scene, network: &frp::Network) {
-        frp::extend! { network
-            let mouse_up       =  scene.mouse.frp.up.clone_ref();
-            let mouse_down     =  scene.mouse.frp.down.clone_ref();
-            let mouse_wheel    =  scene.mouse.frp.wheel.clone_ref();
-            let mouse_position =  scene.mouse.frp.position.clone_ref();
-            let keyboard_up    =  scene.keyboard.frp.up.clone_ref();
-            let keyboard_down  =  scene.keyboard.frp.down.clone_ref();
-            caught_mouse       <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
-            caught_keyboard    <- any_(keyboard_up,keyboard_down);
-            caught_event       <- any(caught_mouse,caught_keyboard);
-            should_process     <- caught_event.gate(&self.is_active);
-            eval_ should_process (scene.current_js_event.pass_to_dom.emit(()));
         }
     }
 }

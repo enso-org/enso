@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Syntax_Error
+import Standard.Base.Errors.Common.Syntax_Error
 
 import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Header.Header

@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.File_Error.File_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Input_Stream
 
 import project.Data.Table.Table
@@ -30,8 +30,7 @@ prepare_reader_table on_problems result_with_problems =
 
 ## PRIVATE
    Convert Boolean|Infer to the correct HeaderBehavior
-# TODO[DB] Fix composite types #183857386
-# make_java_headers : (Boolean | Infer) -> ExcelHeaders.HeaderBehavior
+make_java_headers : (Boolean | Infer) -> ExcelHeaders.HeaderBehavior
 make_java_headers headers = case headers of
         True -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> ExcelHeaders.HeaderBehavior.INFER

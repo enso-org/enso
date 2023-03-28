@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Ordering.Ordering
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Meta
 

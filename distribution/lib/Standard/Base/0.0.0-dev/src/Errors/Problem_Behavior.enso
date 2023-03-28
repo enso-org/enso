@@ -8,7 +8,7 @@ from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
 import project.Metadata.Display
 
-from project.Error.Problem_Behavior.Problem_Behavior import all
+from project.Errors.Problem_Behavior.Problem_Behavior import all
 
 ## Specifies how to handle problems.
 type Problem_Behavior
