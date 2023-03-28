@@ -65,7 +65,7 @@ reconcile_types current new = case current of
    It assumes that the `types` vector is not empty.
 find_common_type : Vector Value_Type -> Boolean -> Value_Type | Nothing
 find_common_type types strict =
-    most_generic_type = (types.drop 1).fold types.first Value_Type.reconcile_types
+    most_generic_type = (types.drop 1).fold types.first reconcile_types
     if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
         # Double check if Mixed was really allowed to come out.
         if types.contains Value_Type.Mixed then Value_Type.Mixed else
