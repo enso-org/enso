@@ -44,10 +44,12 @@ public abstract class CompilerTest {
     String ir2 = filter.apply(now);
     if (!ir1.equals(ir2)) {
       String name = findTestMethodName();
-      Path home = new File(System.getProperty("user.home")).toPath();
-      Files.writeString(home.resolve(name + ".1"), ir1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      Files.writeString(home.resolve(name + ".2"), ir2, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      assertEquals(msg, ir1, ir2);
+      var home = new File(System.getProperty("java.io.tmpdir")).toPath();
+      var file1 = home.resolve(name + ".1");
+      var file2 = home.resolve(name + ".2");
+      Files.writeString(file1, ir1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      Files.writeString(file2, ir2, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      assertEquals(msg, file1, file2);
     }
   }
 
