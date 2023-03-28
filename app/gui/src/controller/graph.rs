@@ -19,6 +19,7 @@ use double_representation::graph::GraphInfo;
 use double_representation::identifier::generate_name;
 use double_representation::module;
 use double_representation::node;
+use double_representation::node::ContextSwitchExpression;
 use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
@@ -962,6 +963,23 @@ impl Handle {
     pub fn set_node_action_freeze(&self, node_id: ast::Id, freeze: bool) -> FallibleResult {
         self.update_node(node_id, |mut node| {
             node.set_freeze(freeze);
+            node
+        })?;
+        Ok(())
+    }
+
+    /// TODO
+    pub fn set_node_context_switch(
+        &self,
+        node_id: ast::Id,
+        expr: Option<ContextSwitchExpression>,
+    ) -> FallibleResult {
+        self.update_node(node_id, |mut node| {
+            if let Some(expr) = expr {
+                node.set_context_switch(expr);
+            } else {
+                node.clear_context_switch_expression();
+            }
             node
         })?;
         Ok(())

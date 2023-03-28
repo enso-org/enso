@@ -2,6 +2,9 @@
 //! about presenters in general.
 
 use crate::prelude::*;
+use double_representation::node::Context;
+use double_representation::node::ContextSwitch;
+use double_representation::node::ContextSwitchExpression;
 use enso_web::traits::*;
 
 use crate::controller::graph::widget::Request as WidgetRequest;
@@ -166,6 +169,46 @@ impl Model {
                 Some(graph.set_expression_span(ast_id, crumbs, expression, &self.controller))
             },
             "update expression input span",
+        );
+    }
+
+    /// TODO(#5930): Provide the state of the output context in the current environment.
+    fn output_context_enabled(&self) -> bool {
+        false
+    }
+
+    /// TODO(#5930): Provide the current environment of the project.
+    fn environment(&self) -> &str {
+        "design"
+    }
+
+    /// Add or remove context switch expression to node. Context switch expression allows to enable
+    /// or disable execution of a certain node in the Output context. See the table below for
+    /// the logic of this function. context enabled in env
+    ///     active -> add disable
+    ///     inactive -> clear
+    /// context disable in env
+    ///    active -> add enable
+    ///    inactive -> clear
+    /// TODO(#5929): Connect this function with buttons on nodes.
+    #[allow(dead_code)]
+    fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
+        let context = Context::Output;
+        let current_state = self.output_context_enabled();
+        let environment = self.environment().into();
+        let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
+        let expr = if active {
+            Some(ContextSwitchExpression { switch, context, environment })
+        } else {
+            None
+        };
+        self.log_action(
+            || {
+                let ast_id =
+                    self.state.update_from_view().set_node_context_switch(id, expr.clone())?;
+                Some(self.controller.graph().set_node_context_switch(ast_id, expr))
+            },
+            "node context switch expression",
         );
     }
 

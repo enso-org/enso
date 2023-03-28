@@ -9,6 +9,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use bimap::BiMap;
 use bimap::Overwritten;
+use double_representation::node::ContextSwitchExpression;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
@@ -25,13 +26,14 @@ use ide_view::graph_editor::EdgeEndpoint;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Node {
-    pub view_id:       Option<ViewNodeId>,
-    pub position:      Vector2,
-    pub expression:    node_view::Expression,
-    pub is_skipped:    bool,
-    pub is_frozen:     bool,
-    pub error:         Option<node_view::Error>,
-    pub visualization: Option<visualization_view::Path>,
+    pub view_id:        Option<ViewNodeId>,
+    pub position:       Vector2,
+    pub expression:     node_view::Expression,
+    pub is_skipped:     bool,
+    pub is_frozen:      bool,
+    pub context_switch: Option<ContextSwitchExpression>,
+    pub error:          Option<node_view::Error>,
+    pub visualization:  Option<visualization_view::Path>,
 
     /// Indicate whether this node view is updated automatically by changes from the controller
     /// or view, or will be explicitly updated..
@@ -46,6 +48,7 @@ impl Default for Node {
             expression:             node_view::Expression::default(),
             is_skipped:             false,
             is_frozen:              false,
+            context_switch:         None,
             error:                  None,
             visualization:          None,
             expression_auto_update: true,
@@ -725,6 +728,22 @@ impl<'a> ViewChange<'a> {
         let displayed = nodes.get_mut(ast_id)?;
         if displayed.is_frozen != freeze {
             displayed.is_frozen = freeze;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_node_context_switch(
+        &self,
+        id: ViewNodeId,
+        expr: Option<ContextSwitchExpression>,
+    ) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.context_switch != expr {
+            displayed.context_switch = expr;
             Some(ast_id)
         } else {
             None
