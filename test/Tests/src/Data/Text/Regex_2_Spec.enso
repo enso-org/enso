@@ -53,7 +53,11 @@ spec =
             pattern = Regex_2.compile ""
             pattern.matches "ABC" . should_fail_with Illegal_Argument
 
-    Test.group "Pattern.match" <|
+        Test.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex_2.compile "abc"
+            pattern.matches 1 . should_fail_with Illegal_Argument
+
+    Test.group "Pattern.match and .match_all" <|
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
             pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
@@ -91,6 +95,14 @@ spec =
         Test.specify "`match_all` with an empty pattern should be an error" <|
             pattern = Regex_2.compile ""
             pattern.match_all "ABC" . should_fail_with Illegal_Argument
+
+        Test.specify "`match` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex_2.compile "abc"
+            pattern.match 1 . should_fail_with Illegal_Argument
+
+        Test.specify "`match_all` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex_2.compile "abc"
+            pattern.match_all 1 . should_fail_with Illegal_Argument
 
     Test.group "Pattern_2.find and .find_all" <|
         Test.specify "should be able to `find` the first instance of the pattern in the input" <|
@@ -136,6 +148,14 @@ spec =
             pattern = Regex_2.compile ""
             pattern.find_all "ABC" . should_fail_with Illegal_Argument
 
+        Test.specify "`find` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex_2.compile "abc"
+            pattern.find 1 . should_fail_with Illegal_Argument
+
+        Test.specify "`find_all` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex_2.compile "abc"
+            pattern.find_all 1 . should_fail_with Illegal_Argument
+
     Test.group "Pattern_2.split" <|
         Test.specify "should be able to `split` on the first instance of the pattern" <|
             pattern = Regex_2.compile "cd"
@@ -164,6 +184,10 @@ spec =
         Test.specify "should split without normalization" <|
             pattern = Regex_2.compile "s"
             pattern.split 'aśsśs\u{301}śb' . should_equal ['aś', 'ś', '\u{301}śb']
+
+        Test.specify "`split` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex_2.compile "abc"
+            pattern.split 1 . should_fail_with Illegal_Argument
 
     Test.group "Pattern_2.replace" <|
         Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
@@ -250,6 +274,10 @@ spec =
         Test.specify "`replace` with an empty pattern should be an error" <|
             pattern = Regex_2.compile ""
             pattern.replace "ABC" . should_fail_with Illegal_Argument
+
+        Test.specify "`replace` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex_2.compile "abc"
+            pattern.replace 1 "abc" . should_fail_with Illegal_Argument
 
     Test.group "Match.text" <|
         pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"

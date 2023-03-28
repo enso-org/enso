@@ -45,12 +45,13 @@ type Pattern_2
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match : Text -> Match_2 | Nothing
+    match : Text -> Match_2 | Nothing | Illegal_Argument
     match self input =
-        it = Match_Iterator.new self input
-        case it.next of
-            Match_Iterator_Value.Next _ match _ -> match
-            Match_Iterator_Value.Last _ -> Nothing
+        Helpers.expect_text input <|
+            it = Match_Iterator.new self input
+            case it.next of
+                Match_Iterator_Value.Next _ match _ -> match
+                Match_Iterator_Value.Last _ -> Nothing
 
     ## Tries to match the provided `input` against the pattern `self`.
 
@@ -61,17 +62,18 @@ type Pattern_2
        - input: The text to match the pattern described by `self` against.
     match_all : Text -> Vector Match_2 ! Illegal_Argument
     match_all self input =
-        pattern_is_empty = self.internal_regex_object.pattern == ''
-        if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
-            builder = Vector.new_builder
-            it = Match_Iterator.new self input
-            go it = case it.next of
-                Match_Iterator_Value.Next _ match next_it ->
-                    builder.append match
-                    @Tail_Call go next_it
-                Match_Iterator_Value.Last _ -> Nothing
-            go it
-            builder.to_vector
+        Helpers.expect_text input <|
+            pattern_is_empty = self.internal_regex_object.pattern == ''
+            if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
+                builder = Vector.new_builder
+                it = Match_Iterator.new self input
+                go it = case it.next of
+                    Match_Iterator_Value.Next _ match next_it ->
+                        builder.append match
+                        @Tail_Call go next_it
+                    Match_Iterator_Value.Last _ -> Nothing
+                go it
+                builder.to_vector
 
     ## Tries to match the provided `input` against the pattern `self`.
 
@@ -80,9 +82,10 @@ type Pattern_2
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    find : Text -> Text | Nothing
+    find : Text -> Text | Nothing | Illegal_Argument
     find self input =
-        match_to_group_maybe <| self.match input
+        Helpers.expect_text input <|
+           match_to_group_maybe <| self.match input
 
     ## Tries to match the provided `input` against the pattern `self`.
 
@@ -91,9 +94,10 @@ type Pattern_2
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    find_all : Text -> Vector Text
+    find_all : Text -> Vector Text | Illegal_Argument
     find_all self input =
-        self.match_all input . map match_to_group_maybe
+        Helpers.expect_text input <|
+           self.match_all input . map match_to_group_maybe
 
     ## ADVANCED
 
@@ -126,19 +130,20 @@ type Pattern_2
              input = "abcdefghij"
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
-    split : Text -> Boolean -> Vector Text
+    split : Text -> Boolean -> Vector Text | Illegal_Argument
     split self input only_first=False =
-        builder = Vector.new_builder
-        it = Match_Iterator.new self input
-        go next = case next of
-            Match_Iterator_Value.Next filler _ next_it ->
-                builder.append filler.text
-                next = if only_first then next_it.early_exit else next_it.next
-                @Tail_Call go next
-            Match_Iterator_Value.Last filler ->
-                builder.append filler.text
-        go it.next
-        builder.to_vector
+        Helpers.expect_text input <|
+            builder = Vector.new_builder
+            it = Match_Iterator.new self input
+            go next = case next of
+                Match_Iterator_Value.Next filler _ next_it ->
+                    builder.append filler.text
+                    next = if only_first then next_it.early_exit else next_it.next
+                    @Tail_Call go next
+                Match_Iterator_Value.Last filler ->
+                    builder.append filler.text
+            go it.next
+            builder.to_vector
 
     ## ADVANCED
 
@@ -197,23 +202,24 @@ type Pattern_2
 
              pattern = Regex_2.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
-    replace : Text -> Text -> Boolean -> Text
+    replace : Text -> Text -> Boolean -> Text | Illegal_Argument
     replace self input replacement only_first=False =
-        it = Match_Iterator.new self input
-        case it of
-            Match_Iterator_Value.Last filler -> filler.text
-            _ ->
-                replacer = Replacer.new replacement self
+        Helpers.expect_text input <|
+            it = Match_Iterator.new self input
+            case it of
+                Match_Iterator_Value.Last filler -> filler.text
+                _ ->
+                    replacer = Replacer.new replacement self
 
-                replacer.if_not_error <|
-                    go next current = case next of
-                        Match_Iterator_Value.Next filler match next_it ->
-                            new_value = current + filler.text + (replacer.replace match)
-                            next = if only_first then next_it.early_exit else next_it.next
-                            @Tail_Call go next new_value
-                        Match_Iterator_Value.Last filler ->
-                            current + filler.text
-                    go it.next ""
+                    replacer.if_not_error <|
+                        go next current = case next of
+                            Match_Iterator_Value.Next filler match next_it ->
+                                new_value = current + filler.text + (replacer.replace match)
+                                next = if only_first then next_it.early_exit else next_it.next
+                                @Tail_Call go next new_value
+                            Match_Iterator_Value.Last filler ->
+                                current + filler.text
+                        go it.next ""
 
     ## PRIVATE
 
