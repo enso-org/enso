@@ -171,7 +171,7 @@ object DistributionPackage {
       javaVersion  = javaVersion
     )
 
-    indexStdLib(
+    indexStdLibs(
       stdLibVersion  = targetStdlibVersion,
       ensoVersion    = ensoVersion,
       stdLibRoot     = distributionRoot / "lib",
@@ -181,7 +181,7 @@ object DistributionPackage {
     )
   }
 
-  def indexStdLib(
+  def indexStdLibs(
     stdLibVersion: String,
     ensoVersion: String,
     stdLibRoot: File,
@@ -193,32 +193,55 @@ object DistributionPackage {
       libMajor <- stdLibRoot.listFiles()
       libName  <- (stdLibRoot / libMajor.getName).listFiles()
     } yield {
-      val cache = cacheFactory.make(s"$libName.$ensoVersion")
-      val path  = libName / ensoVersion
-      Tracked.diffInputs(cache, FileInfo.lastModified)(
-        path.globRecursive("*.enso").get().toSet
-      ) { diff =>
-        if (diff.modified.nonEmpty) {
-          log.info(s"Generating index for $libName")
-          val command = Seq(
-            Platform.executableFileName(ensoExecutable.toString),
-            "--no-compile-dependencies",
-            "--no-global-cache",
-            "--compile",
-            path.toString
-          )
-          log.debug(command.mkString(" "))
-          val exitCode = Process(
-            command,
-            None,
-            "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
-          ).!
-          if (exitCode != 0) {
-            throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
-          }
-        } else {
-          println(s"No modified files. Not generating index for ${libName} ")
+      indexStdLib(
+        libMajor,
+        libName,
+        stdLibVersion,
+        ensoVersion,
+        ensoExecutable,
+        cacheFactory,
+        log
+      )
+    }
+  }
+
+  def indexStdLib(
+    libMajor: File,
+    libName: File,
+    stdLibVersion: String,
+    ensoVersion: String,
+    ensoExecutable: File,
+    cacheFactory: CacheStoreFactory,
+    log: Logger
+  ): Unit = {
+    object FileOnlyFilter extends sbt.io.FileFilter {
+      def accept(arg: File): Boolean = arg.isFile
+    }
+    val cache = cacheFactory.make(s"$libName.$ensoVersion")
+    val path  = libName / ensoVersion
+    Tracked.diffInputs(cache, FileInfo.lastModified)(
+      path.globRecursive("*.enso" && FileOnlyFilter).get().toSet
+    ) { diff =>
+      if (diff.modified.nonEmpty) {
+        log.info(s"Generating index for ${libName} ")
+        val command = Seq(
+          Platform.executableFileName(ensoExecutable.toString),
+          "--no-compile-dependencies",
+          "--no-global-cache",
+          "--compile",
+          path.toString
+        )
+        log.debug(command.mkString(" "))
+        val exitCode = Process(
+          command,
+          None,
+          "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
+        ).!
+        if (exitCode != 0) {
+          throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
         }
+      } else {
+        log.info(s"No modified files. Not generating index for ${libName} ")
       }
     }
   }
