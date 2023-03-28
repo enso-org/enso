@@ -148,6 +148,28 @@ pub fn locate_many<'a>(
     }
 }
 
+// ===================
+// === NodeAstInfo ===
+// ===================
+
+/// The information about AST content of the node.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct NodeAstInfo {
+    /// Information about SKIP and FREEZE macros used in the code.
+    pub macros_info:    MacrosInfo,
+    /// Existing context switch expression, if any.
+    pub context_switch: Option<ContextSwitchExpression>,
+}
+
+impl NodeAstInfo {
+    /// Constructor.
+    pub fn from_ast(ast: &Ast) -> Self {
+        let macros_info = MacrosInfo::from_ast(ast);
+        let context_switch = ContextSwitchExpression::parse(ast);
+        Self { macros_info, context_switch }
+    }
+}
+
 
 
 // ================
@@ -183,13 +205,13 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
                     indexed_documentation = None;
                 }
                 line =>
-                    if let Some((main_line, info)) = MainLine::from_discerned_line(line) {
+                    if let Some((main_line, ast_info)) = MainLine::from_discerned_line(line) {
                         let (documentation_line, documentation) = match indexed_documentation {
                             Some((index, documentation)) => (Some(index), Some(documentation)),
                             None => (None, None),
                         };
 
-                        let node = NodeInfo { documentation, main_line, ast_info: info };
+                        let node = NodeInfo { documentation, main_line, ast_info };
                         let index = NodeLocation { main_line: index, documentation_line };
 
                         return Some(LocatedNode { index, node });
@@ -197,24 +219,6 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
             }
         }
         None
-    }
-}
-
-/// The information about AST content of the node.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct NodeAstInfo {
-    /// Information about SKIP and FREEZE macros used in the code.
-    pub macros_info:    MacrosInfo,
-    /// Existing context switch expression, if any.
-    pub context_switch: Option<ContextSwitchExpression>,
-}
-
-impl NodeAstInfo {
-    /// Constructor.
-    pub fn from_ast(ast: &Ast) -> Self {
-        let macros_info = MacrosInfo::from_ast(ast);
-        let context_switch = ContextSwitchExpression::parse(ast);
-        Self { macros_info, context_switch }
     }
 }
 
@@ -252,9 +256,9 @@ impl NodeInfo {
 
     /// Construct node information for a single line, without documentation.
     pub fn from_main_line_ast(ast: &Ast) -> Option<Self> {
-        let (main_line, info) = MainLine::from_ast(ast)?;
+        let (main_line, ast_info) = MainLine::from_ast(ast)?;
         let documentation = None;
-        Some(Self { documentation, main_line, ast_info: info })
+        Some(Self { documentation, main_line, ast_info })
     }
 
     /// Obtain documentation text.
@@ -335,8 +339,8 @@ impl NodeInfo {
             self.main_line.modify_expression(|ast| {
                 *ast = preserving_skip_and_freeze(ast, |ast| {
                     if ContextSwitchExpression::parse(&ast).is_some() {
-                        let rarg =
-                            ast.get(&ast::crumbs::InfixCrumb::RightOperand.into()).unwrap_or(&ast);
+                        let crumb = ast::crumbs::InfixCrumb::RightOperand.into();
+                        let rarg = ast.get(&crumb).unwrap_or(&ast);
                         *ast = rarg.clone();
                     }
                 });
@@ -553,8 +557,10 @@ impl ast::HasTokens for MainLine {
 
 #[cfg(test)]
 mod tests {
+    use crate::context_switch::Context;
+    use crate::context_switch::ContextSwitch;
+
     use super::*;
-    use parser::Parser;
 
     use ast::opr::predefined::ASSIGNMENT;
 
@@ -802,6 +808,25 @@ mod tests {
         );
         assert!(node.ast_info.context_switch.is_some());
         node.set_skip(false);
+        assert_eq!(node.repr(), format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"));
+        node.clear_context_switch_expression();
+        assert_eq!(node.repr(), format!("foo = bar"));
+
+        node.set_freeze(true);
+        assert_eq!(node.repr(), format!("foo = {FREEZE_MACRO_IDENTIFIER} bar"));
+        node.set_context_switch(ContextSwitchExpression {
+            switch:      ContextSwitch::Enable,
+            context:     Context::Output,
+            environment: "env".into(),
+        });
+        assert_eq!(
+            node.repr(),
+            format!(
+                "foo = {FREEZE_MACRO_IDENTIFIER} {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"
+            )
+        );
+        assert!(node.ast_info.context_switch.is_some());
+        node.set_freeze(false);
         assert_eq!(node.repr(), format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"));
         node.clear_context_switch_expression();
         assert_eq!(node.repr(), format!("foo = bar"));

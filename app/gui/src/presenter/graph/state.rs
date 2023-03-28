@@ -734,6 +734,7 @@ impl<'a> ViewChange<'a> {
         }
     }
 
+    /// Set the node context switch. Returns `None` if no changes to the expression are needed.
     pub fn set_node_context_switch(
         &self,
         id: ViewNodeId,

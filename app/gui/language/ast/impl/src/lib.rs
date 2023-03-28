@@ -559,9 +559,17 @@ impl<T> Tree<T> {
 
 /// Helper getters.
 impl<T> Tree<T> {
+    /// Retrieves the string content of the Tree node, if any.
     pub fn as_text(&self) -> Option<&str> {
         if self.type_info == TreeType::Expression && self.descriptive_name == Some("text") {
-            self.leaf_info.as_deref().map(|s| s.get(1..s.len() - 1)).flatten()
+            self.leaf_info.as_deref().and_then(|s| {
+                let delimiter = s.chars().take(3).collect::<String>();
+                match delimiter.as_str() {
+                    repr::FMT_BLOCK_QUOTES | repr::RAW_BLOCK_QUOTES => s.get(3..s.len() - 3),
+                    repr::FMT_QUOTE | repr::RAW_QUOTE => s.get(1..s.len() - 1),
+                    _ => None,
+                }
+            })
         } else {
             None
         }

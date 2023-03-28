@@ -11,7 +11,6 @@ use crate::crumbs::SectionRightCrumb;
 use crate::crumbs::SectionSidesCrumb;
 use crate::known;
 use crate::Ast;
-use crate::Cons;
 use crate::Id;
 use crate::Infix;
 use crate::Opr;
@@ -148,21 +147,20 @@ pub fn qualified_name_chain(
     mut segments: impl Iterator<Item = impl Into<String>>,
 ) -> Option<Chain> {
     let ast_from_identifier = |ident: &str| -> Ast {
-        if ident.chars().next().map_or(false, |c| c.is_uppercase()) {
+        let starts_with_uppercase = |s: &str| s.chars().next().map_or(false, |c| c.is_uppercase());
+        if starts_with_uppercase(ident) {
             known::Cons::new(crate::Cons { name: ident.into() }, None).into()
         } else {
             known::Var::new(crate::Var { name: ident.into() }, None).into()
         }
     };
+    let arg_with_offset = |s: &str| ArgWithOffset { arg: ast_from_identifier(s), offset: 0 };
     let target = segments.next()?;
-    let target = Some(ArgWithOffset { arg: ast_from_identifier(&target.into()), offset: 0 });
+    let target = Some(arg_with_offset(target.into().as_str()));
     let args = segments
         .map(|segment| ChainElement {
             operator: access(),
-            operand:  Some(ArgWithOffset {
-                arg:    ast_from_identifier(&segment.into()),
-                offset: 0,
-            }),
+            operand:  Some(arg_with_offset(segment.into().as_str())),
             offset:   0,
             infix_id: None,
         })
@@ -585,7 +583,7 @@ impl Chain {
             .map(|opr| crate::identifier::name(&opr.item.arg).map(ImString::new))
             .collect();
         let name_segments = name_segments?;
-        if every_operator_is_access {
+        if every_operator_is_access && !name_segments.is_empty() {
             Some(name_segments)
         } else {
             None

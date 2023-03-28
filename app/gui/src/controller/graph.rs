@@ -969,9 +969,6 @@ impl Handle {
     }
 
     /// Sets or clears the context switch expression for the specified node.
-    ///
-    /// This function updates the given node with a new `ContextSwitchExpression` or clears the
-    /// existing expression if `None` is provided.
     pub fn set_node_context_switch(
         &self,
         node_id: ast::Id,
