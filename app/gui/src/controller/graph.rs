@@ -1064,6 +1064,8 @@ pub mod tests {
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
     use parser::Parser;
+    use span_tree::generate::context::CalledMethodInfo;
+    use span_tree::generate::MockContext;
 
 
     /// Returns information about all the connections between graph's nodes.
@@ -1703,6 +1705,7 @@ main =
         struct Case {
             dest_node_expr:     &'static str,
             dest_node_expected: &'static str,
+            info:               Option<CalledMethodInfo>,
         }
 
 
@@ -1714,28 +1717,57 @@ main =
                 let expected = format!("{}{}", MAIN_PREFIX, self.dest_node_expected);
                 let this = self.clone();
                 test.run(|graph| async move {
-                    let connections = connections(&graph).unwrap();
-                    let connection = connections.connections.first().unwrap();
-                    graph.disconnect(connection, &span_tree::generate::context::Empty).unwrap();
-                    let new_main = graph.definition().unwrap().ast.repr();
-                    assert_eq!(new_main, expected, "Case {this:?}");
+                    let error_message = format!("{this:?}");
+                    let ctx = match this.info.clone() {
+                        Some(info) => {
+                            let nodes = graph.nodes().expect(&error_message);
+                            let dest_node_id = nodes.last().expect(&error_message).id();
+                            MockContext::new_single(dest_node_id, info)
+                        }
+                        None => MockContext::default(),
+                    };
+                    let connections = graph.connections(&ctx).expect(&error_message);
+                    let connection = connections.connections.first().expect(&error_message);
+                    graph.disconnect(connection, &ctx).expect(&error_message);
+                    let new_main = graph.definition().expect(&error_message).ast.repr();
+                    assert_eq!(new_main, expected, "{error_message}");
                 })
             }
         }
 
+        let info = || {
+            Some(CalledMethodInfo {
+                parameters: vec![
+                    span_tree::ArgumentInfo::named("arg1"),
+                    span_tree::ArgumentInfo::named("arg2"),
+                    span_tree::ArgumentInfo::named("arg3"),
+                ],
+                ..default()
+            })
+        };
+
+        #[rustfmt::skip]
         let cases = &[
-            Case { dest_node_expr: "var + a", dest_node_expected: "_ + a" },
-            Case { dest_node_expr: "a + var", dest_node_expected: "a + _" },
-            Case { dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
-            Case { dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
-            Case { dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
-            Case { dest_node_expr: "foo var", dest_node_expected: "foo _" },
-            Case { dest_node_expr: "foo var a", dest_node_expected: "foo a" },
-            Case { dest_node_expr: "foo a var", dest_node_expected: "foo a" },
-            Case { dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
-            Case { dest_node_expr: "foo arg1=var a", dest_node_expected: "foo a" },
-            Case { dest_node_expr: "foo arg2=var a c", dest_node_expected: "foo a c" },
+            Case { info: None, dest_node_expr: "var + a", dest_node_expected: "_ + a" },
+            Case { info: None, dest_node_expr: "a + var", dest_node_expected: "a + _" },
+            Case { info: None, dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
+            Case { info: None, dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
+            Case { info: None, dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
+            Case { info: None, dest_node_expr: "foo var", dest_node_expected: "foo _" },
+            Case { info: None, dest_node_expr: "foo var a", dest_node_expected: "foo a" },
+            Case { info: None, dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo var", dest_node_expected: "foo" },
+            Case { info: info(), dest_node_expr: "foo var a", dest_node_expected: "foo arg2=a" },
+            Case { info: info(), dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg1=var a", dest_node_expected: "foo arg2=a" },
             Case {
+                info: info(),
+                dest_node_expr: "foo arg2=var a c",
+                dest_node_expected: "foo a arg3=c"
+            },
+            Case {
+                info: None,
                 dest_node_expr:     "f\n        bar a var",
                 dest_node_expected: "f\n        bar a _",
             },
