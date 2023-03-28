@@ -226,7 +226,7 @@ impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
-        let macros_info = *node.main_line.macros_info();
+        let macros_info = *node.macros_info();
         let outputs = if let Some(pat) = node.pattern() {
             Some(SpanTree::new(pat, context).ok()?)
         } else {
@@ -592,7 +592,7 @@ impl Handle {
         let body = def.body();
         let usage = if matches!(body.shape(), ast::Shape::Block(_)) {
             alias_analysis::analyze_crumbable(body.item)
-        } else if let Some(node) = MainLine::from_ast(&body) {
+        } else if let Some((node, _macros_info)) = MainLine::from_ast(&body) {
             alias_analysis::analyze_ast(node.ast())
         } else {
             // Generally speaking - impossible. But if there is no node in the definition
@@ -841,13 +841,14 @@ impl Handle {
     pub fn add_node(&self, node: NewNodeInfo) -> FallibleResult<ast::Id> {
         info!("Adding node with expression `{}`", node.expression);
         let expression_ast = self.parse_node_expression(&node.expression)?;
-        let main_line = MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
+        let (main_line, macros_info) =
+            MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
         let documentation = node
             .doc_comment
             .as_ref()
             .and_then(|pretty_text| self.documentation_comment_from_pretty_text(pretty_text));
 
-        let mut node_info = NodeInfo { documentation, main_line };
+        let mut node_info = NodeInfo { documentation, main_line, macros_info };
         if let Some(desired_id) = node.id {
             node_info.set_id(desired_id)
         }
@@ -1691,7 +1692,7 @@ main =
 
         for (code, expected_name) in &cases {
             let ast = parser.parse_line_ast(*code).unwrap();
-            let node = MainLine::from_ast(&ast).unwrap();
+            let (node, _) = MainLine::from_ast(&ast).unwrap();
             let name = Handle::variable_name_base_for(&node);
             assert_eq!(&name, expected_name);
         }

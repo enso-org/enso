@@ -479,7 +479,7 @@ impl<'a> ControllerChange<'a> {
         let ast_id = node.main_line.id();
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
-        let skip = node.info.main_line.macros_info().skip;
+        let skip = node.info.macros_info().skip;
         if displayed.is_skipped != skip {
             displayed.is_skipped = skip;
             Some(skip)
@@ -494,7 +494,7 @@ impl<'a> ControllerChange<'a> {
         let ast_id = node.main_line.id();
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
-        let freeze = node.info.main_line.macros_info().freeze;
+        let freeze = node.info.macros_info().freeze;
         if displayed.is_frozen != freeze {
             displayed.is_frozen = freeze;
             Some(freeze)
@@ -832,10 +832,13 @@ mod tests {
     fn create_test_node(expression: &str) -> controller::graph::Node {
         let parser = Parser::new();
         let ast = parser.parse_line_ast(expression).unwrap();
+        let (main_line, macros_info) =
+            double_representation::node::MainLine::from_ast(&ast).unwrap();
         controller::graph::Node {
             info:     double_representation::node::NodeInfo {
                 documentation: None,
-                main_line:     double_representation::node::MainLine::from_ast(&ast).unwrap(),
+                main_line,
+                macros_info,
             },
             metadata: None,
         }
@@ -970,10 +973,13 @@ mod tests {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
         let node_id = nodes[0].node.id();
         let new_ast = Parser::new().parse_line_ast("foo baz").unwrap().with_id(node_id);
+        let (main_line, macros_info) =
+            double_representation::node::MainLine::from_ast(&new_ast).unwrap();
         let new_node = controller::graph::Node {
             info:     double_representation::node::NodeInfo {
                 documentation: None,
-                main_line:     double_representation::node::MainLine::from_ast(&new_ast).unwrap(),
+                main_line,
+                macros_info,
             },
             metadata: None,
         };

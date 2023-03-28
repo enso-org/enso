@@ -102,7 +102,7 @@ pub struct LocatedNode {
 /// Tests if given line contents can be seen as node with a given id
 pub fn is_main_line_of(line: &BlockLine<Option<Ast>>, id: Id) -> bool {
     let node_info = MainLine::from_block_line(line);
-    node_info.contains_if(|node| node.id() == id)
+    node_info.contains_if(|(main_line, _)| main_line.id() == id)
 }
 
 /// Searches for `NodeInfo` with the associated `id` index in `lines`.
@@ -184,13 +184,13 @@ impl<'a, T: Iterator<Item = (usize, BlockLine<&'a Ast>)> + 'a> Iterator for Node
                     indexed_documentation = None;
                 }
                 line =>
-                    if let Some(main_line) = MainLine::from_discerned_line(line) {
+                    if let Some((main_line, macros_info)) = MainLine::from_discerned_line(line) {
                         let (documentation_line, documentation) = match indexed_documentation {
                             Some((index, documentation)) => (Some(index), Some(documentation)),
                             None => (None, None),
                         };
 
-                        let node = NodeInfo { documentation, main_line };
+                        let node = NodeInfo { documentation, main_line, macros_info };
                         let index = NodeLocation { main_line: index, documentation_line };
 
                         return Some(LocatedNode { index, node });
@@ -211,6 +211,7 @@ pub struct NodeInfo {
     #[deref]
     #[deref_mut]
     pub main_line:     MainLine,
+    pub macros_info:   MacrosInfo,
 }
 
 impl NodeInfo {
@@ -218,7 +219,7 @@ impl NodeInfo {
     pub fn contains_line(&self, line_ast: &Ast) -> bool {
         // TODO refactor these two lambdas into methods
         let expression_id_matches =
-            || MainLine::from_ast(line_ast).as_ref().map(MainLine::id).contains(&self.id());
+            || MainLine::from_ast(line_ast).as_ref().map(|(ml, _)| ml.id()).contains(&self.id());
         let doc_comment_id_matches = || match (self.doc_comment_id(), line_ast.id) {
             (Some(node_doc_id), Some(line_ast_id)) => node_doc_id == line_ast_id,
             _ => false,
@@ -233,14 +234,62 @@ impl NodeInfo {
 
     /// Construct node information for a single line, without documentation.
     pub fn from_main_line_ast(ast: &Ast) -> Option<Self> {
-        let main_line = MainLine::from_ast(ast)?;
+        let (main_line, macros_info) = MainLine::from_ast(ast)?;
         let documentation = None;
-        Some(Self { documentation, main_line })
+        Some(Self { documentation, main_line, macros_info })
     }
 
     /// Obtain documentation text.
     pub fn documentation_text(&self) -> Option<ImString> {
         self.documentation.as_ref().map(|doc| doc.pretty_text())
+    }
+}
+
+impl NodeInfo {
+    /// The info about macro calls in the expression.
+    pub fn macros_info(&self) -> &MacrosInfo {
+        &self.macros_info
+    }
+
+    // Modify AST, adding or removing `SKIP` macro call. Does nothing if [`skip`] argument already
+    /// matches the inner state.
+    pub fn set_skip(&mut self, skip: bool) {
+        if skip != self.macros_info().skip {
+            if skip {
+                self.main_line.add_skip_macro();
+            } else {
+                self.main_line.remove_skip_macro();
+            }
+            self.macros_info.skip = skip;
+        }
+    }
+
+    /// Modify AST, adding or removing `FREEZE` macro call. Does nothing if [`skip`] argument
+    /// already matches the inner state.
+    pub fn set_freeze(&mut self, freeze: bool) {
+        if freeze != self.macros_info().freeze {
+            if freeze {
+                self.main_line.add_freeze_macro();
+            } else {
+                self.main_line.remove_freeze_macro();
+            }
+            self.macros_info.freeze = freeze;
+        }
+    }
+
+    /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
+    /// assignment infix will be introduced.
+    pub fn set_pattern(&mut self, pattern: Ast) {
+        if let Some(macros_info) = self.main_line.set_pattern(pattern) {
+            self.macros_info = macros_info;
+        };
+    }
+
+    /// Clear the pattern (left side of assignment) for node.
+    ///
+    /// If it is already an Expression node, no change is done.
+    pub fn clear_pattern(&mut self) {
+        self.main_line.clear_pattern();
     }
 }
 
@@ -253,30 +302,30 @@ impl NodeInfo {
 #[allow(missing_docs)]
 pub enum MainLine {
     /// Code with assignment, e.g. `foo = 2 + 2`
-    Binding { macros_info: MacrosInfo, infix: known::Infix },
+    Binding { infix: known::Infix },
     /// Code without assignment (no variable binding), e.g. `2 + 2`.
-    Expression { macros_info: MacrosInfo, ast: Ast },
+    Expression { ast: Ast },
 }
 
 impl MainLine {
     /// Tries to interpret the whole binding as a node. Right-hand side will become node's
     /// expression.
-    pub fn new_binding(infix: known::Infix) -> Option<MainLine> {
+    pub fn new_binding(infix: known::Infix) -> Option<(MainLine, MacrosInfo)> {
         infix.rarg.id?;
         let macros_info = MacrosInfo::from_ast(&infix.rarg);
-        Some(MainLine::Binding { macros_info, infix })
+        Some((MainLine::Binding { infix }, macros_info))
     }
 
     /// Tries to interpret AST as node, treating whole AST as an expression.
-    pub fn new_expression(ast: Ast) -> Option<MainLine> {
+    pub fn new_expression(ast: Ast) -> Option<(MainLine, MacrosInfo)> {
         ast.id?;
         // TODO what if we are given an assignment.
         let macros_info = MacrosInfo::from_ast(&ast);
-        Some(MainLine::Expression { macros_info, ast })
+        Some((MainLine::Expression { ast }, macros_info))
     }
 
     /// Tries to interpret AST as node, treating whole AST as a node's primary line.
-    pub fn from_ast(ast: &Ast) -> Option<MainLine> {
+    pub fn from_ast(ast: &Ast) -> Option<(MainLine, MacrosInfo)> {
         // By definition, there are no nodes in the root scope.
         // Being a node's line, we may assume that this is not a root scope.
         let scope = ScopeKind::NonRoot;
@@ -284,7 +333,7 @@ impl MainLine {
     }
 
     /// Try retrieving node information from an already discerned line data.
-    pub fn from_discerned_line(line: LineKind) -> Option<MainLine> {
+    pub fn from_discerned_line(line: LineKind) -> Option<(MainLine, MacrosInfo)> {
         match line {
             LineKind::ExpressionPlain { ast } => Self::new_expression(ast),
             LineKind::ExpressionAssignment { ast } => Self::new_binding(ast),
@@ -294,7 +343,7 @@ impl MainLine {
     }
 
     /// Tries to interpret AST as node, treating whole AST as an expression.
-    pub fn from_block_line(line: &BlockLine<Option<Ast>>) -> Option<MainLine> {
+    pub fn from_block_line(line: &BlockLine<Option<Ast>>) -> Option<(MainLine, MacrosInfo)> {
         Self::from_ast(line.elem.as_ref()?)
     }
 
@@ -359,13 +408,13 @@ impl MainLine {
         }
     }
 
-    /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
-    /// assignment infix will be introduced.
-    pub fn set_pattern(&mut self, pattern: Ast) {
+    /// See [`NodeInfo::set_pattern`]. Returns the macros info, if it was updated.
+    fn set_pattern(&mut self, pattern: Ast) -> Option<MacrosInfo> {
         match self {
             MainLine::Binding { infix, .. } => {
                 // Setting infix operand never fails.
-                infix.update_shape(|infix| infix.larg = pattern)
+                infix.update_shape(|infix| infix.larg = pattern);
+                None
             }
             MainLine::Expression { ast, .. } => {
                 let infix = ast::Infix {
@@ -377,46 +426,8 @@ impl MainLine {
                 };
                 let infix = known::Infix::new(infix, None);
                 let macros_info = MacrosInfo::from_ast(&infix.rarg);
-                *self = MainLine::Binding { macros_info, infix };
-            }
-        }
-    }
-
-    /// The info about macro calls in the expression.
-    pub fn macros_info(&self) -> &MacrosInfo {
-        match self {
-            Self::Expression { macros_info, .. } => macros_info,
-            Self::Binding { macros_info, .. } => macros_info,
-        }
-    }
-
-    fn macros_info_mut(&mut self) -> &mut MacrosInfo {
-        match self {
-            Self::Expression { macros_info, .. } => macros_info,
-            Self::Binding { macros_info, .. } => macros_info,
-        }
-    }
-
-    /// Modify AST, adding or removing `SKIP` macro call. Does nothing if [`skip`] argument already
-    /// matches the inner state.
-    pub fn set_skip(&mut self, skip: bool) {
-        if skip != self.macros_info().skip {
-            if skip {
-                self.add_skip_macro();
-            } else {
-                self.remove_skip_macro();
-            }
-        }
-    }
-
-    /// Modify AST, adding or removing `FREEZE` macro call. Does nothing if [`skip`] argument
-    /// already matches the inner state.
-    pub fn set_freeze(&mut self, freeze: bool) {
-        if freeze != self.macros_info().freeze {
-            if freeze {
-                self.add_freeze_macro();
-            } else {
-                self.remove_freeze_macro();
+                *self = MainLine::Binding { infix };
+                Some(macros_info)
             }
         }
     }
@@ -438,7 +449,6 @@ impl MainLine {
         self.modify_expression(|ast| {
             prepend_with_macro(ast, SKIP_MACRO_IDENTIFIER);
         });
-        self.macros_info_mut().skip = true;
     }
 
     /// Remove [`SKIP`] macro call from the AST. Preserves the expression ID and [`FREEZE`] macro
@@ -447,7 +457,6 @@ impl MainLine {
         self.modify_expression(|ast| {
             *ast = prefix_macro_body(ast);
         });
-        self.macros_info_mut().skip = false;
     }
 
     /// Add [`FREEZE`] macro call to the AST. Preserves the expression ID and [`SKIP`] macro calls.
@@ -455,7 +464,6 @@ impl MainLine {
         self.modify_expression(|ast| {
             *ast = preserving_skip(ast, |ast| prepend_with_macro(ast, FREEZE_MACRO_IDENTIFIER));
         });
-        self.macros_info_mut().freeze = true;
     }
 
     /// Remove [`FREEZE`] macro call from the AST. Preserves the expression ID and [`SKIP`] macro
@@ -466,23 +474,18 @@ impl MainLine {
                 *ast = prefix_macro_body(ast);
             });
         });
-        self.macros_info_mut().freeze = false;
     }
 
-    /// Clear the pattern (left side of assignment) for node.
-    ///
-    /// If it is already an Expression node, no change is done.
+    /// See [`NodeInfo::clear_pattern`]. Preserves the [`MacrosInfo`].
     pub fn clear_pattern(&mut self) {
         match self {
-            MainLine::Binding { infix, macros_info } =>
-                *self = MainLine::Expression {
-                    macros_info: *macros_info,
-                    ast:         infix.rarg.clone_ref(),
-                },
+            MainLine::Binding { infix } =>
+                *self = MainLine::Expression { ast: infix.rarg.clone_ref() },
             MainLine::Expression { .. } => {}
         }
     }
 
+    /// TODO
     pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
         self.modify_expression(|ast| {
             let func = match context_switch_expr.switch {
@@ -509,6 +512,7 @@ impl MainLine {
         });
     }
 
+    /// TODO
     pub fn clear_context_switch_expression(&mut self) {
         self.modify_expression(|ast| {
             if parse_context_switch_expression(&ast).is_some() {
@@ -529,6 +533,7 @@ impl ast::HasTokens for MainLine {
     }
 }
 
+/// TODO
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContextSwitch {
     Enable,
@@ -553,6 +558,7 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
     }
 }
 
+/// TODO
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Context {
     Output,
@@ -576,6 +582,7 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
 im_string_newtype!(Environment);
 
 
+/// TODO
 #[derive(Debug, Clone, PartialEq)]
 pub struct ContextSwitchExpression {
     pub switch:      ContextSwitch,
