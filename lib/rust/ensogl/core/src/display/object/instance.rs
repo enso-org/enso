@@ -78,7 +78,7 @@
 //!
 //! ## Automatic creation of columns and rows.
 //! Each display object can be asked to automatically place its children by using the Grid layout.
-//! The layout is divided into columns and rows. Every Grid has at leas one column and one row. To
+//! The layout is divided into columns and rows. Every Grid has at least one column and one row. To
 //! enable the Grid layout, use the [`use_auto_layout`] method. Here is an example of a display
 //! object with an empty Grid layout:
 //!
@@ -876,6 +876,7 @@
 //! node2.set_size((2.0, 3.0));
 //! node3.set_size((3.0, 4.0));
 //! root.use_auto_layout().justify_content_space_evenly_x();
+//! // FIXME: wrong code
 //! ```
 //!
 //! ## Future Grid layout extensions.

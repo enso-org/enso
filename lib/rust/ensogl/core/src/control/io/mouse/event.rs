@@ -15,12 +15,32 @@ use web::dom::Shape;
 // =============
 
 /// Mouse event wrapper.
-#[derive(Debug, Clone, Derivative)]
+#[derive(Clone, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Event<EventType, JsEvent> {
     js_event:   Option<JsEvent>,
     shape:      Shape,
     event_type: PhantomData<EventType>,
+}
+
+// impl<EventType: TypeDisplay, JsEvent> Debug for Event<EventType, JsEvent> {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "{}", type_display::<EventType>())
+//     }
+// }
+
+impl<EventType, JsEvent> Debug for Event<EventType, JsEvent>
+where
+    EventType: TypeDisplay,
+    JsEvent: AsRef<web::MouseEvent>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(&type_display::<EventType>())
+            .field("button", &self.button())
+            .field("client_x", &self.client_x())
+            .field("client_y", &self.client_y())
+            .finish()
+    }
 }
 
 /// Trait allowing extracting the phantom type of [`Event`].
@@ -73,6 +93,22 @@ where JsEvent: AsRef<web::MouseEvent>
     pub fn screen_y(&self) -> i32 {
         self.shape.height as i32
             - self.js_event.as_ref().map(|t| t.as_ref().screen_y()).unwrap_or_default()
+    }
+
+    pub fn screen(&self) -> Vector2<i32> {
+        Vector2(self.screen_x(), self.screen_y())
+    }
+
+    pub fn movement_x(&self) -> i32 {
+        self.js_event.as_ref().map(|t| t.as_ref().movement_x()).unwrap_or_default()
+    }
+
+    pub fn movement_y(&self) -> i32 {
+        self.js_event.as_ref().map(|t| t.as_ref().movement_y()).unwrap_or_default()
+    }
+
+    pub fn movement(&self) -> Vector2<i32> {
+        Vector2(self.movement_x(), self.movement_y())
     }
 
     /// Indicates which button was pressed on the mouse to trigger the event.
@@ -145,6 +181,12 @@ macro_rules! define_events {
             $(#$meta)*
             #[derive(Copy, Clone, Debug, Default)]
             pub struct [<Phantom $name>];
+
+            impl TypeDisplay for [<Phantom $name>] {
+                fn type_display() -> String {
+                    stringify!($name).to_string()
+                }
+            }
 
             $(#$meta)*
             pub type $name = Event<[<Phantom $name>], web::$js_event>;

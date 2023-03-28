@@ -19,6 +19,7 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 
 
+const DRAG_THRESHOLD: i32 = 4;
 
 // ==============
 // === Events ===
@@ -80,11 +81,23 @@ impl<T> VectorEditor<T> {
 
     fn init(self) -> Self {
         let network = self.frp.network();
-        let event_handler = self.display_object.on_event::<mouse::Up>();
-        frp::extend! { network
-            eval_ event_handler ([] {
-                warn!("Mouse up in parent");
-            });
+        let on_down_capturing = self.display_object.on_event_capturing::<mouse::Down>();
+        let on_up = self.display_object.on_event::<mouse::Up>();
+        let on_move = scene().on_event::<mouse::Move>();
+        frp::extend! { [TRACE_ALL] network
+            // Do not pass events to children, as we don't know whether we are about to drag
+            // them yet.
+            eval on_down_capturing ([] (event) event.stop_propagation());
+            is_down <- bool(&on_up, &on_down_capturing);
+            pos_on_down <- on_down_capturing.map(|event| event.screen());
+            pos_on_move <- on_move.gate(&is_down).map(|event| event.screen());
+            pos_offset_on_move <- map2(&pos_on_move, &pos_on_down, |a, b| a - b);
+
+            // Discover whether the elements are dragged. They need to be moved vertically by at
+            // least the [`DRAG_THRESHOLD`].
+            reorder_gate <- pos_offset_on_move.map(|t| t.y.abs() >= DRAG_THRESHOLD);
+            reorder_start <- pos_on_move.gate(&reorder_gate);
+            is_reordering <- bool(&on_up, &reorder_start).on_change();
         }
         self
     }
@@ -144,10 +157,10 @@ pub fn main() {
     let glob_frp = glob::Frp::new();
     let glob_frp_network = glob_frp.network();
 
-    let shape1_over = shape1.on_event::<mouse::Over>();
+    let shape1_down = shape1.on_event::<mouse::Down>();
     frp::extend! { glob_frp_network
-        eval_ shape1_over ([] {
-            warn!("Shape 1 over");
+        eval_ shape1_down ([] {
+            warn!("Shape 1 down");
         });
     }
 
