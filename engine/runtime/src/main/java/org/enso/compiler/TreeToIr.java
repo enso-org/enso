@@ -516,6 +516,9 @@ final class TreeToIr {
             block.copy$default$7()
           );
         }
+        if (body == null) {
+          body = translateSyntaxError(fun, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         return new IR$Expression$Binding(name, body,
           getIdentifiedLocation(fun), meta(), diag()
         );
@@ -842,6 +845,9 @@ final class TreeToIr {
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
         var expr = translateExpression(assign.getExpr(), false);
+        if (expr == null) {
+          expr = translateSyntaxError(assign, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         yield new IR$Expression$Binding(name, expr, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.ArgumentBlockApplication body -> {
