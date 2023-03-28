@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+/** Pre-allocated instances of storage types. */
 public class Constants {
   public static final Boolean BOOLEAN = new Boolean();
   public static final Integer INTEGER_64 = new Integer(Bits.BITS_64);

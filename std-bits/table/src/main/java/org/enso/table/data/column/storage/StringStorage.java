@@ -39,7 +39,7 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   @Override
   public StorageType getType() {
-    // TODO constant length strings support
+    // TODO [RW] constant length strings support
     return Constants.STRING;
   }
 

@@ -10,6 +10,12 @@ import org.enso.table.data.mask.SliceRange;
 import java.util.BitSet;
 import java.util.List;
 
+/**
+ * Wraps a storage of any type and alters its reported storage to be of type AnyObject.
+ *
+ * <p>This is used to ensure that we can change a column's type to Mixed without changing its
+ * underlying storage unnecessarily.
+ */
 public class MixedStorageFacade extends Storage<Object> {
   private final Storage<?> underlyingStorage;
 
