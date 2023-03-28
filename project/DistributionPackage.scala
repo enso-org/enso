@@ -214,10 +214,13 @@ object DistributionPackage {
     cacheFactory: CacheStoreFactory,
     log: Logger
   ): Unit = {
+    object FileOnlyFilter extends sbt.io.FileFilter {
+      def accept(arg: File): Boolean = arg.isFile
+    }
     val cache = cacheFactory.make(s"$libName.$ensoVersion")
     val path  = libName / ensoVersion
     Tracked.diffInputs(cache, FileInfo.lastModified)(
-      path.globRecursive("*.enso").get().toSet
+      path.globRecursive("*.enso" && FileOnlyFilter).get().toSet
     ) { diff =>
       if (diff.modified.nonEmpty) {
         log.info(s"Generating index for ${libName} ")

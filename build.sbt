@@ -2137,8 +2137,9 @@ runEngineDistribution := {
   )
 }
 
+val allStdBitsSuffix = List("All", "AllWithIndex")
 val stdBitsProjects =
-  List("Base", "Database", "Google_Api", "Image", "Table", "All")
+  List("Base", "Database", "Google_Api", "Image", "Table") ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
@@ -2173,6 +2174,7 @@ pkgStdLibInternal := Def.inputTask {
   val log: sbt.Logger   = streams.value.log
   val cacheFactory      = streams.value.cacheStoreFactory
   val standardNamespace = "Standard"
+  val buildAllCmd       = allStdBitsSuffix.contains(cmd)
   cmd match {
     case "Base" =>
       (`std-base` / Compile / packageBin).value
@@ -2186,7 +2188,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
-    case "All" =>
+    case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
@@ -2196,13 +2198,14 @@ pkgStdLibInternal := Def.inputTask {
     case _ =>
   }
   val libs =
-    if (cmd != "All") Seq(cmd)
+    if (!buildAllCmd) Seq(cmd)
     else {
       val prefix = s"$standardNamespace."
       Editions.standardLibraries
         .filter(_.startsWith(prefix))
         .map(_.stripPrefix(prefix))
     }
+  val generateIndex = cmd.endsWith("WithIndex")
   libs.foreach { lib =>
     StdBits.buildStdLibPackage(
       lib,
@@ -2211,16 +2214,18 @@ pkgStdLibInternal := Def.inputTask {
       log,
       defaultDevEnsoVersion
     )
-    val stdlibStandardRoot = root / "lib" / standardNamespace
-    DistributionPackage.indexStdLib(
-      libMajor       = stdlibStandardRoot,
-      libName        = stdlibStandardRoot / lib,
-      stdLibVersion  = defaultDevEnsoVersion,
-      ensoVersion    = defaultDevEnsoVersion,
-      ensoExecutable = root / "bin" / "enso",
-      cacheFactory   = cacheFactory.sub("stdlib"),
-      log            = log
-    )
+    if (generateIndex) {
+      val stdlibStandardRoot = root / "lib" / standardNamespace
+      DistributionPackage.indexStdLib(
+        libMajor       = stdlibStandardRoot,
+        libName        = stdlibStandardRoot / lib,
+        stdLibVersion  = defaultDevEnsoVersion,
+        ensoVersion    = defaultDevEnsoVersion,
+        ensoExecutable = root / "bin" / "enso",
+        cacheFactory   = cacheFactory.sub("stdlib"),
+        log            = log
+      )
+    }
   }
 }.evaluated
 
