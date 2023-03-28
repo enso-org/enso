@@ -426,7 +426,7 @@ impl InsertContext<'_> {
                 .flatten()
                 .filter_map(|opr| ast::identifier::name(&opr.item.arg).map(ImString::new))
                 .collect_vec();
-            if name_segments.len() > 0 {
+            if name_segments.is_empty() {
                 Some(name_segments)
             } else {
                 None
