@@ -182,9 +182,14 @@ impl From<&ButtonMask> for ButtonMask {
 // =============
 
 /// Mouse FRP bindings.
+///
+/// # Deprecated
+/// This API is deprecated. Instead, use the display object's event API. For example, to get an FRP
+/// endpoint for mouse event, you can use the [`crate::display::Object::on_event`] function.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
-pub struct Mouse {
+#[allow(non_camel_case_types)]
+pub struct Mouse_DEPRECATED {
     pub network:              frp::Network,
     pub up:                   frp::Source<Button>,
     pub down:                 frp::Source<Button>,
@@ -232,7 +237,7 @@ pub struct Mouse {
     pub prev_button_mask:     frp::Stream<ButtonMask>,
 }
 
-impl Mouse {
+impl Mouse_DEPRECATED {
     /// Smart accessor for `up_X` field.
     pub fn up(&self, button: Button) -> &frp::Stream {
         match button {
@@ -278,7 +283,7 @@ impl Mouse {
     }
 }
 
-impl Default for Mouse {
+impl Default for Mouse_DEPRECATED {
     fn default() -> Self {
         frp::new_network! { network
             up            <- source();
@@ -397,7 +402,7 @@ impl Default for Mouse {
     }
 }
 
-impl Mouse {
+impl Mouse_DEPRECATED {
     /// Constructor.
     pub fn new() -> Self {
         default()

@@ -236,7 +236,7 @@ impl NavigatorEvents {
 
     fn initialize_wheel_zoom(&mut self) {
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_wheel.add(move |event: &mouse::OnWheel| {
+        let listener = self.mouse_manager.on_wheel.add(move |event: &mouse::Wheel| {
             if let Some(data) = data.upgrade() {
                 if event.ctrl_key() {
                     // Prevent zoom event to be handed to the browser. This avoids browser scaling
@@ -265,7 +265,7 @@ impl NavigatorEvents {
 
     fn initialize_mouse_start_event(&mut self) {
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_down.add(move |event: &mouse::OnDown| {
+        let listener = self.mouse_manager.on_down.add(move |event: &mouse::Down| {
             if let Some(data) = data.upgrade() {
                 if data.is_navigator_enabled() {
                     event.prevent_default();
@@ -285,7 +285,7 @@ impl NavigatorEvents {
 
     fn initialize_mouse_end_event(&mut self) {
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_up.add(move |event: &mouse::OnUp| {
+        let listener = self.mouse_manager.on_up.add(move |event: &mouse::Up| {
             if let Some(data) = data.upgrade() {
                 if data.is_navigator_enabled() {
                     event.prevent_default();
@@ -296,7 +296,7 @@ impl NavigatorEvents {
         self.mouse_up = Some(listener);
 
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_leave.add(move |event: &mouse::OnLeave| {
+        let listener = self.mouse_manager.on_leave.add(move |event: &mouse::Leave| {
             if let Some(data) = data.upgrade() {
                 if data.is_navigator_enabled() {
                     event.prevent_default();
@@ -309,7 +309,7 @@ impl NavigatorEvents {
 
     fn initialize_mouse_move_event(&mut self) {
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_move.add(move |event: &mouse::OnMove| {
+        let listener = self.mouse_manager.on_move.add(move |event: &mouse::Move| {
             if let Some(data) = data.upgrade() {
                 let position = event.position_relative_to_event_handler();
                 data.set_mouse_position(position);

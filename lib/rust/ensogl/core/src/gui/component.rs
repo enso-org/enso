@@ -21,7 +21,7 @@ use crate::frp;
 // === Export ===
 // ==============
 
-pub use crate::display::scene::PointerTarget;
+pub use crate::display::scene::PointerTarget_DEPRECATED;
 
 
 
@@ -130,16 +130,20 @@ where
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S: Shape> {
     #[deref]
-    shape:               ShapeInstance<S>,
-    pub data:            RefCell<S::ShapeData>,
-    pub events:          PointerTarget,
-    pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
+    shape:                 ShapeInstance<S>,
+    pub data:              RefCell<S::ShapeData>,
+    /// # Deprecated
+    /// This API is deprecated. Instead, use the display object's event API. For example, to get an
+    /// FRP endpoint for mouse event, you can use the [`crate::display::Object::on_event`]
+    /// function.
+    pub events_deprecated: PointerTarget_DEPRECATED,
+    pub pointer_targets:   RefCell<Vec<symbol::GlobalInstanceId>>,
 }
 
 impl<S: Shape> Drop for ShapeViewModel<S> {
     fn drop(&mut self) {
         self.unregister_existing_mouse_targets();
-        self.events.on_drop.emit(());
+        self.events_deprecated.on_drop.emit(());
     }
 }
 
@@ -147,10 +151,10 @@ impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
         let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data));
-        let events = PointerTarget::new();
+        let events_deprecated = PointerTarget_DEPRECATED::new();
         let pointer_targets = default();
         let data = RefCell::new(data);
-        ShapeViewModel { shape, data, events, pointer_targets }
+        ShapeViewModel { shape, data, events_deprecated, pointer_targets }
     }
 
     #[profile(Debug)]
@@ -189,7 +193,11 @@ impl<S: Shape> ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         let (shape, instance) = layer.instantiate(&*self.data.borrow());
-        scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
+        scene.pointer_target_registry.insert(
+            instance.global_instance_id,
+            self.events_deprecated.clone_ref(),
+            self.display_object(),
+        );
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
     }

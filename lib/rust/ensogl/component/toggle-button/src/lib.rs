@@ -217,7 +217,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         let frp = &self.frp;
         let model = &self.model;
         let color = color::Animation::new(network);
-        let icon = &model.icon.events;
+        let icon = &model.icon.events_deprecated;
 
         // Explicitly define the tooltip placement if none was set. This ensures that this tooltip
         // is always correctly placed even when other components use tooltips as well. Otherwise,

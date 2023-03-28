@@ -310,7 +310,7 @@ impl Controller {
     pub fn new(
         editor: &crate::Frp,
         cursor: &Cursor,
-        mouse: &frp::io::Mouse,
+        mouse: &frp::io::Mouse_DEPRECATED,
         touch: &TouchState,
         nodes: &Nodes,
     ) -> Self {
