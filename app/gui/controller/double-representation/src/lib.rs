@@ -41,6 +41,7 @@ use ast::Ast;
 
 pub mod alias_analysis;
 pub mod connection;
+pub mod context_switch;
 pub mod definition;
 pub mod graph;
 pub mod identifier;
@@ -49,7 +50,6 @@ pub mod module;
 pub mod name;
 pub mod node;
 pub mod refactorings;
-pub mod context_switch;
 #[cfg(test)]
 pub mod test_utils;
 pub mod text;

@@ -338,9 +338,9 @@ impl NodeInfo {
         if self.ast_info.context_switch.is_some() {
             self.main_line.modify_expression(|ast| {
                 *ast = preserving_skip_and_freeze(ast, |ast| {
-                    if ContextSwitchExpression::parse(&ast).is_some() {
+                    if ContextSwitchExpression::parse(ast).is_some() {
                         let crumb = ast::crumbs::InfixCrumb::RightOperand.into();
-                        let rarg = ast.get(&crumb).unwrap_or(&ast);
+                        let rarg = ast.get(&crumb).unwrap_or(ast);
                         *ast = rarg.clone();
                     }
                 });

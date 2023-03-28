@@ -10,11 +10,15 @@
 //! ```
 //! will enable the [`Context::Output`] context for the `operator11` node in `design` environment.
 
+use crate::prelude::*;
+
 use crate::name::QualifiedName;
 use crate::name::QualifiedNameRef;
-use crate::prelude::*;
+
 use ast::known;
 use ast::opr::qualified_name_chain;
+
+
 
 // =================
 // === Constants ===
@@ -35,6 +39,7 @@ const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "with_disabled_contex
 
 /// The two possible context switches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum ContextSwitch {
     Enable,
     Disable,
@@ -62,6 +67,7 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
 
 /// Available execution contexts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Context {
     Output,
 }
@@ -83,7 +89,10 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
 
 // === Environment ===
 
-im_string_newtype!(Environment);
+im_string_newtype! {
+    /// The name of the execution environment.
+    Environment
+}
 
 // === ContextSwitchExpression ===
 
@@ -104,12 +113,12 @@ impl ContextSwitchExpression {
             let prefix = ast::prefix::Chain::from_ast(&infix.larg)?;
             let infix_chain = ast::opr::Chain::try_new(&prefix.func)?;
             let name_segments = infix_chain.as_qualified_name_segments()?;
-            let qualified_name = QualifiedName::from_all_segments(&name_segments).ok()?;
+            let qualified_name = QualifiedName::from_all_segments(name_segments).ok()?;
             let switch = ContextSwitch::try_from(qualified_name.as_ref()).ok()?;
             if let [context, environment] = &prefix.args[..] {
                 let context = ast::opr::Chain::try_new(&context.sast.wrapped)?;
                 let context_segments = context.as_qualified_name_segments()?;
-                let context_name = QualifiedName::from_all_segments(&context_segments).ok()?;
+                let context_name = QualifiedName::from_all_segments(context_segments).ok()?;
                 let context = Context::try_from(context_name.as_ref()).ok()?;
                 let environment = environment.sast.wrapped.clone();
                 let environment = known::Tree::try_from(environment).ok();

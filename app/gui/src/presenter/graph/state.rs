@@ -9,7 +9,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use bimap::BiMap;
 use bimap::Overwritten;
-use double_representation::node::ContextSwitchExpression;
+use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
