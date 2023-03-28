@@ -338,6 +338,9 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
 Any.should_be_a : Any -> Test_Result
 Any.should_be_a self typ =
     loc = Meta.get_source_location 1
+    fail_on_wrong_arg_type =
+        Panic.throw <|
+            Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or an atom constructor. Use `should_equal` for value equality test instead."
     case Meta.meta typ of
         c : Meta.Constructor -> case Meta.meta self of
                 a : Meta.Atom ->
@@ -358,8 +361,24 @@ Any.should_be_a self typ =
                 actual_type = Meta.get_qualified_type_name self
                 message = "Expected a value of type "+expected_type+" but got a value of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
-        _ -> Panic.throw <|
-            Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or an atom constructor. Use `should_equal` for value equality test instead."
+        # Workaround for 0-argument atom constructors which 'unapplies' them.
+        atom : Meta.Atom ->
+            ctor = atom . constructor
+            if ctor.fields.not_empty then fail_on_wrong_arg_type else
+                self.should_be_a (ctor.value ...)
+        _ : Meta.Polyglot ->
+            ok = self.is_a typ
+            if ok then Test_Result.Success else
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of Java class "+typ.to_text+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        Meta.Primitive.Value (b : Boolean) ->
+            ok = self == b
+            if ok then Test_Result.Success else
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of "+typ.to_text+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        _ -> fail_on_wrong_arg_type
 
 ## Asserts that a value is of a given type.
 
