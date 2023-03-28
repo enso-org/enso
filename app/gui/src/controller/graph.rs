@@ -26,7 +26,6 @@ use engine_protocol::language_server;
 use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
-use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::Context as SpanTreeContext;
 use span_tree::SpanTree;
 
@@ -790,6 +789,20 @@ impl Handle {
         module::locate(&module_ast, &self.id)
     }
 
+    /// The span of the definition of this graph in the module's AST.
+    pub fn definition_span(&self) -> FallibleResult<enso_text::Range<enso_text::Byte>> {
+        let def = self.definition()?;
+        self.module.ast().range_of_descendant_at(&def.crumbs)
+    }
+
+    /// The location of the last byte of the definition of this graph in the module's AST.
+    pub fn definition_end_location(&self) -> FallibleResult<enso_text::Location<enso_text::Byte>> {
+        let module_ast = self.module.ast();
+        let module_repr: enso_text::Rope = module_ast.repr().into();
+        let def_span = self.definition_span()?;
+        Ok(module_repr.offset_to_location_snapped(def_span.end))
+    }
+
     /// Updates the AST of the definition of this graph.
     #[profile(Debug)]
     pub fn update_definition_ast<F>(&self, f: F) -> FallibleResult
@@ -1023,24 +1036,6 @@ impl Handle {
     }
 }
 
-
-// === Span Tree Context ===
-
-/// Span Tree generation context for a graph that does not know about execution.
-///
-/// It just applies the information from the metadata.
-impl span_tree::generate::Context for Handle {
-    fn call_info(&self, id: node::Id, name: Option<&str>) -> Option<CalledMethodInfo> {
-        let db = &self.suggestion_db;
-        let metadata = self.module.node_metadata(id).ok()?;
-        let db_entry = db.lookup_method(metadata.intended_method?)?;
-        // If the name is different than intended method than apparently it is not intended anymore
-        // and should be ignored.
-        let matching = if let Some(name) = name { name == db_entry.name } else { true };
-        matching.then(|| db_entry.invocation_info(db, &self.parser))
-    }
-}
-
 impl model::undo_redo::Aware for Handle {
     fn undo_redo_repository(&self) -> Rc<model::undo_redo::Repository> {
         self.module.undo_redo_repository()
@@ -1069,15 +1064,11 @@ pub mod tests {
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
     use parser::Parser;
-    use span_tree::generate::MockContext;
-
 
 
     /// Returns information about all the connections between graph's nodes.
-    ///
-    /// Will use `self` as the context for span tree generation.
     pub fn connections(graph: &Handle) -> FallibleResult<Connections> {
-        graph.connections(graph)
+        graph.connections(&span_tree::generate::context::Empty)
     }
 
     /// All the data needed to set up and run the graph controller in mock environment.
@@ -1250,45 +1241,6 @@ main =
             assert!(graph.parse_node_expression("5+5").is_ok());
             assert!(graph.parse_node_expression("a+5").is_ok());
             assert!(graph.parse_node_expression("a=5").is_err());
-        })
-    }
-
-    #[test]
-    fn span_tree_context_handling_metadata_and_name() {
-        let entry = crate::test::mock::data::suggestion_entry_foo();
-        let mut test = Fixture::set_up();
-        test.data.suggestions.insert(0, entry.clone());
-        test.data.code = "main = bar".to_owned();
-        test.run(|graph| async move {
-            let nodes = graph.nodes().unwrap();
-            assert_eq!(nodes.len(), 1);
-            let id = nodes[0].info.id();
-            graph
-                .module
-                .set_node_metadata(id, NodeMetadata {
-                    intended_method: entry.method_id(),
-                    ..default()
-                })
-                .unwrap();
-
-            let get_invocation_info = || {
-                let node = &graph.nodes().unwrap()[0];
-                assert_eq!(node.info.id(), id);
-                let expression = node.info.expression().repr();
-                graph.call_info(id, Some(expression.as_str()))
-            };
-
-            // Now node is `bar` while the intended method is `foo`.
-            // No invocation should be reported, as the name is mismatched.
-            assert!(get_invocation_info().is_none());
-
-            // Now the name should be good and we should the information about node being a call.
-            graph.set_expression(id, &entry.name).unwrap();
-            crate::test::assert_call_info(get_invocation_info().unwrap(), &entry);
-
-            // Now we remove metadata, so the information is no more.
-            graph.module.remove_node_metadata(id).unwrap();
-            assert!(get_invocation_info().is_none());
         })
     }
 
@@ -1751,7 +1703,6 @@ main =
         struct Case {
             dest_node_expr:     &'static str,
             dest_node_expected: &'static str,
-            info:               Option<CalledMethodInfo>,
         }
 
 
@@ -1763,57 +1714,28 @@ main =
                 let expected = format!("{}{}", MAIN_PREFIX, self.dest_node_expected);
                 let this = self.clone();
                 test.run(|graph| async move {
-                    let error_message = format!("{this:?}");
-                    let ctx = match this.info.clone() {
-                        Some(info) => {
-                            let nodes = graph.nodes().expect(&error_message);
-                            let dest_node_id = nodes.last().expect(&error_message).id();
-                            MockContext::new_single(dest_node_id, info)
-                        }
-                        None => MockContext::default(),
-                    };
-                    let connections = graph.connections(&ctx).expect(&error_message);
-                    let connection = connections.connections.first().expect(&error_message);
-                    graph.disconnect(connection, &ctx).expect(&error_message);
-                    let new_main = graph.definition().expect(&error_message).ast.repr();
-                    assert_eq!(new_main, expected, "{error_message}");
+                    let connections = connections(&graph).unwrap();
+                    let connection = connections.connections.first().unwrap();
+                    graph.disconnect(connection, &span_tree::generate::context::Empty).unwrap();
+                    let new_main = graph.definition().unwrap().ast.repr();
+                    assert_eq!(new_main, expected, "Case {this:?}");
                 })
             }
         }
 
-        let info = || {
-            Some(CalledMethodInfo {
-                parameters: vec![
-                    span_tree::ArgumentInfo::named("arg1"),
-                    span_tree::ArgumentInfo::named("arg2"),
-                    span_tree::ArgumentInfo::named("arg3"),
-                ],
-                ..default()
-            })
-        };
-
-        #[rustfmt::skip]
         let cases = &[
-            Case { info: None, dest_node_expr: "var + a", dest_node_expected: "_ + a" },
-            Case { info: None, dest_node_expr: "a + var", dest_node_expected: "a + _" },
-            Case { info: None, dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
-            Case { info: None, dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
-            Case { info: None, dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
-            Case { info: None, dest_node_expr: "foo var", dest_node_expected: "foo _" },
-            Case { info: None, dest_node_expr: "foo var a", dest_node_expected: "foo a" },
-            Case { info: None, dest_node_expr: "foo a var", dest_node_expected: "foo a" },
-            Case { info: info(), dest_node_expr: "foo var", dest_node_expected: "foo" },
-            Case { info: info(), dest_node_expr: "foo var a", dest_node_expected: "foo arg2=a" },
-            Case { info: info(), dest_node_expr: "foo a var", dest_node_expected: "foo a" },
-            Case { info: info(), dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
-            Case { info: info(), dest_node_expr: "foo arg1=var a", dest_node_expected: "foo arg2=a" },
+            Case { dest_node_expr: "var + a", dest_node_expected: "_ + a" },
+            Case { dest_node_expr: "a + var", dest_node_expected: "a + _" },
+            Case { dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
+            Case { dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
+            Case { dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
+            Case { dest_node_expr: "foo var", dest_node_expected: "foo _" },
+            Case { dest_node_expr: "foo var a", dest_node_expected: "foo a" },
+            Case { dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
+            Case { dest_node_expr: "foo arg1=var a", dest_node_expected: "foo a" },
+            Case { dest_node_expr: "foo arg2=var a c", dest_node_expected: "foo a c" },
             Case {
-                info: info(),
-                dest_node_expr: "foo arg2=var a c",
-                dest_node_expected: "foo a arg3=c"
-            },
-            Case {
-                info: None,
                 dest_node_expr:     "f\n        bar a var",
                 dest_node_expected: "f\n        bar a _",
             },

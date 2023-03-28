@@ -65,9 +65,10 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): Future[(Long, Seq[Long])] =
-    db.run(searchQuery(module, selfType, returnType, kinds, position))
+    db.run(searchQuery(module, selfType, returnType, kinds, position, isStatic))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -289,6 +290,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
+    * @param isStatic the static attiribute
     * @return the list of suggestion ids, ranked by specificity (as for
     *         `selfType`)
     */
@@ -297,7 +299,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): DBIO[(Long, Seq[Long])] = {
     val typeSorterMap: HashMap[String, Int] = HashMap(selfType.zipWithIndex: _*)
     val searchAction =
@@ -306,12 +309,20 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         selfType.isEmpty &&
         returnType.isEmpty &&
         kinds.isEmpty &&
-        position.isEmpty
+        position.isEmpty &&
+        isStatic.isEmpty
       ) {
         DBIO.successful(Seq())
       } else {
         val query =
-          searchQueryBuilder(module, selfType, returnType, kinds, position)
+          searchQueryBuilder(
+            module,
+            selfType,
+            returnType,
+            kinds,
+            position,
+            isStatic
+          )
             .map(r => (r.id, r.selfType))
         query.result
       }
@@ -917,6 +928,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
+    * @param isStatic the static attribute
     * @return the search query
     */
   private def searchQueryBuilder(
@@ -924,13 +936,16 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     selfTypes: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
       .filterOpt(module) { case (row, value) =>
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
-      .filterIf(selfTypes.nonEmpty) { row => row.selfType.inSet(selfTypes) }
+      .filterIf(selfTypes.nonEmpty) { row =>
+        row.selfType.inSet(selfTypes)
+      }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
       }
@@ -943,6 +958,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           row.scopeStartLine <= value.line &&
           row.scopeEndLine >= value.line
         )
+      }
+      .filterOpt(isStatic) { case (row, value) =>
+        row.isStatic === value
       }
   }
 

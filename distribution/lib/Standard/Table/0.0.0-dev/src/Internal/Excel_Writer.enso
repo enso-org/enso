@@ -6,7 +6,7 @@ import project.Data.Table.Table
 import project.Data.Match_Columns.Match_Columns
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
-import project.Excel.Excel_Reader
+import project.Internal.Excel_Reader
 from project.Errors import Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.read.ExcelReader

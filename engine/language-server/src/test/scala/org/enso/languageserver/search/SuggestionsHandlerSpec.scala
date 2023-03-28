@@ -837,7 +837,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = None,
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -865,7 +866,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("MyType"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -889,7 +891,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("Integer"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -910,7 +913,8 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("Any"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -930,7 +934,8 @@ class SuggestionsHandlerSpec
           position   = Position(1, 10),
           selfType   = None,
           returnType = Some("IO"),
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
@@ -950,13 +955,47 @@ class SuggestionsHandlerSpec
           position   = Position(42, 0),
           selfType   = None,
           returnType = None,
-          tags       = Some(Seq(SearchProtocol.SuggestionKind.Local))
+          tags       = Some(Seq(SearchProtocol.SuggestionKind.Local)),
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
             Suggestions.all.length.toLong,
             Seq(localId).flatten
+          )
+        )
+    }
+
+    "search entries by static attribute" taggedAs Retry in withDb {
+      (config, repo, _, _, handler) =>
+        val all = Seq(
+          Suggestions.module,
+          Suggestions.tpe,
+          Suggestions.constructor,
+          Suggestions.method.copy(isStatic = true),
+          Suggestions.function,
+          Suggestions.local,
+          Suggestions.methodOnAny,
+          Suggestions.methodOnNumber,
+          Suggestions.methodOnInteger
+        )
+
+        val (_, Seq(_, _, _, methodId, _, _, _, _, _)) =
+          Await.result(repo.insertAll(all), Timeout)
+        handler ! SearchProtocol.Completion(
+          file       = mkModulePath(config, "Main.enso"),
+          position   = Position(42, 0),
+          selfType   = None,
+          returnType = None,
+          tags       = None,
+          isStatic   = Some(true)
+        )
+
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            all.length.toLong,
+            Seq(methodId).flatten
           )
         )
     }
