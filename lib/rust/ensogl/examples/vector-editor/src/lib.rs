@@ -1,4 +1,6 @@
-//! Example scene showing the usage of built-in high-level shapes.
+//! Example scene showing the usage of built-in vector editor component.
+//!
+//! TODO[WD]: This is work in progress and will be changed in the upcoming PRs.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
