@@ -1,7 +1,3 @@
-## TODO This is a prototype based on the current pending design, used to proceed
-   with handling of types in the `filter` component and others. It will be
-   revisited when proper type support is implemented.
-
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -103,7 +99,7 @@ type Value_Type
     ## Unsupported SQL type.
 
        Fallback provided to allow describing types that are not supported by Enso at this time.
-    Unsupported_Data_Type type_name:Text="" (underlying_type:SQL_Type=Nothing)
+    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:SQL_Type=Nothing)
 
     ## A mix of values can be stored in the Column.
 
@@ -177,10 +173,12 @@ type Value_Type
         Value_Type.Decimal precision scale -> "Decimal (precision=" + precision.to_text + ", scale=" + scale.to_text + ")"
         Value_Type.Char size variable_length -> "Char (max_size=" + size.to_text + ", variable_length=" + variable_length.to_text + ")"
         Value_Type.Date -> "Date"
-        Value_Type.Date_Time with_timezone -> "Date_Time (" + with_timezone.to_text + ")"
+        Value_Type.Date_Time with_timezone -> "Date_Time (with_timezone=" + with_timezone.to_text + ")"
         Value_Type.Time -> "Time"
-        Value_Type.Binary size variable_length -> "Binary (max_size=" + size.to_text + ", variable_length=" + variable_length.to_text + ")"
-        Value_Type.Unsupported_Data_Type type_name _ -> "Unsupported_Data_Type (" + type_name + ")"
+        Value_Type.Binary size variable_length -> "Binary (max_size=" + size.to_text + " bytes, variable_length=" + variable_length.to_text + ")"
+        Value_Type.Unsupported_Data_Type type_name _ -> case type_name of
+            Nothing  -> "Unsupported_Data_Type"
+            _ : Text -> "Unsupported_Data_Type (" + type_name + ")"
         Value_Type.Mixed -> "Mixed"
 
     ## PRIVATE
@@ -191,9 +189,9 @@ type Value_Type
         display_text = self.to_display_text
         additional_fields = case self of
             Value_Type.Integer size ->
-                [["size", size.to_bits]]
+                [["bits", size.to_bits]]
             Value_Type.Float size ->
-                [["size", size.to_bits]]
+                [["bits", size.to_bits]]
             Value_Type.Decimal precision scale ->
                 [["precision", precision], ["scale", scale]]
             Value_Type.Char size variable_length ->

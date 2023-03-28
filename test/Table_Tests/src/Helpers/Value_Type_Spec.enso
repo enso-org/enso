@@ -1,0 +1,37 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Type.Value_Type.Bits
+import Standard.Table.Data.Type.Value_Type.Value_Type
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    Test.group "Value_Type" <|
+        Test.specify "should have a nice display text representation" <|
+            Value_Type.Boolean.to_display_text . should_equal "Boolean"
+            Value_Type.Byte.to_display_text . should_equal "Byte"
+
+            (Value_Type.Integer Bits.Bits_16).to_display_text . should_equal "Integer (16 bits)"
+            Value_Type.Float.to_display_text . should_equal "Float (64 bits)"
+            Value_Type.Decimal.to_display_text . should_equal "Decimal (precision=Nothing, scale=0)"
+
+            Value_Type.Char.to_display_text . should_equal "Char (max_size=Nothing, variable_length=True)"
+            (Value_Type.Binary 8 False).to_display_text . should_equal "Binary (max_size=8 bytes, variable_length=False)"
+
+            Value_Type.Date.to_display_text . should_equal "Date"
+            Value_Type.Time.to_display_text . should_equal "Time"
+            Value_Type.Date_Time.to_display_text . should_equal "Date_Time (with_timezone=True)"
+
+            Value_Type.Mixed.to_display_text . should_equal "Mixed"
+            Value_Type.Unsupported_Data_Type.to_display_text . should_equal "Unsupported_Data_Type"
+            (Value_Type.Unsupported_Data_Type "FOO-BAR").to_display_text . should_equal "Unsupported_Data_Type (FOO-BAR)"
+
+        Test.specify "should have a good JSON representation for visualizations" <|
+            Value_Type.Boolean.to_json . should_equal '{"type":"Value_Type","constructor":"Boolean","_display_text_":"Boolean"}'
+            Value_Type.Float.to_json . should_equal '{"type":"Value_Type","constructor":"Float","_display_text_":"Float (64 bits)","bits":64}'
+            Value_Type.Decimal.to_json . should_equal '{"type":"Value_Type","constructor":"Decimal","_display_text_":"Decimal (precision=Nothing, scale=0)","precision":null,"scale":0}'
+            Value_Type.Char.to_json . should_equal '{"type":"Value_Type","constructor":"Char","_display_text_":"Char (max_size=Nothing, variable_length=True)","size":null,"variable_length":true}'
+            Value_Type.Unsupported_Data_Type.to_json . should_equal '{"type":"Value_Type","constructor":"Unsupported_Data_Type","_display_text_":"Unsupported_Data_Type","type_name":null}'
+
+main = Test_Suite.run_main spec
