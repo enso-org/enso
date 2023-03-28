@@ -248,7 +248,10 @@ impl View {
             frp.source.size           <+ need_relayout.map(f!((layout) model.set_layout(*layout)));
 
             // Handle the panel-wide hover
-            mouse_near_buttons            <- bool(&model.shape.events.mouse_out,&model.shape.events.mouse_over);
+            mouse_near_buttons <- bool(
+                &model.shape.events_deprecated.mouse_out,
+                &model.shape.events_deprecated.mouse_over
+            );
             mouse_on_any_buttton          <- model.close.is_hovered.or(&model.fullscreen.is_hovered);
             mouse_nearby                  <- mouse_near_buttons.or(&mouse_on_any_buttton);
             model.close.mouse_nearby      <+ mouse_nearby;

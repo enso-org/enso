@@ -315,7 +315,7 @@ impl Project {
         let content_roots = ContentRoots::new_from_connection(language_server);
         let content_roots = Rc::new(content_roots);
         let notifications = notification::Publisher::default();
-        let urm = Rc::new(model::undo_redo::Manager::new());
+        let urm = default();
         let properties = Rc::new(RefCell::new(properties));
 
         let ret = Project {

@@ -299,6 +299,7 @@ ensogl::define_endpoints_2! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
+        edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
         set_freeze_macro      (bool),
         set_comment           (Comment),
@@ -359,6 +360,7 @@ ensogl::define_endpoints_2! {
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
         requested_widgets        (ast::Id, ast::Id),
+        request_import           (ImString),
     }
 }
 
@@ -720,7 +722,7 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area = &model.drag_area.events;
+            let drag_area = &model.drag_area.events_deprecated;
             drag_area_hover <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
             model.input.set_hover  <+ drag_area_hover;
             model.output.set_hover <+ model.input.body_hover;
@@ -729,7 +731,7 @@ impl Node {
 
             // === Background Press ===
 
-            out.background_press <+ model.drag_area.events.mouse_down_primary;
+            out.background_press <+ model.drag_area.events_deprecated.mouse_down_primary;
             out.background_press <+ model.input.on_background_press;
 
 
@@ -749,9 +751,11 @@ impl Node {
             );
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
+            model.input.edit_expression <+ input.edit_expression;
             out.expression                  <+ model.input.frp.expression;
             out.expression_span             <+ model.input.frp.on_port_code_update;
             out.requested_widgets           <+ model.input.frp.requested_widgets;
+            out.request_import              <+ model.input.frp.request_import;
 
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;

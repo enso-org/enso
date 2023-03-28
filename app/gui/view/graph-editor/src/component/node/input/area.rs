@@ -23,6 +23,8 @@ use ensogl::display;
 use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;
+use ensogl_component::text::buffer::selection::Selection;
+use ensogl_component::text::FromInContextSnapped;
 use ensogl_hardcoded_theme as theme;
 
 
@@ -454,9 +456,9 @@ impl Model {
 
                     // === Aliases ===
 
-                    let mouse_over_raw = port_shape.hover.events.mouse_over.clone_ref();
-                    let mouse_out      = port_shape.hover.events.mouse_out.clone_ref();
-                    let mouse_down_raw = port_shape.hover.events.mouse_down_primary.clone_ref();
+                    let mouse_over_raw = port_shape.hover.events_deprecated.mouse_over.clone_ref();
+                    let mouse_out      = port_shape.hover.events_deprecated.mouse_out.clone_ref();
+                    let mouse_down_raw = port_shape.hover.events_deprecated.mouse_down_primary.clone_ref();
 
 
                     // === Body Hover ===
@@ -544,6 +546,7 @@ impl Model {
                             (crumbs.clone_ref(), expression)
                         }));
                         area_frp.source.on_port_code_update <+ code_update;
+                        area_frp.source.request_import <+ widget.request_import;
                     }
                 }
 
@@ -576,8 +579,7 @@ impl Model {
         call_info: &CallInfoMap,
     ) -> Option<(WidgetBind, widget::View)> {
         let call_id = port.kind.call_id().filter(|id| call_info.has_target(id))?;
-        let argument_info = port.kind.argument_info()?;
-        let argument_name = argument_info.name.as_ref()?.clone();
+        let argument_name = port.kind.argument_name()?.to_owned();
 
         let widget_bind = WidgetBind { call_id, argument_name };
 
@@ -605,7 +607,8 @@ impl Model {
             None => port.payload.init_widget(&self.app),
         };
 
-        widget.set_node_data(widget::NodeData { argument_info, port_size });
+        let tag_values = port.kind.tag_values().unwrap_or_default().to_vec();
+        widget.set_node_data(widget::NodeData { tag_values, port_size });
 
         Some((widget_bind, widget))
     }
@@ -851,6 +854,12 @@ ensogl::define_endpoints! {
         /// Set the node expression.
         set_expression (node::Expression),
 
+        /// Edit the node expression: if the node is currently edited, the given range will be
+        /// replaced with the string, and the text cursor will be placed after the inserted string.
+        ///
+        /// If the node is **not** edited, nothing changes.
+        edit_expression (text::Range<Byte>, ImString),
+
         /// Set the mode in which the cursor will indicate that editing of the node is possible.
         set_edit_ready_mode (bool),
 
@@ -892,6 +901,8 @@ ensogl::define_endpoints! {
         pointer_style       (cursor::Style),
         width               (f32),
         expression          (ImString),
+        expression_edit     (ImString, Vec<Selection<Byte>>),
+
         editing             (bool),
         ports_visible       (bool),
         body_hover          (bool),
@@ -905,6 +916,7 @@ ensogl::define_endpoints! {
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
         requested_widgets   (ast::Id, ast::Id),
+        request_import      (ImString),
     }
 }
 
@@ -1015,9 +1027,21 @@ impl Area {
                     model.set_expression(expr, *is_editing, &frp_endpoints)
                 )
             );
+            legit_edit <- frp.input.edit_expression.gate(&frp.input.set_editing);
+            model.label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
+            model.label.insert <+ legit_edit._1();
             frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
             expression_changed_by_user <- model.label.content.gate(&frp.input.set_editing);
             frp.output.source.expression <+ expression_changed_by_user.ref_into();
+            frp.output.source.expression_edit <+ model.label.selections.map2(
+                &expression_changed_by_user,
+                f!([model](selection, full_content) {
+                    let full_content = full_content.into();
+                    let to_byte = |loc| text::Byte::from_in_context_snapped(&model.label, loc);
+                    let selections = selection.iter().map(|sel| sel.map(to_byte)).collect_vec();
+                    (full_content, selections)
+                })
+            );
 
 
             // === Expression Type ===

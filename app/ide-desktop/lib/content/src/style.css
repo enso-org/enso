@@ -80,6 +80,7 @@ body {
 
 body {
   margin: 0;
+  overscroll-behavior: none;
 }
 
 #root {
@@ -93,9 +94,6 @@ body {
 .visualization {
   z-index: 2;
   border-radius: 14px;
-  /* visualizations may be put into the fullscreen-vis layer which has pointer-events set to none, so we need to
-       override it */
-  pointer-events: auto;
 }
 
 .auth-header {

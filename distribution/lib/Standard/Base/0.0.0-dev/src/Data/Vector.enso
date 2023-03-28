@@ -10,13 +10,13 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Range.Extensions
 import project.Data.Text.Text
-import project.Error.Common.Incomparable_Values
-import project.Error.Common.Index_Out_Of_Bounds
-import project.Error.Common.No_Such_Method
-import project.Error.Common.Not_Found
-import project.Error.Common.Type_Error
+import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.No_Such_Method
+import project.Errors.Common.Not_Found
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Math
 import project.Nothing.Nothing
@@ -679,7 +679,7 @@ type Vector a
        - at: The index at which to remove the item.
          If the index is less than 0, the index will be counted back from the
          end.
-    remove : Integer -> Any -> Vector
+    remove : Integer -> Vector
     remove self at=-1 =
         self_len = self.length
         used_index = if at < 0 then self_len + at else at

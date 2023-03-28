@@ -70,6 +70,14 @@ impl Initializer {
 
         ensogl_text_msdf::initialized().await;
         let ensogl_app = ensogl::application::Application::new(self.config.dom_parent_id());
+        let pixel_read_period =
+            enso_config::ARGS.groups.debug.options.pixel_read_period.value.parse();
+        match pixel_read_period {
+            Ok(read_period) => ensogl_app.display.set_pixel_read_period(read_period),
+            Err(e) => {
+                error!("Invalid pixel read period argument provided: `{e}`.");
+            }
+        }
         register_views(&ensogl_app);
         let view = ensogl_app.new_view::<ide_view::root::View>();
 
@@ -258,7 +266,6 @@ pub fn register_views(app: &Application) {
     app.views.register::<ensogl_component::text::Text>();
     app.views.register::<ensogl_component::selector::NumberPicker>();
     app.views.register::<ensogl_component::selector::NumberRangePicker>();
-    app.views.register::<ensogl_component::drop_down::Dropdown<ImString>>();
 
     // As long as .label() of a View is the same, shortcuts and commands are currently also
     // expected to be the same, so it should not be important which concrete type parameter of

@@ -269,8 +269,6 @@ impl Model {
         let icons = Icons::new();
         let shapes = compound::events::MouseEvents::default();
 
-        app.display.default_scene.layers.below_main.add(&hover_area);
-        app.display.default_scene.layers.below_main.add(&background);
         app.display.default_scene.layers.above_nodes.add(&icons);
 
         shapes.add_sub_shape(&hover_area);
@@ -357,7 +355,7 @@ impl ActionBar {
         let network = &self.frp.network;
         let frp = &self.frp;
         let model = &self.model;
-        let mouse = &app.display.default_scene.mouse.frp;
+        let mouse = &app.display.default_scene.mouse.frp_deprecated;
         let visualization_chooser = &model.visualization_chooser.frp;
 
         frp::extend! { network
@@ -391,11 +389,11 @@ impl ActionBar {
 
             frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
 
-            let reset_position_icon = &model.icons.reset_position_icon.events;
+            let reset_position_icon = &model.icons.reset_position_icon.events_deprecated;
             let reset_position_icon_down = reset_position_icon.mouse_down_primary.clone_ref();
             frp.source.on_container_reset_position <+ reset_position_icon_down;
 
-            let drag_icon      = &model.icons.drag_icon.events;
+            let drag_icon      = &model.icons.drag_icon.events_deprecated;
             let start_dragging = &drag_icon.mouse_down_primary;
             end_dragging       <- mouse.up.gate(&frp.source.container_drag_state);
             should_drag        <- bool(&end_dragging,start_dragging);

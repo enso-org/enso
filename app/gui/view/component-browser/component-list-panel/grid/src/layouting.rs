@@ -148,8 +148,13 @@ mod tests {
     fn test_small_count_of_groups() {
         for count in 0..4 {
             let group_ids = (0..count).map(|index| GroupId { section: SectionId::Popular, index });
-            let groups =
-                group_ids.map(|id| Group { id, height: 1, original_height: 1, color: default() });
+            let groups = group_ids.map(|id| Group {
+                id,
+                height: 1,
+                original_height: 1,
+                color: default(),
+                best_match_score: default(),
+            });
             let arranged = Layouter::new(groups).arrange();
             let total_count = arranged[LEFT].len() + arranged[CENTER].len() + arranged[RIGHT].len();
             assert_eq!(total_count, count);
@@ -162,6 +167,7 @@ mod tests {
             height,
             original_height: height,
             color: default(),
+            best_match_score: 0.0,
         })
     }
 

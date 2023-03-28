@@ -1,0 +1,21 @@
+[package]
+name = "enso-doc-parser"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "Enso Documentation Parser."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../LICENSE"
+
+[dependencies]
+enso-parser = { path = ".." }
+enso-prelude = { path = "../../prelude" }
+enso-profiler = { path = "../../profiler" }
+enso-reflect = { path = "../../reflect" }
+
+[dev-dependencies]
+enso-metamodel = { path = "../../metamodel", features = ["rust"] }
+enso-metamodel-lexpr = { path = "../../metamodel/lexpr" }
+lexpr = "0.2.6"

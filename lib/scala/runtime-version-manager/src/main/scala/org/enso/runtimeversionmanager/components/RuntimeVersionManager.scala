@@ -339,7 +339,7 @@ class RuntimeVersionManager(
     result match {
       case (path, Failure(exception)) =>
         logger.warn(
-          "{} at [{}] has been skipped due to the following error: {}",
+          "{} at [{}] has been skipped due to the error",
           name,
           path,
           exception
@@ -801,7 +801,7 @@ class RuntimeVersionManager(
     if (requiredComponents.isEmpty) Success(())
     else {
       for {
-        installedComponents <- cu.list
+        installedComponents <- cu.list()
         _ = logger.debug(
           "Available GraalVM components: [{}].",
           installedComponents
@@ -870,7 +870,8 @@ class RuntimeVersionManager(
 
   /** Logs on trace level all installed engines and runtimes.
     *
-    * Useful for debugging.
+    * NOTE: Useful for debugging but should not be added to production code since it may
+    *       cause unnecessary installations for different engine versions.
     */
   def logAvailableComponentsForDebugging(): Unit = logger.whenTraceEnabled {
     logger.trace("Discovering available components...")

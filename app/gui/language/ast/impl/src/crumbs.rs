@@ -672,7 +672,7 @@ pub trait TraversableAst: Sized {
     /// Recursively traverses AST to retrieve AST node located by given crumbs sequence.
     fn get_traversing(&self, crumbs: &[Crumb]) -> FallibleResult<&Ast>;
 
-    /// Get the `Ast` node corresponging to `Self`.
+    /// Get the `Ast` node corresponding to `Self`.
     fn my_ast(&self) -> FallibleResult<&Ast> {
         self.get_traversing(&[])
     }

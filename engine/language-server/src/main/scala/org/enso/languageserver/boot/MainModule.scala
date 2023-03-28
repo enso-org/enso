@@ -29,7 +29,7 @@ import org.enso.languageserver.protocol.binary.{
 }
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
-  JsonRpc
+  JsonRpcProtocolFactory
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
@@ -91,7 +91,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
-    serverConfig.profilingConfig
+    serverConfig.profilingConfig,
+    serverConfig.startupConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
@@ -105,11 +106,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   log.trace("Created ActorSystem [{}].", system)
 
   private val zioRuntime =
-    effect.Runtime.fromExecutionContext(system.dispatcher)
+    new effect.ExecutionContextRuntime(system.dispatcher)
   private val zioExec = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
-  val fileSystem: FileSystem = new FileSystem
+  private val fileSystem: FileSystem = new FileSystem
   log.trace("Created file system [{}].", fileSystem)
 
   val git = Git.withEmptyUserConfig(
@@ -344,14 +345,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
-  val initializationComponent = ResourcesInitialization(
-    system.eventStream,
-    directoriesConfig,
-    suggestionsRepo,
-    versionsRepo,
-    context
-  )(system.dispatcher)
-
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver),
     "project-settings-manager"
@@ -380,7 +373,41 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   )
 
-  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+  val pingHandlerProps =
+    PingHandler.props(
+      List(
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        contextRegistry
+      ),
+      10.seconds,
+      true
+    )
+
+  private val healthCheckEndpoint =
+    new HealthCheckEndpoint(pingHandlerProps, system)(
+      serverConfig.computeExecutionContext
+    )
+
+  private val idlenessEndpoint =
+    new IdlenessEndpoint(idlenessMonitor)
+
+  private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
+
+  private val initializationComponent =
+    ResourcesInitialization(
+      system.eventStream,
+      directoriesConfig,
+      jsonRpcProtocolFactory,
+      sqlDatabase,
+      suggestionsRepo,
+      versionsRepo,
+      context,
+      zioRuntime
+    )(system.dispatcher)
+
+  private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     mainComponent          = initializationComponent,
     bufferRegistry         = bufferRegistry,
     capabilityRouter       = capabilityRouter,
@@ -403,29 +430,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     jsonRpcControllerFactory
   )
 
-  val pingHandlerProps =
-    PingHandler.props(
-      List(
-        bufferRegistry,
-        capabilityRouter,
-        fileManager,
-        contextRegistry
-      ),
-      10.seconds,
-      true
-    )
-
-  val healthCheckEndpoint =
-    new HealthCheckEndpoint(pingHandlerProps, system)(
-      serverConfig.computeExecutionContext
-    )
-
-  val idlenessEndpoint =
-    new IdlenessEndpoint(idlenessMonitor)
-
   val jsonRpcServer =
     new JsonRpcServer(
-      JsonRpc.protocol,
+      jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),

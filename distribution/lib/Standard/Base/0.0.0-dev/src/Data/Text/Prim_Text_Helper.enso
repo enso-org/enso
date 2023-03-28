@@ -6,7 +6,7 @@ import project.Data.Text.Text
 ## PRIVATE
 
    Forces flattening of a text value.
-optimize : Text
+optimize : Text -> Text
 optimize text = @Builtin_Method "Prim_Text_Helper.optimize"
 
 ## PRIVATE

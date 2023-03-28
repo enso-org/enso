@@ -291,6 +291,7 @@ impl ContainerModel {
 
     fn init(self) -> Self {
         self.display_object.add_child(&self.drag_root);
+        self.scene.layers.above_nodes.add(&self.action_bar);
 
         self.update_shape_sizes();
         self.init_corner_roundness();
@@ -560,7 +561,7 @@ impl Container {
         // === Selecting Visualization ===
 
         frp::extend! { network
-            mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
+            mouse_down_target <- scene.mouse.frp_deprecated.down.map(f_!(scene.mouse.target.get()));
             selected_by_click <= mouse_down_target.map(f!([model] (target){
                 let vis        = &model.visualization;
                 let activate   = || vis.borrow().as_ref().map(|v| v.activate.clone_ref());

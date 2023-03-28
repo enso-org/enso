@@ -844,9 +844,11 @@ object BindingsMap {
       tpe.toConcrete(moduleMap).map(tpe => this.copy(tpe = tpe))
     }
 
+    /** @inheritdoc */
     override def qualifiedName: QualifiedName =
-      module.getName.createChild(cons.name)
+      tpe.qualifiedName.createChild(cons.name)
 
+    /** @inheritdoc */
     override def module: ModuleReference = tpe.module
   }
 

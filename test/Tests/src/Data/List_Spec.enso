@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Data.List.Empty_Error
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Common.No_Such_Method
-import Standard.Base.Error.Common.Not_Found
-import Standard.Base.Error.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 
 from Standard.Test import Test, Test_Suite

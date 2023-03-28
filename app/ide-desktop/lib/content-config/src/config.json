@@ -1,7 +1,7 @@
 {
   "options": {
     "authentication": {
-      "value": true,
+      "value": false,
       "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
     },
 
@@ -51,7 +51,6 @@
         }
       }
     },
-
     "engine": {
       "description": "Options that control the Enso Engine, the data processing backend.",
       "options": {
@@ -95,7 +94,6 @@
         }
       }
     },
-
     "style": {
       "description": "The available visual and tactile configurations of the application.",
       "options": {
@@ -105,14 +103,9 @@
         }
       }
     },
-
     "featurePreview": {
       "description": "Options that enable experimental features that are not yet stable.",
       "options": {
-        "newComponentBrowser": {
-          "value": true,
-          "description": "Indicates whether the new component browser should be enabled."
-        },
         "skipAndFreeze": {
           "value": false,
           "description": "Enable possibility to skip and freeze nodes.",
@@ -125,7 +118,6 @@
         }
       }
     },
-
     "authentication": {
       "description": "Options to manage application authentication properties.",
       "options": {
@@ -137,7 +129,6 @@
       },
       "primary": false
     },
-
     "profile": {
       "description": "Options for diagnosing application performance problems.",
       "options": {

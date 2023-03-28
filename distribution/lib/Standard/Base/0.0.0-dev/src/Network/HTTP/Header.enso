@@ -1,5 +1,7 @@
 import project.Data.Text.Text
+import project.Nothing.Nothing
 
+from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import org.enso.base.Http_Utils
@@ -13,23 +15,6 @@ type Header
        - name: The header name.
        - value: The header value.
     Value name value
-
-    ## Header equality.
-
-       Arguments:
-       - that: The header to compare against.
-
-       > Example
-         Compare two headers.
-
-             import Standard.Base.Network.HTTP.Header.Header
-
-             example_header_eq =
-                 (Header.new "My_Header" "foo") == (Header.new "My_Header" "bar")
-    == : Header -> Boolean
-    == self that = case that of
-        _ : Header -> (self.name.equals_ignore_case that.name) && self.value==that.value
-        _ -> False
 
     ## ALIAS Build a Header
 
@@ -182,3 +167,15 @@ type Header
              example_header_text_plain = Header.text_plain
     text_plain : Header
     text_plain = Header.content_type "text/plain"
+
+## PRIVATE
+type Header_Comparator
+    compare x y =
+        if x.name.equals_ignore_case y.name && x.value == y.value then Ordering.Equal else
+            Nothing
+
+    hash x =
+        key = x.name.to_case_insensitive_key + x.value
+        Comparable.from key . hash key
+
+Comparable.from (_:Header) = Header_Comparator

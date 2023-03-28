@@ -13,6 +13,7 @@ pub use js_sys::Function;
 pub use js_sys::JsString;
 pub use js_sys::Map;
 pub use js_sys::Object;
+pub use js_sys::Promise;
 pub use std::time::Duration;
 pub use std::time::Instant;
 pub use wasm_bindgen::prelude::Closure;
