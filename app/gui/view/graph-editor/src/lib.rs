@@ -1307,7 +1307,7 @@ pub struct TouchNetwork<T: frp::Data> {
 
 impl<T: frp::Data> TouchNetwork<T> {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
+    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
         frp::extend! { network
             down          <- source::<T> ();
             is_down       <- bool(&mouse.up_primary,&down);
@@ -1337,7 +1337,7 @@ pub struct TouchState {
 
 impl TouchState {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
+    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
         let nodes = TouchNetwork::<NodeId>::new(network, mouse);
         let background = TouchNetwork::<()>::new(network, mouse);
         Self { nodes, background }
@@ -1756,7 +1756,7 @@ impl GraphEditorModel {
         let edges = Edges::new();
         let vis_registry = visualization::Registry::with_default_visualizations();
         let visualisations = default();
-        let touch_state = TouchState::new(network, &scene.mouse.frp);
+        let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
         let app = app.clone_ref();
         let frp = frp.clone_ref();
@@ -1768,8 +1768,13 @@ impl GraphEditorModel {
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
-        let selection_controller =
-            selection::Controller::new(&frp, &app.cursor, &scene.mouse.frp, &touch_state, &nodes);
+        let selection_controller = selection::Controller::new(
+            &frp,
+            &app.cursor,
+            &scene.mouse.frp_deprecated,
+            &touch_state,
+            &nodes,
+        );
 
         Self {
             display_object,
@@ -2697,7 +2702,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let nodes = &model.nodes;
     let edges = &model.edges;
     let inputs = &model.frp;
-    let mouse = &scene.mouse.frp;
+    let mouse = &scene.mouse.frp_deprecated;
     let touch = &model.touch_state;
     let vis_registry = &model.vis_registry;
     let out = &frp.private.output;
@@ -3936,13 +3941,13 @@ mod tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.emit_mouse_down(PrimaryButton);
-        port.events.emit_mouse_up(PrimaryButton);
+        port.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(graph_editor.edges().len(), 1);
         // Dropping edge.
         let mouse = &app.display.default_scene.mouse;
         let click_pos = Vector2(300.0, 300.0);
-        mouse.frp.position.emit(click_pos);
+        mouse.frp_deprecated.position.emit(click_pos);
         let click_on_background = |_: &GraphEditor| mouse.click_on_background();
         let (_, node_2) = graph_editor.add_node_by(&click_on_background);
         graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
@@ -3963,8 +3968,8 @@ mod tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.emit_mouse_down(PrimaryButton);
-        port.events.emit_mouse_up(PrimaryButton);
+        port.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.events_deprecated.emit_mouse_up(PrimaryButton);
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
@@ -3974,8 +3979,8 @@ mod tests {
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true, None);
         let port = node_2.model().input_port_shape().expect("No input port.");
-        port.hover.events.emit_mouse_down(PrimaryButton);
-        port.hover.events.emit_mouse_up(PrimaryButton);
+        port.hover.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.hover.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }
@@ -3990,7 +3995,7 @@ mod tests {
         editor: &GraphEditor,
         mouse_pos: Vector2,
     ) {
-        scene.mouse.frp.position.emit(mouse_pos);
+        scene.mouse.frp_deprecated.position.emit(mouse_pos);
         press_add_node_shortcut(editor);
     }
 
@@ -4140,7 +4145,7 @@ mod tests {
         app.set_screen_size_for_tests();
         let graph_editor = new_graph_editor(&app);
         let mouse = &app.display.default_scene.mouse;
-        mouse.frp.position.emit(Vector2::zeros());
+        mouse.frp_deprecated.position.emit(Vector2::zeros());
         (app, graph_editor)
     }
 }

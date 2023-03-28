@@ -36,6 +36,7 @@ import java.util.concurrent.{
 import java.util.logging.Level
 
 import scala.jdk.OptionConverters._
+import java.util.concurrent.Future
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -107,7 +108,7 @@ class Compiler(
     if (!builtins.isIrInitialized) {
       logger.log(
         Compiler.defaultLogLevel,
-        "Initialising IR for [{}].",
+        "Initialising IR for [{0}].",
         builtins.getModule.getName
       )
 
@@ -164,11 +165,12 @@ class Compiler(
     *                                  the dependencies of the requested package
     * @param useGlobalCacheLocations whether or not the compilation result should
     *                                  be written to the global cache
+    * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
     useGlobalCacheLocations: Boolean
-  ): Unit = {
+  ): Future[Boolean] = {
     val packageRepository = context.getPackageRepository
 
     packageRepository.getMainProjectPackage match {
@@ -177,6 +179,7 @@ class Compiler(
           Level.SEVERE,
           "No package found in the compiler environment. Aborting."
         )
+        CompletableFuture.completedFuture(false)
       case Some(pkg) =>
         val packageModule = packageRepository.getModuleMap.get(
           s"${pkg.namespace}.${pkg.name}.Main"
@@ -185,9 +188,10 @@ class Compiler(
           case None =>
             logger.log(
               Level.SEVERE,
-              "Could not find entry point for compilation in package [{}]",
-              s"${pkg.namespace}.${pkg.name}"
+              "Could not find entry point for compilation in package [{0}.{1}]",
+              Array(pkg.namespace, pkg.name)
             )
+            CompletableFuture.completedFuture(false)
           case Some(m) =>
             logger.log(
               Compiler.defaultLogLevel,
@@ -273,7 +277,7 @@ class Compiler(
       ) {
         logger.log(
           Compiler.defaultLogLevel,
-          "Some imported modules' caches were invalided, forcing invalidation of {}",
+          "Some imported modules' caches were invalided, forcing invalidation of {0}",
           module.getName.toString
         )
         module.getCache.invalidate(context)
@@ -294,14 +298,14 @@ class Compiler(
           if (!flags.contains(false)) {
             logger.log(
               Compiler.defaultLogLevel,
-              "Restored links (late phase) for module [{}].",
+              "Restored links (late phase) for module [{0}].",
               module.getName
             )
           } else {
             hasInvalidModuleRelink = true
             logger.log(
               Compiler.defaultLogLevel,
-              "Failed to restore links (late phase) for module [{}].",
+              "Failed to restore links (late phase) for module [{0}].",
               module.getName
             )
             uncachedParseModule(module, isGenDocs = false)
@@ -385,7 +389,7 @@ class Compiler(
         if (generateCode) {
           logger.log(
             Compiler.defaultLogLevel,
-            "Generating code for module [{}].",
+            "Generating code for module [{0}].",
             module.getName
           )
 
@@ -409,7 +413,7 @@ class Compiler(
         } else {
           logger.log(
             Compiler.defaultLogLevel,
-            "Skipping serialization for [{}].",
+            "Skipping serialization for [{0}].",
             module.getName
           )
         }
@@ -532,7 +536,7 @@ class Compiler(
   ): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      "Parsing module [{}].",
+      "Parsing module [{0}].",
       module.getName
     )
     module.ensureScopeExists(context)
@@ -565,7 +569,7 @@ class Compiler(
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
     logger.log(
       Compiler.defaultLogLevel,
-      "Loading module [{}] from source.",
+      "Loading module [{0}] from source.",
       module.getName
     )
     module.ensureScopeExists(context)

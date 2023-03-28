@@ -722,7 +722,7 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area = &model.drag_area.events;
+            let drag_area = &model.drag_area.events_deprecated;
             drag_area_hover <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
             model.input.set_hover  <+ drag_area_hover;
             model.output.set_hover <+ model.input.body_hover;
@@ -731,7 +731,7 @@ impl Node {
 
             // === Background Press ===
 
-            out.background_press <+ model.drag_area.events.mouse_down_primary;
+            out.background_press <+ model.drag_area.events_deprecated.mouse_down_primary;
             out.background_press <+ model.input.on_background_press;
 
 

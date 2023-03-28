@@ -444,8 +444,8 @@ val icuVersion = "71.1"
 
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.12"
-val zioInteropCatsVersion = "3.2.9.0"
+val zioVersion            = "2.0.10"
+val zioInteropCatsVersion = "23.0.0.2"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
@@ -856,8 +856,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
-        staticOnLinux       = true,
-        initializeAtRuntime = Seq("scala.util.Random")
+        staticOnLinux = true,
+        initializeAtRuntime = Seq(
+          "scala.util.Random",
+          "zio.internal.ZScheduler$$anon$4",
+          "zio.Runtime$",
+          "zio.FiberRef$"
+        )
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(installNativeImage)
@@ -1582,7 +1587,8 @@ lazy val `engine-runner` = project
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
           "io.methvin.watchservice.jna.CarbonAPI",
-          "org.enso.syntax2.Parser"
+          "org.enso.syntax2.Parser",
+          "zio.internal.ZScheduler$$anon$4"
         )
       )
       .dependsOn(installNativeImage)
