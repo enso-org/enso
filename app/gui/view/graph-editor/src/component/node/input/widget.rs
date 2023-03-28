@@ -277,6 +277,7 @@ pub enum Kind {
     /// A widget for selecting a single value from a list of available options.
     #[serde(rename = "Single_Choice")]
     SingleChoice,
+    /// A widget for constructing and modifying vector of various types.
     #[serde(rename = "Vector_Editor")]
     VectorEditor,
 }
@@ -286,6 +287,7 @@ pub enum Kind {
 pub enum KindModel {
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoiceModel),
+    /// A widget for constructing and modifying vector of various types.
     VectorEditor(vector_editor::Model),
 }
 

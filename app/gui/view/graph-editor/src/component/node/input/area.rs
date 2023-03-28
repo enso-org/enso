@@ -526,7 +526,7 @@ impl Model {
 
                 let port_range = port.span();
                 let port_code = &expression.code[port_range];
-                if let Some((widget_bind, widget)) = self.init_port_widget(port, size, call_info, port_code) {
+                if let Some((widget_bind, widget)) = self.init_port_widget(port, size, call_info) {
                     widgets_map.insert(widget_bind, crumbs.clone_ref());
                     widget.set_x(position_x);
                     builder.parent.add_child(&widget);
@@ -576,7 +576,6 @@ impl Model {
         port: &mut PortRefMut,
         port_size: Vector2<f32>,
         call_info: &CallInfoMap,
-        port_code: &str,
     ) -> Option<(WidgetBind, widget::View)> {
         let call_id = port.kind.call_id().filter(|id| call_info.has_target(id))?;
         let argument_name = port.kind.argument_name()?.to_owned();

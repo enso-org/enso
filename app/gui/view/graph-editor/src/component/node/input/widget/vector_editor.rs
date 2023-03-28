@@ -1,18 +1,29 @@
+//! Module dedicated to the Vector Editor widget. The main structure is [`Model`] which is one of
+//! the [KindModel](crate::component::node::widget::KindModel) variants.
+//!
+//! Currently the view is a simle [`Elements`] component, which will be replaced with a rich
+//! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
+
 use crate::prelude::*;
 
 use crate::component::node::input::widget::triangle;
 use crate::component::node::input::widget::SampledFrp;
 use crate::component::node::input::widget::ACTIVATION_SHAPE_COLOR;
 use crate::component::node::input::widget::ACTIVATION_SHAPE_SIZE;
-use crate::component::node::input::widget::ACTIVATION_SHAPE_Y_OFFSET;
 
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::object::GenericLayoutApi;
 
-const GAP: f32 = 3.0;
 
+
+// ================
+// === Elements ===
+// ================
+
+/// A simple component displaying codes of the Vector elements. Will be replaced with
+/// `Vector Editor` view when it will be implemented (
 #[derive(Clone, CloneRef, Debug)]
 pub struct Elements {
     app:            Application,
@@ -28,7 +39,7 @@ impl Elements {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let items = default();
-        display_object.use_auto_layout().set_gap_x(GAP);
+        display_object.use_auto_layout().set_gap_x(Self::GAP);
         display_object.set_size_y(Self::HEIGHT);
         Self { app, display_object, items }
     }
@@ -64,6 +75,20 @@ impl display::Object for Elements {
     }
 }
 
+
+
+// =============
+// === Model ===
+// =============
+
+/// A model for the vector editor widget.
+///
+/// Currently it displays an activation shape (a triangle) which, on click, displays the widget
+/// view. Currently the widget view is simple [`Elements`] component, which just displays element's
+/// code.
+///
+/// The component does not handle nested arrays well. They should be fixed once [integrated into
+///new widget hierarchy](https://github.com/enso-org/enso/issues/5923).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     network:            frp::Network,
@@ -71,10 +96,15 @@ pub struct Model {
     elements_container: display::object::Instance,
     activation_shape:   triangle::View,
     elements:           Elements,
+    /// FRP input informing about the port size.
     pub set_port_size:  frp::Source<Vector2>,
 }
 
 impl Model {
+    /// A gap between the `activation_shape` and `elements` view.  
+    const GAP: f32 = 3.0;
+
+    /// Create Model for Vector Editor widget.
     pub fn new(app: &Application, parent: &display::object::Instance, frp: &SampledFrp) -> Self {
         let network = frp::Network::new("vector_editor::Model");
         let display_object = display::object::Instance::new();
@@ -88,7 +118,7 @@ impl Model {
         display_object
             .use_auto_layout()
             .set_column_count(1)
-            .set_gap_y(GAP)
+            .set_gap_y(Self::GAP)
             .set_children_alignment_center();
         display_object.set_size_hug();
         elements_container.set_size_hug();
@@ -97,8 +127,8 @@ impl Model {
         frp::extend! { network
             init <- source_();
             set_port_size <- source::<Vector2>();
-            let dot_clicked = activation_shape.events.mouse_down_primary.clone_ref();
-            toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
+            let dot_clicked = activation_shape.on_event::<mouse::Down>();
+            toggle_focus <- dot_clicked.map(f!([display_object](_) !display_object.is_focused()));
             set_focused <- any(toggle_focus, frp.set_focused);
             eval set_focused([display_object, elements_container, elements](focus) match focus {
                 true => {
@@ -127,7 +157,6 @@ impl Model {
             widget_size <- display_object.on_updated.map(f!((()) display_object.computed_size())).on_change();
             port_and_widget_size <- all(&set_port_size, &widget_size);
             eval port_and_widget_size ([display_object]((port_sz, sz)) {
-                warn!("port_sz: {port_sz}, sz: {sz}");
                 display_object.set_x(port_sz.x() / 2.0 - sz.x() / 2.0);
                 display_object.set_y(-port_sz.y() - sz.y() - 5.0);
             });
@@ -146,14 +175,11 @@ impl Model {
 
     fn parse_array_code(code: &str) -> impl Iterator<Item = &str> {
         let looks_like_array = code.starts_with('[') && code.ends_with(']');
-        warn!("Code \"{code}\": {looks_like_array}");
-        let opt_iterator = if looks_like_array {
+        let opt_iterator = looks_like_array.then(|| {
             let without_braces = code.trim_start_matches([' ', '[']).trim_end_matches([' ', ']']);
             let elements_with_trailing_spaces = without_braces.split(',');
-            Some(elements_with_trailing_spaces.map(|s| s.trim()))
-        } else {
-            None
-        };
+            elements_with_trailing_spaces.map(|s| s.trim())
+        });
         opt_iterator.into_iter().flatten()
     }
 }
