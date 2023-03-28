@@ -89,8 +89,7 @@ public class Regex_Utils {
         // Before inserting the converted wildcard, we append the accumulated characters, quoting
         // them first.
         if (acc.length() > 0) {
-          //result.append(Pattern.quote(acc.toString()));
-          result.append(acc.toString());
+          result.append(regexQuote(acc.toString()));
           acc.setLength(0);
         }
 
@@ -106,10 +105,13 @@ public class Regex_Utils {
 
     // If any trailing characters were left, we append them too.
     if (acc.length() > 0) {
-      //result.append(Pattern.quote(acc.toString()));
-      result.append(acc.toString());
+      result.append(regexQuote(acc.toString()));
     }
 
     return result.toString();
+  }
+
+  public static String regexQuote(String pattern) {
+    return pattern.replaceAll("[.*+?^${}()|\\[\\]]", "\\\\$0");
   }
 }
