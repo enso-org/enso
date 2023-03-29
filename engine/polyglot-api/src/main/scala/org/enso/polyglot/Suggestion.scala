@@ -82,7 +82,6 @@ object Suggestion {
     /** The conversion suggestion. */
     case object Conversion extends Kind {
       val From = "from"
-      val To   = "to"
     }
 
     /** The function suggestion. */
@@ -112,13 +111,13 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
-        case _: Module      => None
-        case _: Type        => None
-        case _: Constructor => None
-        case method: Method => Some(method.selfType)
-        case _: Conversion  => None
-        case _: Function    => None
-        case _: Local       => None
+        case _: Module              => None
+        case _: Type                => None
+        case _: Constructor         => None
+        case method: Method         => Some(method.selfType)
+        case conversion: Conversion => Some(conversion.sourceType)
+        case _: Function            => None
+        case _: Local               => None
       }
   }
 
@@ -166,6 +165,19 @@ object Suggestion {
     * @param end the end of the definition scope
     */
   case class Scope(start: Position, end: Position)
+
+  object Scope {
+    def apply(suggestion: Suggestion): Option[Scope] =
+      suggestion match {
+        case _: Module          => None
+        case _: Type            => None
+        case _: Constructor     => None
+        case _: Method          => None
+        case _: Conversion      => None
+        case function: Function => Some(function.scope)
+        case local: Local       => Some(local.scope)
+      }
+  }
 
   /** A module.
     *

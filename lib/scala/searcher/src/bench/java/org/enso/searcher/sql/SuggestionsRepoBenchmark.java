@@ -64,7 +64,7 @@ public class SuggestionsRepoBenchmark {
   int insertBatch(int size) throws TimeoutException, InterruptedException {
     Suggestion[] stubs =
         Stream.generate(SuggestionRandom::nextSuggestion).limit(size).toArray(Suggestion[]::new);
-    return (int) Await.result(repo.insertBatch(stubs), TIMEOUT);
+    return (int) Await.result(repo.insertBatchJava(stubs), TIMEOUT);
   }
 
   static <T> scala.Option<T> none() {

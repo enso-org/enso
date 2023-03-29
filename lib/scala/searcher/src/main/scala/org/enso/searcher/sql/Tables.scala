@@ -109,6 +109,17 @@ object SuggestionKind {
       case Suggestion.Kind.Function    => FUNCTION
       case Suggestion.Kind.Local       => LOCAL
     }
+
+  def toSuggestion(kind: Byte): Suggestion.Kind =
+    kind match {
+      case MODULE      => Suggestion.Kind.Module
+      case TYPE        => Suggestion.Kind.Type
+      case CONSTRUCTOR => Suggestion.Kind.Constructor
+      case METHOD      => Suggestion.Kind.Method
+      case FUNCTION    => Suggestion.Kind.Function
+      case LOCAL       => Suggestion.Kind.Local
+      case CONVERSION  => Suggestion.Kind.Conversion
+    }
 }
 
 object ScopeColumn {
@@ -121,6 +132,17 @@ object SelfTypeColumn {
 
   /** A constant representing en empty value in the self type column. */
   val EMPTY: String = "\u0500"
+}
+
+object NameColumn {
+
+  /** Create the method name for conversion */
+  def conversionMethodName(
+    sourceType: String,
+    returnType: String
+  ): String =
+    s"${Suggestion.Kind.Conversion.From}_${sourceType}_${returnType}"
+
 }
 
 /** The schema of the arguments table. */
@@ -227,6 +249,54 @@ final class SuggestionsTable(tag: Tag)
         scopeEndOffset
       ),
       unique = true
+    )
+}
+
+final case class SuggestionRowUniqueIndex(
+  kind: Suggestion.Kind,
+  module: String,
+  name: String,
+  selfType: String,
+  scopeStartLine: Int,
+  scopeStartOffset: Int,
+  scopeEndLine: Int,
+  scopeEndOffset: Int
+)
+
+object SuggestionRowUniqueIndex {
+
+  def apply(suggestion: Suggestion): SuggestionRowUniqueIndex = {
+    val scope = Suggestion.Scope(suggestion)
+    val suggestionName = suggestion match {
+      case conversion: Suggestion.Conversion =>
+        NameColumn.conversionMethodName(
+          conversion.sourceType,
+          conversion.returnType
+        )
+      case _ => suggestion.name
+    }
+    new SuggestionRowUniqueIndex(
+      Suggestion.Kind(suggestion),
+      suggestion.module,
+      suggestionName,
+      Suggestion.SelfType(suggestion).getOrElse(SelfTypeColumn.EMPTY),
+      scope.map(_.start.line).getOrElse(ScopeColumn.EMPTY),
+      scope.map(_.start.character).getOrElse(ScopeColumn.EMPTY),
+      scope.map(_.end.line).getOrElse(ScopeColumn.EMPTY),
+      scope.map(_.end.character).getOrElse(ScopeColumn.EMPTY)
+    )
+  }
+
+  def apply(row: SuggestionRow): SuggestionRowUniqueIndex =
+    new SuggestionRowUniqueIndex(
+      SuggestionKind.toSuggestion(row.kind),
+      row.module,
+      row.name,
+      row.selfType,
+      row.scopeStartLine,
+      row.scopeStartOffset,
+      row.scopeEndLine,
+      row.scopeEndOffset
     )
 }
 

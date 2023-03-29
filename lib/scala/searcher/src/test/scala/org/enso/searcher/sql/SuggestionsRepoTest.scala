@@ -2,11 +2,12 @@ package org.enso.searcher.sql
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
 import org.enso.testkit.RetrySpec
+import org.scalactic.TripleEqualsSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -14,7 +15,11 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
+class SuggestionsRepoTest
+    extends AnyWordSpec
+    with Matchers
+    with RetrySpec
+    with TripleEqualsSupport {
 
   val Timeout: FiniteDuration = 20.seconds
 
@@ -59,6 +64,30 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       val thrown =
         the[InvalidSchemaVersion] thrownBy Await.result(action, Timeout)
       thrown.version shouldEqual wrongSchemaVersion
+    }
+
+    "insert batch suggestions" /*taggedAs Retry*/ in withRepo { repo =>
+      implicit val equality = SuggestionEntryEqualityIgnoringArguments
+      val suggestions = Seq(
+        suggestion.module,
+        suggestion.tpe,
+        suggestion.constructor,
+        suggestion.method,
+        suggestion.instanceMethod,
+        suggestion.conversion,
+        suggestion.function,
+        suggestion.local
+      )
+      val action =
+        for {
+          (_, ids) <- repo.insertBatch(suggestions)
+          all      <- repo.selectAllSuggestions
+        } yield (ids, all)
+
+      val (ids, entries)  = Await.result(action, Timeout)
+      val expectedEntries = ids.zip(suggestions).map(SuggestionEntry.tupled)
+      entries should contain theSameElementsAs expectedEntries
+    //entries.map(_.suggestion) should contain theSameElementsAs suggestions
     }
 
     "get all suggestions" taggedAs Retry in withRepo { repo =>

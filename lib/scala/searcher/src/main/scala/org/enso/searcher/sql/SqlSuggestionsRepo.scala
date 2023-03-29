@@ -1,7 +1,6 @@
 package org.enso.searcher.sql
 
 import java.util.UUID
-
 import org.enso.polyglot.{ExportedSymbol, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExportsAction,
@@ -17,7 +16,7 @@ import slick.jdbc.SQLiteProfile.api._
 import slick.jdbc.meta.MTable
 import slick.relational.RelationalProfile
 
-import scala.collection.immutable.HashMap
+import scala.collection.immutable.{HashMap, ListMap}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -176,8 +175,16 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param suggestions the list of suggestions to insert
     * @return the current database size
     */
-  private[sql] def insertBatch(suggestions: Array[Suggestion]): Future[Int] =
-    db.run(insertBatchQuery(suggestions).transactionally)
+  def insertBatch(
+    suggestions: Iterable[Suggestion]
+  ): Future[(Long, Seq[Long])] =
+    db.run(insertBatchWithVersionQuery(suggestions).transactionally)
+
+  def insertBatchJava(suggestions: Array[Suggestion]): Future[Int] =
+    db.run(insertBatchJavaQuery(suggestions).transactionally)
+
+  def selectAllSuggestions: Future[Seq[SuggestionEntry]] =
+    db.run(selectAllSuggestionsQuery.transactionally)
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] = {
@@ -826,8 +833,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param suggestions the list of suggestions to insert
     * @return the current size of the database
     */
-  private def insertBatchQuery(
-    suggestions: Array[Suggestion]
+  private def insertBatchJavaQuery(
+    suggestions: Iterable[Suggestion]
   ): DBIO[Int] = {
     val rows = suggestions.map(toSuggestionRow)
     for {
@@ -835,6 +842,44 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       size <- Suggestions.length.result
     } yield size
   }
+
+  /** The query to insert suggestions in a batch.
+    *
+    * @param suggestions the list of suggestions to insert
+    * @return the current size of the database
+    */
+  private def insertBatchQuery(
+    suggestions: Iterable[Suggestion]
+  ): DBIO[Seq[Long]] = {
+    val suggestionsMap =
+      suggestions.map(s => SuggestionRowUniqueIndex(s) -> s).to(ListMap)
+    println(s"suggestionsMap=$suggestionsMap")
+    val rows = suggestions.map(toSuggestionRow)
+    for {
+      _    <- Suggestions ++= rows.map(_._1)
+      rows <- Suggestions.result
+    } yield {
+      val rowsMap = rows.map(r => SuggestionRowUniqueIndex(r) -> r.id.get).toMap
+      println(s"rowsMap=$rowsMap")
+      suggestionsMap.keys.map { key => rowsMap(key) }.toSeq
+    }
+  }
+
+  private def insertBatchWithVersionQuery(
+    suggestions: Iterable[Suggestion]
+  ): DBIO[(Long, Seq[Long])] = {
+    for {
+      ids     <- insertBatchQuery(suggestions)
+      version <- currentVersionQuery
+    } yield (version, ids)
+  }
+
+  private def selectAllSuggestionsQuery: DBIO[Seq[SuggestionEntry]] =
+    for {
+      rows <- Suggestions.result
+    } yield {
+      rows.map(row => SuggestionEntry(row.id.get, toSuggestion(row, Seq())))
+    }
 
   /** Create a search query by the provided parameters.
     *
@@ -980,7 +1025,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           kind             = SuggestionKind.CONSTRUCTOR,
           module           = module,
           name             = name,
-          selfType         = returnType,
+          selfType         = SelfTypeColumn.EMPTY,
           returnType       = returnType,
           parentType       = None,
           isStatic         = false,
@@ -1031,21 +1076,14 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             doc,
             reexport
           ) =>
-        val firstArg = Suggestion.Argument(
-          Suggestion.Kind.Conversion.From,
-          sourceType,
-          false,
-          false,
-          None
-        )
         val row = SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
           kind             = SuggestionKind.CONVERSION,
           module           = module,
-          name             = toConversionMethodName(sourceType, returnType),
-          selfType         = SelfTypeColumn.EMPTY,
+          name             = NameColumn.conversionMethodName(sourceType, returnType),
+          selfType         = sourceType,
           returnType       = returnType,
           parentType       = None,
           isStatic         = false,
@@ -1056,7 +1094,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY,
           reexport         = reexport
         )
-        row -> (firstArg +: args)
+        row -> args
       case Suggestion.Function(
             expr,
             module,
@@ -1106,13 +1144,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         )
         row -> Seq()
     }
-
-  /** Create the method name for conversion */
-  private def toConversionMethodName(
-    sourceType: String,
-    returnType: String
-  ): String =
-    s"${Suggestion.Kind.Conversion.From}_${sourceType}_${returnType}"
 
   /** Convert the argument to a row in the arguments table. */
   private def toArgumentRow(
@@ -1191,8 +1222,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
-          arguments     = arguments.sortBy(_.index).tail.map(toArgument),
-          sourceType    = arguments.minBy(_.index).tpe,
+          arguments     = arguments.sortBy(_.index).map(toArgument),
+          sourceType    = suggestion.selfType,
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
           reexport      = suggestion.reexport
