@@ -168,6 +168,13 @@ impl NodeAstInfo {
         let context_switch = ContextSwitchExpression::parse(ast);
         Self { macros_info, context_switch }
     }
+
+    /// Specifies the count of AST crumbs to bypass in order to reach the displayed AST node.
+    pub fn ast_crumbs_to_skip(&self) -> usize {
+        let skip_for_context_switch_expr = self.context_switch.as_ref().map_or(0, |_| 1);
+        let skip_for_macros = self.macros_info.macros_count();
+        skip_for_macros + skip_for_context_switch_expr
+    }
 }
 
 
@@ -271,6 +278,13 @@ impl NodeInfo {
         &self.ast_info.macros_info
     }
 
+    /// Represents the visible portion of a node's expression. This excludes SKIP and FREEZE macro
+    /// calls, as well as any context switch expressions.
+    pub fn expression(&self) -> Ast {
+        let ast = without_macros(self.main_line.whole_expression());
+        ContextSwitchExpression::remove_from_ast(&ast)
+    }
+
     // Modify AST, adding or removing `SKIP` macro call. Does nothing if [`skip`] argument already
     /// matches the inner state.
     pub fn set_skip(&mut self, skip: bool) {
@@ -338,11 +352,7 @@ impl NodeInfo {
         if self.ast_info.context_switch.is_some() {
             self.main_line.modify_expression(|ast| {
                 *ast = preserving_skip_and_freeze(ast, |ast| {
-                    if ContextSwitchExpression::parse(ast).is_some() {
-                        let crumb = ast::crumbs::InfixCrumb::RightOperand.into();
-                        let rarg = ast.get(&crumb).unwrap_or(ast);
-                        *ast = rarg.clone();
-                    }
+                    *ast = ContextSwitchExpression::remove_from_ast(ast);
                 });
             });
             self.ast_info.context_switch = None;
@@ -426,11 +436,6 @@ impl MainLine {
                 *ast = ast.with_id(new_id);
             }
         };
-    }
-
-    /// Visible portion of the node's expression. Does not contain `SKIP` and `FREEZE` macro calls.
-    pub fn expression(&self) -> Ast {
-        without_macros(self.whole_expression())
     }
 
     /// AST of the node's expression. Typically no external user wants to access it directly. Use

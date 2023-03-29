@@ -149,6 +149,18 @@ impl ContextSwitchExpression {
         let args = vec![context, environment];
         ast::prefix::Chain::new(func, args).into_ast()
     }
+
+    /// Remove the context switch expression from the given AST. Does nothing if `ast` does not
+    /// contain any context switch expression.
+    pub fn remove_from_ast(ast: &Ast) -> Ast {
+        if ContextSwitchExpression::parse(ast).is_some() {
+            let crumb = ast::crumbs::InfixCrumb::RightOperand.into();
+            let rarg = ast.get(&crumb).unwrap_or(ast);
+            rarg.clone()
+        } else {
+            ast.clone()
+        }
+    }
 }
 
 // =============

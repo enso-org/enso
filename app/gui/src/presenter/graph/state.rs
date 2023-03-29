@@ -1042,7 +1042,7 @@ mod tests {
         use ast::crumbs::InfixCrumb;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["2 + 3"]);
         let view = nodes[0].view;
-        let node_ast = nodes[0].node.main_line.expression();
+        let node_ast = nodes[0].node.expression();
         let left_operand = node_ast.get(&InfixCrumb::LeftOperand.into()).unwrap().id.unwrap();
         let right_operand = node_ast.get(&InfixCrumb::RightOperand.into()).unwrap().id.unwrap();
         let updater = state.update_from_controller();
