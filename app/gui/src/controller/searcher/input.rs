@@ -426,11 +426,7 @@ impl InsertContext<'_> {
                 .flatten()
                 .filter_map(|opr| ast::identifier::name(&opr.item.arg).map(ImString::new))
                 .collect_vec();
-            if !name_segments.is_empty() {
-                Some(name_segments)
-            } else {
-                None
-            }
+            !name_segments.is_empty().as_some(name_segements)
         } else {
             None
         }
