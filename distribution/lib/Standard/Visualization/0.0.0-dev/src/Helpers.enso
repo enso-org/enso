@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 from Standard.Base.Data.Json import render
 
-from Standard.Table import Table, Column
+from Standard.Table import Table, Column, Value_Type
 import Standard.Table.Data.Row.Row
 
 import project.Id.Id
@@ -179,6 +179,29 @@ Array.default_visualization self = Id.table
 Array.to_default_visualization_data : Text
 Array.to_default_visualization_data self =
     Vector.from_polyglot_array self . to_default_visualization_data
+
+## PRIVATE
+   Provides a JS object representation for use in visualizations.
+Value_Type.to_js_object : JS_Object
+Value_Type.to_js_object self =
+    constructor_name = Meta.meta self . constructor . name
+    display_text = self.to_display_text
+    additional_fields = case self of
+        Value_Type.Integer size ->
+            [["bits", size.to_bits]]
+        Value_Type.Float size ->
+            [["bits", size.to_bits]]
+        Value_Type.Decimal precision scale ->
+            [["precision", precision], ["scale", scale]]
+        Value_Type.Char size variable_length ->
+            [["size", size], ["variable_length", variable_length]]
+        Value_Type.Binary size variable_length ->
+            [["size", size], ["variable_length", variable_length]]
+        Value_Type.Unsupported_Data_Type type_name _ ->
+            [["type_name", type_name]]
+        _ -> []
+    JS_Object.from_pairs <|
+        [["type", "Value_Type"], ["constructor", constructor_name], ["_display_text_", display_text]] + additional_fields
 
 ## PRIVATE
 
