@@ -22,6 +22,7 @@
     "chalk": "^5.2.0",
     "create-servers": "^3.2.0",
     "electron-is-dev": "^2.0.0",
+    "enso-gui-server": "^1.0.0",
     "mime-types": "^2.1.35",
     "opener": "^1.5.2",
     "string-length": "^5.0.1",
@@ -35,25 +36,24 @@
     "electron": "23.0.0",
     "electron-builder": "^22.14.13",
     "electron-notarize": "1.2.2",
-    "enso-common": "^1.0.0",
     "enso-copy-plugin": "^1.0.0",
-    "esbuild": "^0.17.0",
+    "enso-common": "^1.0.0",
+    "esbuild": "^0.15.14",
     "fast-glob": "^3.2.12",
-    "portfinder": "^1.0.32",
-    "tsx": "^3.12.6"
+    "ts-node": "^10.9.1"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11",
-    "@esbuild/darwin-x64": "^0.17.0",
-    "@esbuild/linux-x64": "^0.17.0",
-    "@esbuild/windows-x64": "^0.17.0"
+    "esbuild-linux-64": "^0.15.18",
+    "esbuild-windows-64": "^0.15.18",
+    "esbuild-darwin-64": "^0.15.18"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "start": "tsx start.ts",
-    "build": "tsx bundle.ts",
-    "dist": "tsx dist.ts",
-    "watch": "tsx watch.ts"
+    "start": "ts-node start.ts",
+    "build": "ts-node bundle.ts",
+    "dist": "ts-node dist.ts",
+    "watch": "ts-node watch.ts"
   }
 }

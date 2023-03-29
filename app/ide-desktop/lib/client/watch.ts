@@ -16,15 +16,13 @@ import process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
-import * as clientBundler from './esbuild-config'
-import * as contentBundler from '../content/esbuild-config'
-import * as dashboardBundler from '../dashboard/esbuild-config'
-import * as paths from './paths'
+import * as clientBundler from './esbuild-config.js'
+import * as contentBundler from '../content/esbuild-config.js'
+import * as paths from './paths.js'
 
 /** Set of esbuild watches for the client and content. */
 interface Watches {
     client: esbuild.BuildResult
-    dashboard: esbuild.BuildResult
     content: esbuild.BuildResult
 }
 
@@ -35,74 +33,40 @@ console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })
 
-const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
+const BOTH_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
         console.log('Bundling client.')
-        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv()
-        clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
-        // Eslint is wrong here; this is actually `undefined`.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        ;(clientBundlerOpts.plugins ??= []).push({
-            name: 'enso-on-rebuild',
-            setup: build => {
-                build.onEnd(result => {
-                    if (result.errors.length) {
+        const clientBundlerOpts: esbuild.BuildOptions = {
+            ...clientBundler.bundlerOptionsFromEnv(),
+            outdir: path.resolve(IDE_DIR_PATH),
+            watch: {
+                onRebuild(error) {
+                    if (error) {
                         // We cannot carry on if the client failed to build, because electron executable
                         // would immediately exit with an error.
-                        console.error('Client watch bundle failed:', result.errors[0])
-                        reject(result.errors[0])
+                        console.error('Client watch bundle failed:', error)
+                        reject(error)
                     } else {
                         console.log('Client bundle updated.')
                     }
-                })
+                },
             },
-        })
-        const clientBuilder = await esbuild.context(clientBundlerOpts)
-        const client = await clientBuilder.rebuild()
+        }
+        const client = await esbuild.build(clientBundlerOpts)
         console.log('Result of client bundling: ', client)
-        void clientBuilder.watch()
-
-        console.log('Bundling dashboard.')
-        const dashboardOpts = dashboardBundler.bundleOptions()
-        dashboardOpts.plugins.push({
-            name: 'enso-on-rebuild',
-            setup: build => {
-                build.onEnd(() => {
-                    console.log('Dashboard bundle updated.')
-                })
-            },
-        })
-        dashboardOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        const dashboardBuilder = await esbuild.context(dashboardOpts)
-        const dashboard = await dashboardBuilder.rebuild()
-        console.log('Result of dashboard bundling: ', dashboard)
-        // We do not need to serve the dashboard as it outputs to the same directory.
-        // It will not rebuild on request, but it is not intended to rebuild on request anyway.
-        // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
-        // before the copy plugin runs.
-        void dashboardBuilder.watch()
 
         console.log('Bundling content.')
-        const contentOpts = contentBundler.bundlerOptionsFromEnv()
-        contentOpts.plugins.push({
-            name: 'enso-on-rebuild',
-            setup: build => {
-                build.onEnd(() => {
-                    console.log('Content bundle updated.')
-                })
-            },
+        const contentOpts = contentBundler.watchOptions(() => {
+            console.log('Content bundle updated.')
         })
         contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        const contentBuilder = await esbuild.context(contentOpts)
-        const content = await contentBuilder.rebuild()
+        const content = await esbuild.build(contentOpts)
         console.log('Result of content bundling: ', content)
-        void contentBuilder.watch()
-
-        resolve({ client, dashboard, content })
+        resolve({ client, content })
     })()
 })
 
-await ALL_BUNDLES_READY
+await BOTH_BUNDLES_READY
 console.log('Exposing Project Manager bundle.')
 await fs.symlink(
     PROJECT_MANAGER_BUNDLE_PATH,

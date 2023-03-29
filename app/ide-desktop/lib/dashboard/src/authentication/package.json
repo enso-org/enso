@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "main": "./src/index.tsx",
-  "exports": {
-    ".": "./src/index.tsx",
-    "./src/platform": "./src/platform.ts"
-  },
+  "exports": "./src/index.tsx",
   "devDependencies": {
     "typescript": "^4.9.3"
   },

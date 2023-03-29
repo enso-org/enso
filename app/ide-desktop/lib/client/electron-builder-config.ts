@@ -238,6 +238,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             }
         },
 
+        // Third-party API specifies `null`, not `undefined`.
+        // eslint-disable-next-line no-restricted-syntax
         publish: null,
     }
 }
@@ -259,8 +261,4 @@ export async function buildPackage(passedArgs: Arguments) {
     console.log('Building with configuration:', cliOpts)
     const result = await electronBuilder.build(cliOpts)
     console.log('Electron Builder is done. Result:', result)
-    // FIXME: https://github.com/enso-org/enso/issues/6082
-    // This is workaround which fixes esbuild freezing after successfully finishing the electronBuilder.build.
-    // It's safe to exit(0) since all processes are finished.
-    process.exit(0)
 }

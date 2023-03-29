@@ -1,25 +1,12 @@
 /** @file Start the file watch service. */
 import * as esbuild from 'esbuild'
-import * as portfinder from 'portfinder'
 
-import * as bundler from './esbuild-config.js'
+import * as guiServer from 'enso-gui-server'
 
-const PORT = 8080
-const HTTP_STATUS_OK = 200
+import bundler from './esbuild-config.js'
 
-async function watch() {
-    const opts = bundler.bundleOptions()
-    const builder = await esbuild.context(opts)
-    await builder.watch()
-    await builder.serve({
-        port: await portfinder.getPortPromise({ port: PORT }),
-        servedir: opts.outdir,
-        onRequest(args) {
-            if (args.status !== HTTP_STATUS_OK) {
-                console.error(`HTTP error ${args.status} when serving path '${args.path}'.`)
-            }
-        },
-    })
-}
-
-void watch()
+const OPTS = bundler.bundleOptions()
+const ROOT = OPTS.outdir
+const ASSETS = ROOT
+await esbuild.build(OPTS)
+await guiServer.start({ root: ROOT, assets: ASSETS ?? null })

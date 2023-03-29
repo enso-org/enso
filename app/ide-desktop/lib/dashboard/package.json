@@ -1,28 +1,23 @@
 {
   "name": "enso-dashboard",
   "version": "0.1.0",
-  "type": "module",
   "private": true,
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "lint": "npx --yes eslint src",
-    "build": "tsx bundle.ts",
-    "watch": "tsx watch.ts",
-    "start": "tsx start.ts"
-  },
   "dependencies": {
     "@heroicons/react": "^2.0.15",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
     "@types/node": "^16.18.11",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "esbuild": "^0.17.0",
-    "esbuild-plugin-time": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.7.0"
+    "react-router-dom": "^6.7.0",
+    "react-scripts": "^5.0.1",
+    "web-vitals": "^2.1.4"
   },
   "devDependencies": {
-    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "enso-authentication": "^1.0.0",
@@ -30,12 +25,34 @@
     "eslint": "^8.32.0",
     "eslint-plugin-jsdoc": "^39.6.8",
     "eslint-plugin-react": "^7.32.1",
-    "tailwindcss": "^3.2.7",
+    "jsdoc": "^4.0.0",
     "typescript": "^4.9.4"
   },
-  "optionalDependencies": {
-    "@esbuild/darwin-x64": "^0.17.0",
-    "@esbuild/linux-x64": "^0.17.0",
-    "@esbuild/windows-x64": "^0.17.0"
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "comments": {
+    "browserslist": "The `browserslist` key is used by `react-scripts` to determine which browsers to support."
   }
 }
