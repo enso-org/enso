@@ -1472,15 +1472,12 @@ pub mod dirty {
 // === Hierarchy FRP ===
 // =====================
 
-// FIXME[WD]: We should probably not expose these FRP endpoints publicly. They are tricky to use
-//   (see the #WARNING doc section).
-
 /// FRP endpoints relate to display object hierarchy modification.
 ///
-/// # WARNING!
-/// Do not change the hierarchy of display objects in response to these FRP signals. They are
-/// emitted during display object hierarchy update and changing the hierarchy during this update may
-/// lead to undefined behavior.
+/// # Order of evaluation
+/// The events are batched and will be streamed after all display objects have been updated. This
+/// prevents a situation where one would like to update the hierarchy of display objects in response
+/// to an event. Without batching, the events would be emitted in the middle of the update process.
 #[derive(Debug)]
 pub struct HierarchyFrp {
     /// Fires when the display object is shown. It will fire during the first scene refresh if this
@@ -1494,11 +1491,11 @@ pub struct HierarchyFrp {
     pub on_layer_change:    frp::Stream<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
     /// Fires during the first scene refresh if this object needed an update and the update was
     /// performed.
-    pub on_updated:         frp::Stream<()>,
+    pub on_transformed:     frp::Stream<()>,
     on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     on_hide_source:         frp::Source<Option<Scene>>,
     on_layer_change_source: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
-    on_updated_source:      frp::Source<()>,
+    on_transformed_source:  frp::Source<()>,
 }
 
 impl HierarchyFrp {
@@ -1507,21 +1504,21 @@ impl HierarchyFrp {
             on_show_source <- source();
             on_hide_source <- source();
             on_layer_change_source <- source();
-            on_updated_source <- source();
+            on_transformed_source <- source();
+            on_show <- on_show_source.batch().iter();
+            on_hide <- on_hide_source.batch().iter();
+            on_layer_change <- on_layer_change_source.batch().iter();
+            on_transformed <- on_transformed_source.batch().iter();
         }
-        let on_show = on_show_source.clone_ref().into();
-        let on_hide = on_hide_source.clone_ref().into();
-        let on_layer_change = on_layer_change_source.clone_ref().into();
-        let on_updated = on_updated_source.clone_ref().into();
         Self {
             on_show_source,
             on_hide_source,
             on_layer_change_source,
-            on_updated_source,
+            on_transformed_source,
             on_show,
             on_hide,
             on_layer_change,
-            on_updated,
+            on_transformed,
         }
     }
 }
@@ -1793,10 +1790,10 @@ impl Model {
                 self.dirty.modified_children.unset_all();
                 if origin_changed {
                     trace!("Self origin changed.");
+                    self.on_transformed_source.emit(());
                 } else {
                     trace!("Self origin did not change, but the layers did.");
                 }
-                self.on_updated_source.emit(());
                 if !self.children.borrow().is_empty() {
                     debug_span!("Updating all children.").in_scope(|| {
                         let children = self.children.borrow().clone();

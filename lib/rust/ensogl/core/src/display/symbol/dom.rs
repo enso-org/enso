@@ -124,7 +124,7 @@ impl DomSymbol {
         frp::extend! { network
             eval_ display_object.on_show (dom.set_style_or_warn("display", ""));
             eval_ display_object.on_hide (dom.set_style_or_warn("display", "none"));
-            eval_ display_object.on_updated ([dom] {
+            eval_ display_object.on_transformed ([dom] {
                 if let Some(display_object) = weak_display_object.upgrade() {
                     let mut transform = inverse_y_translation(display_object.transformation_matrix());
                     transform.iter_mut().for_each(|a| *a = eps(*a));
