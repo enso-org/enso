@@ -1487,15 +1487,18 @@ pub struct HierarchyFrp {
     /// from a visible parent. It will fire during the first scene refresh if this object was
     /// removed from a visible parent or added to an invisible one.
     pub on_hide:            frp::Stream<Option<Scene>>,
-    /// Fires during the first scene refresh if this object was moved between scene layers.
+    /// Fires during the scene refresh if this object was moved between scene layers.
     pub on_layer_change:    frp::Stream<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
-    /// Fires during the first scene refresh if this object needed an update and the update was
+    /// Fires during the scene refresh if this object needed an update and the update was
     /// performed.
     pub on_transformed:     frp::Stream<()>,
+    /// Fires during the scene refresh if this object was resized due to auto-layout rules.
+    pub on_resized:         frp::Stream<Vector2>,
     on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     on_hide_source:         frp::Source<Option<Scene>>,
     on_layer_change_source: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
     on_transformed_source:  frp::Source<()>,
+    on_resized_source:      frp::Source<Vector2>,
 }
 
 impl HierarchyFrp {
@@ -1505,20 +1508,24 @@ impl HierarchyFrp {
             on_hide_source <- source();
             on_layer_change_source <- source();
             on_transformed_source <- source();
+            on_resized_source <- source();
             on_show <- on_show_source.batch().iter();
             on_hide <- on_hide_source.batch().iter();
             on_layer_change <- on_layer_change_source.batch().iter();
             on_transformed <- on_transformed_source.batch().iter();
+            on_resized <- on_resized_source.batch().iter();
         }
         Self {
             on_show_source,
             on_hide_source,
             on_layer_change_source,
             on_transformed_source,
+            on_resized_source,
             on_show,
             on_hide,
             on_layer_change,
             on_transformed,
+            on_resized,
         }
     }
 }
@@ -3025,10 +3032,15 @@ impl Model {
     /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn refresh_layout(&self) {
         if self.should_refresh_layout() {
+            let old_size = self.layout.computed_size.get();
             self.reset_size_to_static_values(X, 0.0);
             self.refresh_layout_internal(X, PassConfig::Default);
             self.reset_size_to_static_values(Y, 0.0);
             self.refresh_layout_internal(Y, PassConfig::Default);
+            let new_size = self.layout.computed_size.get();
+            if old_size != new_size {
+                self.on_resized_source.emit(new_size);
+            }
         }
     }
 }
