@@ -261,6 +261,11 @@ spec =
             "".split "a" use_regex=True . should_equal [""]
             'abc'.split '' use_regex=True . should_fail_with Illegal_Argument
 
+        Test.specify "should be able to split the text on Regex patterns, case-insensitively" <|
+            "CAbaBDaBe" . split "ab" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["C", "", "D", "e"]
+            "caBAbdAbe" . split "(ab)+" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["c", "d", "e"]
+            "ABc" . split "[a-z]" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "", "", ""]
+
         Test.specify "regex and non-regex `split` handle accented grapheme splitting differently" <|
             'aśbs\u{301}c'.split 'ś' use_regex=True . should_equal ['a', 'bs\u{301}c']
             'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
