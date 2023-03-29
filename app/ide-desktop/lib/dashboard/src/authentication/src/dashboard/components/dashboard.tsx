@@ -397,6 +397,7 @@ function Dashboard(props: DashboardProps) {
                         className="mx-1"
                         onClick={() => {
                             setVisibleCreateForm(assetType)
+                            setModal(null)
                         }}
                     >
                         {svg.ADD_ICON}
