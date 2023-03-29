@@ -446,34 +446,23 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId, refresh])
 
     react.useEffect(() => {
-        function onDragOver(event: DragEvent) {
+        function onDragEnter(event: DragEvent) {
+            setVisibleCreateForm(null)
             if (Array.prototype.includes.call(event.dataTransfer?.types ?? [], 'Files')) {
                 setIsFileBeingDragged(true)
             }
         }
 
-        function onDrop(event: DragEvent) {
-            if (isFileBeingDragged) {
-                const fileCount = event.dataTransfer?.files.length ?? 0
-                if (fileCount === 0) {
-                    toast.toast.error('No files were dropped.')
-                } else if (fileCount > 1) {
-                    // FIXME[sb]: Waiting on https://github.com/timolins/react-hot-toast/issues/29.
-                    // TODO[sb]: Add colors.
-                    toast.toast('Multiple files were dropped; using the first file.', {
-                        icon: '⚠️',
-                    })
-                }
-                setIsFileBeingDragged(false)
-            }
+        function onBlur() {
+            setIsFileBeingDragged(false)
         }
 
-        document.addEventListener('dragover', onDragOver)
-        document.addEventListener('drop', onDrop)
+        window.addEventListener('dragenter', onDragEnter)
+        window.addEventListener('blur', onBlur)
 
         return () => {
-            document.removeEventListener('dragover', onDragOver)
-            document.removeEventListener('drop', onDrop)
+            window.removeEventListener('dragenter', onDragEnter)
+            window.removeEventListener('blur', onBlur)
         }
     }, [])
 
@@ -638,8 +627,27 @@ function Dashboard(props: DashboardProps) {
                 </tbody>
             </table>
             {isFileBeingDragged ? (
-                <div className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center">
-                    <span className="text-white text-lg">Drop to upload files.</span>
+                <div
+                    className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
+                    onDragLeave={() => {
+                        setIsFileBeingDragged(false)
+                    }}
+                    onDrop={event => {
+                        event.preventDefault()
+                        const fileCount = event.dataTransfer.files.length
+                        if (fileCount === 0) {
+                            toast.toast.error('No files were dropped.')
+                        } else if (fileCount > 1) {
+                            // FIXME[sb]: Waiting on https://github.com/timolins/react-hot-toast/issues/29.
+                            // TODO[sb]: Add colors.
+                            toast.toast('Multiple files were dropped; using the first file.', {
+                                icon: '⚠️',
+                            })
+                        }
+                        setIsFileBeingDragged(false)
+                    }}
+                >
+                    Drop to upload files.
                 </div>
             ) : (
                 <></>
