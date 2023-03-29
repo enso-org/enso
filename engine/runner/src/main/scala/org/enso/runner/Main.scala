@@ -502,13 +502,19 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches           = true,
+      strictErrors             = true,
       useGlobalIrCacheLocation = shouldUseGlobalCache
     )
     val topScope = context.getTopScope
-    topScope.compile(shouldCompileDependencies)
-
-    context.context.close()
-    exitSuccess()
+    try {
+      topScope.compile(shouldCompileDependencies)
+      exitSuccess()
+    } catch {
+      case _: Throwable =>
+        exitFail()
+    } finally {
+      context.context.close()
+    }
   }
 
   /** Handles the `--run` CLI option.
