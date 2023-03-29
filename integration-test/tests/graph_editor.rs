@@ -7,6 +7,7 @@ use enso_gui::integration_test::prelude::*;
 use approx::assert_abs_diff_eq;
 use enso_frp::future::FutureEvent;
 use enso_frp::io::mouse::PrimaryButton;
+use enso_frp::stream::ValueProvider;
 use enso_gui::view::graph_editor::component::node as node_view;
 use enso_gui::view::graph_editor::component::node::test_utils::NodeModelExt;
 use enso_gui::view::graph_editor::GraphEditor;
@@ -38,7 +39,7 @@ async fn create_new_project_and_add_nodes() {
 
     let added_node =
         graph_editor.nodes().get_cloned_ref(&added_node_id).expect("Added node is not added");
-    assert_eq!(added_node.view.expression.value().to_string(), "");
+    assert_eq!(added_node.view.set_expression.value().code, "");
 }
 
 #[wasm_bindgen_test]
