@@ -483,7 +483,7 @@ impl Text {
     pub fn location_at_mouse_position(&self) -> Location {
         let m = &self.data;
         let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let position = mouse.position.value();
         m.screen_to_text_location(position)
     }
