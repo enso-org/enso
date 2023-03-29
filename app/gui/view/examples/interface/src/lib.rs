@@ -254,6 +254,13 @@ fn init(app: &Application) {
     graph_editor.set_node_profiling_status(node3_id, node3_status);
 
 
+    // === Execution Modes ===
+
+    graph_editor.set_execution_modes(vec!["development".to_string(), "production".to_string()]);
+
+
+    // === Rendering ===
+
     // let tgt_type = dummy_type_generator.get_dummy_type();
     let mut was_rendered = false;
     let mut loader_hidden = false;

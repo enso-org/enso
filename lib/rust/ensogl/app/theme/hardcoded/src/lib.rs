@@ -442,6 +442,7 @@ define_themes! { [light:0, dark:1]
             }
         }
         status_bar {
+            offset_y = -30.0, -30.0;
             text = text, text;
             background = graph_editor::node::background , graph_editor::node::background;
             background {
@@ -652,6 +653,11 @@ define_themes! { [light:0, dark:1]
                 background = Rgba(0.62, 0.62, 1.0, 1.0), Rgba(0.62, 0.62, 1.0, 1.0);
                 color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
             }
+        }
+        execution_mode_selector {
+                background = Rgb::from_base_255(100.0, 181.0, 38.0) , Rgb::from_base_255(100.0, 181.0, 38.0);
+                divider = Rgba::black_with_alpha(0.12) , Rgba::black_with_alpha(0.12);
+                triangle = Rgba::white_with_alpha(0.75) , Rgba::white_with_alpha(0.75);
         }
     }
     widget {

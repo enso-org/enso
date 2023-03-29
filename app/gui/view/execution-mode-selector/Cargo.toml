@@ -1,0 +1,27 @@
+[package]
+name = "ide-view-execution-mode-selector"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-frp = { path = "../../../../lib/rust/frp" }
+enso-prelude = { path = "../../../../lib/rust/prelude" }
+enso-shapely = { path = "../../../../lib/rust/shapely" }
+enso-text = { path = "../../../../lib/rust/text" }
+ensogl = { path = "../../../../lib/rust/ensogl" }
+ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-text-msdf = { path = "../../../../lib/rust/ensogl/component/text/src/font/msdf" }
+failure = { workspace = true }
+indexmap = "1.9.2"
+nalgebra = { workspace = true }
+ordered-float = { workspace = true }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = { workspace = true }
+serde_json = { workspace = true }
+ensogl-drop-down-menu = { path = "../../../../lib/rust/ensogl/component/drop-down-menu" }
+ensogl-list-view = { path = "../../../../lib/rust/ensogl/component/list-view" }
+ensogl-gui-component = { path = "../../../../lib/rust/ensogl/component/gui" }

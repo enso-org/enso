@@ -85,6 +85,25 @@ pub mod chooser_hover_area {
 }
 
 
+// =================
+// === Alignment ===
+// =================
+
+/// Indicates the alignment of the selection menu.
+#[derive(Clone, Copy, Debug)]
+pub enum Alignment {
+    /// Align the menu to the left side of the selection menu.
+    Left,
+    /// Align the menu to the right side of the selection menu.
+    Right,
+}
+
+impl Default for Alignment {
+    fn default() -> Self {
+        Self::Left
+    }
+}
+
 
 // ===========
 // === FRP ===
@@ -98,6 +117,8 @@ ensogl_core::define_endpoints! {
         hide_selection_menu (),
         set_selected        (Option<list_view::entry::Id>),
         set_menu_offset_y   (f32),
+        set_menu_alignment  (Alignment),
+        set_label_alignment (Alignment),
     }
     Output {
         menu_visible    (bool),
@@ -247,7 +268,6 @@ impl DropDownMenu {
 
             let menu_height = DEPRECATED_Animation::<f32>::new(network);
 
-
             eval menu_height.value ([model](height) {
                 model.selection_menu.frp.resize.emit(Vector2::new(MENU_WIDTH,*height));
                 if *height <= 0.0 {
@@ -262,25 +282,36 @@ impl DropDownMenu {
                 model.icon.set_size(size-2.0*padding);
             });
 
-            resize_menu <- all(model.selection_menu.size,frp.input.set_icon_size,frp.input.set_menu_offset_y);
-            eval resize_menu (((menu_size,icon_size,menu_offset_y)) {
+            resize_menu <- all(model.selection_menu.size,frp.input.set_icon_size,
+                frp.input.set_menu_offset_y,frp.input.set_menu_alignment);
+            eval resize_menu (((menu_size,icon_size,menu_offset_y,alignment)) {
                 // Align the top of the menu to the bottom of the icon.
                 model.selection_menu.set_y(-menu_size.y/2.0-icon_size.y/2.0-menu_offset_y);
                 // Align the right of the menu to the right of the icon.
-                let offfset_y = -menu_size.x/2.0+icon_size.x/2.0-list_view::SHADOW_PX/2.0;
-                model.selection_menu.set_x(offfset_y);
+                let x_offset = match alignment {
+                    Alignment::Left => -menu_size.x/2.0+icon_size.x/2.0-list_view::SHADOW_PX/2.0,
+                    Alignment::Right => 0.0,
+                };
+                model.selection_menu.set_x(x_offset);
             });
 
-            label_position <- all(model.label.frp.width,frp.input.set_icon_size);
-            eval label_position (((text_width,icon_size)) {
-                model.label.set_x(-text_width-icon_size.x/2.0);
+            label_position <- all(model.label.frp.width,frp.input.set_icon_size,model.label.frp.height,
+                frp.input.set_label_alignment);
+            eval label_position ([model]((text_width,icon_size,text_height,alignment)) {
+                let base_offset = match alignment {
+                    Alignment::Left => -MENU_WIDTH/2.0+icon_size.x/2.0,
+                    Alignment::Right => -text_width-icon_size.x/2.0,
+                };
+                model.label.set_x(base_offset);
                 // Adjust for text offset, so this appears more centered.
-                model.label.set_y(0.25 * icon_size.y);
+                model.label.set_y(0.5 * text_height);
             });
 
-            overlay_size <- all(model.label.frp.width,frp.input.set_icon_size);
-            eval overlay_size ([model]((text_width,icon_size)) {
-                let size = Vector2::new(text_width + icon_size.x,icon_size.y);
+            overlay_size <- all(model.label.frp.width,model.label.frp.height,frp.input.set_icon_size);
+            eval overlay_size ([model]((text_width,text_height,icon_size)) {
+                let height = icon_size.y.max(*text_height);
+                let width = text_width + icon_size.x;
+                let size = Vector2::new(width,height);
                 model.icon_overlay.set_size(size);
                 model.icon_overlay.set_x(-text_width/2.0);
             });
@@ -381,6 +412,17 @@ impl DropDownMenu {
         model.label.set_property_default(text_color);
 
         self
+    }
+
+    /// Set the label of the dropdown menu.
+    pub fn set_label_color(&self, color: color::Rgba) {
+        self.model.label.set_property_default(color);
+    }
+
+    /// Set the layer of all text labels.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.model.selection_menu.set_label_layer(layer);
+        self.model.label.add_to_scene_layer(layer);
     }
 }
 
