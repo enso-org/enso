@@ -55,11 +55,10 @@ public abstract class PrintlnNode extends Node {
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
-      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
-      @Cached ExpectStringNode expectStringNode) {
+      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
     var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     EnsoContext ctx = EnsoContext.get(this);
-    print(ctx.getOut(), expectStringNode.execute(str));
+    print(ctx.getOut(), str);
     return ctx.getNothing();
   }
 
