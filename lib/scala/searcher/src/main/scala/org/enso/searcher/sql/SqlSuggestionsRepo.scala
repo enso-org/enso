@@ -175,7 +175,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param suggestions the list of suggestions to insert
     * @return the current database size
     */
-  def insertBatch(
+  override def insertBatch(
     suggestions: Iterable[Suggestion]
   ): Future[(Long, Seq[Long])] =
     db.run(insertBatchWithVersionQuery(suggestions).transactionally)
@@ -243,7 +243,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param calls the triples containing module name, self type, method name
     * @return the list of found suggestion ids
     */
-  def getAllMethodsQuery(
+  private def getAllMethodsQuery(
     calls: Seq[(String, String, String)]
   ): DBIO[Seq[Option[Long]]] =
     if (calls.isEmpty) {
@@ -788,13 +788,12 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** The query to increment the current version of the repo. */
   private def incrementVersionQuery: DBIO[Long] = {
-    val incrementQuery = for {
+    for {
       version <- SuggestionsVersion.returning(
         SuggestionsVersion.map(_.id)
       ) += SuggestionsVersionRow(None)
       _ <- SuggestionsVersion.filterNot(_.id === version).delete
     } yield version
-    incrementQuery
   }
 
   /** The query to get current version of the repo. */
@@ -853,14 +852,12 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   ): DBIO[Seq[Long]] = {
     val suggestionsMap =
       suggestions.map(s => SuggestionRowUniqueIndex(s) -> s).to(ListMap)
-    println(s"suggestionsMap=$suggestionsMap")
     val rows = suggestions.map(toSuggestionRow)
     for {
       _    <- Suggestions ++= rows.map(_._1)
       rows <- Suggestions.result
     } yield {
       val rowsMap = rows.map(r => SuggestionRowUniqueIndex(r) -> r.id.get).toMap
-      println(s"rowsMap=$rowsMap")
       suggestionsMap.keys.map { key => rowsMap(key) }.toSeq
     }
   }
@@ -870,7 +867,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   ): DBIO[(Long, Seq[Long])] = {
     for {
       ids     <- insertBatchQuery(suggestions)
-      version <- currentVersionQuery
+      version <- incrementVersionQuery
     } yield (version, ids)
   }
 
@@ -1025,7 +1022,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           kind             = SuggestionKind.CONSTRUCTOR,
           module           = module,
           name             = name,
-          selfType         = SelfTypeColumn.EMPTY,
+          selfType         = returnType,
           returnType       = returnType,
           parentType       = None,
           isStatic         = false,

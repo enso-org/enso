@@ -488,6 +488,19 @@ final class SuggestionsHandler(
     }
   }
 
+  def applyLoadedSuggestions(
+    suggestions: Vector[Suggestion]
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    for {
+      (version, ids) <- suggestionsRepo.insertBatch(suggestions)
+    } yield {
+      val updates = ids
+        .zip(suggestions)
+        .map(SuggestionsDatabaseUpdate.Add.tupled)
+      SuggestionsDatabaseUpdateNotification(version, updates)
+    }
+  }
+
   /** Handle the suggestions of the loaded library.
     *
     * Adds the new suggestions to the suggestions database and sends the
@@ -496,7 +509,7 @@ final class SuggestionsHandler(
     * @param suggestions the loaded suggestions
     * @return the API suggestions database update notification
     */
-  private def applyLoadedSuggestions(
+  def applyLoadedSuggestions1(
     suggestions: Vector[Suggestion]
   ): Future[SuggestionsDatabaseUpdateNotification] = {
     for {
@@ -511,7 +524,7 @@ final class SuggestionsHandler(
             case Api.SuggestionAction.Add() =>
               if (ids.isEmpty) {
                 val verb = action.getClass.getSimpleName
-                logger.error("Cannot {} [{}].", verb, suggestion)
+                logger.error("Cannot1 {} [{}].", verb, suggestion)
               }
               ids.map(
                 SuggestionsDatabaseUpdate.Add(

@@ -10,9 +10,9 @@
 
   <logger name="slick" level="info"/>
   <logger name="slick.compiler" level="${log.qcomp:-info}"/>
-  <logger name="slick.jdbc.JdbcBackend.statement" level="${log.jdbc.statement:-debug}" />
+  <logger name="slick.jdbc.JdbcBackend.statement" level="${log.jdbc.statement:-info}" />
 
-  <root level="debug">
+  <root level="error">
     <appender-ref ref="STDOUT"/>
   </root>
 </configuration>

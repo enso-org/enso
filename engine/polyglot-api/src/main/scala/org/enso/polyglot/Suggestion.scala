@@ -52,6 +52,17 @@ object Suggestion {
 
   type ExternalId = UUID
 
+  def isGlobal(suggestion: Suggestion): Boolean =
+    suggestion match {
+      case _: Suggestion.Module      => true
+      case _: Suggestion.Type        => true
+      case _: Suggestion.Constructor => true
+      case _: Suggestion.Method      => true
+      case _: Suggestion.Conversion  => true
+      case _: Suggestion.Function    => false
+      case _: Suggestion.Local       => false
+    }
+
   /** The type of a suggestion. */
   sealed trait Kind
   object Kind {
@@ -111,13 +122,13 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
-        case _: Module              => None
-        case _: Type                => None
-        case _: Constructor         => None
-        case method: Method         => Some(method.selfType)
-        case conversion: Conversion => Some(conversion.sourceType)
-        case _: Function            => None
-        case _: Local               => None
+        case _: Module                => None
+        case _: Type                  => None
+        case constructor: Constructor => Some(constructor.returnType)
+        case method: Method           => Some(method.selfType)
+        case conversion: Conversion   => Some(conversion.sourceType)
+        case _: Function              => None
+        case _: Local                 => None
       }
   }
 

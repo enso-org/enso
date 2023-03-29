@@ -6,6 +6,7 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
+import org.enso.searcher.sql.equality.SuggestionsEquality
 import org.enso.testkit.RetrySpec
 import org.scalactic.TripleEqualsSupport
 import org.scalatest.matchers.should.Matchers
@@ -19,7 +20,8 @@ class SuggestionsRepoTest
     extends AnyWordSpec
     with Matchers
     with RetrySpec
-    with TripleEqualsSupport {
+    with TripleEqualsSupport
+    with SuggestionsEquality {
 
   val Timeout: FiniteDuration = 20.seconds
 
@@ -66,8 +68,7 @@ class SuggestionsRepoTest
       thrown.version shouldEqual wrongSchemaVersion
     }
 
-    "insert batch suggestions" /*taggedAs Retry*/ in withRepo { repo =>
-      implicit val equality = SuggestionEntryEqualityIgnoringArguments
+    "insert batch suggestions" taggedAs Retry in withRepo { repo =>
       val suggestions = Seq(
         suggestion.module,
         suggestion.tpe,
@@ -80,14 +81,15 @@ class SuggestionsRepoTest
       )
       val action =
         for {
-          (_, ids) <- repo.insertBatch(suggestions)
+          v1       <- repo.currentVersion
+          (v2, ids) <- repo.insertBatch(suggestions)
           all      <- repo.selectAllSuggestions
-        } yield (ids, all)
+        } yield (ids, all, v1, v2)
 
-      val (ids, entries)  = Await.result(action, Timeout)
+      val (ids, entries, v1, v2)  = Await.result(action, Timeout)
       val expectedEntries = ids.zip(suggestions).map(SuggestionEntry.tupled)
       entries should contain theSameElementsAs expectedEntries
-    //entries.map(_.suggestion) should contain theSameElementsAs suggestions
+      v1 should not equal v2
     }
 
     "get all suggestions" taggedAs Retry in withRepo { repo =>

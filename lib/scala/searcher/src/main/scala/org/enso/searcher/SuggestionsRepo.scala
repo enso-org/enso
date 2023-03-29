@@ -65,19 +65,26 @@ trait SuggestionsRepo[F[_]] {
     */
   def select(id: Long): F[Option[Suggestion]]
 
-  /** Insert the suggestion
+  /** Insert the suggestion.
     *
     * @param suggestion the suggestion to insert
     * @return the id of an inserted suggestion
     */
   def insert(suggestion: Suggestion): F[Option[Long]]
 
-  /** Insert a list of suggestions
+  /** Insert a list of suggestions.
     *
     * @param suggestions the suggestions to insert
     * @return the current database version and a list of inserted suggestion ids
     */
   def insertAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
+
+  /** Insert suggestions as a batch.
+    *
+    * @param suggestions the suggestions to insert
+    * @return the current database version and a list of inserted suggestion ids
+    */
+  def insertBatch(suggestions: Iterable[Suggestion]): F[(Long, Seq[Long])]
 
   /** Apply suggestion updates.
     *
