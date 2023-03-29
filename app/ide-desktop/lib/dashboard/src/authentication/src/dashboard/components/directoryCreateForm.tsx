@@ -4,14 +4,15 @@ import * as toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
 
-export interface ProjectCreateFormProps {
+export interface DirectoryCreateFormProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
+    onSuccess: () => void
     close: () => void
 }
 
-function DirectoryCreateForm(props: ProjectCreateFormProps) {
-    const { backend, directoryId, close } = props
+function DirectoryCreateForm(props: DirectoryCreateFormProps) {
+    const { backend, directoryId, onSuccess, close } = props
     const [name, setName] = react.useState<string | null>(null)
 
     async function onSubmit(event: react.FormEvent) {
@@ -23,6 +24,7 @@ function DirectoryCreateForm(props: ProjectCreateFormProps) {
                 parentId: directoryId,
                 title: name,
             })
+            onSuccess()
             close()
         }
     }

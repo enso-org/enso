@@ -5,13 +5,15 @@ import * as toast from 'react-hot-toast'
 import * as backendModule from '../service'
 import * as fileInfo from '../../fileInfo'
 
-export interface ProjectCreateFormProps {
+export interface FileCreateFormProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
+    onSuccess: () => void
+    close: () => void
 }
 
-function FileCreateForm(props: ProjectCreateFormProps) {
-    const { backend, directoryId } = props
+function FileCreateForm(props: FileCreateFormProps) {
+    const { backend, directoryId, onSuccess, close } = props
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
 
@@ -30,6 +32,7 @@ function FileCreateForm(props: ProjectCreateFormProps) {
                 },
                 file
             )
+            onSuccess()
             close()
         }
     }

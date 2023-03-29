@@ -8,11 +8,12 @@ import * as fileInfo from '../../fileInfo'
 export interface UploadFileModalProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
+    onSuccess: () => void
     close: () => void
 }
 
 function UploadFileModal(props: UploadFileModalProps) {
-    const { backend, directoryId, close } = props
+    const { backend, directoryId, onSuccess, close } = props
 
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
@@ -31,6 +32,7 @@ function UploadFileModal(props: UploadFileModalProps) {
                 file
             )
             toast.toast.success('Sucessfully uploaded file.')
+            onSuccess()
             close()
         }
     }

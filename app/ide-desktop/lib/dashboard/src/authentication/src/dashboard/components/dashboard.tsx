@@ -10,6 +10,7 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
 import * as fileInfo from '../../fileInfo'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
@@ -54,6 +55,7 @@ enum Column {
 export interface ModalProps {
     backend: backend.Backend
     directoryId: backend.DirectoryId
+    onSuccess: () => void
     close: () => void
 }
 
@@ -61,12 +63,16 @@ export interface ModalProps {
 export interface CreateFormProps {
     backend: backend.Backend
     directoryId: backend.DirectoryId
+    onSuccess: () => void
     close: () => void
 }
 
 // =================
 // === Constants ===
 // =================
+
+/** The `localStorage` key under which the ID of the current directory is stored. */
+const DIRECTORY_ID_KEY = 'enso-dashboard-directory'
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
@@ -250,6 +256,8 @@ function Dashboard(props: DashboardProps) {
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
 
+    const [refresh, doRefresh] = hooks.useRefresh()
+
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
@@ -280,6 +288,21 @@ function Dashboard(props: DashboardProps) {
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
+
+    react.useEffect(() => {
+        const cachedDirectoryId = localStorage.getItem(DIRECTORY_ID_KEY)
+        if (cachedDirectoryId != null) {
+            setDirectoryId(newtype.asNewtype<backend.DirectoryId>(cachedDirectoryId))
+        }
+    }, [])
+
+    react.useEffect(() => {
+        if (directoryId === rootDirectoryId(organization.id)) {
+            localStorage.removeItem(DIRECTORY_ID_KEY)
+        } else {
+            localStorage.setItem(DIRECTORY_ID_KEY, directoryId)
+        }
+    }, [directoryId])
 
     /** React components for the name column. */
     const nameRenderers: {
@@ -362,6 +385,7 @@ function Dashboard(props: DashboardProps) {
                             <CreateForm
                                 backend={backendService}
                                 directoryId={directoryId}
+                                onSuccess={doRefresh}
                                 close={() => {
                                     setVisibleCreateForm(null)
                                 }}
@@ -419,7 +443,7 @@ function Dashboard(props: DashboardProps) {
                 setProjectStates({})
             })
         })()
-    }, [accessToken, directoryId])
+    }, [accessToken, directoryId, refresh])
 
     react.useEffect(() => {
         function onDragOver(event: DragEvent) {
@@ -632,6 +656,7 @@ function Dashboard(props: DashboardProps) {
                     <Modal
                         backend={backendService}
                         directoryId={directoryId}
+                        onSuccess={doRefresh}
                         close={() => {
                             setModal(null)
                         }}

@@ -7,11 +7,12 @@ import * as backendModule from '../service'
 export interface ProjectCreateFormProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
+    onSuccess: () => void
     close: () => void
 }
 
 function SecretCreateForm(props: ProjectCreateFormProps) {
-    const { backend, directoryId } = props
+    const { backend, directoryId, onSuccess, close } = props
     const [name, setName] = react.useState<string | null>(null)
     const [value, setValue] = react.useState<string | null>(null)
 
@@ -28,6 +29,7 @@ function SecretCreateForm(props: ProjectCreateFormProps) {
                 secretName: name,
                 secretValue: value,
             })
+            onSuccess()
             close()
         }
     }

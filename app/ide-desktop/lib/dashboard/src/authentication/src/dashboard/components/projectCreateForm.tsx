@@ -7,11 +7,12 @@ import * as backendModule from '../service'
 export interface ProjectCreateFormProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
+    onSuccess: () => void
     close: () => void
 }
 
 function ProjectCreateForm(props: ProjectCreateFormProps) {
-    const { backend, directoryId } = props
+    const { backend, directoryId, onSuccess, close } = props
     const [name, setName] = react.useState<string | null>(null)
     const [template, setTemplate] = react.useState<string | null>(null)
 
@@ -25,6 +26,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                 projectName: name,
                 projectTemplateName: template,
             })
+            onSuccess()
             close()
         }
     }
