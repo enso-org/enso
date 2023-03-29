@@ -3662,9 +3662,29 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo"))
+    val renameProjectResponses = context.receiveN(6)
+    renameProjectResponses should contain allOf (
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      context.Main.Update.mainX(contextId),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+      ),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
     )
+    renameProjectResponses.collect {
+      case Api.Response(
+            _,
+            notification: Api.SuggestionsDatabaseModuleUpdateNotification
+          ) =>
+        notification.module shouldEqual moduleName
+        notification.actions should contain theSameElementsAs Vector(
+          Api.SuggestionsDatabaseAction.Clean(moduleName)
+        )
+    }
 
     // recompute existing stack
     context.send(
