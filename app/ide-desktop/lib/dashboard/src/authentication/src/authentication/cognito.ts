@@ -215,6 +215,16 @@ export class Cognito {
         return forgotPasswordSubmit(email, code, password)
     }
 
+    /** Change a password for current authenticated user.
+     *
+     * Allow users to independently modify their passwords. The user needs to provide the old
+     * password, new password, and repeat new password to change their old password to the new
+     * one. The validation of the repeated new password is handled by the `changePasswordModel`
+     * component. */
+    changePassword(oldPassword: string, newPassword: string) {
+        return changePassword(oldPassword, newPassword)
+    }
+
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
      * redirected back to the application after signing in via an external identity provider. This
      * is done so we get a chance to fix the location history. The location history is the history
@@ -235,15 +245,6 @@ export class Cognito {
      * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
     private customState() {
         return this.platform === platformModule.Platform.desktop ? window.location.pathname : null
-    }
-
-    /** Change a password for current authenticated user.
-     *
-     * Allow users to independently modify their passwords. Based on the old password, change it
-     * to a new one, and changePasswordModal will prompt the user to repeat the new password to
-     * confirm the modification of the new password. */
-    changePassword(oldPassword: string, newPassword: string) {
-        return changePassword(oldPassword, newPassword)
     }
 }
 
@@ -588,23 +589,22 @@ async function signOut(logger: loggerProvider.Logger) {
 // === ChangePassword ===
 // ======================
 
-const currentAuthenticatedUser = () =>
-    results.Result.wrapAsync(
+async function currentAuthenticatedUser() {
+    const result = await results.Result.wrapAsync(
+        /** The interface provided by Amplify declares that the return type is `Promise<CognitoUser | any>`,
+         * but TypeScript automatically converts it to `Promise<any>`. Therefore, it is necessary to use
+         * `as` to narrow down the type to `Promise<CognitoUser>`. */
         () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
-    ).then(result => result.mapErr(intoAmplifyErrorOrThrow))
-
-const changePassword = async (oldPassword: string, newPassword: string) => {
+    )
+    return result.mapErr(intoAmplifyErrorOrThrow)
+}
+async function changePassword(oldPassword: string, newPassword: string) {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
         const cognitoUser = cognitoUserResult.unwrap()
-        return (
-            results.Result.wrapAsync(() =>
-                amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
-            )
-                // We don't care about the details in the success case, just that it happened.
-                .then(result => result.map(() => null))
-                .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        )
+        return results.Result.wrapAsync(async () => {
+            await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+        }).then(result => result.mapErr(intoAmplifyErrorOrThrow))
     }
 
     return results.Err(cognitoUserResult.val)

@@ -1,5 +1,5 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
-import React, { PropsWithChildren, useState } from 'react'
+import { PropsWithChildren, useState } from 'react'
 import * as auth from '../../../authentication/providers/auth'
 import ChangePasswordModal from './changePasswordModal'
 
@@ -7,26 +7,23 @@ import ChangePasswordModal from './changePasswordModal'
 // === UserMenu ===
 // ================
 
-/** This is the UI component for a UserMenu list item.
- * The main interaction logic is in the onClick injected by UserMenu. */
+/** This is the UI component for a `UserMenu` list item.
+ * The main interaction logic is in the `onClick` injected by `UserMenu`. */
 interface UserMenuItemProps {
     needHoverClass?: boolean
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-const UserMenuItem: React.FC<PropsWithChildren<UserMenuItemProps>> = ({
-    children,
-    needHoverClass = false,
-    onClick,
-}) => {
+function UserMenuItem(props: PropsWithChildren<UserMenuItemProps>) {
+    const { children, onClick, needHoverClass = false } = props
     /** User menu cell normal className. */
-    const CELL_CLASS_NAME = 'whitespace-nowrap px-4 py-2'
+    const cellClassName = 'whitespace-nowrap px-4 py-2'
     /** User menu cell hover className. */
-    const CELL_HOVER_CLASS_NAME = 'hover:bg-blue-500 hover:text-white cursor-pointer'
+    const cellHoverClassName = 'hover:bg-blue-500 hover:text-white cursor-pointer'
 
-    let className = CELL_CLASS_NAME
+    let className = cellClassName
     if (needHoverClass) {
-        className += ` ${CELL_HOVER_CLASS_NAME}`
+        className += ` ${cellHoverClassName}`
     }
     return (
         <div className={className} onClick={onClick}>
@@ -36,7 +33,7 @@ const UserMenuItem: React.FC<PropsWithChildren<UserMenuItemProps>> = ({
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
-const UserMenu: React.FC = () => {
+function UserMenu() {
     const { signOut } = auth.useAuth()
     const { organization } = auth.useFullUserSession()
 
@@ -51,7 +48,6 @@ const UserMenu: React.FC = () => {
     return (
         <>
             <div className="absolute right-0 top-9 flex flex-col rounded-md bg-white py-1 border">
-                {/*  */}
                 {organization ? (
                     <>
                         <UserMenuItem>
@@ -78,4 +74,5 @@ const UserMenu: React.FC = () => {
         </>
     )
 }
+
 export default UserMenu

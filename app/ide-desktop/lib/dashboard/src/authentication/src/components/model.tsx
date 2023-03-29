@@ -1,21 +1,21 @@
 /** @file */
 /* eslint-disable @typescript-eslint/naming-convention */
-import React, { PropsWithChildren } from 'react'
+import { PropsWithChildren, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 interface ModalImpProps {
     onCancel?: () => void
 }
-const ModalImp: React.FC<PropsWithChildren<ModalImpProps>> = props => {
+function ModalImp(props: PropsWithChildren<ModalImpProps>) {
     const { children, onCancel } = props
     /** Ensure that the container is only created once for each component. */
-    const containerRef = React.useRef(document.createElement('div'))
+    const containerRef = useRef(document.createElement('div'))
     const container = containerRef.current
     /** The div with this id is included in the `index.html`, so it can be asserted as non-empty. */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const modalRoot = document.getElementById('modal-root')!
 
-    React.useEffect(() => {
+    useEffect(() => {
         document.body.classList.add('overflow-y-hidden', 'h-screen')
         modalRoot.appendChild(container)
         return () => {
@@ -43,7 +43,7 @@ interface ModalProps {
     visible: boolean
     onCancel?: () => void
 }
-const Modal: React.FC<PropsWithChildren<ModalProps>> = props => {
+function Modal(props: PropsWithChildren<ModalProps>) {
     const { children, visible, onCancel = () => {} } = props
 
     return visible ? <ModalImp onCancel={onCancel}>{children}</ModalImp> : null

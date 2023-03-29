@@ -25,7 +25,7 @@ const MESSAGES = {
     setUsernameSuccess: 'Your username has been set!',
     signInWithPasswordSuccess: 'Successfully logged in!',
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
-    changePasswordSuccess: 'Successfully change password!',
+    changePasswordSuccess: 'Successfully changed password!',
     resetPasswordSuccess: 'Successfully reset password!',
     signOutSuccess: 'Successfully logged out!',
     pleaseWait: 'Please wait...',

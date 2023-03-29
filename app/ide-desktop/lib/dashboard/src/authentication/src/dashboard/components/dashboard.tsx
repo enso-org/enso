@@ -14,7 +14,6 @@ function Dashboard() {
 
     // The purpose of this effect is to enable search action.
     useEffect(() => {
-        console.log('searchVal: ', searchVal)
         return () => {}
     }, [searchVal])
     return (
