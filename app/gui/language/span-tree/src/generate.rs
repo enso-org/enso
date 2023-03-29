@@ -528,6 +528,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
     let app_base = ApplicationBase::from_prefix_chain(this);
+    let fallback_call_id = app_base.call_id;
     let mut application = app_base.resolve(context);
 
     // When using method notation, expand the infix access chain manually to maintain correct method
@@ -585,6 +586,8 @@ fn generate_node_for_prefix_chain<T: Payload>(
                     if let Some((index, info)) = info {
                         arg_kind.set_argument_info(info);
                         arg_kind.set_definition_index(index);
+                    } else {
+                        arg_kind.set_call_id(fallback_call_id);
                     }
 
                     if !resolved {
