@@ -15,8 +15,10 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Polyglot.Polyglot
+import project.IO
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Index_Sub_Range import sort_and_merge_ranges
 
 polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
@@ -137,6 +139,37 @@ type Pattern_2
                 builder.append filler.text
         go it.next
         builder.to_vector
+
+    ## ADVANCED
+
+       Takes an input string and returns all the matches as a `Vector Text`.
+       If the pattern contains marked groups, the values are concatenated
+       together; otherwise the whole match is returned.
+
+       Arguments:
+       - input: The text to tokenize.
+
+       > Example
+         Split to blocks of 3 characters.
+
+             Regex_2.compile '...' . tokenize 'ABCDEF' == ['ABC','DEF']
+
+       > Example
+         Split to blocks of 3 characters taking first and third letters.
+
+             Regex_2.compile '(.).(.)' . tokenize 'ABCDEF' == ['AC','DF']
+
+       > Example
+         Split a text on any white space.
+
+             Regex_2.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
+                 == ['Hello','Big','Wide','World','Goodbye!']
+    tokenize : Text -> Vector Text
+    tokenize self input =
+        k = self.match_all input . map (build_tokenization_output_from_match self _)
+        IO.println "K"
+        IO.println k
+        k
 
     ## ADVANCED
 
@@ -373,3 +406,31 @@ read_group_map polyglot_map name =
 match_to_group_maybe : Match_2 | Nothing -> Text | Nothing
 match_to_group_maybe match =
     if match.is_nothing then Nothing else match.text 0
+
+## PRIVATE
+   Build an output string from a Match_2 resulting from `tokenize`.
+   See `tokenize`.
+build_tokenization_output_from_match : Pattern_2 -> Match_2 -> Text
+build_tokenization_output_from_match pattern match =
+    if pattern.group_count == 1 then match.text 0 else
+        # Extract the ranges of the spans of all capturing groups
+        IO.println "HEY"
+        group_numbers = 1.up_to pattern.group_count
+        IO.println group_numbers
+        spans = group_numbers.map n-> match.span n
+        IO.println spans
+        ranges = spans.map span-> case span of Span.Value range _ -> range
+        IO.println ranges
+
+        # Eliminate nested capturing groups by sorting and merging the ranges.
+        top_level_ranges = sort_and_merge_ranges ranges
+        IO.println top_level_ranges
+
+        # Reconstruct `Spans` from the synthesized `Ranges`, and concatenate.
+        text_all = case spans.at 0 of Span.Value _ text -> text
+        IO.println text_all
+        top_level_spans = top_level_ranges.map range->
+            IO.println range
+            Span.Value range text_all
+        IO.println top_level_spans
+        top_level_spans.map (.text) . join

@@ -17,6 +17,10 @@ import Standard.Test.Extensions
 polyglot java import org.enso.base.Replacer_Cache
 
 spec =
+    Test.group "gmt" <|
+        Test.specify "asdf" <|
+            Regex_2.compile "(\d\d)\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex_2.compile "(?<dots>..)" case_insensitive=True
@@ -167,6 +171,32 @@ spec =
         Test.specify "should split without normalization" <|
             pattern = Regex_2.compile "s"
             pattern.split 'aśsśs\u{301}śb' . should_equal ['aś', 'ś', '\u{301}śb']
+
+    Test.group "Pattern_2.tokenize" <|
+        Test.specify "can tokenize simple regexes without capturing groups"
+            Regex_2.compile "[a-z]+" . tokenize "1-800-regex-yes" . should_equal ["regex", "yes"]
+            Regex_2.compile "[a-z]+" . tokenize case_sensitivity=Case_Sensitivity.Insensitive "1-800-REGEX-YES" . should_equal ["REGEX", "YES"]
+            Regex_2.compile "\d\d" . tokenize "12 hi345 67r890r" . should_equal ["1", "3", "6", "8"]
+
+        Test.specify "can tokenize regexes with capturing groups"
+            Regex_2.compile "(\d\d)\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex_2.compile "[a-z]+(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
+            Regex_2.compile "[a-z]+(\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["", "182", "20", ""]
+
+        Test.specify "ignores non-capturing groups"
+            Regex_2.compile "(?:(\d\d)\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex_2.compile "(\d\d)(?:\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex_2.compile "(?:[a-z]+)(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
+
+        Test.specify "ignores nested groups"
+            Regex_2.compile "(\d(\d))\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex_2.compile "[a-z]+((\d)\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
+            Regex_2.compile "\d(\d(\d\d)\d)\d" . tokenize "012345678901" . should_equal ["1234", "7890"]
+
+        Test.specify "examples are correct <|
+            Regex_2.compile "..." . tokenize "ABCDEF" . should_equal ["ABC","DEF"]
+            Regex_2.compile "(.).(.)" . tokenize "ABCDEF" . should_equal ["AC","DF"]
+            Regex_2.compile "(\S+)(?:\s+|$)" . tokenize "Hello Big\r\nWide\tWorld\nGoodbye!" . should_equal ["Hello","Big","Wide","World","Goodbye!"]
 
     Test.group "Pattern_2.replace" <|
         Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
