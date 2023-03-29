@@ -1,0 +1,184 @@
+{# Input data to this template: JinjaData as defined by `bench_download.py` #}
+<html>
+  <head>
+    <!--Load the AJAX API-->
+    <script
+      type="text/javascript"
+      src="https://www.gstatic.com/charts/loader.js"
+    ></script>
+    <!-- Include Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+      crossorigin="anonymous"
+    ></script>
+    <script type="text/javascript">
+      // Load the Visualization API and the corechart package.
+      google.charts.load('current', {'packages':['corechart']});
+
+      {% for bench_data in bench_datas %}
+      let chart_{{ bench_data.id }} = null;
+      let data_table_{{ bench_data.id }} = null;
+
+      // Array of commit IDs for a particular benchmark
+      let commit_ids_{{ bench_data.id }} = ['{{ bench_data.commit_ids|join('\',\n \'') }}'];
+      let commit_authors_{{ bench_data.id }} = ['{{ bench_data.commit_authors|join('\',\n \'') }}'];
+      let commit_urls_{{ bench_data.id }} = ['{{ bench_data.commit_urls|join('\',\n \'') }}'];
+      let commit_msgs_{{ bench_data.id }} = ['{{ bench_data.commit_msgs|join('\',\n \'') }}'];
+      let bench_run_urls_{{ bench_data.id }} = ['{{ bench_data.bench_run_urls|join('\',\n \'') }}'];
+      {# Transform to strings because of nan #}
+      let score_diffs_{{ bench_data.id }} = ['{{ bench_data.score_diffs|join('\',\n \'') }}'];
+
+      function draw_{{ bench_data.id }}() {
+        chart_{{ bench_data.id }} = new google.visualization.LineChart(document.getElementById('{{ bench_data.id }}'));
+        data_table_{{ bench_data.id }} = new google.visualization.DataTable();
+        data_table_{{ bench_data.id }}.addColumn('datetime', 'commit_timestamp');
+        data_table_{{ bench_data.id }}.addColumn('number', 'score');
+        data_table_{{ bench_data.id }}.addColumn({type:'string', role:'tooltip'});
+        {% for row in bench_data.rows %}
+        data_table_{{ bench_data.id }}.addRow([
+          new Date({{ row.timestamp.year }}, {{ row.timestamp.month - 1 }}, {{ row.timestamp.day }}, {{ row.timestamp.hour }}, {{ row.timestamp.minute }}),
+          {{ row.score }},
+          '{{ row.tooltip }}'
+        ]);
+        {% endfor %}
+        let options = {
+          'title': {{ bench_data.id }},
+          // So that points are visible, with pointSize=0, there is only a line
+          'pointSize': 5,
+          'explorer': {
+            'axis': 'horizontal',
+            'actions': ['dragToZoom', 'rightClickToReset']
+          }
+        };
+        chart_{{ bench_data.id }}.draw(data_table_{{ bench_data.id }}, options);
+        // Attach selection event listener to the chart
+        google.visualization.events.addListener(chart_{{ bench_data.id }}, 'select', select_callback_{{ bench_data.id }});
+      }
+
+      function select_callback_{{ bench_data.id }}() {
+        let selection = chart_{{ bench_data.id }}.getSelection();
+        // Check if a specific element is selected, and not the whole line
+        // More points can be selected, but we care only about the first one
+        if (selection.length > 0 && selection[0].row != null && selection[0].column != null) {
+          let rowIdx = selection[0].row;
+          let commitId = commit_ids_{{ bench_data.id }}[rowIdx];
+          let commitAuthor = commit_authors_{{ bench_data.id }}[rowIdx];
+          let commitMsg = commit_msgs_{{ bench_data.id }}[rowIdx];
+          let benchRunURL = bench_run_urls_{{ bench_data.id }}[rowIdx];
+          let commitURL = commit_urls_{{ bench_data.id }}[rowIdx];
+          let score = data_table_{{ bench_data.id }}.getValue(rowIdx, 1);
+          let scoreDiff = score_diffs_{{ bench_data.id }}[rowIdx];
+          let commitDate = data_table_{{ bench_data.id }}.getValue(rowIdx, 0);
+
+          // Fill in the selection details
+          document.getElementById('{{ bench_data.id }}-sel-info-score').innerHTML = score;
+          document.getElementById('{{ bench_data.id }}-sel-info-score-diff').innerHTML = scoreDiff;
+          document.getElementById('{{ bench_data.id }}-sel-info-date').innerHTML = commitDate;
+          document.getElementById('{{ bench_data.id }}-sel-info-author').innerHTML = commitAuthor;
+          document.getElementById('{{ bench_data.id }}-sel-info-com-id').innerHTML = commitId;
+          document.getElementById('{{ bench_data.id }}-sel-info-com-msg').innerHTML = commitMsg;
+          document.getElementById('{{ bench_data.id }}-sel-info-url').innerHTML = `
+          <a target="_blank" rel="noreferrer noopener" href="${commitURL}"> ${commitURL} </a>
+          `;
+          document.getElementById('{{ bench_data.id }}-sel-info-bench-url').innerHTML = `
+          <a target="_blank" rel="noreferrer noopener" href="${benchRunURL}"> ${benchRunURL} </a>
+          `;
+        }
+      }
+
+      google.charts.setOnLoadCallback(draw_{{ bench_data.id }});
+      {# end of bench_data #}
+      {% endfor %}
+    </script>
+  </head>
+
+  <body>
+    <h1 class="text-center">Engine benchmark results</h1>
+    <h2>Since {{ since }} until {{ until }}</h2>
+
+    <p>
+      <b>Score</b> represents the amount of milliseconds it takes for one
+      iteration of the benchmark to finish.
+      <br />
+      The smaller the score, the better.
+    </p>
+
+    <br />
+    Note that only successful benchmark jobs are processed, so if there is a gap
+    in the chart, it might be caused by failing jobs during that time period.
+    <br />
+
+    <p>
+      Hovering over some point in a graph displays score, score diff (difference
+      with the previous score value) and date in a tooltip. You can click on a
+      particular point in the graph to display some additional information under
+      the graph like a link to PR, a commit message, commit author, etc.
+    </p>
+
+    <p>
+      The charts can be zoomed in by <code>dragToZoom</code> which means that
+      you can left-click on the chart, hold it, and release it to zoom into a
+      rectangular area. Then right-clicking to reset to the original zoom. See
+      <code>explorer</code> configuration options in
+      <a
+        href="https://developers.google.com/chart/interactive/docs/gallery/linechart#configuration-options"
+      >
+        https://developers.google.com/chart/interactive/docs/gallery/linechart#configuration-options
+      </a>
+      .
+    </p>
+
+    <br />
+    Generated by the <code>bench_download.py</code> script. {% for bench_data in
+    bench_datas %}
+    <h3>{{ bench_data.id }}</h3>
+    <div id="{{ bench_data.id }}"></div>
+    <!-- selection-info div will be shown once user selects a point in the chart -->
+    <div class="container small" style="margin-left: 50; margin-right: 50">
+      <p class="text-center">Selection info:</p>
+      <dl class="row" style="border-style: solid">
+        <dt class="col-sm-3">Score</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Score difference</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score-diff">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Commit date</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-date">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Commit author</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-author">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Commit message</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-com-msg">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Commit ID</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-com-id">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Commit URL</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-url">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Bench run URL</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-bench-url">
+          No selection
+        </dd>
+      </dl>
+    </div>
+
+    {% endfor %}
+  </body>
+</html>

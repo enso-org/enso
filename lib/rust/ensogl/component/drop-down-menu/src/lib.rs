@@ -229,7 +229,7 @@ impl DropDownMenu {
         let model = &self.model;
 
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         frp::extend! { network
 
@@ -347,14 +347,14 @@ impl DropDownMenu {
             // === Menu Toggle Through Mouse Interaction ===
 
             icon_hovered <- source::<bool>();
-            eval_ model.icon_overlay.events.mouse_over ( icon_hovered.emit(true) );
-            eval_ model.icon_overlay.events.mouse_out ( icon_hovered.emit(false) );
+            eval_ model.icon_overlay.events_deprecated.mouse_over ( icon_hovered.emit(true) );
+            eval_ model.icon_overlay.events_deprecated.mouse_out ( icon_hovered.emit(false) );
 
-            frp.source.icon_mouse_over <+ model.icon_overlay.events.mouse_over;
-            frp.source.icon_mouse_out  <+ model.icon_overlay.events.mouse_out;
+            frp.source.icon_mouse_over <+ model.icon_overlay.events_deprecated.mouse_over;
+            frp.source.icon_mouse_out  <+ model.icon_overlay.events_deprecated.mouse_out;
 
 
-            let icon_mouse_down = model.icon_overlay.events.mouse_down_primary.clone_ref();
+            let icon_mouse_down = model.icon_overlay.events_deprecated.mouse_down_primary.clone_ref();
             visibility_on_mouse_down <- frp.source.menu_visible.sample(&icon_mouse_down) ;
 
             eval visibility_on_mouse_down ([show_menu,hide_menu](is_visible){

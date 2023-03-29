@@ -456,9 +456,9 @@ impl Model {
 
                     // === Aliases ===
 
-                    let mouse_over_raw = port_shape.hover.events.mouse_over.clone_ref();
-                    let mouse_out      = port_shape.hover.events.mouse_out.clone_ref();
-                    let mouse_down_raw = port_shape.hover.events.mouse_down_primary.clone_ref();
+                    let mouse_over_raw = port_shape.hover.events_deprecated.mouse_over.clone_ref();
+                    let mouse_out      = port_shape.hover.events_deprecated.mouse_out.clone_ref();
+                    let mouse_down_raw = port_shape.hover.events_deprecated.mouse_down_primary.clone_ref();
 
 
                     // === Body Hover ===

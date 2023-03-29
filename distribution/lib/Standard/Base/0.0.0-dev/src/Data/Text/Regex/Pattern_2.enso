@@ -6,17 +6,19 @@ import project.Data.Range.Range
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match_2.Match_2
+import project.Data.Text.Regex.Replacer.Replacer
 import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
-import project.Panic.Panic
 import project.Polyglot.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 
+polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
 
 type Pattern_2
@@ -50,22 +52,24 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
-       Returns a `Vector Match_2` objects, each containing the matched text
+       Returns a `Vector Match_2` object, each containing the matched text
        and its match groups.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match_all : Text -> Vector Match_2
+    match_all : Text -> Vector Match_2 ! Illegal_Argument
     match_all self input =
-        builder = Vector.new_builder
-        it = Match_Iterator.new self input
-        go it = case it.next of
-            Match_Iterator_Value.Next _ match next_it ->
-                builder.append match
-                go next_it
-            Match_Iterator_Value.Last _ -> Nothing
-        go it
-        builder.to_vector
+        pattern_is_empty = self.internal_regex_object.pattern == ''
+        if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
+            builder = Vector.new_builder
+            it = Match_Iterator.new self input
+            go it = case it.next of
+                Match_Iterator_Value.Next _ match next_it ->
+                    builder.append match
+                    go next_it
+                Match_Iterator_Value.Last _ -> Nothing
+            go it
+            builder.to_vector
 
     ## Tries to match the provided `input` against the pattern `self`.
 
@@ -89,6 +93,82 @@ type Pattern_2
     find_all self input =
         self.match_all input . map match_to_group_maybe
 
+    ## ADVANCED
+
+       Replace all occurrences of the pattern described by `self` in the `input`
+       with the specified `replacement`.
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+       - only_first: If True, only replace the first match.
+
+       If this method performs no replacements it will return the `input` text
+       unchanged.
+
+       The replacement string can contain references to groups matched by the
+       regex. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $<foo>: Named group `foo`
+
+       > Example
+         Replace letters in the text "aa".
+
+             pattern = Regex_2.compile 'aa'
+             pattern.replace 'aaa' 'b' == 'ba'
+
+       > Example
+         Replace all occurrences of letters 'l' and 'o' with '#'.
+
+              pattern = Regex_2.compile '[lo]'
+              pattern.replace 'Hello World!' '#' == 'He### W#r#d!'
+
+       > Example
+         Replace the first occurrence of letter 'l' with '#'.
+
+             pattern = Regex_2.compile 'l'
+             pattern.replace 'Hello World!' '#' only_first=True == 'He#lo World!'
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+              pattern = Regex_2.compile '"(.*?)"'
+              pattern.replace '"abc" foo "bar" baz' '($1)' == '(abc) foo (bar) baz'
+
+       > Example
+         Replace a literal string with a replacement value.
+
+             pattern = Regex_2.compile "aa"
+             input = "aa ab aa ac ad aa aa ax"
+             match = pattern.replace input "xyz"
+             match == "xyz ab xyz ac ad xyz xyz ax"
+
+       > Example
+         Replace each word with the same word surrounded by `[]`.
+
+             pattern = Regex_2.compile "([a-z]+)"
+             pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
+
+    replace : Text -> Text -> Boolean -> Text
+    replace self input replacement only_first=False =
+        it = Match_Iterator.new self input
+        case it of
+            Match_Iterator_Value.Last filler -> filler.text
+            _ ->
+                replacer = Replacer.new replacement self
+
+                replacer.if_not_error <|
+                    go next current = case next of
+                        Match_Iterator_Value.Next filler match next_it ->
+                            new_value = current + filler.text + (replacer.replace match)
+                            next = if only_first then next_it.early_exit else next_it.next
+                            @Tail_Call go next new_value
+                        Match_Iterator_Value.Last filler ->
+                            current + filler.text
+                    go it.next ""
+
     ## PRIVATE
 
        Look up a match group name or number, and check that it is valid.
@@ -105,6 +185,9 @@ type Pattern_2
 
        A group name is an alias for a group number; if a name is passed to
        this method, it returns the corresponding group number.
+
+       If a group number is passed to `lookup_group` and it is valid, it will
+       simply return the group number.
 
        Note that it is possible for a group to "not participate in the match",
        for example with a disjunction. In the example below, the "(d)" group
@@ -138,6 +221,15 @@ type Pattern_2
                     _ : Integer -> n
                     Nothing -> Error.throw (No_Such_Group.Error name)
 
+    ## PRIVATE
+
+       Return a lazy iterator over matches against a string.
+
+       Arguments
+       - text: the string to match against.
+    iterator : Text -> Match_Iterator
+    iterator self input = Match_Iterator.new self input
+
     ## Return the number of groups in the underlying RegexObject.
        Note, the count includes group 0 (the whole match) as well.
     group_count : Integer
@@ -154,31 +246,50 @@ type Pattern_2
     Performs the regex match, and iterates through the results. Yields both
     the matched parts of the string, and the 'filler' parts between them.
 
+    The 'filler' elements are `Utf_16_Span`s, not `Spans`. This is because
+    matches and replacement boundaries can fall in the middle of multi-
+    character graphemes, thereby splitting them apart.
+
     At each step, it yields a Match_Iterator_Value, whivch has either a filler
     and a match, or just the final filler. A Match_Iterator_Value.Last value is
     return at the end, and only at the end.
+
+    Optionally, you can call `early_exit` to have it return the remainder of
+    the string, unmatched, as a single Last value. (Used for `replace` with
+    `only_first=True`.)
 type Match_Iterator
     new : Pattern_2 -> Text -> Match_Iterator
     new pattern input = Match_Iterator.Value pattern input 0
 
     Value (pattern : Pattern_2) (input : Text) (cursor : Integer)
 
+    ## Return the next match, or the last filler string if there is no
+       additional match.
+
+       Also returns the next iterator, if there was a match.
     next : Match_Iterator_Value
     next self =
         regex_result = self.pattern.internal_regex_object.exec self.input self.cursor
         case regex_result.isMatch of
             False ->
                 filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
-                filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
+                filler_span = (Utf_16_Span.Value filler_range self.input)
                 Match_Iterator_Value.Last filler_span
             True ->
                 match_start = regex_result.getStart 0
                 filler_range = Range.new self.cursor match_start
-                filler_span = (Utf_16_Span.Value filler_range self.input).to_grapheme_span
+                filler_span = (Utf_16_Span.Value filler_range self.input)
                 match = Match_2.Value self.pattern regex_result self.input
-                next_cursor = match.utf16_end 0
+                next_cursor = match.utf_16_end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
+
+    ## Returns the remainder of the string, unmatched.
+    early_exit : Match_Iterator_Value
+    early_exit self =
+        filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
+        filler_span = Utf_16_Span.Value filler_range self.input
+        Match_Iterator_Value.Last filler_span
 
     to_text_debug : Vector Text
     to_text_debug self =

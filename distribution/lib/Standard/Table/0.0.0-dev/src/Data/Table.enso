@@ -843,8 +843,8 @@ type Table
             parse_problem_builder.attach_problems_before on_problems <|
                 Table.new new_columns
 
-    ## Replaces the first, last, or all occurrences of `term` with
-       `new_text` in each text row of selected columns.
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       text row of selected columns.
        If `term` is empty, the function returns the table unchanged.
 
        This method follows the exact replacement semantics of the
@@ -854,15 +854,13 @@ type Table
        - columns: Column selection criteria or a column name or index.
        - term: The term to find.
        - new_text: The new text to replace occurrences of `term` with.
-         If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
-         patterns (such as `$<n>`) for a marked group.
-       - mode: Specifies which occurences of term the engine tries to find. When the
-         mode is `First` or `Last`, this method replaces the first or last occurence
-         of term in each individual table cell. If set to `All`, it replaces all
-         occurences of term.
-       - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-         rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-         regular expression and matched using the associated options.
+         If use_regex is true, `new_text` can include replacement patterns
+         (such as `$<n>`) for a marked group.
+       - case_insensitive: Enables or disables case-insensitive matching. Case
+         insensitive matching behaves as if it normalises the case of all input
+         text before matching on it.
+       - only_first: If True, only replace the first match.
+       - use_regex: If true, the term is used as a regular expression.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -881,21 +879,21 @@ type Table
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
 
-             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
+             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" use_regex=True
 
        > Example
          Replace texts in quotes with parentheses in column at index 1.
 
-             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
-    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
-    replace_text self columns=[0] term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
+             table.replace_text 1 '"(.*?)"' '($1)' use_regex=True
+    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Table
+    replace_text self columns=[0] term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
 
         selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
         map_preserve_name column f = column.map f . rename column.name
-        do_replace = _.replace term new_text mode matcher
+        do_replace = _.replace term new_text case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex
         do_replace_only_text = case _ of
                 item : Text -> do_replace item
                 item -> item
