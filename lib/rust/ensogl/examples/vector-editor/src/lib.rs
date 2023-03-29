@@ -18,7 +18,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-
+use ensogl_core::Animation;
 
 const DRAG_THRESHOLD: f32 = 4.0;
 
@@ -47,6 +47,79 @@ pub mod glob {
     }
 }
 
+
+
+// ==============
+// === Spacer ===
+// ==============
+
+mod spacer {
+    use super::*;
+    ensogl_core::define_endpoints_2! {
+        Input {
+            set_init_size (f32),
+            set_target_size (f32),
+        }
+        Output {
+        }
+    }
+
+    #[derive(Debug, Clone, CloneRef, Deref)]
+    pub struct Spacer {
+        model: Rc<SpacerModel>,
+    }
+
+    #[derive(Debug, Default, Deref)]
+    pub struct SpacerModel {
+        #[deref]
+        pub frp:  spacer::Frp,
+        root:     display::object::Instance,
+        self_ref: RefCell<Option<Rc<SpacerModel>>>,
+    }
+
+    impl Spacer {
+        pub fn new() -> Self {
+            let model = SpacerModel::default();
+            let model = Rc::new(model);
+            let root = model.root.clone_ref();
+
+            let network = &model.frp.network();
+            let size_animation = Animation::<f32>::new(network);
+            frp::extend! { network
+                size_animation.target <+ model.frp.private.input.set_init_size;
+                size_animation.skip <+ model.frp.private.input.set_init_size.constant(());
+
+                trace model.frp.private.input.set_target_size;
+                size_animation.target <+ model.frp.private.input.set_target_size;
+                // eval size_animation.value ((t) root.set_size_x(*t););
+
+                trace size_animation.value;
+            }
+            Self { model }
+        }
+
+        pub fn collapse(&self) {
+            // *self.self_ref.borrow_mut() = Some(self.model.clone());
+            // self.set_target_size(0.0);
+        }
+    }
+
+    impl display::Object for Spacer {
+        fn display_object(&self) -> &display::object::Instance {
+            &self.root
+        }
+    }
+}
+
+use spacer::Spacer;
+
+#[derive(Debug, Clone)]
+pub struct IndexedSpacer {
+    index:  usize,
+    spacer: Spacer,
+}
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -74,6 +147,7 @@ pub struct VectorEditor<T> {
 #[derivative(Default(bound = ""))]
 pub struct Model<T> {
     dragged_item: Option<T>,
+    spacer:       Option<IndexedSpacer>,
     items:        Vec<T>,
 }
 
@@ -124,7 +198,7 @@ impl<T: display::Object + 'static> VectorEditor<T> {
 
             // Re-parent the dragged element.
             eval target_on_start ((t) dragged_elems.add_child(&t));
-            eval target_on_start((t) model.borrow_mut().set_as_dragged_item(t));
+            eval target_on_start([model, layouted_elems] (t) model.borrow_mut().set_as_dragged_item(&layouted_elems, t));
             // center_points <- target_on_start.map(f_!(model.borrow().elems_center_points()));
             // trace center_points;
 
@@ -139,12 +213,7 @@ impl<T: display::Object + 'static> VectorEditor<T> {
             eval insert_index ([model, layouted_elems] (index) {
                 let mut model = model.borrow_mut();
                 model.unset_dragged_item(*index);
-                for item in &model.items {
-                    item.unset_parent();
-                }
-                for item in &model.items {
-                    layouted_elems.add_child(item);
-                }
+                model.redraw_items(&layouted_elems);
             });
 
 
@@ -161,6 +230,21 @@ impl<T: display::Object> VectorEditor<T> {
 }
 
 impl<T: display::Object> Model<T> {
+    fn redraw_items(&self, layouted_elems: &display::object::Instance) {
+        if let Some(indexed_spacer) = self.spacer.as_ref() {
+            for (index, item) in self.items.iter().enumerate() {
+                if index == indexed_spacer.index {
+                    layouted_elems.add_child(&indexed_spacer.spacer);
+                }
+                layouted_elems.add_child(item);
+            }
+        } else {
+            for item in &self.items {
+                layouted_elems.add_child(item);
+            }
+        }
+    }
+
     // FIXME: refactor and generalize
     fn screen_to_object_space(
         &self,
@@ -182,19 +266,31 @@ impl<T: display::Object> Model<T> {
         (inv_object_matrix * world_space).xy()
     }
 
-    fn set_as_dragged_item(&mut self, display_object: &display::object::Instance) {
+    fn set_as_dragged_item(
+        &mut self,
+        layouted_elems: &display::object::Instance,
+        target: &display::object::Instance,
+    ) {
         let index = self
             .items
             .iter()
-            .position(|item| item.display_object() == display_object)
+            .position(|item| item.display_object() == target)
             .expect("Item not found");
         let elem = self.items.remove(index);
+        let spacer = Spacer::new();
+        spacer.set_size_x(elem.computed_size().x);
+        self.spacer = Some(IndexedSpacer { index, spacer });
         self.dragged_item = Some(elem);
+        self.redraw_items(layouted_elems);
     }
 
     fn unset_dragged_item(&mut self, index: usize) {
         let item = self.dragged_item.take().expect("No dragged item");
         self.items.insert(index, item);
+        if let Some(indexed_spacer) = self.spacer.as_ref() {
+            indexed_spacer.spacer.collapse();
+        }
+        self.spacer = None;
     }
 
     fn insert_dragged_item(&mut self, index: usize) {
@@ -202,23 +298,14 @@ impl<T: display::Object> Model<T> {
         self.items.insert(index, elem);
     }
 
-    fn elems_division_points(&self) -> NonEmptyVec<f32> {
-        let mut divisions = NonEmptyVec::default();
-        let mut current = 0.0;
-        for item in self.items.iter() {
-            let size = item.computed_size();
-            current += size.x;
-            divisions.push(current + GAP / 2.0);
-            current += GAP;
-        }
-        *divisions.last_mut() -= GAP / 2.0;
-        divisions
-    }
-
     fn elems_center_points(&self) -> Vec<f32> {
         let mut centers = Vec::new();
         let mut current = 0.0;
-        for item in self.items.iter() {
+        let mut display_objects = self.items.iter().map(|item| item.display_object()).collect_vec();
+        if let Some(indexed_spacer) = self.spacer.as_ref() {
+            display_objects.insert(indexed_spacer.index, indexed_spacer.spacer.display_object());
+        }
+        for item in display_objects {
             let size = item.computed_size();
             current += size.x / 2.0;
             centers.push(current);
@@ -235,6 +322,11 @@ impl<T: display::Object> Model<T> {
                 break;
             }
             index += 1;
+        }
+        if let Some(indexed_spacer) = self.spacer.as_ref() {
+            if index > indexed_spacer.index {
+                index -= 1;
+            }
         }
         index
     }
