@@ -3,23 +3,7 @@ import * as path from 'node:path'
 
 import * as esbuild from 'esbuild'
 
-import * as paths from './paths.js'
-import * as utils from '../../utils.js'
-
-// ===================================================
-// === Constants provided through the environment. ===
-// ===================================================
-
-/** Output directory for bundled client files. */
-export const OUT_DIR_PATH = path.join(utils.requireEnvResolvedPath('ENSO_BUILD_IDE'), 'client')
-
-/** Path to the project manager executable relative to the PM bundle root. */
-export const PROJECT_MANAGER_IN_BUNDLE_PATH = utils.requireEnv(
-    'ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH'
-)
-
-/** Version of the Engine (backend) that is bundled along with this client build. */
-export const BUNDLED_ENGINE_VERSION = utils.requireEnv('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
+import * as paths from './paths'
 
 // ================
 // === Bundling ===
