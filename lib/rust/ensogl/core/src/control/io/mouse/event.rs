@@ -95,18 +95,28 @@ where JsEvent: AsRef<web::MouseEvent>
             - self.js_event.as_ref().map(|t| t.as_ref().screen_y()).unwrap_or_default()
     }
 
+    /// The coordinate (offset) of the mouse pointer in global (screen) coordinates.
     pub fn screen(&self) -> Vector2<i32> {
         Vector2(self.screen_x(), self.screen_y())
     }
 
+    /// The difference in the X coordinate of the mouse pointer between the given event and the
+    /// previous mousemove event. In other words, the value of the property is computed like this:
+    /// `current_event.movement_x = current_event.screen_x() - previous_event.screen_x()`.
     pub fn movement_x(&self) -> i32 {
         self.js_event.as_ref().map(|t| t.as_ref().movement_x()).unwrap_or_default()
     }
 
+    /// The difference in the Y coordinate of the mouse pointer between the given event and the
+    /// previous mousemove event. In other words, the value of the property is computed like this:
+    /// `current_event.movement_y = current_event.screen_y() - previous_event.screen_y()`.
     pub fn movement_y(&self) -> i32 {
-        self.js_event.as_ref().map(|t| t.as_ref().movement_y()).unwrap_or_default()
+        -self.js_event.as_ref().map(|t| t.as_ref().movement_y()).unwrap_or_default()
     }
 
+    /// The difference in the coordinate of the mouse pointer between the given event and the
+    /// previous mousemove event. In other words, the value of the property is computed like this:
+    /// `current_event.movement = current_event.screen() - previous_event.screen()`.
     pub fn movement(&self) -> Vector2<i32> {
         Vector2(self.movement_x(), self.movement_y())
     }
