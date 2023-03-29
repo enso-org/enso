@@ -72,7 +72,7 @@ export interface CreateFormProps {
 // =================
 
 /** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_ID_KEY = 'enso-dashboard-directory'
+const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
@@ -290,19 +290,27 @@ function Dashboard(props: DashboardProps) {
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
     react.useEffect(() => {
-        const cachedDirectoryId = localStorage.getItem(DIRECTORY_ID_KEY)
-        if (cachedDirectoryId != null) {
-            setDirectoryId(newtype.asNewtype<backend.DirectoryId>(cachedDirectoryId))
+        const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
+        if (cachedDirectoryStackJson) {
+            // The JSON was inserted by the code below, so it will always have the right type.
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const cachedDirectoryStack: backend.Asset<backend.AssetType.directory>[] =
+                JSON.parse(cachedDirectoryStackJson)
+            setDirectoryStack(cachedDirectoryStack)
+            const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
+            if (cachedDirectoryId) {
+                setDirectoryId(cachedDirectoryId)
+            }
         }
     }, [])
 
     react.useEffect(() => {
         if (directoryId === rootDirectoryId(organization.id)) {
-            localStorage.removeItem(DIRECTORY_ID_KEY)
+            localStorage.removeItem(DIRECTORY_STACK_KEY)
         } else {
-            localStorage.setItem(DIRECTORY_ID_KEY, directoryId)
+            localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
         }
-    }, [directoryId])
+    }, [directoryStack])
 
     /** React components for the name column. */
     const nameRenderers: {
@@ -409,6 +417,8 @@ function Dashboard(props: DashboardProps) {
         )
     }
 
+    // FIXME[sb]: There is a race condition between the initial `directoryId`
+    // and the `directoryId` saved in `localStorage`.
     react.useEffect(() => {
         void (async (): Promise<void> => {
             let assets: backend.Asset[]
@@ -447,6 +457,22 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId, refresh])
 
     react.useEffect(() => {
+        function onKeyDown(event: KeyboardEvent) {
+            if (
+                event.key === 'Escape' &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey &&
+                !event.metaKey
+            ) {
+                if (visibleCreateForm || Modal) {
+                    event.preventDefault()
+                }
+                setVisibleCreateForm(null)
+                setModal(null)
+            }
+        }
+
         function onDragEnter(event: DragEvent) {
             setVisibleCreateForm(null)
             if (Array.prototype.includes.call(event.dataTransfer?.types ?? [], 'Files')) {
@@ -458,10 +484,12 @@ function Dashboard(props: DashboardProps) {
             setIsFileBeingDragged(false)
         }
 
+        window.addEventListener('keydown', onKeyDown)
         window.addEventListener('dragenter', onDragEnter)
         window.addEventListener('blur', onBlur)
 
         return () => {
+            window.removeEventListener('keydown', onKeyDown)
             window.removeEventListener('dragenter', onDragEnter)
             window.removeEventListener('blur', onBlur)
         }
@@ -509,12 +537,13 @@ function Dashboard(props: DashboardProps) {
                         className="mx-1"
                         onClick={() => {
                             setModal(() => UploadFileModal)
+                            setVisibleCreateForm(null)
                         }}
                     >
                         {svg.UPLOAD_ICON}
                     </button>
                     <button
-                        className="mx-1"
+                        className={`${selectedAssets.length === 0 ? 'opacity-50' : ''} mx-1`}
                         disabled={selectedAssets.length === 0}
                         onClick={() => {
                             /* TODO */

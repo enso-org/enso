@@ -13,9 +13,6 @@ import * as newtype from '../newtype'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_OK = 200
-/** HTTP status indicating that the request was valid,
- * but the server encountered an unrecoverable error. */
-const STATUS_SERVER_ERROR = 500
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: OpenProjectRequestBody = {
@@ -512,11 +509,7 @@ export class Backend {
                 }).toString()
         )
         if (response.status !== STATUS_OK) {
-            // FIXME[sb]: The backend currently returns this error when a directory is empty.
-            // This should be changed when it is fixed on the backend.
-            if (response.status === STATUS_SERVER_ERROR) {
-                return []
-            } else if (query.parentId) {
+            if (query.parentId) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
                 return this.throw('Unable to list root directory.')

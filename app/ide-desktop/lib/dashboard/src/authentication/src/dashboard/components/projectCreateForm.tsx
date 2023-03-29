@@ -3,6 +3,7 @@ import * as react from 'react'
 import * as toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
+import * as svg from '../../components/svg'
 
 export interface ProjectCreateFormProps {
     backend: backendModule.Backend
@@ -33,6 +34,9 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
 
     return (
         <form className="bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
+            <button className="absolute right-0 m-2" onClick={close}>
+                {svg.CLOSE_ICON}
+            </button>
             <h2 className="inline-block font-semibold m-2">New Project</h2>
             <div className="flex flex-row flex-nowrap m-1">
                 <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
