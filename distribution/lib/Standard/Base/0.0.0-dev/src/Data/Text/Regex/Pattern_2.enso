@@ -15,7 +15,6 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Polyglot.Polyglot
-import project.IO
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import sort_and_merge_ranges
@@ -166,10 +165,7 @@ type Pattern_2
                  == ['Hello','Big','Wide','World','Goodbye!']
     tokenize : Text -> Vector Text
     tokenize self input =
-        k = self.match_all input . map (build_tokenization_output_from_match self _)
-        IO.println "K"
-        IO.println k
-        k
+        self.match_all input . map (build_tokenization_output_from_match self _)
 
     ## ADVANCED
 
@@ -414,23 +410,14 @@ build_tokenization_output_from_match : Pattern_2 -> Match_2 -> Text
 build_tokenization_output_from_match pattern match =
     if pattern.group_count == 1 then match.text 0 else
         # Extract the ranges of the spans of all capturing groups
-        IO.println "HEY"
         group_numbers = 1.up_to pattern.group_count
-        IO.println group_numbers
         spans = group_numbers.map n-> match.span n
-        IO.println spans
         ranges = spans.map span-> case span of Span.Value range _ -> range
-        IO.println ranges
 
         # Eliminate nested capturing groups by sorting and merging the ranges.
         top_level_ranges = sort_and_merge_ranges ranges
-        IO.println top_level_ranges
 
         # Reconstruct `Spans` from the synthesized `Ranges`, and concatenate.
         text_all = case spans.at 0 of Span.Value _ text -> text
-        IO.println text_all
-        top_level_spans = top_level_ranges.map range->
-            IO.println range
-            Span.Value range text_all
-        IO.println top_level_spans
+        top_level_spans = top_level_ranges.map range-> Span.Value range text_all
         top_level_spans.map (.text) . join
