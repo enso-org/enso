@@ -2,18 +2,18 @@
  *
  * Each exported function in the {@link Backend} in this module corresponds to an API endpoint. The
  * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
-import * as config from '../config'
-import * as http from '../http'
-import * as loggerProvider from '../providers/logger'
+import * as config from "../config";
+import * as http from "../http";
+import * as loggerProvider from "../providers/logger";
 
 // =================
 // === Constants ===
 // =================
 
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
-const SET_USER_NAME_PATH = 'users'
+const SET_USER_NAME_PATH = "users";
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
-const GET_USER_PATH = 'users/me'
+const GET_USER_PATH = "users/me";
 
 // =============
 // === Types ===
@@ -21,15 +21,15 @@ const GET_USER_PATH = 'users/me'
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface Organization {
-    id: string
-    userEmail: string
-    name: string
+  id: string;
+  userEmail: string;
+  name: string;
 }
 
 /** HTTP request body for the "set username" endpoint. */
 export interface SetUsernameRequestBody {
-    userName: string
-    userEmail: string
+  userName: string;
+  userEmail: string;
 }
 
 // ===============
@@ -38,58 +38,63 @@ export interface SetUsernameRequestBody {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class Backend {
-    /** Creates a new instance of the {@link Backend} API client.
-     *
-     * @throws An error if the `Authorization` header is not set on the given `client`. */
-    constructor(
-        private readonly client: http.Client,
-        private readonly logger: loggerProvider.Logger
-    ) {
-        /** All of our API endpoints are authenticated, so we expect the `Authorization` header to be
-         * set. */
-        if (!this.client.defaultHeaders?.has('Authorization')) {
-            throw new Error('Authorization header not set.')
-        }
+  /** Creates a new instance of the {@link Backend} API client.
+   *
+   * @throws An error if the `Authorization` header is not set on the given `client`. */
+  constructor(
+    private readonly client: http.Client,
+    private readonly logger: loggerProvider.Logger
+  ) {
+    /** All of our API endpoints are authenticated, so we expect the `Authorization` header to be
+     * set. */
+    if (!this.client.defaultHeaders?.has("Authorization")) {
+      throw new Error("Authorization header not set.");
     }
+  }
 
-    /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
-    get<T = void>(path: string) {
-        return this.client.get<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
-    }
+  /** Returns a {@link RequestBuilder} for an HTTP GET request to the given path. */
+  get<T = void>(path: string) {
+    return this.client.get<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`);
+  }
 
-    /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
-    post<T = void>(path: string, payload: object) {
-        return this.client.post<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
-    }
+  /** Returns a {@link RequestBuilder} for an HTTP POST request to the given path. */
+  post<T = void>(path: string, payload: object) {
+    return this.client.post<T>(
+      `${config.ACTIVE_CONFIG.apiUrl}/${path}`,
+      payload
+    );
+  }
 
-    /** Logs the error that occurred and throws a new one with a more user-friendly message. */
-    errorHandler(message: string) {
-        return (error: Error) => {
-            this.logger.error(error.message)
-            throw new Error(message)
-        }
-    }
+  /** Logs the error that occurred and throws a new one with a more user-friendly message. */
+  errorHandler(message: string) {
+    return (error: Error) => {
+      this.logger.error(error.message);
+      throw new Error(message);
+    };
+  }
 
-    /** Sets the username of the current user, on the Cloud backend API. */
-    setUsername(body: SetUsernameRequestBody): Promise<Organization> {
-        return this.post<Organization>(SET_USER_NAME_PATH, body).then(response => response.json())
-    }
+  /** Sets the username of the current user, on the Cloud backend API. */
+  setUsername(body: SetUsernameRequestBody): Promise<Organization> {
+    return this.post<Organization>(SET_USER_NAME_PATH, body).then((response) =>
+      response.json()
+    );
+  }
 
-    /** Returns organization info for the current user, from the Cloud backend API.
-     *
-     * @returns `null` if status code 401 or 404 was received. */
-    getUser(): Promise<Organization | null> {
-        return this.get<Organization>(GET_USER_PATH).then(response => {
-            if (
-                response.status === http.HttpStatus.unauthorized ||
-                response.status === http.HttpStatus.notFound
-            ) {
-                return null
-            } else {
-                return response.json()
-            }
-        })
-    }
+  /** Returns organization info for the current user, from the Cloud backend API.
+   *
+   * @returns `null` if status code 401 or 404 was received. */
+  getUser(): Promise<Organization | null> {
+    return this.get<Organization>(GET_USER_PATH).then((response) => {
+      if (
+        response.status === http.HttpStatus.unauthorized ||
+        response.status === http.HttpStatus.notFound
+      ) {
+        return null;
+      } else {
+        return response.json();
+      }
+    });
+  }
 }
 
 // =====================
@@ -102,9 +107,12 @@ export class Backend {
  * This is a hack to quickly create the backend in the format we want, until we get the provider
  * working. This should be removed entirely in favour of creating the backend once and using it from
  * the context. */
-export function createBackend(accessToken: string, logger: loggerProvider.Logger): Backend {
-    const headers = new Headers()
-    headers.append('Authorization', `Bearer ${accessToken}`)
-    const client = new http.Client(headers)
-    return new Backend(client, logger)
+export function createBackend(
+  accessToken: string,
+  logger: loggerProvider.Logger
+): Backend {
+  const headers = new Headers();
+  headers.append("Authorization", `Bearer ${accessToken}`);
+  const client = new http.Client(headers);
+  return new Backend(client, logger);
 }

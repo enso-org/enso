@@ -15,19 +15,23 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "tsx bundle.ts",
-    "watch": "tsx watch.ts",
-    "start": "tsx start.ts"
+    "build": "ts-node bundle.ts",
+    "watch": "ts-node watch.ts",
+    "start": "ts-node start.ts"
   },
   "dependencies": {
+    "@types/mixpanel-browser": "^2.38.0",
     "@types/semver": "^7.3.9",
-    "enso-content-config": "^1.0.0"
+    "enso-content-config": "^1.0.0",
+    "enso-gui-server": "^1.0.0",
+    "html-loader": "^4.2.0",
+    "mixpanel-browser": "2.45.0"
   },
   "devDependencies": {
-    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
-    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
+    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@eslint/js": "^8.36.0",
     "@types/connect": "^3.4.35",
     "@types/morgan": "^1.9.4",
@@ -39,20 +43,27 @@
     "@typescript-eslint/parser": "^5.55.0",
     "enso-authentication": "^1.0.0",
     "enso-copy-plugin": "^1.0.0",
-    "esbuild": "^0.17.0",
+    "enso-gui-server": "^1.0.0",
+    "esbuild": "^0.15.14",
+    "esbuild-copy-static-files": "^0.1.0",
+    "esbuild-dev-server": "^0.3.0",
     "esbuild-plugin-alias": "^0.2.1",
     "esbuild-plugin-time": "^1.0.0",
     "esbuild-plugin-yaml": "^0.0.1",
     "eslint": "^8.36.0",
     "eslint-plugin-jsdoc": "^40.0.2",
+    "glob": "^8.0.3",
     "globals": "^13.20.0",
-    "portfinder": "^1.0.32",
-    "tsx": "^3.12.6",
-    "typescript": "^4.9.3"
+    "source-map-loader": "^4.0.1",
+    "tailwindcss": "^3.2.7",
+    "ts-loader": "^9.3.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.3",
+    "yaml-loader": "^0.8.0"
   },
   "optionalDependencies": {
-    "@esbuild/darwin-x64": "^0.17.0",
-    "@esbuild/linux-x64": "^0.17.0",
-    "@esbuild/windows-x64": "^0.17.0"
+    "esbuild-darwin-64": "^0.15.18",
+    "esbuild-linux-64": "^0.15.18",
+    "esbuild-windows-64": "^0.15.18"
   }
 }

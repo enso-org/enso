@@ -36,13 +36,6 @@ declare module 'esbuild-plugin-time' {
     export default function (name?: string): esbuild.Plugin
 }
 
-declare module 'tailwindcss/nesting/index.js' {
-    import * as nested from 'postcss-nested'
-
-    const DEFAULT: nested.Nested
-    export default DEFAULT
-}
-
 declare module 'create-servers' {
     import * as http from 'node:http'
 
