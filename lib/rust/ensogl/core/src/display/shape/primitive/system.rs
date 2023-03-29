@@ -440,7 +440,12 @@ impl ShapeSystemModel {
             "
                 mat4 model_view_projection = input_view_projection * input_transform;
 
-                // Compute the padding and grow the canvas by its value.
+                // Computing the vertex position without shape padding.
+                vec3 input_local_no_padding = vec3((input_uv - input_alignment) * input_size, 0.0);
+                vec4 position_no_padding = model_view_projection * vec4(input_local_no_padding, 1.0);
+                input_local.z = position_no_padding.z;
+
+                // We are now able to compute the padding and grow the canvas by its value.
                 vec2 padding = vec2(aa_side_padding());
                 if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_OVERVIEW) {
                     padding = vec2(float(input_mouse_position.y) / 10.0);
@@ -453,10 +458,10 @@ impl ShapeSystemModel {
                 input_uv = input_uv * uv_scale - uv_offset;
 
                 // Compute the vertex position with shape padding, apply alignment to the vertex
-                // position.
-                vec2 position = vec2((input_uv - input_alignment) * input_size);
-                gl_Position = model_view_projection * vec4(position,0.0,1.0);
-                // Compute SDF input position with 0.0 being in the shape's center.
+                // position, but not to the local SDF coordinates. Shape definitions should always
+                // have their origin point in the center of the shape.
+                vec4 position = vec4((input_uv - input_alignment) * input_size, 0.0, 1.0);
+                gl_Position = model_view_projection * position;
                 input_local = vec3((input_uv - vec2(0.5)) * input_size, gl_Position.z);
             ",
         );

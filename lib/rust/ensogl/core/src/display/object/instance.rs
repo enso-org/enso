@@ -3184,7 +3184,6 @@ impl Model {
                     max_x = max_x.max(child_max_x);
                 }
             }
-
             if hug_children {
                 self.layout.computed_size.set_dim(x, max_x - min_x);
             }
