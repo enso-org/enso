@@ -267,7 +267,7 @@ function renderInterpolationParameter(theme, param) {
     const fgColor = actualTypeColor
     let bgColor = replaceAlpha(fgColor, interpolationBacgroundOpacity)
 
-    return renderRegularInterpolation(value, fgColor, bgColor);
+    return renderRegularInterpolation(value, fgColor, bgColor)
 }
 
 /**
@@ -284,7 +284,6 @@ function renderRegularInterpolation(value, fgColor, bgColor) {
     html += '</div>'
     return html
 }
-
 
 // === Tooltip ===
 
