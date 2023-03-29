@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+
+    Test.group prefix+"Date-Time support" pending=(if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend.") <|
+        Test.specify "should allow to create Table with date/time columns and round-trip them back to Enso" <|
+            d = Date.new 2020 10 24
+            # We do not check nanoseconds, as nano support may be optional.
+            t = Time_Of_Day.new hour=12 minute=34 second=56 millisecond=789
+            dt = Date_Time.new 2020 10 24 12 34 56 millisecond=789
+
+            table = table_builder [["Date", [d]], ["Time", [t]], ["Date Time", [dt]]]
+            table.at "Date" . to_vector . should_equal [d]
+            table.at "Time" . to_vector . should_equal [t]
+            table.at "Date Time" . to_vector . should_equal [dt]
