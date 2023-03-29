@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from Standard.Table import Value_Type
+
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
@@ -12,13 +14,46 @@ spec setup =
     table_builder = setup.table_builder
 
     Test.group prefix+"Date-Time support" pending=(if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend.") <|
-        Test.specify "should allow to create Table with date/time columns and round-trip them back to Enso" <|
+        Test.specify "should allow to create Table with Date columns and round-trip them back to Enso" <|
             d = Date.new 2020 10 24
+
+            table = table_builder [["A", [d]], ["X", [123]]]
+            table.print
+            table.info.print
+
+            table.at "A" . value_type . should_equal Value_Type.Date
+            table.at "A" . to_vector . should_equal [d]
+            table.at "X" . to_vector . should_equal [123]
+
+        Test.specify "should allow to create Table with Time Of Day columns and round-trip them back to Enso" <|
             # We do not check nanoseconds, as nano support may be optional.
             t = Time_Of_Day.new hour=12 minute=34 second=56 millisecond=789
-            dt = Date_Time.new 2020 10 24 12 34 56 millisecond=789
 
-            table = table_builder [["Date", [d]], ["Time", [t]], ["Date Time", [dt]]]
-            table.at "Date" . to_vector . should_equal [d]
-            table.at "Time" . to_vector . should_equal [t]
-            table.at "Date Time" . to_vector . should_equal [dt]
+            table = table_builder [["B", [t]], ["X", [123]]]
+            table.print
+            table.info.print
+
+            table.at "B" . value_type . should_equal Value_Type.Time
+            IO.println <| table.at "B" . to_vector
+            x = table.at "B" . to_vector . at 0
+            IO.println <| x
+            IO.println (Meta.type_of x)
+            table.at "B" . to_vector . should_equal [t]
+            table.at "X" . to_vector . should_equal [123]
+
+        Test.specify "should allow to create Table with date columns and round-trip them back to Enso" <|
+            dt1 = Date_Time.new 2020 10 24 12 34 56 millisecond=789
+            offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
+            dt2 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
+            named_zone = Time_Zone.parse "US/Hawaii"
+            dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
+
+            dates = [dt1, dt2, dt3]
+            xs = [1, 2, 3]
+            table = table_builder [["C", dates], ["X", xs]]
+            table.print
+            table.info.print
+
+            table.at "C" . value_type . should_equal Value_Type.Date_Time
+            table.at "C" . to_vector . should_equal dates
+            table.at "X" . to_vector . should_equal xs
