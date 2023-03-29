@@ -304,8 +304,8 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    Arguments:
    - delimiter: The pattern used to split the text.
    - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
-   - only_first: If True, only replace the first match.
+     sensitively. The values are compared case sensitively by default.
+   - only_first: If true, only replace the first match.
    - use_regex: If true, the term is used as a regular expression.
 
    > Example

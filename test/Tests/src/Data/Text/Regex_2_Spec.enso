@@ -157,9 +157,12 @@ spec =
 
         Test.specify "should be able to `split` on the all instances of the pattern in the input" <|
             pattern = Regex_2.compile "a"
-            input = "bacadaeaf"
-            texts = pattern.split input
-            texts . should_equal ["b", "c", "d", "e", "f"]
+            pattern.split "bacadaeaf" . should_equal ["b", "c", "d", "e", "f"]
+            pattern.split "baab" . should_equal ["b", "", "b"]
+            pattern.split "aaa" . should_equal ["", "", "", ""]
+            pattern.split "" . should_equal [""]
+            pattern.split "a" . should_equal ["", ""]
+            pattern.split "abaca" . should_equal ["", "b", "c", ""]
 
         Test.specify "should split without normalization" <|
             pattern = Regex_2.compile "s"
