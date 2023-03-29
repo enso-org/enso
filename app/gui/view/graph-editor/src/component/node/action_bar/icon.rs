@@ -172,19 +172,16 @@ pub mod disable_reevaluation {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
-
             let unit = &width / 16.0;
-
             let arrow_loop = arrow_loop(&unit);
             let stripe = Rect((&unit * 17.33, &unit * 2.0))
                 .rotate((-FRAC_PI_6).radians())
                 .translate_y(&unit * -2.33);
-            let icon = AnyShape::from(arrow_loop + stripe)
-                .fill(fill_color);
-
-            let hover_area = Rect((width,height))
-                .fill(INVISIBLE_HOVER_COLOR);
-
+            let stripe_clip = stripe
+                .translate_x(-&unit)
+                .translate_y(&unit * 3.0.sqrt());
+            let icon = AnyShape::from(arrow_loop + stripe - stripe_clip).fill(fill_color);
+            let hover_area = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
             (icon + hover_area).into()
         }
     }
@@ -205,13 +202,9 @@ pub mod enable_reevaluation {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
-
             let unit = &width / 16.0;
-
-            let arrow_loop = arrow_loop(&unit)
-                .fill(fill_color);
-            let hover_area = Rect((width,height))
-                .fill(INVISIBLE_HOVER_COLOR);
+            let arrow_loop = arrow_loop(&unit).fill(fill_color);
+            let hover_area = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
             (arrow_loop + hover_area).into()
         }
     }
@@ -223,8 +216,7 @@ pub mod enable_reevaluation {
     }
 }
 
-/// Draw a right-turning arrow loop with the arrow at the top. It also has a cut-out in the
-/// bottom-left.
+/// Draw a right-turning arrow loop with the arrow at the top.
 fn arrow_loop(unit: &Var<Pixels>) -> AnyShape {
     let outer_rect = Rect((unit * 14.0, unit * 12.0)).corners_radius(unit * 6.0);
     let loop_ = &outer_rect - outer_rect.shrink(unit * 2.0);
@@ -232,10 +224,10 @@ fn arrow_loop(unit: &Var<Pixels>) -> AnyShape {
         .rotate(FRAC_PI_2.radians())
         .translate_x(unit * 2.5)
         .translate_y(unit * 5.0);
-    let arrow_loop = (loop_ + arrow_head).translate_y(-unit).translate_x(-unit);
-    let cut_out = Rect((unit * 17.33, unit * 2.0))
+    let cut_out = Rect((unit * 4.0, unit * 2.0))
         .rotate((-FRAC_PI_6).radians())
-        .translate_x(-unit)
-        .translate_y(unit * (3.0.sqrt() - 2.33));
-    (arrow_loop - cut_out).into()
+        .translate_x(unit * (5.5 * f32::cos(FRAC_PI_6)))
+        .translate_y(unit * (-4.0 / 3.0 + 3.0.sqrt() + 5.5 * f32::sin(FRAC_PI_6)));
+    let arrow_loop = (loop_ + arrow_head - cut_out).translate_y(-unit).translate_x(-unit);
+    arrow_loop.into()
 }
