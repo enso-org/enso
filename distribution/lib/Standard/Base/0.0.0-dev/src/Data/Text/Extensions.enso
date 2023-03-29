@@ -235,7 +235,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
         compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.if_not_error <| compiled_pattern.match self
+        compiled_pattern.match self
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -263,7 +263,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
         compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.if_not_error <| compiled_pattern.match_all self
+        compiled_pattern.match_all self
 
 ## ALIAS Check Matches
 
@@ -294,7 +294,7 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
         compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.if_not_error <| compiled_pattern.matches self
+        compiled_pattern.matches self
 
 ## ALIAS Split Text
 
@@ -342,8 +342,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
             Helpers.regex_assume_default_locale case_sensitivity <|
                 case_insensitive = case_sensitivity.is_case_insensitive_in_memory
                 compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
-                compiled_pattern.if_not_error <|
-                    compiled_pattern.split self only_first
+                compiled_pattern.split self only_first
 
 ## ALIAS Replace Text
    Perform a text or regex replace.
@@ -438,8 +437,7 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
             Helpers.regex_assume_default_locale case_sensitivity <|
                 case_insensitive = case_sensitivity.is_case_insensitive_in_memory
                 compiled_pattern = Regex_2.compile term case_insensitive=case_insensitive
-                compiled_pattern.if_not_error <|
-                    compiled_pattern.replace self replacement only_first
+                compiled_pattern.replace self replacement only_first
 
 ## ALIAS Get Words
 
