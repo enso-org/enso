@@ -189,13 +189,8 @@ impl Label {
         frp::extend! { network
             eval frp.set_content((t) model.set_content(t));
 
-            let model_ = model.clone_ref();
             frp.source.size <+ all_with(&model.label.width, &model.label.height,
-                move |width, height| {
-                    let text_size = Vector2(*width, *height);
-                    model_.set_text_size(text_size)
-                }
-            );
+                f!((width, height) model.set_text_size(Vector2(*width, *height))));
 
             eval frp.set_opacity((value) model.set_opacity(*value));
         }
