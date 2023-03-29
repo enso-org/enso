@@ -112,9 +112,9 @@ impl<T: Debug> Debug for Event<T> {
 #[derivative(Default(bound = "T: Default"))]
 pub struct EventData<T> {
     #[deref]
-    payload: T,
-    target:  Option<WeakInstance>,
-    state:   Rc<Cell<State>>,
+    pub payload: T,
+    target:      Option<WeakInstance>,
+    state:       Rc<Cell<State>>,
 }
 
 impl<T: Debug> Debug for EventData<T> {

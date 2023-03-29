@@ -1037,7 +1037,7 @@ use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
-use data::opt_vec::OptVec;
+use data::opt_vec_sorted::OptVecSorted;
 use enso_types::Dim;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
@@ -1544,7 +1544,7 @@ pub struct HierarchyModel {
     visible:        Cell<bool>,
     transformation: RefCell<CachedTransformation>,
     parent_bind:    SharedParentBind,
-    children:       RefCell<OptVec<WeakInstance>>,
+    children:       RefCell<OptVecSorted<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer: RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.

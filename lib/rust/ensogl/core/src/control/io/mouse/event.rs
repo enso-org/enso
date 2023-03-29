@@ -84,19 +84,30 @@ where JsEvent: AsRef<web::MouseEvent>
             - self.js_event.as_ref().map(|t| t.as_ref().client_y()).unwrap_or_default()
     }
 
+    // FIXME: change everything to be f32
+    pub fn client(&self) -> Vector2 {
+        Vector2(self.client_x() as f32, self.client_y() as f32)
+    }
+
+    pub fn client_centered(&self) -> Vector2 {
+        let x = self.client_x() as f32 - self.shape.width / 2.0;
+        let y = self.client_y() as f32 - self.shape.height / 2.0;
+        Vector2(x, y)
+    }
+
     /// The horizontal coordinate (offset) of the mouse pointer in global (screen) coordinates.
-    pub fn screen_x(&self) -> i32 {
-        self.js_event.as_ref().map(|t| t.as_ref().screen_x()).unwrap_or_default()
+    pub fn screen_x(&self) -> f32 {
+        self.js_event.as_ref().map(|t| t.as_ref().screen_x()).unwrap_or_default() as f32
     }
 
     /// The vertical coordinate (offset) of the mouse pointer in global (screen) coordinates.
-    pub fn screen_y(&self) -> i32 {
-        self.shape.height as i32
-            - self.js_event.as_ref().map(|t| t.as_ref().screen_y()).unwrap_or_default()
+    pub fn screen_y(&self) -> f32 {
+        self.shape.height
+            - self.js_event.as_ref().map(|t| t.as_ref().screen_y()).unwrap_or_default() as f32
     }
 
     /// The coordinate (offset) of the mouse pointer in global (screen) coordinates.
-    pub fn screen(&self) -> Vector2<i32> {
+    pub fn screen(&self) -> Vector2 {
         Vector2(self.screen_x(), self.screen_y())
     }
 
