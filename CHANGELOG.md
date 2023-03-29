@@ -126,6 +126,8 @@
   shortened labels for entries with long module paths. When an option is
   selected from the dropdown, the necessary module imports are inserted,
   eliminating the need for fully qualified names.
+- [The IDE now has a new UI element for selecting the execution mode of the
+  project][6130].
 
 #### EnsoGL (rendering engine)
 
@@ -182,6 +184,7 @@
 [4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
 [5895]: https://github.com/enso-org/enso/pull/5895
+[5895]: https://github.com/enso-org/enso/pull/6130
 
 #### Enso Standard Library
 
