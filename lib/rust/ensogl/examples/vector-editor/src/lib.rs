@@ -91,7 +91,7 @@ mod spacer {
 
                 trace model.frp.private.input.set_target_size;
                 size_animation.target <+ model.frp.private.input.set_target_size;
-                // eval size_animation.value ((t) root.set_size_x(*t););
+                eval size_animation.value ((t) root.set_size_x(*t););
 
                 trace size_animation.value;
             }
@@ -100,7 +100,7 @@ mod spacer {
 
         pub fn collapse(&self) {
             // *self.self_ref.borrow_mut() = Some(self.model.clone());
-            // self.set_target_size(0.0);
+            self.set_target_size(0.0);
         }
     }
 
@@ -113,16 +113,35 @@ mod spacer {
 
 use spacer::Spacer;
 
-#[derive(Debug, Clone)]
-pub struct IndexedSpacer {
-    index:  usize,
-    spacer: Spacer,
-}
-
 
 // ===========
 // === FRP ===
 // ===========
+
+#[derive(Debug)]
+pub enum Item<T> {
+    Regular(T),
+    Spacer(Spacer),
+}
+
+impl<T> Item<T> {
+    pub fn is_regular(&self) -> bool {
+        matches!(self, Self::Regular(_))
+    }
+    pub fn is_spacer(&self) -> bool {
+        matches!(self, Self::Spacer(_))
+    }
+}
+
+impl<T: display::Object> display::Object for Item<T> {
+    fn display_object(&self) -> &display::object::Instance {
+        match self {
+            Item::Regular(t) => t.display_object(),
+            Item::Spacer(t) => t.display_object(),
+        }
+    }
+}
+
 
 ensogl_core::define_endpoints_2! {
     Input {
@@ -146,9 +165,8 @@ pub struct VectorEditor<T> {
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Model<T> {
-    dragged_item: Option<T>,
-    spacer:       Option<IndexedSpacer>,
-    items:        Vec<T>,
+    dragged_item: Option<Item<T>>,
+    items:        Vec<Item<T>>,
 }
 
 impl<T: display::Object + 'static> VectorEditor<T> {
@@ -225,23 +243,14 @@ impl<T: display::Object + 'static> VectorEditor<T> {
 impl<T: display::Object> VectorEditor<T> {
     fn append(&self, item: T) {
         self.layouted_elems.add_child(&item);
-        self.model.borrow_mut().items.push(item);
+        self.model.borrow_mut().items.push(Item::Regular(item));
     }
 }
 
 impl<T: display::Object> Model<T> {
     fn redraw_items(&self, layouted_elems: &display::object::Instance) {
-        if let Some(indexed_spacer) = self.spacer.as_ref() {
-            for (index, item) in self.items.iter().enumerate() {
-                if index == indexed_spacer.index {
-                    layouted_elems.add_child(&indexed_spacer.spacer);
-                }
-                layouted_elems.add_child(item);
-            }
-        } else {
-            for item in &self.items {
-                layouted_elems.add_child(item);
-            }
+        for item in &self.items {
+            layouted_elems.add_child(item);
         }
     }
 
@@ -276,21 +285,30 @@ impl<T: display::Object> Model<T> {
             .iter()
             .position(|item| item.display_object() == target)
             .expect("Item not found");
-        let elem = self.items.remove(index);
         let spacer = Spacer::new();
-        spacer.set_size_x(elem.computed_size().x);
-        self.spacer = Some(IndexedSpacer { index, spacer });
+        let elem_ref = &self.items[index];
+        spacer.set_init_size(elem_ref.computed_size().x);
+        let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
         self.dragged_item = Some(elem);
         self.redraw_items(layouted_elems);
     }
 
     fn unset_dragged_item(&mut self, index: usize) {
         let item = self.dragged_item.take().expect("No dragged item");
-        self.items.insert(index, item);
-        if let Some(indexed_spacer) = self.spacer.as_ref() {
-            indexed_spacer.spacer.collapse();
+        if let Some(existing_item) = self.items.get_mut(index) {
+            if existing_item.is_spacer() {
+                *existing_item = item;
+            } else {
+                self.items.insert(index, item);
+            }
+        } else {
+            self.items.push(item);
         }
-        self.spacer = None;
+        for item in &self.items {
+            if let Item::Spacer(spacer) = item {
+                spacer.collapse();
+            }
+        }
     }
 
     fn insert_dragged_item(&mut self, index: usize) {
@@ -301,11 +319,7 @@ impl<T: display::Object> Model<T> {
     fn elems_center_points(&self) -> Vec<f32> {
         let mut centers = Vec::new();
         let mut current = 0.0;
-        let mut display_objects = self.items.iter().map(|item| item.display_object()).collect_vec();
-        if let Some(indexed_spacer) = self.spacer.as_ref() {
-            display_objects.insert(indexed_spacer.index, indexed_spacer.spacer.display_object());
-        }
-        for item in display_objects {
+        for item in &self.items {
             let size = item.computed_size();
             current += size.x / 2.0;
             centers.push(current);
@@ -322,11 +336,6 @@ impl<T: display::Object> Model<T> {
                 break;
             }
             index += 1;
-        }
-        if let Some(indexed_spacer) = self.spacer.as_ref() {
-            if index > indexed_spacer.index {
-                index -= 1;
-            }
         }
         index
     }
