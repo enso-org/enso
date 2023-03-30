@@ -205,13 +205,19 @@ class SuspendedArgumentsTest extends CompilerTest {
   }
 
   "Suspended arguments resolution in expressions" should {
-    "correctly mark arguments as suspended in blocks" ignore {
+    "correctly mark arguments as suspended in blocks" in {
       // FIXME: Not supported by new parser--needs triage (#5894).
+      // Kaz, just:
+      // f a b = b
+      // parses to IR.Expression.Binding, the two lines
+      // f : A -> Suspended -> B
+      // f a b = b
+      // parse to IR$Error$Unexpected$TypeSignature
       implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
-          |f : a -> Suspended -> b
+          |f : A -> Suspended -> B
           |f a b = b
           |""".stripMargin.preprocessExpression.get.resolve
           .asInstanceOf[IR.Expression.Block]
