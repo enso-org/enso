@@ -9,15 +9,20 @@ class BooleanTest extends InterpreterTest {
     interpreterContext: InterpreterContext
   ): Unit = {
 
+    val defaultImports =
+      """
+        |from Standard.Base.Data.Boolean import all
+        |import Standard.Base.IO
+        |""".stripMargin
+
     "support if_then_else" in {
       val code =
-        """from Standard.Base.Data.Boolean import all
-          |import Standard.Base.IO
-          |
-          |main =
-          |    if True then IO.println "true when true" else IO.println "false when true"
-          |    if False then IO.println "true when false" else IO.println "false when false"
-          |""".stripMargin
+        s"""$defaultImports
+           |
+           |main =
+           |    if True then IO.println "true when true" else IO.println "false when true"
+           |    if False then IO.println "true when false" else IO.println "false when false"
+           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("true when true", "false when false")
     }
@@ -57,32 +62,55 @@ class BooleanTest extends InterpreterTest {
 
     "support logical AND and OR operators" in {
       val code =
-        """from Standard.Base.Data.Boolean import all
-          |import Standard.Base.IO
-          |
-          |main =
-          |    IO.println True&&False
-          |    IO.println True&&True
-          |    IO.println False||False
-          |    IO.println True||False
-          |    IO.println ((True && False) || (True && True))
-          |""".stripMargin
+        s"""$defaultImports
+           |
+           |main =
+           |    IO.println True&&False
+           |    IO.println True&&True
+           |    IO.println True&&Boolean.True
+           |    IO.println False||False
+           |    IO.println True||False
+           |    IO.println ((True && False) || (True && True))
+           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("False", "True", "False", "True", "True")
+      consumeOut shouldEqual List(
+        "False",
+        "True",
+        "True",
+        "False",
+        "True",
+        "True"
+      )
     }
 
     "support negation" in {
       val code =
-        """from Standard.Base.Data.Boolean import all
-          |import Standard.Base.IO
-          |
-          |main =
-          |    IO.println True.not
-          |    IO.println False.not
-          |    IO.println (1==2 . not)
-          |""".stripMargin
+        s"""$defaultImports
+           |
+           |main =
+           |    IO.println True.not
+           |    IO.println Boolean.True.not
+           |    IO.println False.not
+           |    IO.println Boolean.False.not
+           |    IO.println (1==2 . not)
+           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("False", "True", "True")
+      consumeOut shouldEqual List("False", "False", "True", "True", "True")
+    }
+
+    "literal equals atom constructor" in {
+      val code =
+        s"""$defaultImports
+           |
+           |main =
+           |    IO.println (False == Boolean.False)
+           |    IO.println (Boolean.False == False)
+           |    IO.println (True == Boolean.True)
+           |    IO.println (Boolean.True == True)
+           |
+           |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List("True", "True", "True", "True")
     }
   }
 }

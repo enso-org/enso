@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate as frp;
-use crate::io::js::JsEvent;
 use crate::io::js::Listener;
 
 use enso_web::KeyboardEvent;
@@ -440,17 +439,14 @@ pub struct DomBindings {
 
 impl DomBindings {
     /// Create new Keyboard and Frp bindings.
-    pub fn new(keyboard: &Keyboard, current_event: &JsEvent) -> Self {
-        let key_down = Listener::new_key_down(current_event.handler(
+    pub fn new(keyboard: &Keyboard) -> Self {
+        let key_down = Listener::new_key_down(
             f!((event:&KeyboardEvent) keyboard.source.down.emit(KeyWithCode::from(event))),
-        ));
-        let key_up =
-            Listener::new_key_up(current_event.handler(
-                f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event))),
-            ));
-        let blur = Listener::new_blur(
-            current_event.handler(f_!(keyboard.source.window_defocused.emit(()))),
         );
+        let key_up = Listener::new_key_up(
+            f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event))),
+        );
+        let blur = Listener::new_blur(f_!(keyboard.source.window_defocused.emit(())));
         Self { key_down, key_up, blur }
     }
 }

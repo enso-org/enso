@@ -71,7 +71,7 @@ impl component::Frp<Model> for Frp {
         model: &Model,
         _style: &StyleWatchFrp,
     ) {
-        let background = &model.background.events;
+        let background = &model.background.events_deprecated;
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
             eval api.input.set_size((size) model.set_size(*size));

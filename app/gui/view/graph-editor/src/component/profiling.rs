@@ -6,6 +6,7 @@ use ensogl::display::shape::*;
 use crate::view;
 
 use enso_frp as frp;
+use ensogl::application::tooltip;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -148,7 +149,9 @@ impl Button {
         let frp = Frp::new();
         let network = &frp.network;
 
-        let button = ToggleButton::<icon::Shape>::new();
+        let tooltip_style = tooltip::Style::set_label("Profile".to_owned())
+            .with_placement(tooltip::Placement::Left);
+        let button = ToggleButton::<icon::Shape>::new(app, tooltip_style);
         scene.layers.panel.add(&button);
         button.set_visibility(true);
         button.frp.set_size(Vector2(32.0, 32.0));

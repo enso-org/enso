@@ -156,6 +156,7 @@ public abstract class InvokeMethodNode extends BaseNode {
                       invokeFunctionNode.getArgumentsExecutionMode(),
                       thisArgumentPosition));
           childDispatch.setTailStatus(getTailStatus());
+          childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
         }
       } finally {
@@ -525,5 +526,8 @@ public abstract class InvokeMethodNode extends BaseNode {
    */
   public void setId(UUID id) {
     invokeFunctionNode.setId(id);
+    if (childDispatch != null) {
+      childDispatch.setId(id);
+    }
   }
 }
