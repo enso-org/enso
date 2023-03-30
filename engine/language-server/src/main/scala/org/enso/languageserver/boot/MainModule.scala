@@ -105,11 +105,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   log.trace("Created ActorSystem [{}].", system)
 
-  private val zioRuntime = {
-    val r = new effect.ExecutionContextRuntime(system.dispatcher)
-    r.init()
-    r
-  }
+  private val zioRuntime =
+    new effect.ExecutionContextRuntime(system.dispatcher)
   private val zioExec = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
