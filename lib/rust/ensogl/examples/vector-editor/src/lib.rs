@@ -25,6 +25,13 @@ const DRAG_THRESHOLD: f32 = 4.0;
 // FIXME: to be parametrized
 const GAP: f32 = 10.0;
 
+/// If set to true, animations will be running slow. This is useful for debugging purposes.
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+
+/// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
+/// used for animation simulators.
+pub const DEBUG_ANIMATION_SPRING_FACTOR: f32 = if DEBUG_ANIMATION_SLOWDOWN { 0.05 } else { 1.0 };
+
 // ==============
 // === Events ===
 // ==============
@@ -85,8 +92,9 @@ mod spacer {
 
             let network = &model.frp.network();
             let size_animation = Animation::<f32>::new(network);
+            size_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             frp::extend! { network
-                size_animation.target <+ model.frp.private.input.set_init_size;
+                size_animation.target <+  model.frp.private.input.set_init_size;
                 size_animation.skip <+ model.frp.private.input.set_init_size.constant(());
 
                 trace model.frp.private.input.set_target_size;
@@ -98,8 +106,12 @@ mod spacer {
             Self { model }
         }
 
+        pub fn downgrade(&self) -> WeakSpacer {
+            WeakSpacer { model: Rc::downgrade(&self.model) }
+        }
+
         pub fn collapse(&self) {
-            // *self.self_ref.borrow_mut() = Some(self.model.clone());
+            *self.self_ref.borrow_mut() = Some(self.model.clone());
             self.set_target_size(0.0);
         }
     }
@@ -109,9 +121,21 @@ mod spacer {
             &self.root
         }
     }
+
+    #[derive(Debug, Clone, CloneRef, Deref)]
+    pub struct WeakSpacer {
+        model: Weak<SpacerModel>,
+    }
+
+    impl WeakSpacer {
+        pub fn upgrade(&self) -> Option<Spacer> {
+            self.model.upgrade().map(|model| Spacer { model })
+        }
+    }
 }
 
 use spacer::Spacer;
+use spacer::WeakSpacer;
 
 
 // ===========
@@ -122,22 +146,32 @@ use spacer::Spacer;
 pub enum Item<T> {
     Regular(T),
     Spacer(Spacer),
+    WeakSpacer(WeakSpacer),
 }
 
-impl<T> Item<T> {
+impl<T: display::Object> Item<T> {
     pub fn is_regular(&self) -> bool {
         matches!(self, Self::Regular(_))
     }
     pub fn is_spacer(&self) -> bool {
         matches!(self, Self::Spacer(_))
     }
-}
 
-impl<T: display::Object> display::Object for Item<T> {
-    fn display_object(&self) -> &display::object::Instance {
+    pub fn display_object(&self) -> Option<display::object::Instance> {
         match self {
-            Item::Regular(t) => t.display_object(),
-            Item::Spacer(t) => t.display_object(),
+            Item::Regular(t) => Some(t.display_object().clone_ref()),
+            Item::Spacer(t) => Some(t.display_object().clone_ref()),
+            Item::WeakSpacer(t) => t.upgrade().map(|t| t.display_object().clone_ref()),
+        }
+    }
+
+    pub fn computed_size(&self) -> Vector2 {
+        self.display_object().map(|t| t.computed_size()).unwrap_or_default()
+    }
+
+    pub fn set_margin_left(&self, margin: f32) {
+        if let Some(display_object) = self.display_object() {
+            display_object.set_margin_left(margin);
         }
     }
 }
@@ -178,7 +212,7 @@ impl<T: display::Object + 'static> VectorEditor<T> {
         root.add_child(&layouted_elems);
         root.add_child(&dragged_elems);
         let model = default();
-        layouted_elems.use_auto_layout().set_gap((GAP, GAP));
+        layouted_elems.use_auto_layout(); //.set_gap((GAP, GAP));
         Self { frp, root, layouted_elems, dragged_elems, model }.init()
     }
 
@@ -243,14 +277,43 @@ impl<T: display::Object + 'static> VectorEditor<T> {
 impl<T: display::Object> VectorEditor<T> {
     fn append(&self, item: T) {
         self.layouted_elems.add_child(&item);
-        self.model.borrow_mut().items.push(Item::Regular(item));
+        let mut model = self.model.borrow_mut();
+        model.items.push(Item::Regular(item));
+        model.reset_margins();
     }
 }
 
 impl<T: display::Object> Model<T> {
     fn redraw_items(&self, layouted_elems: &display::object::Instance) {
         for item in &self.items {
-            layouted_elems.add_child(item);
+            if let Some(display_object) = item.display_object() {
+                layouted_elems.add_child(&display_object);
+            }
+        }
+    }
+
+    fn reset_margins(&self) {
+        warn!("=== reset_margins ===");
+        let mut first_elem = true;
+        for item in &self.items {
+            match item {
+                Item::WeakSpacer(_) => {
+                    warn!("WeakSpacer");
+                }
+                Item::Spacer(_) => {
+                    warn!("Spacer");
+                    first_elem = false;
+                }
+                Item::Regular(_) => {
+                    warn!("Regular");
+                    if !first_elem {
+                        item.set_margin_left(GAP);
+                    } else {
+                        item.set_margin_left(0.0);
+                    }
+                    first_elem = false;
+                }
+            }
         }
     }
 
@@ -283,13 +346,15 @@ impl<T: display::Object> Model<T> {
         let index = self
             .items
             .iter()
-            .position(|item| item.display_object() == target)
+            .position(|item| item.display_object().as_ref() == Some(target))
             .expect("Item not found");
         let spacer = Spacer::new();
         let elem_ref = &self.items[index];
-        spacer.set_init_size(elem_ref.computed_size().x);
+        let gap_size = elem_ref.margin_left();
+        spacer.set_init_size(elem_ref.computed_size().x + gap_size);
         let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
         self.dragged_item = Some(elem);
+        self.reset_margins();
         self.redraw_items(layouted_elems);
     }
 
@@ -304,11 +369,13 @@ impl<T: display::Object> Model<T> {
         } else {
             self.items.push(item);
         }
-        for item in &self.items {
+        for item in &mut self.items {
             if let Item::Spacer(spacer) = item {
                 spacer.collapse();
+                *item = Item::WeakSpacer(spacer.downgrade());
             }
         }
+        self.reset_margins();
     }
 
     fn insert_dragged_item(&mut self, index: usize) {
