@@ -135,9 +135,4 @@ public final class WithWarnings implements TruffleObject {
   boolean hasSpecialDispatch() {
     return true;
   }
-
-  @Override
-  public String toString() {
-    return "WithWarnings(" + value + " + " + warnings.size() + " warnings)";
-  }
 }
