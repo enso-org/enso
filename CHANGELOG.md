@@ -179,6 +179,8 @@
   all symbols rendered in a given frame. You can also pause the performance
   monitor and inspect results recorded in the past.
 - [ToggleButtons can now have tooltips][6035].
+- [Rendering of tooltips was improved.][6097] Their text is now more vertically
+  centered and the delay before showing them was extended.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -186,6 +188,7 @@
 [4003]: https://github.com/enso-org/enso/pull/4003
 [5895]: https://github.com/enso-org/enso/pull/5895
 [6035]: https://github.com/enso-org/enso/pull/6035
+[6097]: https://github.com/enso-org/enso/pull/6097
 
 #### Enso Standard Library
 

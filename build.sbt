@@ -2120,7 +2120,32 @@ buildEngineDistribution := {
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
     targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = true
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val buildEngineDistributionNoIndex =
+  taskKey[Unit]("Builds the engine distribution without generating indexes")
+buildEngineDistributionNoIndex := {
+  val _ = (`engine-runner` / assembly).value
+  updateLibraryManifests.value
+  val root         = engineDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    graalVersion        = graalVersion,
+    javaVersion         = javaVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = false
   )
   log.info(s"Engine package created at $root")
 }
