@@ -8,7 +8,6 @@ import Standard.Base.Data.Text.Regex_2
 import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.IO
 
 from Standard.Base.Data.Text.Regex.Replacer import get_lru_size, replacer_cache_lookup
 
