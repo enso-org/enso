@@ -125,7 +125,6 @@ class TableVisualization extends Visualization {
             tabElem.setAttributeNS(null, 'class', 'scrollable ag-theme-alpine')
             this.dom.appendChild(tabElem)
             this.tabElem = tabElem
-            this.updateTableSize()
 
             this.agGridOptions = {
                 rowData: [],
@@ -137,6 +136,7 @@ class TableVisualization extends Visualization {
                     resizable: true,
                     minWidth: 50,
                 },
+                onColumnResized: (e) => this.lockColumnSize(e),
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
@@ -222,36 +222,37 @@ class TableVisualization extends Visualization {
             this.agGridOptions.api.setPinnedTopRowData([extraRow])
         }
         this.agGridOptions.api.setRowData(rowData)
-        this.agGridOptions.api.sizeColumnsToFit()
+        this.updateTableSize(this.dom.getAttributeNS(null, 'width'))
     }
 
-    updateTableSize() {
-        if (this.tabElem !== undefined) {
-            const width = this.dom.getAttributeNS(null, 'width')
-            const height = this.dom.getAttributeNS(null, 'height')
-            const tblViewStyle = `width: ${width}px; height: ${height}px; overflow: scroll;`
-            this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
-            /**
-             * By observation, calling `sizeColumnsToFit()` outside of the `requestAnimationFrame`
-             * callback function sometimes has no effect. This is because the browser's reflow
-             * mechanism may prevent `sizeColumnsToFit()` from obtaining the latest width of
-             * `this.tabElem` internally, resulting in the computed column width being the same
-             * as before and having no effect. The callback function of `requestAnimationFrame`
-             * is called when the page is ready for repainting, so all DOM elements have already
-             * been updated at that point. Therefore, the `sizeColumnsToFit` function in the
-             * `requestAnimationFrame` callback can ensure that it gets the latest width of
-             * `this.tabElem`.
-             */
-            window.requestAnimationFrame(() => {
-                this.agGridOptions.api.sizeColumnsToFit()
-            })
+    updateTableSize(clientWidth) {
+        if (!this.agGridOptions) {
+            return
+        }
+
+        const cols = this.agGridOptions.columnApi.getAllGridColumns().filter(c => !c.colDef.suppressSizeToFit)
+        this.agGridOptions.columnApi.autoSizeColumns(cols, true)
+        const bigCols = cols
+            .filter(c => c.getActualWidth() > clientWidth - 20)
+            .map(c => ({ key: c, newWidth: clientWidth - 20 }))
+        this.agGridOptions.columnApi.setColumnWidths(bigCols)
+    }
+
+    lockColumnSize(e) {
+        if (!e.finished || e.source === "api" || !this.agGridOptions){
+            return
+        }
+
+        const suppress = e.source !== "autosizeColumns"
+        for (const column of e.columns) {
+            column.colDef.suppressSizeToFit = suppress
         }
     }
 
     setSize(size) {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
-        this.updateTableSize()
+        this.updateTableSize(size[0])
     }
 }
 
