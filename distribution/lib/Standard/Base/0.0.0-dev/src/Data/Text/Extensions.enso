@@ -324,6 +324,11 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Split the text on any whitespace.
 
          'abc  def\tghi'.split '\\s+' use_regex=True == ["abc", "def", "ghi"]
+
+   > Example
+     Split with a vector of strings.
+
+         'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
 Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
     case delimiter of
