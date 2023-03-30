@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -10,7 +11,13 @@ use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
 use ensogl_component::drop_down::DropdownValue;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod vector_editor;
+
 
 
 /// =================
@@ -223,16 +230,11 @@ impl Model {
 
     #[profile(Task)]
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
-        warn!("Setting widget data: {:?} {:?}", meta, node_data);
-
-
-        let is_array_type = node_data
-            .tp
-            .as_ref()
-            .map_or(false, |tp| tp.contains("Standard.Base.Data.Vector.Vector"));
-        warn!("{is_array_type}");
+        const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
+        let is_array_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
+        let is_array_type = node_data.tp.as_ref().map_or(false, |tp| tp.contains(VECTOR_TYPE));
         let has_tag_values = !node_data.tag_values.is_empty();
-        let kind_fallback = is_array_type
+        let kind_fallback = (is_array_enabled && is_array_type)
             .then_some(Kind::VectorEditor)
             .or(has_tag_values.then_some(Kind::SingleChoice));
 

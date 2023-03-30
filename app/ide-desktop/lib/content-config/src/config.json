@@ -115,6 +115,11 @@
           "value": "light",
           "description": "Color theme.",
           "primary": false
+        },
+        "vectorEditor": {
+          "value": false,
+          "descirption": "Show Vector Editor widget on nodes.",
+          "primary": false
         }
       }
     },
