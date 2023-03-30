@@ -20,10 +20,12 @@ interface Props<T> {
     getKey: (item: T) => string
     placeholder: JSX.Element
     columns: Column<T>[]
+    onContextMenu: (item: T) => void
 }
 
 /** Table that projects an object into each column. */
-function Rows<T>({ columns, items, getKey, placeholder }: Props<T>) {
+function Rows<T>(props: Props<T>) {
+    const { columns, items, getKey, placeholder, onContextMenu } = props
     const headerRow = columns.map(({ heading }, index) => (
         <th
             key={index}
@@ -43,6 +45,9 @@ function Rows<T>({ columns, items, getKey, placeholder }: Props<T>) {
                     key={getKey(item)}
                     className="transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
                     tabIndex={-1}
+                    onContextMenu={() => {
+                        onContextMenu(item)
+                    }}
                 >
                     {columns.map(({ id, render }) => (
                         <td

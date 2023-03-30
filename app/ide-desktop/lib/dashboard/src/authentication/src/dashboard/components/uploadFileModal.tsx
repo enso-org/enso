@@ -1,6 +1,6 @@
 /** @file Modal dialog to upload a file. */
 import * as react from 'react'
-import * as toast from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
 import * as fileInfo from '../../fileInfo'
@@ -20,10 +20,12 @@ function UploadFileModal(props: UploadFileModalProps) {
 
     async function onSubmit() {
         if (file == null) {
-            toast.toast.error('Please select a file to upload.')
+            toast.error('Please select a file to upload.')
         } else if (!name) {
-            toast.toast.error('Please provide a file name.')
+            toast.error('Please provide a file name.')
         } else {
+            close()
+            const toastId = toast.loading('Uploading file...')
             await backend.uploadFile(
                 {
                     parentDirectoryId: directoryId,
@@ -31,9 +33,8 @@ function UploadFileModal(props: UploadFileModalProps) {
                 },
                 file
             )
-            toast.toast.success('Sucessfully uploaded file.')
+            toast.success('Sucessfully uploaded file.', { id: toastId })
             onSuccess()
-            close()
         }
     }
 
@@ -55,9 +56,12 @@ function UploadFileModal(props: UploadFileModalProps) {
                 />
             </div>
             <div className="m-2">
-                <div className="inline-block text-white bg-blue-600 rounded-full px-4 py-1">
-                    <label htmlFor="uploaded_file">Select file</label>
-                </div>
+                <label
+                    htmlFor="uploaded_file"
+                    className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1"
+                >
+                    Select file
+                </label>
             </div>
             <div className="border border-primary rounded-md m-2">
                 <input
@@ -81,13 +85,13 @@ function UploadFileModal(props: UploadFileModalProps) {
             </div>
             <div className="m-1">
                 <div
-                    className="inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1"
+                    className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1"
                     onClick={onSubmit}
                 >
                     Upload
                 </div>
                 <div
-                    className="inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
+                    className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                     onClick={close}
                 >
                     Cancel

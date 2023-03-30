@@ -5,7 +5,7 @@ body {
 }
 
 /* These styles MUST still be copied as `#dashboard body` and `#dashboard html` make no sense. */
-#dashboard {
+.dashboard {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -15,7 +15,7 @@ body {
   font-feature-settings: normal;
 }
 
-#dashboard {
+.dashboard {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;

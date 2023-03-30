@@ -3,8 +3,6 @@
 import * as react from 'react'
 import * as reactDom from 'react-dom'
 
-import * as toast from 'react-hot-toast'
-
 import * as projectManagerModule from 'enso-content/src/project_manager'
 
 import * as auth from '../../authentication/providers/auth'
@@ -15,6 +13,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
+import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
 import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
@@ -281,10 +280,11 @@ function Dashboard(props: DashboardProps) {
     >({})
 
     const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
-    // TODO[sb]: `setVisibleCreateForm(null)` when a click happens anywhere outside a form.
+    // TODO[sb]: `setVisibleCreateForm(null)` when a click happens anywhere outside a form?
     const [visibleCreateForm, setVisibleCreateForm] = react.useState<backend.AssetType | null>(null)
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
     const [Modal, setModal] = react.useState<((props: ModalProps) => JSX.Element) | null>(null)
+    const [contextMenu, setContextMenu] = react.useState<JSX.Element | null>(null)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -653,6 +653,19 @@ function Dashboard(props: DashboardProps) {
                             heading: ColumnHeading(column, backend.AssetType.file),
                             render: renderer(column, backend.AssetType.file),
                         }))}
+                        onContextMenu={item => {
+                            setContextMenu(
+                                <div>
+                                    <button
+                                        onClick={() => {
+                                            /** TODO: Call endpoint for downloading file. */
+                                        }}
+                                    >
+                                        Download
+                                    </button>
+                                </div>
+                            )
+                        }}
                     />
                 </tbody>
             </table>
@@ -668,52 +681,11 @@ function Dashboard(props: DashboardProps) {
                     onDrop={event => {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
-                        const fileCount = event.dataTransfer.files.length
-                        if (fileCount === 0) {
-                            toast.toast.error('No files were dropped.')
-                        } else {
-                            let successfulUploadCount = 0
-                            let completedUploads = 0
-                            /** "file" or "files", whicheven is appropriate. */
-                            const filesWord = fileCount === 1 ? 'file' : 'files'
-                            const toastId = toast.toast.loading(
-                                `Uploading ${fileCount} ${filesWord}.`
-                            )
-                            for (const file of Array.from(event.dataTransfer.files)) {
-                                void backendService
-                                    .uploadFile(
-                                        {
-                                            fileName: file.name,
-                                            parentDirectoryId: directoryId,
-                                        },
-                                        file
-                                    )
-                                    .then(() => {
-                                        successfulUploadCount += 1
-                                    })
-                                    .catch(() => {
-                                        toast.toast.error(`Could not upload file '${file.name}'.`)
-                                    })
-                                    .finally(() => {
-                                        completedUploads += 1
-                                        if (completedUploads === fileCount) {
-                                            const progress =
-                                                successfulUploadCount === fileCount
-                                                    ? fileCount
-                                                    : `${successfulUploadCount}/${fileCount}`
-                                            toast.toast.success(
-                                                `${progress} ${filesWord} uploaded.`,
-                                                { id: toastId }
-                                            )
-                                        } else {
-                                            toast.toast.loading(
-                                                `${successfulUploadCount}/${fileCount} ${filesWord} uploaded.`,
-                                                { id: toastId }
-                                            )
-                                        }
-                                    })
-                            }
-                        }
+                        uploadMultipleFiles.uploadMultipleFiles(
+                            backendService,
+                            directoryId,
+                            Array.from(event.dataTransfer.files)
+                        )
                     }}
                 >
                     Drop to upload files.
@@ -721,6 +693,7 @@ function Dashboard(props: DashboardProps) {
             ) : (
                 <></>
             )}
+            {contextMenu}
             {Modal ? (
                 <div
                     className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
