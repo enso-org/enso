@@ -153,9 +153,13 @@ class Main {
                      * and one for the desktop. Once these are merged, we can't hardcode the
                      * platform here, and need to detect it from the environment. */
                     const platform = authentication.Platform.desktop
+                    let appInstanceRan = false
                     const onAuthenticated = () => {
                         hideAuth()
-                        void appInstance.run()
+                        if (!appInstanceRan) {
+                            appInstanceRan = true
+                            void appInstance.run()
+                        }
                     }
                     authentication.run(logger, platform, onAuthenticated)
                 } else {
