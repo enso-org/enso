@@ -33,10 +33,6 @@ import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
-polyglot java import org.enso.database.JDBCUtils
-polyglot java import java.sql.Types as Java_Types
-polyglot java import java.time.LocalTime as Java_Local_Time
-
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
@@ -132,7 +128,7 @@ type Postgres_Dialect
     make_column_fetcher_for_type self sql_type =
         type_mapping = self.get_type_mapping
         value_type = type_mapping.sql_type_to_value_type sql_type
-        make_postgres_column_fetcher value_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## PRIVATE
     get_statement_setter : Statement_Setter
@@ -335,36 +331,4 @@ make_extract_as_int enso_name sql_name =
         Builder.code "CAST(" ++ extract ++ " AS integer)"
 
 ## PRIVATE
-postgres_statement_setter : Statement_Setter
-postgres_statement_setter =
-    default = Statement_Setter.default
-    fill_hole stmt i value = case value of
-        _ : Date_Time -> JDBCUtils.setZonedDateTime stmt i value
-        _ -> default.fill_hole stmt i value
-    Statement_Setter.Value fill_hole
-
-## PRIVATE
-make_postgres_column_fetcher value_type = case value_type of
-    Value_Type.Time -> time_fetcher
-    # We currently don't distinguish timestamps without a timezone on the Enso value side.
-    Value_Type.Date_Time _ -> date_time_fetcher
-    _ ->
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
-
-## PRIVATE
-time_fetcher =
-    fetch_value rs i =
-        time = rs.getObject i Java_Local_Time.class
-        if rs.wasNull then Nothing else time
-    make_builder initial_size =
-        java_builder = Java_Exports.make_time_of_day_builder initial_size
-        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value fetch_value make_builder
-
-## PRIVATE
-date_time_fetcher =
-    fetch_value rs i = JDBCUtils.getZonedDateTime rs i
-    make_builder initial_size =
-        java_builder = Java_Exports.make_date_time_builder initial_size
-        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
-    Column_Fetcher.Value fetch_value make_builder
+postgres_statement_setter = Statement_Setter.default
