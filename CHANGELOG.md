@@ -370,6 +370,7 @@
   `use_regex` flag.][5959]
 - [Removed many regex compile flags from `split`; added `only_first` and
   `use_regex` flag.][6116]
+- [`Text.split` can now take a vector of delimiters.][6156]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -559,6 +560,7 @@
 [5705]: https://github.com/enso-org/enso/pull/5705
 [5959]: https://github.com/enso-org/enso/pull/5959
 [6116]: https://github.com/enso-org/enso/pull/6116
+[6156]: https://github.com/enso-org/enso/pull/6156
 
 #### Enso Compiler
 
