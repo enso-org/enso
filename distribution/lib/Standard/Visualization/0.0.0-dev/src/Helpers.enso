@@ -143,6 +143,8 @@ Vector.default_visualization self = Id.table
 Vector.to_default_visualization_data : Text
 Vector.to_default_visualization_data self = render_vector self
 
+## PRIVATE
+   Internal function to convert a Vector to a JSON string.
 render_vector object depth=0 max_depth=5 max_length=100 =
     case object of
         _ : Vector -> if depth == max_depth then "[...]" else

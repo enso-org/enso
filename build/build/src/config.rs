@@ -7,8 +7,13 @@ use semver::VersionReq;
 
 
 
-pub fn load_yaml(yaml_text: &str) -> Result<Config> {
-    let raw = serde_yaml::from_str::<ConfigRaw>(yaml_text)?;
+/// Load the build configuration, based on the `build-config.yaml` and `.node-version` files in
+/// the repo root.
+pub fn load() -> Result<Config> {
+    let yaml_text = include_str!("../../../build-config.yaml");
+    let node_version = include_str!("../../../.node-version").trim();
+    let mut raw = serde_yaml::from_str::<ConfigRaw>(yaml_text)?;
+    raw.required_versions.insert("node".to_owned(), node_version.to_owned());
     raw.try_into()
 }
 

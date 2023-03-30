@@ -137,8 +137,10 @@ arising from unsupported configurations will not be fixed by the core team.
 
 In order to build and run Enso you will need the following tools:
 
-- [NodeJS](https://nodejs.org/) with the latest LTS version. We recommend using
-  [`nvm`](https://github.com/nvm-sh/nvm) for managing NodeJS installation.
+- [NodeJS](https://nodejs.org/) with the latest LTS version. We recommend
+  installing
+  [a Node version manager that automatically picks up the correct version](https://github.com/shadowspawn/node-version-usage#supporting-products),
+  like [fnm](https://github.com/Schniz/fnm).
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
   [`project/build.properties`](../project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.

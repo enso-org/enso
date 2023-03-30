@@ -26,12 +26,13 @@ final class WatcherAdapter(
     .build()
 
   /** Start watcher. */
-  def start(): IO[Throwable, Unit] =
-    IO(watcher.watch())
+  def start(): IO[Throwable, Unit] = {
+    ZIO.attempt(watcher.watch())
+  }
 
   /** Stop watcher. */
   def stop(): IO[Throwable, Unit] =
-    IO(watcher.close())
+    ZIO.attempt(watcher.close())
 
   /** A callback executed by `DirectoryWatcher` on file system event. */
   override def onEvent(event: DirectoryChangeEvent): Unit = {

@@ -4,9 +4,9 @@ import Standard.Base.Network.HTTP.Response.Response
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
-import project.Delimited.Delimited_Reader
-import project.Delimited.Delimited_Writer
 import project.Delimited.Quote_Style.Quote_Style
+import project.Internal.Delimited_Reader
+import project.Internal.Delimited_Writer
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format

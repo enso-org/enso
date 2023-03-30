@@ -44,16 +44,16 @@
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11",
-    "esbuild-darwin-64": "^0.17.0",
-    "esbuild-linux-64": "^0.17.0",
-    "esbuild-windows-64": "^0.17.0"
+    "@esbuild/darwin-x64": "^0.17.0",
+    "@esbuild/linux-x64": "^0.17.0",
+    "@esbuild/windows-x64": "^0.17.0"
   },
   "scripts": {
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "start": "npx tsx start.ts",
-    "build": "npx tsx bundle.ts",
-    "dist": "npx tsx dist.ts",
-    "watch": "npx tsx watch.ts"
+    "start": "tsx start.ts",
+    "build": "tsx bundle.ts",
+    "dist": "tsx dist.ts",
+    "watch": "tsx watch.ts"
   }
 }

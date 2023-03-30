@@ -27,6 +27,7 @@ import * as utils from '../../utils'
 // =================
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
 
 // =============================
 // === Environment variables ===
@@ -60,16 +61,24 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 lastModified: number
             }
             let cachedOutput: Record<string, CacheEntry> = {}
+            let tailwindConfigLastModified = 0
+            let tailwindConfigWasModified = true
             const cssProcessor = postcss([
                 tailwindcss({
-                    config: path.resolve(THIS_PATH, 'tailwind.config.ts'),
+                    config: TAILWIND_CONFIG_PATH,
                 }),
                 tailwindcssNesting(),
             ])
+            build.onStart(async () => {
+                const tailwindConfigNewLastModified = (await fs.stat(TAILWIND_CONFIG_PATH)).mtimeMs
+                tailwindConfigWasModified =
+                    tailwindConfigLastModified !== tailwindConfigNewLastModified
+                tailwindConfigLastModified = tailwindConfigNewLastModified
+            })
             build.onLoad({ filter: /\.css$/ }, async loadArgs => {
                 const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
                 let output = cachedOutput[loadArgs.path]
-                if (!output || output.lastModified !== lastModified) {
+                if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
                     console.log(`Processing CSS file '${loadArgs.path}'.`)
                     const result = await cssProcessor.process(
                         await fs.readFile(loadArgs.path, 'utf8'),
@@ -79,7 +88,11 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                     output = { contents: result.css, lastModified }
                     cachedOutput[loadArgs.path] = output
                 }
-                return { contents: output.contents, loader: 'css' }
+                return {
+                    contents: output.contents,
+                    loader: 'css',
+                    watchFiles: [loadArgs.path, TAILWIND_CONFIG_PATH],
+                }
             })
         },
     }

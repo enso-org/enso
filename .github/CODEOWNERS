@@ -23,6 +23,7 @@ Cargo.toml
 # GUI
 /app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow @kazcw
 /app/gui/view/ @MichaelMauderer @wdanilo @farmaazon @kazcw
+/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @wdanilo @farmaazon @kazcw @jdunkerley
 /app/ide-desktop/ @MichaelMauderer @wdanilo @kazcw
 
 # Engine (old)
