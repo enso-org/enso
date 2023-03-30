@@ -18,13 +18,6 @@ import Standard.Test.Extensions
 polyglot java import org.enso.base.Replacer_Cache
 
 spec =
-    Test.group "gmt" <|
-        Test.specify "asdf" <|
-            IO.println <| Regex_2.compile 's\u{301}' . replace 'sśs\u{301}' '-'
-            IO.println <| Regex_2.compile 'a\u{301}' . match_all "aááêe xêy"
-            #Regex_2.compile 'a\u{301}+' . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
-            Regex_2.compile 'a\u{301}+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex_2.compile "(?<dots>..)" case_insensitive=True
@@ -199,16 +192,9 @@ spec =
 
         Test.specify "handles unicode" <|
             Regex_2.compile "[áê]+" . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
-            #fail
-            #Regex_2.compile '[a\u{301}e\u{301}]+' . tokenize 'aááêe xêy' . should_equal ['a\u{301}a\u{301}e\u{301}', 'e\u{301}']
-            #Regex_2.compile '(?:a\u{301})+' . tokenize 'aááêe xêy' . should_equal ['a\u{301}a\u{301}']
-            #Regex_2.compile 'a\u{301}' . tokenize 'aááêe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-            # Wrong
+            # `+` only applies to the accent `\u{301}`, not to the entire grapheme.
             Regex_2.compile 'a\u{301}+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-            # Fails
-            Regex_2.compile '(?:a\u{301})+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-            # fails
-            #Regex_2.compile "a\u{301}+" . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
+            Regex_2.compile '(?:a\u{301})+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}a\u{301}']
             Regex_2.compile "x([áê]+)y" . tokenize "xáy xêy" . should_equal ["á", "ê"]
 
         Test.specify "examples are correct" <|
