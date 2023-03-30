@@ -472,7 +472,7 @@ where E::Model: Default
         let network = &frp.network;
         let model = &self.model;
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let view_y = Animation::<f32>::new(network);
         let selection_y = Animation::<f32>::new(network);
         let selection_height = Animation::<f32>::new(network);
@@ -498,7 +498,7 @@ where E::Model: Default
 
             // === Mouse Position ===
 
-            let overlay_events = &model.overlay.events;
+            let overlay_events = &model.overlay.events_deprecated;
             mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             frp.source.is_mouse_over <+ mouse_in;
             mouse_moved <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD ).on_true();

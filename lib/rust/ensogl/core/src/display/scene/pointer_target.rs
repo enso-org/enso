@@ -10,14 +10,19 @@ use enso_frp as frp;
 
 
 
-// =====================
-// === PointerTarget ===
-// =====================
+// ================================
+// === PointerTarget_DEPRECATED ===
+// ================================
 
 /// Abstraction for objects that can interact with a mouse.
+///
+/// # Deprecated
+/// This API is deprecated. Instead, use the display object's event API. For example, to get an FRP
+/// endpoint for mouse event, you can use the [`crate::display::Object::on_event`] function.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
-pub struct PointerTarget {
+#[allow(non_camel_case_types)]
+pub struct PointerTarget_DEPRECATED {
     network:                     frp::Network,
     /// Mouse button was pressed while the pointer was hovering this object.
     pub mouse_down:              frp::Source<mouse::Button>,
@@ -52,7 +57,7 @@ pub struct PointerTarget {
     pub on_drop:                 frp::Source,
 }
 
-impl PointerTarget {
+impl PointerTarget_DEPRECATED {
     /// Constructor.
     pub fn new() -> Self {
         frp::new_network! { network
@@ -130,7 +135,7 @@ impl PointerTarget {
     }
 }
 
-impl Default for PointerTarget {
+impl Default for PointerTarget_DEPRECATED {
     fn default() -> Self {
         Self::new()
     }

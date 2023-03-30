@@ -1,7 +1,8 @@
 package org.enso.table.data.index;
 
-import java.util.Arrays;
 import java.util.Comparator;
+
+import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 
 /**
@@ -19,6 +20,11 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
   private final Comparator<Object> objectComparator;
 
   private final int[] directions;
+
+  public OrderedMultiValueKey(
+          Storage<?>[] storages, int rowIndex, int[] directions) {
+    this(storages, rowIndex, directions, ObjectComparator.DEFAULT);
+  }
 
   public OrderedMultiValueKey(
       Storage<?>[] storages, int rowIndex, int[] directions, Comparator<Object> objectComparator) {

@@ -202,23 +202,28 @@ Copyright notices related to this dependency can be found in the directory `comm
 
 
 'izumi-reflect-thirdparty-boopickle-shaded_2.13', licensed under the Apache-2.0, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect-thirdparty-boopickle-shaded_2.13-1.1.3`.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect-thirdparty-boopickle-shaded_2.13-2.2.5`.
 
 
 'izumi-reflect_2.13', licensed under the Apache-2.0, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect_2.13-1.1.3`.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect_2.13-2.2.5`.
+
+
+'zio-internal-macros_2.13', licensed under the Apache-2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.zio-internal-macros_2.13-2.0.10`.
 
 
 'zio-stacktracer_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `dev.zio.zio-stacktracer_2.13-1.0.12`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.zio-stacktracer_2.13-2.0.10`.
 
 
 'zio_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `dev.zio.zio_2.13-1.0.12`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.zio_2.13-2.0.10`.
 
 
 'circe-core_2.13', licensed under the Apache 2.0, is distributed with the engine.

@@ -160,7 +160,7 @@ class TableVisualization extends Visualization {
             rowData = parsedData.json
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && isObjectMatrix(parsedData.json)) {
-            let firstKeys = Object.keys(data[0])
+            let firstKeys = Object.keys(parsedData.json[0])
             columnDefs = firstKeys.map(field => ({ field }))
             rowData = parsedData.json.map(obj =>
                 firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})

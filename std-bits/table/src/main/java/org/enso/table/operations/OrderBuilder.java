@@ -3,6 +3,8 @@ package org.enso.table.operations;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;
+
+import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
@@ -11,7 +13,6 @@ import org.enso.table.data.table.Column;
 public class OrderBuilder {
   public static class OrderRule {
     private final Column column;
-    private final Comparator<Object> customComparator;
     private final boolean ascending;
     private final boolean missingLast;
 
@@ -19,19 +20,12 @@ public class OrderBuilder {
      * A single-column ordering rule.
      *
      * @param column the column to use for ordering
-     * @param customComparator a comparator that should be used instead of natural ordering of the
-     *     values
      * @param ascending whether column should be sorted ascending or descending
      * @param missingLast whether or not missing values should be placed at the start or end of the
      *     ordering
      */
-    public OrderRule(
-        Column column,
-        Comparator<Object> customComparator,
-        boolean ascending,
-        boolean missingLast) {
+    public OrderRule(Column column, boolean ascending, boolean missingLast) {
       this.column = column;
-      this.customComparator = customComparator;
       this.ascending = ascending;
       this.missingLast = missingLast;
     }
@@ -44,10 +38,12 @@ public class OrderBuilder {
      */
     public Comparator<Integer> toComparator() {
       final Storage<?> storage = column.getStorage();
-      Comparator<Object> itemCmp = customComparator;
+      Comparator<Object> itemCmp = ObjectComparator.DEFAULT;
+
       if (!ascending) {
         itemCmp = itemCmp.reversed();
       }
+
       if (missingLast) {
         itemCmp = Comparator.nullsLast(itemCmp);
       } else {

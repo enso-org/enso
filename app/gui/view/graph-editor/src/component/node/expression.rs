@@ -32,6 +32,24 @@ impl Expression {
         let whole_expression_id = default();
         Self { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
     }
+
+    /// Get the expression code with given span replaced with provided string. Does not modify the
+    /// existing expression.
+    pub fn code_with_replaced_span(
+        &self,
+        crumbs: &span_tree::Crumbs,
+        replacement: &str,
+    ) -> ImString {
+        if let Ok(span_ref) = self.input_span_tree.get_node(crumbs) {
+            let span = span_ref.span();
+            let byte_range = span.start.value..span.end.value;
+            let mut code = self.code.to_string();
+            code.replace_range(byte_range, replacement);
+            code.into()
+        } else {
+            self.code.clone()
+        }
+    }
 }
 
 impl Display for Expression {

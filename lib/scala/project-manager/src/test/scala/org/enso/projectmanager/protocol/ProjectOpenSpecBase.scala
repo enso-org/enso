@@ -33,7 +33,12 @@ abstract class ProjectOpenSpecBase
       engineVersion          = defaultVersion,
       missingComponentAction = MissingComponentAction.Fail
     )
-    ordinaryProject = Runtime.default.unsafeRun(ordinaryAction).id
+    ordinaryProject = zio.Unsafe.unsafe { implicit unsafe =>
+      Runtime.default.unsafe
+        .run(ordinaryAction)
+        .getOrElse(cause => throw new Exception(cause.prettyPrint))
+        .id
+    }
     val brokenName = "Projbroken"
     val brokenAction = projectService.createUserProject(
       progressTracker        = blackhole,
@@ -42,7 +47,12 @@ abstract class ProjectOpenSpecBase
       engineVersion          = defaultVersion,
       missingComponentAction = MissingComponentAction.Fail
     )
-    brokenProject = Runtime.default.unsafeRun(brokenAction).id
+    brokenProject = zio.Unsafe.unsafe { implicit unsafe =>
+      Runtime.default.unsafe
+        .run(brokenAction)
+        .getOrElse(cause => throw new Exception(cause.prettyPrint))
+        .id
+    }
 
     // TODO [RW] this hack should not be necessary with #1273
     val projectDir = new File(userProjectDir, brokenName)

@@ -5,7 +5,7 @@ use enso_shortcuts::traits::*;
 
 use crate::frp;
 use crate::frp::io::keyboard;
-use crate::frp::io::mouse::Mouse;
+use crate::frp::io::mouse::Mouse_DEPRECATED;
 
 use super::command;
 use enso_shortcuts as shortcuts;
@@ -233,7 +233,7 @@ pub struct Registry {
 #[derive(Clone, CloneRef, Debug)]
 pub struct RegistryModel {
     keyboard:           keyboard::Keyboard,
-    mouse:              Mouse,
+    mouse:              Mouse_DEPRECATED,
     command_registry:   command::Registry,
     shortcuts_registry: shortcuts::HashSetRegistry<Shortcut>,
 }
@@ -248,7 +248,7 @@ impl Deref for Registry {
 impl Registry {
     /// Constructor.
     pub fn new(
-        mouse: &Mouse,
+        mouse: &Mouse_DEPRECATED,
         keyboard: &keyboard::Keyboard,
         cmd_registry: &command::Registry,
     ) -> Self {
@@ -270,7 +270,7 @@ impl Registry {
 impl RegistryModel {
     /// Constructor.
     pub fn new(
-        mouse: &Mouse,
+        mouse: &Mouse_DEPRECATED,
         keyboard: &keyboard::Keyboard,
         command_registry: &command::Registry,
     ) -> Self {
