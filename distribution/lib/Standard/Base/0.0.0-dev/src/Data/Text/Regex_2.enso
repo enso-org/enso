@@ -11,7 +11,7 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, True, False
 from project.Errors.Common import Syntax_Error
 
-polyglot java import java.util.regex.Pattern as Java_Pattern
+polyglot java import org.enso.base.Regex_Utils
 
 ## Compile the provided `expression` into a regex pattern that can be used for
    matching.
@@ -55,7 +55,7 @@ compile self expression case_insensitive=Nothing =
              literal_string = "\!\.|abcde"
              Regex_2.escape literal_string
 escape : Text -> Text
-escape self expression = Java_Pattern.quote expression
+escape self expression = Regex_Utils.regexQuote expression
 
 ## An error that is emitted when there is no such group in the match for the
    provided `id`.

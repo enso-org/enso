@@ -38,8 +38,7 @@ spec =
 
     Test.group "Escape" <|
         Test.specify "should escape an expression for use as a literal" <|
-            pattern = "http://example.com"
-            Regex_2.escape pattern . should_equal "\Qhttp://example.com\E"
+            Regex_2.escape "[a-z\d]+" . should_equal '\\[a-z\\d\\]\\+'
 
     Test.group "Pattern.matches" <|
         Test.specify "should return True when the pattern matches against the input" <|
