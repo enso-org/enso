@@ -118,7 +118,7 @@
         },
         "vectorEditor": {
           "value": false,
-          "descirption": "Show Vector Editor widget on nodes.",
+          "description": "Show Vector Editor widget on nodes.",
           "primary": false
         }
       }
