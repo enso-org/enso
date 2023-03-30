@@ -26,7 +26,7 @@ const DRAG_THRESHOLD: f32 = 4.0;
 const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -81,9 +81,9 @@ mod spacer {
         #[deref]
         pub frp:        spacer::Frp,
         root:           display::object::Instance,
-        self_ref:       RefCell<Option<Rc<SpacerModel>>>,
+        self_ref:       Rc<RefCell<Option<Rc<SpacerModel>>>>,
         margin_left:    Cell<f32>,
-        collapsing:     Cell<bool>,
+        collapsing:     Rc<Cell<bool>>,
         size_animation: Animation<f32>,
     }
 
@@ -104,6 +104,8 @@ mod spacer {
             let model = SpacerModel::new();
             let model = Rc::new(model);
             let root = model.root.clone_ref();
+            let collapsing = &model.collapsing;
+            let self_ref = &model.self_ref;
 
             let network = &model.frp.network();
             let size_animation = &model.size_animation;
@@ -112,11 +114,13 @@ mod spacer {
                 size_animation.target <+ model.frp.private.input.set_init_size;
                 size_animation.skip <+ model.frp.private.input.set_init_size.constant(());
 
-                trace model.frp.private.input.set_target_size;
                 size_animation.target <+ model.frp.private.input.set_target_size;
                 eval size_animation.value ((t) root.set_size_x(*t););
-
-                trace size_animation.value;
+                eval_ size_animation.on_end ([collapsing, self_ref] {
+                    if collapsing.get() {
+                        self_ref.borrow_mut().take();
+                    }
+                });
             }
             Self { model }
         }
@@ -209,6 +213,14 @@ impl<T: display::Object> Item<T> {
                 if let Some(spacer) = t.upgrade() {
                     spacer.set_margin_left(margin);
                 },
+        }
+    }
+
+    pub fn exists(&self) -> bool {
+        match self {
+            Item::Regular(_) => true,
+            Item::Spacer(_) => true,
+            Item::WeakSpacer(t) => t.upgrade().is_some(),
         }
     }
 }
@@ -321,7 +333,8 @@ impl<T: display::Object> VectorEditor<T> {
 }
 
 impl<T: display::Object> Model<T> {
-    fn redraw_items(&self, layouted_elems: &display::object::Instance) {
+    fn redraw_items(&mut self, layouted_elems: &display::object::Instance) {
+        self.retain_non_collapsed_items();
         for item in &self.items {
             if let Some(display_object) = item.display_object() {
                 layouted_elems.add_child(&display_object);
@@ -342,6 +355,10 @@ impl<T: display::Object> Model<T> {
                 first_elem = false;
             }
         }
+    }
+
+    fn retain_non_collapsed_items(&mut self) {
+        self.items.retain(|item| item.exists());
     }
 
     // FIXME: refactor and generalize
@@ -419,6 +436,7 @@ impl<T: display::Object> Model<T> {
             centers.push(current);
             current += size.x / 2.0 + GAP;
         }
+        warn!("{:#?}", centers);
         centers
     }
 
