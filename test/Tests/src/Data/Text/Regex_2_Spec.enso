@@ -169,12 +169,12 @@ spec =
             pattern.split 'aśsśs\u{301}śb' . should_equal ['aś', 'ś', '\u{301}śb']
 
     Test.group "Pattern_2.tokenize" <|
-        Test.specify "can tokenize simple regexes without capturing groups"
+        Test.specify "can tokenize with simple regexes without capturing groups"
             Regex_2.compile "[a-z]+" . tokenize "1-800-regex-yes" . should_equal ["regex", "yes"]
             Regex_2.compile "[a-z]+" case_insensitive=True . tokenize "1-800-REGEX-YES" . should_equal ["REGEX", "YES"]
             Regex_2.compile "\d\d" . tokenize "12 hi345 67r890r" . should_equal ["12", "34", "67", "89"]
 
-        Test.specify "can tokenize regexes with capturing groups"
+        Test.specify "can tokenize with regexes with capturing groups"
             Regex_2.compile "(\d\d)\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex_2.compile "[a-z]+(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
             Regex_2.compile "[a-z]+(\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["", "182", "20", ""]

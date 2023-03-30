@@ -344,6 +344,38 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
                 compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
                 compiled_pattern.split self only_first
 
+## ADVANCED
+   Takes an input string and and a pattern and returns all the matches as a
+   `Vector Text`. If the pattern contains marked groups, the values are
+   concatenated together; otherwise the whole match is returned.
+
+   Arguments:
+   - input: The text to tokenize.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively. The values are compared case sensitively by default.
+
+   > Example
+     Split to blocks of 3 characters.
+
+        "ABCDEF" . tokenize  "..." == ["ABC","DEF"]
+
+   > Example
+     Split to blocks of 3 characters taking first and third letters.
+
+        "ABCDEF" . tokenize "(.).(.)" == ["AC","DF"]
+
+   > Example
+     Split a text on any white space.
+
+        'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)"
+            == ["Hello","Big","Wide","World","Goodbye!"]
+Text.tokenize : Text -> Case_Sensitivity -> Vector Text
+Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
+    Helpers.regex_assume_default_locale case_sensitivity <|
+        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+        compiled_pattern.tokenize self
+
 ## ALIAS Replace Text
    Perform a text or regex replace.
 
