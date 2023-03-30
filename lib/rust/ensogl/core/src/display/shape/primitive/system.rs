@@ -456,9 +456,10 @@ impl ShapeSystemModel {
                 vec2 uv_scale = padded_size / input_size;
                 vec2 uv_offset = padding / input_size;
 
-                // Note: Due to a shader optimizer issue, the `input_uv` modification is
-                // intentionally split into two separate expressions. When this is written in single
-                // line as follows:
+                // Note: SPIRV-Cross issue https://github.com/KhronosGroup/SPIRV-Cross/issues/2129
+                // To avoid incorrect code generation for `Fma` instruction in SPIRV-Cross, the
+                // `input_uv` modification is intentionally split into two separate expressions.
+                // When this is written in single line as follows:
                 // ```
                 // input_uv = input_uv * uv_scale - uv_offset;
                 // ```
