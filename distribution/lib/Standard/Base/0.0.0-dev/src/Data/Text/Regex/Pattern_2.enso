@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
@@ -143,7 +144,8 @@ type Pattern_2
 
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
-       together; otherwise the whole match is returned.
+       together; otherwise the whole match is returned. Non-participating
+       groups are omitted.
 
        Arguments:
        - input: The text to tokenize.
@@ -411,7 +413,7 @@ build_tokenization_output_from_match pattern match =
     if pattern.group_count == 1 then match.text 0 else
         # Extract the ranges of the spans of all capturing groups
         group_numbers = 1.up_to pattern.group_count
-        spans = group_numbers.map n-> match.span n
+        spans = group_numbers.map (n-> match.span n) . filter Filter_Condition.Not_Nothing
         ranges = spans.map span-> case span of Span.Value range _ -> range
 
         # Eliminate nested capturing groups by sorting and merging the ranges.

@@ -191,6 +191,10 @@ spec =
             Regex_2.compile "[a-z]+((\d)\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
             Regex_2.compile "\d(\d(\d\d)\d)\d" . tokenize "012345678901" . should_equal ["1234", "7890"]
 
+        Test.specify "non-participating groups are rendered as the empty string"
+            Regex_2.compile "(\d).(?:(\d)|([a-z])).(\d)" . tokenize "3_4_0" . should_equal ['340']
+            Regex_2.compile "(\d).(?:(\d)|([a-z])).(\d)" . tokenize "3_q_0" . should_equal ['3q0']
+
         Test.specify "handles unicode" <|
             Regex_2.compile "[áê]+" . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
             # `+` only applies to the accent `\u{301}`, not to the entire grapheme.
