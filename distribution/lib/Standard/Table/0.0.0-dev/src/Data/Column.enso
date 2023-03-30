@@ -17,7 +17,7 @@ import project.Internal.Widget_Helpers
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
-from project.Errors import No_Index_Set_Error, Floating_Point_Equality
+from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -907,6 +907,49 @@ type Column
     like : Column | Text -> Column
     like self pattern =
         run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State.Error "The `Like` operation should only be used on Text columns.")) pattern
+
+    ## Gets the year as a number from the date stored in the column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    year : Column -> Column
+    year self =
+        case self.value_type.has_date of
+            True ->
+                new_name = Naming_Helpers.function_name "year" [self]
+                run_vectorized_unary_op self "year" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `year`. This is a bug in the Table library.")) new_name
+            False ->
+                Error.throw <|
+                    Invalid_Value_Type.Error "Date or Date_Time" self.value_type self.name
+
+    ## Gets the month as a number (1-12) from the date stored in the column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    month : Column -> Column
+    month self =
+        case self.value_type.has_date of
+            True ->
+                new_name = Naming_Helpers.function_name "month" [self]
+                run_vectorized_unary_op self "month" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `month`. This is a bug in the Table library.")) new_name
+            False ->
+                Error.throw <|
+                    Invalid_Value_Type.Error "Date or Date_Time" self.value_type self.name
+
+    ## Gets the day of the month as a number (1-31) from the date stored in the
+       column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    day : Column -> Column
+    day self =
+        case self.value_type.has_date of
+            True ->
+                new_name = Naming_Helpers.function_name "day" [self]
+                run_vectorized_unary_op self "day" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `day`. This is a bug in the Table library.")) new_name
+            False ->
+                Error.throw <|
+                    Invalid_Value_Type.Error "Date or Date_Time" self.value_type self.name
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.

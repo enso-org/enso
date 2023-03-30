@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Value_Type
-from Standard.Table.Errors import Inexact_Type_Coercion
+from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -41,7 +41,6 @@ spec setup =
             dates = [dt1, dt2, dt3]
             xs = [1, 2, 3]
             table = table_builder [["C", dates], ["X", xs]]
-            table.print
             table.at "C" . value_type . should_equal Value_Type.Date_Time
             ## We compare the timestamps converted to UTC.
                This ensures that the value we are getting back represents the
@@ -52,6 +51,49 @@ spec setup =
                of what timezone they were in at input.
             table.at "C" . to_vector . map to_utc . should_equal (dates.map to_utc)
             table.at "X" . to_vector . should_equal xs
+
+    Test.group prefix+"Date-Time operations" pending=(if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend.") <|
+        Test.specify "should allow to get the year/month/day of a Date" <|
+            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
+
+            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
+            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
+            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+                c.value_type.is_integer.should_be_true
+
+            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+
+        Test.specify "should allow to get the year/month/day of a Date_Time" <|
+            t = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59, Date_Time.new 2024 2 29 2 30 44, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+
+            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
+            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
+            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+                c.value_type.is_integer.should_be_true
+
+            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+
+        Test.specify "should allow to compute expressions with year/month/day" <|
+            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
+            t.print
+            t.info.print
+            c = t.compute "year([A]) + [X] + day([A]) * month([B])"
+            c.value_type.is_integer.should_be_true
+            c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
+
+        Test.specify "should report a type error if year/month/day is invoked on a non-date column" <|
+            t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
+            r1 = t.at "A" . year
+            r1.should_fail_with Invalid_Value_Type
+            r1.catch . to_display_text . should_start_with "Expected A column to have Date or Date_Time type, but got Integer"
+            t.at "B" . month . should_fail_with Invalid_Value_Type
+            t.at "C" . day . should_fail_with Invalid_Value_Type
 
     if setup.test_selection.date_time.not then
         Test.group prefix+"partial Date-Time support" <|

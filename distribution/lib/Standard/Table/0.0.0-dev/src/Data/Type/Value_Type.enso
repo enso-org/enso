@@ -187,6 +187,16 @@ type Value_Type
         Value_Type.Integer _ -> True
         _ -> False
 
+    ## UNSTABLE
+       Checks if the `Value_Type` represents a type that holds a date.
+
+       It will return true for both `Date` and `Date_Time` types.
+    has_date : Boolean
+    has_date self = case self of
+        Value_Type.Date -> True
+        Value_Type.Date_Time _ -> True
+        _ -> False
+
     ## Provides a text representation of the `Value_Type` meant for
        displaying to the user.
     to_display_text : Text

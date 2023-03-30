@@ -188,6 +188,22 @@ Any.should_start_with self that frames_to_skip=0 = case self of
         msg = self.to_text + " is not a `Text` value (at " + loc + ")."
         Test.fail msg
 
+## Asserts that `self` value is a Text value and starts with `that`.
+
+   Arguments:
+   - that: The value to check `self` starts with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should start with another.
+
+         from Standard.Test import Test
+
+         example_should_start_with = "Hello World!" . should_start_with "Hello"
+Error.should_start_with : Any -> Integer -> Test_Result
+Error.should_start_with self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that `self` value is equal to the expected value.
 
    Arguments:
