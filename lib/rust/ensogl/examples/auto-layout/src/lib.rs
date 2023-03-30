@@ -97,21 +97,28 @@ pub fn main() {
 
 
     let root2 = scene.new_child_named("root2").leak();
-    let rect_outer = rectangle::View::new().leak();
 
+    let rect_outer = rectangle::View::new().leak();
     rect_outer.allow_grow();
-    rect_outer.color.set(Rgba::new(0.5, 0.5, 0.0, 0.8).into());
+    rect_outer.color.set(Rgba::new(0.5, 0.5, 0.0, 0.2).into());
     root2.add_child(&rect_outer);
+
+    let overflow_auto_layout = root2.new_child().leak();
+    overflow_auto_layout.use_auto_layout().set_padding_all(10.0);
+
+    let rect_inner = rectangle::View::new().leak();
+    rect_inner.color.set(Rgba::new(0.0, 0.0, 0.0, 0.3).into());
+    overflow_auto_layout.add_child(&rect_inner);
 
     let rect_inner_1 = rectangle::View::new().leak();
     rect_inner_1.color.set(Rgba::new(0.0, 0.5, 0.5, 0.8).into());
     rect_inner_1.set_size((100, 100)).set_xy((50.0, -50.0));
-    root2.add_child(&rect_inner_1);
+    rect_inner.add_child(&rect_inner_1);
 
     let rect_inner_2 = rectangle::View::new().leak();
     rect_inner_2.set_size((100, 100)).set_xy((-50.0, 50.0));
     rect_inner_2.color.set(Rgba::new(0.5, 0.0, 0.5, 0.8).into());
-    root2.add_child(&rect_inner_2);
+    rect_inner.add_child(&rect_inner_2);
 
     root1.set_y(-100.0);
     root2.set_y(100.0);
