@@ -519,6 +519,13 @@ impl<T: Value> SimulationDataCell<T> {
         });
     }
 
+    pub fn update_value<F: FnOnce(T) -> T>(&self, f: F) {
+        self.data.update(|mut sim| {
+            sim.update_value(f);
+            sim
+        });
+    }
+
     pub fn set_target_value(&self, target_value: T) {
         self.data.update(|mut sim| {
             sim.set_target_value(target_value);
@@ -672,6 +679,11 @@ where
 {
     pub fn set_value(&self, value: T) {
         self.simulation.set_value(value);
+        self.start();
+    }
+
+    pub fn update_value<F: FnOnce(T) -> T>(&self, f: F) {
+        self.simulation.update_value(f);
         self.start();
     }
 

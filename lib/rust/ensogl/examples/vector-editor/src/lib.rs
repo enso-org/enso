@@ -76,25 +76,40 @@ mod spacer {
         model: Rc<SpacerModel>,
     }
 
-    #[derive(Debug, Default, Deref)]
+    #[derive(Debug, Deref)]
     pub struct SpacerModel {
         #[deref]
-        pub frp:  spacer::Frp,
-        root:     display::object::Instance,
-        self_ref: RefCell<Option<Rc<SpacerModel>>>,
+        pub frp:        spacer::Frp,
+        root:           display::object::Instance,
+        self_ref:       RefCell<Option<Rc<SpacerModel>>>,
+        margin_left:    Cell<f32>,
+        collapsing:     Cell<bool>,
+        size_animation: Animation<f32>,
+    }
+
+    impl SpacerModel {
+        fn new() -> Self {
+            let frp = spacer::Frp::new();
+            let root = default();
+            let self_ref = default();
+            let margin_left = default();
+            let collapsing = default();
+            let size_animation = Animation::<f32>::new(frp.network());
+            Self { frp, root, self_ref, margin_left, collapsing, size_animation }
+        }
     }
 
     impl Spacer {
         pub fn new() -> Self {
-            let model = SpacerModel::default();
+            let model = SpacerModel::new();
             let model = Rc::new(model);
             let root = model.root.clone_ref();
 
             let network = &model.frp.network();
-            let size_animation = Animation::<f32>::new(network);
+            let size_animation = &model.size_animation;
             size_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             frp::extend! { network
-                size_animation.target <+  model.frp.private.input.set_init_size;
+                size_animation.target <+ model.frp.private.input.set_init_size;
                 size_animation.skip <+ model.frp.private.input.set_init_size.constant(());
 
                 trace model.frp.private.input.set_target_size;
@@ -113,6 +128,17 @@ mod spacer {
         pub fn collapse(&self) {
             *self.self_ref.borrow_mut() = Some(self.model.clone());
             self.set_target_size(0.0);
+            self.collapsing.set(true);
+        }
+
+        pub fn set_margin_left(&self, margin: f32) {
+            let current_margin = self.margin_left.get();
+            let margin_diff = margin - current_margin;
+            self.margin_left.set(margin);
+            self.size_animation.simulator.update_value(|v| v + margin_diff);
+            if !self.collapsing.get() {
+                self.size_animation.simulator.update_target_value(|v| v + margin_diff);
+            }
         }
     }
 
@@ -157,6 +183,10 @@ impl<T: display::Object> Item<T> {
         matches!(self, Self::Spacer(_))
     }
 
+    pub fn is_weak_spacer(&self) -> bool {
+        matches!(self, Self::WeakSpacer(_))
+    }
+
     pub fn display_object(&self) -> Option<display::object::Instance> {
         match self {
             Item::Regular(t) => Some(t.display_object().clone_ref()),
@@ -170,8 +200,15 @@ impl<T: display::Object> Item<T> {
     }
 
     pub fn set_margin_left(&self, margin: f32) {
-        if let Some(display_object) = self.display_object() {
-            display_object.set_margin_left(margin);
+        match self {
+            Item::Regular(t) => {
+                t.set_margin_left(margin);
+            }
+            Item::Spacer(t) => t.set_margin_left(margin),
+            Item::WeakSpacer(t) =>
+                if let Some(spacer) = t.upgrade() {
+                    spacer.set_margin_left(margin);
+                },
         }
     }
 }
@@ -293,26 +330,16 @@ impl<T: display::Object> Model<T> {
     }
 
     fn reset_margins(&self) {
-        warn!("=== reset_margins ===");
         let mut first_elem = true;
         for item in &self.items {
-            match item {
-                Item::WeakSpacer(_) => {
-                    warn!("WeakSpacer");
-                }
-                Item::Spacer(_) => {
-                    warn!("Spacer");
-                    first_elem = false;
-                }
-                Item::Regular(_) => {
-                    warn!("Regular");
-                    if !first_elem {
-                        item.set_margin_left(GAP);
-                    } else {
-                        item.set_margin_left(0.0);
-                    }
-                    first_elem = false;
-                }
+            if item.is_weak_spacer() {
+                // As the first element, [`WeakSpacer`] contains the left margin of the next
+                // element in order to not leave any space after collapsing.
+                item.set_margin_left(GAP);
+            } else {
+                let gap = if first_elem { 0.0 } else { GAP };
+                item.set_margin_left(gap);
+                first_elem = false;
             }
         }
     }
@@ -350,8 +377,8 @@ impl<T: display::Object> Model<T> {
             .expect("Item not found");
         let spacer = Spacer::new();
         let elem_ref = &self.items[index];
-        let gap_size = if index == 0 { 0.0 } else { GAP };
-        spacer.set_init_size(elem_ref.computed_size().x + gap_size);
+        // let gap_size = if index == 0 { 0.0 } else { GAP };
+        spacer.set_init_size(elem_ref.computed_size().x);
         let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
         self.dragged_item = Some(elem);
         self.reset_margins();
