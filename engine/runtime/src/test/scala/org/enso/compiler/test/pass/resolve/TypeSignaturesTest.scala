@@ -252,10 +252,12 @@ class TypeSignaturesTest extends CompilerTest {
 
     val ir =
       """
-        |f a (b = 1 : Int) : Double
+        |f a (b = 1 : Int) = 42.5
         |""".stripMargin.preprocessExpression.get.resolve
 
     // FIXME: Not supported by new parser--needs triage (#5894).
+    // Original: `f a (b = 1 : Int) : Double` makes no sense, right Kaz?
+    // anyway I don't see any `TypeSignatures` anywhere even after changing the expression
     "associate the signature with the typed expression" ignore {
       ir shouldBe an[IR.Application.Prefix]
       ir.getMetadata(TypeSignatures) shouldBe defined
