@@ -25,7 +25,7 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
-import {PRODUCT_NAME} from "enso-common";
+import { PRODUCT_NAME } from 'enso-common'
 
 const logger = contentConfig.logger
 
@@ -75,14 +75,14 @@ class App {
         // Register file associations for macOS.
         electron.app.on('open-file', fileAssociations.onFileOpened)
 
-        const { windowSize, chromeOptions, openedFile } = this.processArguments()
-        if (openedFile !== null) {
+        const { windowSize, chromeOptions, fileToOpen } = this.processArguments()
+        if (fileToOpen !== null) {
             try {
                 // This makes the IDE open the relevant project. Also, this prevents us from using this
                 // method after IDE has been fully set up, as the initializing code would have already
                 // read the value of this argument.
                 this.args.groups.startup.options.project.value =
-                    fileAssociations.handleOpenFile(openedFile)
+                    fileAssociations.handleOpenFile(fileToOpen)
             } catch (e) {
                 // If we failed to open the file, we should enter the usual welcome screen.
                 // The `handleOpenFile` function will have already displayed an error message.
@@ -116,12 +116,12 @@ class App {
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
-        let openedFile = attemptingToOpenFile(paths.clientArguments)
+        let fileToOpen = attemptingToOpenFile(paths.clientArguments)
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument), it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        let argsToParse = openedFile ? [] : paths.clientArguments
-        return { ...configParser.parseArgs(argsToParse), openedFile }
+        let argsToParse = fileToOpen ? [] : paths.clientArguments
+        return { ...configParser.parseArgs(argsToParse), fileToOpen }
     }
 
     /** Set Chrome options based on the app configuration. For comprehensive list of available

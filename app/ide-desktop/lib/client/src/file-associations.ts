@@ -5,8 +5,8 @@ import child_process from 'node:child_process'
 import process from 'node:process'
 import { BUNDLED_PROJECT_EXTENSION, SOURCE_FILE_EXTENSION } from '../file-associations'
 import * as project from './project-management'
-import {logger} from "enso-content-config";
-import {PRODUCT_NAME} from "enso-common";
+import { logger } from 'enso-content-config'
+import { PRODUCT_NAME } from 'enso-common'
 
 export * from '../file-associations'
 
@@ -29,11 +29,11 @@ export function onFileOpened(event: Event, path: string) {
         // user-spawned IDE instance (OS-spawned will not have arguments set).
         if (!electron.app.isReady() && paths.clientArguments.length === 0) {
             event.preventDefault()
-            console.log(`Opening file '${path}'.`)
+            logger.log(`Opening file '${path}'.`)
             return handleOpenFile(path)
         } else {
             // We need to start another copy of the application, as the first one is already running.
-            console.log(`We are already initialized, opening '${path}' in a new instance.`)
+            logger.log(`We are already initialized, opening '${path}' in a new instance.`)
             const args = [path]
             const child = child_process.spawn(process.execPath, args, {
                 detached: true,
@@ -54,7 +54,7 @@ export function handleOpenFile(openedFile: string): string {
     } catch (e: unknown) {
         // Since the user has explicitly asked us to open a file, in case of an error, we should
         // display a message box with the error details.
-        let message = `Cannot open file: ${e}.`
+        let message = `Cannot open file: '${e}'.`
         if (e instanceof Error) {
             message += `\n\nDetails:\n${e.stack}`
         }

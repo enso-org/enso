@@ -11,13 +11,14 @@ import path from 'node:path'
 import fss from 'node:fs'
 import electron from 'electron'
 import crypto from 'node:crypto'
-
-import { isProjectRoot, projectMetadataRelative } from './paths.js'
 import fsSync from 'node:fs'
 import * as tar from 'tar'
-import { getCommonPrefix } from '../../../utils.js'
+
+import { isProjectRoot, projectMetadataRelative } from './paths'
+import { getCommonPrefix } from '../../../utils'
 import { logger } from 'enso-content-config'
-import {BUNDLED_PROJECT_EXTENSION} from "../file-associations";
+import { BUNDLED_PROJECT_EXTENSION } from '../file-associations'
+import { PRODUCT_NAME } from 'enso-common'
 
 // =======================
 // === Project Import ===
@@ -44,7 +45,7 @@ export function importProjectFromPath(openedPath: string): string {
         // Check if the project root is under the projects directory. If it is, we can open it.
         // Otherwise, we need to install it first.
         if (rootPath === null) {
-            let message = `File '${openedPath}' does not belong to the Enso project.`
+            let message = `File '${openedPath}' does not belong to the ${PRODUCT_NAME} project.`
             throw new Error(message)
         }
         return importDirectory(rootPath)
@@ -52,12 +53,12 @@ export function importProjectFromPath(openedPath: string): string {
 }
 
 /** Import the project from a bundle.
-
- @returns Project ID (from Project Manager's metadata) identifying the imported project.
+ *
+ *  @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
 export function importBundle(bundlePath: string): string {
     // The bundle is a tarball, so we just need to extract it to the right location.
-    const bundleRoot = bundleRootDirectory(bundlePath)
+    const bundleRoot = directoryWithinBundle(bundlePath)
     const targetDirectory = generateDirectoryName(bundleRoot ?? bundlePath)
     fss.mkdirSync(targetDirectory, { recursive: true })
     // To be more resilient against different ways that user might attempt to create a bundle, we try to support
@@ -102,7 +103,6 @@ export function importDirectory(rootPath: string): string {
     // project multiple times.
     return updateId(targetDirectory)
 }
-
 
 // ================
 // === Metadata ===
@@ -155,7 +155,7 @@ export function updateMetadata(
 
 /** Check if this bundle is a compressed directory (rather than directly containing the project files). If it is, we
  *  return the name of the directory. Otherwise, we return `null`. */
-export function bundleRootDirectory(bundlePath: string): string | null {
+export function directoryWithinBundle(bundlePath: string): string | null {
     // We need to look up the root directory among the tarball entries.
     let commonPrefix: string | null = null
     tar.list({
@@ -203,6 +203,7 @@ export function generateDirectoryName(name: string): string {
     }
     // Unreachable.
 }
+
 /** Takes a path to a file, presumably located in a project's subtree. Returns the path to the project's root directory
  * or `null` if the file is not located in a project. */
 export function getProjectRoot(subtreePath: string): string | null {
@@ -240,6 +241,7 @@ export function generateId(): string {
     return crypto.randomUUID()
 }
 
+/** Update the project's ID to a new, unique value. */
 export function updateId(projectRoot: string): string {
     return updateMetadata(projectRoot, metadata => ({
         ...metadata,

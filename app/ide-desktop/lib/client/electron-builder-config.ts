@@ -158,12 +158,12 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         fileAssociations: [
             {
                 ext: SOURCE_FILE_EXTENSION,
-                name: 'Enso Source File',
+                name: `${common.PRODUCT_NAME} Source File`,
                 role: 'Editor',
             },
             {
                 ext: BUNDLED_PROJECT_EXTENSION,
-                name: 'Enso Project Bundle',
+                name: `${common.PRODUCT_NAME} Project Bundle`,
                 role: 'Editor',
             },
         ],

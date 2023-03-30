@@ -41,9 +41,7 @@ export const PROJECT_MANAGER_PATH = path.join(
 export const projectMetadataRelative = path.join('.enso', 'project.json')
 
 /** Get the arguments, excluding the initial program name and any electron dev mode arguments. */
-export const clientArguments = electronIsDev
-    ? process.argv.slice(process.argv.indexOf('--') + 1)
-    : process.argv.slice(1)
+export const clientArguments = getClientArguments()
 
 /** Check if the given path represents the root of an Enso project. This is decided by the presence of Project Manager's metadata.
  */
@@ -54,5 +52,24 @@ export function isProjectRoot(candidatePath: string): boolean {
         return true
     } catch (e) {
         return false
+    }
+}
+
+/** Decide what are client arguments, @see {@link clientArguments}. */
+function getClientArguments(): string[] {
+    if (electronIsDev) {
+        // Client arguments are separated from the electron dev mode arguments by a '--' argument.
+        const separator = '--'
+        const separatorIndex = process.argv.indexOf(separator)
+        if (separatorIndex === -1) {
+            // If there is no separator, client gets no arguments.
+            return []
+        } else {
+            // Drop everything before the separator.
+            return process.argv.slice(separatorIndex + 1)
+        }
+    } else {
+        // Drop the leading executable name.
+        return process.argv.slice(1)
     }
 }
