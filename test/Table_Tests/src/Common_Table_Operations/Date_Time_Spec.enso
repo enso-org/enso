@@ -29,19 +29,25 @@ spec setup =
             table.at "B" . to_vector . should_equal [t]
             table.at "X" . to_vector . should_equal [123]
 
-        Test.specify "should allow to create Table with date columns and round-trip them back to Enso" <|
+        Test.specify "should allow to create Table with Date Time columns and round-trip them back to Enso, preserving the exact instant in time (even if losing the timezone)" <|
             dt1 = Date_Time.new 2020 10 24 12 34 56 millisecond=789
             offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
             dt2 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
             named_zone = Time_Zone.parse "US/Hawaii"
             dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
 
+            to_utc dt = dt.at_zone Time_Zone.utc
             dates = [dt1, dt2, dt3]
             xs = [1, 2, 3]
             table = table_builder [["C", dates], ["X", xs]]
             table.print
-            table.info.print
-
             table.at "C" . value_type . should_equal Value_Type.Date_Time
-            table.at "C" . to_vector . should_equal dates
+            ## We compare the timestamps converted to UTC.
+               This ensures that the value we are getting back represents the
+               exact same instant in time as the one we put in.
+
+               We cannot guarantee that time time _zone_ itself will be the same
+               - for example Postgres stores all timestamps in UTC, regardless
+               of what timezone they were in at input.
+            table.at "C" . to_vector . map to_utc . should_equal (dates.map to_utc)
             table.at "X" . to_vector . should_equal xs

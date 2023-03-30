@@ -340,16 +340,25 @@ postgres_statement_setter =
 ## PRIVATE
 make_postgres_column_fetcher value_type = case value_type of
     Value_Type.Time -> time_fetcher
+    # We currently don't distinguish timestamps without a timezone on the Enso value side.
+    Value_Type.Date_Time _ -> date_time_fetcher
     _ ->
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
 ## PRIVATE
-time_fetcher : Column_Fetcher
 time_fetcher =
     fetch_value rs i =
         time = rs.getObject i Java_Local_Time.class
         if rs.wasNull then Nothing else time
     make_builder initial_size =
         java_builder = Java_Exports.make_time_of_day_builder initial_size
+        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+date_time_fetcher =
+    fetch_value rs i = JDBCUtils.getZonedDateTime rs i
+    make_builder initial_size =
+        java_builder = Java_Exports.make_date_time_builder initial_size
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
