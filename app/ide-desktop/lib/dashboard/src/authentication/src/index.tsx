@@ -51,11 +51,9 @@ export function run(
   } else {
     // FIXME[sb]: This is a temporary workaround and will be fixed
     // when IDE support is properly integrated into the dashboard.
-    if (platform === platformModule.Platform.cloud) {
-      const ide = document.getElementById(IDE_ELEMENT_ID);
-      if (ide != null) {
-        ide.style.display = "none";
-      }
+    const ide = document.getElementById(IDE_ELEMENT_ID);
+    if (ide != null) {
+      ide.style.display = "none";
     }
     const props = { logger, platform, onAuthenticated };
     reactDOM.createRoot(root).render(<App {...props} />);
