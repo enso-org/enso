@@ -1622,7 +1622,6 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
  "ensogl-text-msdf",
- "ide-view",
  "ide-view-execution-mode-selector",
 ]
 
@@ -4372,21 +4371,11 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-prelude",
- "enso-shapely",
- "enso-text",
  "ensogl",
  "ensogl-drop-down-menu",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
- "ensogl-text-msdf",
- "failure",
- "indexmap",
- "nalgebra",
- "ordered-float",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
 ]
 
 [[package]]
