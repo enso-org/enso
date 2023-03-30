@@ -329,10 +329,11 @@ function Dashboard(props: DashboardProps) {
             <div id="header" />
             <div id="templates" />
             <div className="flex flex-row flex-nowrap">
-                <h1 className="text-xl font-bold mx-6 self-center">Drive</h1>
-                <div className="flex flex-row flex-nowrap mx-2">
+                <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
+                <div className="flex flex-row flex-nowrap mx-4">
                     <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                        {directory ? (
+                        {/* FIXME[sb]: Remove `|| true` when UI to create directory is implemented. */}
+                        {directory || true ? (
                             <>
                                 <button
                                     className="mx-2"
@@ -366,7 +367,7 @@ function Dashboard(props: DashboardProps) {
                         </div>
                     </div>
                 </div>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1 mx-4">
+                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                     <button
                         className="mx-1"
                         onClick={() => {
@@ -385,7 +386,7 @@ function Dashboard(props: DashboardProps) {
                         {svg.DOWNLOAD_ICON}
                     </button>
                 </div>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
+                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
                     <button
                         className={`${
                             columnDisplayMode === ColumnDisplayMode.all
