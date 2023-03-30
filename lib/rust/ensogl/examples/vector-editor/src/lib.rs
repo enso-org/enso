@@ -350,7 +350,7 @@ impl<T: display::Object> Model<T> {
             .expect("Item not found");
         let spacer = Spacer::new();
         let elem_ref = &self.items[index];
-        let gap_size = elem_ref.margin_left();
+        let gap_size = if index == 0 { 0.0 } else { GAP };
         spacer.set_init_size(elem_ref.computed_size().x + gap_size);
         let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
         self.dragged_item = Some(elem);
