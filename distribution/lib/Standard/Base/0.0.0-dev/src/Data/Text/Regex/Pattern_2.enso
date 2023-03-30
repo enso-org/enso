@@ -17,6 +17,7 @@ import project.Nothing.Nothing
 import project.Polyglot.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Index_Sub_Range import sort_and_merge_ranges
 
 polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
@@ -66,7 +67,7 @@ type Pattern_2
             go it = case it.next of
                 Match_Iterator_Value.Next _ match next_it ->
                     builder.append match
-                    go next_it
+                    @Tail_Call go next_it
                 Match_Iterator_Value.Last _ -> Nothing
             go it
             builder.to_vector
@@ -92,6 +93,79 @@ type Pattern_2
     find_all : Text -> Vector Text
     find_all self input =
         self.match_all input . map match_to_group_maybe
+
+    ## ADVANCED
+
+       Splits the `input` text based on the pattern described by `self`.
+
+       Arguments:
+       - input: The text to split based on the pattern described by `self`.
+       - only_first: If True, only split at the first occurrence.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element (equal to the original string).
+
+       > Example
+         Split on the first instance of the pattern.
+             pattern = Regex_2.compile "cd"
+             input = "abcdefcdghij"
+             texts = pattern.split input only_first=True
+             texts . should_equal ["ab", "efcdghij"]
+
+       > Example
+         Split on the all instances of the pattern in the input.
+            pattern = Regex_2.compile "a"
+            input = "bacadaeaf"
+            texts = pattern.split input
+            texts . should_equal ["b", "c", "d", "e", "f"]
+
+       > Example
+         Returns the original text if there are no matches.
+             pattern = Regex_2.compile "aa"
+             input = "abcdefghij"
+             texts = pattern.split input
+             texts . should_equal ["abcdefghij"]
+    split : Text -> Boolean -> Vector Text
+    split self input only_first=False =
+        builder = Vector.new_builder
+        it = Match_Iterator.new self input
+        go next = case next of
+            Match_Iterator_Value.Next filler _ next_it ->
+                builder.append filler.text
+                next = if only_first then next_it.early_exit else next_it.next
+                @Tail_Call go next
+            Match_Iterator_Value.Last filler ->
+                builder.append filler.text
+        go it.next
+        builder.to_vector
+
+    ## ADVANCED
+
+       Takes an input string and returns all the matches as a `Vector Text`.
+       If the pattern contains marked groups, the values are concatenated
+       together; otherwise the whole match is returned.
+
+       Arguments:
+       - input: The text to tokenize.
+
+       > Example
+         Split to blocks of 3 characters.
+
+             Regex_2.compile '...' . tokenize 'ABCDEF' == ['ABC','DEF']
+
+       > Example
+         Split to blocks of 3 characters taking first and third letters.
+
+             Regex_2.compile '(.).(.)' . tokenize 'ABCDEF' == ['AC','DF']
+
+       > Example
+         Split a text on any white space.
+
+             Regex_2.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
+                 == ['Hello','Big','Wide','World','Goodbye!']
+    tokenize : Text -> Vector Text
+    tokenize self input =
+        self.match_all input . map (build_tokenization_output_from_match self _)
 
     ## ADVANCED
 
@@ -150,7 +224,6 @@ type Pattern_2
 
              pattern = Regex_2.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
-
     replace : Text -> Text -> Boolean -> Text
     replace self input replacement only_first=False =
         it = Match_Iterator.new self input
@@ -329,3 +402,22 @@ read_group_map polyglot_map name =
 match_to_group_maybe : Match_2 | Nothing -> Text | Nothing
 match_to_group_maybe match =
     if match.is_nothing then Nothing else match.text 0
+
+## PRIVATE
+   Build an output string from a Match_2 resulting from `tokenize`.
+   See `tokenize`.
+build_tokenization_output_from_match : Pattern_2 -> Match_2 -> Text
+build_tokenization_output_from_match pattern match =
+    if pattern.group_count == 1 then match.text 0 else
+        # Extract the ranges of the spans of all capturing groups
+        group_numbers = 1.up_to pattern.group_count
+        spans = group_numbers.map n-> match.span n
+        ranges = spans.map span-> case span of Span.Value range _ -> range
+
+        # Eliminate nested capturing groups by sorting and merging the ranges.
+        top_level_ranges = sort_and_merge_ranges ranges
+
+        # Reconstruct `Spans` from the synthesized `Ranges`, and concatenate.
+        text_all = case spans.at 0 of Span.Value _ text -> text
+        top_level_spans = top_level_ranges.map range-> Span.Value range text_all
+        top_level_spans.map (.text) . join
