@@ -30,7 +30,7 @@ spec setup =
             table.at "X" . to_vector . should_equal [123]
 
         Test.specify "should allow to create Table with Date Time columns and round-trip them back to Enso, preserving the exact instant in time (even if losing the timezone)" <|
-            dt1 = Date_Time.new 2020 10 24 12 34 56 millisecond=789
+            dt1 = Date_Time.new 2020 10 24 1 2 3 millisecond=4 microsecond=5
             offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
             dt2 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
             named_zone = Time_Zone.parse "US/Hawaii"

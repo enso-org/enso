@@ -332,8 +332,7 @@ postgres_statement_setter : Statement_Setter
 postgres_statement_setter =
     default = Statement_Setter.default
     fill_hole stmt i value = case value of
-        _ : Date_Time ->
-            stmt.setTimestamp i (JDBCUtils.getTimestamp value)
+        _ : Date_Time -> JDBCUtils.setZonedDateTime stmt i value
         _ -> default.fill_hole stmt i value
     Statement_Setter.Value fill_hole
 
