@@ -67,7 +67,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
             </div>
             <input
                 type="submit"
-                className="inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2"
+                className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2"
                 value="Create"
             />
         </form>

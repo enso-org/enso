@@ -662,19 +662,58 @@ function Dashboard(props: DashboardProps) {
                     onDragLeave={() => {
                         setIsFileBeingDragged(false)
                     }}
+                    onDragOver={event => {
+                        event.preventDefault()
+                    }}
                     onDrop={event => {
                         event.preventDefault()
+                        setIsFileBeingDragged(false)
                         const fileCount = event.dataTransfer.files.length
                         if (fileCount === 0) {
                             toast.toast.error('No files were dropped.')
-                        } else if (fileCount > 1) {
-                            // FIXME[sb]: Waiting on https://github.com/timolins/react-hot-toast/issues/29.
-                            // TODO[sb]: Add colors.
-                            toast.toast('Multiple files were dropped; using the first file.', {
-                                icon: '⚠️',
-                            })
+                        } else {
+                            let successfulUploadCount = 0
+                            let completedUploads = 0
+                            /** "file" or "files", whicheven is appropriate. */
+                            const filesWord = fileCount === 1 ? 'file' : 'files'
+                            const toastId = toast.toast.loading(
+                                `Uploading ${fileCount} ${filesWord}.`
+                            )
+                            for (const file of Array.from(event.dataTransfer.files)) {
+                                void backendService
+                                    .uploadFile(
+                                        {
+                                            fileName: file.name,
+                                            parentDirectoryId: directoryId,
+                                        },
+                                        file
+                                    )
+                                    .then(() => {
+                                        successfulUploadCount += 1
+                                    })
+                                    .catch(() => {
+                                        toast.toast.error(`Could not upload file '${file.name}'.`)
+                                    })
+                                    .finally(() => {
+                                        completedUploads += 1
+                                        if (completedUploads === fileCount) {
+                                            const progress =
+                                                successfulUploadCount === fileCount
+                                                    ? fileCount
+                                                    : `${successfulUploadCount}/${fileCount}`
+                                            toast.toast.success(
+                                                `${progress} ${filesWord} uploaded.`,
+                                                { id: toastId }
+                                            )
+                                        } else {
+                                            toast.toast.loading(
+                                                `${successfulUploadCount}/${fileCount} ${filesWord} uploaded.`,
+                                                { id: toastId }
+                                            )
+                                        }
+                                    })
+                            }
                         }
-                        setIsFileBeingDragged(false)
                     }}
                 >
                     Drop to upload files.
