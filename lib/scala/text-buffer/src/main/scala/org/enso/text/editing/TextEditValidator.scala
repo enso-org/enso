@@ -20,10 +20,10 @@ object TextEditValidator {
   ): Either[TextEditValidationFailure, Unit] = {
     for {
       _ <- checkIfEndIsAfterStart(textEdit)
-      _ <- checkIfNonNegativeCoords(textEdit.range.start)
-      _ <- checkIfNonNegativeCoords(textEdit.range.end)
-      _ <- checkIfInsideBuffer(buffer, textEdit.range.start)
-      _ <- checkIfInsideBuffer(buffer, textEdit.range.end)
+      _ <- checkIfNonNegativeCoords(textEdit.range.start, "text edit start")
+      _ <- checkIfNonNegativeCoords(textEdit.range.end, "text edit end")
+      _ <- checkIfInsideBuffer(buffer, textEdit.range.start, "text edit start")
+      _ <- checkIfInsideBuffer(buffer, textEdit.range.end, "text edit end")
     } yield ()
   }
 
@@ -31,33 +31,54 @@ object TextEditValidator {
     textEdit: model.TextEdit
   ): Either[TextEditValidationFailure, Unit] =
     if (textEdit.range.end < textEdit.range.start) {
-      Left(EndPositionBeforeStartPosition)
+      Left(
+        EndPositionBeforeStartPosition(
+          textEdit.range.start,
+          textEdit.range.start
+        )
+      )
     } else {
       Right(())
     }
 
   private def checkIfNonNegativeCoords(
-    start: model.Position
+    start: model.Position,
+    reason: => String
   ): Either[TextEditValidationFailure, Unit] =
-    checkIfNotNegative(start.line) >> checkIfNotNegative(start.character)
+    checkIfNotNegative(start.line, reason + " line") >> checkIfNotNegative(
+      start.character,
+      reason + " character"
+    )
 
   private def checkIfNotNegative(
-    coord: Int
+    coord: Int,
+    reason: => String
   ): Either[TextEditValidationFailure, Unit] =
     if (coord >= 0) Right(())
-    else Left(NegativeCoordinateInPosition)
+    else Left(NegativeCoordinateInPosition(coord, reason))
 
   private def checkIfInsideBuffer[A: TextEditor](
     buffer: A,
-    position: model.Position
+    position: model.Position,
+    reason: => String
   ): Either[TextEditValidationFailure, Unit] = {
     val lineCount = TextEditor[A].getLineCount(buffer)
     if (position.line >= lineCount) {
-      Left(InvalidPosition(position))
+      Left(
+        InvalidPosition(
+          position,
+          reason + s" line (${position.line}) outside of buffer's line count (${lineCount})"
+        )
+      )
     } else {
       val line = TextEditor[A].getLine(buffer, position.line)
       if (position.character > line.length) {
-        Left(InvalidPosition(position))
+        Left(
+          InvalidPosition(
+            position,
+            s" character (${position.character}) is outside of line's length (${line.length})"
+          )
+        )
       } else {
         Right(())
       }

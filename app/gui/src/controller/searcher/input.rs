@@ -402,13 +402,14 @@ impl InsertContext<'_> {
     /// infix chain of `ACCESS` operators with identifiers.
     fn has_qualified_name(&self) -> bool {
         if let Some(ref context) = self.context {
+            let there_are_operands = context.enumerate_operands().flatten().count() > 0;
             let every_operand_is_name = context.enumerate_operands().flatten().all(|opr| {
                 matches!(opr.item.arg.shape(), ast::Shape::Cons(_) | ast::Shape::Var(_))
             });
             let every_operator_is_access = context
                 .enumerate_operators()
                 .all(|opr| opr.item.ast().repr() == ast::opr::predefined::ACCESS);
-            every_operand_is_name && every_operator_is_access
+            there_are_operands && every_operand_is_name && every_operator_is_access
         } else {
             false
         }
@@ -425,7 +426,7 @@ impl InsertContext<'_> {
                 .flatten()
                 .filter_map(|opr| ast::identifier::name(&opr.item.arg).map(ImString::new))
                 .collect_vec();
-            Some(name_segments)
+            (!name_segments.is_empty()).as_some(name_segments)
         } else {
             None
         }
