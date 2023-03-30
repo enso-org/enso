@@ -5,6 +5,8 @@ use ensogl::display::shape::*;
 
 use ensogl::data::color;
 use ensogl_component::toggle_button::ColorableShape;
+use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::FRAC_PI_6;
 
 
 
@@ -165,39 +167,21 @@ pub mod skip {
 pub mod disable_reevaluation {
     use super::*;
 
-    use std::f32::consts::FRAC_PI_2;
-    use std::f32::consts::FRAC_PI_6;
-
     ensogl::shape! {
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
-
             let unit = &width / 16.0;
-
-            let outer_rect = Rect((&unit * 14.0, &unit * 12.0))
-                .corners_radius(&unit * 6.0);
-            let loop_ = &outer_rect - outer_rect.shrink(&unit * 2.0);
-            let arrow_head = Triangle(&unit * 8.0, &unit * 7.0)
-                .rotate(FRAC_PI_2.radians())
-                .translate_x(&unit * 2.5)
-                .translate_y(&unit * 5.0);
-            let arrow_loop = (loop_ + arrow_head)
-                .translate_y(-&unit)
-                .translate_x(-&unit);
+            let arrow_loop = arrow_loop(&unit);
             let stripe = Rect((&unit * 17.33, &unit * 2.0))
                 .rotate((-FRAC_PI_6).radians())
                 .translate_y(&unit * -2.33);
             let stripe_clip = stripe
                 .translate_x(-&unit)
                 .translate_y(&unit * 3.0.sqrt());
-            let icon = AnyShape::from(arrow_loop + stripe - stripe_clip)
-                .fill(fill_color);
-
-            let hover_area = Rect((width,height))
-                .fill(INVISIBLE_HOVER_COLOR);
-
+            let icon = AnyShape::from(arrow_loop + stripe - stripe_clip).fill(fill_color);
+            let hover_area = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
             (icon + hover_area).into()
         }
     }
@@ -207,4 +191,43 @@ pub mod disable_reevaluation {
             self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
         }
     }
+}
+
+/// Icon for the button to enable re-evaluation. Looks like an arrow loop.
+pub mod enable_reevaluation {
+    use super::*;
+
+    ensogl::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
+            let fill_color = Var::<color::Rgba>::from(color_rgba);
+            let width = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+            let unit = &width / 16.0;
+            let arrow_loop = arrow_loop(&unit).fill(fill_color);
+            let hover_area = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
+            (arrow_loop + hover_area).into()
+        }
+    }
+
+    impl ColorableShape for Shape {
+        fn set_color(&self, color: color::Rgba) {
+            self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
+        }
+    }
+}
+
+/// Draw a right-turning arrow loop with the arrow at the top.
+fn arrow_loop(unit: &Var<Pixels>) -> AnyShape {
+    let outer_rect = Rect((unit * 14.0, unit * 12.0)).corners_radius(unit * 6.0);
+    let loop_ = &outer_rect - outer_rect.shrink(unit * 2.0);
+    let arrow_head = Triangle(unit * 8.0, unit * 7.0)
+        .rotate(FRAC_PI_2.radians())
+        .translate_x(unit * 2.5)
+        .translate_y(unit * 5.0);
+    let cut_out = Rect((unit * 4.0, unit * 2.0))
+        .rotate((-FRAC_PI_6).radians())
+        .translate_x(unit * (5.5 * f32::cos(FRAC_PI_6)))
+        .translate_y(unit * (-4.0 / 3.0 + 3.0.sqrt() + 5.5 * f32::sin(FRAC_PI_6)));
+    let arrow_loop = (loop_ + arrow_head - cut_out).translate_y(-unit).translate_x(-unit);
+    arrow_loop.into()
 }

@@ -479,6 +479,15 @@ impl Text {
         }
     }
 
+    /// Get current text location under the mouse cursor within this text area.
+    pub fn location_at_mouse_position(&self) -> Location {
+        let m = &self.data;
+        let scene = &m.app.display.default_scene;
+        let mouse = &scene.mouse.frp_deprecated;
+        let position = mouse.position.value();
+        m.screen_to_text_location(position)
+    }
+
     fn init_selections(&self) {
         let m = &self.data;
         let scene = &m.app.display.default_scene;
