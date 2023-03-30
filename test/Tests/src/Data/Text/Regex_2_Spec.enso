@@ -183,10 +183,12 @@ spec =
         Test.specify "ignores non-capturing groups"
             Regex_2.compile "(?:(\d\d)\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex_2.compile "(\d\d)(?:\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex_2.compile "(?<foo>\d\d)(?:\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex_2.compile "(?:[a-z]+)(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
 
         Test.specify "ignores nested groups"
             Regex_2.compile "(\d(\d))\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex_2.compile "(?<foo>\d(?<bar>\d))\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex_2.compile "[a-z]+((\d)\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
             Regex_2.compile "\d(\d(\d\d)\d)\d" . tokenize "012345678901" . should_equal ["1234", "7890"]
 
