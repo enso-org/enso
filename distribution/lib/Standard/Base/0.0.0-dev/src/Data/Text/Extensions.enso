@@ -325,9 +325,9 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
          'abc  def\tghi'.split '\\s+' use_regex=True == ["abc", "def", "ghi"]
 Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
-Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
+Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
     case delimiter of
-        _ : Text ->
+        _ : Text -> if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
             case use_regex of
                 False ->
                     delimiters = Vector.from_polyglot_array <| case case_sensitivity of
@@ -346,7 +346,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
                         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
                         compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
                         compiled_pattern.split self only_first
-        _ : Vector ->
+        _ : Vector -> if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
             parenthesize s = "(?:" + s + ")"
             combined_delimiter = case use_regex of
                 True -> parenthesize (delimiter.map parenthesize . join '|')
