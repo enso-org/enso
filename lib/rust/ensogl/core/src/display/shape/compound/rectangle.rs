@@ -16,15 +16,17 @@ use crate::display;
 
 mod shape {
     use super::*;
-    crate::shape! {(
-        style: Style,
-        color: Vector4,
-        corner_radius: f32,
-        inset: f32,
-        border: f32,
-        border_color: Vector4,
-        clip: Vector2,
-    ) {
+    crate::shape! {
+        alignment = left_bottom;
+        (
+            style: Style,
+            color: Vector4,
+            corner_radius: f32,
+            inset: f32,
+            border: f32,
+            border_color: Vector4,
+            clip: Vector2,
+        ) {
             // === Canvas ===
             let canvas_width = Var::<Pixels>::from("input_size.x");
             let canvas_height = Var::<Pixels>::from("input_size.y");
@@ -34,8 +36,8 @@ mod shape {
             // canvas area. Thus, we need to recompute the new canvas size for the scaled shape.
             let canvas_clip_height_diff = &canvas_height * (clip.y() * 2.0);
             let canvas_clip_width_diff = &canvas_width * (clip.x() * 2.0);
-            let canvas_height = canvas_height + &canvas_clip_height_diff;
-            let canvas_width = canvas_width + &canvas_clip_width_diff;
+            let canvas_height = canvas_height + &canvas_clip_height_diff.abs();
+            let canvas_width = canvas_width + &canvas_clip_width_diff.abs();
 
             // === Body ===
             let inset2 = (&inset * 2.0).px();
@@ -149,9 +151,9 @@ impl Rectangle {
     }
 
     /// Set clipping of the shape. The clipping is normalized, which means, that the value of 0.5
-    /// means that we are clipping 50% of the shape. The clipping is performed always on the left
-    /// and on the bottom of the shape. If you want to clip other sides of the shape, you can rotate
-    /// it after clipping or use one of the predefined helper functions, such as
+    /// means that we are clipping 50% of the shape. For positive clip values, the clipping is
+    /// performed always on the left and on the bottom of the shape. For negative clip values, the
+    /// clipping is performed on the right and on the top of the shape.
     /// [`Self::keep_bottom_half`].
     pub fn set_clip(&self, clip: Vector2) -> &Self {
         self.modify_view(|view| view.clip.set(clip))
@@ -164,7 +166,7 @@ impl Rectangle {
 
     /// Keep only the bottom half of the shape.
     pub fn keep_bottom_half(&self) -> &Self {
-        self.keep_top_half().flip()
+        self.set_clip(Vector2(0.0, -0.5))
     }
 
     /// Keep only the right half of the shape.
@@ -174,7 +176,7 @@ impl Rectangle {
 
     /// Keep only the left half of the shape.
     pub fn keep_left_half(&self) -> &Self {
-        self.keep_right_half().flip()
+        self.set_clip(Vector2(-0.5, 0.0))
     }
 
     /// Keep only the top right quarter of the shape.
@@ -184,47 +186,17 @@ impl Rectangle {
 
     /// Keep only the bottom right quarter of the shape.
     pub fn keep_bottom_right_quarter(&self) -> &Self {
-        self.keep_top_right_quarter().rotate_90()
+        self.set_clip(Vector2(0.5, -0.5))
     }
 
     /// Keep only the bottom left quarter of the shape.
     pub fn keep_bottom_left_quarter(&self) -> &Self {
-        self.keep_bottom_right_quarter().rotate_180()
+        self.set_clip(Vector2(-0.5, -0.5))
     }
 
     /// Keep only the top left quarter of the shape.
     pub fn keep_top_left_quarter(&self) -> &Self {
-        self.keep_bottom_left_quarter().rotate_270()
-    }
-
-    /// Flip the shape via its center. This is equivalent to rotating the shape by 180 degrees.
-    pub fn flip(&self) -> &Self {
-        self.rotate_180()
-    }
-
-    /// Rotate the shape by 90 degrees.
-    pub fn rotate_90(&self) -> &Self {
-        self.modify_view(|view| view.set_rotation_z(-std::f32::consts::PI / 2.0))
-    }
-
-    /// Counter rotate the shape by 90 degrees.
-    pub fn counter_rotate_90(&self) -> &Self {
-        self.modify_view(|view| view.set_rotation_z(std::f32::consts::PI / 2.0))
-    }
-
-    /// Rotate the shape by 180 degrees.
-    pub fn rotate_180(&self) -> &Self {
-        self.modify_view(|view| view.set_rotation_z(-std::f32::consts::PI))
-    }
-
-    /// Counter rotate the shape by 180 degrees.
-    pub fn rotate_270(&self) -> &Self {
-        self.modify_view(|view| view.set_rotation_z(-3.0 / 2.0 * std::f32::consts::PI))
-    }
-
-    /// Counter rotate the shape by 270 degrees.
-    pub fn counter_rotate_270(&self) -> &Self {
-        self.modify_view(|view| view.set_rotation_z(3.0 / 2.0 * std::f32::consts::PI))
+        self.set_clip(Vector2(-0.5, 0.5))
     }
 }
 
