@@ -523,6 +523,9 @@ final class TreeToIr {
           getIdentifiedLocation(fun), meta(), diag()
         );
       } else {
+        if (body == null) {
+          return translateSyntaxError(fun, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
+        }
         return new IR$Function$Binding(name, args, body,
           getIdentifiedLocation(fun), true, meta(), diag()
         );
