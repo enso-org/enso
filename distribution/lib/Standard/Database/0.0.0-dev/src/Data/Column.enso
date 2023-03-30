@@ -812,6 +812,34 @@ type Column
         new_name = self.naming_helpers.binary_operation_name "like" self pattern
         self.make_binary_op "LIKE" pattern new_name
 
+    ## Gets the year as a number from the date stored in the column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    year : Column -> Column
+    year self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        new_name = self.naming_helpers.function_name "year" [self]
+        self.make_unary_op "year" new_name
+
+    ## Gets the month as a number (1-12) from the date stored in the column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    month : Column -> Column
+    month self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        new_name = self.naming_helpers.function_name "month" [self]
+        self.make_unary_op "month" new_name
+
+    ## Gets the day of the month as a number (1-31) from the date stored in the
+       column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    day : Column -> Column
+    day self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        new_name = self.naming_helpers.function_name "day" [self]
+        self.make_unary_op "day" new_name
+
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
 

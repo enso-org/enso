@@ -17,6 +17,9 @@ public class JDBCUtils {
    */
   public static ZonedDateTime getZonedDateTime(ResultSet rs, int columnIndex) throws SQLException {
     OffsetDateTime offsetDateTime = rs.getObject(columnIndex, OffsetDateTime.class);
+    if (offsetDateTime == null) {
+      return null;
+    }
     return offsetDateTime.toZonedDateTime();
   }
 

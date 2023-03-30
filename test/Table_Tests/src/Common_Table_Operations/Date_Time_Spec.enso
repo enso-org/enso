@@ -60,6 +60,8 @@ spec setup =
             t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
             t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
             [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
                 c.value_type.is_integer.should_be_true
 
             ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
@@ -73,7 +75,8 @@ spec setup =
             t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
             t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
             [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
-                c.value_type.is_integer.should_be_true
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
 
             ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
             ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
@@ -81,10 +84,9 @@ spec setup =
 
         Test.specify "should allow to compute expressions with year/month/day" <|
             t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
-            t.print
-            t.info.print
             c = t.compute "year([A]) + [X] + day([A]) * month([B])"
-            c.value_type.is_integer.should_be_true
+            Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                c.value_type.is_integer.should_be_true
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
 
         Test.specify "should report a type error if year/month/day is invoked on a non-date column" <|

@@ -913,28 +913,18 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     year : Column -> Column
-    year self =
-        case self.value_type.has_date of
-            True ->
-                new_name = Naming_Helpers.function_name "year" [self]
-                run_vectorized_unary_op self "year" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `year`. This is a bug in the Table library.")) new_name
-            False ->
-                Error.throw <|
-                    Invalid_Value_Type.Error "Date or Date_Time" self.value_type self.name
+    year self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        new_name = Naming_Helpers.function_name "year" [self]
+        run_vectorized_unary_op self "year" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `year`. This is a bug in the Table library.")) new_name
 
     ## Gets the month as a number (1-12) from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     month : Column -> Column
-    month self =
-        case self.value_type.has_date of
-            True ->
-                new_name = Naming_Helpers.function_name "month" [self]
-                run_vectorized_unary_op self "month" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `month`. This is a bug in the Table library.")) new_name
-            False ->
-                Error.throw <|
-                    Invalid_Value_Type.Error "Date or Date_Time" self.value_type self.name
+    month self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        new_name = Naming_Helpers.function_name "month" [self]
+        run_vectorized_unary_op self "month" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `month`. This is a bug in the Table library.")) new_name
 
     ## Gets the day of the month as a number (1-31) from the date stored in the
        column.
@@ -942,14 +932,9 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day : Column -> Column
-    day self =
-        case self.value_type.has_date of
-            True ->
-                new_name = Naming_Helpers.function_name "day" [self]
-                run_vectorized_unary_op self "day" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `day`. This is a bug in the Table library.")) new_name
-            False ->
-                Error.throw <|
-                    Invalid_Value_Type.Error "Date or Date_Time" self.value_type self.name
+    day self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        new_name = Naming_Helpers.function_name "day" [self]
+        run_vectorized_unary_op self "day" (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `day`. This is a bug in the Table library.")) new_name
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
