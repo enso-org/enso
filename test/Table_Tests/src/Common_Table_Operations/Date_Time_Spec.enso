@@ -16,28 +16,16 @@ spec setup =
     Test.group prefix+"Date-Time support" pending=(if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend.") <|
         Test.specify "should allow to create Table with Date columns and round-trip them back to Enso" <|
             d = Date.new 2020 10 24
-
             table = table_builder [["A", [d]], ["X", [123]]]
-            table.print
-            table.info.print
-
             table.at "A" . value_type . should_equal Value_Type.Date
             table.at "A" . to_vector . should_equal [d]
             table.at "X" . to_vector . should_equal [123]
 
         Test.specify "should allow to create Table with Time Of Day columns and round-trip them back to Enso" <|
             # We do not check nanoseconds, as nano support may be optional.
-            t = Time_Of_Day.new hour=12 minute=34 second=56 millisecond=789
-
+            t = Time_Of_Day.new hour=12 minute=3 second=5 millisecond=6 microsecond=7
             table = table_builder [["B", [t]], ["X", [123]]]
-            table.print
-            table.info.print
-
             table.at "B" . value_type . should_equal Value_Type.Time
-            IO.println <| table.at "B" . to_vector
-            x = table.at "B" . to_vector . at 0
-            IO.println <| x
-            IO.println (Meta.type_of x)
             table.at "B" . to_vector . should_equal [t]
             table.at "X" . to_vector . should_equal [123]
 

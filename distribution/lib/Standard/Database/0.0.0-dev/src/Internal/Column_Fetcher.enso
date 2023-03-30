@@ -87,10 +87,7 @@ text_fetcher =
         if rs.wasNull then Nothing else t
     make_builder initial_size =
         java_builder = Java_Exports.make_string_builder initial_size
-        append v =
-            if v.is_nothing then java_builder.appendNulls 1 else
-                java_builder.append v
-        Builder.Value append (seal_java_builder java_builder)
+        make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
@@ -107,10 +104,7 @@ fallback_fetcher =
         if rs.wasNull then Nothing else v
     make_builder initial_size =
         java_builder = Java_Exports.make_inferred_builder initial_size
-        append v =
-            if v.is_nothing then java_builder.appendNulls 1 else
-                java_builder.append v
-        Builder.Value append (seal_java_builder java_builder)
+        make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
@@ -134,3 +128,10 @@ default_fetcher_for_value_type value_type =
 seal_java_builder java_builder column_name =
     storage = java_builder.seal
     Java_Exports.make_column column_name storage
+
+## PRIVATE
+make_builder_from_java_object_builder java_builder =
+    append v =
+        if v.is_nothing then java_builder.appendNulls 1 else
+            java_builder.append v
+    Builder.Value append (seal_java_builder java_builder)
