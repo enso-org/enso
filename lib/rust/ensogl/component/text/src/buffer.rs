@@ -130,6 +130,7 @@ ensogl_core::define_endpoints! {
         cursors_select             (Option<Transform>),
         set_cursor                 (Location),
         add_cursor                 (Location),
+        set_single_selection       (selection::Shape),
         set_newest_selection_end   (Location),
         set_oldest_selection_end   (Location),
         insert                     (ImString),
@@ -220,6 +221,9 @@ impl Buffer {
 
             sel_on_set_cursor <- input.set_cursor.map(f!((t) m.set_cursor(*t)));
             sel_on_add_cursor <- input.add_cursor.map(f!((t) m.add_cursor(*t)));
+            sel_on_set_single_selection <- input.set_single_selection.map(
+                f!((t) m.set_single_selection(*t))
+            );
             sel_on_set_newest_end <- input.set_newest_selection_end.map
                 (f!((t) m.set_newest_selection_end(*t)));
             sel_on_set_oldest_end <- input.set_oldest_selection_end.map
@@ -247,6 +251,7 @@ impl Buffer {
             output.source.selection_non_edit_mode <+ sel_on_keep_oldest_cursor;
             output.source.selection_non_edit_mode <+ sel_on_set_cursor;
             output.source.selection_non_edit_mode <+ sel_on_add_cursor;
+            output.source.selection_non_edit_mode <+ sel_on_set_single_selection;
             output.source.selection_non_edit_mode <+ sel_on_set_newest_end;
             output.source.selection_non_edit_mode <+ sel_on_set_oldest_end;
             output.source.selection_non_edit_mode <+ sel_on_remove_all;
@@ -446,10 +451,14 @@ impl BufferModel {
         self.oldest_selection().snap_selections_to_start()
     }
 
-    fn new_cursor(&self, location: Location) -> Selection {
+    fn new_selection(&self, shape: selection::Shape) -> Selection {
         let id = self.next_selection_id.get();
         self.next_selection_id.set(selection::Id { value: id.value + 1 });
-        Selection::new_cursor(location, id)
+        Selection { shape, id }
+    }
+
+    fn new_cursor(&self, location: Location) -> Selection {
+        self.new_selection(selection::Shape::new_cursor(location))
     }
 
     /// Returns the last used selection or a new one if no active selection exists. This allows for
@@ -465,6 +474,12 @@ impl BufferModel {
         let selection_group = self.new_cursor(location);
         selection.merge(selection_group);
         selection
+    }
+
+    fn set_single_selection(&self, shape: selection::Shape) -> selection::Group {
+        let last_selection = self.selection.borrow().last().cloned();
+        let opt_existing = last_selection.map(|t| t.with_shape(shape));
+        opt_existing.unwrap_or_else(|| self.new_selection(shape)).into()
     }
 
     fn set_newest_selection_end(&self, location: Location) -> selection::Group {
@@ -813,6 +828,7 @@ pub enum LocationLike {
     LocationUBytesLine(Location<Byte, Line>),
     LocationColumnViewLine(Location<Column, ViewLine>),
     LocationUBytesViewLine(Location<Byte, ViewLine>),
+    Byte(Byte),
 }
 
 impl Default for LocationLike {
@@ -831,6 +847,7 @@ impl LocationLike {
                 Location::from_in_context_snapped(buffer, loc),
             LocationLike::LocationUBytesViewLine(loc) =>
                 Location::from_in_context_snapped(buffer, loc),
+            LocationLike::Byte(byte) => Location::from_in_context_snapped(buffer, byte),
         }
     }
 }

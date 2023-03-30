@@ -1,0 +1,165 @@
+import project.Any.Any
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Warning.Warning
+from project import all
+
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
+
+from project.Errors.Problem_Behavior.Problem_Behavior import all
+
+## Specifies how to handle problems.
+type Problem_Behavior
+    ## UNSTABLE
+       Ignore the problem and attempt to complete the operation
+    Ignore
+
+    ## UNSTABLE
+       Report the problem as a warning and attempt to complete the operation
+    Report_Warning
+
+    ## UNSTABLE
+       Report the problem as a dataflow error and abort the operation
+    Report_Error
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches a problem to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problem
+       attached as a warning.
+       If it is set to Report_Error, the problem is returned in the form of a
+       dataflow error. If the value already contained any dataflow error, that
+       error takes precedence.
+    attach_problem_after : Any -> Any -> Any
+    attach_problem_after self decorated_value problem = case self of
+        Ignore ->
+            if decorated_value.is_error then decorated_value else
+                if problem.is_error then problem else decorated_value
+        Report_Warning ->
+            Warning.attach problem decorated_value
+        Report_Error ->
+            if decorated_value.is_error then decorated_value else
+                Error.throw problem
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches a problem to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problem
+       attached as a warning.
+       If it is set to Report_Error, the problem is returned in the form of
+       a dataflow error.
+    attach_problem_before : Any -> Any -> Any
+    attach_problem_before self problem ~decorated_value = case self of
+        Ignore ->
+            if problem.is_error then problem else decorated_value
+        Report_Warning ->
+            Warning.attach problem decorated_value
+        Report_Error ->
+            Error.throw problem
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches problems to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problems
+       attached as warnings.
+       If it is set to Report_Error, the first problem is returned in the form
+       of a dataflow error. The problem takes precedence over any errors that
+       may have been contained in the value - in this case the `decorated_value`
+       is not computed at all.
+
+       > Example
+         Perform pre-flight checks and then compute the actual result only if needed.
+
+             problems = preflight_checks
+             problem_behavior.attach_problems_before problems <|
+                 expensive_computation
+
+    attach_problems_before : Vector -> Any -> Any
+    attach_problems_before self problems ~decorated_value = case self of
+        Ignore ->
+            if problems.is_error then problems else decorated_value
+        Report_Warning ->
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
+        Report_Error ->
+            if problems.is_empty then decorated_value else
+                Error.throw problems.first
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches problems to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problems
+       attached as warnings.
+       If it is set to Report_Error, the first problem is returned in the form
+       of a dataflow error. If the value already contained any dataflow error,
+       that error takes precedence.
+
+       > Example
+         First compute a result and then, only if the computation has succeeded,
+         perform any postprocessing checks which may raise warnings/errors.
+
+             result = compute_result
+             problem_behavior.attach_problems_after result <|
+                 perform_post_process_checks_and_return_problems
+    attach_problems_after : Any -> Vector -> Any
+    attach_problems_after self decorated_value problems = case self of
+        Ignore ->
+            if decorated_value.is_error then decorated_value else
+                if problems.is_error then problems else decorated_value
+        Report_Warning ->
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
+        Report_Error ->
+            if decorated_value.is_error || problems.is_empty then decorated_value else
+                Error.throw problems.first
+
+    ## ADVANCED
+       UNSTABLE
+       A helper method that will handle any errors contained within the result
+       according to the current problem behavior settings. If the `result` does
+       not contain an error, it is returned as-is. Otherwise, if the problem
+       behavior is `Report_Error`, the error will be passed as-is. If it is
+       `Report_Warning`, the error is turned into a warning, and the fallback
+       value is returned with that error attached to it as a warning. If it is
+       `Ignore`, the fallback value is returned and the error is discarded.
+
+       The `error_type` parameter can be overridden to catch only some types of
+       errors. By default `Any` error is caught.
+    handle_errors : Any -> Any -> Any -> Any
+    handle_errors self result ~fallback error_type=Any = result.catch error_type error-> case self of
+        Ignore -> fallback
+        Report_Warning -> Warning.attach error fallback
+        Report_Error -> result
+
+    ## PRIVATE
+       Gets a widget set up for a `Problem_Behavior`.
+    default_widget =
+        values = ["Report_Error", "Report_Warning", "Ignore"]
+        Single_Choice (values.map n-> Option n) display=Display.Expanded_Only
+
+    ## ADVANCED
+       Checks any warnings reported by the `action` and reports them according
+       to this problem behavior - they may be kept as-is, ignored or escalated
+       to errors.
+
+       If the `action` itself yields a dataflow error, that error is passed
+       as-is, regardless of the problem behavior settings.
+    escalate_warnings self ~action =
+        result = action
+        warnings = Warning.get_all result . map .value
+        cleared_result = Warning.set result []
+        self.attach_problems_after cleared_result warnings

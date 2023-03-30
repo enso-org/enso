@@ -11,8 +11,8 @@ polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
-from Standard.Base.Error.Common import Uninitialized_State
-import Standard.Base.Error.File_Error.File_Error
+from Standard.Base.Errors.Common import Uninitialized_State
+import Standard.Base.Errors.File_Error.File_Error
 
 type My_Type
     @foo (test_method)

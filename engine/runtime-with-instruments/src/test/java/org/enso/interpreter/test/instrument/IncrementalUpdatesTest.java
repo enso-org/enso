@@ -65,9 +65,7 @@ public class IncrementalUpdatesTest {
     sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "5", "5", LiteralNode.class);
     var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
     assertNotNull("Module found", m);
-    var numbers = m.getIr().preorder().filter((v1) -> {
-      return v1 instanceof IR$Literal$Number;
-    });
+    var numbers = m.getIr().preorder().filter((v1) -> v1 instanceof IR$Literal$Number);
     assertEquals("One number found: " + numbers, 1, numbers.size());
     if (numbers.head() instanceof IR$Literal$Number n) {
       assertEquals("updated to 5", "5", n.value());

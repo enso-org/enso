@@ -180,4 +180,15 @@ class ImportsTest extends PackageTest {
     outLines(0) shouldEqual "Hello world!"
   }
 
+  "Fully qualified names" should "detect conflicts with the exported types sharing the namespace" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Fully_Qualified_Name_Conflict"
+    ) should have message "Method `Foo` of Atom could not be found."
+    val outLines = consumeOut
+    outLines should have length 3
+    outLines(
+      2
+    ) shouldEqual "Main.enso[2:1-2:57]: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
+  }
+
 }

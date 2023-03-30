@@ -373,7 +373,7 @@ final class SuggestionsHandler(
         }
         .pipeTo(sender())
 
-    case Completion(path, pos, selfType, returnType, tags) =>
+    case Completion(path, pos, selfType, returnType, tags, isStatic) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
       getModuleName(projectName, path)
         .flatMap { either =>
@@ -386,7 +386,8 @@ final class SuggestionsHandler(
                   selfTypes,
                   returnType,
                   tags.map(_.map(SuggestionKind.toSuggestion)),
-                  Some(toPosition(pos))
+                  Some(toPosition(pos)),
+                  isStatic
                 )
                 .map(CompletionResult.tupled)
           )

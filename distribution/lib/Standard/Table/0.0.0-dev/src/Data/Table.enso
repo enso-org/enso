@@ -1,14 +1,13 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
-import Standard.Base.Data.Ordering.Comparator
-import Standard.Base.Error.Common.Incomparable_Values
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Common.No_Such_Method
-import Standard.Base.Error.Common.Type_Error
-import Standard.Base.Error.File_Error.File_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Unimplemented.Unimplemented
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
@@ -47,6 +46,7 @@ from project.Errors import all
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
+polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -684,7 +684,16 @@ type Table
                 c.column.java_column
             directions = columns_for_ordering.map c->
                 c.associated_selector.direction.to_sign
-            comparator = Comparator.for_text_ordering text_ordering
+
+            comparator = case text_ordering.sort_digits_as_numbers of
+                True ->
+                    txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitivity . to_sign
+                    ObjectComparator.new txt_cmp
+                False -> case text_ordering.case_sensitivity of
+                    Case_Sensitivity.Default -> ObjectComparator.DEFAULT
+                    Case_Sensitivity.Sensitive -> ObjectComparator.DEFAULT
+                    Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
+
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy java_columns.to_array directions.to_array comparator
             Table.Value java_table
@@ -834,8 +843,8 @@ type Table
             parse_problem_builder.attach_problems_before on_problems <|
                 Table.new new_columns
 
-    ## Replaces the first, last, or all occurrences of `term` with
-       `new_text` in each text row of selected columns.
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       text row of selected columns.
        If `term` is empty, the function returns the table unchanged.
 
        This method follows the exact replacement semantics of the
@@ -845,15 +854,13 @@ type Table
        - columns: Column selection criteria or a column name or index.
        - term: The term to find.
        - new_text: The new text to replace occurrences of `term` with.
-         If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
-         patterns (such as `$<n>`) for a marked group.
-       - mode: Specifies which occurences of term the engine tries to find. When the
-         mode is `First` or `Last`, this method replaces the first or last occurence
-         of term in each individual table cell. If set to `All`, it replaces all
-         occurences of term.
-       - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-         rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-         regular expression and matched using the associated options.
+         If use_regex is true, `new_text` can include replacement patterns
+         (such as `$<n>`) for a marked group.
+       - case_insensitive: Enables or disables case-insensitive matching. Case
+         insensitive matching behaves as if it normalises the case of all input
+         text before matching on it.
+       - only_first: If True, only replace the first match.
+       - use_regex: If true, the term is used as a regular expression.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -872,21 +879,21 @@ type Table
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
 
-             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
+             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" use_regex=True
 
        > Example
          Replace texts in quotes with parentheses in column at index 1.
 
-             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
-    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
-    replace_text self columns=[0] term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
+             table.replace_text 1 '"(.*?)"' '($1)' use_regex=True
+    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Table
+    replace_text self columns=[0] term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
 
         selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
         map_preserve_name column f = column.map f . rename column.name
-        do_replace = _.replace term new_text mode matcher
+        do_replace = _.replace term new_text case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex
         do_replace_only_text = case _ of
                 item : Text -> do_replace item
                 item -> item
@@ -1280,11 +1287,8 @@ type Table
                 join_resolution = make_join_helpers self right . resolve on on_problems
                 right_columns_to_drop = join_resolution.redundant_column_names
 
-                object_comparator = Comparator.new
-                equality_fallback = .==
-
                 java_conditions = join_resolution.conditions
-                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
+                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
 
                 on_problems.attach_problems_after (Table.Value new_java_table) <|
                     problems = new_java_table.getProblems

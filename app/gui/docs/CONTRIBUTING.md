@@ -79,10 +79,10 @@ setup:
   [the latest LTS version of node and npm](https://nodejs.org/en/download). Even
   minor release changes are known to cause serious issues, thus **we provide
   support for the latest LTS version only. Please do not report build issues if
-  you use other versions.** In case you run macOS or Linux the easiest way to
-  set up the proper version is by installing the
-  [Node Version Manager](https://github.com/nvm-sh/nvm) and running
-  `nvm install --lts && nvm use --lts`.
+  you use other versions.** The easiest way to set up the proper version is by
+  installing
+  [a Node version manager that automatically picks up the correct version](https://github.com/shadowspawn/node-version-usage#supporting-products),
+  like [fnm](https://github.com/Schniz/fnm).
 
 - **(Optional) FlatBuffer compiler `flatc`**
 

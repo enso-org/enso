@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Arithmetic_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Errors import all
 

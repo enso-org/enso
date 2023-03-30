@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Arithmetic_Error
-import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Type_Error
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 

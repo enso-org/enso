@@ -68,7 +68,7 @@ impl Ide {
     fn alive_log_sending_loop(&self) -> impl Future<Output = ()> + 'static {
         let network = &self.network;
         let scene = &self.ensogl_app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let keyboard = &scene.keyboard.frp;
 
         enso_frp::extend! { network
