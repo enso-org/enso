@@ -1190,7 +1190,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "id": 2,
             "error": {
               "code": 3002,
-              "message": "Negative coordinate in a position object"
+              "message": "Negative coordinate (-1) in a position object: text edit start line"
             }
           }
           """)

@@ -204,16 +204,21 @@ impl From<node::Expression> for Expression {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    app:            Application,
-    display_object: display::object::Instance,
-    ports:          display::object::Instance,
-    header:         display::object::Instance,
-    label:          text::Text,
-    expression:     RefCell<Expression>,
-    id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
-    widgets_map:    RefCell<HashMap<WidgetBind, Crumbs>>,
-    styles:         StyleWatch,
-    styles_frp:     StyleWatchFrp,
+    app:             Application,
+    display_object:  display::object::Instance,
+    ports:           display::object::Instance,
+    header:          display::object::Instance,
+    /// Text label used for displaying the ports. Contains both expression text and inserted
+    /// argument placeholders. The style is adjusted based on port types.
+    ports_label:     text::Text,
+    /// Text label used during edit mode. Contains only the expression text without any
+    /// modifications. Handles user input in edit mode.
+    edit_mode_label: text::Text,
+    expression:      RefCell<Expression>,
+    id_crumbs_map:   RefCell<HashMap<ast::Id, Crumbs>>,
+    widgets_map:     RefCell<HashMap<WidgetBind, Crumbs>>,
+    styles:          StyleWatch,
+    styles_frp:      StyleWatchFrp,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -230,13 +235,13 @@ impl Model {
         let ports = display::object::Instance::new();
         let header = display::object::Instance::new();
         let app = app.clone_ref();
-        let label = app.new_view::<text::Text>();
+        let edit_mode_label = app.new_view::<text::Text>();
+        let ports_label = app.new_view::<text::Text>();
         let id_crumbs_map = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let widgets_map = default();
-        display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
         Self {
@@ -244,7 +249,8 @@ impl Model {
             display_object,
             ports,
             header,
-            label,
+            edit_mode_label,
+            ports_label,
             expression,
             id_crumbs_map,
             widgets_map,
@@ -254,28 +260,84 @@ impl Model {
         .init()
     }
 
+    /// React to edit mode change. Shows and hides appropriate child views according to current
+    /// mode. Sets cursor position when entering edit mode.
+    pub fn set_edit_mode(&self, edit_mode_active: bool) {
+        if edit_mode_active {
+            // When transitioning to edit mode, we need to find the code location that corresponds
+            // to the code at mouse position. First we search for the port at that position, then
+            // find the right character index within that port.
+
+            let expression = self.expression.borrow();
+            let clicked_label_location = self.ports_label.location_at_mouse_position();
+            let clicked_char_index =
+                expression.viz_code.char_indices().nth(clicked_label_location.offset.into());
+            let location_to_set = clicked_char_index.and_then(|char_index| {
+                let loc_offset = char_index.0.byte().to_diff();
+                let clicked_port = expression.span_tree.root_ref().leaf_iter().find(|node| {
+                    let range = node.payload.range();
+                    range.contains(&loc_offset)
+                })?;
+
+                let byte_offset_within_port = loc_offset - clicked_port.payload.index;
+                let byte_offset_within_port = byte_offset_within_port.min(clicked_port.size);
+                let final_code_byte_offset = clicked_port.span_offset + byte_offset_within_port;
+
+                let final_code_column: Column =
+                    expression.code[..final_code_byte_offset.into()].chars().count().into();
+                let final_code_location = clicked_label_location.with_offset(final_code_column);
+                Some(final_code_location)
+            });
+
+            self.edit_mode_label.set_content(expression.code.clone());
+            self.display_object.remove_child(&self.ports);
+            self.display_object.remove_child(&self.ports_label);
+            self.display_object.add_child(&self.edit_mode_label);
+            if let Some(location) = location_to_set {
+                self.edit_mode_label.set_cursor(location);
+            } else {
+                // If we were unable to find a port under current mouse position, set the edit label
+                // cursor at the mouse position immediately after setting its content to the raw
+                // expression code.
+                self.edit_mode_label.set_cursor_at_mouse_position();
+            }
+        } else {
+            self.display_object.remove_child(&self.edit_mode_label);
+            self.display_object.add_child(&self.ports);
+            self.display_object.add_child(&self.ports_label);
+            // When we exit the edit mode, clear the label. That way we don't have any extra glyphs
+            // to process during rendering in non-edit mode.
+            self.edit_mode_label.set_content("");
+        }
+        self.edit_mode_label.deprecated_set_focus(edit_mode_active);
+    }
+
     #[profile(Debug)]
     fn init(self) -> Self {
         // TODO: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         //   It needs to be more flexible once we have proper depth management.
         //   See https://www.pivotaltracker.com/story/show/183567632.
         let scene = &self.app.display.default_scene;
-        scene.layers.main.remove(&self.label);
-        self.label.add_to_scene_layer(&scene.layers.label);
+        self.set_label_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        self.label.set_single_line_mode(true);
-        self.label.disable_command("cursor_move_up");
-        self.label.disable_command("cursor_move_down");
-        self.label.disable_command("add_cursor_at_mouse_position");
-        self.label.set_property_default(text_color);
-        self.label.set_property_default(text::Size(TEXT_SIZE));
-        self.label.remove_all_cursors();
+        self.ports_label.set_property_default(text_color);
+        self.ports_label.set_property_default(text::Size(TEXT_SIZE));
 
-        let origin = Vector2(TEXT_OFFSET, 0.0);
-        self.ports.set_xy(origin);
-        self.label.set_xy(origin);
-        self.label.modify_position(|t| t.y += TEXT_SIZE / 2.0);
+        self.edit_mode_label.set_single_line_mode(true);
+        self.edit_mode_label.disable_command("cursor_move_up");
+        self.edit_mode_label.disable_command("cursor_move_down");
+        self.edit_mode_label.disable_command("add_cursor_at_mouse_position");
+        self.edit_mode_label.set_property_default(text_color);
+        self.edit_mode_label.set_property_default(text::Size(TEXT_SIZE));
+        self.edit_mode_label.remove_all_cursors();
+
+        let ports_origin = Vector2(TEXT_OFFSET, 0.0);
+        let label_origin = Vector2(TEXT_OFFSET, TEXT_SIZE / 2.0);
+        self.ports.set_xy(ports_origin);
+        self.ports_label.set_xy(label_origin);
+        self.edit_mode_label.set_xy(label_origin);
+        self.set_edit_mode(false);
 
         self
     }
@@ -290,7 +352,8 @@ impl Model {
 
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.label.add_to_scene_layer(layer);
+        self.edit_mode_label.add_to_scene_layer(layer);
+        self.ports_label.add_to_scene_layer(layer);
     }
 
     /// Run the provided function on the target port if exists.
@@ -337,26 +400,9 @@ impl Model {
         }
     }
 
-    /// Set the visibility of all widgets in this input area. This is only a visual change, and does
-    /// not affect the widget's state. Widget updates are still processed when the widget is hidden.
-    fn set_widgets_visibility(&self, visible: bool) {
-        let expression = self.expression.borrow();
-        let widgets_map = self.widgets_map.borrow();
-        for (id, crumbs) in widgets_map.iter() {
-            let root = expression.span_tree.root_ref();
-            let port = root.get_descendant(crumbs).ok();
-            let widget = port.and_then(|port| port.payload.widget.clone_ref());
-            if let Some(widget) = widget {
-                widget.set_visible(visible);
-            } else {
-                error!("Widget {id:?} not found for crumbs {crumbs:?}.");
-            }
-        }
-    }
-
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
-        self.label.set_content(expression.viz_code.clone());
+        self.ports_label.set_content(expression.viz_code.clone());
     }
 
     #[profile(Debug)]
@@ -519,7 +565,11 @@ impl Model {
                     pointer_style_over <- pointer_style_over.sample(&mouse_over);
 
                     pointer_style_hover <- any(pointer_style_over,pointer_style_out);
-                    pointer_styles      <- all[pointer_style_hover,self.label.pointer_style];
+                    pointer_styles      <- all[
+                        pointer_style_hover,
+                        self.ports_label.pointer_style,
+                        self.edit_mode_label.pointer_style
+                    ];
                     pointer_style       <- pointer_styles.fold();
                     area_frp.source.pointer_style <+ pointer_style;
                 }
@@ -538,6 +588,7 @@ impl Model {
                     } else {
                         widget.set_current_value(None);
                     }
+                    widget.set_visible(true);
 
                     let port_network = &port.network;
                     frp::extend! { port_network
@@ -726,7 +777,7 @@ impl Model {
 
                 let index = node.payload.index;
                 let length = node.payload.length;
-                let label = model.label.clone_ref();
+                let label = model.ports_label.clone_ref();
                 frp::extend! { port_network
                     eval label_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
@@ -814,12 +865,7 @@ impl Model {
     /// Set a displayed expression, updating the input ports. `is_editing` indicates whether the
     /// expression is being edited by the user.
     #[profile(Debug)]
-    fn set_expression(
-        &self,
-        new_expression: impl Into<node::Expression>,
-        is_editing: bool,
-        area_frp: &FrpEndpoints,
-    ) -> Expression {
+    fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
             debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
@@ -830,11 +876,6 @@ impl Model {
         self.build_port_shapes_on_new_expression(&mut new_expression, area_frp, &call_info);
         self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
         self.init_new_expression(new_expression.clone(), area_frp, &call_info);
-        if is_editing {
-            self.label.set_cursor_at_text_end();
-        }
-        self.set_widgets_visibility(!is_editing);
-        new_expression
     }
 }
 
@@ -900,7 +941,6 @@ ensogl::define_endpoints! {
     Output {
         pointer_style       (cursor::Style),
         width               (f32),
-        expression          (ImString),
         expression_edit     (ImString, Vec<Selection<Byte>>),
 
         editing             (bool),
@@ -915,8 +955,8 @@ ensogl::define_endpoints! {
         /// A set of widgets attached to a method requires metadata to be queried. The tuple
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
-        requested_widgets   (ast::Id, ast::Id),
-        request_import      (ImString),
+        requested_widgets    (ast::Id, ast::Id),
+        request_import       (ImString),
     }
 }
 
@@ -955,6 +995,8 @@ impl Area {
         let selection_color = Animation::new(network);
 
         frp::extend! { network
+            init <- source::<()>();
+            set_editing <- all(frp.set_editing, init)._0();
 
             // === Body Hover ===
             // This is meant to be on top of FRP network. Read more about `Node` docs to
@@ -966,42 +1008,41 @@ impl Area {
 
             // === Cursor setup ===
 
-            let edit_mode = frp.input.set_editing.clone_ref();
-            let on_background_press = frp.output.on_background_press.clone_ref();
-            model.label.set_cursor_at_mouse_position <+ on_background_press.gate(&edit_mode);
-            eval edit_mode([model](edit_mode) {
-                model.label.deprecated_set_focus(edit_mode);
-                model.set_widgets_visibility(!edit_mode);
-                if *edit_mode {
-                    // Reset the code to hide non-connected port names.
-                    model.label.set_content(model.expression.borrow().code.clone());
-                    model.label.set_cursor_at_mouse_position();
-                } else {
-                    model.label.remove_all_cursors();
-                }
+            eval set_editing((is_editing) model.set_edit_mode(*is_editing));
+
+            // Prevent text selection from being created right after entering edit mode. Otherwise,
+            // a selection would be created between the current mouse position (the position at
+            // which we clicked) and initial cursor position within edit mode label (the code
+            // position corresponding to clicked port).
+            start_editing <- set_editing.on_true();
+            stop_editing  <- set_editing.on_false();
+            start_editing_delayed     <- start_editing.debounce();
+            reenable_selection_update <- any(&start_editing_delayed, &stop_editing);
+            selection_update_enabled  <- bool(&start_editing, &reenable_selection_update);
+            eval selection_update_enabled([model] (enabled) {
+                let cmd_start = "start_newest_selection_end_follow_mouse";
+                let cmd_stop = "stop_newest_selection_end_follow_mouse";
+                model.edit_mode_label.set_command_enabled(cmd_start, *enabled);
+                model.edit_mode_label.set_command_enabled(cmd_stop, *enabled);
             });
 
 
             // === Show / Hide Phantom Ports ===
 
-            edit_ready_mode <- all_with3
-                ( &frp.input.set_editing
-                , &frp.input.set_edit_ready_mode
-                , &frp.input.set_ports_active
-                , |editing, edit_ready_mode, (set_ports_active, _)|
-                     (*editing || *edit_ready_mode) && !set_ports_active
-                );
-
-            port_vis <- all_with(&frp.input.set_ports_active,&edit_ready_mode,|(a,_),b|*a&&(!b));
+            let ports_active = &frp.set_ports_active;
+            edit_or_ready   <- frp.set_edit_ready_mode || set_editing;
+            reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, (a, _)| *e && !a);
+            port_vis        <- all_with(&edit_or_ready, ports_active, |e, (a, _)| !e && *a);
             frp.output.source.ports_visible <+ port_vis;
-            frp.output.source.editing       <+ frp.set_editing;
+            frp.output.source.editing       <+ set_editing;
 
 
             // === Label Hover ===
 
-            label_hovered <- edit_ready_mode && frp.output.body_hover;
-            eval label_hovered ((t) model.label.set_hover(t));
-
+            label_hovered <- reacts_to_hover && frp.output.body_hover;
+            not_editing  <- set_editing.not();
+            model.ports_label.set_hover <+ label_hovered && not_editing;
+            model.edit_mode_label.set_hover <+ label_hovered && set_editing;
 
             // === Port Hover ===
 
@@ -1015,33 +1056,34 @@ impl Area {
 
             // === Properties ===
 
-            width <- model.label.width.map(|t| t + 2.0 * TEXT_OFFSET);
-            frp.output.source.width      <+ width;
+            label_width <- set_editing.switch(
+                &model.ports_label.width,
+                &model.edit_mode_label.width
+            );
+            frp.output.source.width <+ label_width.map(|t| t + 2.0 * TEXT_OFFSET);
 
 
             // === Expression ===
 
             let frp_endpoints = &frp.output;
-            expression <- frp.input.set_expression.map2(
-                &frp.input.set_editing, f!([frp_endpoints, model](expr, is_editing)
-                    model.set_expression(expr, *is_editing, &frp_endpoints)
-                )
-            );
-            legit_edit <- frp.input.edit_expression.gate(&frp.input.set_editing);
-            model.label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
-            model.label.insert <+ legit_edit._1();
-            frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
-            expression_changed_by_user <- model.label.content.gate(&frp.input.set_editing);
-            frp.output.source.expression <+ expression_changed_by_user.ref_into();
-            frp.output.source.expression_edit <+ model.label.selections.map2(
+            eval frp.set_expression([frp_endpoints, model](expr) model.set_expression(expr, &frp_endpoints));
+            legit_edit <- frp.input.edit_expression.gate(&set_editing);
+            model.edit_mode_label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
+            model.edit_mode_label.insert <+ legit_edit._1();
+            expression_changed_by_user <- model.edit_mode_label.content.gate(&set_editing);
+            frp.output.source.expression_edit <+ model.edit_mode_label.selections.map2(
                 &expression_changed_by_user,
                 f!([model](selection, full_content) {
                     let full_content = full_content.into();
-                    let to_byte = |loc| text::Byte::from_in_context_snapped(&model.label, loc);
+                    let to_byte = |loc| text::Byte::from_in_context_snapped(&model.edit_mode_label, loc);
                     let selections = selection.iter().map(|sel| sel.map(to_byte)).collect_vec();
                     (full_content, selections)
                 })
             );
+            frp.output.source.on_port_code_update <+ expression_changed_by_user.map(|e| {
+                // Treat edit mode update as a code modification at the span tree root.
+                (default(), e.into())
+            });
 
 
             // === Expression Type ===
@@ -1069,15 +1111,15 @@ impl Area {
             selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
 
             selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            model.label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
+            model.ports_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
 
-            init_colors         <- source::<()>();
-            std_base_color      <- all(std_base_color,init_colors)._0();
-            profiled_base_color <- all(profiled_base_color,init_colors)._0();
+            std_base_color      <- all(std_base_color,init)._0();
+            profiled_base_color <- all(profiled_base_color,init)._0();
             base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
-            eval base_color ((color) model.label.set_property_default(color));
-            init_colors.emit(());
+            eval base_color ((color) model.ports_label.set_property_default(color));
         }
+
+        init.emit(());
 
         Self { frp, model }
     }

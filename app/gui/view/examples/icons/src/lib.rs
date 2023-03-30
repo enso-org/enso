@@ -96,6 +96,10 @@ pub fn entry_point_icons() {
     let disable_reevaluation_icon = action_bar::icon::disable_reevaluation::View::new();
     disable_reevaluation_icon.color_rgba.set(dark_green.into());
     place_icon(&world, disable_reevaluation_icon, 40.0, y);
+
+    let enable_reevaluation_icon = action_bar::icon::enable_reevaluation::View::new();
+    enable_reevaluation_icon.color_rgba.set(dark_green.into());
+    place_icon(&world, enable_reevaluation_icon, 60.0, y);
 }
 
 /// Create a grid with pixel squares to help development of icons.
