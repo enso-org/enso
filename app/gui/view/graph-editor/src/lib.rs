@@ -1591,9 +1591,18 @@ impl GraphEditorModelWithNetwork {
                     )
                 ));
 
-            eval node.expression((t) model.frp.private.output.node_expression_set.emit((node_id,t.into())));
+            let is_editing = &node_model.input.frp.editing;
+            expression_change_temporary <- node.on_expression_modified.gate(is_editing);
+            expression_change_permanent <- node.on_expression_modified.gate_not(is_editing);
 
-            eval node.expression_span([model]((crumbs,code)) {
+            temporary_expression <- expression_change_temporary.map2(
+                &node_model.input.set_expression,
+                move |(crumbs, code), expr| expr.code_with_replaced_span(crumbs, code)
+            );
+            eval temporary_expression([model] (code) {
+                model.frp.private.output.node_expression_set.emit((node_id, code));
+            });
+            eval expression_change_permanent([model]((crumbs,code)) {
                 let args = (node_id, crumbs.clone(), code.clone());
                 model.frp.private.output.node_expression_span_set.emit(args)
             });
