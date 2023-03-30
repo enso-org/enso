@@ -108,4 +108,8 @@ public class Regex_Utils {
 
     return result.toString();
   }
+
+  public static String regexQuote(String pattern) {
+    return pattern.replaceAll("[.*+?^${}()|\\[\\]]", "\\\\$0");
+  }
 }

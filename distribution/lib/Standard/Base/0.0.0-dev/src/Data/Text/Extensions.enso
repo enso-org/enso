@@ -30,9 +30,11 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
+import project.IO
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
+from project.Function import identity
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
@@ -323,26 +325,41 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Split the text on any whitespace.
 
          'abc  def\tghi'.split '\\s+' use_regex=True == ["abc", "def", "ghi"]
-Text.split : Text -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
+Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
-    case use_regex of
-        False ->
-            delimiters = Vector.from_polyglot_array <| case case_sensitivity of
-                Case_Sensitivity.Sensitive ->
-                    Text_Utils.span_of_all self delimiter
-                Case_Sensitivity.Insensitive locale ->
-                    Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
-            Vector.new delimiters.length+1 i->
-                start = if i == 0 then 0 else
-                    delimiters.at i-1 . codeunit_end
-                end = if i == delimiters.length then (Text_Utils.char_length self) else
-                    delimiters.at i . codeunit_start
-                Text_Utils.substring self start end
-        True ->
-            Helpers.regex_assume_default_locale case_sensitivity <|
-                case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
-                compiled_pattern.split self only_first
+    case delimiter of
+        _ : Text ->
+            case use_regex of
+                False ->
+                    delimiters = Vector.from_polyglot_array <| case case_sensitivity of
+                        Case_Sensitivity.Sensitive ->
+                            Text_Utils.span_of_all self delimiter
+                        Case_Sensitivity.Insensitive locale ->
+                            Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
+                    Vector.new delimiters.length+1 i->
+                        start = if i == 0 then 0 else
+                            delimiters.at i-1 . codeunit_end
+                        end = if i == delimiters.length then (Text_Utils.char_length self) else
+                            delimiters.at i . codeunit_start
+                        Text_Utils.substring self start end
+                True ->
+                    Helpers.regex_assume_default_locale case_sensitivity <|
+                        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                        compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+                        compiled_pattern.split self only_first
+        _ : Vector Text ->
+            escaper = case use_regex of
+                True -> identity
+                False -> Regex_Utils.regexQuote
+            IO.println "HEY"
+            IO.println self
+            IO.println delimiter
+            delimiter = "(?:" + (delimiter.map escaper . join '|') + ")"
+            IO.println delimiter
+            self.split delimiter case_sensitivity=case_sensitivity only_first=only_first use_regex=True
+        _ ->
+            msg = "Cann't split on " + delimiter.to_display_text
+            Error.throw (Illegal_Argument.Error msg)
 
 ## ALIAS Replace Text
    Perform a text or regex replace.
