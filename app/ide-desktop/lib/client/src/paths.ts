@@ -6,9 +6,7 @@ import * as path from 'node:path'
 import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
-import * as paths from '../paths'
-
-export { SOURCE_FILE_EXTENSION, BUNDLED_PROJECT_EXTENSION } from '../paths'
+import * as paths from '../paths.js'
 
 // =============
 // === Paths ===

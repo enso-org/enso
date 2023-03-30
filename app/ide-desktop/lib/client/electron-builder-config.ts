@@ -19,6 +19,7 @@ import * as common from 'enso-common'
 
 import * as paths from './paths.js'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
+import { BUNDLED_PROJECT_EXTENSION, SOURCE_FILE_EXTENSION } from './file-associations.js'
 
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
@@ -156,12 +157,12 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         ],
         fileAssociations: [
             {
-                ext: paths.SOURCE_FILE_EXTENSION,
+                ext: SOURCE_FILE_EXTENSION,
                 name: 'Enso Source File',
                 role: 'Editor',
             },
             {
-                ext: paths.BUNDLED_PROJECT_EXTENSION,
+                ext: BUNDLED_PROJECT_EXTENSION,
                 name: 'Enso Project Bundle',
                 role: 'Editor',
             },

@@ -5,10 +5,6 @@ import * as utils from '../../utils.js'
 /** Path to the Project Manager bundle within the electron distribution (relative to the electron's resources directory). */
 export const PROJECT_MANAGER_BUNDLE = 'enso'
 
-export const SOURCE_FILE_EXTENSION = '.enso'
-
-export const BUNDLED_PROJECT_EXTENSION = '.enso-project'
-
 /** Distribution directory for IDE. */
 export function getIdeDirectory(): string {
     return utils.requireEnv('ENSO_BUILD_IDE')

@@ -126,7 +126,8 @@
   shortened labels for entries with long module paths. When an option is
   selected from the dropdown, the necessary module imports are inserted,
   eliminating the need for fully qualified names.
-- [File associations on Windows and macOS][6077]
+- [File associations are created on Windows and macOS][6077]. This allows
+  opening Enso files by double-clicking them in the file explorer.
 
 #### EnsoGL (rendering engine)
 

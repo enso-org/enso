@@ -9,7 +9,6 @@ import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import process from 'node:process'
-import child_process from 'node:child_process'
 
 import * as electron from 'electron'
 
@@ -19,13 +18,14 @@ import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
 import * as debug from 'debug'
+import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
 import * as naming from 'naming'
 import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
-import * as project from './projectManagement'
+import {PRODUCT_NAME} from "enso-common";
 
 const logger = contentConfig.logger
 
@@ -72,44 +72,17 @@ class App {
     isQuitting = false
 
     async run() {
-        // On macOS when Enso-associated file is opened, the application is first started and then it
-        // receives the `open-file` event. However, if there is already an instance of Enso running,
-        // it receives the `open-file` event (and no new instance is created for us). In this case,
-        // we manually start a new instance of the application and pass the file path to it (using the
-        // Windows-style command).
-        electron.app.on('open-file', (event, path) => {
-            const extension = pathModule.extname(path).toLowerCase()
-            if (
-                extension === `.${paths.BUNDLED_PROJECT_EXTENSION}` ||
-                extension === `.${paths.SOURCE_FILE_EXTENSION}`
-            ) {
-                // Not the file extension we care about, let the default handler handle it.
-                return
-            }
-
-            // If we are not ready, we can still decide to open a project rather than enter the welcome
-            // screen. However, we still check for the presence of arguments, to prevent hijacking the
-            // user-spawned IDE instance (OS-spawned will not have arguments set).
-            if (!electron.app.isReady() && paths.clientArguments.length === 0) {
-                event.preventDefault()
-                console.log(`Opening file '${path}'.`)
-                APP.handleOpenFile(path)
-            } else {
-                // We need to start another copy of the application, as the first one is already running.
-                console.log(`We are already initialized, opening '${path}' in a new instance.`)
-                const args = [path]
-                const child = child_process.spawn(process.execPath, args, {
-                    detached: true,
-                    stdio: 'ignore',
-                })
-                child.unref()
-            }
-        })
+        // Register file associations for macOS.
+        electron.app.on('open-file', fileAssociations.onFileOpened)
 
         const { windowSize, chromeOptions, openedFile } = this.processArguments()
         if (openedFile !== null) {
             try {
-                this.handleOpenFile(openedFile)
+                // This makes the IDE open the relevant project. Also, this prevents us from using this
+                // method after IDE has been fully set up, as the initializing code would have already
+                // read the value of this argument.
+                this.args.groups.startup.options.project.value =
+                    fileAssociations.handleOpenFile(openedFile)
             } catch (e) {
                 // If we failed to open the file, we should enter the usual welcome screen.
                 // The `handleOpenFile` function will have already displayed an error message.
@@ -144,38 +117,11 @@ class App {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
         let openedFile = attemptingToOpenFile(paths.clientArguments)
-        // If we are opening a file (i.e. we weere spawned with just a path of the file to open as
+        // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument), it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
         let argsToParse = openedFile ? [] : paths.clientArguments
         return { ...configParser.parseArgs(argsToParse), openedFile }
-    }
-
-    /** Handle the case where IDE is invoked with a file to open.
-     *
-     * Imports project if necessary. Returns the ID of the project to open.
-     *
-     * In case of an error, displays an error message and rethrows the error.
-     **/
-    handleOpenFile(openedFile: string): string {
-        try {
-            const id = project.openFile(openedFile)
-            // This makes the IDE open the relevant project. Also, this prevents us from using this
-            // method after IDE has been fully set up, as the initializing code would have already
-            // read the value of this argument.
-            this.args.groups.startup.options.project.value = id
-            return id
-        } catch (e: unknown) {
-            // Since the user has explicitly asked us to open a file, in case of an error we should
-            // display a message box with the error details.
-            let message = `Cannot open file: ${e}.`
-            if (e instanceof Error) {
-                message += `\n\nDetails:\n${e.stack}`
-            }
-            console.error(e)
-            electron.dialog.showErrorBox('Enso', message)
-            throw e
-        }
     }
 
     /** Set Chrome options based on the app configuration. For comprehensive list of available
@@ -456,7 +402,7 @@ class App {
 
 process.on('uncaughtException', (err, origin) => {
     console.error(`Uncaught exception: ${err}\nException origin: ${origin}`)
-    electron.dialog.showErrorBox('Enso', err.stack ?? err.toString())
+    electron.dialog.showErrorBox(PRODUCT_NAME, err.stack ?? err.toString())
     electron.app.exit(1)
 })
 
