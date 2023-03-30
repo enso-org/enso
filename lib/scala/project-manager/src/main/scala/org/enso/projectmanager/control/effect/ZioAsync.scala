@@ -16,14 +16,14 @@ class ZioAsync[R] extends Async[ZIO[R, +*, +*]] {
   override def async[E, A](
     register: (Either[E, A] => Unit) => Unit
   ): ZIO[R, E, A] =
-    ZIO.effectAsync[R, E, A] { callback =>
+    ZIO.async[R, E, A] { callback =>
       register { result => callback(ZIO.fromEither(result)) }
 
     }
 
   /** @inheritdoc */
   override def fromFuture[A](thunk: () => Future[A]): ZIO[R, Throwable, A] =
-    ZIO.effectAsync[R, Throwable, A] { cb =>
+    ZIO.async[R, Throwable, A] { cb =>
       thunk().onComplete {
         case Success(value)     => cb(ZIO.succeed(value))
         case Failure(exception) => cb(ZIO.fail(exception))

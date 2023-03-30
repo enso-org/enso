@@ -510,11 +510,11 @@ impl WorldData {
     }
 
     fn init_composer(&self) {
-        let mouse_hover_rgba = self.default_scene.mouse.hover_rgba.clone_ref();
+        let pointer_target_encoded = self.default_scene.mouse.pointer_target_encoded.clone_ref();
         let garbage_collector = &self.garbage_collector;
         let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
         pixel_read_pass.set_callback(f!([garbage_collector](v) {
-            mouse_hover_rgba.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
+            pointer_target_encoded.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
             garbage_collector.pixel_updated();
         }));
         pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));

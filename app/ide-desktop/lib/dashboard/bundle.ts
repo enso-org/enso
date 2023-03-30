@@ -7,7 +7,15 @@ import * as esbuild from 'esbuild'
 
 import * as bundler from './esbuild-config'
 
+// =================
+// === Constants ===
+// =================
+
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+
+// ===============
+// === Bundler ===
+// ===============
 
 async function bundle() {
     try {
