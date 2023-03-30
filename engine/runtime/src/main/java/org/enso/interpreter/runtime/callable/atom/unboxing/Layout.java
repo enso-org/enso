@@ -3,10 +3,18 @@ package org.enso.interpreter.runtime.callable.atom.unboxing;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * This class mediates the use of {@link UnboxingAtom} instances. It is responsible for describing
@@ -54,6 +62,7 @@ public class Layout {
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldGetterNode[]
       uncachedFieldGetters;
 
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) ArgumentDefinition[] args;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<
           ? extends UnboxingAtom.FieldSetterNode>[]
       fieldSetterFactories;
@@ -69,21 +78,27 @@ public class Layout {
       int[] fieldToStorage,
       NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories,
       NodeFactory<? extends UnboxingAtom.FieldSetterNode>[] fieldSetterFactories,
-      NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory) {
+      NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory,
+      ArgumentDefinition[] args
+  ) {
+    this.args = args;
     this.inputFlags = inputFlags;
     this.fieldToStorage = fieldToStorage;
     this.instantiatorFactory = instantiatorFactory;
     this.fieldGetterFactories = fieldGetterFactories;
     this.uncachedFieldGetters = new UnboxingAtom.FieldGetterNode[fieldGetterFactories.length];
-    for (int i = 0; i < fieldGetterFactories.length; i++) {
-      this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
-      assert this.uncachedFieldGetters[i] != null;
-    }
     this.fieldSetterFactories = fieldSetterFactories;
     this.uncachedFieldSetters = new UnboxingAtom.FieldSetterNode[fieldSetterFactories.length];
     for (int i = 0; i < fieldSetterFactories.length; i++) {
       if (fieldSetterFactories[i] != null) {
         this.uncachedFieldSetters[i] = fieldSetterFactories[i].getUncachedInstance();
+      }
+    }
+    for (int i = 0; i < fieldGetterFactories.length; i++) {
+      this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
+      assert this.uncachedFieldGetters[i] != null;
+      if (args[i].isSuspended()) {
+        this.uncachedFieldGetters[i] = new SuspendedReadCheckNode(this.uncachedFieldGetters[i], this.uncachedFieldSetters[i]);
       }
     }
   }
@@ -98,7 +113,7 @@ public class Layout {
    * factories for getters, setters and instantiators.
    */
   @SuppressWarnings("unchecked")
-  public static Layout create(int arity, long typeFlags) {
+  public static Layout create(int arity, long typeFlags, ArgumentDefinition[] args) {
     if (arity > 32) {
       throw new IllegalArgumentException("Too many fields in unboxed atom");
     }
@@ -137,7 +152,9 @@ public class Layout {
     var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
 
     return new Layout(
-        typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory);
+      typeFlags, fieldToStorage, getterFactories,
+      setterFactories, instantiatorFactory, args
+    );
   }
 
   public UnboxingAtom.FieldGetterNode[] getUncachedFieldGetters() {
@@ -148,6 +165,9 @@ public class Layout {
     var getters = new UnboxingAtom.FieldGetterNode[fieldGetterFactories.length];
     for (int i = 0; i < fieldGetterFactories.length; i++) {
       getters[i] = fieldGetterFactories[i].createNode();
+      if (args[i].isSuspended()) {
+        getters[i] = new SuspendedReadCheckNode(getters[i], buildSetter(i));
+      }
     }
     return getters;
   }
@@ -157,7 +177,11 @@ public class Layout {
   }
 
   public UnboxingAtom.FieldGetterNode buildGetter(int index) {
-    return fieldGetterFactories[index].createNode();
+    var node = fieldGetterFactories[index].createNode();
+    if (args[index].isSuspended()) {
+      node = new SuspendedReadCheckNode(node, buildSetter(index));
+    }
+    return node;
   }
 
   public UnboxingAtom.FieldSetterNode getUncachedFieldSetter(int index) {
@@ -233,7 +257,7 @@ public class Layout {
         if (layouts.length == this.unboxedLayouts.length) {
           // Layouts stored in this node are probably up-to-date; create a new one and try to
           // register it.
-          var newLayout = Layout.create(arity, flags);
+          var newLayout = Layout.create(arity, flags, boxedLayout.layout.args);
           constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
         }
         updateFromConstructor();
@@ -267,6 +291,33 @@ public class Layout {
         }
       }
       return flags;
+    }
+  }
+
+  private static class SuspendedReadCheckNode extends UnboxingAtom.FieldGetterNode {
+    private @Node.Child
+    UnboxingAtom.FieldSetterNode set;
+    private @Node.Child
+    UnboxingAtom.FieldGetterNode get;
+    private @Node.Child
+    InvokeFunctionNode invoke = InvokeFunctionNode.build(new CallArgumentInfo[0], InvokeCallableNode.DefaultsExecutionMode.EXECUTE, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+
+    private SuspendedReadCheckNode(UnboxingAtom.FieldGetterNode get, UnboxingAtom.FieldSetterNode set) {
+      this.get = get;
+      this.set = set;
+    }
+
+    @Override
+    public Object execute(Atom atom) {
+      var value = get.execute(atom);
+      if (value instanceof Function fn && fn.isThunk()) {
+        var ctx = EnsoContext.get(this);
+        var newValue = invoke.execute(fn, null, State.create(ctx), new Object[0]);
+        set.execute(atom, newValue);
+        return newValue;
+      } else {
+        return value;
+      }
     }
   }
 }
