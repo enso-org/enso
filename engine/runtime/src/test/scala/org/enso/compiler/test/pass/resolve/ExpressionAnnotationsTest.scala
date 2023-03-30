@@ -58,6 +58,9 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
   "Annotations resolution" ignore {
     // FIXME: New parser handles the syntax error differently--needs triage (#5894).
+    // Kaz, how to fix this? There is
+    // AnnotatedBuiltin("@Tail_Call", expression=AnnotatedBuiltin("@UnknownAnnotation")) in the tree
+    // e.g. the nesting works completely differently than in the old parser
     implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =
