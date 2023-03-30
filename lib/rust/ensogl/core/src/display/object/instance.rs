@@ -1330,6 +1330,7 @@ pub mod dirty {
     type ModifiedChildren = crate::data::dirty::RefCellSet<ChildIndex, OnDirtyCallback>;
     type RemovedChildren = crate::data::dirty::RefCellSet<WeakInstance, OnDirtyCallback>;
     type Transformation = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+    type ComputedSize = crate::data::dirty::RefCellBool<OnDirtyCallback>;
     type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
 
 
@@ -1356,6 +1357,7 @@ pub mod dirty {
         pub modified_children: ModifiedChildren,
         pub removed_children:  RemovedChildren,
         pub transformation:    Transformation,
+        pub computed_size:     ComputedSize,
         pub new_layer:         SceneLayer,
     }
 
@@ -1366,8 +1368,16 @@ pub mod dirty {
             let modified_children = ModifiedChildren::new(on_dirty_callback(parent_bind));
             let removed_children = RemovedChildren::new(on_dirty_callback(parent_bind));
             let transformation = Transformation::new(on_dirty_callback(parent_bind));
+            let computed_size = ComputedSize::new(on_dirty_callback(parent_bind));
             let new_layer = SceneLayer::new(on_dirty_callback(parent_bind));
-            Self { new_parent, modified_children, removed_children, transformation, new_layer }
+            Self {
+                new_parent,
+                modified_children,
+                removed_children,
+                transformation,
+                computed_size,
+                new_layer,
+            }
         }
 
         /// Check whether any of the dirty flags is set.
@@ -1740,6 +1750,11 @@ impl Model {
                 }
             } else {
                 trace!("Self origin and layers did not change.");
+
+                if self.dirty.computed_size.check() {
+                    self.on_updated_source.emit(());
+                }
+
                 if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
@@ -1762,6 +1777,7 @@ impl Model {
             }
         });
         self.dirty.transformation.unset();
+        self.dirty.computed_size.unset();
         self.dirty.new_parent.unset();
     }
 
@@ -3010,6 +3026,7 @@ impl Model {
         } else {
                 self.refresh_manual_layout(x, pass_cfg);
         }
+        self.dirty.computed_size.set();
     }
 
     /// # Meaning of the function parameters.
