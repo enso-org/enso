@@ -27,9 +27,9 @@ import org.enso.languageserver.vcsmanager.Git.{
 }
 
 import scala.jdk.CollectionConverters._
-import zio.blocking.effectBlocking
 
 import java.time.Instant
+import zio.ZIO.attemptBlocking
 
 private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
     extends VcsApi[BlockingIO] {
@@ -54,7 +54,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
   }
 
   override def init(root: Path): BlockingIO[VcsFailure, Unit] = {
-    effectBlocking {
+    attemptBlocking {
       FileStoreAttributes.setBackground(asyncInit)
       val rootFile = root.toFile
       if (!rootFile.exists()) {
@@ -130,7 +130,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
     root: Path,
     named: Option[String]
   ): BlockingIO[VcsFailure, RepoCommit] = {
-    effectBlocking {
+    attemptBlocking {
       val repo = repository(root)
 
       val commitName = named.getOrElse(Instant.now().toString)
@@ -175,7 +175,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
     root: Path,
     commitId: Option[String]
   ): BlockingIO[VcsFailure, List[Path]] = {
-    effectBlocking {
+    attemptBlocking {
       val repo = repository(root)
 
       val jgit = new JGit(repo)
@@ -250,7 +250,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
   }
 
   override def status(root: Path): BlockingIO[VcsFailure, RepoStatus] = {
-    effectBlocking {
+    attemptBlocking {
       val repo       = repository(root)
       val jgit       = new JGit(repo)
       val statusCmd  = jgit.status()
@@ -283,7 +283,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
     root: Path,
     limit: Option[Int]
   ): BlockingIO[VcsFailure, List[RepoCommit]] = {
-    effectBlocking {
+    attemptBlocking {
       val jgit   = new JGit(repository(root))
       val logCmd = jgit.log()
       limit

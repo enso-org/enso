@@ -7,15 +7,13 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 
 import org.enso.base.Time_Utils;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -319,12 +317,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var text = Time_Utils.normaliseISODateTime(ctx.text.getText());
 
     try {
-      var datetime = Time_Utils.default_zoned_date_time_formatter().parseBest(text, ZonedDateTime::from, LocalDateTime::from);
-      if (datetime instanceof ZonedDateTime zonedDateTime) {
-        return Value.asValue(zonedDateTime);
-      } else if (datetime instanceof LocalDateTime localDateTime) {
-        return Value.asValue(localDateTime.atZone(ZoneId.systemDefault()));
-      }
+      var dateTime = Core_Date_Utils.parseZonedDateTime(text, Time_Utils.default_zoned_date_time_formatter());
+      return Value.asValue(dateTime);
     } catch (DateTimeParseException ignored) {
     }
 
