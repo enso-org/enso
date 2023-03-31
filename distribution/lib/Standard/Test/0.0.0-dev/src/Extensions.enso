@@ -108,6 +108,10 @@ Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as 
         msg = self.to_text + " did not equal type " + that.to_text + " (at " + loc + ")."
         Test.fail msg
 
+## Added so that dataflow errors are not silently lost.
+Error.should_equal_type self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that `self` value is not equal to the expected value.
 
    Arguments:
@@ -130,6 +134,10 @@ Any.should_not_equal self that frames_to_skip=0 = case self != that of
         msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
         Test.fail msg
 
+## Added so that dataflow errors are not silently lost.
+Error.should_not_equal self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that `self` value is not equal to the expected type value.
 
    Arguments:
@@ -151,6 +159,10 @@ Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did equal type " + that.to_text + " (at " + loc + ")."
         Test.fail msg
+
+## Added so that dataflow errors are not silently lost.
+Error.should_not_equal_type self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value is a Text value and starts with `that`.
 
@@ -335,7 +347,7 @@ Any.should_be_a self typ =
     loc = Meta.get_source_location 1
     fail_on_wrong_arg_type =
         Panic.throw <|
-            Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or an atom constructor. Use `should_equal` for value equality test instead."
+            Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or a constructor. Use `should_equal` for value equality test instead."
     case Meta.meta typ of
         c : Meta.Constructor -> case Meta.meta self of
                 a : Meta.Atom ->
