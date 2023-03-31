@@ -5,7 +5,6 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
@@ -37,7 +36,6 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
       context.become(
         responseStage(
           id,
-          ProjectNameChangedEvent(params.oldName, params.newName),
           sender(),
           cancellable
         )
@@ -46,7 +44,6 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
 
   private def responseStage(
     id: Id,
-    nameChangedEvent: ProjectNameChangedEvent,
     replyTo: ActorRef,
     cancellable: Cancellable
   ): Receive = {
@@ -56,7 +53,6 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
       context.stop(self)
 
     case Api.Response(_, Api.ProjectRenamed(_, _)) =>
-      context.system.eventStream.publish(nameChangedEvent)
       replyTo ! ResponseResult(RenameProject, id, Unused)
       cancellable.cancel()
       context.stop(self)
