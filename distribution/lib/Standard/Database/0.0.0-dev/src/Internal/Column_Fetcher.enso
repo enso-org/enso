@@ -5,6 +5,9 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Java_Exports
 
 polyglot java import java.sql.ResultSet
+polyglot java import java.time.LocalTime as Java_Local_Time
+
+polyglot java import org.enso.database.JDBCUtils
 
 type Column_Fetcher
     ## PRIVATE
@@ -87,10 +90,7 @@ text_fetcher =
         if rs.wasNull then Nothing else t
     make_builder initial_size =
         java_builder = Java_Exports.make_string_builder initial_size
-        append v =
-            if v.is_nothing then java_builder.appendNulls 1 else
-                java_builder.append v
-        Builder.Value append (seal_java_builder java_builder)
+        make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
@@ -107,10 +107,25 @@ fallback_fetcher =
         if rs.wasNull then Nothing else v
     make_builder initial_size =
         java_builder = Java_Exports.make_inferred_builder initial_size
-        append v =
-            if v.is_nothing then java_builder.appendNulls 1 else
-                java_builder.append v
-        Builder.Value append (seal_java_builder java_builder)
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+time_fetcher =
+    fetch_value rs i =
+        time = rs.getObject i Java_Local_Time.class
+        if rs.wasNull then Nothing else time
+    make_builder initial_size =
+        java_builder = Java_Exports.make_time_of_day_builder initial_size
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+date_time_fetcher =
+    fetch_value rs i = JDBCUtils.getZonedDateTime rs i
+    make_builder initial_size =
+        java_builder = Java_Exports.make_date_time_builder initial_size
+        make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
@@ -128,9 +143,19 @@ default_fetcher_for_value_type value_type =
         Value_Type.Float _ -> double_fetcher
         Value_Type.Char _ _ -> text_fetcher
         Value_Type.Boolean -> boolean_fetcher
+        Value_Type.Time -> time_fetcher
+        # We currently don't distinguish timestamps without a timezone on the Enso value side.
+        Value_Type.Date_Time _ -> date_time_fetcher
         _ -> fallback_fetcher
 
 ## PRIVATE
 seal_java_builder java_builder column_name =
     storage = java_builder.seal
     Java_Exports.make_column column_name storage
+
+## PRIVATE
+make_builder_from_java_object_builder java_builder =
+    append v =
+        if v.is_nothing then java_builder.appendNulls 1 else
+            java_builder.append v
+    Builder.Value append (seal_java_builder java_builder)

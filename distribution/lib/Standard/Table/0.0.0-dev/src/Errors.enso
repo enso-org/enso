@@ -354,7 +354,10 @@ type Invalid_Value_Type
         prefix = case self.related_column of
             Nothing -> "Expected "
             column_name -> "Expected " + column_name + " column to have "
-        prefix + self.expected.to_text + " type, but got " + self.actual.to_text + "."
+        expected_type = case self.expected of
+            msg : Text -> msg
+            other -> other.to_display_text
+        prefix + expected_type + " type, but got " + self.actual.to_display_text + "."
 
 ## UNSTABLE
 
