@@ -455,21 +455,8 @@ impl ShapeSystemModel {
                 vec2 padded_size = input_size + padding2;
                 vec2 uv_scale = padded_size / input_size;
                 vec2 uv_offset = padding / input_size;
+                input_uv = input_uv * uv_scale - uv_offset;
 
-                // Note: SPIRV-Cross issue https://github.com/KhronosGroup/SPIRV-Cross/issues/2129
-                // To avoid incorrect code generation for `Fma` instruction in SPIRV-Cross, the
-                // `input_uv` modification is intentionally split into two separate expressions.
-                // When this is written in single line as follows:
-                // ```
-                // input_uv = input_uv * uv_scale - uv_offset;
-                // ```
-                // That expression is incorrectly mis-optimized into:
-                // ```
-                // input_uv *= input_uv - uv_offset;
-                // ```
-                input_uv *= uv_scale;
-                input_uv -= uv_offset;
-                
                 // Compute the vertex position with shape padding, apply alignment to the vertex
                 // position, but not to the local SDF coordinates. Shape definitions should always
                 // have their origin point in the center of the shape.
