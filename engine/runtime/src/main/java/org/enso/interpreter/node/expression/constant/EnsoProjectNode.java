@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.constant;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -24,6 +25,7 @@ public class EnsoProjectNode extends RootNode {
   }
 
   @Override
+  @CompilerDirectives.TruffleBoundary
   public Object execute(VirtualFrame frame) {
     var context = EnsoContext.get(this);
     if (pkgOpt.isPresent()) {
