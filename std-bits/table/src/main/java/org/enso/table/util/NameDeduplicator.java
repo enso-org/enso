@@ -131,13 +131,19 @@ public class NameDeduplicator {
         output.add(null);
       }
     }
+
     // Second pass - we go over the duplicated names and disambiguate them by adding a prefix and
     // a suffix if necessary.
     for (int i = 0; i < second.size(); i++) {
       String name = second.get(i);
       if (output.get(i) == null) {
-        duplicatedNames.add(name);
-        output.set(i, makeUnique(secondPrefix + name, false));
+        var prefixed = secondPrefix + name;
+        if (isUnique(prefixed)) {
+          output.set(i, prefixed);
+          markUsed(prefixed);
+        } else {
+          output.set(i, makeUnique(secondPrefix + name, false));
+        }
       }
     }
     return output;
