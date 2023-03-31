@@ -1010,18 +1010,48 @@
 //! node2_2.set_xy((1.0, -1.0));
 //! ```
 //!
-//! Note that the shape views defined using `shape!` macro treat the (0.0, 0.0) point as the center
-//! of the shape sprite. This means that the shape will overflow the parent container. To avoid
-//! this, you can set the shape origin to the bottom-right corner of the shape using `alignment`
-//! property:
-//! ```
+//! # Shape view alignment inside layout objects.
+//!
+//! The shape views defined using `shape!` can have their own set alignment, which defines how the
+//! shape sprite is positioned relative to its display object's position. For example, when the
+//! alignment is set to `center`, the shape sprite will be positioned such that it's center aligns
+//! with the display objects (0.0, 0.0) origin point. When that shape is a child of an auto-layout,
+//! it will visually overflow the parent container.
+//!
+//!       alignment = center                alignment = bottom_right    
+//!            ╭╌view╌╌╌╌╌╌╌╌╮
+//!            ┊             ┊            ╭ sprite ─────╮╌view╌╌╌╌╌╌╌╌╮
+//!            ┊             ┊            │             │             ┊
+//!     ╭ sprite ─────╮      ┊            │             │             ┊
+//!     │      ┊      │      ┊            │             │             ┊
+//!     │      ┊      │      ┊            │             │             ┊
+//!     │      ◎╌╌╌╌╌╌┼╌╌╌╌╌╌╯            │             │             ┊
+//!     │             │                   ╰─────────────◎╌╌╌╌╌╌╌╌╌╌╌╌╌╯
+//!     │             │
+//!     ╰─────────────╯
+//!
+//! To avoid this effect and make sprites compatible with layout's understanding of display objects,
+//! you have to use shapes with `alignment` property set to `bottom_left` corner. It is the default
+//! shape alignment value when not specified. That way, the sprites will be exactly overlapping the
+//! display object's position and size, as set by the layout.
+//!
+//!    alignment = bottom_left
+//!        ╭ view/sprite ╮
+//!        │             │
+//!        │             │
+//!        │             │
+//!        │             │
+//!        │             │
+//!        ◎─────────────╯
+//!
+//!  ```
 //! // ╔═════════════════════════ ▶ ◀ ═╗
 //! // ║ ╭ root ───────┬─────────────╮ ║
 //! // ║ │ ╭ shape1 ─╮ ┆ ╭ shape2 ─╮ │ ║
 //! // ║ │ │         │ ┆ │         │ │ ║
 //! // ║ │ │         │ ┆ │         │ │ ▼
 //! // ║ │ │         │ ┆ │         │ │ ▲
-//! // ║ │ ╰─────────╯ ┆ ╰─────────╯ │ ║
+//! // ║ │ ◎─────────╯ ┆ ◎─────────╯ │ ║
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
@@ -1031,7 +1061,7 @@
 //! mod rectangle {
 //!     use super::*;
 //!     ensogl_core::shape! {
-//!         alignment = left_bottom;
+//!         alignment = left_bottom; // This is also the default value.
 //!         (style: Style) {
 //!             let rect = Rect(Var::canvas_size()).corners_radius(5.0.px());
 //!             let shape = rect.fill(color::Rgba::new(0.7, 0.5, 0.3, 0.5));
@@ -1050,7 +1080,7 @@
 //! shape1.set_size((100.0, 100.0));
 //! shape2.set_size((100.0, 100.0));
 //! ```
-//!
+//! 
 //! # Size and computed size.
 //! Display objects expose two functions to get their size: `size` and `computed_size`. The first
 //! one provides the size set by the user. It can be either 'hug' or a fixed value expressed as one

@@ -24,7 +24,6 @@ use ensogl_core::display::object::ObjectOps;
 mod rectangle {
     use super::*;
     ensogl_core::shape! {
-        alignment = left_bottom;
         (style: Style, color: Vector4<f32>) {
             let color = Var::<color::Rgba>::from(color);
             let rect = Rect(Var::canvas_size()).corners_radius(5.0.px());

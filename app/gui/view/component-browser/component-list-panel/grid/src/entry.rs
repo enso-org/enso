@@ -65,6 +65,7 @@ pub mod background {
     ensogl_core::shape! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape, icon::any];
         pointer_events = false;
+        alignment = center;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();

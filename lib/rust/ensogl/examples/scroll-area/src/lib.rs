@@ -56,6 +56,7 @@ pub fn main() {
 mod content {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let circle = Circle(50.px())
                 .translate(((-50.0).px(), 350.0.px()))
@@ -79,6 +80,7 @@ mod content {
 mod background {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let size = (200.px(), 200.px());
             let color = color::Rgb::new(0.9, 0.9, 0.9);

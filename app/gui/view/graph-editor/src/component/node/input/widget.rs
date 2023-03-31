@@ -328,6 +328,7 @@ pub mod triangle {
             crate::component::node::background,
             crate::component::node::input::port::hover
         ];
+        alignment = center;
         (style:Style, color:Vector4) {
             let size   = Var::canvas_size();
             let radius = 1.0.px();

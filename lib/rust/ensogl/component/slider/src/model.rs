@@ -61,6 +61,7 @@ mod background {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style:Style, color:Vector4) {
             let shape = Background::new().shape;
             let shape = shape.fill(color);
@@ -76,6 +77,7 @@ mod track {
     ensogl_core::shape! {
         above = [background];
         pointer_events = false;
+        alignment = center;
         (style:Style, slider_fraction_horizontal:f32, slider_fraction_vertical:f32, color:Vector4) {
             let Background{width,height,shape: background} = Background::new();
             let track = Rect((
@@ -97,6 +99,7 @@ mod thumb {
     ensogl_core::shape! {
         above = [background];
         pointer_events = false;
+        alignment = center;
         (style:Style, slider_fraction:f32, thumb_width:f32, thumb_height:f32, color:Vector4) {
             let Background{width,height,shape: background} = Background::new();
             let thumb_width = &width * &thumb_width;
@@ -120,6 +123,7 @@ mod overflow {
     ensogl_core::shape! {
         above = [background, track, thumb];
         pointer_events = false;
+        alignment = center;
         (style:Style, color:Vector4) {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = "input_size.y".into();
