@@ -148,6 +148,8 @@ pub fn locate_many<'a>(
     }
 }
 
+
+
 // ===================
 // === NodeAstInfo ===
 // ===================
@@ -165,7 +167,8 @@ impl NodeAstInfo {
     /// Constructor.
     pub fn from_ast(ast: &Ast) -> Self {
         let macros_info = MacrosInfo::from_ast(ast);
-        let context_switch = ContextSwitchExpression::parse(ast);
+        let without_macros = without_macros(ast);
+        let context_switch = ContextSwitchExpression::parse(&without_macros);
         Self { macros_info, context_switch }
     }
 }
@@ -295,14 +298,6 @@ impl NodeInfo {
             }
             self.ast_info.macros_info.freeze = freeze;
         }
-    }
-
-    /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
-    /// assignment infix will be introduced.
-    pub fn set_pattern(&mut self, pattern: Ast) {
-        if let Some(ast_info) = self.main_line.set_pattern(pattern) {
-            self.ast_info = ast_info;
-        };
     }
 
     /// Clear the pattern (left side of assignment) for node.
@@ -465,13 +460,13 @@ impl MainLine {
         }
     }
 
-    /// See [`NodeInfo::set_pattern`]. Returns the AST info if it was updated.
-    fn set_pattern(&mut self, pattern: Ast) -> Option<NodeAstInfo> {
+    /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
+    /// assignment infix will be introduced.
+    pub fn set_pattern(&mut self, pattern: Ast) {
         match self {
             MainLine::Binding { infix, .. } => {
                 // Setting infix operand never fails.
                 infix.update_shape(|infix| infix.larg = pattern);
-                None
             }
             MainLine::Expression { ast, .. } => {
                 let infix = ast::Infix {
@@ -482,9 +477,7 @@ impl MainLine {
                     rarg: ast.clone(),
                 };
                 let infix = known::Infix::new(infix, None);
-                let ast_info = NodeAstInfo::from_ast(&infix.rarg);
                 *self = MainLine::Binding { infix };
-                Some(ast_info)
             }
         }
     }
@@ -788,47 +781,69 @@ mod tests {
 
     #[test]
     fn mixing_skip_and_freeze_and_context_switch() {
-        let id = uuid::Uuid::new_v4();
-        let larg = Ast::var("foo");
-        let rarg = Ast::var("bar").with_id(id);
-        let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
-        let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
-        node.set_skip(true);
-        assert_eq!(node.repr(), format!("foo = {SKIP_MACRO_IDENTIFIER} bar"));
-        node.set_context_switch(ContextSwitchExpression {
-            switch:      ContextSwitch::Enable,
-            context:     Context::Output,
-            environment: "env".into(),
-        });
-        assert_eq!(
-            node.repr(),
-            format!(
-                "foo = {SKIP_MACRO_IDENTIFIER} {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"
-            )
-        );
-        assert!(node.ast_info.context_switch.is_some());
-        node.set_skip(false);
-        assert_eq!(node.repr(), format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"));
-        node.clear_context_switch_expression();
-        assert_eq!(node.repr(), format!("foo = bar"));
+        // TODO: Doesn't work because of the broken parsing for SKIP and FREEZE. See https://github.com/enso-org/enso/issues/5572
+        //
+        // let parser = Parser::new();
+        // let line = format!("foo = {SKIP_MACRO_IDENTIFIER} {FREEZE_MACRO_IDENTIFIER}
+        // {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar")
+        // let ast = parser.parse_line_ast(line).unwrap();
+        // let node = NodeInfo::from_main_line_ast(&ast).unwrap();
+        // assert!(node.ast_info. context_switch.is_some());
+        // assert!(node.ast_info.macros_info.skip);
+        // assert!(node.ast_info.macros_info.freeze);
 
-        node.set_freeze(true);
-        assert_eq!(node.repr(), format!("foo = {FREEZE_MACRO_IDENTIFIER} bar"));
-        node.set_context_switch(ContextSwitchExpression {
-            switch:      ContextSwitch::Enable,
-            context:     Context::Output,
-            environment: "env".into(),
-        });
-        assert_eq!(
-            node.repr(),
-            format!(
-                "foo = {FREEZE_MACRO_IDENTIFIER} {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"
-            )
-        );
-        assert!(node.ast_info.context_switch.is_some());
-        node.set_freeze(false);
-        assert_eq!(node.repr(), format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"));
-        node.clear_context_switch_expression();
-        assert_eq!(node.repr(), format!("foo = bar"));
+
+        let foo_bar = || {
+            let id = uuid::Uuid::new_v4();
+            let larg = Ast::var("foo");
+            let rarg = Ast::var("bar").with_id(id);
+            let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
+            NodeInfo::from_main_line_ast(&line_ast).unwrap()
+        };
+
+        #[derive(Debug)]
+        struct Case {
+            skip:   bool,
+            freeze: bool,
+        }
+
+        #[rustfmt::skip]
+        let cases =
+            vec![
+                Case { skip: true, freeze: false },
+                Case { skip: false, freeze: true },
+                Case { skip: true, freeze: true },
+            ];
+
+        for case in cases {
+            let mut node = foo_bar();
+            node.set_skip(case.skip);
+            node.set_freeze(case.freeze);
+            node.set_context_switch(ContextSwitchExpression {
+                switch:      ContextSwitch::Enable,
+                context:     Context::Output,
+                environment: "env".into(),
+            });
+
+            let expected = format!(
+                "foo = {skip}{space}{freeze} {context_switch} <| bar",
+                space = if case.skip && case.freeze { " " } else { "" },
+                skip = if case.skip { SKIP_MACRO_IDENTIFIER } else { "" },
+                freeze = if case.freeze { FREEZE_MACRO_IDENTIFIER } else { "" },
+                context_switch = format!("{ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\""),
+            );
+            assert_eq!(node.repr(), expected, "{case:?}");
+            assert!(node.ast_info.context_switch.is_some());
+
+            node.clear_context_switch_expression();
+            assert!(node.ast_info.context_switch.is_none());
+            let expected = format!(
+                "foo = {skip}{space}{freeze} bar",
+                space = if case.skip && case.freeze { " " } else { "" },
+                skip = if case.skip { SKIP_MACRO_IDENTIFIER } else { "" },
+                freeze = if case.freeze { FREEZE_MACRO_IDENTIFIER } else { "" },
+            );
+            assert_eq!(node.repr(), expected, "{case:?}");
+        }
     }
 }
