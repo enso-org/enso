@@ -14,7 +14,9 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
-    Test.group prefix+"Date-Time support" pending=(if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend.") <|
+    pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
+
+    Test.group prefix+"Date-Time support" pending=pending_datetime <|
         Test.specify "should allow to create Table with Date columns and round-trip them back to Enso" <|
             d = Date.new 2020 10 24
             table = table_builder [["A", [d]], ["X", [123]]]
@@ -52,7 +54,7 @@ spec setup =
             table.at "C" . to_vector . map to_utc . should_equal (dates.map to_utc)
             table.at "X" . to_vector . should_equal xs
 
-    Test.group prefix+"Date-Time operations" pending=(if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend.") <|
+    Test.group prefix+"Date-Time operations" pending=pending_datetime <|
         Test.specify "should allow to get the year/month/day of a Date" <|
             t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
 
