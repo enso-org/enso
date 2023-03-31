@@ -539,11 +539,11 @@ public class Text_Utils {
           String haystack, List<String> needles, Locale locale) {
     if (needles.isEmpty())
       throw new IllegalArgumentException(
-              "The operation `span_of_all_multiple` does not support searching for an empty term.");
+              "The operation `span_of_all_case_insensitive_multiple` does not support searching for an empty term.");
     for (String needle : needles) {
       if (needle.isEmpty())
         throw new IllegalArgumentException(
-                "The operation `span_of_all_multiple` does not support searching for an empty term.");
+                "The operation `span_of_all_case_insensitive_multiple` does not support searching for an empty term.");
     }
     if (haystack.isEmpty()) return List.of();
 
@@ -576,6 +576,8 @@ public class Text_Utils {
       int matchLength = stringSearches.get(earliestIndex).getMatchLength();
       GraphemeSpan graphemeSpan = findExtendedSpan(foldedHaystack, earliestStart, matchLength);
       occurrences.add(graphemeSpan);
+      System.out.println("AAA " + matchLength + " " + (earliestStart + matchLength) + " " +
+          graphemeSpan.codeunit_end + " " + ((earliestStart + matchLength) == graphemeSpan.codeunit_end));
       ix = graphemeSpan.codeunit_end;
     }
     return occurrences;

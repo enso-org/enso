@@ -71,6 +71,12 @@ spec =
             'aśbs\u0301c'.split ['s\u0301'] . should_equal ['a', 'b', 'c']
             'aśbs\u0301cdef'.split ['ś', 'de'] . should_equal ['a', 'b', 'c', 'f']
 
+            'aśbs\u0301c'.split 'ś' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['ś'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split 's\u0301' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['s\u0301'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aśbs\u0301cdef'.split ['ś', 'de'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c', 'f']
+
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
 
