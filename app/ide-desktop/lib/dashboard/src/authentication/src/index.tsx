@@ -22,9 +22,9 @@ import App, * as app from './components/app'
 // =================
 
 /** The `id` attribute of the root element that the app will be rendered into. */
-const ROOT_ELEMENT_ID = 'dashboard';
+const ROOT_ELEMENT_ID = 'dashboard'
 /** The `id` attribute of the element that the IDE will be rendered into. */
-const IDE_ELEMENT_ID = 'root';
+const IDE_ELEMENT_ID = 'root'
 
 // ===========
 // === run ===
@@ -51,12 +51,12 @@ export function run(
     } else {
         // FIXME[sb]: This is a temporary workaround and will be fixed
         // when IDE support is properly integrated into the dashboard.
-        const ide = document.getElementById(IDE_ELEMENT_ID);
+        const ide = document.getElementById(IDE_ELEMENT_ID)
         if (ide != null) {
-          ide.style.display = "none";
+            ide.style.display = 'none'
         }
-        const props = { logger, platform, onAuthenticated };
-        reactDOM.createRoot(root).render(<App {...props} />);
+        const props = { logger, platform, onAuthenticated }
+        reactDOM.createRoot(root).render(<App {...props} />)
     }
 }
 
