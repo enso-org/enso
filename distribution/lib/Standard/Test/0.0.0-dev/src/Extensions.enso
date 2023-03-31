@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Test_Result.Test_Result
 from project.Test import Test
@@ -22,7 +23,10 @@ from project.Test import Test
 Any.should_fail_with : Any -> Integer -> Test_Result
 Any.should_fail_with self matcher frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    Test.fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
+    matcher_text = case matcher.to_text of
+        text : Text -> text
+        _ -> Meta.meta matcher . to_text
+    Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -44,7 +48,10 @@ Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 3+frames_to_skip
-        Test.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
+        matcher_text = case matcher.to_text of
+            text : Text -> text
+            _ -> Meta.meta matcher . to_text
+        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -101,6 +108,10 @@ Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as 
         msg = self.to_text + " did not equal type " + that.to_text + " (at " + loc + ")."
         Test.fail msg
 
+## Added so that dataflow errors are not silently lost.
+Error.should_equal_type self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that `self` value is not equal to the expected value.
 
    Arguments:
@@ -123,6 +134,10 @@ Any.should_not_equal self that frames_to_skip=0 = case self != that of
         msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
         Test.fail msg
 
+## Added so that dataflow errors are not silently lost.
+Error.should_not_equal self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that `self` value is not equal to the expected type value.
 
    Arguments:
@@ -144,6 +159,10 @@ Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did equal type " + that.to_text + " (at " + loc + ")."
         Test.fail msg
+
+## Added so that dataflow errors are not silently lost.
+Error.should_not_equal_type self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value is a Text value and starts with `that`.
 
@@ -251,6 +270,11 @@ Error.should_succeed : Integer -> Any
 Error.should_succeed self frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
+## Handles an unexpected dataflow error.
+Error.should_be_a : Integer -> Any
+Error.should_be_a self frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that the given `Boolean` is `True`
 
    > Example
@@ -320,32 +344,48 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Test_Result
 Any.should_be_a self typ =
-    ok = case Meta.meta typ of
+    loc = Meta.get_source_location 1
+    fail_on_wrong_arg_type =
+        Panic.throw <|
+            Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or a constructor. Use `should_equal` for value equality test instead."
+    case Meta.meta typ of
         c : Meta.Constructor -> case Meta.meta self of
-            a : Meta.Atom -> a.constructor == c
-            _ -> False
-        _ -> self.is_a typ || self==typ
-
-    if ok then Test_Result.Success else
-        loc = Meta.get_source_location 3
-        expected_type = Meta.get_qualified_type_name typ
-        actual_type = Meta.get_qualified_type_name self
-        message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
-        Test.fail message
-
-## Asserts that a value is of a given type.
-
-   Arguments:
-   - typ: The type to assert that `self` is a value of.
-
-   > Examples
-     Assert that 1 is of type Integer.
-
-         from Standard.Test import Test
-
-         example_should_be_an = 1.should_be_an Integer
-Any.should_be_an : Any -> Test_Result
-Any.should_be_an self typ = self.should_be_a typ
+                a : Meta.Atom ->
+                    if a.constructor == c then Test_Result.Success else
+                        expected_type = Meta.get_qualified_type_name typ
+                        actual_type = Meta.get_qualified_type_name self
+                        message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+loc+")."
+                        Test.fail message
+                _ ->
+                    expected_type = Meta.get_qualified_type_name typ
+                    actual_type = Meta.get_qualified_type_name self
+                    message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value of type "+actual_type+" instead (at "+loc+")."
+                    Test.fail message
+        _ : Meta.Type ->
+            ok = self.is_a typ || self==typ
+            if ok then Test_Result.Success else
+                expected_type = Meta.get_qualified_type_name typ
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of type "+expected_type+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        # Workaround for 0-argument atom constructors which 'unapplies' them.
+        atom : Meta.Atom ->
+            ctor = atom . constructor
+            if ctor.fields.not_empty then fail_on_wrong_arg_type else
+                self.should_be_a (ctor.value ...)
+        _ : Meta.Polyglot ->
+            ok = self.is_a typ
+            if ok then Test_Result.Success else
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of Java class "+typ.to_text+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        Meta.Primitive.Value (b : Boolean) ->
+            ok = self == b
+            if ok then Test_Result.Success else
+                actual_type = Meta.get_qualified_type_name self
+                message = "Expected a value of "+typ.to_text+" but got a value of type "+actual_type+" instead (at "+loc+")."
+                Test.fail message
+        _ -> fail_on_wrong_arg_type
 
 ## Asserts that `self` value contains the same elements as `that`.
 

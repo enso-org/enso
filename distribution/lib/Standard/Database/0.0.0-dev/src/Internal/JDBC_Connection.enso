@@ -1,16 +1,18 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
-import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Internal.Base_Generator
-
 import project.Data.Table.Table as Database_Table
+import project.Internal.Base_Generator
+import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Errors import SQL_Error, SQL_Timeout
 
@@ -24,7 +26,6 @@ polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 
 polyglot java import org.enso.database.JDBCProxy
-polyglot java import org.enso.database.JDBCUtils
 
 type JDBC_Connection
     ## PRIVATE
@@ -63,18 +64,24 @@ type JDBC_Connection
 
        Runs the provided action with a prepared statement, adding contextual
        information to any thrown SQL errors.
-    with_prepared_statement : Text  | SQL_Statement -> (PreparedStatement -> Any) -> Any
-    with_prepared_statement self query action =
-        prepare template holes = self.connection_resource.with java_connection->
+    with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Any
+    with_prepared_statement self query statement_setter action =
+        prepare template values = self.connection_resource.with java_connection->
             stmt = java_connection.prepareStatement template
-            Panic.catch Any (set_statement_values stmt holes) caught_panic->
+            handle_illegal_state caught_panic =
+                Error.throw (Illegal_Argument.Error caught_panic.payload.message)
+            handle_any caught_panic =
                 stmt.close
                 Panic.throw caught_panic
-            stmt
+            result = Panic.catch Illegal_State handler=handle_illegal_state <|
+                Panic.catch Any handler=handle_any <|
+                    set_statement_values stmt statement_setter values
+            result.if_not_error <|
+                stmt
 
-        go template holes =
+        go template values =
             handle_sql_errors related_query=template <|
-                Managed_Resource.bracket (prepare template holes) .close action
+                Managed_Resource.bracket (prepare template values) .close action
 
         case query of
             _ : Text -> go query []
@@ -83,29 +90,40 @@ type JDBC_Connection
                 go compiled.first compiled.second
 
     ## PRIVATE
-
        Given a prepared statement, gets the column names and types for the
        result set.
-    fetch_columns : Text | SQL_Statement -> Any
-    fetch_columns self statement =
-        self.with_prepared_statement statement stmt->
+    fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
+    fetch_columns self statement statement_setter =
+        self.with_prepared_statement statement statement_setter stmt->
             metadata = stmt.executeQuery.getMetaData
 
             resolve_column ix =
-                name = metadata.getColumnName ix+1
-                typeid = metadata.getColumnType ix+1
-                typename = metadata.getColumnTypeName ix+1
-                [name, SQL_Type.Value typeid typename]
+                name = metadata.getColumnLabel ix+1
+                sql_type = SQL_Type.from_metadata metadata ix+1
+                [name, sql_type]
 
             Vector.new metadata.getColumnCount resolve_column
+
+    ## PRIVATE
+       Checks that the query has no holes, and if it does, throws an error.
+    ensure_query_has_no_holes : Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self raw_sql =
+        self.with_prepared_statement raw_sql Statement_Setter.null stmt->
+            ## We cannot run this check on every query, because in some
+              backends (e.g. Postgres) running `getParameterMetaData`
+              seems to trigger logic for figuring out types of the holes.
+              In some of our generated queries, the driver is unable to
+              figure out the types and fails with an exception.
+            expected_parameter_count = stmt.getParameterMetaData.getParameterCount
+            if expected_parameter_count != 0 then
+                Error.throw <| Illegal_Argument.Error 'The provided raw SQL query should not contain any holes ("?").'
 
     ## PRIVATE
 
        Given an insert query template and the associated Database_Table, and a
        Materialized_Table of data, load to the database.
-    load_table : Text -> Database_Table -> Materialized_Table -> Integer -> Nothing
-    load_table self insert_template db_table table batch_size =
-        db_types = db_table.internal_columns.map .sql_type
+    load_table : Text -> Statement_Setter -> Materialized_Table -> Integer -> Nothing
+    load_table self insert_template statement_setter table batch_size =
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False
@@ -121,8 +139,7 @@ type JDBC_Connection
                                     Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                     0.up_to num_rows . each row_id->
                         values = columns.map col-> col.at row_id
-                        holes = values.zip db_types
-                        set_statement_values stmt holes
+                        set_statement_values stmt statement_setter values
                         stmt.addBatch
                         if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                     if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
@@ -174,41 +191,19 @@ handle_sql_errors ~action related_query=Nothing =
             exc -> Error.throw (SQL_Error.Error exc related_query)
 
 ## PRIVATE
-   Sets values inside of a prepared statement.
-set_statement_values : PreparedStatement -> Vector (Pair Any SQL_Type) -> Nothing
-set_statement_values stmt holes =
-    holes.map_with_index ix-> obj->
-        position = ix + 1
-        case obj.first of
-            Nothing ->
-                ## If we really don't have a clue what this should be, we choose a varchar for a blank column.
-                sql_type = if obj.second == SQL_Type.null then SQL_Type.text else obj.second
-                stmt.setNull position sql_type.typeid
-            _ : Date_Time -> stmt.setTimestamp position (JDBCUtils.getTimestamp obj.first)
-            _ -> stmt.setObject position obj.first
+   Uses the provided `Statement_Setter` strategy to fill holes in a
+   provided `PreparedStatement`.
+set_statement_values stmt statement_setter values =
+    values.each_with_index ix-> value->
+        statement_setter.fill_hole stmt (ix + 1) value
 
 ## PRIVATE
    Given a Materialized_Table, create a SQL statement to build the table.
-create_table_statement : Text -> Materialized_Table -> Boolean -> SQL_Statement
-create_table_statement name table temporary =
-    column_types = table.columns.map col-> default_storage_type col.storage_type
+create_table_statement : (Value_Type -> SQL_Type) -> Text -> Materialized_Table -> Boolean -> SQL_Statement
+create_table_statement type_mapper name table temporary =
+    column_types = table.columns.map col-> type_mapper col.value_type
     column_names = table.columns.map .name
     col_makers = column_names.zip column_types name-> typ->
         Base_Generator.wrap_in_quotes name ++ " " ++ typ.name
     create_prefix = Builder.code <| if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
     (create_prefix ++ Base_Generator.wrap_in_quotes name ++ " (" ++ (Builder.join ", " col_makers) ++ ")").build
-
-## PRIVATE
-   Returns the default database type corresponding to an in-memory storage type.
-default_storage_type : Storage -> SQL_Type
-default_storage_type storage_type = case storage_type of
-    Storage.Text -> SQL_Type.text
-    Storage.Integer -> SQL_Type.integer
-    Storage.Decimal -> SQL_Type.double
-    Storage.Boolean -> SQL_Type.boolean
-    Storage.Date -> SQL_Type.date
-    Storage.Time_Of_Day -> SQL_Type.time_of_day
-    Storage.Date_Time -> SQL_Type.date_time
-    ## Support for mixed type columns in Table upload is currently very limited,
-       falling back to treating everything as text.
-    Storage.Any -> SQL_Type.text

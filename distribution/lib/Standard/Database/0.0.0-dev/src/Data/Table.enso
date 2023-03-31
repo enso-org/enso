@@ -8,7 +8,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode, Auto
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode, Auto, Value_Type
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -16,8 +16,6 @@ import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
-import Standard.Table.Data.Value_Type.Auto
-import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
@@ -41,6 +39,8 @@ import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Data.Column import find_argument_type
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
@@ -511,13 +511,6 @@ type Table
         column = self.compute expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## PRIVATE
-    with_no_rows self =
-        false_expression = SQL_Expression.Operation "==" [SQL_Expression.Constant SQL_Type.integer 1, SQL_Expression.Constant SQL_Type.integer 2]
-        new_filters = self.context.where_filters + [false_expression]
-        new_ctx = self.context.set_where_filters new_filters
-        self.updated_context new_ctx
-
     ## UNSTABLE
        Creates a new Table with the specified range of rows from the input
        Table.
@@ -667,10 +660,15 @@ type Table
     compute : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     compute self expression on_problems=Report_Warning =
         get_column name = self.at name
+        type_mapping = self.connection.dialect.get_type_mapping
         make_constant value =
-            new_type = SQL_Type.approximate_type value
-            other = SQL_Expression.Constant new_type value
-            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
+            argument_value_type = find_argument_type value
+            sql_type = case argument_value_type of
+                Nothing -> SQL_Type.null
+                _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
+            expr = SQL_Expression.Constant value
+            new_type_ref = SQL_Type_Reference.from_constant sql_type
+            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
         new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
@@ -706,28 +704,26 @@ type Table
         self.read max_rows=max_rows . rows
 
     ## Returns the first row of the table.
-
-       In the database backend, it first materializes the table to in-memory.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
         self.read max_rows=1 . rows . first
 
     ## Returns the second row of the table.
-
-       In the database backend, it first materializes the table to in-memory.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
         self.read max_rows=2 . rows . second
 
     ## Returns the last row of the table.
 
-       In the database backend, it first materializes the table to in-memory.
+       In the database backend, this function has to scan through all the
+       results of the query.
     last_row : Row ! Index_Out_Of_Bounds
     last_row self =
         if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             sql = self.to_sql
-            expected_types = self.internal_columns.map .sql_type
-            self.connection.read_last_row sql expected_types . rows . first
+            column_type_suggestions = self.internal_columns.map .sql_type_reference
+            table = self.connection.read_statement sql column_type_suggestions last_row_only=True
+            table.rows.first
 
     ## ALIAS sort
        Sorts the rows of the table according to the specified columns and order.
@@ -801,13 +797,14 @@ type Table
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
             new_order_descriptors = columns_for_ordering.map selected_column->
-                internal_column = selected_column.column
+                column = selected_column.column
                 associated_selector = selected_column.associated_selector
+                effective_text_ordering = if column.value_type.is_text then text_ordering else Nothing
                 ## FIXME [RW] this is only needed because `Vector.map` does not
                    propagate dataflow errors correctly. See:
                    https://www.pivotaltracker.com/story/show/181057718
                 Panic.throw_wrapped_if_error <|
-                    self.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
+                    self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
 
@@ -1201,19 +1198,37 @@ type Table
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
             new_ctx = self.context.set_groups key_expressions
+            ## TODO [RW] here we will perform as many fetches as there are
+               aggregate columns, but technically we could perform just one
+               fetch fetching all column types - TODO we should do that. We can
+               do it here by creating a builder that will gather all requests
+               from the executed callbacks and create Lazy references that all
+               point to a single query.
+               See #6118.
+            infer_from_database_callback expression =
+                    SQL_Type_Reference.new self.connection self.context expression
+            dialect = self.connection.dialect
+            type_mapping = dialect.get_type_mapping
+            infer_return_type op_kind columns expression =
+                type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
             results = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
-                Aggregate_Helper.make_aggregate_column self agg new_name . catch
+                result = Aggregate_Helper.make_aggregate_column agg new_name dialect infer_return_type
+                ## If the `result` did contain an error, we catch it to be
+                   able to store it in a vector and then we will partition the
+                   created columns and failures.
+                result.catch Any error->
+                    Wrapped_Error.Value error
 
-            partitioned = results.partition (_.is_a Internal_Column)
+            partitioned = results.partition (_.is_a Wrapped_Error)
 
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
                the `lift_aggregate` method to push the aggregates into a
                subquery.
-            new_columns = partitioned.first
-            problems = partitioned.second
+            new_columns = partitioned.second
+            problems = partitioned.first.map .value
             on_problems.attach_problems_before problems <|
                 self.updated_context_and_columns new_ctx new_columns subquery=True
 
@@ -1356,8 +1371,8 @@ type Table
                 Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
             False ->
                 sql = preprocessed.to_sql
-                expected_types = preprocessed.internal_columns.map .sql_type
-                self.connection.read_statement sql expected_types
+                column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
+                self.connection.read_statement sql column_type_suggestions
 
     ## UNSTABLE
 
@@ -1391,8 +1406,10 @@ type Table
             self.connection.dialect.generate_sql query
         count_table = self.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
-        types = cols.map c-> c.sql_type.name
-        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]]
+        type_mapping = self.connection.dialect.get_type_mapping
+        types = cols.map col->
+            type_mapping.sql_type_to_value_type col.sql_type_reference.get
+        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
 
     ## PRIVATE
 
@@ -1402,7 +1419,7 @@ type Table
        - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> Column
     make_column self internal =
-        Column.Value internal.name self.connection internal.sql_type internal.expression self.context
+        Column.Value internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
@@ -1470,7 +1487,7 @@ type Table
             _ -> Error.throw <| Illegal_State.Error "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
-            [col.name, SQL_Expression.Constant col.sql_type value]
+            [col.name, SQL_Expression.Constant value]
         query = self.connection.dialect.generate_sql <| Query.Insert table_name pairs
         affected_rows = self.connection.execute_update query
         case affected_rows == 1 of
@@ -1553,7 +1570,10 @@ type Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
-        cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
+        cols = columns.map p->
+            name = p.first
+            sql_type = p.second
+            Internal_Column.Value name (SQL_Type_Reference.from_constant sql_type) (SQL_Expression.Column table_name name)
         Table.Value table_name connection cols ctx
 
 ## PRIVATE
@@ -1626,3 +1646,8 @@ freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Colum
 freshen_columns used_names columns =
     new_names = fresh_names used_names (columns.map .name)
     Helpers.rename_internal_columns columns new_names
+
+## PRIVATE
+type Wrapped_Error
+    ## PRIVATE
+    Value value

@@ -1,8 +1,8 @@
 package org.enso.table.aggregations;
 
-import com.ibm.icu.text.BreakIterator;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
@@ -10,11 +10,13 @@ import java.util.List;
 
 /** Aggregate Column finding the longest or shortest string in a group. */
 public class ShortestOrLongest extends Aggregator {
+  public static final int SHORTEST = -1;
+  public static final int LONGEST = 1;
   private final Storage<?> storage;
   private final int minOrMax;
 
   public ShortestOrLongest(String name, Column column, int minOrMax) {
-    super(name, Storage.Type.STRING);
+    super(name, TextType.VARIABLE_LENGTH);
     this.storage = column.getStorage();
     this.minOrMax = minOrMax;
   }

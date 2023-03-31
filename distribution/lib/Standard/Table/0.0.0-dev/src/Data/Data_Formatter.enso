@@ -1,9 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Value_Type.Auto
-import project.Data.Storage.Storage
 import project.Internal.Parse_Values_Helper
+from project.Data.Type.Value_Type import Value_Type, Auto
 
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
@@ -271,15 +270,15 @@ type Data_Formatter
         AnyObjectFormatter.new formatters.to_array
 
     ## PRIVATE
-    make_formatter_for_column_type self (column_type : Storage) = case column_type of
-        Storage.Text -> self.make_text_formatter
-        Storage.Integer -> self.make_integer_formatter
-        Storage.Decimal -> self.make_decimal_formatter
-        Storage.Boolean -> self.make_boolean_formatter
-        Storage.Date -> self.make_date_formatter
-        Storage.Time_Of_Day -> self.make_time_of_day_formatter
-        Storage.Date_Time -> self.make_date_time_formatter
-        Storage.Any -> self.make_auto_formatter
+    make_formatter_for_column_type self (column_type : Value_Type) = case column_type of
+        Value_Type.Char _ _ -> self.make_text_formatter
+        Value_Type.Integer _ -> self.make_integer_formatter
+        Value_Type.Float _ -> self.make_decimal_formatter
+        Value_Type.Boolean -> self.make_boolean_formatter
+        Value_Type.Date -> self.make_date_formatter
+        Value_Type.Time -> self.make_time_of_day_formatter
+        Value_Type.Date_Time _ -> self.make_date_time_formatter
+        _ -> self.make_auto_formatter
 
 ## PRIVATE
    Utility function to convert single text value to a vector

@@ -8,9 +8,10 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 
 polyglot java import org.enso.table.data.index.DefaultIndex
 polyglot java import org.enso.table.data.column.storage.Storage
+polyglot java import org.enso.table.data.column.builder.object.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.object.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.object.NumericBuilder
-polyglot java import org.enso.table.data.column.builder.object.BoolBuilder
+polyglot java import org.enso.table.data.column.builder.object.StringBuilder
 
 ## PRIVATE
 make_bool_builder : BoolBuilder
@@ -25,7 +26,11 @@ make_long_builder : Integer -> NumericBuilder
 make_long_builder initial_size = NumericBuilder.createLongBuilder initial_size
 
 ## PRIVATE
-make_inferred_builder : Integer -> NumericBuilder
+make_string_builder : Integer -> StringBuilder
+make_string_builder initial_size = StringBuilder.new initial_size
+
+## PRIVATE
+make_inferred_builder : Integer -> InferredBuilder
 make_inferred_builder initial_size = InferredBuilder.new initial_size
 
 ## PRIVATE

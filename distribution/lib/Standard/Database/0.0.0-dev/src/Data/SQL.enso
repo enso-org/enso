@@ -28,10 +28,8 @@ type SQL_Fragment
        the query.
 
        Arguments:
-       - sql_type: The expected SQL type of `object`.
-       - object: A value that will be interpolated into the query, interpreted
-         as having the type `sql_type`.
-    Interpolation sql_type:SQL_Type object:Any
+       - object: A value that will be interpolated into the query.
+    Interpolation object:Any
 
 type Builder
     ## Creates a Builder representing and empty code fragment.
@@ -51,11 +49,10 @@ type Builder
     ## Creates a Builder representing an interpolation of the given object.
 
        Arguments:
-       - sql_type: The expected SQL type of `object`.
        - object: The object to be interpolated into the query as if it has the type
          given by `sql_type`.
-    interpolation : SQL_Type -> Any -> Builder
-    interpolation sql_type object = Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation sql_type object])
+    interpolation : Any -> Builder
+    interpolation object = Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation object])
 
     ## Joins a vector of code fragments with the provided separator.
 
@@ -146,7 +143,7 @@ optimize_fragments fragments =
                     Nothing -> SQL_Fragment.Code_Part code
                     SQL_Fragment.Code_Part other -> SQL_Fragment.Code_Part other+code
                 State.put SQL_Fragment.Code_Part new_part
-            SQL_Fragment.Interpolation _ _ ->
+            SQL_Fragment.Interpolation _ ->
                 case last_part of
                     Nothing -> Nothing
                     SQL_Fragment.Code_Part _ ->
