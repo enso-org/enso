@@ -1018,6 +1018,7 @@
 //! with the display objects (0.0, 0.0) origin point. When that shape is a child of an auto-layout,
 //! it will visually overflow the parent container.
 //!
+//! ```text
 //!       alignment = center                alignment = bottom_right    
 //!            ╭╌view╌╌╌╌╌╌╌╌╮
 //!            ┊             ┊            ╭ sprite ─────╮╌view╌╌╌╌╌╌╌╌╮
@@ -1029,12 +1030,14 @@
 //!     │             │                   ╰─────────────◎╌╌╌╌╌╌╌╌╌╌╌╌╌╯
 //!     │             │
 //!     ╰─────────────╯
+//! ```
 //!
 //! To avoid this effect and make sprites compatible with layout's understanding of display objects,
 //! you have to use shapes with `alignment` property set to `bottom_left` corner. It is the default
 //! shape alignment value when not specified. That way, the sprites will be exactly overlapping the
 //! display object's position and size, as set by the layout.
 //!
+//! ```text
 //!    alignment = bottom_left
 //!        ╭ view/sprite ╮
 //!        │             │
@@ -1043,8 +1046,12 @@
 //!        │             │
 //!        │             │
 //!        ◎─────────────╯
+//! ```
 //!
-//!  ```
+//! Shape views that are aligned to the bottom left corner can be used as children within the
+//! auto-layout and will be positioned as expected.
+//!
+//! ```
 //! // ╔═════════════════════════ ▶ ◀ ═╗
 //! // ║ ╭ root ───────┬─────────────╮ ║
 //! // ║ │ ╭ shape1 ─╮ ┆ ╭ shape2 ─╮ │ ║
@@ -1070,17 +1077,17 @@
 //!     }
 //! }
 //!
-//! let root = display::object::Instance::new();
-//! root.use_auto_layout();
-//!
-//! let shape1 = rectangle::View::new();
-//! let shape2 = rectangle::View::new();
-//! root.add_child(&shape1);
-//! root.add_child(&shape2);
-//! shape1.set_size((100.0, 100.0));
-//! shape2.set_size((100.0, 100.0));
+//! fn build_layout(root: &display::object::Instance) {
+//!     root.use_auto_layout();
+//!     let shape1 = rectangle::View::new();
+//!     let shape2 = rectangle::View::new();
+//!     root.add_child(&shape1);
+//!     root.add_child(&shape2);
+//!     shape1.set_size((100.0, 100.0));
+//!     shape2.set_size((100.0, 100.0));
+//! }
 //! ```
-//! 
+//!
 //! # Size and computed size.
 //! Display objects expose two functions to get their size: `size` and `computed_size`. The first
 //! one provides the size set by the user. It can be either 'hug' or a fixed value expressed as one
