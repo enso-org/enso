@@ -10,19 +10,19 @@
 // as per the above comment.
 // @ts-expect-error See above comment for why this import is needed.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
-import * as React from "react";
-import * as reactDOM from "react-dom/client";
+import * as React from 'react'
+import * as reactDOM from 'react-dom/client'
 
-import * as loggerProvider from "./providers/logger";
-import * as platformModule from "./platform";
-import App, * as app from "./components/app";
+import * as loggerProvider from './providers/logger'
+import * as platformModule from './platform'
+import App, * as app from './components/app'
 
 // =================
 // === Constants ===
 // =================
 
 /** The `id` attribute of the root element that the app will be rendered into. */
-const ROOT_ELEMENT_ID = "dashboard";
+const ROOT_ELEMENT_ID = 'dashboard'
 
 // ===========
 // === run ===
@@ -36,23 +36,23 @@ const ROOT_ELEMENT_ID = "dashboard";
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 export function run(
-  /** Logger to use for logging. */
-  logger: loggerProvider.Logger,
-  platform: platformModule.Platform,
-  onAuthenticated: () => void
+    /** Logger to use for logging. */
+    logger: loggerProvider.Logger,
+    platform: platformModule.Platform,
+    onAuthenticated: () => void
 ) {
-  logger.log("Starting authentication/dashboard UI.");
-  /** The root element that the authentication/dashboard app will be rendered into. */
-  const root = document.getElementById(ROOT_ELEMENT_ID);
-  if (root == null) {
-    logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`);
-  } else {
-    const props = { logger, platform, onAuthenticated };
-    reactDOM.createRoot(root).render(<App {...props} />);
-  }
+    logger.log('Starting authentication/dashboard UI.')
+    /** The root element that the authentication/dashboard app will be rendered into. */
+    const root = document.getElementById(ROOT_ELEMENT_ID)
+    if (root == null) {
+        logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
+    } else {
+        const props = { logger, platform, onAuthenticated }
+        reactDOM.createRoot(root).render(<App {...props} />)
+    }
 }
 
-export type AppProps = app.AppProps;
+export type AppProps = app.AppProps
 // This export should be `PascalCase` because it is a re-export.
 // eslint-disable-next-line no-restricted-syntax
-export const Platform = platformModule.Platform;
+export const Platform = platformModule.Platform
