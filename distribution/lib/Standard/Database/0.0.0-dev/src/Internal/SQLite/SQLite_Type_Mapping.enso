@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-from Standard.Base.Function import const
 
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type.Value_Type

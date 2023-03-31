@@ -2,7 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.Constants;
+import org.enso.table.data.column.storage.type.Boolean;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.util.BitSets;
 
@@ -112,6 +112,6 @@ public class BoolBuilder extends TypedBuilder {
 
   @Override
   public StorageType getType() {
-    return Constants.BOOLEAN;
+    return Boolean.INSTANCE;
   }
 }

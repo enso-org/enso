@@ -2,8 +2,8 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
-import org.enso.table.data.column.storage.type.Constants;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.Text;
 
 /** A builder for string columns. */
 public class StringBuilder extends TypedBuilderImpl<String> {
@@ -18,7 +18,7 @@ public class StringBuilder extends TypedBuilderImpl<String> {
 
   @Override
   public StorageType getType() {
-    return Constants.STRING;
+    return Text.VARIABLE_LENGTH;
   }
 
   @Override

@@ -7,7 +7,6 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 polyglot java import org.enso.table.data.column.builder.object.Builder
-polyglot java import org.enso.table.data.column.storage.type.Constants
 polyglot java import org.enso.table.data.column.storage.type.StorageType
 polyglot java import org.enso.table.data.column.storage.type.Integer as Storage_Integer
 polyglot java import org.enso.table.data.column.storage.type.Float as Storage_Float
@@ -41,16 +40,16 @@ to_value_type storage_type = case storage_type of
 ## PRIVATE
 closest_storage_type value_type = case value_type of
     # TODO we will want builders and storages with bounds checking, but for now we approximate
-    Value_Type.Byte -> Constants.INTEGER_64
-    Value_Type.Integer _ -> Constants.INTEGER_64
-    Value_Type.Float _ -> Constants.FLOAT_64
-    Value_Type.Boolean -> Constants.BOOLEAN
-    Value_Type.Char _ _ -> Constants.STRING
-    Value_Type.Date -> Constants.DATE
+    Value_Type.Byte -> Storage_Integer.INT_64
+    Value_Type.Integer _ -> Storage_Integer.INT_64
+    Value_Type.Float _ -> Storage_Float.FLOAT_64
+    Value_Type.Boolean -> Storage_Boolean.INSTANCE
+    Value_Type.Char _ _ -> Storage_Text.VARIABLE_LENGTH
+    Value_Type.Date -> Storage_Date.INSTANCE
     # We currently will not support storing dates without timezones in in-memory mode.
-    Value_Type.Date_Time _ -> Constants.DATE_TIME
-    Value_Type.Time -> Constants.TIME_OF_DAY
-    Value_Type.Mixed -> Constants.ANY_OBJECT
+    Value_Type.Date_Time _ -> Storage_DateTime.INSTANCE
+    Value_Type.Time -> Storage_TimeOfDay.INSTANCE
+    Value_Type.Mixed -> Storage_AnyObject.INSTANCE
 
 ## PRIVATE
 from_value_type : Value_Type -> Problem_Behavior -> StorageType
