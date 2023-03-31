@@ -153,6 +153,11 @@ class Main {
                      * and one for the desktop. Once these are merged, we can't hardcode the
                      * platform here, and need to detect it from the environment. */
                     const platform = authentication.Platform.desktop
+                    /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+                     * React hooks rerender themselves multiple times. It is resulting in multiple
+                     * Enso main scene being initialized. As a temporary workaround we check whether
+                     * appInstance was already ran. Target solution should move running appInstance
+                     * where it will be called only once. */
                     let appInstanceRan = false
                     const onAuthenticated = () => {
                         hideAuth()
