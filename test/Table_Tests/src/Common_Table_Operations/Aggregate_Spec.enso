@@ -944,7 +944,8 @@ spec setup =
                 columns.first.length  . should_equal 1 frames_to_skip=1
                 columns.first . at 0
 
-            # TODO currently our builder does not allow all-null tables, so we create one with a 0 and remove it by filter.
+            ## TODO currently our builder does not allow all-null tables, so we
+               create one with a 0 and remove it by filter. See #6159.
             t0 = table_builder [["A", [0]]]
             t1 = t0.filter "A" (Filter_Condition.Is_Nothing)
             t1.row_count . should_equal 0
@@ -953,7 +954,8 @@ spec setup =
             get_value (t1.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
             get_value (t1.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 0
 
-            # TODO currently our builder does not allow all-null tables, so we create one with a 0 and remove it by filter.
+            ## TODO currently our builder does not allow all-null tables, so we
+               create one with a 0 and remove it by filter. See #6159.
             t0_2 = table_builder [["A", [0, Nothing, Nothing]]]
             t2 = t0_2.filter "A" (Filter_Condition.Is_Nothing)
             t2.row_count . should_equal 2

@@ -717,7 +717,8 @@ type Table
 
     ## Returns the last row of the table.
 
-       In the database backend, it will still have to iterate through the whole query.
+       In the database backend, this function has to scan through all the
+       results of the query.
     last_row : Row ! Index_Out_Of_Bounds
     last_row self =
         if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
