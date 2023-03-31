@@ -142,13 +142,15 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    */
   @Override
   public WrapperNode createWrapper(ProbeNode probeNode) {
-    return new FunctionCallInstrumentationNodeWrapper(this, probeNode);
+    var wrapper = new FunctionCallInstrumentationNodeWrapper(this, probeNode);
+    wrapper.setId(this.getId());
+    return wrapper;
   }
 
   /**
-   * Makrs this node with relevant runtime tags.
+   * Marks this node with relevant runtime tags.
    *
-   * @param tag the tag to check agains.
+   * @param tag the tag to check against.
    * @return true if the node carries the {@code tag}, false otherwise.
    */
   @Override

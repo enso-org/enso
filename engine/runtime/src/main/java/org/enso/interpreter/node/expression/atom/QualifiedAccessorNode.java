@@ -4,6 +4,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 @NodeInfo(
@@ -36,7 +37,16 @@ public class QualifiedAccessorNode extends RootNode {
    */
   public Object execute(VirtualFrame frame) {
     if (atomConstructor.getArity() == 0) {
-      return atomConstructor.newInstance();
+      var trueCtor = EnsoContext.get(this).getBuiltins().bool().getTrue();
+      var falseCtor = EnsoContext.get(this).getBuiltins().bool().getFalse();
+      // This matches the shortcuts provided in ConstructorNode
+      if (atomConstructor == trueCtor) {
+        return true;
+      } else if (atomConstructor == falseCtor) {
+        return false;
+      } else {
+        return atomConstructor.newInstance();
+      }
     } else {
       return atomConstructor;
     }

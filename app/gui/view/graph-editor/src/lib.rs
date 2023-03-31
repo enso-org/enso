@@ -72,6 +72,8 @@ use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::Easing;
+use ensogl_component::text;
+use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
 use ide_view_execution_mode_selector as execution_mode_selector;
@@ -597,13 +599,13 @@ ensogl::define_endpoints_2! {
 
         // === VCS Status ===
 
-        set_node_vcs_status     ((NodeId,Option<node::vcs::Status>)),
+        set_node_vcs_status     ((NodeId, Option<node::vcs::Status>)),
 
 
         set_detached_edge_targets    (EdgeEndpoint),
         set_detached_edge_sources    (EdgeEndpoint),
-        set_edge_source              ((EdgeId,EdgeEndpoint)),
-        set_edge_target              ((EdgeId,EdgeEndpoint)),
+        set_edge_source              ((EdgeId, EdgeEndpoint)),
+        set_edge_target              ((EdgeId, EdgeEndpoint)),
         unset_edge_source            (EdgeId),
         unset_edge_target            (EdgeId),
         connect_nodes                ((EdgeEndpoint,EdgeEndpoint)),
@@ -618,6 +620,7 @@ ensogl::define_endpoints_2! {
         edit_node                    (NodeId),
         collapse_nodes               ((Vec<NodeId>,NodeId)),
         set_node_expression          ((NodeId,node::Expression)),
+        edit_node_expression         ((NodeId, text::Range<text::Byte>, ImString)),
         set_node_skip                ((NodeId,bool)),
         set_node_freeze              ((NodeId,bool)),
         set_node_comment             ((NodeId,node::Comment)),
@@ -625,10 +628,10 @@ ensogl::define_endpoints_2! {
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
         update_node_widgets          ((NodeId,WidgetUpdates)),
         cycle_visualization          (NodeId),
-        set_visualization            ((NodeId,Option<visualization::Path>)),
+        set_visualization            ((NodeId, Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
-        set_visualization_data       ((NodeId,visualization::Data)),
-        set_error_visualization_data ((NodeId,visualization::Data)),
+        set_visualization_data       ((NodeId, visualization::Data)),
+        set_error_visualization_data ((NodeId, visualization::Data)),
         enable_visualization         (NodeId),
         disable_visualization        (NodeId),
 
@@ -703,11 +706,12 @@ ensogl::define_endpoints_2! {
         node_hovered              (Option<Switch<NodeId>>),
         node_selected             (NodeId),
         node_deselected           (NodeId),
-        node_position_set         ((NodeId, Vector2)),
-        node_position_set_batched ((NodeId, Vector2)),
-        node_expression_set       ((NodeId, ImString)),
+        node_position_set         ((NodeId,Vector2)),
+        node_position_set_batched ((NodeId,Vector2)),
+        node_expression_set       ((NodeId,ImString)),
         node_expression_span_set  ((NodeId, span_tree::Crumbs, ImString)),
-        node_comment_set          ((NodeId, String)),
+        node_expression_edited    ((NodeId,ImString,Vec<Selection<text::Byte>>)),
+        node_comment_set          ((NodeId,String)),
         node_entered              (NodeId),
         node_exited               (),
         node_editing_started      (NodeId),
@@ -1318,7 +1322,7 @@ pub struct TouchNetwork<T: frp::Data> {
 
 impl<T: frp::Data> TouchNetwork<T> {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
+    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
         frp::extend! { network
             down          <- source::<T> ();
             is_down       <- bool(&mouse.up_primary,&down);
@@ -1348,7 +1352,7 @@ pub struct TouchState {
 
 impl TouchState {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse) -> Self {
+    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
         let nodes = TouchNetwork::<NodeId>::new(network, mouse);
         let background = TouchNetwork::<()>::new(network, mouse);
         Self { nodes, background }
@@ -1602,8 +1606,18 @@ impl GraphEditorModelWithNetwork {
                     )
                 ));
 
-            eval node.expression((t) model.frp.private.output.node_expression_set.emit((node_id,t.into())));
-            eval node.expression_span([model]((crumbs,code)) {
+            let is_editing = &node_model.input.frp.editing;
+            expression_change_temporary <- node.on_expression_modified.gate(is_editing);
+            expression_change_permanent <- node.on_expression_modified.gate_not(is_editing);
+
+            temporary_expression <- expression_change_temporary.map2(
+                &node_model.input.set_expression,
+                move |(crumbs, code), expr| expr.code_with_replaced_span(crumbs, code)
+            );
+            eval temporary_expression([model] (code) {
+                model.frp.private.output.node_expression_set.emit((node_id, code));
+            });
+            eval expression_change_permanent([model]((crumbs,code)) {
                 let args = (node_id, crumbs.clone(), code.clone());
                 model.frp.private.output.node_expression_span_set.emit(args)
             });
@@ -1613,6 +1627,10 @@ impl GraphEditorModelWithNetwork {
                 model.frp.private.output.widgets_requested.emit(args)
             });
 
+            let node_expression_edit = node.model().input.expression_edit.clone_ref();
+            model.frp.private.output.node_expression_edited <+ node_expression_edit.map(
+                move |(expr, selection)| (node_id, expr.clone_ref(), selection.clone())
+            );
             model.frp.private.output.request_import <+ node.request_import;
 
 
@@ -1763,7 +1781,7 @@ impl GraphEditorModel {
         let edges = Edges::new();
         let vis_registry = visualization::Registry::with_default_visualizations();
         let visualisations = default();
-        let touch_state = TouchState::new(network, &scene.mouse.frp);
+        let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
         let execution_mode_selector = execution_mode_selector::ExecutionModeSelector::new(app);
 
@@ -1777,8 +1795,13 @@ impl GraphEditorModel {
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
-        let selection_controller =
-            selection::Controller::new(&frp, &app.cursor, &scene.mouse.frp, &touch_state, &nodes);
+        let selection_controller = selection::Controller::new(
+            &frp,
+            &app.cursor,
+            &scene.mouse.frp_deprecated,
+            &touch_state,
+            &nodes,
+        );
 
         Self {
             display_object,
@@ -1972,6 +1995,20 @@ impl GraphEditorModel {
         }
         for edge_id in self.node_out_edges(node_id) {
             self.refresh_edge_source_size(edge_id);
+        }
+    }
+
+    fn edit_node_expression(
+        &self,
+        node_id: impl Into<NodeId>,
+        range: impl Into<text::Range<text::Byte>>,
+        inserted_str: impl Into<ImString>,
+    ) {
+        let node_id = node_id.into();
+        let range = range.into();
+        let inserted_str = inserted_str.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.edit_expression(range, inserted_str);
         }
     }
 
@@ -2702,7 +2739,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let nodes = &model.nodes;
     let edges = &model.edges;
     let inputs = &model.frp;
-    let mouse = &scene.mouse.frp;
+    let mouse = &scene.mouse.frp_deprecated;
     let touch = &model.touch_state;
     let vis_registry = &model.vis_registry;
     let out = &frp.private.output;
@@ -2830,8 +2867,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
         let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-        node_expression_set <- source();
-        out.node_expression_set <+ node_expression_set;
 
         on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
         on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
@@ -3165,15 +3200,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         (model_clone.nodes.all_selected(),empty_id)
     );
     out.nodes_collapsed <+ nodes_to_collapse;
-    }
-
-
-    // === Set Node Expression ===
-    frp::extend! { network
-
-    set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
-    out.node_expression_set <+ set_node_expression_string;
-
     }
 
 
@@ -3663,8 +3689,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     model.profiling_statuses.remove <+ out.node_removed;
     out.on_visualization_select <+ out.node_removed.map(|&id| Switch::Off(id));
 
-    eval inputs.set_node_expression (((id,expr)) model.set_node_expression(id,expr));
-    port_to_refresh <= inputs.set_node_expression.map(f!(((id,_))model.node_in_edges(id)));
+    eval inputs.set_node_expression (((id, expr)) model.set_node_expression(id, expr));
+    eval inputs.edit_node_expression (((id, range, ins)) model.edit_node_expression(id, range, ins));
+    port_to_refresh <= inputs.set_node_expression.map(f!(((id, _))model.node_in_edges(id)));
     eval port_to_refresh ((id) model.set_edge_target_connection_status(*id,true));
 
     // === Remove implementation ===
@@ -3955,13 +3982,13 @@ mod tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.emit_mouse_down(PrimaryButton);
-        port.events.emit_mouse_up(PrimaryButton);
+        port.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(graph_editor.edges().len(), 1);
         // Dropping edge.
         let mouse = &app.display.default_scene.mouse;
         let click_pos = Vector2(300.0, 300.0);
-        mouse.frp.position.emit(click_pos);
+        mouse.frp_deprecated.position.emit(click_pos);
         let click_on_background = |_: &GraphEditor| mouse.click_on_background();
         let (_, node_2) = graph_editor.add_node_by(&click_on_background);
         graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
@@ -3982,8 +4009,8 @@ mod tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.emit_mouse_down(PrimaryButton);
-        port.events.emit_mouse_up(PrimaryButton);
+        port.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.events_deprecated.emit_mouse_up(PrimaryButton);
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
@@ -3993,8 +4020,8 @@ mod tests {
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true, None);
         let port = node_2.model().input_port_shape().expect("No input port.");
-        port.hover.events.emit_mouse_down(PrimaryButton);
-        port.hover.events.emit_mouse_up(PrimaryButton);
+        port.hover.events_deprecated.emit_mouse_down(PrimaryButton);
+        port.hover.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }
@@ -4009,7 +4036,7 @@ mod tests {
         editor: &GraphEditor,
         mouse_pos: Vector2,
     ) {
-        scene.mouse.frp.position.emit(mouse_pos);
+        scene.mouse.frp_deprecated.position.emit(mouse_pos);
         press_add_node_shortcut(editor);
     }
 
@@ -4159,7 +4186,7 @@ mod tests {
         app.set_screen_size_for_tests();
         let graph_editor = new_graph_editor(&app);
         let mouse = &app.display.default_scene.mouse;
-        mouse.frp.position.emit(Vector2::zeros());
+        mouse.frp_deprecated.position.emit(Vector2::zeros());
         (app, graph_editor)
     }
 }

@@ -1548,9 +1548,8 @@ type Table
    Arguments:
    - connection: The connection to a database.
    - table_name: The name of the table to get.
-   - columns: The names of the columns to get.
+   - columns: List of columns to fetch. Each column is represented by a pair of column name and its expected SQL Type.
    - ctx: The context to use for the table.
-# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Context -> Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else

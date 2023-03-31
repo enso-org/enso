@@ -75,7 +75,6 @@ pub enum Notification {
 /// Handle providing executed graph controller interface.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
-    #[allow(missing_docs)]
     /// A handle to basic graph operations.
     graph:         Rc<RefCell<controller::Graph>>,
     /// Execution Context handle, its call stack top contains `graph`'s definition.
@@ -343,30 +342,26 @@ impl Handle {
 /// Span Tree generation context for a graph that does not know about execution.
 /// Provides information based on computed value registry, using metadata as a fallback.
 impl Context for Handle {
-    fn call_info(&self, id: ast::Id, name: Option<&str>) -> Option<CalledMethodInfo> {
-        let lookup_registry = || {
-            let info = self.computed_value_info_registry().get(&id)?;
-            let method_call = info.method_call.as_ref()?;
-            let suggestion_db = self.project.suggestion_db();
-            let maybe_entry = suggestion_db.lookup_by_method_pointer(method_call).map(|e| {
-                let invocation_info = e.invocation_info(&suggestion_db, &self.parser());
-                invocation_info.with_called_on_type(false)
-            });
+    fn call_info(&self, id: ast::Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
+        let info = self.computed_value_info_registry().get(&id)?;
+        let method_call = info.method_call.as_ref()?;
+        let suggestion_db = self.project.suggestion_db();
+        let maybe_entry = suggestion_db.lookup_by_method_pointer(method_call).map(|e| {
+            let invocation_info = e.invocation_info(&suggestion_db, &self.parser());
+            invocation_info.with_called_on_type(false)
+        });
 
-            // When the entry was not resolved but the `defined_on_type` has a `.type` suffix,
-            // try resolving it again with the suffix stripped. This indicates that a method was
-            // called on type, either because it is a static method, or because it uses qualified
-            // method syntax.
-            maybe_entry.or_else(|| {
-                let defined_on_type = method_call.defined_on_type.strip_suffix(".type")?.to_owned();
-                let method_call = MethodPointer { defined_on_type, ..method_call.clone() };
-                let entry = suggestion_db.lookup_by_method_pointer(&method_call)?;
-                let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
-                Some(invocation_info.with_called_on_type(true))
-            })
-        };
-        let fallback = || self.graph.borrow().call_info(id, name);
-        lookup_registry().or_else(fallback)
+        // When the entry was not resolved but the `defined_on_type` has a `.type` suffix,
+        // try resolving it again with the suffix stripped. This indicates that a method was
+        // called on type, either because it is a static method, or because it uses qualified
+        // method syntax.
+        maybe_entry.or_else(|| {
+            let defined_on_type = method_call.defined_on_type.strip_suffix(".type")?.to_owned();
+            let method_call = MethodPointer { defined_on_type, ..method_call.clone() };
+            let entry = suggestion_db.lookup_by_method_pointer(&method_call)?;
+            let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
+            Some(invocation_info.with_called_on_type(true))
+        })
     }
 }
 
@@ -387,10 +382,8 @@ pub mod tests {
     use super::*;
 
     use crate::model::execution_context::ExpressionId;
-    use crate::model::module::NodeMetadata;
     use crate::test;
 
-    use engine_protocol::language_server::types::test::value_update_with_method_ptr;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -476,39 +469,5 @@ pub mod tests {
         );
 
         notifications.expect_pending();
-    }
-
-    #[wasm_bindgen_test]
-    fn span_tree_context() {
-        use crate::test::assert_call_info;
-        use crate::test::mock;
-
-        let mut data = mock::Unified::new();
-        let entry1 = data.suggestions.get(&1).unwrap().clone();
-        let entry2 = data.suggestions.get(&2).unwrap().clone();
-        data.set_inline_code(&entry1.name);
-
-        let mock::Fixture { graph, executed_graph, module, .. } = &data.fixture();
-        let id = graph.nodes().unwrap()[0].info.id();
-        let get_invocation_info = || executed_graph.call_info(id, Some(&entry1.name));
-        assert!(get_invocation_info().is_none());
-
-        // Check that if we set metadata, executed graph can see this info.
-        module
-            .set_node_metadata(id, NodeMetadata {
-                intended_method: entry1.method_id(),
-                ..default()
-            })
-            .unwrap();
-        let info = get_invocation_info().unwrap();
-        assert_call_info(info, &entry1);
-
-        // Now send update that expression actually was computed to be a call to the second
-        // suggestion entry and check that executed graph provides this info over the metadata one.
-        let method_pointer = entry2.clone().try_into().unwrap();
-        let update = value_update_with_method_ptr(id, method_pointer);
-        executed_graph.computed_value_info_registry().apply_updates(vec![update]);
-        let info = get_invocation_info().unwrap();
-        assert_call_info(info, &entry2);
     }
 }

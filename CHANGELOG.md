@@ -128,6 +128,8 @@
   eliminating the need for fully qualified names.
 - [The IDE now has a new UI element for selecting the execution mode of the
   project][6130].
+- [Added tooltips to icon buttons][6035] for improved usability. Users can now
+  quickly understand each button's function.
 
 #### EnsoGL (rendering engine)
 
@@ -178,6 +180,9 @@
   performed in a given frame][5895]. In particular, you can now inspect names of
   all symbols rendered in a given frame. You can also pause the performance
   monitor and inspect results recorded in the past.
+- [ToggleButtons can now have tooltips][6035].
+- [Rendering of tooltips was improved.][6097] Their text is now more vertically
+  centered and the delay before showing them was extended.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -185,6 +190,8 @@
 [4003]: https://github.com/enso-org/enso/pull/4003
 [5895]: https://github.com/enso-org/enso/pull/5895
 [5895]: https://github.com/enso-org/enso/pull/6130
+[6035]: https://github.com/enso-org/enso/pull/6035
+[6097]: https://github.com/enso-org/enso/pull/6097
 
 #### Enso Standard Library
 
@@ -362,6 +369,10 @@
 - [Aligned names of columns created by column operations.][5850]
 - [Improved `cross_tab`. Renamed `fill_missing` and `is_missing` to
   `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
+- [Removed many regex compile flags from `replace`; added `only_first` and
+  `use_regex` flag.][5959]
+- [Removed many regex compile flags from `split`; added `only_first` and
+  `use_regex` flag.][6116]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -549,6 +560,8 @@
 [5863]: https://github.com/enso-org/enso/pull/5863
 [5917]: https://github.com/enso-org/enso/pull/5917
 [5705]: https://github.com/enso-org/enso/pull/5705
+[5959]: https://github.com/enso-org/enso/pull/5959
+[6116]: https://github.com/enso-org/enso/pull/6116
 
 #### Enso Compiler
 
@@ -650,6 +663,7 @@
 - [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
 - [Don't install Python component on Windows][5900]
 - [Detect potential name conflicts between exported types and FQNs][5966]
+- [Ensure calls involving warnings remain instrumented][6067]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -752,6 +766,7 @@
 [5791]: https://github.com/enso-org/enso/pull/5791
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
+[6067]: https://github.com/enso-org/enso/pull/6067
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

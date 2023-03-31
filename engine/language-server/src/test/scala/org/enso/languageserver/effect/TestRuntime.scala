@@ -4,7 +4,7 @@ package org.enso.languageserver.effect
 final class TestRuntime extends Runtime {
 
   /** @inheritdoc */
-  override def instance: zio.Runtime[zio.ZEnv] =
+  override def instance: zio.Runtime[zio.ZAny] =
     zio.Runtime.default
 
   /** @inheritdoc */

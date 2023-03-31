@@ -7,6 +7,7 @@ import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
+
 from project.Data.Boolean import Boolean, True, False
 from project.Errors.Common import Syntax_Error
 
@@ -17,24 +18,27 @@ polyglot java import java.util.regex.Pattern as Java_Pattern
 
    Arguments
    - expression: The text representing the regular expression that you want to
-     compile.
+     compile. Must be non-empty.
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
+
+   If an empty regex is used, `compile` throws an Illegal_Argument error.
 
    ? Why Compile?
      While many regex engines are able to cache ad-hoc patterns, it is often
      useful to be able to manually retain a pattern that you have computed. This
      function exists so you can hold onto the resultant `Pattern_2` object,
      instead of immediately proceeding to match using it.
-compile : Text -> Boolean | Nothing -> Pattern_2 ! Regex_Syntax_Error
+compile : Text -> Boolean | Nothing -> Pattern_2 ! Regex_Syntax_Error | Illegal_Argument
 compile self expression case_insensitive=Nothing =
-    options_string = if case_insensitive == True then "usgi" else "usg"
+    if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
+        options_string = if case_insensitive == True then "usgi" else "usg"
 
-    internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
-        Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
+        internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
+            Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
 
-    Pattern_2.Value internal_regex_object
+        Pattern_2.Value internal_regex_object
 
 ## ADVANCED
 

@@ -123,10 +123,10 @@ fn event_listener_options() -> web::AddEventListenerOptions {
 }
 
 define_bindings! { target, gloabl_target,
-    MouseEvent::mousedown  => on_down  (target, OnDown),
-    MouseEvent::mouseup    => on_up    (gloabl_target, OnUp),
-    MouseEvent::mousemove  => on_move  (gloabl_target, OnMove),
-    MouseEvent::mouseleave => on_leave (target, OnLeave),
-    MouseEvent::mouseenter => on_enter (target, OnEnter),
-    WheelEvent::wheel      => on_wheel (target, OnWheel),
+    MouseEvent::mousedown  => on_down  (target, Down),
+    MouseEvent::mouseup    => on_up    (gloabl_target, Up),
+    MouseEvent::mousemove  => on_move  (gloabl_target, Move),
+    MouseEvent::mouseleave => on_leave (target, Leave),
+    MouseEvent::mouseenter => on_enter (target, Enter),
+    WheelEvent::wheel      => on_wheel (target, Wheel),
 }

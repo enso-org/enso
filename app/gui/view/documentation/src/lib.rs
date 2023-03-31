@@ -344,7 +344,7 @@ impl View {
 
             // === Activation ===
 
-            mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
+            mouse_down_target <- scene.mouse.frp_deprecated.down.map(f_!(scene.mouse.target.get()));
             selected <- mouse_down_target.map(f!([model,visualization] (target){
                 if !model.overlay.is_this_target(*target) {
                     visualization.deactivate.emit(());
@@ -362,14 +362,14 @@ impl View {
 
             // === Mouse Cursor ===
 
-            app.frp.show_system_cursor <+ overlay.events.mouse_over;
-            app.frp.hide_system_cursor <+ overlay.events.mouse_out;
+            app.frp.show_system_cursor <+ overlay.events_deprecated.mouse_over;
+            app.frp.hide_system_cursor <+ overlay.events_deprecated.mouse_out;
 
 
             // === Hover ===
 
-            frp.source.is_hovered <+ model.overlay.events.mouse_over.constant(true);
-            frp.source.is_hovered <+ model.overlay.events.mouse_out.constant(false);
+            frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
+            frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
         }
         init.emit(());
         style.init.emit(());

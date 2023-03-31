@@ -176,6 +176,14 @@ impl Canvas {
         })
     }
 
+    /// Create an exclusive union shape from the provided shape components.
+    pub fn union_exclusive(&mut self, num: usize, s1: Shape, s2: Shape) -> Shape {
+        self.if_not_defined(num, |this| {
+            let expr = format!("return unify_exclusive({},{});", s1.getter(), s2.getter());
+            this.new_shape_from_expr(&expr)
+        })
+    }
+
     /// Create a difference shape from the provided shape components.
     pub fn difference(&mut self, num: usize, s1: Shape, s2: Shape) -> Shape {
         self.if_not_defined(num, |this| {
