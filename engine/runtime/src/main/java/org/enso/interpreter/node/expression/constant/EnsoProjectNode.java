@@ -18,8 +18,7 @@ public class EnsoProjectNode extends RootNode {
   private final Optional<Package<TruffleFile>> pkgOpt;
 
   public EnsoProjectNode(
-    TruffleLanguage<?> language, EnsoContext context, Optional<Package<TruffleFile>> pkgOpt
-  ) {
+      TruffleLanguage<?> language, EnsoContext context, Optional<Package<TruffleFile>> pkgOpt) {
     super(language);
     this.pkgOpt = pkgOpt;
   }
@@ -32,15 +31,17 @@ public class EnsoProjectNode extends RootNode {
       Package<TruffleFile> pkg = pkgOpt.get();
       EnsoFile rootPath = new EnsoFile(pkg.root().normalize());
       Object cfg = context.getEnvironment().asGuestValue(pkg.config());
-      var result = context
-        .getBuiltins()
-        .getProjectDescription()
-        .getUniqueConstructor()
-        .newInstance(rootPath, cfg);
+      var result =
+          context
+              .getBuiltins()
+              .getProjectDescription()
+              .getUniqueConstructor()
+              .newInstance(rootPath, cfg);
       return result;
     } else {
-      var result = DataflowError.withoutTrace(
-        context.getBuiltins().error().makeModuleNotInPackageError(), this);
+      var result =
+          DataflowError.withoutTrace(
+              context.getBuiltins().error().makeModuleNotInPackageError(), this);
       return result;
     }
   }
