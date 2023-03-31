@@ -263,11 +263,6 @@ Error.should_be_a : Integer -> Any
 Error.should_be_a self frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
-## Handles an unexpected dataflow error.
-Error.should_be_an : Integer -> Any
-Error.should_be_an self frames_to_skip=0 =
-    Test.fail_match_on_unexpected_error self 1+frames_to_skip
-
 ## Asserts that the given `Boolean` is `True`
 
    > Example
@@ -379,20 +374,6 @@ Any.should_be_a self typ =
                 message = "Expected a value of "+typ.to_text+" but got a value of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
         _ -> fail_on_wrong_arg_type
-
-## Asserts that a value is of a given type.
-
-   Arguments:
-   - typ: The type to assert that `self` is a value of.
-
-   > Examples
-     Assert that 1 is of type Integer.
-
-         from Standard.Test import Test
-
-         example_should_be_an = 1.should_be_an Integer
-Any.should_be_an : Any -> Test_Result
-Any.should_be_an self typ = self.should_be_a typ
 
 ## Asserts that `self` value contains the same elements as `that`.
 

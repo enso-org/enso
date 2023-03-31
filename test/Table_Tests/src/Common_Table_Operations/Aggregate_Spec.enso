@@ -1506,7 +1506,7 @@ spec setup =
                 warnings = Problems.get_attached_warnings result
                 warnings.length . should_equal error_count
                 warnings.each warning->
-                    warning.should_be_an Unsupported_Database_Operation.Error
+                    warning.should_be_a Unsupported_Database_Operation.Error
 
             if test_selection.first_last_row_order.not then
                 Test.specify "with First and Last in row order" <|
