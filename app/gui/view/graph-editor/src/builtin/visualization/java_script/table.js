@@ -136,7 +136,7 @@ class TableVisualization extends Visualization {
                     resizable: true,
                     minWidth: 50,
                 },
-                onColumnResized: (e) => this.lockColumnSize(e),
+                onColumnResized: e => this.lockColumnSize(e),
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
@@ -230,22 +230,32 @@ class TableVisualization extends Visualization {
             return
         }
 
-        const cols = this.agGridOptions.columnApi.getAllGridColumns().filter(c => !c.colDef.suppressSizeToFit)
+        // Resize columns to fit the table width unless the user manually resized them.
+        const cols = this.agGridOptions.columnApi
+            .getAllGridColumns()
+            .filter(c => !c.colDef.manuallySized)
+
+        // Compute the maximum width of a column: the client width minus a small margin.
+        const maxWidth = clientWidth - 20
+
+        // Resize based on the data and then shrink any columns that are too wide.
         this.agGridOptions.columnApi.autoSizeColumns(cols, true)
         const bigCols = cols
-            .filter(c => c.getActualWidth() > clientWidth - 20)
-            .map(c => ({ key: c, newWidth: clientWidth - 20 }))
+            .filter(c => c.getActualWidth() > maxWidth)
+            .map(c => ({ key: c, newWidth: maxWidth }))
         this.agGridOptions.columnApi.setColumnWidths(bigCols)
     }
 
     lockColumnSize(e) {
-        if (!e.finished || e.source === "api" || !this.agGridOptions){
+        // Check if the resize is finished, and it's not from the API (which is triggered by us).
+        if (!e.finished || e.source === 'api') {
             return
         }
 
-        const suppress = e.source !== "autosizeColumns"
+        // If the user manually resized a column, we don't want to auto-size it on a resize.
+        const manuallySized = e.source !== 'autosizeColumns'
         for (const column of e.columns) {
-            column.colDef.suppressSizeToFit = suppress
+            column.colDef.manuallySized = manuallySized
         }
     }
 
