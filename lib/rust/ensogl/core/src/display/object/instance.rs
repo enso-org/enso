@@ -1931,6 +1931,16 @@ impl Model {
         self.dirty.transformation.set();
         f(&mut self.transformation.borrow_mut())
     }
+
+    /// Access the transformation of the object as mutable, but only mark it as dirty if the
+    /// provided function returns true.
+    fn with_mut_borrowed_transformation_manually_flagged<F>(&self, f: F)
+    where F: FnOnce(&mut CachedTransformation) -> bool {
+        let modified = f(&mut self.transformation.borrow_mut());
+        if modified {
+            self.dirty.transformation.set();
+        }
+    }
 }
 
 macro_rules! generate_transformation_getters_and_setters {
@@ -1950,8 +1960,8 @@ macro_rules! generate_transformation_getters_and_setters {
 
             fn [<set_ $name _dim>]<D>(&self, dim: D, value: f32)
             where Vector3<f32>: DimSetter<D> {
-                self.with_mut_borrowed_transformation(|t|
-                    t.[<modify_ $name>](|v| v.set_dim(dim, value))
+                self.with_mut_borrowed_transformation_manually_flagged(|t|
+                    t.[<set_ $name _dim_checked>](dim, value)
                 );
             }
 
@@ -2882,8 +2892,8 @@ impl Model {
     /// ║ │╱╱╱╱╱  ╭── ▶ ◀ ──┬▷ ┆  ╭ R ▶ ◀ ───┤  │ ║
     /// ║ │╱╱╱╱╱  │ L       │  ┆  │      △   │  │ ║
     /// ║ │╱╱╱╱╱  │ ╭ L1 ┬▷ │  ┆  │ ╭ R2 ┤   │  │ ║
-    /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ │ 30 │   │  │ ║                 
-    /// ║ │╱╱╱╱╱  │ │    │  ▼  ┆  │ ╰────╯   │  ▼ ║            
+    /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ │ 30 │   │  │ ║
+    /// ║ │╱╱╱╱╱  │ │    │  ▼  ┆  │ ╰────╯   │  ▼ ║
     /// ║ │╱╱╱╱╱  │ │    │  ▲  ┆  │      △   │  ▲ ║
     /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ ╭ R1 ┤   │  │ ║
     /// ║ │╱╱╱╱╱  │ │ 10 │  │  ┆  │ │ 20 │   │  │ ║
@@ -3210,12 +3220,12 @@ impl Model {
         &self,
         x: Dim,
         opts: &AutoLayout,
-        self_const_size: f32,
         unresolved_columns: Vec<UnresolvedColumn>,
     ) -> Vec<ResolvedColumn>
     where
         Dim: ResolutionDim,
     {
+        let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
         let columns = unresolved_columns
             .into_iter()
             .map(|column| {
@@ -3323,10 +3333,9 @@ impl Model {
         }
         let old_child_computed_sizes: Vec<f32> =
             children.iter().map(|child| child.layout.computed_size.get_dim(x)).collect();
-        let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
 
         let unresolved_columns = self.divide_children_to_columns(x, opts, &children);
-        let mut columns = self.resolve_columns(x, opts, self_const_size, unresolved_columns);
+        let mut columns = self.resolve_columns(x, opts, unresolved_columns);
 
 
         // === Compute the static size (no grow, shrink, nor fraction yet) ===
@@ -3427,7 +3436,7 @@ impl Model {
                     child.layout.computed_size.set_dim(x, size);
                 }
 
-                let child_size_changed = *previous_size != child.layout.computed_size.get_dim(x);
+                let child_size_changed = child_base_size != child.layout.computed_size.get_dim(x);
                 let child_not_computed =
                     child.layout.size.get_dim(x).is_fixed() && child.should_refresh_layout();
                 if child_size_changed || child_not_computed {
@@ -3436,9 +3445,6 @@ impl Model {
                     // child can grow, and the column size is greater than earlier computed hugged
                     // child size, we need to refresh the child layout again.
                     child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
-                    if *previous_size != child.layout.computed_size.get_dim(x) {
-                        child.dirty.computed_size.set();
-                    }
                 }
 
                 let child_width = child.layout.computed_size.get_dim(x);
@@ -3448,6 +3454,9 @@ impl Model {
                 let child_offset = child_unused_space * alignment.normalized();
                 let child_left = pos_x + child_offset + margin.start;
                 child.set_position_dim(x, child_left);
+                if *previous_size != child_width {
+                    child.dirty.computed_size.set();
+                }
             }
             pos_x += column_size + gap;
         }
