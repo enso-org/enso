@@ -111,7 +111,10 @@ ensogl::define_endpoints_2! {
 /// The model of the execution mode selector.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Model {
+    /// Main root object for the execution mode selector exposed for external positioning.
     display_object: display::object::Instance,
+    /// Inner root that will be used for positioning the execution mode selector relative to the
+    /// window
     inner_root:     display::object::Instance,
     background:     display::shape::compound::rectangle::Rectangle,
     divider:        display::shape::compound::rectangle::Rectangle,
