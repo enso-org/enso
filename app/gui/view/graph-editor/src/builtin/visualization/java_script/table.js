@@ -15,6 +15,8 @@ loadStyleFromString(scrollbarStyle)
 // === Table visualization ===
 // ===========================
 
+const SIDE_MARGIN = 20
+
 class TableVisualization extends Visualization {
     // IMPORTANT: When updating this, also update the test in
     // test/Visualization_Tests/src/Default_Visualizations_Spec.enso:15 as this verifies that the
@@ -226,6 +228,7 @@ class TableVisualization extends Visualization {
     }
 
     updateTableSize(clientWidth) {
+        // Check the grid has been initialised and return if not.
         if (!this.agGridOptions) {
             return
         }
@@ -236,7 +239,7 @@ class TableVisualization extends Visualization {
             .filter(c => !c.colDef.manuallySized)
 
         // Compute the maximum width of a column: the client width minus a small margin.
-        const maxWidth = clientWidth - 20
+        const maxWidth = clientWidth - SIDE_MARGIN
 
         // Resize based on the data and then shrink any columns that are too wide.
         this.agGridOptions.columnApi.autoSizeColumns(cols, true)
