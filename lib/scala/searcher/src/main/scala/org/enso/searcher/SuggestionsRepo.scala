@@ -45,6 +45,7 @@ trait SuggestionsRepo[F[_]] {
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
+    * @param isStatic the static attribute
     * @return the current database version and the list of found suggestion ids,
     *         ranked by specificity
     */
@@ -53,7 +54,8 @@ trait SuggestionsRepo[F[_]] {
     selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): F[(Long, Seq[Long])]
 
   /** Select the suggestion by id.

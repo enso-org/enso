@@ -1,11 +1,11 @@
 package org.enso.table.aggregations;
 
 import org.enso.base.CompareException;
+import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -14,7 +14,6 @@ import java.util.List;
 public class MinOrMax extends Aggregator {
   private final Storage<?> storage;
   private final int minOrMax;
-  private final Comparator<Object> objectComparator;
 
   /**
    * Constructs a MinOrMax Aggregator
@@ -23,11 +22,10 @@ public class MinOrMax extends Aggregator {
    * @param column input column
    * @param minOrMax <0 for minimum, >0 for maximum
    */
-  public MinOrMax(String name, Column column, int minOrMax, Comparator<Object> objectComparator) {
+  public MinOrMax(String name, Column column, int minOrMax) {
     super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.minOrMax = Integer.signum(minOrMax);
-    this.objectComparator = objectComparator;
   }
 
   @Override
@@ -38,7 +36,7 @@ public class MinOrMax extends Aggregator {
       if (value != null) {
         try {
           if (current == null
-              || Integer.signum(objectComparator.compare(value, current)) == minOrMax) {
+              || Integer.signum(ObjectComparator.DEFAULT.compare(value, current)) == minOrMax) {
             current = value;
           }
         } catch (CompareException e) {

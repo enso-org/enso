@@ -8,7 +8,7 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
-import project.Data.SQL
+import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
@@ -22,7 +22,6 @@ import project.Internal.IR.Query.Query
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 
-from project.Data.SQL import code
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
@@ -168,31 +167,31 @@ unsupported name =
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    code "COALESCE(SUM(" ++ arg.paren ++ " IS NULL), 0)"
+    Builder.code "COALESCE(SUM(" ++ arg.paren ++ " IS NULL), 0)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    code "COALESCE(SUM((" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " == '')), 0)"
+    Builder.code "COALESCE(SUM((" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " == '')), 0)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    code "COALESCE(SUM((" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '')), 0)"
+    Builder.code "COALESCE(SUM((" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '')), 0)"
 
 ## PRIVATE
 agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
-    sum_of_squares = code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
-    square_of_sums = code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
-    n = code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
-    var = code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / " ++ n
-    code "SQRT(" ++ var ++ ")"
+    sum_of_squares = Builder.code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
+    square_of_sums = Builder.code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
+    n = Builder.code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
+    var = Builder.code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / " ++ n
+    Builder.code "SQRT(" ++ var ++ ")"
 
 ## PRIVATE
 agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
-    sum_of_squares = code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
-    square_of_sums = code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
-    n = code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
-    var = code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / (" ++ n ++ " - 1)"
-    code "SQRT(" ++ var ++ ")"
+    sum_of_squares = Builder.code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
+    square_of_sums = Builder.code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
+    n = Builder.code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
+    var = Builder.code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / (" ++ n ++ " - 1)"
+    Builder.code "SQRT(" ++ var ++ ")"
 
 ## PRIVATE
    This is a prototype that doesn't work correctly. Left for reference for
@@ -212,30 +211,30 @@ window_aggregate window_type ignore_null args =
         result_expr = args.first
         order_exprs = args.drop 1
 
-        filter_clause = if ignore_null.not then code "" else
-            code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
+        filter_clause = if ignore_null.not then Builder.code "" else
+            Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
 
-        code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ SQL.join "," order_exprs ++ ")"
+        Builder.code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ Builder.join "," order_exprs ++ ")"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        code "group_concat(" ++ expr ++ ", " ++ separator ++ ")"
+        Builder.code "group_concat(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
-    True -> code "COUNT(DISTINCT (" ++ args.first ++ "))"
+    True -> Builder.code "COUNT(DISTINCT (" ++ args.first ++ "))"
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 agg_count_distinct_include_null args = case args.length == 1 of
     True ->
         arg = args.first
-        count = code "COUNT(DISTINCT " ++ arg ++ ")"
-        all_nulls_case = code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count = Builder.code "COUNT(DISTINCT " ++ arg ++ ")"
+        all_nulls_case = Builder.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
         count ++ " + " ++ all_nulls_case
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
@@ -251,22 +250,22 @@ ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
-    code "((" ++ arg ++ ") COLLATE BINARY)"
+    Builder.code "((" ++ arg ++ ") COLLATE BINARY)"
 
 ## PRIVATE
 make_contains_expr expr substring =
-    code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
+    Builder.code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
-    code "max(" ++ arg ++ ")"
+    Builder.code "max(" ++ arg ++ ")"
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "/" x-> y->
-    code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
+    Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->

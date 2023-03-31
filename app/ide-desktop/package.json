@@ -34,6 +34,7 @@
   },
   "scripts": {
     "watch": "npm run watch --workspace enso-content",
-    "watch-dashboard": "npm run watch --workspace enso-dashboard"
+    "watch-dashboard": "npm run watch --workspace enso-dashboard",
+    "build-dashboard": "npm run build --workspace enso-dashboard"
   }
 }

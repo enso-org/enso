@@ -253,9 +253,12 @@ pub fn main() {
             eval buttons_x((x) buttons.set_x(*x));
             eval buttons_y((y) buttons.set_y(*y));
 
-            eval_ next.events.mouse_down(wrapper.switch_to_next());
-            eval_ previous.events.mouse_down(wrapper.switch_to_previous());
-            button_pressed <- any(&next.events.mouse_down, &previous.events.mouse_down).constant(());
+            eval_ next.events_deprecated.mouse_down(wrapper.switch_to_next());
+            eval_ previous.events_deprecated.mouse_down(wrapper.switch_to_previous());
+            button_pressed <- any(
+                &next.events_deprecated.mouse_down,
+                &previous.events_deprecated.mouse_down
+            ).constant(());
             update_docs <- any(&button_pressed, &init);
             panel.frp.display_documentation <+ update_docs.map(f_!(wrapper.documentation()));
 
@@ -264,7 +267,7 @@ pub fn main() {
 
             caption_visible <- any(...);
             caption_visible <+ init.constant(false);
-            current_state <- caption_visible.sample(&toggle_caption.events.mouse_down);
+            current_state <- caption_visible.sample(&toggle_caption.events_deprecated.mouse_down);
             caption_visible <+ current_state.not();
             panel.frp.show_hovered_item_preview_caption <+ caption_visible.on_change();
 

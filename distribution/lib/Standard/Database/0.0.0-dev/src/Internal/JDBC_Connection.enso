@@ -5,7 +5,7 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
 
-import project.Data.SQL
+import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
@@ -195,8 +195,8 @@ create_table_statement name table temporary =
     column_names = table.columns.map .name
     col_makers = column_names.zip column_types name-> typ->
         Base_Generator.wrap_in_quotes name ++ " " ++ typ.name
-    create_prefix = SQL.code <| if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
-    (create_prefix ++ Base_Generator.wrap_in_quotes name ++ " (" ++ (SQL.join ", " col_makers) ++ ")").build
+    create_prefix = Builder.code <| if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
+    (create_prefix ++ Base_Generator.wrap_in_quotes name ++ " (" ++ (Builder.join ", " col_makers) ++ ")").build
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage type.

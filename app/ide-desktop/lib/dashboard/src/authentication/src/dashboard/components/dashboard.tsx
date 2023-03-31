@@ -238,7 +238,7 @@ function Dashboard(props: DashboardProps) {
                         setProject(await backendService.getProjectDetails(projectAsset.id))
                     }}
                 />
-                <span className="px-4">{projectAsset.title}</span>
+                <span className="px-2">{projectAsset.title}</span>
             </div>
         ),
         [backend.AssetType.directory]: directoryAsset => (
@@ -249,17 +249,17 @@ function Dashboard(props: DashboardProps) {
                     setDirectoryStack([...directoryStack, directoryAsset])
                 }}
             >
-                {svg.DIRECTORY_ICON} <span className="px-4">{directoryAsset.title}</span>
+                {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
             </div>
         ),
         [backend.AssetType.secret]: secret => (
             <div className="flex text-left items-center align-middle whitespace-nowrap">
-                {svg.SECRET_ICON} <span className="px-4">{secret.title}</span>
+                {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
             </div>
         ),
         [backend.AssetType.file]: file => (
             <div className="flex text-left items-center align-middle whitespace-nowrap">
-                {fileIcon(fileExtension(file.title))} <span className="px-4">{file.title}</span>
+                {fileIcon(fileExtension(file.title))} <span className="px-2">{file.title}</span>
             </div>
         ),
     }
@@ -309,7 +309,7 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId])
 
     return (
-        <div className="text-primary">
+        <div className="text-primary text-xs">
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
             <div id="header" />
@@ -318,7 +318,7 @@ function Dashboard(props: DashboardProps) {
                 <div className="flex flex-row flex-nowrap">
                     <h1 className="text-xl font-bold mx-6 self-center">Drive</h1>
                     <div className="flex flex-row flex-nowrap mx-2">
-                        <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-2 mx-0.5">
+                        <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
                             {directory ? (
                                 <>
                                     <button
@@ -343,11 +343,11 @@ function Dashboard(props: DashboardProps) {
                             )}
                             <span className="mx-2">{directory?.title ?? '~'}</span>
                         </div>
-                        <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center p-2 mx-0.5">
+                        <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
                             <span className="mx-2">Shared with</span>
                         </div>
                     </div>
-                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-2 mx-4">
+                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1 mx-4">
                         <button
                             className="mx-1"
                             onClick={() => {
@@ -357,7 +357,7 @@ function Dashboard(props: DashboardProps) {
                             {svg.UPLOAD_ICON}
                         </button>
                         <button
-                            className="mx-1"
+                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
                             disabled={selectedAssets.length === 0}
                             onClick={() => {
                                 /* TODO */
@@ -372,7 +372,7 @@ function Dashboard(props: DashboardProps) {
                                 columnDisplayMode === ColumnDisplayMode.all
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
-                            } rounded-full px-2`}
+                            } rounded-full px-1.5`}
                             onClick={() => {
                                 setColumnDisplayMode(ColumnDisplayMode.all)
                             }}
@@ -384,7 +384,7 @@ function Dashboard(props: DashboardProps) {
                                 columnDisplayMode === ColumnDisplayMode.compact
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
-                            } rounded-full px-2`}
+                            } rounded-full px-1.5`}
                             onClick={() => {
                                 setColumnDisplayMode(ColumnDisplayMode.compact)
                             }}
@@ -396,7 +396,7 @@ function Dashboard(props: DashboardProps) {
                                 columnDisplayMode === ColumnDisplayMode.docs
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
-                            } rounded-full px-2`}
+                            } rounded-full px-1.5`}
                             onClick={() => {
                                 setColumnDisplayMode(ColumnDisplayMode.docs)
                             }}
@@ -408,7 +408,7 @@ function Dashboard(props: DashboardProps) {
                                 columnDisplayMode === ColumnDisplayMode.settings
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
-                            } rounded-full px-2`}
+                                } rounded-full px-1.5`}
                             onClick={() => {
                                 setColumnDisplayMode(ColumnDisplayMode.settings)
                             }}

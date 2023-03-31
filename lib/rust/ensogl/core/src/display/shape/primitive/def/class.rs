@@ -132,6 +132,13 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Union(self, that)
     }
 
+    /// Unify two shapes, blending their colors based on the foreground shape's SDF value. This
+    /// means that even if these shapes overlap and the foreground is semi-transparent, it will
+    /// blend with the background only in the anti-aliased areas.
+    fn union_exclusive<S: IntoOwned>(&self, that: S) -> UnionExclusive<Self, Owned<S>> {
+        UnionExclusive(self, that)
+    }
+
     /// Subtracts the argument from this shape.
     fn difference<S: IntoOwned>(&self, that: S) -> Difference<Self, Owned<S>> {
         Difference(self, that)

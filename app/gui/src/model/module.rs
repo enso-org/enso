@@ -392,9 +392,7 @@ pub enum NodeEditStatus {
     /// The node was edited and had a previous expression.
     Edited {
         /// Expression of the node before the edit was started.
-        previous_expression:      String,
-        /// Intended method of the node before editing (if known).
-        previous_intended_method: Option<MethodId>,
+        previous_expression: String,
     },
     /// The node was created and did not previously exist.
     Created,
@@ -411,6 +409,9 @@ pub struct NodeMetadata {
     ///
     /// The methods may be defined for different types, so the name alone don't specify them.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    #[deprecated(
+        note = "No longer used anywhere, but is kept for compatibility with old projects"
+    )]
     pub intended_method: Option<MethodId>,
     /// Information about uploading file.
     ///
@@ -803,7 +804,6 @@ main = 5
         let id = ast::Id::from_str("1d6660c6-a70b-4eeb-b5f7-82f05a51df25").unwrap();
         let node = file.metadata.ide.node.get(&id).unwrap();
         assert_eq!(node.position, Some(Position::new(-75.5, 52.0)));
-        assert_eq!(node.intended_method, None);
         assert_eq!(file.metadata.rest, serde_json::Value::Object(default()));
     }
 }

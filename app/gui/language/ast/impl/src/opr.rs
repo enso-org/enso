@@ -511,10 +511,11 @@ impl Chain {
         while !self.args.is_empty() {
             self.fold_arg()
         }
-        // TODO[ao] the only case when target is none is when chain have None target and empty
-        //  arguments list. Such Chain cannot be generated from Ast, but someone could think that
-        //  this is still a valid chain. To consider returning error here.
-        self.target.unwrap().arg
+        if let Some(target) = self.target {
+            target.arg
+        } else {
+            SectionSides { opr: self.operator.into() }.into()
+        }
     }
 
     /// True if all operands are set, i.e. there are no section shapes in this chain.
