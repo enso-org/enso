@@ -4392,6 +4392,7 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl",
+ "ensogl-derive-theme",
  "ensogl-drop-down-menu",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",

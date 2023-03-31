@@ -256,7 +256,8 @@ fn init(app: &Application) {
 
     // === Execution Modes ===
 
-    graph_editor.set_execution_modes(vec!["development".to_string(), "production".to_string()]);
+    graph_editor
+        .set_available_execution_modes(vec!["development".to_string(), "production".to_string()]);
 
 
     // === Rendering ===

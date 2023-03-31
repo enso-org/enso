@@ -11,7 +11,8 @@ crate-type = ["cdylib", "rlib"]
 enso-frp = { path = "../../../../lib/rust/frp" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 ensogl = { path = "../../../../lib/rust/ensogl" }
-ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-derive-theme = { path = "../../../../lib/rust/ensogl/app/theme/derive" }
 ensogl-drop-down-menu = { path = "../../../../lib/rust/ensogl/component/drop-down-menu" }
 ensogl-gui-component = { path = "../../../../lib/rust/ensogl/component/gui" }
+ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-list-view = { path = "../../../../lib/rust/ensogl/component/list-view" }

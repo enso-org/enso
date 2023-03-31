@@ -14,7 +14,8 @@ use crate::display;
 // === Shape ===
 // =============
 
-mod shape {
+/// Shape definition.
+pub mod shape {
     use super::*;
     crate::shape! {
         alignment = left_bottom;

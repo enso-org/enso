@@ -111,7 +111,7 @@ const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 /// Space between items in the top bar.
-const TOP_BAR_ITEM_MARGIN: f32 = 80.0;
+const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let platform_str = ARGS.groups.startup.options.platform.value.as_str();
@@ -120,14 +120,9 @@ fn traffic_lights_gap_width() -> f32 {
     if is_macos && !ARGS.groups.window.options.frame.value {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
-        0.0
+        TOP_BAR_ITEM_MARGIN
     }
 }
-
-fn breadcrumb_gap_width() -> f32 {
-    traffic_lights_gap_width() + execution_mode_selector::OVERALL_WIDTH + TOP_BAR_ITEM_MARGIN
-}
-
 
 
 // =================
@@ -648,7 +643,7 @@ ensogl::define_endpoints_2! {
         drop_dragged_edge            (),
 
         /// Set the execution modes available to the graph.
-        set_execution_modes          (Rc<Vec<execution_mode_selector::ExecutionMode>>),
+        set_available_execution_modes          (Rc<Vec<execution_mode_selector::ExecutionMode>>),
 
     }
 
@@ -1829,19 +1824,11 @@ impl GraphEditorModel {
 
     fn init(self) -> Self {
         let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
-        let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
-        let traffic_light_width = traffic_lights_gap_width();
 
         self.add_child(&self.execution_mode_selector);
-        self.execution_mode_selector
-            .set_x(traffic_light_width + execution_mode_selector::OVERALL_WIDTH / 2.0);
-        self.execution_mode_selector.set_y(y_offset + execution_mode_selector::HEIGHT / 2.0);
 
-        let gap_width = breadcrumb_gap_width();
         self.add_child(&self.breadcrumbs);
         self.breadcrumbs.set_x(x_offset);
-        self.breadcrumbs.set_y(y_offset + component::breadcrumbs::HEIGHT / 2.0);
-        self.breadcrumbs.gap_width(gap_width);
 
         self.scene().add_child(&self.tooltip);
         self.add_child(&self.profiling_button);
@@ -2771,13 +2758,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ===================
 
     frp::extend! { network
-
-
-        // === Layout ===
-        eval inputs.space_for_window_buttons([model](size) {
-            model.breadcrumbs.gap_width.emit(size.x + breadcrumb_gap_width())
-        });
-
 
         // === Debugging ===
 
@@ -3870,10 +3850,39 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     let execution_mode_selector = &model.execution_mode_selector;
     frp::extend! { network
-        execution_mode_selector.set_execution_modes <+ frp.set_execution_modes;
-        out.execution_mode <+ execution_mode_selector.selected_ecxecution_mode;
+
+        execution_mode_selector.set_available_execution_modes <+ frp.set_available_execution_modes;
+        out.execution_mode <+ execution_mode_selector.selected_execution_mode;
         out.execution_mode_play_button_pressed <+ execution_mode_selector.play_press;
+
+        // === Layout ===
+        init <- source::<()>();
+        size_update <- all(init,execution_mode_selector.size,inputs.space_for_window_buttons);
+        eval size_update ([model]((_,size,gap_size)) {
+            let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
+            let traffic_light_width = traffic_lights_gap_width();
+
+            let execution_mode_selector_x = gap_size.x + traffic_light_width;
+            model.execution_mode_selector.set_x(execution_mode_selector_x);
+            let breadcrumb_gap_width = execution_mode_selector_x + size.x + TOP_BAR_ITEM_MARGIN;
+            model.breadcrumbs.gap_width(breadcrumb_gap_width);
+
+            model.execution_mode_selector.set_y(y_offset + size.y / 2.0);
+            model.breadcrumbs.set_y(y_offset + component::breadcrumbs::HEIGHT / 2.0);
+        });
+
+        // breadcrumb_gap_update <- all(inputs.space_for_window_buttons,size_update);
+        // eval breadcrumb_gap_update([model]((gap_size, execution_mode_selector_size)) {
+        //     let traffic_light_width = traffic_lights_gap_width();
+        //     let breadcrumb_gap_width = traffic_light_width + execution_mode_selector_size.x + TOP_BAR_ITEM_MARGIN;
+        //
+        //     let execution_mode_selector_x = traffic_light_width + execution_mode_selector_size.x / 2.0;
+        //     model.execution_mode_selector.set_x(gap_size.x + execution_mode_selector_x);
+        //     model.breadcrumbs.gap_width(gap_size.x + breadcrumb_gap_width);
+        // });
+
     }
+    init.emit(());
 
 
     // ==================

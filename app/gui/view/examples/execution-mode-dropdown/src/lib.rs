@@ -23,6 +23,10 @@ use ide_view_execution_mode_selector as execution_mode_selector;
 
 
 
+// ======================
+// === Initialisation ===
+// ======================
+
 fn make_entries() -> execution_mode_selector::ExecutionModes {
     Rc::new(vec!["development".to_string(), "production".to_string()])
 }
@@ -34,7 +38,7 @@ fn init(app: &Application) {
 
     let execution_mode_selector = execution_mode_selector::ExecutionModeSelector::new(&app);
     world.add_child(&execution_mode_selector);
-    execution_mode_selector.set_execution_modes(make_entries());
+    execution_mode_selector.set_available_execution_modes(make_entries());
 
     world
         .on

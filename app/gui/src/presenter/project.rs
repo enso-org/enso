@@ -389,7 +389,7 @@ impl Project {
     fn init_execution_modes(self) -> Self {
         let graph = &self.model.view.graph();
         let entries = Rc::new(vec!["development".to_string(), "production".to_string()]);
-        graph.set_execution_modes(entries);
+        graph.set_available_execution_modes(entries);
         self
     }
 
