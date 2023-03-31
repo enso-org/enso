@@ -21,9 +21,5 @@
     "skipLibCheck": true,
     "target": "ES2019",
     "jsx": "react-jsx"
-  },
-  "ts-node": {
-    "esm": true,
-    "files": true
   }
 }
