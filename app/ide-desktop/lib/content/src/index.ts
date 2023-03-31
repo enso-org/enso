@@ -143,7 +143,9 @@ class Main {
                 ) {
                     const hideAuth = () => {
                         const auth = document.getElementById('dashboard')
+                        const ide = document.getElementById('root')
                         if (auth) auth.style.display = 'none'
+                        if (ide) ide.style.display = ''
                     }
                     /** This package is an Electron desktop app (i.e., not in the Cloud), so
                      * we're running on the desktop. */

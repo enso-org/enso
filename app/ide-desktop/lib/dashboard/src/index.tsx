@@ -1,8 +1,15 @@
 /** @file Index file declaring main DOM structure for the app. */
 
+if (IS_DEV_MODE) {
+    new EventSource('/esbuild').addEventListener('change', () => {
+        location.reload()
+    })
+    void navigator.serviceWorker.register('/serviceWorker.js')
+}
+
 import * as authentication from 'enso-authentication'
 
-import * as platform from './authentication/src/platform'
+import * as platform from 'enso-authentication/src/platform'
 
 const logger = console
 /** This package is a standalone React app (i.e., IDE deployed to the Cloud), so we're not
