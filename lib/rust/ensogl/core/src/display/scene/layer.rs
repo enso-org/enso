@@ -223,13 +223,13 @@ impl Layer {
     pub fn instantiate<S>(
         &self,
         data: &S::ShapeData,
-        virtual_id: VirtualLayerId,
+        symbol_partition: SymbolPartitionId,
     ) -> (ShapeInstance<S>, LayerShapeBinding)
     where
         S: Shape,
     {
         let (shape_system_info, symbol_id, shape_instance, global_instance_id) =
-            self.shape_system_registry.instantiate(data, virtual_id);
+            self.shape_system_registry.instantiate(data, symbol_partition);
         self.add_shape(shape_system_info, symbol_id);
         (shape_instance, LayerShapeBinding::new(self, global_instance_id))
     }
@@ -364,7 +364,7 @@ pub struct LayerModel {
     parent: Rc<RefCell<Option<Sublayers>>>,
     global_element_depth_order: RefCell<DependencyGraph<LayerItem>>,
     sublayers: Sublayers,
-    virtual_sublayer_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
+    symbol_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
     mask: RefCell<Option<WeakLayer>>,
     scissor_box: RefCell<Option<ScissorBox>>,
     mem_mark: Rc<()>,
@@ -410,7 +410,7 @@ impl LayerModel {
             symbols_renderable: default(),
             depth_order: default(),
             global_element_depth_order: default(),
-            virtual_sublayer_buffer_partitions: default(),
+            symbol_buffer_partitions: default(),
             mask: default(),
             scissor_box: default(),
             mem_mark: default(),
@@ -776,19 +776,18 @@ impl LayerModel {
         layer
     }
 
-    /// Create a virtual sublayer of this layer. The order of virtual layer creation determines
-    /// depth ordering of their content objects of the type specified in the virtual layers' type
-    /// parameter.
-    pub fn create_virtual_sublayer<S: Shape>(
+    /// Create a symbol partition in the layer. The order of symbol partition creation determines
+    /// depth ordering of their content objects of the type specified in the type parameter.
+    pub fn create_symbol_partition<S: Shape>(
         self: &Rc<Self>,
         _name: impl Into<String>,
-    ) -> VirtualLayer<S> {
+    ) -> LayerSymbolPartition<S> {
         let system_id = ShapeSystem::<S>::id();
-        let mut partitions = self.virtual_sublayer_buffer_partitions.borrow_mut();
+        let mut partitions = self.symbol_buffer_partitions.borrow_mut();
         let index = partitions.entry(system_id).or_default();
-        let id = VirtualLayerId { index: *index };
+        let id = SymbolPartitionId { index: *index };
         *index += 1;
-        VirtualLayer { layer: WeakLayer { model: self.downgrade() }, id, shape: default() }
+        LayerSymbolPartition { layer: WeakLayer { model: self.downgrade() }, id, shape: default() }
     }
 
     /// The layer's mask, if any.
@@ -904,38 +903,34 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 }
 
 
-// === Virtual layers ===
+// === Layer symbol partitions ===
 
-/// A virtual layer within a parent [`Layer`].
+/// A symbol partition within a [`Layer`].
+///
+/// Symbol partitions determine the depth-order of instances of a particular symbol within a layer.
+/// Any other symbol added to a symbol partition will be treated as if present in the parent layer.
 #[derive(Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
-pub struct VirtualLayer<S> {
+pub struct LayerSymbolPartition<S> {
     layer: WeakLayer,
-    id:    VirtualLayerId,
+    id:    SymbolPartitionId,
     shape: PhantomData<*const S>,
 }
 
-/// Identifies a virtual layer within a parent [`Layer`].
+/// Identifies a symbol partition, for some [`Symbol`], relative to some [`Layer`].
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct VirtualLayerId {
+pub struct SymbolPartitionId {
     index: usize,
 }
 
-impl<S: Shape> VirtualLayer<S> {
-    /// Add the display object to this layer and remove it from a layer it was assigned to, if any.
-    ///
-    /// Note that, as virtual layers are type-specific, only children of type `S` will be assigned
-    /// to this virtual layer; children of any other type be treated as if they are in the parent
-    /// [`Layer`].
+impl<S: Shape> LayerSymbolPartition<S> {
+    /// Add the display object to this symbol partition and remove it from a layer it was assigned
+    /// to, if any.
     pub fn add(&self, object: impl display::Object) {
         if let Some(layer) = self.layer.upgrade() {
-            let assignment = display::object::VirtualSublayerAssignment {
-                shape_system: ShapeSystem::<S>::id(),
-                virtual_id:   self.id,
-            };
-            object.display_object().add_to_virtual_display_layer(&layer, assignment);
+            object.display_object().add_to_display_layer_symbol_partition(&layer, self.into());
         } else {
-            error!("Shape added to virtual sublayer of non-existent layer.");
+            error!("Shape added to symbol partition of non-existent layer.");
         }
     }
 
@@ -944,6 +939,31 @@ impl<S: Shape> VirtualLayer<S> {
         if let Some(layer) = self.layer.upgrade() {
             object.display_object().remove_from_display_layer(&layer);
         }
+    }
+}
+
+
+// === Type-erased symbol partitions ===
+
+/// Identifies a [`Symbol`] and ID of its partition, relative to some [`Layer`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AnySymbolPartition {
+    id:    SymbolPartitionId,
+    shape: ShapeSystemId,
+}
+
+impl AnySymbolPartition {
+    /// Get the partition id assigned to the specified shape system, if any.
+    pub fn partition_id(&self, shape_system: ShapeSystemId) -> Option<SymbolPartitionId> {
+        (self.shape == shape_system).then_some(self.id)
+    }
+}
+
+impl<S: Shape> From<&'_ LayerSymbolPartition<S>> for AnySymbolPartition {
+    fn from(value: &'_ LayerSymbolPartition<S>) -> Self {
+        let shape = ShapeSystem::<S>::id();
+        let id = value.id;
+        Self { shape, id }
     }
 }
 
@@ -1204,12 +1224,12 @@ pub struct ShapeSystemRegistryData {
 impl {
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
-    (&mut self, data: &S::ShapeData, virtual_id: VirtualLayerId) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
+    (&mut self, data: &S::ShapeData, symbol_partition: SymbolPartitionId) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
     where S : Shape {
         self.with_get_or_register_mut::<S,_,_>(data, |entry| {
             let system = entry.shape_system;
             let system_id = ShapeSystem::<S>::id();
-            let VirtualLayerId { index } = virtual_id;
+            let SymbolPartitionId { index } = symbol_partition;
             let partition_id = crate::system::gpu::data::BufferPartitionId { index };
             let (shape_instance, global_instance_id) = system.instantiate(partition_id);
             let symbol_id = system.sprite_system().symbol.id;

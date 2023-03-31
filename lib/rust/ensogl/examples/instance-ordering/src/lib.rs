@@ -37,9 +37,9 @@ pub fn main() {
     let root = display::object::Instance::new();
     world.add_child(&root);
     let main = &world.default_scene.layers.main;
-    let red = main.create_virtual_sublayer::<rectangle::Shape>("red");
-    let green = main.create_virtual_sublayer::<rectangle::Shape>("green");
-    let blue = main.create_virtual_sublayer::<rectangle::Shape>("blue");
+    let red = main.create_symbol_partition::<rectangle::Shape>("red");
+    let green = main.create_symbol_partition::<rectangle::Shape>("green");
+    let blue = main.create_symbol_partition::<rectangle::Shape>("blue");
     let layers = vec![
         (red.clone(), color::Rgba::new(1.0, 0.5, 0.5, 0.9), color::Rgba::new(1.0, 0.0, 0.0, 1.0)),
         (green.clone(), color::Rgba::new(0.5, 1.0, 0.5, 0.9), color::Rgba::new(0.0, 1.0, 0.0, 1.0)),

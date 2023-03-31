@@ -10,11 +10,17 @@ use crate::display;
 
 
 
+// ===============
+// === Exports ===
+// ===============
+
+pub use shape::Shape;
+
+
+
 // =============
 // === Shape ===
 // =============
-
-pub use shape::Shape;
 
 mod shape {
     use super::*;

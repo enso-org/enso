@@ -1032,8 +1032,8 @@ use crate::prelude::*;
 use crate::display::layout::alignment;
 use crate::display::object::event;
 use crate::display::object::transformation;
+use crate::display::scene::layer::AnySymbolPartition;
 use crate::display::scene::layer::Layer;
-use crate::display::scene::layer::VirtualLayerId;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
@@ -1495,7 +1495,7 @@ pub struct HierarchyFrp {
         Option<Scene>,
         Option<WeakLayer>,
         Option<WeakLayer>,
-        Option<VirtualSublayerAssignment>,
+        Option<AnySymbolPartition>,
     )>,
     /// Fires during the first scene refresh if this object needed an update and the update was
     /// performed.
@@ -1506,7 +1506,7 @@ pub struct HierarchyFrp {
         Option<Scene>,
         Option<WeakLayer>,
         Option<WeakLayer>,
-        Option<VirtualSublayerAssignment>,
+        Option<AnySymbolPartition>,
     )>,
     on_updated_source:      frp::Source<()>,
 }
@@ -1593,22 +1593,22 @@ impl Model {
         self.set_display_layer(layer, default())
     }
 
-    /// Add this object to the specified virtual sublayer of the provided scene layer. Do not use
+    /// Add this object to the specified symbol partition of the provided scene layer. Do not use
     /// this method explicitly. Use layers' methods instead.
-    pub(crate) fn add_to_virtual_display_layer(
+    pub(crate) fn add_to_display_layer_symbol_partition(
         &self,
         layer: &Layer,
-        virtual_sublayer: VirtualSublayerAssignment,
+        symbol_partition: AnySymbolPartition,
     ) {
-        self.set_display_layer(layer, Some(virtual_sublayer))
+        self.set_display_layer(layer, Some(symbol_partition))
     }
 
     fn set_display_layer(
         &self,
         layer: &Layer,
-        virtual_sublayer: Option<VirtualSublayerAssignment>,
+        symbol_partition: Option<AnySymbolPartition>,
     ) {
-        let layer = LayerAssignment { layer: layer.downgrade(), virtual_sublayer };
+        let layer = LayerAssignment { layer: layer.downgrade(), symbol_partition };
         let mut assigned_layer = self.assigned_layer.borrow_mut();
         if assigned_layer.as_ref() != Some(&layer) {
             self.dirty.new_layer.set();
@@ -1800,7 +1800,7 @@ impl Model {
                     Some(scene.clone_ref()),
                     old_layer.map(|assignment| assignment.layer),
                     new_layer.map(|assignment| assignment.layer.clone()),
-                    new_layer.and_then(|assignment| assignment.virtual_sublayer),
+                    new_layer.and_then(|assignment| assignment.symbol_partition),
                 ));
             });
         }
@@ -1982,35 +1982,13 @@ impl InstanceDef {
 // === Layer assignment ===
 // ========================
 
-/// Identifies an assigned layer, including virtual sublayer information, if any.
+/// Identifies an assigned layer, including symbol partition information, if any.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LayerAssignment {
     /// The layer.
     pub layer:            WeakLayer,
-    /// The virtual sublayer, if any.
-    pub virtual_sublayer: Option<VirtualSublayerAssignment>,
-}
-
-
-// === Virtual sublayers ===
-
-/// Identifies an assigned virtual sublayer.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct VirtualSublayerAssignment {
-    /// The shape system the virtual sublayer applies to.
-    pub shape_system: crate::display::shape::ShapeSystemId,
-    /// The virtual sublayer ID.
-    pub virtual_id:   VirtualLayerId,
-}
-
-impl VirtualSublayerAssignment {
-    /// Get the virtual-sublayer id assigned to the specified shape system, if any.
-    pub fn virtual_id(
-        &self,
-        shape_system: crate::display::shape::ShapeSystemId,
-    ) -> Option<VirtualLayerId> {
-        (self.shape_system == shape_system).then_some(self.virtual_id)
-    }
+    /// The symbol partition, if any.
+    pub symbol_partition: Option<AnySymbolPartition>,
 }
 
 
