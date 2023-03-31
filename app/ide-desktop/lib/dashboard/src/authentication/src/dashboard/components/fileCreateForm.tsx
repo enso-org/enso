@@ -1,9 +1,8 @@
 /** @file Form to create a project. */
 import * as react from 'react'
-import * as toast from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
-import * as fileInfo from '../../fileInfo'
 import * as svg from '../../components/svg'
 
 export interface FileCreateFormProps {
@@ -21,26 +20,26 @@ function FileCreateForm(props: FileCreateFormProps) {
     async function onSubmit(event: react.FormEvent) {
         event.preventDefault()
         if (file == null) {
-            // FIXME[sb]: Uploading a file may be a mistake when creating a new file.
-            toast.toast.error('Please select a file to upload.')
-        } else if (!name) {
-            toast.toast.error('Please provide a file name.')
+            // TODO[sb]: Uploading a file may be a mistake when creating a new file.
+            toast.error('Please select a file to upload.')
         } else {
+            close()
+            const toastId = toast.loading('Uploading file...')
             await backend.uploadFile(
                 {
                     parentDirectoryId: directoryId,
-                    fileName: name,
+                    fileName: name ?? file.name,
                 },
                 file
             )
+            toast.success('Sucessfully uploaded file.', { id: toastId })
             onSuccess()
-            close()
         }
     }
 
     return (
         <form className="bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
-            <button className="absolute right-0 m-2" onClick={close}>
+            <button type="button" className="absolute right-0 m-2" onClick={close}>
                 {svg.CLOSE_ICON}
             </button>
             <h2 className="inline-block font-semibold m-2">New File</h2>
@@ -55,25 +54,29 @@ function FileCreateForm(props: FileCreateFormProps) {
                     onChange={event => {
                         setName(event.target.value)
                     }}
+                    defaultValue={name ?? file?.name ?? ''}
                 />
             </div>
             <div className="flex flex-row flex-nowrap m-1">
-                <label className="inline-block flex-1 grow m-1" htmlFor="file">
-                    File
-                </label>
-                <span className="flex-1 grow-2 m-1">
-                    {file?.name ?? 'No file selected'}
-                    {file ? ` (${fileInfo.toReadableSize(file.size)})` : ''}
-                </span>
-                <input
-                    id="file"
-                    type="text"
-                    className="hidden"
-                    onChange={event => {
-                        setName(name ?? event.target.files?.[0]?.name ?? '')
-                        setFile(event.target.files?.[0] ?? null)
-                    }}
-                />
+                <div className="inline-block flex-1 grow m-1">File</div>
+                <div className="inline-block bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1">
+                    <label className="bg-gray-200 rounded-full px-2" htmlFor="file_file">
+                        <div className="inline-block bg-gray-300 hover:bg-gray-400 rounded-l-full">
+                            <u>𐌣</u>
+                        </div>
+                        <div className="inline-block rounded-r-full">
+                            {file?.name ?? 'No file chosen'}
+                        </div>
+                    </label>
+                    <input
+                        id="file_file"
+                        type="file"
+                        className="hidden"
+                        onChange={event => {
+                            setFile(event.target.files?.[0] ?? null)
+                        }}
+                    />
+                </div>
             </div>
             <input
                 type="submit"

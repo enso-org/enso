@@ -21,15 +21,13 @@ function UploadFileModal(props: UploadFileModalProps) {
     async function onSubmit() {
         if (file == null) {
             toast.error('Please select a file to upload.')
-        } else if (!name) {
-            toast.error('Please provide a file name.')
         } else {
             close()
             const toastId = toast.loading('Uploading file...')
             await backend.uploadFile(
                 {
                     parentDirectoryId: directoryId,
-                    fileName: name,
+                    fileName: name ?? file.name,
                 },
                 file
             )
@@ -39,7 +37,12 @@ function UploadFileModal(props: UploadFileModalProps) {
     }
 
     return (
-        <form className="bg-white rounded-lg w-96 h-72 p-2">
+        <form
+            className="bg-white shadow-soft rounded-lg w-96 h-72 p-2"
+            onClick={event => {
+                event.stopPropagation()
+            }}
+        >
             <div className="m-2">
                 <label className="w-1/3" htmlFor="uploaded_file_name">
                     File name
@@ -52,7 +55,7 @@ function UploadFileModal(props: UploadFileModalProps) {
                     onChange={event => {
                         setName(event.target.value)
                     }}
-                    defaultValue={name ?? ''}
+                    defaultValue={name ?? file?.name ?? ''}
                 />
             </div>
             <div className="m-2">
@@ -69,7 +72,6 @@ function UploadFileModal(props: UploadFileModalProps) {
                     type="file"
                     className="hidden"
                     onChange={event => {
-                        setName(name ?? event.target.files?.[0]?.name ?? '')
                         setFile(event.target.files?.[0] ?? null)
                     }}
                 />

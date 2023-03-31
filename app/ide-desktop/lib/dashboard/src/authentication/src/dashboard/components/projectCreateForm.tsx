@@ -1,6 +1,6 @@
 /** @file Form to create a project. */
 import * as react from 'react'
-import * as toast from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
 import * as svg from '../../components/svg'
@@ -20,21 +20,23 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     async function onSubmit(event: react.FormEvent) {
         event.preventDefault()
         if (name == null) {
-            toast.toast.error('Please provide a project name.')
+            toast.error('Please provide a project name.')
         } else {
+            close()
+            const toastId = toast.loading('Creating project...')
             await backend.createProject({
                 parentDirectoryId: directoryId,
                 projectName: name,
                 projectTemplateName: template,
             })
+            toast.success('Sucessfully created project.', { id: toastId })
             onSuccess()
-            close()
         }
     }
 
     return (
         <form className="bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
-            <button className="absolute right-0 m-2" onClick={close}>
+            <button type="button" className="absolute right-0 m-2" onClick={close}>
                 {svg.CLOSE_ICON}
             </button>
             <h2 className="inline-block font-semibold m-2">New Project</h2>

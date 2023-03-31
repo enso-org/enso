@@ -1,23 +1,21 @@
-/** @file A right-click menu. */
+/** @file A context menu. */
 
-// ===============
-// === Context ===
-// ===============
-
-export interface ContextMenuContext {
-    // FIXME[sb]: This should somehow pass down the innermost `ContextMenu`.
-}
-
-// =================
-// === Component ===
-// =================
+import * as react from 'react'
 
 export interface ContextMenuProps {
-    items: JSX.Element[]
+    event: react.MouseEvent
 }
 
-function ContextMenu() {
-    return <div></div>
+function ContextMenu(props: react.PropsWithChildren<ContextMenuProps>) {
+    const { children, event: event } = props
+    return (
+        <div
+            style={{ left: event.pageX, top: event.pageY }}
+            className="absolute bg-white rounded-lg shadow-soft flex flex-col flex-nowrap"
+        >
+            {children}
+        </div>
+    )
 }
 
 export default ContextMenu

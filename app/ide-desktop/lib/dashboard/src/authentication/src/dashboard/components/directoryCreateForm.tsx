@@ -1,6 +1,6 @@
 /** @file Form to create a project. */
 import * as react from 'react'
-import * as toast from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
 import * as svg from '../../components/svg'
@@ -19,20 +19,22 @@ function DirectoryCreateForm(props: DirectoryCreateFormProps) {
     async function onSubmit(event: react.FormEvent) {
         event.preventDefault()
         if (name == null) {
-            toast.toast.error('Please provide a project name.')
+            toast.error('Please provide a directory name.')
         } else {
+            close()
+            const toastId = toast.loading('Creating directory...')
             await backend.createDirectory({
                 parentId: directoryId,
                 title: name,
             })
+            toast.success('Sucessfully created directory.', { id: toastId })
             onSuccess()
-            close()
         }
     }
 
     return (
         <form className="relative bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
-            <button className="absolute right-0 m-2" onClick={close}>
+            <button type="button" className="absolute right-0 m-2" onClick={close}>
                 {svg.CLOSE_ICON}
             </button>
             <h2 className="inline-block font-semibold m-1">New Directory</h2>

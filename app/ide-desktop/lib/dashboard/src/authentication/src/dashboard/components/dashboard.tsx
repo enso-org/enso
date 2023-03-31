@@ -17,9 +17,12 @@ import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
 import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
+import ContextMenu from './contextMenu'
+import ContextMenuEntry from './contextMenuEntry'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
 
+import ConfirmDeleteModal from './confirmDeleteModal'
 import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
@@ -280,7 +283,6 @@ function Dashboard(props: DashboardProps) {
     >({})
 
     const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
-    // TODO[sb]: `setVisibleCreateForm(null)` when a click happens anywhere outside a form?
     const [visibleCreateForm, setVisibleCreateForm] = react.useState<backend.AssetType | null>(null)
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
     const [Modal, setModal] = react.useState<((props: ModalProps) => JSX.Element) | null>(null)
@@ -388,7 +390,12 @@ function Dashboard(props: DashboardProps) {
             <div className="inline-flex">
                 {ASSET_TYPE_NAME[assetType]}{' '}
                 {assetType === visibleCreateForm ? (
-                    <div className="relative font-medium mx-1">
+                    <div
+                        className="relative font-medium mx-1"
+                        onClick={event => {
+                            event.stopPropagation()
+                        }}
+                    >
                         <div className="absolute z-10">
                             <CreateForm
                                 backend={backendService}
@@ -403,9 +410,10 @@ function Dashboard(props: DashboardProps) {
                 ) : (
                     <button
                         className="mx-1"
-                        onClick={() => {
+                        onClick={event => {
+                            event.stopPropagation()
+                            closeAllDialogs()
                             setVisibleCreateForm(assetType)
-                            setModal(null)
                         }}
                     >
                         {svg.ADD_ICON}
@@ -457,46 +465,86 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId, refresh])
 
     react.useEffect(() => {
-        function onKeyDown(event: KeyboardEvent) {
-            if (
-                event.key === 'Escape' &&
-                !event.ctrlKey &&
-                !event.shiftKey &&
-                !event.altKey &&
-                !event.metaKey
-            ) {
-                if (visibleCreateForm || Modal) {
-                    event.preventDefault()
-                }
-                setVisibleCreateForm(null)
-                setModal(null)
-            }
-        }
-
-        function onDragEnter(event: DragEvent) {
-            setVisibleCreateForm(null)
-            if (Array.prototype.includes.call(event.dataTransfer?.types ?? [], 'Files')) {
-                setIsFileBeingDragged(true)
-            }
-        }
-
         function onBlur() {
             setIsFileBeingDragged(false)
         }
 
-        window.addEventListener('keydown', onKeyDown)
-        window.addEventListener('dragenter', onDragEnter)
         window.addEventListener('blur', onBlur)
 
         return () => {
-            window.removeEventListener('keydown', onKeyDown)
-            window.removeEventListener('dragenter', onDragEnter)
             window.removeEventListener('blur', onBlur)
         }
     }, [])
 
+    function closeAllDialogs() {
+        setModal(null)
+        setVisibleCreateForm(null)
+        setContextMenu(null)
+    }
+
+    function onClick() {
+        closeAllDialogs()
+    }
+
+    function onKeyDown(event: react.KeyboardEvent<HTMLDivElement>) {
+        if (
+            event.key === 'Escape' &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey &&
+            !event.metaKey
+        ) {
+            if (visibleCreateForm || Modal || contextMenu) {
+                event.preventDefault()
+            }
+            closeAllDialogs()
+        }
+    }
+
+    function onDragEnter(event: react.DragEvent<HTMLDivElement>) {
+        if (event.dataTransfer.types.includes('Files')) {
+            setIsFileBeingDragged(true)
+        }
+    }
+
     return (
-        <div className="select-none text-primary">
+        <div
+            className="select-none text-primary"
+            onClick={onClick}
+            onKeyDown={onKeyDown}
+            onDragEnter={onDragEnter}
+            onContextMenu={event => {
+                event.preventDefault()
+                event.stopPropagation()
+                setContextMenu(
+                    <ContextMenu event={event}>
+                        <ContextMenuEntry
+                            disabled
+                            onClick={async () => {
+                                try {
+                                    const items = await navigator.clipboard.read()
+                                    const fileIds: string[] = []
+                                    for (const item of items) {
+                                        for (const type of item.types) {
+                                            if (type === 'application/enso-file-id') {
+                                                const blob = await item.getType(type)
+                                                fileIds.push(await blob.text())
+                                                break
+                                            }
+                                        }
+                                    }
+                                    // TODO: Re-parent `fileIds` to `directoryId` when endpoint is ready.
+                                } catch {
+                                    // ignored
+                                }
+                            }}
+                        >
+                            Paste
+                        </ContextMenuEntry>
+                    </ContextMenu>
+                )
+            }}
+        >
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
             <div id="header" />
@@ -535,9 +583,10 @@ function Dashboard(props: DashboardProps) {
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-2 mx-4">
                     <button
                         className="mx-1"
-                        onClick={() => {
+                        onClick={event => {
+                            event.stopPropagation()
+                            closeAllDialogs()
                             setModal(() => UploadFileModal)
-                            setVisibleCreateForm(null)
                         }}
                     >
                         {svg.UPLOAD_ICON}
@@ -545,7 +594,8 @@ function Dashboard(props: DashboardProps) {
                     <button
                         className={`${selectedAssets.length === 0 ? 'opacity-50' : ''} mx-1`}
                         disabled={selectedAssets.length === 0}
-                        onClick={() => {
+                        onClick={event => {
+                            event.stopPropagation()
                             /* TODO */
                         }}
                     >
@@ -620,6 +670,35 @@ function Dashboard(props: DashboardProps) {
                             heading: ColumnHeading(column, backend.AssetType.project),
                             render: renderer(column, backend.AssetType.project),
                         }))}
+                        onClick={projectAsset => {
+                            setSelectedAssets([projectAsset])
+                        }}
+                        onContextMenu={(projectAsset, event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setContextMenu(
+                                <ContextMenu event={event}>
+                                    <ContextMenuEntry
+                                        onClick={() => {
+                                            setModal(() => () => (
+                                                // FIXME[sb]: These need some way to close.
+                                                <ConfirmDeleteModal
+                                                    name={projectAsset.title}
+                                                    assetType={projectAsset.type}
+                                                    doDelete={() =>
+                                                        backendService.deleteProject(
+                                                            projectAsset.id
+                                                        )
+                                                    }
+                                                />
+                                            ))
+                                        }}
+                                    >
+                                        <span className="text-red-700">Delete</span>
+                                    </ContextMenuEntry>
+                                </ContextMenu>
+                            )
+                        }}
                     />
                     <tr className="h-8" />
                     <Rows<backend.Asset<backend.AssetType.directory>>
@@ -631,6 +710,14 @@ function Dashboard(props: DashboardProps) {
                             heading: ColumnHeading(column, backend.AssetType.directory),
                             render: renderer(column, backend.AssetType.directory),
                         }))}
+                        onClick={directoryAsset => {
+                            setSelectedAssets([directoryAsset])
+                        }}
+                        onContextMenu={(_directory, event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setContextMenu(<ContextMenu event={event}></ContextMenu>)
+                        }}
                     />
                     <tr className="h-8" />
                     <Rows<backend.Asset<backend.AssetType.secret>>
@@ -642,6 +729,32 @@ function Dashboard(props: DashboardProps) {
                             heading: ColumnHeading(column, backend.AssetType.secret),
                             render: renderer(column, backend.AssetType.secret),
                         }))}
+                        onClick={secret => {
+                            setSelectedAssets([secret])
+                        }}
+                        onContextMenu={(secret, event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setContextMenu(
+                                <ContextMenu event={event}>
+                                    <ContextMenuEntry
+                                        onClick={() => {
+                                            setModal(() => () => (
+                                                <ConfirmDeleteModal
+                                                    name={secret.title}
+                                                    assetType={secret.type}
+                                                    doDelete={() =>
+                                                        backendService.deleteSecret(secret.id)
+                                                    }
+                                                />
+                                            ))
+                                        }}
+                                    >
+                                        <span className="text-red-700">Delete</span>
+                                    </ContextMenuEntry>
+                                </ContextMenu>
+                            )
+                        }}
                     />
                     <tr className="h-8" />
                     <Rows<backend.Asset<backend.AssetType.file>>
@@ -653,17 +766,54 @@ function Dashboard(props: DashboardProps) {
                             heading: ColumnHeading(column, backend.AssetType.file),
                             render: renderer(column, backend.AssetType.file),
                         }))}
-                        onContextMenu={item => {
+                        onClick={file => {
+                            setSelectedAssets([file])
+                        }}
+                        onContextMenu={(file, event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
                             setContextMenu(
-                                <div>
-                                    <button
+                                <ContextMenu event={event}>
+                                    <ContextMenuEntry
+                                        disabled
+                                        onClick={() => {
+                                            /** TODO: Call endpoint for downloading file. */
+                                        }}
+                                    >
+                                        Copy
+                                    </ContextMenuEntry>
+                                    <ContextMenuEntry
+                                        disabled
+                                        onClick={() => {
+                                            /** TODO: Call endpoint for downloading file. */
+                                        }}
+                                    >
+                                        Cut
+                                    </ContextMenuEntry>
+                                    <ContextMenuEntry
+                                        onClick={() => {
+                                            setModal(() => () => (
+                                                <ConfirmDeleteModal
+                                                    name={file.title}
+                                                    assetType={file.type}
+                                                    doDelete={() =>
+                                                        backendService.deleteFile(file.id)
+                                                    }
+                                                />
+                                            ))
+                                        }}
+                                    >
+                                        <span className="text-red-700">Delete</span>
+                                    </ContextMenuEntry>
+                                    <ContextMenuEntry
+                                        disabled
                                         onClick={() => {
                                             /** TODO: Call endpoint for downloading file. */
                                         }}
                                     >
                                         Download
-                                    </button>
-                                </div>
+                                    </ContextMenuEntry>
+                                </ContextMenu>
                             )
                         }}
                     />
@@ -697,10 +847,8 @@ function Dashboard(props: DashboardProps) {
             {Modal ? (
                 <div
                     className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
-                    onClick={event => {
-                        if (event.target === event.currentTarget) {
-                            setModal(null)
-                        }
+                    onClick={() => {
+                        setModal(null)
                     }}
                 >
                     <Modal

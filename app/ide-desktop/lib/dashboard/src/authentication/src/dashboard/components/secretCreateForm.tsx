@@ -1,6 +1,6 @@
 /** @file Form to create a project. */
 import * as react from 'react'
-import * as toast from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
 import * as svg from '../../components/svg'
@@ -20,24 +20,26 @@ function SecretCreateForm(props: ProjectCreateFormProps) {
     async function onSubmit(event: react.FormEvent) {
         event.preventDefault()
         if (!name) {
-            toast.toast.error('Please provide a secret name.')
+            toast.error('Please provide a secret name.')
         } else if (value == null) {
             // Secret value explicitly can be empty.
-            toast.toast.error('Please provide a secret value.')
+            toast.error('Please provide a secret value.')
         } else {
+            close()
+            const toastId = toast.loading('Creating secret...')
             await backend.createSecret({
                 parentDirectoryId: directoryId,
                 secretName: name,
                 secretValue: value,
             })
+            toast.success('Sucessfully created secret.', { id: toastId })
             onSuccess()
-            close()
         }
     }
 
     return (
         <form className="bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
-            <button className="absolute right-0 m-2" onClick={close}>
+            <button type="button" className="absolute right-0 m-2" onClick={close}>
                 {svg.CLOSE_ICON}
             </button>
             <h2 className="inline-block font-semibold m-2">New Secret</h2>
