@@ -31,8 +31,6 @@ import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
-polyglot java import org.enso.database.JDBCUtils
-
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
@@ -151,7 +149,8 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool
+    date_ops = [make_extract_as_int "year" "YEAR", make_extract_as_int "month" "MONTH", make_extract_as_int "day" "DAY"]
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -324,14 +323,10 @@ mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
 
 ## PRIVATE
-postgres_statement_setter : Statement_Setter
-postgres_statement_setter =
-    default = Statement_Setter.default
-    fill_hole stmt i value = case value of
-        # TODO [RW] Postgres date handling #6115
-        _ : Date_Time ->
-            stmt.setTimestamp i (JDBCUtils.getTimestamp value)
-        # _ : Date ->
-        # _ : Time_Of_Day ->
-        _ -> default.fill_hole stmt i value
-    Statement_Setter.Value fill_hole
+make_extract_as_int enso_name sql_name =
+    Base_Generator.lift_unary_op enso_name arg->
+        extract = Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
+        Builder.code "CAST(" ++ extract ++ " AS integer)"
+
+## PRIVATE
+postgres_statement_setter = Statement_Setter.default
