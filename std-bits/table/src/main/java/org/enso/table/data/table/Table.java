@@ -12,14 +12,23 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.join.*;
+import org.enso.table.data.table.join.CrossJoin;
+import org.enso.table.data.table.join.IndexJoin;
+import org.enso.table.data.table.join.JoinCondition;
+import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
 import org.enso.table.util.NameDeduplicator;
 
-import java.util.*;
-import java.util.function.BiFunction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -222,20 +231,17 @@ public class Table {
   /**
    * Performs a join of this table with the right table, based on the provided
    * conditions.
-   *
    * The parameters {@code keepLeftUnmatched}, {@code keepMatched} and {@code keepRightUnmatched} control which rows should be returned. They can all be set to {@code false} to emulate an empty result in erroneous conditions.
-   *
    * The parameters {@code includeLeftColumns} and {@code includeRightColumns} control which columns should be included in the result. In most cases they will both be set to true. They allow to easily implement exclusive joins which only keep columns form one table.
-   *
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
-  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
+  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix) {
     NameDeduplicator nameDeduplicator = new NameDeduplicator();
     if (!keepLeftUnmatched && !keepMatched && !keepRightUnmatched) {
       throw new IllegalArgumentException("At least one of keepLeftUnmatched, keepMatched or keepRightUnmatched must be true.");
     }
 
-    JoinStrategy strategy = new IndexJoin(objectComparator, equalityFallback);
+    var strategy = new IndexJoin();
     JoinResult joinResult = strategy.join(this, right, conditions);
 
     List<JoinResult> resultsToKeep = new ArrayList<>();
@@ -377,10 +383,6 @@ public class Table {
     return new Table(newColumns, null);
   }
 
-  private String suffixIfNecessary(Set<String> names, String name, String suffix) {
-    return names.contains(name) ? name + suffix : name;
-  }
-
   private static class NamedBuilder {
     private final String name;
     private final InferredBuilder builder;
@@ -491,42 +493,6 @@ public class Table {
             .toArray(Column[]::new);
     return new Table(newColumns, null);
   }
-
-  private Storage<?> nullPad(int nullCount, Storage<?> storage, boolean start) {
-    InferredBuilder builder = new InferredBuilder(nullCount + storage.size());
-    if (start) {
-      builder.appendNulls(nullCount);
-    }
-    for (int i = 0; i < storage.size(); i++) {
-      builder.appendNoGrow(storage.getItemBoxed(i));
-    }
-    if (!start) {
-      builder.appendNulls(nullCount);
-    }
-    return builder.seal();
-  }
-
-  private Table hconcat(Table other, String lsuffix, String rsuffix) {
-    Column[] newColumns = new Column[this.columns.length + other.columns.length];
-    Set<String> lnames =
-        Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toSet());
-    Set<String> rnames =
-        Arrays.stream(other.columns).map(Column::getName).collect(Collectors.toSet());
-    for (int i = 0; i < columns.length; i++) {
-      Column original = columns[i];
-      newColumns[i] =
-          new Column(
-              suffixIfNecessary(rnames, original.getName(), lsuffix), original.getStorage());
-    }
-    for (int i = 0; i < other.columns.length; i++) {
-      Column original = other.columns[i];
-      newColumns[i + columns.length] =
-          new Column(
-              suffixIfNecessary(lnames, original.getName(), rsuffix), original.getStorage());
-    }
-    return new Table(newColumns, null);
-  }
-
   /** @return a copy of the Table containing a slice of the original data */
   public Table slice(int offset, int limit) {
     Column[] newColumns = new Column[columns.length];

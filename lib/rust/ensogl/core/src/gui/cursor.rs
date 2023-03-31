@@ -241,7 +241,7 @@ impl Cursor {
         let frp = Frp::new();
         let network = frp.network();
         let model = CursorModel::new(scene);
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         // === Animations ===
         //

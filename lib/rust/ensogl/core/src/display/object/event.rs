@@ -64,6 +64,11 @@ impl SomeEvent {
     pub fn is_cancelled(&self) -> bool {
         self.state() == State::Cancelled
     }
+
+    /// Enables or disables bubbling for this event.
+    pub fn set_bubbling(&self, value: bool) {
+        self.bubbles.set(value);
+    }
 }
 
 impl Default for SomeEvent {

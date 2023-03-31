@@ -8915,9 +8915,10 @@ object IR {
       * @return a string representation of the pass data for [[ir]]
       */
     def showPassData: String = {
-      val metaString = ir.passData.map((p, m) => (p, m.metadataName)).values
-
-      s"$metaString"
+      val metaString: Seq[String] =
+        ir.passData.map((p, m) => (p, m.metadataName)).values.toSeq
+      val alphabetical = metaString.sorted
+      s"$alphabetical"
     }
   }
 

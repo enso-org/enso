@@ -2,7 +2,7 @@ package org.enso.projectmanager.control.effect
 
 import java.io.IOException
 
-import zio.{ZEnv, ZIO}
+import zio.{ZAny, ZIO}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -50,6 +50,6 @@ object Sync {
 
   def apply[F[+_, +_]](implicit sync: Sync[F]): Sync[F] = sync
 
-  implicit val zioSync: Sync[ZIO[ZEnv, +*, +*]] = ZioSync
+  implicit val zioSync: Sync[ZIO[ZAny, +*, +*]] = ZioSync
 
 }

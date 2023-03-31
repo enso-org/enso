@@ -123,9 +123,10 @@ mod tests {
     #[tokio::test]
     async fn test_cleaning() -> Result {
         setup_logging()?;
-        let dir = PathBuf::from(r"C:\temp\test_cleaning");
-        crate::fs::tokio::reset_dir(&dir).await?;
-        Git.init(&dir).await?;
+        let dir = tempfile::tempdir()?;
+        let dir = dir.path();
+        crate::fs::tokio::reset_dir(dir).await?;
+        Git.init(dir).await?;
 
         let foo = dir.join("foo");
         let foo_target = foo.join("target");
@@ -135,9 +136,9 @@ mod tests {
         let target_foo = target.join("foo");
         crate::fs::tokio::write(&target_foo, "foo in target").await?;
 
-        clean_except_for(&dir, vec!["target/foo"], false).await?;
-
-
+        clean_except_for(dir, vec!["target/foo"], false).await?;
+        assert!(!foo.exists());
+        assert!(target_foo.exists());
 
         Ok(())
     }

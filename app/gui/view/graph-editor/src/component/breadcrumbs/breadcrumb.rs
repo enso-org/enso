@@ -489,15 +489,15 @@ impl Breadcrumb {
                 model.deselect(*old,*new);
             });
             not_selected <- frp.outputs.selected.map(|selected| !selected);
-            mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
-            mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
+            mouse_over_if_not_selected <- model.view.events_deprecated.mouse_over.gate(&not_selected);
+            mouse_out_if_not_selected  <- model.view.events_deprecated.mouse_out.gate(&not_selected);
             eval_ mouse_over_if_not_selected(
                 model.animations.color.set_target_value(hover_color.into())
             );
             eval_ mouse_out_if_not_selected(
                 model.animations.color.set_target_value(model.deselected_color().into())
             );
-            eval_ model.view.events.mouse_down_primary(frp.outputs.clicked.emit(()));
+            eval_ model.view.events_deprecated.mouse_down_primary(frp.outputs.clicked.emit(()));
         }
 
 

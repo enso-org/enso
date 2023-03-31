@@ -62,13 +62,19 @@ pub trait View: FrpNetworkProvider + DerefToCommandApi {
     /// Disable the command in this component instance.
     fn disable_command(&self, name: impl AsRef<str>)
     where Self: Sized {
-        self.app().commands.disable_command(self, name)
+        self.set_command_enabled(name, false)
     }
 
     /// Enable the command in this component instance.
     fn enable_command(&self, name: impl AsRef<str>)
     where Self: Sized {
-        self.app().commands.enable_command(self, name)
+        self.set_command_enabled(name, true)
+    }
+
+    /// Set the command enable status in this component instance.
+    fn set_command_enabled(&self, name: impl AsRef<str>, enabled: bool)
+    where Self: Sized {
+        self.app().commands.set_command_enabled(self, name, enabled)
     }
 }
 
@@ -225,13 +231,8 @@ impl Registry {
         }
     }
 
-    /// Disables the command for the provided component instance.
-    fn disable_command<T: View>(&self, instance: &T, name: impl AsRef<str>) {
-        self.with_command_mut(instance, name, |command| command.enabled = false)
-    }
-
-    /// Enables the command for the provided component instance.
-    fn enable_command<T: View>(&self, instance: &T, name: impl AsRef<str>) {
-        self.with_command_mut(instance, name, |command| command.enabled = true)
+    /// Sets the command enable status for the provided component instance.
+    fn set_command_enabled<T: View>(&self, instance: &T, name: impl AsRef<str>, enabled: bool) {
+        self.with_command_mut(instance, name, |command| command.enabled = enabled)
     }
 }

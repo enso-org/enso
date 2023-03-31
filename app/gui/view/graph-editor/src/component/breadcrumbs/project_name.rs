@@ -267,10 +267,12 @@ impl ProjectName {
 
             // === Mouse IO ===
 
-            let mouse_down = model.view.events.mouse_down_primary.clone_ref();
-            output.is_hovered <+ bool(&model.view.events.mouse_out,
-                                          &model.view.events.mouse_over);
-            output.mouse_down <+ model.view.events.mouse_down_primary;
+            let mouse_down = model.view.events_deprecated.mouse_down_primary.clone_ref();
+            output.is_hovered <+ bool(
+                &model.view.events_deprecated.mouse_out,
+                &model.view.events_deprecated.mouse_over
+            );
+            output.mouse_down <+ model.view.events_deprecated.mouse_down_primary;
 
             text_color <- all3(
                 &frp.output.selected,
