@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 
+from Standard.Base.Data.Ordering import all
+
 import project.Read_Flag.Read_Flag
 import project.Write_Flag.Write_Flag
 import project.Data.Histogram.Histogram
@@ -384,30 +386,6 @@ type Image
 
     ## UNSTABLE
 
-       Check the equality of two images.
-
-       Arguments:
-       - that: the matrix to compare with.
-
-       ? Implementation Note
-         Two images considered equal when they have the same number of rows,
-         columns and channels, and have the same pixel values.
-
-         The image represented internally as a byte array, and if two images
-         have the same dimensions, equality checks that underlying byte arrays
-         are equal as well.
-
-       > Example
-         Checking two images for equality.
-
-             import Standard.Examples
-
-             example_eq = Examples.image == Examples.image
-    == : Image -> Boolean
-    == self that = Java_Image.is_equals self.opencv_mat that.opencv_mat
-
-    ## UNSTABLE
-
        Convert the image to a vector.
 
        > Example
@@ -499,3 +477,13 @@ core_op_handler error =
     case error of
         Matrix_Error.Dimensions_Not_Equal -> Error.throw error
         _ -> Panic.throw error
+
+## PRIVATE
+type Image_Comparator
+    compare x y =
+        if Java_Image.is_equals x.opencv_mat y.opencv_mat then Ordering.Equal else
+            Nothing
+
+    hash x = x.opencv_mat.hashCode
+
+Comparable.from (_:Image) = Image_Comparator

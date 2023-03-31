@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Ordering import all
+
 import project.Data.Image.Image
 import project.Data.Matrix_Error.Matrix_Error
 
@@ -336,26 +338,6 @@ type Matrix
 
     ## UNSTABLE
 
-       Check the equality of two matrices.
-
-       Arguments:
-       - that: the matrix to compare with.
-
-       ? Implementation Note
-         Two matrices considered equal when they have the same number of rows,
-         columns and channels, and have the same values.
-
-       > Example
-         Comparing two matrices for equality.
-
-             import Standard.Examples
-
-             example_eq = Examples.matrix == Examples.matrix
-    == : Matrix -> Boolean
-    == self that = Java_Matrix.is_equals self.opencv_mat that.opencv_mat
-
-    ## UNSTABLE
-
        Normalize the matrix into a range of [min_value .. max_value] so that the
        minimum value of the matrix becomes `min_value` and the maximum value of
        the matrix becomes `max_value`.
@@ -460,3 +442,13 @@ core_op_handler error =
     case error of
         Matrix_Error.Dimensions_Not_Equal -> Error.throw error
         _ -> Panic.throw error
+
+## PRIVATE
+type Matrix_Comparator
+    compare x y =
+        if Java_Matrix.is_equals x.opencv_mat y.opencv_mat then Ordering.Equal else
+            Nothing
+
+    hash x = x.opencv_mat.hashCode
+
+Comparable.from (_:Matrix) = Matrix_Comparator

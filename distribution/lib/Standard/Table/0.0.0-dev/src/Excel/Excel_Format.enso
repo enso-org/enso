@@ -3,10 +3,10 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Table.Table
 import project.Data.Match_Columns.Match_Columns
-import project.Excel.Excel_Reader
 import project.Excel.Excel_Workbook.Excel_Workbook
 import project.Excel.Excel_Section.Excel_Section
-import project.Excel.Excel_Writer
+import project.Internal.Excel_Reader
+import project.Internal.Excel_Writer
 
 ## PRIVATE
    Resolve the xls_format setting to a boolean.

@@ -3,7 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Image.Image
 
-## List comes from org.opencv.imgcodecs.Imgcodecs#imread doc comment.
+## PRIVATE
+   List comes from org.opencv.imgcodecs.Imgcodecs#imread doc comment.
 supported = [".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".webp", ".pbm", ".pgm", ".ppm", ".pxm", ".pnm", ".pfm", ".sr", ".ras", ".tiff", ".tif", ".exr", ".hdr", ".pic"]
 
 ## Read the file to a `Image` from a supported file format.

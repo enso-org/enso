@@ -3,7 +3,6 @@ package org.enso.languageserver.filemanager
 import org.apache.commons.io.{FileExistsException, FileUtils}
 import org.enso.languageserver.effect.BlockingIO
 import zio._
-import zio.blocking.effectBlocking
 
 import java.io.{File, FileNotFoundException, RandomAccessFile}
 import java.nio.ByteBuffer
@@ -12,6 +11,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 import scala.collection.mutable
 import scala.util.Using
+import zio.ZIO.attemptBlocking
 
 /** File manipulation facility.
   */
@@ -34,7 +34,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     file: File,
     content: String
   ): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking(FileUtils.write(file, content, "UTF-8"))
+    attemptBlocking(FileUtils.write(file, content, "UTF-8"))
       .mapError(errorHandling)
 
   /** @inheritdoc */
@@ -42,7 +42,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     file: File,
     contents: Array[Byte]
   ): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking(FileUtils.writeByteArrayToFile(file, contents))
+    attemptBlocking(FileUtils.writeByteArrayToFile(file, contents))
       .mapError(errorHandling)
 
   /** Reads the contents of a textual file.
@@ -51,14 +51,14 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @return either [[FileSystemFailure]] or the content of a file as a String
     */
   override def read(file: File): BlockingIO[FileSystemFailure, String] =
-    effectBlocking(FileUtils.readFileToString(file, "UTF-8"))
+    attemptBlocking(FileUtils.readFileToString(file, "UTF-8"))
       .mapError(errorHandling)
 
   /** @inheritdoc */
   override def readBinary(
     file: File
   ): BlockingIO[FileSystemFailure, Array[Byte]] =
-    effectBlocking(FileUtils.readFileToByteArray(file))
+    attemptBlocking(FileUtils.readFileToByteArray(file))
       .mapError(errorHandling)
 
   /** Deletes the specified file or directory recursively.
@@ -67,7 +67,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @return either [[FileSystemFailure]] or Unit
     */
   def delete(file: File): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking {
+    attemptBlocking {
       if (file.isDirectory) {
         FileUtils.deleteDirectory(file)
       } else {
@@ -87,7 +87,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     } yield ()
 
   private def createEmptyFile(file: File): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking(file.createNewFile(): Unit)
+    attemptBlocking(file.createNewFile(): Unit)
       .mapError(errorHandling)
 
   /** Creates a directory, including any necessary but nonexistent parent
@@ -99,7 +99,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
   override def createDirectory(
     file: File
   ): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking(FileUtils.forceMkdir(file))
+    attemptBlocking(FileUtils.forceMkdir(file))
       .mapError(errorHandling)
 
   /** Copy a file or directory recursively.
@@ -112,9 +112,9 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     */
   override def copy(from: File, to: File): BlockingIO[FileSystemFailure, Unit] =
     if (from.isDirectory && to.isFile) {
-      IO.fail(FileExists)
+      ZIO.fail(FileExists)
     } else {
-      effectBlocking {
+      attemptBlocking {
         if (from.isFile && to.isDirectory) {
           FileUtils.copyFileToDirectory(from, to)
         } else if (from.isDirectory) {
@@ -132,7 +132,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @return either [[FileSystemFailure]] or Unit
     */
   override def move(from: File, to: File): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking {
+    attemptBlocking {
       if (to.isDirectory) {
         val createDestDir = false
         FileUtils.moveToDirectory(from, to, createDestDir)
@@ -149,7 +149,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @return either [[FileSystemFailure]] or file existence flag
     */
   override def exists(file: File): BlockingIO[FileSystemFailure, Boolean] =
-    effectBlocking(Files.exists(file.toPath))
+    attemptBlocking(Files.exists(file.toPath))
       .mapError(errorHandling)
 
   /** List contents of a given path.
@@ -160,7 +160,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
   override def list(path: File): BlockingIO[FileSystemFailure, Vector[Entry]] =
     if (path.exists) {
       if (path.isDirectory) {
-        effectBlocking {
+        attemptBlocking {
           FileSystem
             .list(path.toPath)
             .map {
@@ -170,10 +170,10 @@ class FileSystem extends FileSystemApi[BlockingIO] {
             }
         }.mapError(errorHandling)
       } else {
-        IO.fail(NotDirectory)
+        ZIO.fail(NotDirectory)
       }
     } else {
-      IO.fail(FileNotFound)
+      ZIO.fail(FileNotFound)
     }
 
   /** Returns tree of a given path.
@@ -189,7 +189,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     val limit = FileSystem.Depth(depth)
     if (path.exists && limit.canGoDeeper) {
       if (path.isDirectory) {
-        effectBlocking {
+        attemptBlocking {
           val directory = DirectoryEntry.empty(path.toPath)
           FileSystem.readDirectoryEntry(
             directory,
@@ -201,10 +201,10 @@ class FileSystem extends FileSystemApi[BlockingIO] {
           directory
         }.mapError(errorHandling)
       } else {
-        IO.fail(NotDirectory)
+        ZIO.fail(NotDirectory)
       }
     } else {
-      IO.fail(FileNotFound)
+      ZIO.fail(FileNotFound)
     }
   }
 
@@ -217,13 +217,13 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     path: File
   ): BlockingIO[FileSystemFailure, Attributes] =
     if (path.exists) {
-      effectBlocking {
+      attemptBlocking {
         val attrs =
           Files.readAttributes(path.toPath, classOf[BasicFileAttributes])
         Attributes.fromBasicAttributes(path.toPath, attrs)
       }.mapError(errorHandling)
     } else {
-      IO.fail(FileNotFound)
+      ZIO.fail(FileNotFound)
     }
 
   /** Returns the digest of the file at the provided `path`
@@ -233,7 +233,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     */
   override def digest(path: File): BlockingIO[FileSystemFailure, SHA3_224] = {
     if (path.isFile) {
-      effectBlocking {
+      attemptBlocking {
         val messageDigest = MessageDigest.getInstance("SHA3-224")
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
@@ -250,9 +250,9 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       }.mapError(errorHandling)
     } else {
       if (path.exists()) {
-        IO.fail(NotFile)
+        ZIO.fail(NotFile)
       } else {
-        IO.fail(FileNotFound)
+        ZIO.fail(FileNotFound)
       }
     }
   }
@@ -267,7 +267,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
   ): BlockingIO[FileSystemFailure, SHA3_224] = {
     val path = segment.path
     if (path.isFile) {
-      effectBlocking {
+      attemptBlocking {
         val messageDigest = MessageDigest.getInstance("SHA3-224")
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
@@ -300,9 +300,9 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       }.mapError(errorHandling)
     } else {
       if (path.exists()) {
-        IO.fail(NotFile)
+        ZIO.fail(NotFile)
       } else {
-        IO.fail(FileNotFound)
+        ZIO.fail(FileNotFound)
       }
     }
   }
@@ -314,9 +314,9 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     bytes: Array[Byte]
   ): BlockingIO[FileSystemFailure, SHA3_224] = {
     if (path.isDirectory) {
-      IO.fail(NotFile)
+      ZIO.fail(NotFile)
     } else {
-      effectBlocking {
+      attemptBlocking {
         Using.resource(new RandomAccessFile(path, "rw")) { file =>
           Using.resource(file.getChannel) { chan =>
             val lock = chan.lock()
@@ -366,7 +366,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
   ): BlockingIO[FileSystemFailure, ReadBytesResult] = {
     val path = segment.path
     if (path.isFile) {
-      effectBlocking {
+      attemptBlocking {
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
         ) { stream =>
@@ -388,9 +388,9 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       }.mapError(errorHandling)
     } else {
       if (path.exists()) {
-        IO.fail(NotFile)
+        ZIO.fail(NotFile)
       } else {
-        IO.fail(FileNotFound)
+        ZIO.fail(FileNotFound)
       }
     }
   }

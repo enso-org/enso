@@ -452,7 +452,13 @@ impl Entry {
                 let is_extension_method =
                     self_type_module.map_or(false, |stm| *stm != self.defined_in);
                 let extension_method_import = is_extension_method.and_option_from(|| {
-                    self.defined_in_entry(db).map(|e| e.required_imports(db, in_module.clone_ref()))
+                    self.defined_in_entry(db).map(|e| {
+                        if e.kind == Kind::Module && e.defined_in == in_module {
+                            default()
+                        } else {
+                            e.required_imports(db, in_module.clone_ref())
+                        }
+                    })
                 });
                 let self_type_import = self
                     .is_static
@@ -469,7 +475,7 @@ impl Entry {
                 .into_iter()
                 .flatten()
                 .collect(),
-            Kind::Module | Kind::Type if defined_in_same_module => default(),
+            Kind::Type if defined_in_same_module => default(),
             Kind::Module => {
                 let import = if let Some(reexport) = &self.reexported_in {
                     Import::Unqualified {
@@ -1125,8 +1131,12 @@ mod test {
         }
 
         expect_imports(&static_method, &current_modules[0], &[]);
-        expect_imports(&module_method, &current_modules[0], &[]);
-        expect_imports(&submodule, &current_modules[0], &[]);
+        // The following asserts are disabled, because we actually add import for the module even if
+        // we're inside it. It is necessary, because otherwise `Project.foo` expressions
+        // currently do not work without importing `local.Project` into the scope.
+        // See https://github.com/enso-org/enso/issues/5616.
+        // expect_imports(&module_method, &current_modules[0], &[]);
+        // expect_imports(&submodule, &current_modules[0], &[]);
         expect_imports(&extension_method, &current_modules[0], &[
             "from Standard.Base import Number",
         ]);

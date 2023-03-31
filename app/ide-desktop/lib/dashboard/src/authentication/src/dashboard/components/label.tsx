@@ -26,10 +26,10 @@ const CSS_CLASS: Record<Status, string> = {
 } as const
 
 /** A mapping of label type to its corresponding icon. */
-const STATUS_ICON: Record<Status, JSX.Element> = {
-    [Status.none]: svg.NO_ICON,
-    [Status.warning]: svg.EXCLAMATION_ICON,
-    [Status.severeWarning]: svg.EXCLAMATION_ICON,
+const STATUS_ICON: Record<Status, JSX.Element | null> = {
+    [Status.none]: null,
+    [Status.warning]: <div className="m-1">{svg.EXCLAMATION_ICON}</div>,
+    [Status.severeWarning]: <div className="m-1">{svg.EXCLAMATION_ICON}</div>,
 }
 
 // =================
@@ -44,10 +44,10 @@ export interface LabelProps {
 function Label({ status = Status.none, children }: react.PropsWithChildren<LabelProps>) {
     return (
         <div
-            className={`${CSS_CLASS[status]} whitespace-nowrap rounded-full inline-flex flex-row flex-nowrap align-middle leading-[27px] p-1 m-1`}
+            className={`${CSS_CLASS[status]} whitespace-nowrap rounded-full inline-flex flex-row flex-nowrap align-middle items-center leading-[27px] m-1`}
         >
             {STATUS_ICON[status]}
-            <div className="px-1">{children}</div>
+            <div className={STATUS_ICON[status] ? 'pr-2' : 'px-2'}>{children}</div>
         </div>
     )
 }

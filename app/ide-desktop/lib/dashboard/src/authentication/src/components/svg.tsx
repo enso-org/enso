@@ -29,12 +29,9 @@ export const PATHS = {
 // === SVGs with custom formatting ===
 // ===================================
 
-/** No icon indicates normal status. */
-export const NO_ICON = <></>
-
 /** Icon used to indicate a warning. */
 export const EXCLAMATION_ICON = (
-    <svg width={27} height={27} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={18} height={18} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
             fill="#f9fafb"
             fillOpacity={0.7}
@@ -46,7 +43,7 @@ export const EXCLAMATION_ICON = (
 
 /** Icon representing a file being uploaded. */
 export const UPLOAD_ICON = (
-    <svg width={28} height={28} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect
             x={3}
             y={14}
@@ -67,7 +64,7 @@ export const UPLOAD_ICON = (
 
 /** Icon representing a file being downloaded. */
 export const DOWNLOAD_ICON = (
-    <svg width={28} height={28} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect
             x={3}
             y={12}
@@ -88,13 +85,7 @@ export const DOWNLOAD_ICON = (
 
 /** Icon representing a directory. */
 export const DIRECTORY_ICON = (
-    <svg
-        width={36}
-        height={36}
-        viewBox="-2 -2 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg width={24} height={24} viewBox="-2 -2 20 20">
         <path
             d="M0 7h16v6a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V7Zm0-4h14a2 2 0 0 1 2 2v1H0V3Zm0 0c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2H0Z"
             fill="currentColor"
@@ -105,7 +96,7 @@ export const DIRECTORY_ICON = (
 
 /** Icon representing a secret. */
 export const SECRET_ICON = (
-    <svg width={36} height={36} viewBox="0 0 24 24">
+    <svg width={24} height={24} viewBox="0 0 24 24">
         <path
             d="M10.3 13a4 4 0 1 1 0-2h10a1 1 0 0 1 1 1v3a1 1 0 0 1-2 0v-2h-2v2a1 1 0 0 1-2 0v-2ZM3.5 12a1 1 0 1 1 2 0a1 1 0 1 1-2 0"
             fill="currentColor"
@@ -116,7 +107,7 @@ export const SECRET_ICON = (
 
 /** Icon representing a file whose filetype does not have an associated icon. */
 export const FILE_ICON = (
-    <svg width={36} height={36} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg width={24} height={24} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path
             d="M6.5 3h8v2a2 2 0 0 0 2 2h2v13a1 1 0 0 1 -1 1h-11a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1ZM15 3v2a1.5 1.5 0 0 0 1.5 1.5h2"
             fill="currentColor"
@@ -126,14 +117,14 @@ export const FILE_ICON = (
 
 /** Icon typically indicating that the item on the right is a child of the item on the left. */
 export const SMALL_RIGHT_ARROW_ICON = (
-    <svg width={12} height={12} viewBox="-1 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={8} height={8} viewBox="-1 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="m0 0 6 4-6 4V0Z" fill="currentColor" fillOpacity={0.7} />
     </svg>
 )
 
 /** Displayed when a project is ready to start. */
 export const PLAY_ICON = (
-    <svg width={36} height={36} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
             d="m10.04 7.34 6 3.85a1 1 0 0 1 0 1.68l-6 3.85a1 1 0 0 1-1.54-.84v-7.7a1 1 0 0 1 1.54-.84Z"
             fill="currentColor"
@@ -153,7 +144,7 @@ export const PLAY_ICON = (
 
 /** Displayed when a project is ready for opening an IDE. */
 export const ARROW_UP_ICON = (
-    <svg width={36} height={36} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect
             width={21}
             height={21}

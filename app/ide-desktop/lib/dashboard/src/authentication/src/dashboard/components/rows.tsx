@@ -31,7 +31,7 @@ function Rows<T>(props: Props<T>) {
     const headerRow = columns.map(({ heading }, index) => (
         <th
             key={index}
-            className="px-6 align-middle border border-solid py-3 border-l-0 border-r-1 border-t-0 border-b-0 whitespace-nowrap font-semibold text-left"
+            className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
         >
             {heading}
         </th>
@@ -55,10 +55,7 @@ function Rows<T>(props: Props<T>) {
                     }}
                 >
                     {columns.map(({ id, render }) => (
-                        <td
-                            key={id}
-                            className="px-6 border border-solid border-l-0 border-r-1 border-t-0 border-b-0"
-                        >
+                        <td key={id} className="px-4 border-0 border-r">
                             {render(item, index)}
                         </td>
                     ))}

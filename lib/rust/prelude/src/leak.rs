@@ -1,7 +1,9 @@
-//! `Leak` is a utility struct that prevents the wrapped value from being dropped when `Leak` is
-//! being dropped. This is achieved by passing the contained value to `std::mem::forget` in the
-//! drop implementation of `Leak`. Can bue used for examples to keep components alive for the whole
-//! lifetime of the application.
+//! `Leak` is a utility trait that prevents the wrapped value from being dropped when `Leak` is
+//! being dropped. This is achieved by wrapping it with [`ManuallyDrop`], which will prevent the
+//! [`Drop`] handler from being called when local variable out of scope. Can be used for example
+//! to keep components alive for the whole lifetime of the application.
+
+use std::mem::ManuallyDrop;
 
 
 
@@ -9,35 +11,13 @@
 // === Leak ===
 // ============
 
-/// Wrapper that will prevent the wrapped value from being dropped. Instead, the value will be
-/// leaked when the `Leak` is dropped.
-#[derive(Debug)]
-pub struct Leak<T> {
-    value: Option<T>,
-}
-
-impl<T> Leak<T> {
-    /// Constructor. The passed value will be prevented from being dropped. This will cause memory
-    /// leaks.
-    pub fn new(value: T) -> Self {
-        Self { value: Some(value) }
-    }
-
-    /// Return a reference to the wrapped value.
-    pub fn inner(&self) -> &T {
-        // Guaranteed to never panic as this is always initialised with `Some` in the constructor.
-        self.value.as_ref().unwrap()
-    }
-
-    /// Return a mutable reference to the wrapped value.
-    pub fn inner_mut(&mut self) -> &mut T {
-        // Guaranteed to never panic as this is always initialised with `Some` in the constructor.
-        self.value.as_mut().unwrap()
+/// Wrapper that will prevent the wrapped value from being dropped. Equivalent to calling
+/// `mem::forget` on the wrapped value at the end of its scope.
+pub trait Leak {
+    fn leak(self) -> ManuallyDrop<Self>
+    where Self: Sized {
+        ManuallyDrop::new(self)
     }
 }
 
-impl<T> Drop for Leak<T> {
-    fn drop(&mut self) {
-        std::mem::forget(self.value.take());
-    }
-}
+impl<T> Leak for T {}
