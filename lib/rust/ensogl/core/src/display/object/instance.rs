@@ -1752,6 +1752,7 @@ impl Model {
                 trace!("Self origin and layers did not change.");
 
                 if self.dirty.computed_size.check() {
+                    trace!("Computed size changed.");
                     self.on_updated_source.emit(());
                 }
 
@@ -2341,18 +2342,17 @@ pub trait LayoutOps: Object {
     /// the size either to a fixed pixel value, a percentage parent container size, or to a fraction
     /// of the free space left after placing siblings with fixed sizes.
     ///
-    /// In case the size was modified to a fixed pixels value, the [`computed_size`] will be updated
-    /// immediately for convenience. See the docs of this module to learn more.
+    /// Please note that the [`computed_size`] will not be updated immediately. It will be updated
+    /// during the next display object refresh cycle, which happens once per frame. When the size is
+    /// set to a fixed pixel value, the final `computed_size` can still differ from the requested
+    /// size, because the layout might apply growing or shrinking to the object if it is configured
+    /// to do so.
+    ///
+    /// If you need to know the final computed size of the object, use the [`on_changed`] stream
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
     fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
         self.display_object().modify_layout(|layout| {
-            let new_size = layout.size.modify(f);
-            if let Some(x) = new_size.x.as_pixels() {
-                layout.computed_size.set_x(x);
-            }
-            if let Some(y) = new_size.y.as_pixels() {
-                layout.computed_size.set_y(y);
-            }
+            layout.size.modify(f);
         });
         self
     }
@@ -2949,10 +2949,12 @@ impl Model {
     /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn refresh_layout(&self) {
         if self.should_refresh_layout() {
+            let old_size_x = self.layout.computed_size.x();
+            let old_size_y = self.layout.computed_size.y();
             self.reset_size_to_static_values(X, 0.0);
-            self.refresh_layout_internal(X, PassConfig::Default);
             self.reset_size_to_static_values(Y, 0.0);
-            self.refresh_layout_internal(Y, PassConfig::Default);
+            self.refresh_layout_internal(X, old_size_x, PassConfig::Default);
+            self.refresh_layout_internal(Y, old_size_y, PassConfig::Default);
         }
     }
 }
@@ -3000,11 +3002,16 @@ impl Model {
     /// the size does not change.
     fn reset_size_to_static_values<Dim>(&self, x: Dim, parent_size: f32)
     where Dim: ResolutionDim {
-        let size = match self.layout.size.get_dim(x) {
+        let size = self.resolve_size_static_values(x, parent_size);
+        self.layout.computed_size.set_dim(x, size);
+    }
+
+    fn resolve_size_static_values<Dim>(&self, x: Dim, parent_size: f32) -> f32
+    where Dim: ResolutionDim {
+        match self.layout.size.get_dim(x) {
             Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
             Size::Hug => 0.0,
-        };
-        self.layout.computed_size.set_dim(x, size);
+        }
     }
 
     fn should_propagate_parent_layout_refresh<Dim>(&self, x: Dim) -> bool
@@ -3019,14 +3026,17 @@ impl Model {
     }
 
     /// The main entry point from the recursive auto-layout algorithm.
-    fn refresh_layout_internal<Dim>(&self, x: Dim, pass_cfg: PassConfig)
+    fn refresh_layout_internal<Dim>(&self, x: Dim, prev_computed_size: f32, pass_cfg: PassConfig)
     where Dim: ResolutionDim {
         if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
                 self.refresh_grid_layout(x, layout);
         } else {
                 self.refresh_manual_layout(x, pass_cfg);
         }
-        self.dirty.computed_size.set();
+        let current_computed_size = self.layout.computed_size.get_dim(x);
+        if current_computed_size != prev_computed_size {
+            self.dirty.computed_size.set();
+        }
     }
 
     /// # Meaning of the function parameters.
@@ -3048,8 +3058,9 @@ impl Model {
                 // If the child is not growing, doesn't depend on parent size and by itself was not
                 // modified since last update, it is guaranteed to already have correct size.
                 if child.should_propagate_parent_layout_refresh(x) {
+                    let old_child_size = child.layout.computed_size.get_dim(x);
                     child.reset_size_to_static_values(x, self.layout.computed_size.get_dim(x));
-                    child.refresh_layout_internal(x, PassConfig::Default);
+                    child.refresh_layout_internal(x, old_child_size, PassConfig::Default);
                 }
 
                 if child.layout.alignment.get().get_dim(x).is_some() {
@@ -3099,7 +3110,11 @@ impl Model {
                     let current_child_size = child.computed_size().get_dim(x);
                     if self_size != current_child_size || child.should_refresh_layout() {
                         child.layout.computed_size.set_dim(x, self_size);
-                        child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
+                        child.refresh_layout_internal(
+                            x,
+                            current_child_size,
+                            PassConfig::DoNotHugDirectChildren,
+                        );
                     }
 
                     if child.layout.alignment.get().get_dim(x).is_some() {
@@ -3194,6 +3209,7 @@ impl Model {
         &self,
         x: Dim,
         opts: &AutoLayout,
+        self_const_size: f32,
         unresolved_columns: Vec<UnresolvedColumn>,
     ) -> Vec<ResolvedColumn>
     where
@@ -3212,26 +3228,34 @@ impl Model {
                 for child in &children {
                     let child_grow_factor = child.layout.grow_factor.get_dim(x);
                     let child_shrink_factor = child.layout.shrink_factor.get_dim(x);
-                    let child_can_grow_or_shrink =
-                        child_grow_factor > 0.0 || child_shrink_factor > 0.0;
-                    let refresh_child =
-                        child_can_grow_or_shrink || child.should_propagate_parent_layout_refresh(x);
 
-                    let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
-                    if refresh_child {
-                        child.reset_size_to_static_values(x, self_const_size);
-                    }
-                    match child.layout.size.get_dim(x) {
-                        Size::Hug =>
+                    let child_base_size = match child.layout.size.get_dim(x) {
+                        Size::Hug => {
+                            let child_can_grow_or_shrink =
+                                child_grow_factor > 0.0 || child_shrink_factor > 0.0;
+                            let refresh_child = child_can_grow_or_shrink
+                                || child.should_propagate_parent_layout_refresh(x);
+                            let old_child_size = child.layout.computed_size.get_dim(x);
                             if refresh_child {
-                                child.refresh_layout_internal(x, PassConfig::Default);
-                            },
+                                child.reset_size_to_static_values(x, self_const_size);
+                                child.refresh_layout_internal(
+                                    x,
+                                    old_child_size,
+                                    PassConfig::Default,
+                                );
+                                child.layout.computed_size.get_dim(x)
+                            } else {
+                                old_child_size
+                            }
+                        }
                         Size::Fixed(unit) => {
                             max_child_fr = max(max_child_fr, unit.as_fraction_or_default());
+                            child.resolve_size_static_values(x, self_const_size)
                         }
-                    }
+                    };
+
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
-                    let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
+                    let child_size = child_base_size + child_margin.total();
                     let child_min_size =
                         child.layout.min_size.get_dim(x).resolve_pixels_or_default();
                     let child_max_size = child.layout.max_size.get_dim(x).resolve_pixels();
@@ -3305,8 +3329,9 @@ impl Model {
             return;
         }
 
+        let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
         let unresolved_columns = self.divide_children_to_columns(x, opts, &children);
-        let mut columns = self.resolve_columns(x, opts, unresolved_columns);
+        let mut columns = self.resolve_columns(x, opts, self_const_size, unresolved_columns);
 
 
         // === Compute the static size (no grow, shrink, nor fraction yet) ===
@@ -3374,8 +3399,20 @@ impl Model {
             let column_size = f32::max(column.min_size, column_size);
             let column_size = f32::min(column.max_size, column_size);
             for child in &column.children {
-                let child_size = child.layout.computed_size.get_dim(x);
-                let child_unused_space = f32::max(0.0, column_size - child_size);
+                let previous_child_size = child.layout.computed_size.get_dim(x);
+
+                // Hug children already have been resolved to their final size in `resolve_columns`.
+                // For non-hug children, the computed size has not been reset to resolved base size
+                // yet. We need to compute it here, because we want to always compute the unused
+                // space based on the static size.
+                let child_base_size = if child.layout.size.get_dim(x).is_fixed() {
+                    child.resolve_size_static_values(x, self_const_size)
+                } else {
+                    previous_child_size
+                };
+
+                let mut new_child_size = child_base_size;
+                let child_unused_space = f32::max(0.0, column_size - child_base_size);
                 let unresolved_margin = child.layout.margin.get_dim(x);
                 let margin_fr = unresolved_margin.as_fraction_or_default().total();
                 let margin = unresolved_margin.resolve(self_size, child_unused_space, margin_fr);
@@ -3383,12 +3420,12 @@ impl Model {
 
                 let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
-                if child_can_grow && child_size < column_size_minus_margin {
+                if child_can_grow && child_base_size < column_size_minus_margin {
                     let size = f32::min(
                         column_size_minus_margin,
                         child.layout.max_size.get_dim(x).resolve_pixels_or_default(),
                     );
-                    child.layout.computed_size.set_dim(x, size);
+                    new_child_size = size;
                 }
                 if let Some(fr) = child.layout.size.get_dim(x).as_fraction() {
                     if fr > Fraction::from(0.0) {
@@ -3396,18 +3433,18 @@ impl Model {
                             column_size_minus_margin,
                             child.layout.max_size.get_dim(x).resolve_pixels_or_default(),
                         );
-                        child.layout.computed_size.set_dim(x, size);
+                        new_child_size = size;
                     }
                 }
-                if child_can_shrink && child_size > column_size_minus_margin {
+                if child_can_shrink && child_base_size > column_size_minus_margin {
                     let size = f32::max(
                         column_size_minus_margin,
                         child.layout.min_size.get_dim(x).resolve_pixels_or_default(),
                     );
-                    child.layout.computed_size.set_dim(x, size);
+                    new_child_size = size;
                 }
 
-                let child_size_changed = child_size != child.layout.computed_size.get_dim(x);
+                let child_size_changed = previous_child_size != new_child_size;
                 let child_not_computed =
                     child.layout.size.get_dim(x).is_fixed() && child.should_refresh_layout();
                 if child_size_changed || child_not_computed {
@@ -3415,7 +3452,12 @@ impl Model {
                     // refresh layout of the same child. If the child size is set to hug, the
                     // child can grow, and the column size is greater than earlier computed hugged
                     // child size, we need to refresh the child layout again.
-                    child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
+                    child.layout.computed_size.set_dim(x, new_child_size);
+                    child.refresh_layout_internal(
+                        x,
+                        previous_child_size,
+                        PassConfig::DoNotHugDirectChildren,
+                    );
                 }
                 let child_width = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size_minus_margin - child_width);
