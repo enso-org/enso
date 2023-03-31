@@ -47,11 +47,16 @@ bitflags::bitflags! {
 // === Layer ===
 // =============
 
-/// Display layers implementation. Layer consist of a [`Camera`] and a set of [`LayerItem`]s. Layers
-/// are hierarchical and contain sublayers. Items of a layer containing sublayers layers are
-/// displayed below items of sublayers layers. Layers are allowed to share references to the same
-/// camera. and the same [`Symbol`]s.
+/// Display layers. A [`Layer`] consists of a [`Camera`] and a set of [`LayerItem`]s.
 ///
+/// Layers are hierarchical and contain sublayers. Any items directly-contained by a layer are
+/// displayed below any items of the layer's sublayers. Layers can also be divided into
+/// [`LayerSymbolPartition`]s; symbol partitions manage the relative ordering of instances of a
+/// particular symbol more efficiently than splitting it into multiple layers (any other symbols
+/// placed in a partition will be drawn in the same order as if they were placed in the parent
+/// layer).
+///
+/// Layers are allowed to share references to the same camera, and the same [`Symbol`]s.
 ///
 /// # Symbol Management
 /// [`Symbol`]s are the basic primitives managed by layers. Even if you add an user-defined shape
@@ -72,7 +77,6 @@ bitflags::bitflags! {
 ///    `+------+ (Camera 1 and symbols [3,6,7])
 /// ```
 ///
-///
 /// # ShapeProxy and ShapeSystem Management
 /// You are allowed to define custom [`ShapeProxy`]s, which are like [`Shape`]s, but may not be
 /// bound to a [`Scene`] (and thus to WebGL context) yet. You can use the [`Layer::add_exclusive`]
@@ -86,11 +90,9 @@ bitflags::bitflags! {
 /// a single draw-call. This provides a great control over performance and possible rendering
 /// optimizations.
 ///
-///
 /// # Layer Ordering
 /// Layers can be ordered by using the `set_sublayers` method on their parent. By default,
 /// layers are ordered according to their creation order.
-///
 ///
 /// # Symbols Ordering
 /// There are two ways to define symbol ordering in scene layers, a global, and local (per-layer)
@@ -109,6 +111,20 @@ bitflags::bitflags! {
 /// to be above the symbol B, but you place symbol B on a layer above the layer of the symbol A, the
 /// symbol A will be drawn first, below symbol B!
 ///
+/// # Symbol Instance Ordering
+///
+/// Within a layer, instances of a symbol are ordered first by partition, and then partially by
+/// creation-order.
+///
+/// Partitions created earlier are drawn below partitions created later. Within a partition, if two
+/// instance are added to the partition with no intervening instance removals, the instance added
+/// earlier is drawn below the later instance. If any instance may have been removed from the
+/// partition in between the addition of two instances to the partition, the relative order of those
+/// instances is unspecified.
+///
+/// Symbol partitions allow managing relative ordering of a particular symbol, much more efficiently
+/// than using separate layers: All partitions are allocated in the same set of buffers, and
+/// rendered in one draw call.
 ///
 /// # Shapes Ordering
 /// Ordering of shapes is more tricky than ordering of [`Symbol`]s. Each shape instance will be
@@ -127,7 +143,6 @@ bitflags::bitflags! {
 /// Also, there is a macro [`shapes_order_dependencies!`] which allows convenient form for
 /// defining the depth-order dependency graph for shapes based on their types.
 ///
-///
 /// # Compile Time Shapes Ordering Relations
 /// There is also a third way to define depth-dependencies for shapes. However, unlike previous
 /// methods, this one does not require you to own a reference to [`Scene`] or its [`Layer`]. Also,
@@ -138,7 +153,6 @@ bitflags::bitflags! {
 /// depth-dependencies. In order to define such compile tie shapes ordering relations, you have to
 /// define them while defining the shape system. The easiest way to do it is by using the
 /// [`shape!`] macro. Refer to its documentation to learn more.
-///
 ///
 /// # Layer Lifetime Management
 /// Every [`Layer`] allows you to add symbols while removing them from other layers automatically.
