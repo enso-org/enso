@@ -8,6 +8,7 @@ import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import * as projectManager from './project_manager'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -157,7 +158,12 @@ class Main {
                         hideAuth()
                         void appInstance.run()
                     }
-                    authentication.run(logger, platform, onAuthenticated)
+                    authentication.run({
+                        logger,
+                        platform,
+                        projectManager: projectManager.ProjectManager.default(),
+                        onAuthenticated,
+                    })
                 } else {
                     void appInstance.run()
                 }
