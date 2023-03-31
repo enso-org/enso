@@ -408,7 +408,7 @@ function Dashboard(props: DashboardProps) {
                                 columnDisplayMode === ColumnDisplayMode.settings
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
-                                } rounded-full px-1.5`}
+                            } rounded-full px-1.5`}
                             onClick={() => {
                                 setColumnDisplayMode(ColumnDisplayMode.settings)
                             }}
