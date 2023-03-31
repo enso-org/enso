@@ -3,12 +3,14 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Errors import Invalid_Value_Type
 
-## Type to represent the different sizes of integer or float possible within a database.
+## Type to represent the different sizes of integer or float storage.
 type Bits
     ## 16-bit (2 byte) value
     Bits_16
+
     ## 32-bit (4 byte) value
     Bits_32
+
     ## 64-bit (8 byte) value
     Bits_64
 
@@ -27,11 +29,9 @@ type Bits
         64 -> Bits.Bits_64
         _ : Integer -> Error.throw (Illegal_Argument.Error "Invalid number of bits for a float or integer type.")
 
+    ## Provides the text representation of the bit-size.
     to_text : Text
-    to_text self = case self of
-        Bits.Bits_16 -> "16 bits"
-        Bits.Bits_32 -> "32 bits"
-        Bits.Bits_64 -> "64 bits"
+    to_text self = self.to_bits.to_text + " bits"
 
 type Bits_Comparator
     compare x y = Comparable.from x.to_bits . compare x.to_bits y.to_bits
@@ -39,7 +39,10 @@ type Bits_Comparator
 
 Comparable.from (_:Bits) = Bits_Comparator
 
-## Represents the different possible types of values within RDBMS columns.
+## Represents the different possible types of values within Table columns.
+
+   The types are tailored to correspond to RDBMS types, but they are also used
+   with our in-memory backend.
 type Value_Type
     ## Boolean or Bit value: 0 or 1.
 
@@ -225,8 +228,6 @@ type Value_Type
             _ -> []
         JS_Object.from_pairs <|
             [["type", "Value_Type"], ["constructor", constructor_name], ["_display_text_", display_text]] + additional_fields
-
-    # TODO move these functions below to a separate file
 
 ## The type representing inferring the column type automatically based on values
    present in the column.

@@ -8,7 +8,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode, Auto
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode, Auto, Value_Type
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -16,8 +16,6 @@ import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
-import Standard.Table.Data.Type.Value_Type.Auto
-import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers

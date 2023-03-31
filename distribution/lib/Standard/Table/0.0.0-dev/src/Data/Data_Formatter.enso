@@ -1,9 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Type.Value_Type.Auto
-import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
+from project.Data.Type.Value_Type import Value_Type, Auto
 
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser

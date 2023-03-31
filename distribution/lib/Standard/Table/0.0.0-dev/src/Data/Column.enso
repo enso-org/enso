@@ -9,14 +9,13 @@ import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Type.Storage
 import project.Data.Table.Table
-import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
-from project.Data.Type.Value_Type import Auto
+from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
