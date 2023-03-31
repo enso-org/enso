@@ -108,10 +108,6 @@ impl Model {
         model
     }
 
-    pub fn height(&self) -> f32 {
-        self.style.get_number(theme::height)
-    }
-
     /// Set scene layers for background and text respectively.
     pub fn set_layers(&self, background_layer: &Layer, text_layer: &Layer) {
         // FIXME[MM/WD]: Depth sorting of labels to in front of everything else in the scene.
@@ -121,22 +117,24 @@ impl Model {
         self.label.add_to_scene_layer(text_layer);
     }
 
-    fn set_width(&self, width: f32) -> Vector2 {
-        let padding_outer = self.style.get_number(theme::padding_outer);
-        let padding_inner_x = self.style.get_number(theme::padding_inner_x);
-        let padding_inner_y = self.style.get_number(theme::padding_inner_y);
-        let padding_x = padding_outer + padding_inner_x;
-        let padding_y = padding_outer + padding_inner_y;
-        let padding = Vector2(padding_x, padding_y);
-        let text_size = self.style.get_number(theme::text::size);
-        let text_offset = self.style.get_number(theme::text::offset);
-        let height = self.height();
-        let size = Vector2(width, height);
-        let padded_size = size + padding * 2.0;
-        self.background.set_size(padded_size);
-        let text_origin = Vector2(text_offset - size.x / 2.0, text_size / 2.0);
+    /// Change the size based on the size of the contained text, returning the new size including
+    /// margin.
+    fn set_text_size(&self, text_size: Vector2<f32>) -> Vector2 {
+        let theme_padding_outer = self.style.get_number(theme::padding_outer);
+        let theme_padding_inner_x = self.style.get_number(theme::padding_inner_x);
+        let theme_padding_inner_y = self.style.get_number(theme::padding_inner_y);
+        let theme_text_offset = self.style.get_number(theme::text::offset);
+
+        let margin = Vector2(theme_padding_outer, theme_padding_outer);
+        let padding = Vector2(theme_padding_inner_x, theme_padding_inner_y);
+        let label_size = text_size + padding * 2.0;
+        let size_with_margin = label_size + margin * 2.0;
+        let text_origin = Vector2(theme_text_offset - text_size.x / 2.0, text_size.y / 2.0);
+
+        self.background.set_size(size_with_margin);
         self.label.set_xy(text_origin);
-        padded_size
+
+        size_with_margin
     }
 
     fn set_content(&self, t: &str) {
@@ -190,9 +188,9 @@ impl Label {
 
         frp::extend! { network
             eval frp.set_content((t) model.set_content(t));
-            frp.source.size <+ model.label.width.map(f!((w)
-                model.set_width(*w)
-            ));
+
+            frp.source.size <+ all_with(&model.label.width, &model.label.height,
+                f!((width, height) model.set_text_size(Vector2(*width, *height))));
 
             eval frp.set_opacity((value) model.set_opacity(*value));
         }

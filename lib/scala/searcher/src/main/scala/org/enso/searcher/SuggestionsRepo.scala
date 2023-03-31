@@ -157,24 +157,4 @@ trait SuggestionsRepo[F[_]] {
 
   /** Cleans the repo resetting the version. */
   def clean: F[Unit]
-
-  /** Update the suggestions with the new project name.
-    *
-    * @param oldName the old name of the project
-    * @param newName the new project name
-    * @return the current database version and lists of suggestion ids with
-    * updated module name, self type, return type and arguments
-    */
-  def renameProject(
-    oldName: String,
-    newName: String
-  ): F[
-    (
-      Long,
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, Int, String)]
-    )
-  ]
 }
