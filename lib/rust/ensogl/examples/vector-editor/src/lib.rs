@@ -8,6 +8,7 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 #![recursion_limit = "256"]
+#![feature(let_chains)]
 
 use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
@@ -26,7 +27,7 @@ const DRAG_THRESHOLD: f32 = 4.0;
 const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -64,7 +65,8 @@ mod spacer {
     use super::*;
     ensogl_core::define_endpoints_2! {
         Input {
-            set_init_size (f32),
+            set_current_size(f32),
+            set_target_size_no_animation (f32),
             set_target_size (f32),
         }
         Output {
@@ -85,17 +87,27 @@ mod spacer {
         margin_left:    Cell<f32>,
         collapsing:     Rc<Cell<bool>>,
         size_animation: Animation<f32>,
+        viz:            Rectangle,
     }
 
     impl SpacerModel {
         fn new() -> Self {
             let frp = spacer::Frp::new();
-            let root = default();
+            let root = display::object::Instance::new();
             let self_ref = default();
             let margin_left = default();
             let collapsing = default();
             let size_animation = Animation::<f32>::new(frp.network());
-            Self { frp, root, self_ref, margin_left, collapsing, size_animation }
+            let viz = RoundedRectangle(10.0).build(|t| {
+                t.set_size(Vector2::new(100.0, 20.0))
+                    .allow_grow_x()
+                    .set_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0))
+                    .set_inset_border(5.0)
+                    .set_border_color(color::Rgba::new(0.0, 1.0, 1.0, 1.0));
+            });
+            root.add_child(&viz);
+
+            Self { frp, root, self_ref, margin_left, collapsing, size_animation, viz }
         }
     }
 
@@ -111,8 +123,9 @@ mod spacer {
             let size_animation = &model.size_animation;
             size_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             frp::extend! { network
-                size_animation.target <+ model.frp.private.input.set_init_size;
-                size_animation.skip <+ model.frp.private.input.set_init_size.constant(());
+                size_animation.target <+ model.frp.private.input.set_target_size_no_animation;
+                size_animation.skip <+ model.frp.private.input.set_target_size_no_animation.constant(());
+                size_animation.set_value <+ model.frp.private.input.set_current_size;
 
                 size_animation.target <+ model.frp.private.input.set_target_size;
                 eval size_animation.value ((t) root.set_size_x(*t););
@@ -133,6 +146,11 @@ mod spacer {
             *self.self_ref.borrow_mut() = Some(self.model.clone());
             self.set_target_size(0.0);
             self.collapsing.set(true);
+        }
+
+        pub fn uncollapse(&self) {
+            *self.self_ref.borrow_mut() = None;
+            self.collapsing.set(false);
         }
 
         pub fn set_margin_left(&self, margin: f32) {
@@ -285,9 +303,11 @@ impl<T: display::Object + 'static> VectorEditor<T> {
             target_pos_on_down <- target.map(|t| t.xy());
             pressed <- bool(&on_up, &on_down);
             glob_pos_on_down <- on_down.map(|event| event.client_centered());
+            pos_on_down <- glob_pos_on_down.map(f!([root, model] (p) model.borrow().screen_to_object_space(&root, *p)));
             on_move_pressed <- on_move.gate(&pressed);
             glob_pos_on_move <- on_move_pressed.map(|event| event.client_centered());
-            glob_pos_offset_on_move <- map2(&glob_pos_on_move, &glob_pos_on_down, |a, b| a - b);
+            pos_on_move <- glob_pos_on_move.map(f!([root, model] (p) model.borrow().screen_to_object_space(&root, *p)));
+            glob_pos_offset_on_move <- map2(&pos_on_move, &pos_on_down, |a, b| a - b);
 
             // Discover whether the elements are dragged. They need to be moved vertically by at
             // least the [`DRAG_THRESHOLD`].
@@ -307,11 +327,17 @@ impl<T: display::Object + 'static> VectorEditor<T> {
             target_new_pos <- map2(&glob_pos_offset_on_move, &target_pos_on_down, |a, b| a + b);
             _eval <- target_new_pos.map2(&target, |pos, t| t.set_xy(*pos));
 
-            local_pos_on_drop <- on_up.map(f!([root, model] (event) model.borrow().screen_to_object_space(&root, event.client_centered()) ));
-            insert_index <- local_pos_on_drop.map(f!((pos) model.borrow().insert_index(pos.x)));
+            insert_index <- pos_on_move.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
             trace insert_index;
+            insert_index_on_drop <- insert_index.sample(&on_up);
 
             eval insert_index ([model, layouted_elems] (index) {
+                let mut model = model.borrow_mut();
+                model.potential_insertion_point(*index);
+                model.redraw_items(&layouted_elems);
+            });
+
+            eval insert_index_on_drop ([model, layouted_elems] (index) {
                 let mut model = model.borrow_mut();
                 model.unset_dragged_item(*index);
                 model.redraw_items(&layouted_elems);
@@ -348,6 +374,8 @@ impl<T: display::Object> Model<T> {
             if item.is_weak_spacer() {
                 // As the first element, [`WeakSpacer`] contains the left margin of the next
                 // element in order to not leave any space after collapsing.
+                item.set_margin_left(GAP);
+            } else if item.is_spacer() {
                 item.set_margin_left(GAP);
             } else {
                 let gap = if first_elem { 0.0 } else { GAP };
@@ -395,31 +423,69 @@ impl<T: display::Object> Model<T> {
         let spacer = Spacer::new();
         let elem_ref = &self.items[index];
         // let gap_size = if index == 0 { 0.0 } else { GAP };
-        spacer.set_init_size(elem_ref.computed_size().x);
+        spacer.set_target_size_no_animation(elem_ref.computed_size().x);
         let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
         self.dragged_item = Some(elem);
         self.reset_margins();
         self.redraw_items(layouted_elems);
     }
 
-    fn unset_dragged_item(&mut self, index: usize) {
-        let item = self.dragged_item.take().expect("No dragged item");
-        if let Some(existing_item) = self.items.get_mut(index) {
-            if existing_item.is_spacer() {
-                *existing_item = item;
-            } else {
-                self.items.insert(index, item);
+    fn potential_insertion_point(&mut self, index: usize) {
+        warn!("potential_insertion_point: {}", index);
+        // FIXME: this check should not be needed
+        if self.dragged_item.is_some() {
+            warn!(">>>");
+            let prev_index = index.saturating_sub(1);
+            self.collapse_all_spacers();
+            let item = self.dragged_item.as_ref().expect("No dragged item");
+            let mut old_spacer: Option<(usize, Spacer)> = None;
+            if let Some(Item::WeakSpacer(weak)) = self.items.get(index) && let Some(spacer) = weak.upgrade() {
+                old_spacer = Some((index, spacer));
+            } else if let Some(Item::WeakSpacer(weak)) = self.items.get(prev_index) && let Some(spacer) = weak.upgrade() {
+                old_spacer = Some((prev_index, spacer));
             }
-        } else {
-            self.items.push(item);
+            if let Some((index, spacer)) = old_spacer {
+                warn!("reusing spacer");
+                spacer.set_target_size(item.computed_size().x);
+                spacer.uncollapse();
+                self.items[index] = Item::Spacer(spacer);
+                self.reset_margins();
+            } else {
+                warn!("adding spacer");
+                let spacer = Spacer::new();
+                spacer.set_target_size(item.computed_size().x);
+                self.items.insert(index, Item::Spacer(spacer.clone_ref()));
+                self.reset_margins();
+                spacer.set_current_size(0.0);
+            }
         }
+    }
+
+    fn unset_dragged_item(&mut self, index: usize) {
+        warn!("unset_dragged_item");
+        let item = self.dragged_item.take().expect("No dragged item");
+        let prev_index = index.saturating_sub(1);
+        if let Some(old_item) = self.items.get_mut(index) && old_item.is_spacer() {
+            warn!("replacing old");
+            *old_item = item;
+        } else if let Some(old_item) = self.items.get_mut(prev_index) && old_item.is_spacer() {
+            warn!("replacing old");
+            *old_item = item;
+        } else {
+            warn!("inserting new");
+            self.items.insert(index, item);
+        }
+        self.collapse_all_spacers();
+        self.reset_margins();
+    }
+
+    fn collapse_all_spacers(&mut self) {
         for item in &mut self.items {
             if let Item::Spacer(spacer) = item {
                 spacer.collapse();
                 *item = Item::WeakSpacer(spacer.downgrade());
             }
         }
-        self.reset_margins();
     }
 
     fn insert_dragged_item(&mut self, index: usize) {
@@ -427,6 +493,7 @@ impl<T: display::Object> Model<T> {
         self.items.insert(index, elem);
     }
 
+    // FIXME: does not work correctly with spacers
     fn elems_center_points(&self) -> Vec<f32> {
         let mut centers = Vec::new();
         let mut current = 0.0;
@@ -434,9 +501,12 @@ impl<T: display::Object> Model<T> {
             let size = item.computed_size();
             current += size.x / 2.0;
             centers.push(current);
-            current += size.x / 2.0 + GAP;
+            current += size.x / 2.0;
+            if item.is_regular() {
+                current += GAP;
+            }
         }
-        warn!("{:#?}", centers);
+        // warn!("centers: {:#?}", centers);
         centers
     }
 
