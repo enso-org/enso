@@ -34,9 +34,9 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpcProtocolFactory
 }
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
+import org.enso.languageserver.search.SuggestionsHandler.ProjectNameUpdated
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.vcsmanager.{Git, VcsManager}
@@ -255,7 +255,7 @@ class BaseServerTest
       Api.GetTypeGraphResponse(typeGraph)
     )
     Await.ready(initializationComponent.init(), timeout)
-    system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
+    suggestionsHandler ! ProjectNameUpdated("Test")
 
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
