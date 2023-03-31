@@ -60,8 +60,10 @@ pub struct AttributeScopeData {
     buffers         : OptVec<AnyBuffer>,
     buffer_dirty    : BufferDirty,
     shape_dirty     : ShapeDirty,
+    /// Number of elements currently allocated.
     used_size       : usize,
     buffer_name_map : HashMap<String,BufferIndex>,
+    /// Mapping from stable external identifiers to physical locations in a buffer.
     indexes         : Rc<RefCell<Vec<InstanceIndex>>>,
     partitions      : Vec<Partition>,
     context         : Option<Context>,
@@ -183,7 +185,21 @@ impl {
 
     // === Instance allocation ===
 
-    /// Allocate an element in the specified partition.
+    /// Allocate an element in the specified [`Partition`]. Its depth-order within the partition is
+    /// unspecified, except for one rule: If two elements are allocated in a partition, and no
+    /// element in that [`AttributeScope`] is freed in between their allocations, then the element
+    /// added later will be drawn later.
+    ///
+    /// Elements are allocated from a per-partition freelist, until a partition runs out of space.
+    /// When that occurs, the partition must be grown. Growing a partition is stable: It doesn't
+    /// affect the depth-order of existing elements. To make space within the buffers while
+    /// maintaining a total order of elements, we must allocate larger buffers and shift all
+    /// elements after the affected partition (in order to support moving elements, the [`indexes`]
+    /// table decouples the stable identifier used by external references from the physical
+    /// locations within the buffer). Since reallocating elements and shifting buffers is an
+    /// expensive operation, partition growth is performed in exponential increments (doubling the
+    /// size each time capacity is exceeded), ensuring a sequence of `N` allocations can be
+    /// satisfied with `log N` partition-growth operations.
     fn alloc(&mut self, partition: BufferPartitionId) -> InstanceIndex {
         // Create the partition when it is first referenced.
         if partition.index >= self.partitions.len() {
@@ -281,6 +297,15 @@ impl {
 
 // === Partitions ===
 
+/// A buffer partition.
+///
+/// Partitions support the management of depth-ordering within a single [`AttributeScope`]. Each
+/// buffer is divided into one or more partitions; elements can be allocated and freed in any
+/// partition, and elements in lower partitions will always be drawn below elements in upper
+/// partitions.
+///
+/// Every [`AttributeScope`] has a table of partitions; this table is applied to all buffers in the
+/// scope.
 #[derive(Debug, Default, Clone)]
 struct Partition {
     start: usize,

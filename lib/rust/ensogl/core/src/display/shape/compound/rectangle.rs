@@ -14,6 +14,8 @@ use crate::display;
 // === Shape ===
 // =============
 
+pub use shape::Shape;
+
 mod shape {
     use super::*;
     crate::shape! {

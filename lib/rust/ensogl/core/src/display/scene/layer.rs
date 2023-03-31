@@ -791,16 +791,6 @@ impl LayerModel {
         VirtualLayer { layer: WeakLayer { model: self.downgrade() }, id, shape: default() }
     }
 
-    /// Create a virtual sublayer of this layer. The virtual layer will manage objects of the same
-    /// type as the provided parameter; the value is not used.
-    pub fn create_virtual_sublayer_for_shape_view_type<S: Shape>(
-        self: &Rc<Self>,
-        _view: &crate::gui::component::ShapeView<S>,
-        name: impl Into<String>,
-    ) -> VirtualLayer<S> {
-        self.create_virtual_sublayer::<S>(name)
-    }
-
     /// The layer's mask, if any.
     pub fn mask(&self) -> Option<Layer> {
         self.mask.borrow().as_ref().and_then(|t| t.upgrade())

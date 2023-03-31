@@ -13,7 +13,8 @@ use ensogl_core::prelude::*;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::compound::rectangle::*;
+use ensogl_core::display::shape::compound::rectangle;
+use ensogl_core::display::shape::compound::rectangle::Circle;
 use rand::seq::SliceRandom;
 use rand::Rng;
 
@@ -36,10 +37,9 @@ pub fn main() {
     let root = display::object::Instance::new();
     world.add_child(&root);
     let main = &world.default_scene.layers.main;
-    let shape = Circle();
-    let red = main.create_virtual_sublayer_for_shape_view_type(&shape.view, "red");
-    let green = main.create_virtual_sublayer_for_shape_view_type(&shape.view, "green");
-    let blue = main.create_virtual_sublayer_for_shape_view_type(&shape.view, "blue");
+    let red = main.create_virtual_sublayer::<rectangle::Shape>("red");
+    let green = main.create_virtual_sublayer::<rectangle::Shape>("green");
+    let blue = main.create_virtual_sublayer::<rectangle::Shape>("blue");
     let layers = vec![
         (red.clone(), color::Rgba::new(1.0, 0.5, 0.5, 0.9), color::Rgba::new(1.0, 0.0, 0.0, 1.0)),
         (green.clone(), color::Rgba::new(0.5, 1.0, 0.5, 0.9), color::Rgba::new(0.0, 1.0, 0.0, 1.0)),
