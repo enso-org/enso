@@ -54,7 +54,7 @@ public class LazyAtomFieldTest {
             IO.println "Computed meaning"
             v
 
-    meaning_twice =
+    meanings =
         compute_x =
             IO.println "Computing x"
             v = 6
@@ -70,18 +70,23 @@ public class LazyAtomFieldTest {
         IO.println "Start"
         l = Lazy.LazyValue compute_x compute_y
         IO.println "Lazy value ready"
-        IO.println <| l.say "Světe!"
+        IO.println <| l.say "World!"
         IO.println l.meaning
         IO.println <| l.say "Again!"
         IO.println l.meaning
         l.meaning
     """;
-    var meaning_twice = evalCode(code, "meaning_twice");
-    assertEquals(42, meaning_twice.asInt());
+    var meanings = evalCode(code, "meanings");
+    assertEquals(42, meanings.asInt());
 
     String log = out.toString(StandardCharsets.UTF_8);
-    var list = log.lines().filter(l -> l.contains("Computing x done")).collect(Collectors.toList());
-    assertEquals(log, 1, list.size());
+    var lazyReadyAndThen = log.lines().dropWhile(l -> l.contains("Lazy value ready")).collect(Collectors.toList());
+    var computingX = lazyReadyAndThen.stream().filter(l -> l.contains("Computing x done")).count();
+    assertEquals(log, 1, computingX);
+    var computingY = lazyReadyAndThen.stream().filter(l -> l.contains("Computing y done")).count();
+    assertEquals(log, 1, computingY);
+    var hellos = lazyReadyAndThen.stream().filter(l -> l.startsWith("Hello")).count();
+    assertEquals(log, 2, hellos);
   }
 
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
