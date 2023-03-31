@@ -63,6 +63,14 @@ type Manual
      - Note that currently the regex-based operations may not handle the edge
        cases described above too well.
 spec =
+    Test.group "gmt" <|
+        Test.specify "should handle unicode normalization the same for single and multiple delimiters" <|
+            'aśbs\u0301c'.split 'ś' . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['ś'] . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split 's\u0301' . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['s\u0301'] . should_equal ['a', 'b', 'c']
+            'aśbs\u0301cdef'.split ['ś', 'de'] . should_equal ['a', 'b', 'c', 'f']
+
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
 
@@ -290,6 +298,13 @@ spec =
         Test.specify 'should be able to split with a vector of strings, using regexes' <|
             'a1b2c3d4e5f6g7h8'.split ['[cde]', '[456]'] use_regex=True . should_equal ['a1b2', '3', '', '', '', 'f', 'g7h8']
             'abcde1fghij2klmnop'.split ["\d", '[hm]'] use_regex=True . should_equal ['abcde', 'fg', 'ij', 'kl', 'nop']
+
+        Test.specify "should handle unicode normalization the same for single and multiple delimiters" <|
+            'aśbs\u0301c'.split 'ś' . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['ś'] . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split 's\u0301' . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['s\u0301'] . should_equal ['a', 'b', 'c']
+            'aśbs\u0301cdef'.split ['ś', 'de'] . should_equal ['a', 'b', 'c', 'f']
 
         Test.specify "should throw Illegal_Argument for a bad or empty delimiter" <|
             'abc'.split '' . should_fail_with Illegal_Argument
