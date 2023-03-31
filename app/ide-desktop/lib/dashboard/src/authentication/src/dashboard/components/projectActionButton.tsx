@@ -35,8 +35,8 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 function StopIcon(spinnerState: SpinnerState) {
     return (
         <svg
-            width={36}
-            height={36}
+            width={24}
+            height={24}
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -76,21 +76,26 @@ function StopIcon(spinnerState: SpinnerState) {
 
 export interface ProjectActionButtonProps {
     project: backend.Asset<backend.AssetType.project>
-    state: backend.ProjectState
     openIde: () => void
-    onOpen: () => void
-    onOpenStart: () => void
-    onClose: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, state, openIde, onOpen, onOpenStart, onClose } = props
+    const { project, openIde } = props
     const { accessToken } = auth.useFullUserSession()
     const logger = loggerProvider.useLogger()
     const backendService = backend.createBackend(accessToken, logger)
+
+    const [state, setState] = react.useState(backend.ProjectState.created)
     const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(null)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
+
+    react.useEffect(() => {
+        void (async () => {
+            const projectDetails = await backendService.getProjectDetails(project.id)
+            setState(projectDetails.state.type)
+        })()
+    }, [])
 
     const handleCloseProject = () => {
         void backendService.closeProject(project.id)
@@ -100,7 +105,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             if (checkStatusInterval != null) {
                 clearInterval(checkStatusInterval)
             }
-            onClose()
         })
     }
 
@@ -123,7 +127,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 if (checkStatusInterval != null) {
                     clearInterval(checkStatusInterval)
                 }
-                onOpen()
                 setSpinnerState(SpinnerState.done)
             }
         }
@@ -132,7 +135,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             setCheckStatusInterval(
                 window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
             )
-            onOpenStart()
         })
     }
 

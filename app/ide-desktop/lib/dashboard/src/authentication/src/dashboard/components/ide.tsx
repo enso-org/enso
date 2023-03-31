@@ -20,6 +20,14 @@ interface Props {
 
 /** Container that launches the IDE. */
 function Ide({ project, backendService }: Props) {
+    const [[loaded, resolveLoaded]] = react.useState((): [Promise<void>, () => void] => {
+        let resolve!: () => void
+        const promise = new Promise<void>(innerResolve => {
+            resolve = innerResolve
+        })
+        return [promise, resolve]
+    })
+
     react.useEffect(() => {
         void (async () => {
             const ideVersion = (
@@ -34,6 +42,10 @@ function Ide({ project, backendService }: Props) {
             stylesheetLink.href = `${IDE_CDN_URL}/${projectIdeVersion}/style.css`
             const indexScript = document.createElement('script')
             indexScript.src = `${IDE_CDN_URL}/${projectIdeVersion}/index.js.gz`
+            indexScript.addEventListener('load', () => {
+                console.log('loaded')
+                resolveLoaded()
+            })
             document.head.append(stylesheetLink)
             document.body.append(indexScript)
         })()
@@ -55,8 +67,8 @@ function Ide({ project, backendService }: Props) {
             )[0]
             const projectIdeVersion = project.ideVersion?.value ?? ideVersion.number.value
             const projectEngineVersion = project.engineVersion?.value ?? backendVersion.number.value
-            console.log('project', project)
-            void window.enso.main({
+            await loaded
+            await window.enso.main({
                 loader: {
                     // FIXME[sb]: Change `shadersUrl` to `assetsUrl` when backend gets updated.
                     // assetsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/dynamic-assets`,

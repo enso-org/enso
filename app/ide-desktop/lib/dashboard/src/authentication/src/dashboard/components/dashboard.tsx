@@ -221,9 +221,6 @@ function Dashboard(props: DashboardProps) {
 
     const [tab, setTab] = react.useState(Tab.dashboard)
     const [project, setProject] = react.useState<backend.Project | null>(null)
-    const [projectStates, setProjectStates] = react.useState<
-        Record<backend.ProjectId, backend.ProjectState>
-    >({})
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -236,28 +233,9 @@ function Dashboard(props: DashboardProps) {
             <div className="flex text-left items-center align-middle whitespace-nowrap">
                 <ProjectActionButton
                     project={projectAsset}
-                    state={projectStates[projectAsset.id] ?? backend.ProjectState.created}
                     openIde={async () => {
                         setTab(Tab.ide)
                         setProject(await backendService.getProjectDetails(projectAsset.id))
-                    }}
-                    onOpen={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.opened,
-                        })
-                    }}
-                    onOpenStart={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.openInProgress,
-                        })
-                    }}
-                    onClose={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.closed,
-                        })
                     }}
                 />
                 <span className="px-4">{projectAsset.title}</span>
@@ -315,6 +293,7 @@ function Dashboard(props: DashboardProps) {
                             title: localProject.name,
                             id: localProject.id,
                             parentId: '',
+                            permissions: [],
                         })
                     }
                     break
@@ -325,7 +304,6 @@ function Dashboard(props: DashboardProps) {
                 setDirectoryAssets(assets.filter(backend.assetIsType(backend.AssetType.directory)))
                 setSecretAssets(assets.filter(backend.assetIsType(backend.AssetType.secret)))
                 setFileAssets(assets.filter(backend.assetIsType(backend.AssetType.file)))
-                setProjectStates({})
             })
         })()
     }, [accessToken, directoryId])
