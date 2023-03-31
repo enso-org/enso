@@ -3662,9 +3662,29 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo"))
+    val renameProjectResponses = context.receiveN(6)
+    renameProjectResponses should contain allOf (
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      context.Main.Update.mainX(contextId),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+      ),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
     )
+    renameProjectResponses.collect {
+      case Api.Response(
+            _,
+            notification: Api.SuggestionsDatabaseModuleUpdateNotification
+          ) =>
+        notification.module shouldEqual moduleName
+        notification.actions should contain theSameElementsAs Vector(
+          Api.SuggestionsDatabaseAction.Clean(moduleName)
+        )
+    }
 
     // recompute existing stack
     context.send(
@@ -3704,6 +3724,111 @@ class RuntimeServerTest
       ),
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
+    )
+  }
+
+  it should "push and pop functions after renaming the project" in {
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // rename Test -> Foo
+    context.pkg.rename("Foo")
+    context.send(
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+    )
+    val renameProjectResponses = context.receiveN(6)
+    renameProjectResponses should contain allOf (
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      context.Main.Update.mainX(contextId),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+      ),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+    renameProjectResponses.collect {
+      case Api.Response(
+            _,
+            notification: Api.SuggestionsDatabaseModuleUpdateNotification
+          ) =>
+        notification.module shouldEqual moduleName
+        notification.actions should contain theSameElementsAs Vector(
+          Api.SuggestionsDatabaseAction.Clean(moduleName)
+        )
+    }
+
+    // push foo call
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // pop foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo"),
+        fromCache = true
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // pop main
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+
+    // pop empty stack
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.EmptyStackError(contextId))
     )
   }
 

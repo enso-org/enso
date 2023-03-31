@@ -124,6 +124,11 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type ShapeData: Debug;
     fn definition_path() -> &'static str;
     fn pointer_events() -> bool;
+    /// The alignment of the drawn shape's origin position. When set to `left_bottom`, the shape's
+    /// origin will be at the bottom left corner of its bounding box. The default value is `center`.
+    fn default_alignment() -> alignment::Dim2 {
+        alignment::Dim2::center()
+    }
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
     fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceIndex) -> Self;
@@ -286,7 +291,8 @@ impl<S: Shape> ShapeSystem<S> {
             display::world::with_context(|t| display::shape::StyleWatch::new(&t.style_sheet));
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
-        let model = display::shape::ShapeSystemModel::new(shape_def, events, S::definition_path());
+        let alignment = S::default_alignment();
+        let model = ShapeSystemModel::new(shape_def, alignment, events, S::definition_path());
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
         let user = CustomSystemData::<S>::new(&standard, shape_data);
@@ -366,8 +372,13 @@ pub struct ShapeSystemModel {
 impl ShapeSystemModel {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(shape: def::AnyShape, pointer_events: bool, definition_path: &'static str) -> Self {
-        let sprite_system = SpriteSystem::new(definition_path);
+    pub fn new(
+        shape: def::AnyShape,
+        alignment: alignment::Dim2,
+        pointer_events: bool,
+        definition_path: &'static str,
+    ) -> Self {
+        let sprite_system = SpriteSystem::new(definition_path, alignment);
         let material = Rc::new(RefCell::new(Self::default_material()));
         let geometry_material = Rc::new(RefCell::new(Self::default_geometry_material()));
         let pointer_events = Immutable(pointer_events);
@@ -444,12 +455,27 @@ impl ShapeSystemModel {
                 vec2 padded_size = input_size + padding2;
                 vec2 uv_scale = padded_size / input_size;
                 vec2 uv_offset = padding / input_size;
-                input_uv = input_uv * uv_scale - uv_offset;
 
-                // We need to recompute the vertex position with the padding.
-                input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
-                gl_Position = model_view_projection * vec4(input_local,1.0);
-                input_local.z = gl_Position.z;
+                // Note: SPIRV-Cross issue https://github.com/KhronosGroup/SPIRV-Cross/issues/2129
+                // To avoid incorrect code generation for `Fma` instruction in SPIRV-Cross, the
+                // `input_uv` modification is intentionally split into two separate expressions.
+                // When this is written in single line as follows:
+                // ```
+                // input_uv = input_uv * uv_scale - uv_offset;
+                // ```
+                // That expression is incorrectly mis-optimized into:
+                // ```
+                // input_uv *= input_uv - uv_offset;
+                // ```
+                input_uv *= uv_scale;
+                input_uv -= uv_offset;
+                
+                // Compute the vertex position with shape padding, apply alignment to the vertex
+                // position, but not to the local SDF coordinates. Shape definitions should always
+                // have their origin point in the center of the shape.
+                vec4 position = vec4((input_uv - input_alignment) * input_size, 0.0, 1.0);
+                gl_Position = model_view_projection * position;
+                input_local = vec3((input_uv - vec2(0.5)) * input_size, gl_Position.z);
             ",
         );
         material
@@ -603,12 +629,14 @@ macro_rules! shape {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(alignment = $alignment:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_shape! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
             $(flavor = [$flavor];)?
+            $(alignment = $alignment;)?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
@@ -631,12 +659,14 @@ macro_rules! shape_old {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(alignment = $alignment:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_shape_old! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
             $(flavor = [$flavor];)?
+            $(alignment = $alignment;)?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
@@ -655,6 +685,7 @@ macro_rules! _shape_old {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(alignment = $alignment:tt;)?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -710,6 +741,10 @@ macro_rules! _shape_old {
                     $(let _out = $pointer_events;)?
                     _out
                 }
+
+                $(fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
+                    $crate::display::layout::alignment::Dim2::$alignment()
+                })?
 
                 fn always_above() -> Vec<ShapeSystemId> {
                     vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]
@@ -807,6 +842,7 @@ macro_rules! _shape {
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
         $(flavor = [$flavor:path];)?
+        $(alignment = $alignment:tt;)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -867,6 +903,12 @@ macro_rules! _shape {
                     _out
                 }
 
+                fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
+                    let _out = $crate::display::layout::alignment::Dim2::center();
+                    $(let _out = $crate::display::layout::alignment::Dim2::$alignment();)?
+                    _out
+                }
+
                 fn always_above() -> Vec<ShapeSystemId> {
                     vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]
                 }
@@ -919,6 +961,11 @@ macro_rules! _shape {
                 $(fn flavor(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
                     $flavor(data)
                 })?
+
+                $(fn initial_alignment(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
+                    $flavor(data)
+                })?
+
             }
 
             /// Register the shape definition in the global shape registry. It is used for shader
