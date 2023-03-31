@@ -2,11 +2,15 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 
-import java.lang.Float;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -90,7 +94,7 @@ public class InferredBuilder extends Builder {
 
   private void initBuilderFor(Object o) {
     int initialCapacity = Math.max(initialSize, currentSize);
-    if (o instanceof BooleanType) {
+    if (o instanceof Boolean) {
       currentBuilder = new BoolBuilder();
     } else if (NumericConverter.isCoercibleToLong(o)) {
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity);
@@ -114,7 +118,7 @@ public class InferredBuilder extends Builder {
 
   private static final List<RetypeInfo> retypePairs =
       List.of(
-          new RetypeInfo(BooleanType.class, BooleanType.INSTANCE),
+          new RetypeInfo(Boolean.class, BooleanType.INSTANCE),
           new RetypeInfo(Long.class, IntegerType.INT_64),
           new RetypeInfo(Double.class, FloatType.FLOAT_64),
           new RetypeInfo(String.class, TextType.VARIABLE_LENGTH),
@@ -127,7 +131,7 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Float.class, FloatType.FLOAT_64),
           // Smaller integer types are upcast to 64-bit integers by default anyway. This logic does
           // not apply only if a specific type is requested (so not in inferred builder).
-          new RetypeInfo(IntegerType.class, IntegerType.INT_64),
+          new RetypeInfo(Integer.class, IntegerType.INT_64),
           new RetypeInfo(Short.class, IntegerType.INT_64),
           new RetypeInfo(Byte.class, IntegerType.INT_64));
 
