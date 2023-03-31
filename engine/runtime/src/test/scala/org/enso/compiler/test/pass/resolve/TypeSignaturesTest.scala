@@ -258,6 +258,7 @@ class TypeSignaturesTest extends CompilerTest {
     // FIXME: Not supported by new parser--needs triage (#5894).
     // Original: `f a (b = 1 : Int) : Double` makes no sense, right Kaz?
     // anyway I don't see any `TypeSignatures` anywhere even after changing the expression
+    // FIXME: re-evaluate as part of (#6152)
     "associate the signature with the typed expression" ignore {
       ir shouldBe an[IR.Application.Prefix]
       ir.getMetadata(TypeSignatures) shouldBe defined
