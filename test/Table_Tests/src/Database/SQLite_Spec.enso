@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Table, Value_Type
 
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 import Standard.Database.Connection.SQLite_Format.SQLite_Format
@@ -11,6 +12,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Database.Common_Spec
+import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
@@ -85,17 +87,17 @@ sqlite_specific_spec prefix connection =
             i = t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
-            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN", "REAL"]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
         Test.specify "should infer standard types correctly" <|
-            t.at "strs" . sql_type . is_definitely_text . should_be_true
-            t.at "ints" . sql_type . is_definitely_integer . should_be_true
-            t.at "bools" . sql_type . is_definitely_boolean . should_be_true
-            t.at "reals" . sql_type . is_definitely_double . should_be_true
+            t.at "strs" . value_type . is_text . should_be_true
+            t.at "ints" . value_type . is_integer . should_be_true
+            t.at "bools" . value_type . is_boolean . should_be_true
+            t.at "reals" . value_type . is_floating_point . should_be_true
 
-            t.at "ints" . sql_type . is_definitely_text . should_be_false
-            t.at "strs" . sql_type . is_definitely_integer . should_be_false
-            t.at "reals" . sql_type . is_definitely_boolean . should_be_false
-            t.at "bools" . sql_type . is_definitely_double . should_be_false
+            t.at "ints" . value_type . is_text . should_be_false
+            t.at "strs" . value_type . is_integer . should_be_false
+            t.at "reals" . value_type . is_boolean . should_be_false
+            t.at "bools" . value_type . is_floating_point . should_be_false
 
     Test.group prefix+"Dialect-specific codegen" <|
         Test.specify "should generate queries for the Distinct operation" <|
@@ -146,6 +148,8 @@ spec =
     file.delete
 
     sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
+
+    SQLite_Type_Mapping_Spec.spec
 
     Test.group "SQLite_Format should allow connecting to SQLite files" <|
         file.delete_if_exists

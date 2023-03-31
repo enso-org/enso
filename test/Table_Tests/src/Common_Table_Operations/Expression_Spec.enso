@@ -34,7 +34,7 @@ spec detailed setup =
 
     epsilon=0.0000000001
 
-    tester expression value =
+    tester expression value = Test.with_clue "{expr = {"+expression+"}}: " <|
         new_column = test_table.compute expression
         expected = case value of
             _ : Vector -> value
@@ -44,7 +44,9 @@ spec detailed setup =
         values . each_with_index i->v->
             e = expected.at i
             match = case e of
-                _ : Number -> e.equals v epsilon
+                _ : Number -> case v of
+                    _ : Number -> e.equals v epsilon
+                    _ -> Test.fail "Expected cell to be a number "+e.pretty+" but got a value of non-numeric type: "+v.pretty
                 _ -> e == v
             if match.not then values.should_equal expected
 

@@ -10,6 +10,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
@@ -22,8 +23,8 @@ public abstract class Storage<T> {
   /** @return the number of NA elements in this column */
   public abstract int countMissing();
 
-  /** @return the type tag of this column's storage. Must be one of {@link Type} */
-  public abstract int getType();
+  /** @return the type tag of this column's storage. */
+  public abstract StorageType getType();
 
   /**
    * Checks whether the value at {@code idx} is missing.
@@ -40,24 +41,6 @@ public abstract class Storage<T> {
    * @return the item at position {@code idx}
    */
   public abstract T getItemBoxed(int idx);
-
-  /**
-   * Enumerating possible storage types.
-   *
-   * <p>Keep in sync with variables in {@code Standard.Table.Data.Column}. These variables are
-   * copied between Enso and Java code, in order to make them trivially constant on the Enso side,
-   * without invoking the polyglot machinery to access them.
-   */
-  public static final class Type {
-    public static final int OBJECT = 0;
-    public static final int LONG = 1;
-    public static final int DOUBLE = 2;
-    public static final int STRING = 3;
-    public static final int BOOL = 4;
-    public static final int DATE = 5;
-    public static final int TIME_OF_DAY = 6;
-    public static final int DATE_TIME = 7;
-  }
 
   /** A container for names of vectorizable operation. */
   public static final class Maps {
@@ -262,8 +245,8 @@ public abstract class Storage<T> {
    * counts[i]}.
    *
    * @param counts the mask specifying elements duplication
-   * @param total the sum of all elements in the mask, also interpreted as the size of the resulting
-   *     storage
+   * @param total the sum of all elements in the mask, also interpreted as the length of the
+   *     resulting storage
    * @return the storage masked according to the specified rules
    */
   public abstract Storage<T> countMask(int[] counts, int total);

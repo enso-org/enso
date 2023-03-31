@@ -7,16 +7,16 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Storage.Storage
+import project.Data.Type.Storage
 import project.Data.Table.Table
-import project.Data.Value_Type.Value_Type
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
-from project.Data.Value_Type import Auto, ensure_valid_parse_target
+from project.Data.Type.Value_Type import Value_Type, Auto
+from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
@@ -614,8 +614,8 @@ type Column
 
              example_if = Examples.bool_column_1.iif 1 0
     iif : Any -> Any -> Column
-    iif self when_true when_false = case self.storage_type of
-        Storage.Boolean ->
+    iif self when_true when_false = case self.value_type of
+        Value_Type.Boolean ->
             new_name = "if " + Naming_Helpers.to_expression_text self + " then " + Naming_Helpers.to_expression_text when_true + " else " + Naming_Helpers.to_expression_text when_false
             s = self.java_column.getStorage
 
@@ -744,10 +744,10 @@ type Column
     is_blank : Boolean -> Column
     is_blank self treat_nans_as_blank=False =
         new_name = Naming_Helpers.function_name "is_blank" [self]
-        result = case self.storage_type of
-            Storage.Text -> self.is_empty
-            Storage.Decimal -> if treat_nans_as_blank then self.is_nothing || self.is_nan else self.is_nothing
-            Storage.Any -> if treat_nans_as_blank then self.is_empty || self.is_nan else self.is_empty
+        result = case self.value_type of
+            Value_Type.Char _ _ -> self.is_empty
+            Value_Type.Float _ -> if treat_nans_as_blank then self.is_nothing || self.is_nan else self.is_nothing
+            Value_Type.Mixed -> if treat_nans_as_blank then self.is_empty || self.is_nan else self.is_empty
             _ -> self.is_nothing
         result.rename new_name
 
@@ -1171,22 +1171,14 @@ type Column
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array self.java_column.getStorage.toList
 
-    ## Returns the underlying storage type of this column.
+    ## Returns the `Value_Type` associated with that column.
 
-       > Example
-         Get the storage type of a column.
-
-             import Standard.Examples
-
-             example_storage_type = Examples.integer_column.storage_type
-    storage_type : Storage
-    storage_type self =
-        tp = self.java_column.getStorage.getType
-        Storage.from_java tp
-
-    ## UNSTABLE TODO this is a prototype that will be revisited later on
+       The value type determines what type of values the column is storing and
+       what operations are permitted.
     value_type : Value_Type
-    value_type self = self.storage_type.to_approximate_value_type
+    value_type self =
+        storage_type = self.java_column.getStorage.getType
+        Storage.to_value_type storage_type
 
     ## UNSTABLE
 
@@ -1529,41 +1521,10 @@ slice_ranges column ranges =
    Creates a storage builder suitable for building a column for the provided
    column type.
 
-   This relies on a rudimentary mapping between `Value_Type` and `Storage`. It
-   does not ensure validity checks for the particular type, like checking string
-   length or number size.
-
-   It may be tempting to return an `InferredBuilder` for the `Mixed` type - as
-   this will use a more compact storage if a mixed type column contains only
-   numbers. However, since currently `Column.value_type` is derived directly
-   from its storage type, that would result in a changed `value_type` in the
-   result. Whereas we want to ensure that if the requested type is `Mixed`, the
-   resulting column should also report `Mixed` value type. Once the types work
-   decouples `value_type` from `storage_type`, this logic could be adjusted.
-
-   Due to the coupling of value types and storage, `value_type` of the created
-   column may not be exactly the same as the one requested here, it will be the
-   closest one currently supported by our storage (i.e. any constraints like
-   integer size or constant text width will be dropped). This will need to be
-   revisited as part of the types work:
-   https://www.pivotaltracker.com/story/show/183854180
-make_storage_builder_for_type value_type initial_size=128 =
-    closest_storage_type = case value_type of
-        Value_Type.Boolean -> Storage.Boolean
-        Value_Type.Byte -> Storage.Integer
-        Value_Type.Integer _ -> Storage.Integer
-        Value_Type.Float _ -> Storage.Decimal
-        ## Arbitrary precision numbers are not currently representable by our
-           specialized in-memory storage, so falling back to object storage.
-        Value_Type.Decimal _ _ -> Storage.Any
-        Value_Type.Char _ _ -> Storage.Text
-        Value_Type.Date -> Storage.Date
-        Value_Type.Date_Time with_timezone ->
-            ## Our specialized storage is only capable of storing date time with timezone. If we want to store a different kind of date-time, we will
-            if with_timezone then Storage.Date_Time else Storage.Any
-        Value_Type.Time -> Storage.Time_Of_Day
-        Value_Type.Mixed -> Storage.Any
-        _ -> Storage.Any
+   If a value type is not supported, its closest match is selected and
+   an `Inexact_Type_Coercion` problem is reported.
+make_storage_builder_for_type value_type on_problems initial_size=128 =
+    closest_storage_type = Storage.from_value_type value_type on_problems
     Storage.make_builder closest_storage_type initial_size
 
 ## PRIVATE

@@ -14,6 +14,8 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.IR.Context.Context
@@ -24,8 +26,12 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
-
+import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
+
+polyglot java import org.enso.database.JDBCUtils
 
 ## PRIVATE
 
@@ -49,6 +55,9 @@ type Postgres_Dialect
     name self = "PostgreSQL"
 
     ## PRIVATE
+    to_text self = "Postgres_Dialect"
+
+    ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
@@ -56,19 +65,18 @@ type Postgres_Dialect
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
+
+       Arguments:
+       - internal_column: the column to order by.
+       - sort_direction: the direction of the ordering.
+       - text_ordering: If provided, specifies that the column should be treated
+         as text values according to the provided ordering. For non-text types,
+         it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         make_order_descriptor internal_column sort_direction text_ordering
 
@@ -87,7 +95,10 @@ type Postgres_Dialect
         new_columns = setup.new_columns.first
         column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder)
+        type_mapping = self.get_type_mapping
+        distinct_expressions = new_key_columns.map column->
+            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
@@ -104,6 +115,31 @@ type Postgres_Dialect
     get_naming_helpers : Naming_Helpers
     get_naming_helpers self = Naming_Helpers
 
+    ## PRIVATE
+       Returns the mapping between SQL types of this dialect and Enso
+       `Value_Type`.
+    get_type_mapping : SQL_Type_Mapping
+    get_type_mapping self = Postgres_Type_Mapping
+
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
+    make_column_fetcher_for_type self sql_type =
+        type_mapping = self.get_type_mapping
+        value_type = type_mapping.sql_type_to_value_type sql_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
+    ## PRIVATE
+    get_statement_setter : Statement_Setter
+    get_statement_setter self = postgres_statement_setter
+
+    ## PRIVATE
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate =
+        _ = aggregate
+        True
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
@@ -117,37 +153,6 @@ make_internal_generator_dialect =
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool
     Base_Generator.base_dialect . extend_with my_mappings
-
-## PRIVATE
-   The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_aggregate` first.
-resolve_target_sql_type aggregate = case aggregate of
-    Group_By c _ -> c.sql_type
-    Count _ -> SQL_Type.bigint
-    Count_Distinct _ _ _ -> SQL_Type.bigint
-    Count_Not_Nothing _ _ -> SQL_Type.bigint
-    Count_Nothing _ _ -> SQL_Type.bigint
-    Count_Not_Empty _ _ -> SQL_Type.bigint
-    Count_Empty _ _ -> SQL_Type.bigint
-    Percentile _ _ _ -> SQL_Type.double
-    Mode c _ -> c.sql_type
-    First c _ _ _ -> c.sql_type
-    Last c _ _ _ -> c.sql_type
-    Maximum c _ -> c.sql_type
-    Minimum c _ -> c.sql_type
-    Shortest c _ -> c.sql_type
-    Longest c _ -> c.sql_type
-    Standard_Deviation _ _ _ -> SQL_Type.double
-    Concatenate _ _ _ _ _ _ -> SQL_Type.text
-    Sum c _ ->
-        if (c.sql_type == SQL_Type.integer) || (c.sql_type == SQL_Type.smallint) then SQL_Type.bigint else
-            if c.sql_type == SQL_Type.bigint then SQL_Type.numeric else
-                c.sql_type
-    Average c _ ->
-        if c.sql_type.is_definitely_integer then SQL_Type.numeric else
-            if c.sql_type.is_definitely_double then SQL_Type.double else
-                c.sql_type
-    Median _ _ -> SQL_Type.double
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
@@ -283,8 +288,10 @@ make_order_descriptor internal_column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
         Sort_Direction.Descending -> Nulls_Order.Last
-    case internal_column.sql_type.is_likely_text of
-        True ->
+    case text_ordering of
+        Nothing ->
+            Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+        _ ->
             ## In the future we can modify this error to suggest using a custom defined collation.
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
@@ -299,8 +306,6 @@ make_order_descriptor internal_column sort_direction text_ordering =
                             upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
-        False ->
-            Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
 
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
@@ -317,3 +322,16 @@ decimal_div = Base_Generator.lift_binary_op "/" x-> y->
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
+
+## PRIVATE
+postgres_statement_setter : Statement_Setter
+postgres_statement_setter =
+    default = Statement_Setter.default
+    fill_hole stmt i value = case value of
+        # TODO [RW] Postgres date handling #6115
+        _ : Date_Time ->
+            stmt.setTimestamp i (JDBCUtils.getTimestamp value)
+        # _ : Date ->
+        # _ : Time_Of_Day ->
+        _ -> default.fill_hole stmt i value
+    Statement_Setter.Value fill_hole

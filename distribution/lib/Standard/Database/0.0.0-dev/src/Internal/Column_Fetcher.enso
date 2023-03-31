@@ -1,0 +1,136 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Internal.Java_Exports
+
+polyglot java import java.sql.ResultSet
+
+type Column_Fetcher
+    ## PRIVATE
+       A helper for fetching data from a result set and possibly building a
+       column out of it.
+
+       Arguments:
+       - fetch_value: A function that fetches a value from a result set.
+       - make_builder: A function that creates a builder for a column.
+         It takes an initial size as an argument. That size is only a suggestion
+         for initial capacity and the builder must be ready to accept more or
+         less rows than that.
+    Value (fetch_value : ResultSet -> Integer -> Any) (make_builder : Integer -> Builder)
+
+## We could use `Storage.make_builder` here, but this builder allows us to pass
+   raw Truffle values around (like `long`) instead of boxing them.
+
+   I suspect this can allow the Truffle PE to compile this into tighter loop,
+   but so far I have no proof. If it turns out to be an unnecessary
+   micro-optimization, we can always switch to `Storage.make_builder`.
+type Builder
+    ## PRIVATE
+       Wraps an underlying builder to provide a generic interface.
+
+       Arguments:
+       - append: A function that appends a value to the underlying builder.
+         By default, it must support appending `Nothing`, unless the column was
+         explicitly declared as non-nullable.
+       - make_column: A function that creates a column from the underlying
+         builder. It takes the desired column name as argument.
+    Value (append : Any -> Nothing) (make_column : Text -> Materialized_Column)
+
+## PRIVATE
+boolean_fetcher : Column_Fetcher
+boolean_fetcher =
+    fetch_value rs i =
+        b = rs.getBoolean i
+        if rs.wasNull then Nothing else b
+    make_builder _ =
+        java_builder = Java_Exports.make_bool_builder
+        append v =
+            if v.is_nothing then java_builder.appendNulls 1 else
+                java_builder.appendBoolean v
+        Builder.Value append (seal_java_builder java_builder)
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+double_fetcher : Column_Fetcher
+double_fetcher =
+    fetch_value rs i =
+        d = rs.getDouble i
+        if rs.wasNull then Nothing else d
+    make_builder initial_size =
+        java_builder = Java_Exports.make_double_builder initial_size
+        append v =
+            if v.is_nothing then java_builder.appendNulls 1 else
+                java_builder.appendDouble v
+        Builder.Value append (seal_java_builder java_builder)
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+long_fetcher : Column_Fetcher
+long_fetcher =
+    fetch_value rs i =
+        l = rs.getLong i
+        if rs.wasNull then Nothing else l
+    make_builder initial_size =
+        java_builder = Java_Exports.make_long_builder initial_size
+        append v =
+            if v.is_nothing then java_builder.appendNulls 1 else
+                java_builder.appendLong v
+        Builder.Value append (seal_java_builder java_builder)
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+text_fetcher : Column_Fetcher
+text_fetcher =
+    fetch_value rs i =
+        t = rs.getString i
+        if rs.wasNull then Nothing else t
+    make_builder initial_size =
+        java_builder = Java_Exports.make_string_builder initial_size
+        append v =
+            if v.is_nothing then java_builder.appendNulls 1 else
+                java_builder.append v
+        Builder.Value append (seal_java_builder java_builder)
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+   A fallback fetcher that can be used for any type.
+   It will use `getObject` to get the desired value and the `InferredBuilder`
+   to create a Java column that will suit the values present.
+
+   It is used as a default fallback. It may not work correctly for specialized
+   types like dates, so a specialized fetcher should be used instead.
+fallback_fetcher : Column_Fetcher
+fallback_fetcher =
+    fetch_value rs i =
+        v = rs.getObject i
+        if rs.wasNull then Nothing else v
+    make_builder initial_size =
+        java_builder = Java_Exports.make_inferred_builder initial_size
+        append v =
+            if v.is_nothing then java_builder.appendNulls 1 else
+                java_builder.append v
+        Builder.Value append (seal_java_builder java_builder)
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+   A default implementation that will assign specialized fetchers for the
+   Integer, Float, Char and Boolean value types and a fallback for any other
+   type.
+
+   This should try to be aligned with `Storage.make_builder`.
+default_fetcher_for_value_type : Value_Type -> Column_Fetcher
+default_fetcher_for_value_type value_type =
+    case value_type of
+        ## TODO [RW] once we support varying bit-width in storages, we should specify it
+           Revisit in #5159.
+        Value_Type.Integer _ -> long_fetcher
+        Value_Type.Float _ -> double_fetcher
+        Value_Type.Char _ _ -> text_fetcher
+        Value_Type.Boolean -> boolean_fetcher
+        _ -> fallback_fetcher
+
+## PRIVATE
+seal_java_builder java_builder column_name =
+    storage = java_builder.seal
+    Java_Exports.make_column column_name storage

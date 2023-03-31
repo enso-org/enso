@@ -2,7 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Table, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First
 
 from Standard.Database import Database, Postgres, SQL_Query, Credentials, SSL_Mode
@@ -17,7 +18,9 @@ import Standard.Test.Test_Environment
 
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator
+import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
+from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 postgres_specific_spec connection db_name =
     Test.group "[PostgreSQL] Schemas and Databases" <|
@@ -97,19 +100,19 @@ postgres_specific_spec connection db_name =
             i = t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "doubles"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 2]
-            i.at "SQL Type" . to_vector . should_equal ["varchar", "int4", "bool", "float4", "float8"]
+            i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer Bits.Bits_32, Value_Type.Boolean, Value_Type.Float Bits.Bits_32, Value_Type.Float Bits.Bits_64]
 
         Test.specify "should return Table information, also for aggregated results" <|
             i = t.aggregate [Concatenate "strs", Sum "ints", Count_Distinct "bools"] . info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
-            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "BIGINT", "BIGINT"]
+            i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Integer]
 
         Test.specify "should infer standard types correctly" <|
-            t.at "strs" . sql_type . is_definitely_text . should_be_true
-            t.at "ints" . sql_type . is_definitely_integer . should_be_true
-            t.at "bools" . sql_type . is_definitely_boolean . should_be_true
-            t.at "reals" . sql_type . is_definitely_double . should_be_true
+            t.at "strs" . value_type . is_text . should_be_true
+            t.at "ints" . value_type . is_integer . should_be_true
+            t.at "bools" . value_type . is_boolean . should_be_true
+            t.at "reals" . value_type . is_floating_point . should_be_true
 
     Test.group "[PostgreSQL] Dialect-specific codegen" <|
         Test.specify "should generate queries for the Distinct operation" <|
@@ -125,33 +128,33 @@ postgres_specific_spec connection db_name =
         t = connection.query (SQL_Query.Table_Name name)
         Test.specify "Concatenate, Shortest and Longest" <|
             r = t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
-            r.columns.at 0 . sql_type . should_equal SQL_Type.text
-            r.columns.at 1 . sql_type . should_equal SQL_Type.text
-            r.columns.at 2 . sql_type . should_equal SQL_Type.text
+            r.columns.at 0 . value_type . should_equal default_text
+            r.columns.at 1 . value_type . should_equal default_text
+            r.columns.at 2 . value_type . should_equal default_text
 
         Test.specify "Counts" <|
             r = t.aggregate [Count, Count_Empty "txt", Count_Not_Empty "txt", Count_Distinct "i1", Count_Not_Nothing "i2", Count_Nothing "i3"]
             r.column_count . should_equal 6
             r.columns.each column->
-                column.sql_type . should_equal SQL_Type.bigint
+                column.value_type . should_equal Value_Type.Integer
 
         Test.specify "Sum" <|
             r = t.aggregate [Sum "i1", Sum "i2", Sum "i3", Sum "i4", Sum "r1", Sum "r2"]
-            r.columns.at 0 . sql_type . should_equal SQL_Type.bigint
-            r.columns.at 1 . sql_type . should_equal SQL_Type.bigint
-            r.columns.at 2 . sql_type . should_equal SQL_Type.numeric
-            r.columns.at 3 . sql_type . should_equal SQL_Type.numeric
-            r.columns.at 4 . sql_type . should_equal SQL_Type.real
-            r.columns.at 5 . sql_type . should_equal SQL_Type.double
+            r.columns.at 0 . value_type . should_equal Value_Type.Integer
+            r.columns.at 1 . value_type . should_equal Value_Type.Integer
+            r.columns.at 2 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 3 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 4 . value_type . should_equal (Value_Type.Float Bits.Bits_32)
+            r.columns.at 5 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
         Test.specify "Average" <|
             r = t.aggregate [Average "i1", Average "i2", Average "i3", Average "i4", Average "r1", Average "r2"]
-            r.columns.at 0 . sql_type . should_equal SQL_Type.numeric
-            r.columns.at 1 . sql_type . should_equal SQL_Type.numeric
-            r.columns.at 2 . sql_type . should_equal SQL_Type.numeric
-            r.columns.at 3 . sql_type . should_equal SQL_Type.numeric
-            r.columns.at 4 . sql_type . should_equal SQL_Type.double
-            r.columns.at 5 . sql_type . should_equal SQL_Type.double
+            r.columns.at 0 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 1 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 2 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 3 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 4 . value_type . should_equal Value_Type.Float
+            r.columns.at 5 . value_type . should_equal Value_Type.Float
 
         connection.execute_update 'DROP TABLE "'+name+'"'
 
@@ -227,6 +230,17 @@ table_spec =
             ca_fail.is_error . should_equal True
             ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
+    test_with_connection run_tests
+    test_with_connection Postgres_Type_Mapping_Spec.spec
+
+test_with_connection spec =
+    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
+    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
+    db_host = db_host_port.at 0
+    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
+    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
+    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
+
     case db_name.is_nothing of
         True ->
             message = "PostgreSQL test database is not configured. See README.md for instructions."
@@ -234,8 +248,7 @@ table_spec =
         False ->
             connection = Panic.rethrow <|
                 Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password))
-            run_tests connection db_name
-
+            spec connection db_name
 
 pgpass_file = enso_project.data / "pgpass.conf"
 

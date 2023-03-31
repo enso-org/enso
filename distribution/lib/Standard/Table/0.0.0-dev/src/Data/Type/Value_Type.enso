@@ -1,0 +1,244 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from project.Errors import Invalid_Value_Type
+
+## Type to represent the different sizes of integer or float storage.
+type Bits
+    ## 16-bit (2 byte) value
+    Bits_16
+
+    ## 32-bit (4 byte) value
+    Bits_32
+
+    ## 64-bit (8 byte) value
+    Bits_64
+
+    ## PRIVATE
+    to_bits : Integer
+    to_bits self = case self of
+        Bits.Bits_16 -> 16
+        Bits.Bits_32 -> 32
+        Bits.Bits_64 -> 64
+
+    ## PRIVATE
+    from_bits : Integer -> Bits
+    from_bits bits = case bits of
+        16 -> Bits.Bits_16
+        32 -> Bits.Bits_32
+        64 -> Bits.Bits_64
+        _ : Integer -> Error.throw (Illegal_Argument.Error "Invalid number of bits for a float or integer type.")
+
+    ## Provides the text representation of the bit-size.
+    to_text : Text
+    to_text self = self.to_bits.to_text + " bits"
+
+type Bits_Comparator
+    compare x y = Comparable.from x.to_bits . compare x.to_bits y.to_bits
+    hash x = Comparable.from x.to_bits . hash x.to_bits
+
+Comparable.from (_:Bits) = Bits_Comparator
+
+## Represents the different possible types of values within Table columns.
+
+   The types are tailored to correspond to RDBMS types, but they are also used
+   with our in-memory backend.
+type Value_Type
+    ## Boolean or Bit value: 0 or 1.
+
+       ANSI SQL: BIT / BOOLEAN
+    Boolean
+
+    ## Integer value: 0 to 255
+
+       ANSI SQL: TINYINT
+    Byte
+
+    ## Integer value:
+
+       16-bit: -32,768 to 32,767
+       32-bit: -2,147,483,648 to -2,147,483,648
+       64-bit: -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+       ANSI SQL: SMALLINT (16-bit), INT (32-bit), BIGINT (64-bit)
+
+       Arguments:
+       - size: the amount of bits used to store the values.
+    Integer size:Bits=Bits.Bits_64
+
+    ## Floating point value.
+
+       ANSI SQL: REAL, FLOAT, DOUBLE
+
+       Arguments:
+       - size: the amount of bits used to store the values.
+    Float size:Bits=Bits.Bits_64
+
+    ## Arbitrary precision numerical value with a scale and precision.
+
+       ANSI SQL: NUMERIC, DECIMAL
+
+       Arguments:
+       - precision: the total number of digits in the number.
+       - scale: the number of digits after the decimal point.
+    Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=0
+
+    ## Character string.
+
+       ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB, NCLOB
+
+       Arguments:
+       - size: the maximum number of characters that can be stored in the
+         column.
+       - variable_length: whether the size is a maximum or a fixed length.
+    Char size:(Integer|Nothing)=Nothing variable_length:Boolean=True
+
+    ## Date
+
+       ANSI SQL: DATE
+    Date
+
+    ## Date and Time
+
+       ANSI SQL: TIMESTAMP / DateTime
+
+       Arguments:
+       - with_timezone: whether the values contain the timezone.
+    Date_Time with_timezone:Boolean=True
+
+    ## Time of day
+
+       ANSI SQL: TIME, TIME WITHOUT TIME ZONE
+    Time
+
+    ## Binary data.
+
+       ANSI SQL: BINARY, VARBINARY, LONGVARBINARY, BLOB
+
+       Arguments:
+       - size: the maximum number of bytes that can be stored in the
+         column.
+       - variable_length: whether the size is a maximum or a fixed length.
+    Binary size:(Integer|Nothing)=Nothing variable_length:Boolean=False
+
+    ## Unsupported SQL type.
+
+       Fallback provided to allow describing types that are not supported by
+       Enso at this time.
+    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:SQL_Type|Nothing=Nothing)
+
+    ## A mix of values can be stored in the Column.
+
+       In-Memory and SQLite tables support this.
+    Mixed
+
+    ## ADVANCED
+       UNSTABLE
+       Checks if the provided value type is a textual type (with any settings)
+       and runs the following action or reports a type error.
+    expect_text : Value_Type -> Any -> Text -> Any ! Invalid_Value_Type
+    expect_text value_type ~action related_column=Nothing =
+        if Value_Type.is_text value_type then action else
+            Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type related_column)
+
+    ## ADVANCED
+       UNSTABLE
+       Checks if the provided value type is a boolean type and runs the
+       following action or reports a type error.
+    expect_boolean : Value_Type -> Any -> Any ! Invalid_Value_Type
+    expect_boolean value_type ~action = case value_type of
+        Value_Type.Boolean -> action
+        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Boolean value_type)
+
+    ## UNSTABLE
+       Checks if the `Value_Type` represents a boolean type.
+    is_boolean : Boolean
+    is_boolean self = case self of
+        Value_Type.Boolean -> True
+        _ -> False
+
+    ## UNSTABLE
+       Checks if the `Value_Type` represents a floating-point number type.
+    is_floating_point : Boolean
+    is_floating_point self = case self of
+        Value_Type.Float _ -> True
+        _ -> False
+
+    ## UNSTABLE
+       Checks if the `Value_Type` represents a text type.
+    is_text : Boolean
+    is_text self = case self of
+        Value_Type.Char _ _ -> True
+        _ -> False
+
+    ## UNSTABLE
+       Checks if the `Value_Type` represents any numeric type - integer,
+       floating point or decimal.
+    is_numeric : Boolean
+    is_numeric self = case self of
+        Value_Type.Integer _ -> True
+        Value_Type.Float _   -> True
+        Value_Type.Decimal _ _ -> True
+        _ -> False
+
+    ## UNSTABLE
+       Checks if the `Value_Type` represents an integer type.
+    is_integer : Boolean
+    is_integer self = case self of
+        Value_Type.Integer _ -> True
+        _ -> False
+
+    ## Provides a text representation of the `Value_Type` meant for
+       displaying to the user.
+    to_display_text : Text
+    to_display_text self = case self of
+        Value_Type.Boolean -> "Boolean"
+        Value_Type.Byte -> "Byte"
+        Value_Type.Integer size -> "Integer (" + size.to_text + ")"
+        Value_Type.Float size -> "Float (" + size.to_text + ")"
+        Value_Type.Decimal precision scale -> "Decimal (precision=" + precision.to_text + ", scale=" + scale.to_text + ")"
+        Value_Type.Char size variable_length -> "Char (max_size=" + size.to_text + ", variable_length=" + variable_length.to_text + ")"
+        Value_Type.Date -> "Date"
+        Value_Type.Date_Time with_timezone -> "Date_Time (with_timezone=" + with_timezone.to_text + ")"
+        Value_Type.Time -> "Time"
+        Value_Type.Binary size variable_length -> "Binary (max_size=" + size.to_text + " bytes, variable_length=" + variable_length.to_text + ")"
+        Value_Type.Unsupported_Data_Type type_name _ -> case type_name of
+            Nothing  -> "Unsupported_Data_Type"
+            _ : Text -> "Unsupported_Data_Type (" + type_name + ")"
+        Value_Type.Mixed -> "Mixed"
+
+    ## PRIVATE
+       Provides a JS object representation for use in visualizations.
+    to_js_object : JS_Object
+    to_js_object self =
+        constructor_name = Meta.meta self . constructor . name
+        display_text = self.to_display_text
+        additional_fields = case self of
+            Value_Type.Integer size ->
+                [["bits", size.to_bits]]
+            Value_Type.Float size ->
+                [["bits", size.to_bits]]
+            Value_Type.Decimal precision scale ->
+                [["precision", precision], ["scale", scale]]
+            Value_Type.Char size variable_length ->
+                [["size", size], ["variable_length", variable_length]]
+            Value_Type.Binary size variable_length ->
+                [["size", size], ["variable_length", variable_length]]
+            Value_Type.Unsupported_Data_Type type_name _ ->
+                [["type_name", type_name]]
+            _ -> []
+        JS_Object.from_pairs <|
+            [["type", "Value_Type"], ["constructor", constructor_name], ["_display_text_", display_text]] + additional_fields
+
+## The type representing inferring the column type automatically based on values
+   present in the column.
+
+   The most specific type which is valid for all values in a column is chosen:
+   - if all values are integers, `Integer` is chosen,
+   - if all values are decimals or integers, `Decimal` is chosen,
+   - if the values are all the same time type (a date, a time or a date-time),
+     the corresponding type is chosen, `Date`, `Time_Of_Day` or `Date_Time`,
+     respectively,
+   - if all values are booleans, `Boolean` is chosen,
+   - otherwise, `Text` is chosen as a fallback and the column is kept as-is
+     without parsing.
+type Auto
