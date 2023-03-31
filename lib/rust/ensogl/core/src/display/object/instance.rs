@@ -939,6 +939,117 @@
 //! node2.allow_grow();
 //! ```
 //!
+//! ## Children at negative coordinates.
+//! In the parent container size is set to hug, the container size will be automatically increased
+//! to fit the children in the top or right direction. However, the children will not be moved, so
+//! they can still overflow the parent container. Elements that overflow into negative coordinates
+//! will never influence their container's size. For example, the following code creates a manual
+//! layout with three children, where two of those overflow the parent container into negative
+//! coordinates:
+//! ```
+//! //     ╭──────── ▶ ◀ ───────────────╮
+//! //     │ root            ╭────────╮ │
+//! // ╭───┼────╮            │ node3  │ │
+//! // │ node1  │            │        │ ▼
+//! // │   │    │ ╭────────╮ ╰────────╯ ▲
+//! // ╰───┼────╯ │ node2  │            │
+//! //     ╰──────┼────────┼────────────╯
+//! //            │        │
+//! //            ╰────────╯
+//!
+//! # use ensogl_core::prelude::*;
+//! # use ensogl_core::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 2.0));
+//! node1.set_xy((-1.0, 0.0));
+//! node2.set_xy((1.0, -1.0));
+//! node3.set_xy((3.0, 1.0));
+//! ```
+//!
+//! The automatic layout manager will only take the elements own size and position into account. If
+//! those elements have any overflowing children, that overflow will be ignored by the auto-layout.
+//! For example, we can place several manual layouts with children that overflow their parents in an
+//! auto-layout. Those children will effectively overflow the auto-layout as well:
+//! ```
+//! //    ╔═════════════════════ ▶ ◀ ═════════════════════╗
+//! //    ║ ╭ root ───────────────┬─────────────────────╮ ║
+//! //    ║ │╭ node1 ─ ▶ ◀ ──────╮┆╭ node2 ─ ▶ ◀ ──────╮│ ║
+//! //   ╭╫─┼┼─────╮           ╭─┼┼┼─────╮             ││ ║
+//! //   │║node1_1 │           │ node2_1 │             ││ ▼
+//! //   │║ ││     │           │ │┆│     │             ││ ▲
+//! //   │║ ││     │  ╭────────┼╮│┆│     │  ╭─────────╮││ ║
+//! //   ╰╫─┼┼─────╯  │ node1_2╰┼┼┼┼─────╯  │ node2_2 │││ ║
+//! //    ║ │╰────────┼─────────┼╯┆╰────────┼─────────┼╯│ ║
+//! //    ║ ╰─────────┼─────────┼─┴─────────┼─────────┼─╯ ║
+//! //    ╚═══════════╰─────────╯═══════════╰─────────╯═══╝
+//!
+//! # use ensogl_core::prelude::*;
+//! # use ensogl_core::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.use_auto_layout();
+//!
+//! let node1_1 = node1.new_child();
+//! let node1_2 = node1.new_child();
+//! node1_1.set_size((2.0, 2.0));
+//! node1_2.set_size((2.0, 2.0));
+//! node1_1.set_xy((-1.0, 0.0));
+//! node1_2.set_xy((1.0, -1.0));
+//!
+//! let node2_1 = node2.new_child();
+//! let node2_2 = node2.new_child();
+//! node2_1.set_size((2.0, 2.0));
+//! node2_2.set_size((2.0, 2.0));
+//! node2_1.set_xy((-1.0, 0.0));
+//! node2_2.set_xy((1.0, -1.0));
+//! ```
+//!
+//! Note that the shape views defined using `shape!` macro treat the (0.0, 0.0) point as the center
+//! of the shape sprite. This means that the shape will overflow the parent container. To avoid
+//! this, you can set the shape origin to the bottom-right corner of the shape using `alignment`
+//! property:
+//! ```
+//! // ╔═════════════════════════ ▶ ◀ ═╗
+//! // ║ ╭ root ───────┬─────────────╮ ║
+//! // ║ │ ╭ shape1 ─╮ ┆ ╭ shape2 ─╮ │ ║
+//! // ║ │ │         │ ┆ │         │ │ ║
+//! // ║ │ │         │ ┆ │         │ │ ▼
+//! // ║ │ │         │ ┆ │         │ │ ▲
+//! // ║ │ ╰─────────╯ ┆ ╰─────────╯ │ ║
+//! // ║ ╰─────────────┴─────────────╯ ║
+//! // ╚═══════════════════════════════╝
+//!
+//! # use ensogl_core::prelude::*;
+//! # use ensogl_core::display;
+//!
+//! mod rectangle {
+//!     use super::*;
+//!     ensogl_core::shape! {
+//!         alignment = left_bottom;
+//!         (style: Style) {
+//!             let rect = Rect(Var::canvas_size()).corners_radius(5.0.px());
+//!             let shape = rect.fill(color::Rgba::new(0.7, 0.5, 0.3, 0.5));
+//!             shape.into()
+//!         }
+//!     }
+//! }
+//!
+//! let root = display::object::Instance::new();
+//! root.use_auto_layout();
+//!
+//! let shape1 = rectangle::View::new();
+//! let shape2 = rectangle::View::new();
+//! root.add_child(&shape1);
+//! root.add_child(&shape2);
+//! shape1.set_size((100.0, 100.0));
+//! shape2.set_size((100.0, 100.0));
+//! ```
 //!
 //! # Size and computed size.
 //! Display objects expose two functions to get their size: `size` and `computed_size`. The first

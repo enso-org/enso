@@ -27,9 +27,7 @@ mod rectangle {
         alignment = left_bottom;
         (style: Style, color: Vector4<f32>) {
             let color = Var::<color::Rgba>::from(color);
-            let width = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let rect = Rect((&width, &height)).corners_radius(5.0.px());
+            let rect = Rect(Var::canvas_size()).corners_radius(5.0.px());
             let shape = rect.fill(color);
             shape.into()
         }
