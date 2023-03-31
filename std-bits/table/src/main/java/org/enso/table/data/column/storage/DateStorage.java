@@ -24,24 +24,27 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   private static MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> buildOps() {
     MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalDate.class));
-    t.add(new UnaryIntegerOp<>(Maps.YEAR) {
-      @Override
-      protected long doOperation(LocalDate date) {
-        return (long) date.getYear();
-      }
-    });
-    t.add(new UnaryIntegerOp<>(Maps.MONTH) {
-      @Override
-      protected long doOperation(LocalDate date) {
-        return (long) date.getMonthValue();
-      }
-    });
-    t.add(new UnaryIntegerOp<>(Maps.DAY) {
-      @Override
-      protected long doOperation(LocalDate date) {
-        return (long) date.getDayOfMonth();
-      }
-    });
+    t.add(
+        new UnaryIntegerOp<>(Maps.YEAR) {
+          @Override
+          protected long doOperation(LocalDate date) {
+            return (long) date.getYear();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.MONTH) {
+          @Override
+          protected long doOperation(LocalDate date) {
+            return (long) date.getMonthValue();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.DAY) {
+          @Override
+          protected long doOperation(LocalDate date) {
+            return (long) date.getDayOfMonth();
+          }
+        });
     return t;
   }
 

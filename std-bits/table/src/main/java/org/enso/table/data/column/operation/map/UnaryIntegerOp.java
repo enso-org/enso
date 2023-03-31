@@ -7,9 +7,7 @@ import org.enso.table.util.BitSets;
 import java.util.BitSet;
 import java.util.function.Function;
 
-/**
- * An operation that takes a single argument of some type and returns an integer.
- */
+/** An operation that takes a single argument of some type and returns an integer. */
 public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOperation<T, I> {
 
   public UnaryIntegerOp(String name) {

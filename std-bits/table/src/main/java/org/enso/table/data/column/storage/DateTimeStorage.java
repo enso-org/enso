@@ -26,24 +26,27 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
-    t.add(new UnaryIntegerOp<>(Maps.YEAR) {
-      @Override
-      protected long doOperation(ZonedDateTime date) {
-        return (long) date.getYear();
-      }
-    });
-    t.add(new UnaryIntegerOp<>(Maps.MONTH) {
-      @Override
-      protected long doOperation(ZonedDateTime date) {
-        return (long) date.getMonthValue();
-      }
-    });
-    t.add(new UnaryIntegerOp<>(Maps.DAY) {
-      @Override
-      protected long doOperation(ZonedDateTime date) {
-        return (long) date.getDayOfMonth();
-      }
-    });
+    t.add(
+        new UnaryIntegerOp<>(Maps.YEAR) {
+          @Override
+          protected long doOperation(ZonedDateTime date) {
+            return (long) date.getYear();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.MONTH) {
+          @Override
+          protected long doOperation(ZonedDateTime date) {
+            return (long) date.getMonthValue();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.DAY) {
+          @Override
+          protected long doOperation(ZonedDateTime date) {
+            return (long) date.getDayOfMonth();
+          }
+        });
     return t;
   }
 
