@@ -2366,6 +2366,13 @@ pub trait LayoutOps: Object {
     gen_content_justification!(y, space_around_y, 0.5.fr(), 0.5.fr(), 1.fr());
     gen_content_justification!(y, space_evenly_y, 1.fr(), 1.fr(), 1.fr());
 
+    /// Set the alignment of this object. Alignment positions the object within the free space
+    /// around them. For example, if objects are placed in a column, the right alignment will
+    /// move them to the right border of the column.
+    fn set_alignment(&self, alignment: alignment::OptDim2) {
+        self.display_object().def.modify_alignment(|a| *a = alignment);
+    }
+
     /// Content justification. See docs of this module to learn more and see examples.
     fn justify_content_center(&self) -> &Self {
         self.justify_content_center_x().justify_content_center_y()
@@ -3116,48 +3123,102 @@ impl Model {
         let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
         let children = self.children();
 
-        let mut min_x = if children.is_empty() { 0.0 } else { f32::MAX };
-        let mut max_x = if children.is_empty() { 0.0 } else { f32::MIN };
-        let mut children_to_grow = vec![];
+        let mut min_x = f32::MAX;
+        let mut max_x = f32::MIN;
+        let mut x_bounds_set = false;
+        let mut has_aligned_non_grow_children = false;
+        let mut has_grow_children = false;
         for child in &children {
-            if child.layout.grow_factor.get_dim(x) > 0.0 {
-                children_to_grow.push(child);
-            } else {
+            let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
+            if !to_grow {
                 // If the child is not growing, doesn't depend on parent size and by itself was not
                 // modified since last update, it is guaranteed to already have correct size.
                 if child.should_propagate_parent_layout_refresh(x) {
                     child.reset_size_to_static_values(x, self.layout.computed_size.get_dim(x));
                     child.refresh_layout_internal(x, PassConfig::Default);
                 }
-                let child_pos = child.position().get_dim(x);
-                let child_size = child.computed_size().get_dim(x);
-                let child_content_origin = child.content_origin().get_dim(x);
-                let child_min_x = child_pos + child_content_origin;
-                let child_max_x = child_min_x + child_size;
-                min_x = min_x.min(child_min_x);
-                max_x = max_x.max(child_max_x);
+
+                if child.layout.alignment.get().get_dim(x).is_some() {
+                    // If the child is aligned, the parent manages its position relative to its own
+                    // size and position. That child must not be taken into account when calculating
+                    // size for hugging. It will be hugged again after its alignment is resolved.
+                    has_aligned_non_grow_children = true;
+                } else {
+                    let child_pos = child.position().get_dim(x);
+                    let child_size = child.computed_size().get_dim(x);
+                    let child_content_origin = child.content_origin().get_dim(x);
+                    let child_min_x = child_pos + child_content_origin;
+                    let child_max_x = child_min_x + child_size;
+                    min_x = min_x.min(child_min_x);
+                    max_x = max_x.max(child_max_x);
+                    x_bounds_set = true;
+                }
+            } else {
+                has_grow_children = true;
             }
         }
+
+        if !x_bounds_set {
+            min_x = 0.0;
+            max_x = 0.0;
+        }
+
         if hug_children {
             self.layout.computed_size.set_dim(x, max_x - min_x);
         }
-        for child in children_to_grow {
-            let current_size = self.layout.computed_size.get_dim(x);
-            let current_child_size = child.computed_size().get_dim(x);
-            if current_size != current_child_size || child.should_refresh_layout() {
-                child.layout.computed_size.set_dim(x, current_size);
-                child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
-            }
-            let child_pos = child.position().get_dim(x);
-            let child_content_origin = child.content_origin().get_dim(x);
-            min_x = min_x.min(child_pos + child_content_origin);
-        }
-        self.layout.content_origin.set_dim(x, min_x);
 
+        // Resolve aligned children and hug them again.
+        if has_aligned_non_grow_children {
+            let base_size = self.layout.computed_size.get_dim(x);
+            for child in &children {
+                let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
+                if let Some(alignment) = *child.layout.alignment.get().get_dim(x) && !to_grow {
+                    let child_size = child.computed_size().get_dim(x);
+                    let remaining_size = base_size - child_size;
+                    let aligned_position = remaining_size * alignment.normalized();
+                    child.set_position_dim(x, aligned_position);
+                    let child_content_origin = child.content_origin().get_dim(x);
+                    let child_min_x = aligned_position + child_content_origin;
+                    let child_max_x = child_min_x + child_size;
+                    min_x = min_x.min(child_min_x);
+                    max_x = max_x.max(child_max_x);
+                }
+            }
+            if hug_children {
+                self.layout.computed_size.set_dim(x, max_x - min_x);
+            }
+        }
+
+        // From this point on, the size of this node is not changing anymore.
         let self_size = self.layout.computed_size.get_dim(x);
+
+        if has_grow_children {
+            for child in &children {
+                let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
+                if to_grow {
+                    let current_child_size = child.computed_size().get_dim(x);
+                    if self_size != current_child_size || child.should_refresh_layout() {
+                        child.layout.computed_size.set_dim(x, self_size);
+                        child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
+                    }
+
+                    if child.layout.alignment.get().get_dim(x).is_some() {
+                        // If child is set to grow, there will never be any leftover space to align
+                        // it. It should always be positioned at 0.0
+                        // relative to its parent.
+                        child.set_position_dim(x, 0.0);
+                    }
+
+                    let child_pos = child.position().get_dim(x);
+                    let child_content_origin = child.content_origin().get_dim(x);
+                    min_x = min_x.min(child_pos + child_content_origin);
+                }
+            }
+        }
+
         let forced_origin_alignment = self.layout.forced_origin_alignment.get().get_dim(x);
         let origin_shift = forced_origin_alignment.normalized() * self_size;
-        self.layout.content_origin.update_dim(x, |t| t - origin_shift);
+        self.layout.content_origin.set_dim(x, min_x - origin_shift);
     }
 }
 
@@ -5665,6 +5726,66 @@ mod layout_tests {
                 .assert_node1_position(5.0, 5.0)
                 .assert_root_content_origin(0.0, 0.0)
                 .assert_node1_content_origin(-1.0, -1.0);
+        });
+    }
+
+    /// ```text
+    /// ╭───────────────────╮
+    /// │ root              │
+    /// │    ╭─────────╮    │
+    /// │    │ node1   │    │
+    /// │    │         │    │
+    /// │    │         │    │
+    /// │    ◎─────────╯    │
+    /// │                   │
+    /// ◎───────────────────╯
+    /// ```
+    #[test]
+    fn test_manual_layout_alignment_center() {
+        let test = TestFlatChildren1::new();
+        test.root.set_size((10.0, 10.0));
+        test.node1.set_size((5.0, 5.0));
+        test.node1.set_alignment_center();
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 10.0)
+                .assert_node1_computed_size(5.0, 5.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(2.5, 2.5)
+                .assert_node1_content_origin(0.0, 0.0)
+                .assert_root_content_origin(0.0, 0.0);
+        });
+    }
+
+    /// ```text
+    ///        ╭─root─────────────────────╮
+    ///        │╭─node1──╮                │
+    ///        ││        │                │
+    ///        ││        │                │
+    /// ╭─node2┼┼────────┼───────╮        │
+    /// │      ││        │       │        │
+    /// │      ││        │       │        │
+    /// ╰──────┼┼────────┼───────╯        │
+    ///        ││        │                │
+    ///        ││        │                │
+    ///        │╰────────╯                │
+    /// ◎╌╌╌╌╌╌╰──────────────────────────╯
+    /// ```
+    #[test]
+    fn test_manual_layout_alignment_center_hug() {
+        let test = TestFlatChildren2::new();
+        test.node1.set_size((5.0, 10.0));
+        test.node2.set_size((10.0, 5.0));
+        test.node2.set_alignment_center();
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 10.0)
+                .assert_node1_computed_size(5.0, 10.0)
+                .assert_node2_computed_size(10.0, 5.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(-2.5, 2.5)
+                .assert_node1_content_origin(0.0, 0.0)
+                .assert_node2_content_origin(0.0, 0.0)
+                .assert_root_content_origin(-2.5, 0.0);
         });
     }
 
