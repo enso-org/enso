@@ -781,7 +781,8 @@ mod tests {
 
     #[test]
     fn mixing_skip_and_freeze_and_context_switch() {
-        // TODO: Doesn't work because of the broken parsing for SKIP and FREEZE. See https://github.com/enso-org/enso/issues/5572
+        // TODO: Doesn't work because of the broken parsing for SKIP and FREEZE.
+        // See https://github.com/enso-org/enso/issues/5572
         //
         // let parser = Parser::new();
         // let line = format!("foo = {SKIP_MACRO_IDENTIFIER} {FREEZE_MACRO_IDENTIFIER}
