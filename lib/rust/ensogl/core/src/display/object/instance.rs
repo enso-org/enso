@@ -1603,11 +1603,7 @@ impl Model {
         self.set_display_layer(layer, Some(symbol_partition))
     }
 
-    fn set_display_layer(
-        &self,
-        layer: &Layer,
-        symbol_partition: Option<AnySymbolPartition>,
-    ) {
+    fn set_display_layer(&self, layer: &Layer, symbol_partition: Option<AnySymbolPartition>) {
         let layer = LayerAssignment { layer: layer.downgrade(), symbol_partition };
         let mut assigned_layer = self.assigned_layer.borrow_mut();
         if assigned_layer.as_ref() != Some(&layer) {
