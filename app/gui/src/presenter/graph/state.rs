@@ -852,13 +852,9 @@ mod tests {
     fn create_test_node(expression: &str) -> controller::graph::Node {
         let parser = Parser::new();
         let ast = parser.parse_line_ast(expression).unwrap();
-        let (main_line, ast_info) = double_representation::node::MainLine::from_ast(&ast).unwrap();
+        let main_line = double_representation::node::MainLine::from_ast(&ast).unwrap();
         controller::graph::Node {
-            info:     double_representation::node::NodeInfo {
-                documentation: None,
-                main_line,
-                ast_info,
-            },
+            info:     double_representation::node::NodeInfo { documentation: None, main_line },
             metadata: None,
         }
     }
@@ -992,14 +988,9 @@ mod tests {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
         let node_id = nodes[0].node.id();
         let new_ast = Parser::new().parse_line_ast("foo baz").unwrap().with_id(node_id);
-        let (main_line, ast_info) =
-            double_representation::node::MainLine::from_ast(&new_ast).unwrap();
+        let main_line = double_representation::node::MainLine::from_ast(&new_ast).unwrap();
         let new_node = controller::graph::Node {
-            info:     double_representation::node::NodeInfo {
-                documentation: None,
-                main_line,
-                ast_info,
-            },
+            info:     double_representation::node::NodeInfo { documentation: None, main_line },
             metadata: None,
         };
         let new_subexpressions = new_ast.iter_recursive().filter_map(|ast| ast.id).collect_vec();
