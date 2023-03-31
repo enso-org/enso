@@ -59,8 +59,7 @@ declare global {
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: BuildInfo
-    // eslint-disable-next-line no-restricted-syntax
-    const PROJECT_MANAGER_IN_BUNDLE_PATH: string | undefined
+    const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
 }
