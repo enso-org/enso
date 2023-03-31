@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.DateBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -23,6 +24,27 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   private static MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> buildOps() {
     MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalDate.class));
+    t.add(
+        new UnaryIntegerOp<>(Maps.YEAR) {
+          @Override
+          protected long doOperation(LocalDate date) {
+            return (long) date.getYear();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.MONTH) {
+          @Override
+          protected long doOperation(LocalDate date) {
+            return (long) date.getMonthValue();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.DAY) {
+          @Override
+          protected long doOperation(LocalDate date) {
+            return (long) date.getDayOfMonth();
+          }
+        });
     return t;
   }
 

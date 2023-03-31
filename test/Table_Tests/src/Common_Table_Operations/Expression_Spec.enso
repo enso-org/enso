@@ -27,10 +27,7 @@ spec detailed setup =
     column_odd = ["Bad] Name", [True, False, True, False, True]]
     test_table = table_builder [column_a, column_b, column_c, column_odd]
 
-    ## TODO Expressions were not being tested on Database backends before and
-       many tests are failing. Disabling the tests until this is fixed, tracked
-       by issue: https://www.pivotaltracker.com/story/show/183933832
-    pending_bug = if prefix.contains "In-Memory" then Nothing else "Date and Time support for In-Database backends is not fully implemented. https://github.com/enso-org/enso/issues/5268"
+    pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
 
     epsilon=0.0000000001
 
@@ -118,22 +115,39 @@ spec detailed setup =
             expression_test "NOTHING" Nothing
 
     Test.group prefix+"Expression Date and Time literals" <|
-        specify_test "should be able to add a date or time column" pending=pending_bug expression_test->
+        specify_test "should be able to add a date or time column" pending=pending_datetime expression_test->
             expression_test "#2020-12-23#" (Date.new 2020 12 23)
             expression_test "#12:34#" (Time_Of_Day.new 12 34)
             expression_test "#12:34:56#" (Time_Of_Day.new 12 34 56)
-            expression_test "#2020-12-23 12:34#" (Date_Time.new 2020 12 23 12 34)
-            expression_test "#2020-12-23 12:34:56#" (Date_Time.new 2020 12 23 12 34 56)
 
-        specify_test "should be able to add a time column with sub-millisecond accuracy" pending=pending_bug expression_test->
+        Test.specify "should be able to add a date-time column" pending=pending_datetime <|
+            ## We cannot just test equality as the Database may change the timezone,
+               so all we can do is check that the values are accepted and can be compared
+               with other values in the database.
+            t = table_builder [["X", [Date_Time.new 2020 12 23 12 34 56, Date_Time.new 2010 1 2]]]
+            c = t.compute "#2020-12-23 12:34:56# == [X]"
+            c.to_vector . should_equal [True, False]
+
+        specify_test "should be able to add a time column with sub-millisecond accuracy" pending=pending_datetime expression_test->
             expression_test "#12:34:56.789#" (Time_Of_Day.new 12 34 56 789)
-            expression_test "#12:34:56.789000123#" (Time_Of_Day.new 12 34 56 789 0 123)
+            expression_test "#12:34:56.000123#" (Time_Of_Day.new 12 34 56 millisecond=0 microsecond=123 nanosecond=0)
 
-        specify_test "should be able to add a date time column with timezone" pending=pending_bug expression_test->
-            expression_test "#2020-12-23 12:34:56Z[UTC]#" (Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc)
-            expression_test "#2020-12-23 12:34:56+02:30[UTC]#" (Date_Time.new 2020 12 23 10 04 56 zone=Time_Zone.utc)
-            expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157 zone=Time_Zone.utc)
-            expression_test "#2020-12-23T12:34[Europe/Warsaw]#" (Date_Time.new 2020 12 23 12 34 zone=Time_Zone.parse("Europe/Warsaw"))
+        if setup.is_database.not then
+            specify_test "should be able to add a date time column with timezone" expression_test->
+                expression_test "#2020-12-23 12:34:56Z[UTC]#" (Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc)
+                expression_test "#2020-12-23 12:34:56+02:30[UTC]#" (Date_Time.new 2020 12 23 10 04 56 zone=Time_Zone.utc)
+                expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157 zone=Time_Zone.utc)
+                expression_test "#2020-12-23T12:34[Europe/Warsaw]#" (Date_Time.new 2020 12 23 12 34 zone=Time_Zone.parse("Europe/Warsaw"))
+
+        Test.specify "should correctly handle timezones" pending=pending_datetime <|
+            ## We cannot just test equality as the Database may change the timezone,
+               so all we can do is check that the values are accepted and can be compared
+               with other values in the database.
+            t = table_builder [["X", [Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc, Date_Time.new 2010 1 2 12 34 56 zone=Time_Zone.parse("Europe/Warsaw")]]]
+            c1 = t.compute "#2020-12-23 12:34:56Z[UTC]# == [X]"
+            c1.to_vector . should_equal [True, False]
+            c2 = t.compute "#2010-01-02 12:34:56[Europe/Warsaw]# == [X]"
+            c2.to_vector . should_equal [False, True]
 
     Test.group prefix+"Expression Arithmetic" <|
         specify_test "should be able to do basic arithmetic" expression_test->
