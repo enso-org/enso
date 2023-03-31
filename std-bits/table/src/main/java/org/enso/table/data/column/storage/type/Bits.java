@@ -2,8 +2,8 @@ package org.enso.table.data.column.storage.type;
 
 /**
  * Represents sizes for some of our storages.
- * <p>
- * This corresponds to the Enso type {@code Bits}.
+ *
+ * <p>This corresponds to the Enso type {@code Bits}.
  */
 public enum Bits {
   BITS_8(8),

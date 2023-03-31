@@ -2,30 +2,30 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.*;
-import org.enso.table.data.column.storage.type.Boolean;
-import org.enso.table.data.column.storage.type.Float;
-import org.enso.table.data.column.storage.type.Integer;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
   public static Builder getForType(StorageType type, int size) {
     Builder builder = switch (type) {
-      case AnyObject() -> new ObjectBuilder(size);
-      case Boolean() -> new BoolBuilder(size);
-      case Date() -> new DateBuilder(size);
-      case DateTime() -> new DateTimeBuilder(size);
-      case TimeOfDay() -> new TimeOfDayBuilder(size);
-      case Float(Bits bits) ->
+      case AnyObjectType() -> new ObjectBuilder(size);
+      case BooleanType() -> new BoolBuilder(size);
+      case DateType() -> new DateBuilder(size);
+      case DateTimeType() -> new DateTimeBuilder(size);
+      case TimeOfDayType() -> new TimeOfDayBuilder(size);
+      case FloatType(Bits bits) ->
         switch (bits) {
           case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
           default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
         };
-      case Integer(Bits bits) ->
+      case IntegerType(Bits bits) ->
           switch (bits) {
             case BITS_64 -> NumericBuilder.createLongBuilder(size);
             default -> throw new IllegalArgumentException("TODO: Builders other than 64-bit int are not yet supported.");
           };
-      case Text(long maxLength, boolean isFixed) -> {
+      case TextType(long maxLength, boolean isFixed) -> {
         if (isFixed) {
           throw new IllegalArgumentException("Fixed-length text builders are not yet supported yet.");
         }

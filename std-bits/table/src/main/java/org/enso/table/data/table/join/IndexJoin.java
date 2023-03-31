@@ -2,7 +2,7 @@ package org.enso.table.data.table.join;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.AnyObject;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -98,6 +98,6 @@ public class IndexJoin implements JoinStrategy {
 
   private static boolean isBuiltinType(Storage<?> storage) {
     // TODO: this should be removed when #5626 and #5259 are implemented
-    return !storage.getType().equals(AnyObject.INSTANCE);
+    return !storage.getType().equals(AnyObjectType.INSTANCE);
   }
 }

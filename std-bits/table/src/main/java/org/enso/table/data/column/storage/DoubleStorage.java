@@ -11,7 +11,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
-import org.enso.table.data.column.storage.type.Float;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -76,7 +76,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
   /** @inheritDoc */
   @Override
   public StorageType getType() {
-    return Float.FLOAT_64;
+    return FloatType.FLOAT_64;
   }
 
   /** @inheritDoc */

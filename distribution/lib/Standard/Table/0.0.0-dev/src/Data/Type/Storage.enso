@@ -8,48 +8,48 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 polyglot java import org.enso.table.data.column.builder.object.Builder
 polyglot java import org.enso.table.data.column.storage.type.StorageType
-polyglot java import org.enso.table.data.column.storage.type.Integer as Storage_Integer
-polyglot java import org.enso.table.data.column.storage.type.Float as Storage_Float
-polyglot java import org.enso.table.data.column.storage.type.Boolean as Storage_Boolean
-polyglot java import org.enso.table.data.column.storage.type.Text as Storage_Text
-polyglot java import org.enso.table.data.column.storage.type.Date as Storage_Date
-polyglot java import org.enso.table.data.column.storage.type.DateTime as Storage_DateTime
-polyglot java import org.enso.table.data.column.storage.type.TimeOfDay as Storage_TimeOfDay
-polyglot java import org.enso.table.data.column.storage.type.AnyObject as Storage_AnyObject
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
+polyglot java import org.enso.table.data.column.storage.type.FloatType
+polyglot java import org.enso.table.data.column.storage.type.BooleanType
+polyglot java import org.enso.table.data.column.storage.type.TextType
+polyglot java import org.enso.table.data.column.storage.type.DateType
+polyglot java import org.enso.table.data.column.storage.type.DateTimeType
+polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
+polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
 
 ## PRIVATE
    Gets the value type represented by this Java Storage.
 to_value_type : StorageType -> Value_Type
 to_value_type storage_type = case storage_type of
-    i : Storage_Integer -> case i.bits.toInteger of
+    i : IntegerType -> case i.bits.toInteger of
         8 -> Value_Type.Byte
         b -> Value_Type.Integer (Bits.from_bits b)
-    f : Storage_Float ->
+    f : FloatType ->
         bits = Bits.from_bits f.bits.toInteger
         Value_Type.Float bits
-    _ : Storage_Boolean -> Value_Type.Boolean
-    s : Storage_Text ->
+    _ : BooleanType -> Value_Type.Boolean
+    s : TextType ->
         variable = s.fixedLength.not
         size = if s.maxLength < 0 then Nothing else s.maxLength
         Value_Type.Char size variable
-    _ : Storage_Date -> Value_Type.Date
-    _ : Storage_DateTime -> Value_Type.Date_Time with_timezone=True
-    _ : Storage_TimeOfDay -> Value_Type.Time
-    _ : Storage_AnyObject -> Value_Type.Mixed
+    _ : DateType -> Value_Type.Date
+    _ : DateTimeType -> Value_Type.Date_Time with_timezone=True
+    _ : TimeOfDayType -> Value_Type.Time
+    _ : AnyObjectType -> Value_Type.Mixed
 
 ## PRIVATE
 closest_storage_type value_type = case value_type of
     # TODO we will want builders and storages with bounds checking, but for now we approximate
-    Value_Type.Byte -> Storage_Integer.INT_64
-    Value_Type.Integer _ -> Storage_Integer.INT_64
-    Value_Type.Float _ -> Storage_Float.FLOAT_64
-    Value_Type.Boolean -> Storage_Boolean.INSTANCE
-    Value_Type.Char _ _ -> Storage_Text.VARIABLE_LENGTH
-    Value_Type.Date -> Storage_Date.INSTANCE
+    Value_Type.Byte -> IntegerType.INT_64
+    Value_Type.Integer _ -> IntegerType.INT_64
+    Value_Type.Float _ -> FloatType.FLOAT_64
+    Value_Type.Boolean -> BooleanType.INSTANCE
+    Value_Type.Char _ _ -> TextType.VARIABLE_LENGTH
+    Value_Type.Date -> DateType.INSTANCE
     # We currently will not support storing dates without timezones in in-memory mode.
-    Value_Type.Date_Time _ -> Storage_DateTime.INSTANCE
-    Value_Type.Time -> Storage_TimeOfDay.INSTANCE
-    Value_Type.Mixed -> Storage_AnyObject.INSTANCE
+    Value_Type.Date_Time _ -> DateTimeType.INSTANCE
+    Value_Type.Time -> TimeOfDayType.INSTANCE
+    Value_Type.Mixed -> AnyObjectType.INSTANCE
 
 ## PRIVATE
 from_value_type : Value_Type -> Problem_Behavior -> StorageType

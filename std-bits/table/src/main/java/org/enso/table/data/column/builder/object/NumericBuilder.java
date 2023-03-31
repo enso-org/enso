@@ -9,9 +9,9 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.Boolean;
-import org.enso.table.data.column.storage.type.Float;
-import org.enso.table.data.column.storage.type.Integer;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.util.BitSets;
 
@@ -52,12 +52,12 @@ public class NumericBuilder extends TypedBuilder {
 
     @Override
     public boolean canRetypeTo(StorageType type) {
-        return !this.isDouble && Objects.equals(type, Float.FLOAT_64);
+        return !this.isDouble && Objects.equals(type, FloatType.FLOAT_64);
     }
 
     @Override
     public TypedBuilder retypeTo(StorageType type) {
-        if (!this.isDouble && Objects.equals(type, Float.FLOAT_64)) {
+        if (!this.isDouble && Objects.equals(type, FloatType.FLOAT_64)) {
             this.isDouble = true;
             for (int i = 0; i < currentSize; i++) {
                 data[i] = Double.doubleToRawLongBits((double) data[i]);
@@ -70,7 +70,7 @@ public class NumericBuilder extends TypedBuilder {
 
     @Override
     public StorageType getType() {
-        return isDouble ? Float.FLOAT_64 : Integer.INT_64;
+        return isDouble ? FloatType.FLOAT_64 : IntegerType.INT_64;
     }
 
     @Override
@@ -124,7 +124,7 @@ public class NumericBuilder extends TypedBuilder {
     }
 
     private void appendBulkDouble(Storage<?> storage) {
-        if (Objects.equals(storage.getType(), Float.FLOAT_64)) {
+        if (Objects.equals(storage.getType(), FloatType.FLOAT_64)) {
             if (storage instanceof DoubleStorage doubleStorage) {
                 int n = doubleStorage.size();
                 ensureFreeSpaceFor(n);
@@ -137,7 +137,7 @@ public class NumericBuilder extends TypedBuilder {
                                 + storage
                                 + ". This is a bug in the Table library.");
             }
-        } else if (Objects.equals(storage.getType(), Integer.INT_64)) {
+        } else if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
             if (storage instanceof LongStorage longStorage) {
                 int n = longStorage.size();
                 BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
@@ -150,7 +150,7 @@ public class NumericBuilder extends TypedBuilder {
                                 + storage
                                 + ". This is a bug in the Table library.");
             }
-        } else if (Objects.equals(storage.getType(), Boolean.INSTANCE)) {
+        } else if (Objects.equals(storage.getType(), BooleanType.INSTANCE)) {
             if (storage instanceof BoolStorage boolStorage) {
                 int n = boolStorage.size();
                 for (int i = 0; i < n; i++) {
@@ -173,7 +173,7 @@ public class NumericBuilder extends TypedBuilder {
     }
 
     private void appendBulkLong(Storage<?> storage) {
-        if (Objects.equals(storage.getType(), Integer.INT_64)) {
+        if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
             if (storage instanceof LongStorage longStorage) {
                 int n = longStorage.size();
                 ensureFreeSpaceFor(n);
@@ -186,7 +186,7 @@ public class NumericBuilder extends TypedBuilder {
                                 + storage
                                 + ". This is a bug in the Table library.");
             }
-        } else if (Objects.equals(storage.getType(), Boolean.INSTANCE)) {
+        } else if (Objects.equals(storage.getType(), BooleanType.INSTANCE)) {
             if (storage instanceof BoolStorage boolStorage) {
                 int n = boolStorage.size();
                 for (int i = 0; i < n; i++) {
