@@ -1,0 +1,76 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Lazy.Lazy
+
+import project.Connection.Connection.Connection
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.Context.Context
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.Query.Query
+
+type SQL_Type_Reference
+    ## Refers to the SQL type of a given column, as computed by the Database
+       itself.
+
+       Since fetching this type requires querying the database, it is computed
+       lazily and cached.
+    Computed_By_Database (lazy_ref : Lazy)
+
+    ## Refers to an SQL type that is overridden by the dialect's type system.
+    Overridden (value : SQL_Type)
+
+    ## PRIVATE
+       Returns the stored SQL type.
+
+       This may perform a database query on first access.
+    get : SQL_Type
+    get self = case self of
+        SQL_Type_Reference.Computed_By_Database lazy_ref -> lazy_ref.get
+        SQL_Type_Reference.Overridden value -> value
+
+    ## PRIVATE
+       Creates an `SQL_Type_Reference` from a known constant.
+
+       This is useful when the type is already known (for example in
+       `Database.make_table`, because the column types were already fetched) or when
+       the type is overridden (for example when pretending that SQLite has a boolean
+       type).
+    from_constant : SQL_Type -> SQL_Type_Reference
+    from_constant sql_type = SQL_Type_Reference.Overridden sql_type
+
+    ## PRIVATE
+       Creates a new `SQL_Type_Reference` from a given SQL expression evaluated in a
+       provided context. The connection is used to ask the database engine what the
+       expected type will be.
+    new : Connection -> Context -> SQL_Expression -> SQL_Type_Reference
+    new connection context expression =
+        do_fetch =
+            empty_context = context.add_where_filters [SQL_Expression.Constant False]
+            statement = connection.dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
+            statement_setter = connection.dialect.get_statement_setter
+            columns = connection.jdbc_connection.fetch_columns statement statement_setter
+            only_column = columns.first
+            only_column.second
+        SQL_Type_Reference.Computed_By_Database (Lazy.new do_fetch)
+
+    ## PRIVATE
+       Creates a new `SQL_Type_Reference` that should never be used.
+       This is used by some internal methods which need to construct an internal
+       column, but we can guarantee that its SQL Type will never be checked.
+    null : SQL_Type_Reference
+    null =
+        getter =
+            Error.throw (Illegal_State.Error "Getting the SQL_Type from SQL_Type_Reference.null is not allowed. This indicates a bug in the Database library.")
+        SQL_Type_Reference.Computed_By_Database (Lazy.new getter)
+
+    ## PRIVATE
+       Turns this reference into a type override.
+
+       If the type is computed by the database, this will return `Nothing`,
+       allowing the fetch method to read the type from query metadata. However,
+       if it was overridden, it will return that override to be used instead of
+       the type coming from the metadata.
+    to_type_override : SQL_Type | Nothing
+    to_type_override self = case self of
+        SQL_Type_Reference.Overridden sql_type -> sql_type
+        SQL_Type_Reference.Computed_By_Database _ -> Nothing

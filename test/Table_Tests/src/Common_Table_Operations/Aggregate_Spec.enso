@@ -44,6 +44,7 @@ spec setup =
         Test.specify "should be able to count" <|
             grouped = table.aggregate [Count]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Count"
@@ -52,6 +53,7 @@ spec setup =
         Test.specify "should be able to count missing values" <|
             grouped = table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
@@ -66,6 +68,7 @@ spec setup =
         Test.specify "should be able to count distinct values" <|
             grouped = table.aggregate [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Count Distinct Code"
@@ -78,6 +81,7 @@ spec setup =
         Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
             grouped = table.aggregate [Count_Distinct ["Index", "Flag"]]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Count Distinct Index Flag"
@@ -86,6 +90,7 @@ spec setup =
         Test.specify "should be able to compute sum and average of values" <|
             grouped = table.aggregate [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Sum Value"
@@ -114,6 +119,7 @@ spec setup =
         Test.specify "should be able to create median, mode and percentile values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 6
             materialized.columns.at 0 . name . should_equal "Median Index"
@@ -130,12 +136,13 @@ spec setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = table.aggregate [First "Index" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
-            materialized.columns.at 0 . at 0 . should_equal 5
+            materialized.columns.at 0 . at 0 . should_equal 9
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
@@ -154,6 +161,7 @@ spec setup =
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [First "Index", Last "Value"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
@@ -164,6 +172,7 @@ spec setup =
         Test.specify "should be able to get minimum and maximum values" <|
             grouped = table.aggregate [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Minimum Value"
@@ -178,6 +187,7 @@ spec setup =
         Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest)  <|
             grouped = table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
@@ -188,6 +198,7 @@ spec setup =
         Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat)  <|
             grouped = table.aggregate [Concatenate "Code"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate Code"
@@ -197,6 +208,7 @@ spec setup =
         Test.specify "should be able to count" <|
             grouped = empty_table.aggregate [Count]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Count"
@@ -205,6 +217,7 @@ spec setup =
         Test.specify "should be able to count missing values" <|
             grouped = empty_table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
@@ -229,6 +242,7 @@ spec setup =
         Test.specify "should be able to compute sum and average of values" <|
             grouped = empty_table.aggregate [Sum "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Sum Value"
@@ -239,6 +253,7 @@ spec setup =
         Test.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
             grouped = empty_table.aggregate [Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Standard Deviation Value"
@@ -249,6 +264,7 @@ spec setup =
         Test.specify "should be able to create median, mode and percentile values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = empty_table.aggregate [Median "Index", Mode "Index", Percentile 0.25 "Value"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Median Index"
@@ -261,6 +277,7 @@ spec setup =
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = empty_table.aggregate [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
@@ -271,6 +288,7 @@ spec setup =
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = empty_table.aggregate [First "Index", Last "Value"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
@@ -281,6 +299,7 @@ spec setup =
         Test.specify "should be able to get minimum and maximum values" <|
             grouped = empty_table.aggregate [Minimum "Value", Maximum "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Minimum Value"
@@ -291,6 +310,7 @@ spec setup =
         Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
@@ -301,6 +321,7 @@ spec setup =
         Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = empty_table.aggregate [Concatenate "Code"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate Code"
@@ -310,6 +331,7 @@ spec setup =
         Test.specify "should be able to count" <|
             grouped = empty_table.aggregate [Group_By 0, Count]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Code"
@@ -318,6 +340,7 @@ spec setup =
         Test.specify "should be able to count missing values" <|
             grouped = empty_table.aggregate [Group_By 0, Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Code"
@@ -329,6 +352,7 @@ spec setup =
         Test.specify "should be able to count distinct values" <|
             grouped = empty_table.aggregate [Group_By 0, Count_Distinct "Code"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Code"
@@ -337,6 +361,7 @@ spec setup =
         Test.specify "should be able to compute sum and average of values" <|
             grouped = empty_table.aggregate [Group_By 0, Sum "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
@@ -346,6 +371,7 @@ spec setup =
         Test.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
             grouped = empty_table.aggregate [Group_By 0, Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
@@ -355,6 +381,7 @@ spec setup =
         Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = empty_table.aggregate [Group_By 0, Median "Index", Mode "Index", Percentile 0.25 "Value"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Code"
@@ -365,6 +392,7 @@ spec setup =
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
@@ -374,6 +402,7 @@ spec setup =
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = empty_table.aggregate [Group_By 0, First "Index", Last "Value"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
@@ -383,6 +412,7 @@ spec setup =
         Test.specify "should be able to get minimum and maximum values" <|
             grouped = empty_table.aggregate [Group_By 0, Minimum "Value", Maximum "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
@@ -392,6 +422,7 @@ spec setup =
         Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
@@ -401,6 +432,7 @@ spec setup =
         Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = empty_table.aggregate [Group_By 0, Concatenate "Code"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Code"
@@ -410,6 +442,7 @@ spec setup =
         Test.specify "should be able to count" <|
             grouped = table.aggregate [Group_By "Index", Count]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Index"
@@ -421,6 +454,7 @@ spec setup =
         Test.specify "should be able to count missing values" <|
             grouped = table.aggregate [Group_By "Index", Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
@@ -438,6 +472,7 @@ spec setup =
         Test.specify "should be able to count distinct values" <|
             grouped = table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Index"
@@ -453,6 +488,7 @@ spec setup =
         Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
             grouped = table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"]]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Index"
@@ -464,6 +500,7 @@ spec setup =
         Test.specify "should be able to compute sum and average of values" <|
             grouped = table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
@@ -498,6 +535,7 @@ spec setup =
         Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = table.aggregate [Group_By "Index", Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 7
             materialized.columns.at 0 . name . should_equal "Index"
@@ -519,6 +557,7 @@ spec setup =
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
@@ -532,6 +571,7 @@ spec setup =
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
@@ -545,6 +585,7 @@ spec setup =
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
@@ -558,6 +599,7 @@ spec setup =
         Test.specify "should be able to get minimum and maximum values" <|
             grouped = table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
@@ -575,6 +617,7 @@ spec setup =
         Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
@@ -588,6 +631,7 @@ spec setup =
         Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = table.aggregate [Group_By "Index", Concatenate "Code"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Index"
@@ -600,6 +644,7 @@ spec setup =
         Test.specify "should be able to count" <|
             grouped = table.aggregate [Group_By "Flag", Count, Group_By "Index"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Flag"
@@ -612,6 +657,7 @@ spec setup =
         Test.specify "should be able to count missing values" <|
             grouped = table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Group_By "Index", Count_Empty "TextWithNothing", Group_By "Flag", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 6
             materialized.columns.at 4 . name . should_equal "Flag"
@@ -630,6 +676,7 @@ spec setup =
         Test.specify "should be able to count distinct values" <|
             grouped = table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag", Group_By "Flag"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
@@ -646,6 +693,7 @@ spec setup =
         Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
             grouped = table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"], Group_By "Flag"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
@@ -658,6 +706,7 @@ spec setup =
         Test.specify "should be able to compute sum and average of values" <|
             grouped = table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Group_By "Flag"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 6
             materialized.columns.at 0 . name . should_equal "Index"
@@ -694,6 +743,7 @@ spec setup =
         Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Group_By "Index", Group_By "Flag", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 8
             materialized.columns.at 5 . name . should_equal "Flag"
@@ -716,6 +766,7 @@ spec setup =
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"]), Group_By "Index"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
@@ -730,6 +781,7 @@ spec setup =
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), Group_By "Index"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
@@ -744,6 +796,7 @@ spec setup =
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
@@ -758,6 +811,7 @@ spec setup =
         Test.specify "should be able to get minimum and maximum values" <|
             grouped = table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Group_By "Flag", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 6
             materialized.columns.at 3 . name . should_equal "Flag"
@@ -776,6 +830,7 @@ spec setup =
         Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Index"
@@ -790,6 +845,7 @@ spec setup =
         Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Concatenate "Code"]
             materialized = materialize grouped
+            Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
@@ -805,6 +861,7 @@ spec setup =
             result = table.aggregate [Shortest "A", Shortest "B"]
             result.row_count . should_equal 1
             materialized = materialize result
+            Problems.assume_no_problems materialized
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest A"
             materialized.columns.at 0 . to_vector . should_equal [""]
@@ -817,6 +874,7 @@ spec setup =
             result = table.aggregate [Group_By "A", (Concatenate "B" prefix="[[" suffix="]]" separator="; ")]
             result.row_count . should_equal 2
             materialized = materialize result . order_by ([Sort_Column.Name "A"])
+            Problems.assume_no_problems materialized
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "A"
             materialized.columns.at 0 . to_vector . should_equal ["bar", "foo"]
@@ -828,6 +886,7 @@ spec setup =
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
+            Problems.assume_no_problems materialized
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',b,'''c','''''',',']]"]
@@ -837,6 +896,7 @@ spec setup =
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
+            Problems.assume_no_problems materialized
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',A,'','',B,,,C]]"]
@@ -846,6 +906,12 @@ spec setup =
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator=",")]
             result.row_count . should_equal 1
             materialized = materialize result
+            ## Currently `Unquoted_Delimiter` is only reported in-memory, as
+               it's reported only if the delimiter is found in the data and we
+               do not yet have infrastructure to check such things on Database
+               columns.
+            if is_database.not then
+                Problems.expect_only_warning Unquoted_Delimiter materialized
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["[[1,0,A,,,B,,,C]]"]
@@ -855,6 +921,7 @@ spec setup =
             result = table.aggregate [(Concatenate "A")]
             result.row_count . should_equal 1
             materialized = materialize result
+            Problems.assume_no_problems materialized
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["1,0ABC"]
@@ -864,6 +931,7 @@ spec setup =
             result = table.aggregate [(Concatenate "A" quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
+            Problems.assume_no_problems materialized
             materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["'1''0'A''''BC"]
@@ -876,11 +944,23 @@ spec setup =
                 columns.first.length  . should_equal 1 frames_to_skip=1
                 columns.first . at 0
 
-            t1 = table_builder [["A", []]]
+            ## TODO currently our builder does not allow all-null tables, so we
+               create one with a 0 and remove it by filter. See #6159.
+            t0 = table_builder [["A", [0]]]
+            t1 = t0.filter "A" (Filter_Condition.Is_Nothing)
+            t1.row_count . should_equal 0
+            t1.at "A" . to_vector . should_equal []
+
             get_value (t1.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
             get_value (t1.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 0
 
-            t2 = table_builder [["A", [Nothing, Nothing]]]
+            ## TODO currently our builder does not allow all-null tables, so we
+               create one with a 0 and remove it by filter. See #6159.
+            t0_2 = table_builder [["A", [0, Nothing, Nothing]]]
+            t2 = t0_2.filter "A" (Filter_Condition.Is_Nothing)
+            t2.row_count . should_equal 2
+            t2.at "A" . to_vector . should_equal [Nothing, Nothing]
+
             get_value (t2.aggregate [Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
             get_value (t2.aggregate [Count_Distinct "A" (ignore_nothing=False)]) . should_equal 1
 
@@ -1132,6 +1212,7 @@ spec setup =
             grouped = table.aggregate [Group_By "B", Group_By "A"]
             grouped.row_count . should_equal 3
             materialized = materialize grouped . order_by ([Sort_Column.Name "A", Sort_Column.Name "B"])
+            Problems.assume_no_problems materialized
             materialized.column_count . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
             materialized.columns.at 1 . to_vector . should_equal [1, 1, 2]
@@ -1144,6 +1225,7 @@ spec setup =
                 grouped = table.aggregate [Group_By "A", Sum "B"]
                 grouped.row_count . should_equal 2
                 materialized = materialize grouped . order_by ["A"]
+                Problems.assume_no_problems materialized
                 materialized.column_count . should_equal 2
                 materialized.columns.at 0 . name . should_equal "A"
                 materialized.columns.at 0 . to_vector . should_equal ['s', 'ś']
@@ -1424,7 +1506,7 @@ spec setup =
                 warnings = Problems.get_attached_warnings result
                 warnings.length . should_equal error_count
                 warnings.each warning->
-                    warning.should_be_an Unsupported_Database_Operation.Error
+                    warning.should_be_a Unsupported_Database_Operation.Error
 
             if test_selection.first_last_row_order.not then
                 Test.specify "with First and Last in row order" <|

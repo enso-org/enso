@@ -1,0 +1,35 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+polyglot java import java.sql.PreparedStatement
+polyglot java import java.sql.Types as Java_Types
+
+type Statement_Setter
+    ## PRIVATE
+       Encapsulates the logic for filling a hole in a prepared statement.
+    Value (fill_hole : PreparedStatement -> Integer -> Any -> Nothing)
+
+    ## PRIVATE
+       The default setter that is handling simple commonly supported types.
+    default : Statement_Setter
+    default = Statement_Setter.Value fill_hole_default
+
+    ## PRIVATE
+       Used internally to mark statements that do not expect to have any values
+       to set.
+
+       It will panic if called.
+    null : Statement_Setter
+    null =
+        fill_hole_unexpected _ _ _ =
+            Panic.throw (Illegal_State.Error "The associated statement does not expect any values to be set. This is a bug in the Database library.")
+        Statement_Setter.Value fill_hole_unexpected
+
+## PRIVATE
+fill_hole_default stmt i value = case value of
+    Nothing     -> stmt.setNull i Java_Types.NULL
+    _ : Boolean -> stmt.setBoolean i value
+    _ : Integer -> stmt.setLong i value
+    _ : Decimal -> stmt.setDouble i value
+    _ : Text    -> stmt.setString i value
+    _           -> stmt.setObject i value
