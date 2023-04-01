@@ -79,7 +79,7 @@ pub fn setup_logging() -> Result {
                     .without_time()
                     .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
                     .with_writer(progress_bar_writer)
-                    .with_filter(filter)
+                    .with_filter(filter),
             ),
         )
         .unwrap()
