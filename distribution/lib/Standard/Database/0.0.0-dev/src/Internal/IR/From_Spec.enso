@@ -48,6 +48,17 @@ type From_Spec
 
     ## PRIVATE
 
+       A query source that performs a union operation on multiple sources.
+
+       Arguments:
+       - specs: the list of sources to be merged, every one of them should have
+         the same number of columns as columns are merged by position.
+       - alias: the name for the consolidated query, to be used by column
+         references, referring to columns of the union.
+    Union (specs : Vector From_Spec) (alias : Text)
+
+    ## PRIVATE
+
        A query source consisting of a sub-query.
 
        Arguments:

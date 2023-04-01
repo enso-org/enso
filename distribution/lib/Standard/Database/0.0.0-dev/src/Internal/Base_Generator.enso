@@ -177,7 +177,7 @@ base_dialect =
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive]
-    nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
+    nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"], ["NULL", make_constant "NULL"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
     Internal_Dialect.Value base_map wrap_in_quotes

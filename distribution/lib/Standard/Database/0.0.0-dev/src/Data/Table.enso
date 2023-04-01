@@ -1128,11 +1128,59 @@ type Table
          regardless of types of other columns. Mixing any other types will
          result in a `No_Common_Type` problem. If columns of incompatible types
          are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention.
+         retyped to the `Mixed` type to indicate that intention. Note that the
+         `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
-        _ = [tables, match_columns, keep_unmatched_columns, allow_type_widening, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.union is not implemented yet for the Database backends.")
+        all_tables = case tables of
+            v : Vector -> [self] + v
+            single_table -> [self, single_table]
+        all_tables.all (check_db_table "tables") . if_not_error <|
+            problem_builder = Problem_Builder.new
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
+            result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
+            merged_columns = matched_column_sets.map column_set->
+                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
+                    Nothing -> Nothing
+                    result_type : Value_Type ->
+                        [column_set, result_type]
+            good_columns = merged_columns.filter r-> r.second.is_nothing.not
+            if good_columns.is_empty then Error.throw No_Output_Columns else
+                problem_builder.attach_problems_before on_problems <|
+                    subquery_renamer = Unique_Name_Strategy.new
+                    subqueries = all_tables.map_with_index i-> t->
+                        columns_to_select = good_columns.map description->
+                            column_set = description.first
+                            column_name = column_set.name
+                            case column_set.column_indices.at i of
+                                Nothing ->
+                                    null_expression = SQL_Expression.Operation "NULL" []
+                                    Internal_Column.Value column_name SQL_Type_Reference.null null_expression
+                                corresponding_column_index : Integer ->
+                                    t.at corresponding_column_index . as_internal . rename column_name
+                        subquery_name = subquery_renamer.make_unique t.name
+                        setup = t.context.as_subquery subquery_name [[columns_to_select]]
+                        setup.subquery
+
+                    union_alias = all_tables.map .name . join "_"
+                    new_from = From_Spec.Union subqueries union_alias
+                    new_ctx = Context.for_subquery new_from
+
+                    ## TODO [RW] The result type is currently fetched
+                       independently for each column, instead we should fetch it
+                       for all columns at once.
+                       See #6118.
+                    new_columns = good_columns.map description->
+                        column_set = description.first
+                        result_type = description.second
+                        name = column_set.name
+                        # TODO cast to type
+                        _ = result_type
+                        expression = SQL_Expression.Column union_alias name
+                        type_ref = SQL_Type_Reference.new self.connection new_ctx expression
+                        Internal_Column.Value name type_ref expression
+
+                    Table.Value union_alias self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -1651,3 +1699,16 @@ freshen_columns used_names columns =
 type Wrapped_Error
     ## PRIVATE
     Value value
+
+## PRIVATE
+   Checks if the argument is a proper table and comes from the current backend.
+   It returns True or throws a dataflow error explaining the issue.
+
+   TODO [RW]: this should check that the tables are on the same connection
+check_db_table arg_name table =
+    if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
+            same_backend = table.is_a Table
+            case same_backend of
+                False ->
+                    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+                True -> True
