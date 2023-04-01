@@ -1114,34 +1114,32 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val block = ir.asInstanceOf[IR.Expression.Block]
-      if (!block.expressions.head.isInstanceOf[IR.Error.Resolution]) {
-        val xBind     = block.expressions.head.asInstanceOf[IR.Expression.Binding]
-        val xBindName = xBind.name.asInstanceOf[IR.Name.Literal]
-        val xBindExpr = xBind.expression.asInstanceOf[IR.Literal.Number]
+      val block     = ir.asInstanceOf[IR.Expression.Block]
+      val xBind     = block.expressions.head.asInstanceOf[IR.Expression.Binding]
+      val xBindName = xBind.name.asInstanceOf[IR.Name.Literal]
+      val xBindExpr = xBind.expression.asInstanceOf[IR.Literal.Number]
 
-        // The IDs
-        val blockId     = mkStaticDep(block.getId)
-        val xBindId     = mkStaticDep(xBind.getId)
-        val xBindNameId = mkStaticDep(xBindName.getId)
-        val xBindExprId = mkStaticDep(xBindExpr.getId)
+      // The IDs
+      val blockId     = mkStaticDep(block.getId)
+      val xBindId     = mkStaticDep(xBind.getId)
+      val xBindNameId = mkStaticDep(xBindName.getId)
+      val xBindExprId = mkStaticDep(xBindExpr.getId)
 
-        // The info
-        val dependents   = depInfo.dependents
-        val dependencies = depInfo.dependencies
+      // The info
+      val dependents   = depInfo.dependents
+      val dependencies = depInfo.dependencies
 
-        // The test for dependents
-        dependents.getDirect(blockId) should not be defined
-        dependents.getDirect(xBindNameId) shouldEqual Some(Set(xBindId))
-        dependents.getDirect(xBindExprId) shouldEqual Some(Set(xBindId))
+      // The test for dependents
+      dependents.getDirect(blockId) should not be defined
+      dependents.getDirect(xBindNameId) shouldEqual Some(Set(xBindId))
+      dependents.getDirect(xBindExprId) shouldEqual Some(Set(xBindId))
 
-        // The test for dependencies
-        dependencies.getDirect(xBindId) shouldEqual Some(
-          Set(xBindNameId, xBindExprId)
-        )
-        dependencies.getDirect(xBindNameId) shouldEqual None
-        dependencies.getDirect(xBindExprId) shouldEqual None
-      }
+      // The test for dependencies
+      dependencies.getDirect(xBindId) shouldEqual Some(
+        Set(xBindNameId, xBindExprId)
+      )
+      dependencies.getDirect(xBindNameId) shouldEqual None
+      dependencies.getDirect(xBindExprId) shouldEqual None
     }
 
     "work properly for bindings" in {
