@@ -104,8 +104,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.resolve
 
       if (!ir.isInstanceOf[IR.Error.Syntax]) {
-        ir shouldBe an[IR.Function.Lambda]
-        ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+        ir shouldBe an[IR.Type.Ascription]
       }
     }
 
