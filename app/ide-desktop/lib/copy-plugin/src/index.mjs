@@ -57,6 +57,7 @@ export function create(filesProvider) {
         let files
 
         if (Array.isArray(build.initialOptions.entryPoints)) {
+            // @ts-expect-error We do not support `{ in: string; out: string; }` entry points.
             build.initialOptions.entryPoints.push(magic)
         } else if (typeof build.initialOptions.entryPoints === 'object') {
             build.initialOptions.entryPoints[magic] = magic

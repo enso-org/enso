@@ -42,7 +42,6 @@ interface AuthenticationApi {
 
 declare global {
     interface Window {
-        liveReloadListening?: boolean
         enso: Enso
         authenticationApi: AuthenticationApi
     }
@@ -59,9 +58,10 @@ declare global {
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUNDLED_ENGINE_VERSION: string
-    const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const BUILD_INFO: BuildInfo
+    // eslint-disable-next-line no-restricted-syntax
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string | undefined
+    const IS_DEV_MODE: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
 }
 

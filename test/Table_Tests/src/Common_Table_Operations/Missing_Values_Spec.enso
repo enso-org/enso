@@ -42,7 +42,13 @@ spec setup =
             d2.at "c" . to_vector . should_equal ["", "foo", "bar", Nothing, " "]
 
         Test.specify "filter_blank_rows should deal with edge cases" <|
-            t1 = table_builder [["X", [Nothing, Nothing, Nothing]]]
+            ## TODO currently our builder does not allow all-null tables, so we
+               create one with a 0 and remove it by filter. See #6159.
+            t0 = table_builder [["X", [0, Nothing, Nothing, Nothing]]]
+            t1 = t0.filter "X" (Filter_Condition.Is_Nothing)
+            t1.row_count . should_equal 3
+            t1.at "X" . to_vector . should_equal [Nothing, Nothing, Nothing]
+
             t2 = t1.filter_blank_rows when_any=True
             t2.row_count . should_equal 0
             t2.at "X" . to_vector . should_equal []
