@@ -169,14 +169,19 @@ spec setup =
         Test.specify "should gracefully handle the case where no tables to union were provided" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
 
-            t1.union [] . should_equal t1
-            t1.union [] match_columns=Match_Columns.By_Position . should_equal t1
+            check_same table =
+                expect_column_names ["A", "B"] table
+                table.at "A" . to_vector . should_equal [1, 2, 3]
+                table.at "B" . to_vector . should_equal ["a", "b", "c"]
 
-            t1.union [] keep_unmatched_columns=False . should_equal t1
-            t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=False . should_equal t1
+            check_same <| t1.union []
+            check_same <| t1.union [] match_columns=Match_Columns.By_Position
 
-            t1.union [] keep_unmatched_columns=True . should_equal t1
-            t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=True . should_equal t1
+            check_same <| t1.union [] keep_unmatched_columns=False
+            check_same <| t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=False
+
+            check_same <| t1.union [] keep_unmatched_columns=True
+            check_same <| t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=True
 
         Test.specify "should find a common type that will fit the merged columns" <|
             t1 = table_builder [["int+bool", [1, 2, 3]], ["int+float", [0, 1, 2]]]

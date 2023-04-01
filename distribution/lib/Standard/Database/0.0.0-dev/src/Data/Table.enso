@@ -1144,7 +1144,7 @@ type Table
                     Nothing -> Nothing
                     result_type : Value_Type ->
                         [column_set, result_type]
-            good_columns = merged_columns.filter r-> r.second.is_nothing.not
+            good_columns = merged_columns.filter r-> r.is_nothing.not
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
                     queries = all_tables.map_with_index i-> t->
