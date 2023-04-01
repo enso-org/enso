@@ -32,6 +32,7 @@ mod frame {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let inner = Rect((SIZE.px(), SIZE.px()));
             let outer = inner.grow(0.2.px());

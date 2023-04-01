@@ -124,10 +124,10 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type ShapeData: Debug;
     fn definition_path() -> &'static str;
     fn pointer_events() -> bool;
-    /// The alignment of the drawn shape's origin position. When set to `left_bottom`, the shape's
-    /// origin will be at the bottom left corner of its bounding box. The default value is `center`.
+    /// The alignment of the drawn shape's origin position. When set to `center`, the shape's
+    /// origin will be at the center of its bounding box. The default value is `left_bottom`.
     fn default_alignment() -> alignment::Dim2 {
-        alignment::Dim2::center()
+        alignment::Dim2::left_bottom()
     }
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
@@ -659,14 +659,12 @@ macro_rules! shape_old {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
-        $(alignment = $alignment:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_shape_old! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
             $(flavor = [$flavor];)?
-            $(alignment = $alignment;)?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
@@ -685,7 +683,6 @@ macro_rules! _shape_old {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
-        $(alignment = $alignment:tt;)?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -742,9 +739,9 @@ macro_rules! _shape_old {
                     _out
                 }
 
-                $(fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
-                    $crate::display::layout::alignment::Dim2::$alignment()
-                })?
+                fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
+                    $crate::display::layout::alignment::Dim2::center()
+                }
 
                 fn always_above() -> Vec<ShapeSystemId> {
                     vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]

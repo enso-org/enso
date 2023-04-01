@@ -167,6 +167,7 @@ impl Viewport {
 mod mask {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style, corner_radius_top_right: f32, corner_radius_top_left: f32,
             corner_radius_bottom_right: f32, corner_radius_bottom_left: f32) {
             let width: Var<Pixels> = "input_size.x".into();
