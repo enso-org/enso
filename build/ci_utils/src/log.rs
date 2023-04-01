@@ -127,7 +127,7 @@ impl std::io::Write for IndicatifWriter {
     }
 }
 
-impl<'a> tracing_subscriber::fmt::MakeWriter<'_> for IndicatifWriter {
+impl tracing_subscriber::fmt::MakeWriter<'_> for IndicatifWriter {
     type Writer = Self;
 
     fn make_writer(&self) -> Self::Writer {
