@@ -116,8 +116,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |a : _
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+      ir shouldBe an[IR.Type.Ascription]
     }
   }
 
