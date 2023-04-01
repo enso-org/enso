@@ -13,6 +13,7 @@ import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
+import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
@@ -1138,7 +1139,6 @@ type Table
         all_tables.all (check_db_table "tables") . if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
-            result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
                 case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
                     Nothing -> Nothing

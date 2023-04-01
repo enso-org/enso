@@ -292,7 +292,7 @@ generate_from_part dialect from_spec = case from_spec of
             case query of
                 Query.Select _ _ -> Nothing
                 _ -> Panic.throw <| Illegal_State.Error "Only SELECT queries can be used in a UNION. This is a bug in the Database library."
-            generate_query dialect query . paren
+            generate_query dialect query
         joined = Builder.join " UNION ALL " built_queries
         joined.paren ++ alias dialect as_name
     From_Spec.Sub_Query columns context as_name ->
