@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 polyglot java import java.lang.Long
 polyglot java import java.util.function.Function as Java_Function
@@ -149,11 +150,23 @@ spec = Test.group "Dataflow Warnings" <|
         rewarned.should_equal 'foo'
         Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 
+    Test.specify "should allow checking for any warnings" <|
+        Warning.has_warnings "foo" . should_be_false
+        "foo".has_warnings.should_be_false
+
+        warned = Warning.attach 1 "foo"
+        warned.has_warnings.should_be_true
+        Warning.has_warnings warned . should_be_true
+
     Test.specify "should allow to clear warnings" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
         cleared = Warning.clear warned
         cleared.should_equal 'foo'
         Warning.get_all cleared . map .value . should_equal []
+
+        clear_2 = warned.remove_warnings
+        clear_2.should_equal 'foo'
+        Warning.get_all clear_2 . map .value . should_equal []
 
     Test.specify "should allow to run a function suspending warnings attached to an argument and reattach them to the result" <|
         x = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
@@ -193,6 +206,21 @@ spec = Test.group "Dataflow Warnings" <|
         detached_pair . first . should_equal "foo"
         Warning.get_all (detached_pair . first) . map .value . should_equal [2,4]
         detached_pair.second . map .value . should_equal [1,3]
+
+    Test.specify "should allow to remove warnings, by type" <|
+        warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
+
+        no_int = warned.remove_warnings Integer
+        Warning.get_all no_int . map .value . should_equal ["Alpha", Nothing, (Unimplemented.Error "An Error Here")]
+
+        no_text = warned.remove_warnings Text
+        Warning.get_all no_text . map .value . should_equal [1, Nothing, (Unimplemented.Error "An Error Here")]
+
+        no_nothing = warned.remove_warnings Nothing
+        Warning.get_all no_nothing . map .value . should_equal [1, "Alpha", (Unimplemented.Error "An Error Here")]
+
+        no_error = warned.remove_warnings Unimplemented
+        Warning.get_all no_error . map .value . should_equal [1, "Alpha", Nothing]
 
     Test.specify "should allow to map the warnings, selectively" <|
         x = Warning.attach "foo" 1
