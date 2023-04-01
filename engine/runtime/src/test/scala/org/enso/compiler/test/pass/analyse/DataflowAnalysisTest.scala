@@ -1465,7 +1465,7 @@ class DataflowAnalysisTest extends CompilerTest {
     implicit val inlineContext: InlineContext = mkInlineContext
 
     val meta     = new Metadata
-    val lambdaId = meta.addItem(1, 60, "aaaa")
+    val lambdaId = meta.addItem(1, 45, "aaaa")
     val aBindId  = meta.addItem(10, 9, "bbbb")
 
     val code =
@@ -1473,11 +1473,15 @@ class DataflowAnalysisTest extends CompilerTest {
         |x ->
         |    a = x + 1
         |    b = State.read
-        |    a+b . IO.println
+        |    a+b
         |""".stripMargin.linesIterator.mkString("\n")
 
     val codeWithMeta = meta.appendToCode(code)
-    meta.assertInCode(lambdaId, "\n" + codeWithMeta, code + "\n")
+    meta.assertInCode(
+      lambdaId,
+      "\n" + codeWithMeta,
+      code.substring(0, code.length() - 1)
+    )
     meta.assertInCode(aBindId, codeWithMeta, "a = x + 1")
 
     val ir = codeWithMeta.preprocessExpression.get.analyse
@@ -1490,9 +1494,7 @@ class DataflowAnalysisTest extends CompilerTest {
       .asInstanceOf[IR.Expression.Binding]
     val aBindExpr = aBind.expression
 
-    "store a mapping between internal and external identifiers" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
-      // Not sure what this one shall do yet
+    "store a mapping between internal and external identifiers" in {
       val b = asStatic(aBind)
       val m = metadata.dependents.get(b)
       m.get should contain(
@@ -1504,7 +1506,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
     "return the set of external identifiers for invalidation" in {
       metadata.dependents.getExternal(asStatic(aBindExpr)).get shouldEqual Set(
-//        lambdaId,
+        lambdaId,
         aBindId
       )
     }
