@@ -27,7 +27,7 @@ public class EnsoProjectNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     return createProjectDescription();
   }
-  
+
   @CompilerDirectives.TruffleBoundary
   private Object createProjectDescription() {
     var context = EnsoContext.get(this);
