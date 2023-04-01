@@ -117,14 +117,15 @@ final class TreeToIr {
             case Tree.Import x -> null;
             case Tree.Invalid x -> null;
             case Tree.TypeSignature sig -> {
+              IR.Expression methodReference;
               try {
-                var methodReference = translateMethodReference(sig.getVariable(), true);
-                var signature = translateType(sig.getType(), false);
-                var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
-                yield ascription;
+                methodReference = translateMethodReference(sig.getVariable(), true);
               } catch (SyntaxException ex) {
-                yield ex.toError();
+                methodReference = translateExpression(sig.getVariable());
               }
+              var signature = translateType(sig.getType(), false);
+              var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+              yield ascription;
             }
             default -> translateExpression(exprTree);
           };
