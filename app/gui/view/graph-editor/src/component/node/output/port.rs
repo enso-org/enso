@@ -173,6 +173,7 @@ pub mod single_port {
     use ensogl::display::shape::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style, size_multiplier:f32, opacity:f32, color_rgb:Vector3<f32>) {
             let overall_width  = Var::<Pixels>::from("input_size.x");
             let overall_height = Var::<Pixels>::from("input_size.y");
@@ -299,6 +300,7 @@ pub mod multi_port {
     }
 
     ensogl::shape! {
+        alignment = center;
         ( style           : Style
         , size_multiplier : f32
         , index           : f32

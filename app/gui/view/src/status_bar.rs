@@ -93,6 +93,7 @@ mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let theme             = ensogl_hardcoded_theme::application::status_bar::background;
             let theme             = style::Path::from(theme);

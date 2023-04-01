@@ -228,6 +228,15 @@ macro_rules! gen_transform {
                     *self.[<$name _mut>]() = t;
                 }
 
+                pub fn [<set_ $name _dim_checked>]<D>(&mut self, dim: D, t: f32) -> bool
+                where
+                    Vector3<f32>: DimSetter<D>,
+                {
+                    let changed = self.transform.$name.set_dim_checked(dim, t);
+                    self.dirty |= changed;
+                    changed
+                }
+
                 pub fn [<update_ $name>]<F: FnOnce(Vector3<f32>) -> Vector3<f32>>(&mut self, f: F) {
                     *self.[<$name _mut>]() = f(self.$name());
                 }
