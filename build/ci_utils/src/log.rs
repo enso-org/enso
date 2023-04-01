@@ -119,11 +119,11 @@ impl IndicatifWriter {
 
 impl std::io::Write for IndicatifWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.progress_bars.suspend(|| io::stderr().write(buf))
+        self.progress_bar.suspend(|| io::stderr().write(buf))
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.progress_bars.suspend(|| io::stderr().flush())
+        self.progress_bar.suspend(|| io::stderr().flush())
     }
 }
 
