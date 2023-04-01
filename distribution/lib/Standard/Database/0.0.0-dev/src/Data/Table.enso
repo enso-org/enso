@@ -1147,23 +1147,19 @@ type Table
             good_columns = merged_columns.filter r-> r.second.is_nothing.not
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
-                    subquery_renamer = Unique_Name_Strategy.new
-                    subqueries = all_tables.map_with_index i-> t->
+                    queries = all_tables.map_with_index i-> t->
                         columns_to_select = good_columns.map description->
                             column_set = description.first
                             column_name = column_set.name
-                            case column_set.column_indices.at i of
-                                Nothing ->
-                                    null_expression = SQL_Expression.Operation "NULL" []
-                                    Internal_Column.Value column_name SQL_Type_Reference.null null_expression
+                            expression = case column_set.column_indices.at i of
+                                Nothing -> SQL_Expression.Operation "NULL" []
                                 corresponding_column_index : Integer ->
-                                    t.at corresponding_column_index . as_internal . rename column_name
-                        subquery_name = subquery_renamer.make_unique t.name
-                        setup = t.context.as_subquery subquery_name [[columns_to_select]]
-                        setup.subquery
+                                    t.at corresponding_column_index . expression
+                            [column_name, expression]
+                        Query.Select columns_to_select t.context
 
                     union_alias = all_tables.map .name . join "_"
-                    new_from = From_Spec.Union subqueries union_alias
+                    new_from = From_Spec.Union queries union_alias
                     new_ctx = Context.for_subquery new_from
 
                     ## TODO [RW] The result type is currently fetched
