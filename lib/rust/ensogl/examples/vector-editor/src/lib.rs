@@ -412,10 +412,16 @@ impl<T: display::Object> Model<T> {
         let prev_index = index.saturating_sub(1);
         let next_index = index.saturating_add(1);
         let mut old_spacer: Option<(usize, Spacer)> = None;
+        let mut old_spacer_to_merge: Option<(usize, Spacer)> = None;
         if let Some(Item::WeakSpacer(weak)) = self.items.get(prev_index) && let Some(spacer) = weak.upgrade() {
             old_spacer = Some((prev_index, spacer));
-        } else if let Some(Item::WeakSpacer(weak)) = self.items.get(next_index) && let Some(spacer) = weak.upgrade() {
-            old_spacer = Some((next_index, spacer));
+        }
+        if let Some(Item::WeakSpacer(weak)) = self.items.get(next_index) && let Some(spacer) = weak.upgrade() {
+            if old_spacer.is_some() {
+                old_spacer_to_merge = Some((next_index, spacer));
+            } else {
+                old_spacer = Some((next_index, spacer));
+            }
         }
         if let Some((spacer_index, spacer)) = old_spacer {
             let elem_ref = &self.items[index];
@@ -423,6 +429,11 @@ impl<T: display::Object> Model<T> {
             spacer.uncollapse();
             spacer.mod_size(size);
             spacer.set_target_size(size);
+            if let Some((spacer_to_merge_index, spacer_to_merge)) = old_spacer_to_merge {
+                self.items.remove(spacer_to_merge_index);
+                spacer.mod_size(spacer_to_merge.computed_size().x);
+                spacer_to_merge.uncollapse();
+            }
             self.items[spacer_index] = Item::Spacer(spacer);
             let elem = self.items.remove(index);
             self.dragged_item = Some(elem);
