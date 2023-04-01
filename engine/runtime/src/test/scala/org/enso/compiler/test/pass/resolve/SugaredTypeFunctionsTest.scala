@@ -59,7 +59,6 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     }
 
     "work for left sections" in {
-      // FIXME: Not supported by new parser--needs triage (#5894).
       val ir =
         """
           |(a :)
@@ -133,7 +132,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     }
 
     "resolve context ascription" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+      // FIXME: Not supported by new parser--needs triage (#6165).
       val ir =
         """
           |a in IO
@@ -161,7 +160,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     }
 
     "resolve equality" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+      // FIXME: Not supported by new parser--needs triage (#6165).
       val ir =
         """
           |T ~ P
@@ -198,7 +197,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     }
 
     "resolve subtraction" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+      // FIXME: Not supported by new parser--needs triage (#6165).
       val ir =
         """
           |T \ P
