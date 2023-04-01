@@ -39,6 +39,7 @@ mod background {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style:Style,bg_color:Vector4) {
 
             let width      = Var::<Pixels>::from("input_size.x");

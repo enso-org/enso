@@ -33,6 +33,7 @@ pub mod separator {
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
+        alignment = center;
         (style: Style) {
             let color = style.get_color(theme::separator::color);
             let width = style.get_number(theme::separator::width);
@@ -58,6 +59,7 @@ pub mod ellipsis {
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
+        alignment = center;
         (style: Style) {
             let radius = style.get_number(theme::ellipsis::circles_radius).px();
             let gap = style.get_number(theme::ellipsis::circles_gap).px();

@@ -55,6 +55,7 @@ pub mod arrow {
 
     ensogl_core::shape! {
         below = [chooser_hover_area];
+        alignment = center;
         (style:Style) {
             let width            = Var::<Pixels>::from("input_size.x");
             let height           = Var::<Pixels>::from("input_size.y");
@@ -74,6 +75,7 @@ pub mod chooser_hover_area {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

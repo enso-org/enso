@@ -288,6 +288,7 @@ pub mod joint {
 
     ensogl::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let radius        = Var::<Pixels>::from("input_size.y");
             let joint         = Circle((radius-PADDING.px())/2.0);
@@ -326,6 +327,7 @@ macro_rules! define_corner_start {
 
             ensogl::shape! {
                 below = [joint];
+                alignment = center;
                 ( style:               Style
                 , radius             : f32
                 , angle              : f32
@@ -425,6 +427,7 @@ macro_rules! define_corner_end {
             use super::*;
             ensogl::shape! {
                 below = [joint];
+                alignment = center;
                 (
                     style: Style,
                     radius: f32,
@@ -529,6 +532,7 @@ macro_rules! define_line {
             use super::*;
             ensogl::shape! {
                 below = [joint];
+                alignment = center;
                 (
                     style: Style,
                     focus_split_center: Vector2<f32>,
@@ -597,6 +601,7 @@ macro_rules! define_arrow { () => {
         use super::*;
         ensogl::shape! {
             above = [joint];
+            alignment = center;
             (
                 style: Style,
                 focus_split_center: Vector2<f32>,
