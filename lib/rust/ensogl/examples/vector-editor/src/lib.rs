@@ -153,15 +153,19 @@ mod spacer {
             self.collapsing.set(false);
         }
 
-        pub fn set_margin_left(&self, margin: f32) {
-            let current_margin = self.margin_left.get();
-            let margin_diff = margin - current_margin;
-            self.margin_left.set(margin);
-            self.size_animation.simulator.update_value(|v| v + margin_diff);
-            if !self.collapsing.get() {
-                self.size_animation.simulator.update_target_value(|v| v + margin_diff);
-            }
+        pub fn mod_size(&self, delta: f32) {
+            self.size_animation.simulator.update_value(|v| v + delta);
         }
+
+        // pub fn set_margin_left(&self, margin: f32) {
+        //     let current_margin = self.margin_left.get();
+        //     let margin_diff = margin - current_margin;
+        //     self.margin_left.set(margin);
+        //     self.size_animation.simulator.update_value(|v| v + margin_diff);
+        //     if !self.collapsing.get() {
+        //         self.size_animation.simulator.update_target_value(|v| v + margin_diff);
+        //     }
+        // }
     }
 
     impl display::Object for Spacer {
@@ -219,19 +223,6 @@ impl<T: display::Object> Item<T> {
 
     pub fn computed_size(&self) -> Vector2 {
         self.display_object().map(|t| t.computed_size()).unwrap_or_default()
-    }
-
-    pub fn set_margin_left(&self, margin: f32) {
-        match self {
-            Item::Regular(t) => {
-                t.set_margin_left(margin);
-            }
-            Item::Spacer(t) => t.set_margin_left(margin),
-            Item::WeakSpacer(t) =>
-                if let Some(spacer) = t.upgrade() {
-                    spacer.set_margin_left(margin);
-                },
-        }
     }
 
     pub fn exists(&self) -> bool {
@@ -371,16 +362,13 @@ impl<T: display::Object> Model<T> {
     fn reset_margins(&self) {
         let mut first_elem = true;
         for item in &self.items {
-            if item.is_weak_spacer() {
-                // As the first element, [`WeakSpacer`] contains the left margin of the next
-                // element in order to not leave any space after collapsing.
-                item.set_margin_left(GAP);
-            } else if item.is_spacer() {
-                item.set_margin_left(GAP);
-            } else {
-                let gap = if first_elem { 0.0 } else { GAP };
-                item.set_margin_left(gap);
-                first_elem = false;
+            match item {
+                Item::Regular(item) => {
+                    let gap = if first_elem { 0.0 } else { GAP };
+                    item.set_margin_left(gap);
+                    first_elem = false;
+                }
+                _ => {}
             }
         }
     }
@@ -420,14 +408,35 @@ impl<T: display::Object> Model<T> {
             .iter()
             .position(|item| item.display_object().as_ref() == Some(target))
             .expect("Item not found");
-        let spacer = Spacer::new();
-        let elem_ref = &self.items[index];
-        // let gap_size = if index == 0 { 0.0 } else { GAP };
-        spacer.set_target_size_no_animation(elem_ref.computed_size().x);
-        let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
-        self.dragged_item = Some(elem);
-        self.reset_margins();
-        self.redraw_items(layouted_elems);
+        self.collapse_all_spacers();
+        let prev_index = index.saturating_sub(1);
+        let next_index = index.saturating_add(1);
+        let mut old_spacer: Option<(usize, Spacer)> = None;
+        if let Some(Item::WeakSpacer(weak)) = self.items.get(prev_index) && let Some(spacer) = weak.upgrade() {
+            old_spacer = Some((prev_index, spacer));
+        } else if let Some(Item::WeakSpacer(weak)) = self.items.get(next_index) && let Some(spacer) = weak.upgrade() {
+            old_spacer = Some((next_index, spacer));
+        }
+        if let Some((spacer_index, spacer)) = old_spacer {
+            let elem_ref = &self.items[index];
+            let size = elem_ref.computed_size().x + GAP;
+            spacer.uncollapse();
+            spacer.mod_size(size);
+            spacer.set_target_size(size);
+            self.items[spacer_index] = Item::Spacer(spacer);
+            let elem = self.items.remove(index);
+            self.dragged_item = Some(elem);
+            self.reset_margins();
+            self.redraw_items(layouted_elems);
+        } else {
+            let spacer = Spacer::new();
+            let elem_ref = &self.items[index];
+            spacer.set_target_size_no_animation(elem_ref.computed_size().x + GAP);
+            let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
+            self.dragged_item = Some(elem);
+            self.reset_margins();
+            self.redraw_items(layouted_elems);
+        }
     }
 
     fn potential_insertion_point(&mut self, index: usize) {
@@ -446,14 +455,14 @@ impl<T: display::Object> Model<T> {
             }
             if let Some((index, spacer)) = old_spacer {
                 warn!("reusing spacer");
-                spacer.set_target_size(item.computed_size().x);
+                spacer.set_target_size(item.computed_size().x + GAP);
                 spacer.uncollapse();
                 self.items[index] = Item::Spacer(spacer);
                 self.reset_margins();
             } else {
                 warn!("adding spacer");
                 let spacer = Spacer::new();
-                spacer.set_target_size(item.computed_size().x);
+                spacer.set_target_size(item.computed_size().x + GAP);
                 self.items.insert(index, Item::Spacer(spacer.clone_ref()));
                 self.reset_margins();
                 spacer.set_current_size(0.0);
