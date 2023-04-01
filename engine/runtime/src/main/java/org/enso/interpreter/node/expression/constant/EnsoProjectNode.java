@@ -24,8 +24,12 @@ public class EnsoProjectNode extends RootNode {
   }
 
   @Override
-  @CompilerDirectives.TruffleBoundary
   public Object execute(VirtualFrame frame) {
+    return createProjectDescription();
+  }
+  
+  @CompilerDirectives.TruffleBoundary
+  private Object createProjectDescription() {
     var context = EnsoContext.get(this);
     if (pkgOpt.isPresent()) {
       Package<TruffleFile> pkg = pkgOpt.get();
