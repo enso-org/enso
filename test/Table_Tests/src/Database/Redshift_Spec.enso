@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Table, Value_Type
 
 from Standard.Database import Database, Redshift, AWS_Credential, SQL_Query
 
@@ -24,12 +25,12 @@ redshift_specific_spec connection =
             i = t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
-            i.at "SQL Type" . to_vector . should_equal ["varchar", "int4", "bool", "float4"]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer Bits.Bits_32, Value_Type.Boolean, Value_Type.Float Bits.Bits_32]
         Test.specify "should infer standard types correctly" <|
-            t.at "strs" . sql_type . is_definitely_text . should_be_true
-            t.at "ints" . sql_type . is_definitely_integer . should_be_true
-            t.at "bools" . sql_type . is_definitely_boolean . should_be_true
-            t.at "reals" . sql_type . is_definitely_double . should_be_true
+            t.at "strs" . value_type . is_text . should_be_true
+            t.at "ints" . value_type . is_integer . should_be_true
+            t.at "bools" . value_type . is_boolean . should_be_true
+            t.at "reals" . value_type . is_floating_point . should_be_true
         connection.execute_update 'DROP TABLE "'+tinfo+'"'
 
 run_tests connection =

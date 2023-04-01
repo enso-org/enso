@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import all
 from Standard.Table.Errors import all
-import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 

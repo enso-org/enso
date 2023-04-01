@@ -1,6 +1,7 @@
 package org.enso.table.aggregations;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
@@ -22,7 +23,7 @@ public class CountEmpty extends Aggregator {
    * @param isEmpty true to count nulls or empty, false to count non-empty
    */
   public CountEmpty(String name, Column column, boolean isEmpty) {
-    super(name, Storage.Type.LONG);
+    super(name, IntegerType.INT_64);
     this.storage = column.getStorage();
     this.isEmpty = isEmpty;
   }
