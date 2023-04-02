@@ -41,6 +41,7 @@ mod hover_area {
 
     ensogl::shape! {
         below = [drop_down_menu::arrow];
+        alignment = center;
         (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -58,6 +59,7 @@ mod background {
 
     ensogl::shape! {
         below = [hover_area];
+        alignment = center;
         (style:Style) {
             let width              = Var::<Pixels>::from("input_size.x");
             let height             = Var::<Pixels>::from("input_size.y");
@@ -87,6 +89,7 @@ mod four_arrow_icon {
     const ARROW_LINE_WIDTH: f32 = 1.0;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");
@@ -127,6 +130,7 @@ mod pin_icon {
     const PIN_THORN_WIDTH: f32 = 1.0;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");

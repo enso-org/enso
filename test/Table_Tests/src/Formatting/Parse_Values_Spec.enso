@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Data_Formatter, Column, Column_Selector
-from Standard.Table.Data.Value_Type import Auto, Value_Type
+from Standard.Table.Data.Type.Value_Type import Value_Type, Auto
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -178,7 +178,7 @@ spec =
 
             Problems.assume_no_problems t2
             t2.at "ints" . to_vector . should_equal [1, 2, -123, Nothing]
-            t2.at "ints" . to_vector . first . should_be_an Integer
+            t2.at "ints" . to_vector . first . should_be_a Integer
             t2.at "ints0" . to_vector . should_equal ["01", "02", Nothing, "-1"]
             t2.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
             t2.at "bools" . to_vector . should_equal [True, False, Nothing, True]

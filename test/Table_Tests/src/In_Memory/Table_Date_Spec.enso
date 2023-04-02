@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Table, Column, Delimited, Data_Formatter
 import Standard.Table.Data.Table_Conversions
-import Standard.Table.Data.Storage.Storage
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -22,7 +22,7 @@ spec =
             table.column_count.should_equal 5
             table.row_count.should_equal 7
             table.info.at "Column" . to_vector . should_equal ['Number','Party', 'Title', 'From', 'To']
-            table.info.at "Storage Type" . to_vector . should_equal [Storage.Integer, Storage.Text, Storage.Text, Storage.Date, Storage.Date]
+            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Integer, Value_Type.Char, Value_Type.Char, Value_Type.Date, Value_Type.Date]
 
         Test.specify "should be able to treat a single value as a Date" <|
             from_column = table.at 'From'

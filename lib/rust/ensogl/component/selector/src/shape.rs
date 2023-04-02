@@ -56,6 +56,7 @@ pub mod background {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style:Style,corner_left:f32,corner_right:f32,color:Vector4,show_shadow:f32) {
             let background = Background::new(&corner_left,&corner_right,style);
             let shadow     = shadow::from_shape_with_alpha(background.shape.clone(),
@@ -77,6 +78,7 @@ pub mod io_rect {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style: Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -105,6 +107,7 @@ pub mod track {
     ensogl_core::shape! {
         above = [background];
         below = [left_overflow, right_overflow, io_rect];
+        alignment = center;
         (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,corner_inner:f32,
          track_color:Vector4) {
             let background    = Background::new(&corner_left,&corner_right,style);
@@ -169,6 +172,7 @@ pub mod left_overflow {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate((-90.0_f32).to_radians().radians());
@@ -183,6 +187,7 @@ pub mod right_overflow {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate(90.0_f32.to_radians().radians());

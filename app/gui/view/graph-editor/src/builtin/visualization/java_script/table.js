@@ -15,6 +15,8 @@ loadStyleFromString(scrollbarStyle)
 // === Table visualization ===
 // ===========================
 
+const SIDE_MARGIN = 20
+
 class TableVisualization extends Visualization {
     // IMPORTANT: When updating this, also update the test in
     // test/Visualization_Tests/src/Default_Visualizations_Spec.enso:15 as this verifies that the
@@ -125,7 +127,6 @@ class TableVisualization extends Visualization {
             tabElem.setAttributeNS(null, 'class', 'scrollable ag-theme-alpine')
             this.dom.appendChild(tabElem)
             this.tabElem = tabElem
-            this.updateTableSize()
 
             this.agGridOptions = {
                 rowData: [],
@@ -137,6 +138,7 @@ class TableVisualization extends Visualization {
                     resizable: true,
                     minWidth: 50,
                 },
+                onColumnResized: e => this.lockColumnSize(e),
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
@@ -222,36 +224,48 @@ class TableVisualization extends Visualization {
             this.agGridOptions.api.setPinnedTopRowData([extraRow])
         }
         this.agGridOptions.api.setRowData(rowData)
-        this.agGridOptions.api.sizeColumnsToFit()
+        this.updateTableSize(this.dom.getAttributeNS(null, 'width'))
     }
 
-    updateTableSize() {
-        if (this.tabElem !== undefined) {
-            const width = this.dom.getAttributeNS(null, 'width')
-            const height = this.dom.getAttributeNS(null, 'height')
-            const tblViewStyle = `width: ${width}px; height: ${height}px; overflow: scroll;`
-            this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
-            /**
-             * By observation, calling `sizeColumnsToFit()` outside of the `requestAnimationFrame`
-             * callback function sometimes has no effect. This is because the browser's reflow
-             * mechanism may prevent `sizeColumnsToFit()` from obtaining the latest width of
-             * `this.tabElem` internally, resulting in the computed column width being the same
-             * as before and having no effect. The callback function of `requestAnimationFrame`
-             * is called when the page is ready for repainting, so all DOM elements have already
-             * been updated at that point. Therefore, the `sizeColumnsToFit` function in the
-             * `requestAnimationFrame` callback can ensure that it gets the latest width of
-             * `this.tabElem`.
-             */
-            window.requestAnimationFrame(() => {
-                this.agGridOptions.api.sizeColumnsToFit()
-            })
+    updateTableSize(clientWidth) {
+        // Check the grid has been initialised and return if not.
+        if (!this.agGridOptions) {
+            return
+        }
+
+        // Resize columns to fit the table width unless the user manually resized them.
+        const cols = this.agGridOptions.columnApi
+            .getAllGridColumns()
+            .filter(c => !c.colDef.manuallySized)
+
+        // Compute the maximum width of a column: the client width minus a small margin.
+        const maxWidth = clientWidth - SIDE_MARGIN
+
+        // Resize based on the data and then shrink any columns that are too wide.
+        this.agGridOptions.columnApi.autoSizeColumns(cols, true)
+        const bigCols = cols
+            .filter(c => c.getActualWidth() > maxWidth)
+            .map(c => ({ key: c, newWidth: maxWidth }))
+        this.agGridOptions.columnApi.setColumnWidths(bigCols)
+    }
+
+    lockColumnSize(e) {
+        // Check if the resize is finished, and it's not from the API (which is triggered by us).
+        if (!e.finished || e.source === 'api') {
+            return
+        }
+
+        // If the user manually resized a column, we don't want to auto-size it on a resize.
+        const manuallySized = e.source !== 'autosizeColumns'
+        for (const column of e.columns) {
+            column.colDef.manuallySized = manuallySized
         }
     }
 
     setSize(size) {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
-        this.updateTableSize()
+        this.updateTableSize(size[0])
     }
 }
 

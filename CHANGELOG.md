@@ -372,6 +372,9 @@
   `use_regex` flag.][5959]
 - [Removed many regex compile flags from `split`; added `only_first` and
   `use_regex` flag.][6116]
+- [Implemented proper support for Value Types in the Table library.][6073]
+- [Added support for Date/Time columns in the Postgres backend and added
+  `year`/`month`/`day` operations to Table columns.][6153]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -561,6 +564,8 @@
 [5705]: https://github.com/enso-org/enso/pull/5705
 [5959]: https://github.com/enso-org/enso/pull/5959
 [6116]: https://github.com/enso-org/enso/pull/6116
+[6073]: https://github.com/enso-org/enso/pull/6073
+[6153]: https://github.com/enso-org/enso/pull/6153
 [6077]: https://github.com/enso-org/enso/pull/6077
 
 #### Enso Compiler

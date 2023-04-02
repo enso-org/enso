@@ -166,6 +166,7 @@ const BUTTON_BACKGROUND_COLOR: color::Rgba = color::Rgba(0.87, 0.87, 0.87, 1.0);
 mod button {
     use super::*;
     shape! {
+        alignment = center;
         (style: Style) {
             let background = Rect((BUTTON_SIZE.px(), BUTTON_SIZE.px()));
             let background = background.corners_radius(10.0.px());
@@ -182,6 +183,7 @@ mod button {
 mod button_toggle_caption {
     use super::*;
     shape! {
+        alignment = center;
         (style: Style) {
             let background = Rect((BUTTON_SIZE.px(), BUTTON_SIZE.px()));
             let background = background.corners_radius(10.0.px());

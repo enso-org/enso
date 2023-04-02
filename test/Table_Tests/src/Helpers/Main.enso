@@ -3,8 +3,10 @@ from Standard.Base import all
 from Standard.Test import Test_Suite
 
 import project.Helpers.Unique_Naming_Strategy_Spec
+import project.Helpers.Value_Type_Spec
 
 spec =
     Unique_Naming_Strategy_Spec.spec
+    Value_Type_Spec.spec
 
 main = Test_Suite.run_main spec

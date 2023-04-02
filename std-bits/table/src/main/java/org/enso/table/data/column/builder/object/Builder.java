@@ -1,21 +1,43 @@
 package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
-  public static Builder getForType(int type, int size) {
-    return switch (type) {
-      case Storage.Type.OBJECT -> new ObjectBuilder(size);
-      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
-      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.STRING -> new StringBuilder(size);
-      case Storage.Type.BOOL -> new BoolBuilder();
-      case Storage.Type.DATE -> new DateBuilder(size);
-      case Storage.Type.TIME_OF_DAY -> new TimeOfDayBuilder(size);
-      case Storage.Type.DATE_TIME -> new DateTimeBuilder(size);
-      default -> new InferredBuilder(size);
+  public static Builder getForType(StorageType type, int size) {
+    Builder builder = switch (type) {
+      case AnyObjectType() -> new ObjectBuilder(size);
+      case BooleanType() -> new BoolBuilder(size);
+      case DateType() -> new DateBuilder(size);
+      case DateTimeType() -> new DateTimeBuilder(size);
+      case TimeOfDayType() -> new TimeOfDayBuilder(size);
+      case FloatType(Bits bits) ->
+        switch (bits) {
+          case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
+          default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
+        };
+      case IntegerType(Bits bits) ->
+          switch (bits) {
+            case BITS_64 -> NumericBuilder.createLongBuilder(size);
+            default -> throw new IllegalArgumentException("TODO: Builders other than 64-bit int are not yet supported.");
+          };
+      case TextType(long maxLength, boolean isFixed) -> {
+        if (isFixed) {
+          throw new IllegalArgumentException("Fixed-length text builders are not yet supported yet.");
+        }
+        if (maxLength >= 0) {
+          throw new IllegalArgumentException("Text builders with a maximum length are not yet supported yet.");
+        }
+
+        yield new StringBuilder(size);
+      }
     };
+    assert builder.getType().equals(type);
+    return builder;
   }
 
   /**
@@ -66,4 +88,7 @@ public abstract class Builder {
    * @return a storage containing all the items appended so far
    */
   public abstract Storage<?> seal();
+
+  /** @return the current storage type of this builder */
+  public abstract StorageType getType();
 }
