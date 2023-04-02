@@ -1,7 +1,7 @@
 //! Definition of the node input port component.
 
-use crate::component::node::input::widget::MetadataPointer;
 use crate::prelude::*;
+use enso_text::index::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 
@@ -14,6 +14,7 @@ use crate::view;
 use crate::Type;
 use crate::WidgetUpdates;
 
+use crate::component::node::input::widget::MetadataPointer;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
@@ -25,7 +26,6 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::text::FromInContextSnapped;
 use ensogl_hardcoded_theme as theme;
-
 
 
 // =================
@@ -177,7 +177,7 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
-        display_object.use_auto_layout();
+
         let edit_mode_label = app.new_view::<text::Text>();
         let id_crumbs_map = default();
         let expression = default();
@@ -201,47 +201,14 @@ impl Model {
     /// mode. Sets cursor position when entering edit mode.
     pub fn set_edit_mode(&self, edit_mode_active: bool) {
         if edit_mode_active {
-            // When transitioning to edit mode, we need to find the code location that corresponds
-            // to the widget at mouse position. First we search for the widget at that position,
-            // then find the right character index within that port.
-
             let expression = self.expression.borrow();
-            // let clicked_label_location = self.ports_label.location_at_mouse_position();
-            // let clicked_char_index =
-            //     expression.viz_code.char_indices().nth(clicked_label_location.offset.into());
-            // let location_to_set = clicked_char_index.and_then(|char_index| {
-            //     let loc_offset = char_index.0.byte().to_diff();
-            //     let clicked_port = expression.span_tree.root_ref().leaf_iter().find(|node| {
-            //         let range = node.payload.range();
-            //         range.contains(&loc_offset)
-            //     })?;
-
-            //     let byte_offset_within_port = loc_offset - clicked_port.payload.index;
-            //     let byte_offset_within_port = byte_offset_within_port.min(clicked_port.size);
-            //     let final_code_byte_offset = clicked_port.span_offset + byte_offset_within_port;
-
-            //     let final_code_column: Column =
-            //         expression.code[..final_code_byte_offset.into()].chars().count().into();
-            //     let final_code_location = clicked_label_location.with_offset(final_code_column);
-            //     Some(final_code_location)
-            // });
-
             self.edit_mode_label.set_content(expression.code.clone());
             self.display_object.remove_child(&self.root_widget);
             self.display_object.add_child(&self.edit_mode_label);
-            // if let Some(location) = location_to_set {
-            //     self.edit_mode_label.set_cursor(location);
-            // } else {
-            // If we were unable to find a port under current mouse position, set the edit label
-            // cursor at the mouse position immediately after setting its content to the raw
-            // expression code.
             self.edit_mode_label.set_cursor_at_mouse_position();
-            // }
         } else {
             self.display_object.remove_child(&self.edit_mode_label);
             self.display_object.add_child(&self.root_widget);
-            // When we exit the edit mode, clear the label. That way we don't have any extra glyphs
-            // to process during rendering in non-edit mode.
             self.edit_mode_label.set_content("");
         }
         self.edit_mode_label.deprecated_set_focus(edit_mode_active);
@@ -967,7 +934,9 @@ impl Area {
             root_widget_width <- layout_refresh.map(f!([model](_) {
                 let instance = model.root_widget.display_object();
                 instance.computed_size().x()
-            }));
+            })).on_change();
+
+            trace root_widget_width;
 
             padded_edit_label_width <- model.edit_mode_label.width.map(|t| t + 2.0 * TEXT_OFFSET);
 

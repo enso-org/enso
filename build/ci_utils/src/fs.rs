@@ -85,8 +85,13 @@ pub async fn mirror_directory(source: impl AsRef<Path>, destination: impl AsRef<
 
 /// Get the size of a file after gzip compression.
 pub async fn compressed_size(path: impl AsRef<Path>) -> Result<byte_unit::Byte> {
-    let file = ::tokio::io::BufReader::new(crate::fs::tokio::open(&path).await?);
-    let encoded_stream = GzipEncoder::with_quality(file, Level::Best);
+    // Read the file in chunks of 4MB. Our wasm files are usually way bigger than that, so this
+    // buffer gives very significant speedup over the default 8KB chunks.
+    const READER_CAPACITY: usize = 4096 * 1024;
+
+    let file = crate::fs::tokio::open(&path).await?;
+    let buf_file = ::tokio::io::BufReader::with_capacity(READER_CAPACITY, file);
+    let encoded_stream = GzipEncoder::with_quality(buf_file, Level::Best);
     crate::io::read_length(encoded_stream).await.map(into)
 }
 

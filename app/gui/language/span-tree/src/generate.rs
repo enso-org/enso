@@ -535,6 +535,9 @@ fn generate_node_for_prefix_chain<T: Payload>(
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
     let app_base = ApplicationBase::from_prefix_chain(this);
+
+    // If actual method arguments are not resolved, we still want to assign correct call ID to all
+    // argument spans. This is required for correct handling of 
     let fallback_call_id = app_base.call_id;
     let mut application = app_base.resolve(context);
 

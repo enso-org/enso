@@ -44,9 +44,6 @@ impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetData<'a> {
 /// specified and deserialized.
 #[derive(Debug, serde::Deserialize)]
 pub(super) struct Widget<'a> {
-    /// The placeholder text value. By default, the parameter name is used.
-    #[serde(borrow, default)]
-    pub label:   Option<&'a str>,
     /// The display mode for the parameter.
     #[serde(default)]
     pub display: widget::Display,
@@ -61,6 +58,9 @@ pub(super) enum WidgetSpecific<'a> {
     /// Describes a single value widget (dropdown).
     #[serde(rename = "Single_Choice")]
     SingleChoice {
+        /// The placeholder text value. By default, the parameter name is used.
+        #[serde(borrow, default)]
+        label:  Option<&'a str>,
         /// A list of choices to display.
         #[serde(borrow, default)]
         values: Vec<Choice<'a>>,

@@ -1,5 +1,7 @@
 //! Definition of all hardcoded node widget variants and common widget FRP API.
 
+mod debug;
+
 use crate::prelude::*;
 
 use crate::component::node::input::area::NODE_HEIGHT;
@@ -38,7 +40,9 @@ ensogl::define_endpoints_2! {
 /// widget to reconfigure.
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct MetadataPointer {
+    /// The function call associated with the widget.
     pub call_id:       ast::Id,
+    /// The name of function argument at which the widget is located.
     pub argument_name: ImString,
 }
 
@@ -97,13 +101,13 @@ macro_rules! define_widget_modules(
         }
 
         $(
-            impl From<<$module::Widget as SpanWidget>::Config> for Config {
+            impl const From<<$module::Widget as SpanWidget>::Config> for Config {
                 fn from(config: <$module::Widget as SpanWidget>::Config) -> Self {
                     Self::$name(config)
                 }
             }
 
-            impl From<$module::Widget> for DynWidget {
+            impl const From<$module::Widget> for DynWidget {
                 fn from(config: $module::Widget) -> Self {
                     Self::$name(config)
                 }
@@ -145,12 +149,6 @@ define_widget_modules! {
     Hierarchy hierarchy,
 }
 
-impl Config {
-    const RAW_EXPRESSION: Self = Config::Label(label::Config { placeholder: false });
-    const ARG_PLACEHOLDER: Self = Config::Label(label::Config { placeholder: true });
-    const HIERARCHY: Self = Config::Hierarchy(hierarchy::Config);
-}
-
 /// ================
 /// === Metadata ===
 /// ================
@@ -161,21 +159,21 @@ impl Config {
 #[allow(missing_docs)]
 pub struct Metadata {
     /// The placeholder text value. By default, the parameter name is used.
-    pub label:   Option<ImString>,
     pub display: Display,
     pub config:  Config,
 }
 
 impl Metadata {
-    const RAW_EXPRESSION: Self =
-        Metadata { label: None, display: Display::Always, config: Config::RAW_EXPRESSION };
+    const fn always<C>(config: C) -> Self
+    where C: ~const Into<Config> {
+        Self { display: Display::Always, config: config.into() }
+    }
 
     /// Widget metadata for static dropdown, based on the tag values provided by suggestion
     /// database.
     fn static_dropdown(label: Option<ImString>, tag_values: &[span_tree::TagValue]) -> Metadata {
         let entries = Rc::new(tag_values.into_iter().map(Entry::from).collect());
-        let config = single_choice::Config { entries }.into();
-        Self { label, display: Display::Always, config }
+        Self::always(single_choice::Config { label, entries })
     }
 
     fn vector_editor() -> Metadata {
@@ -200,15 +198,10 @@ impl Metadata {
                 if !arg.tag_values.is_empty() {
                     Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
                 } else {
-                    Metadata {
-                        label:   arg.name.as_ref().map(Into::into),
-                        display: Display::Always,
-                        config:  Config::ARG_PLACEHOLDER,
-                    }
+                    Self::always(label::Config::default())
                 },
-            Kind::Root | Kind::NamedArgument | Kind::Chained(_) =>
-                Metadata { label: None, display: Display::Always, config: Config::HIERARCHY },
-            _ => Self::RAW_EXPRESSION,
+            Kind::Root | Kind::NamedArgument | Kind::Chained(_) => Self::always(hierarchy::Config),
+            _ => Self::always(label::Config::default()),
         }
     }
 }
@@ -285,8 +278,8 @@ impl DropdownValue for Entry {
 /// after the endpoints were set, it would not receive previously set endpoint values.
 #[derive(Debug, Clone, CloneRef)]
 struct SampledFrp {
-    out_value_changed:  frp::Any<(span_tree::Crumbs, Option<ImString>)>,
-    out_request_import: frp::Any<ImString>,
+    value_changed:  frp::Any<(span_tree::Crumbs, Option<ImString>)>,
+    request_import: frp::Any<ImString>,
 }
 
 
@@ -307,7 +300,7 @@ pub struct Root {
 
 impl display::Object for Root {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        &self.model.display_object.outer
     }
 }
 
@@ -326,9 +319,9 @@ impl Root {
             });
         }
 
-        let out_value_changed = frp.private.output.value_changed.clone_ref();
-        let out_request_import = frp.private.output.request_import.clone_ref();
-        let sampled_frp = SampledFrp { out_value_changed, out_request_import };
+        let value_changed = frp.private.output.value_changed.clone_ref();
+        let request_import = frp.private.output.request_import.clone_ref();
+        let sampled_frp = SampledFrp { value_changed, request_import };
 
         Self { frp, sampled_frp, model }
     }
@@ -355,11 +348,27 @@ impl Root {
 #[derive(Debug)]
 struct RootModel {
     app:            Application,
-    display_object: display::object::Instance,
+    display_object: debug::InstanceWithBg,
     widgets_map:    RefCell<HashMap<WidgetTreePointer, DynWidget>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
     metadata_dirty: AtomicBool,
 }
+
+mod rectangle {
+    use super::*;
+    ensogl::shape! {
+        alignment = left_bottom;
+        (style: Style, color: Vector4<f32>) {
+            let color = Var::<color::Rgba>::from(color);
+            let width = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+            let rect = Rect((&width, &height)).corners_radius(5.0.px());
+            let shape = rect.fill(color);
+            shape.into()
+        }
+    }
+}
+
 
 
 impl RootModel {
@@ -367,12 +376,12 @@ impl RootModel {
     /// argument info.
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new();
-        display_object.use_auto_layout();
-
-        display_object.set_size_y(NODE_HEIGHT);
-        display_object.set_padding_left(TEXT_OFFSET);
-        display_object.set_padding_right(TEXT_OFFSET);
+        let display_object = debug::InstanceWithBg::gray();
+        display_object.inner.use_auto_layout();
+        display_object.inner.set_children_alignment_left_center().justify_content_center_y();
+        display_object.inner.set_size_y(NODE_HEIGHT);
+        display_object.inner.set_padding_left(TEXT_OFFSET);
+        display_object.inner.set_padding_right(TEXT_OFFSET);
 
         let widgets_map = default();
         let metadata_map = default();
@@ -414,16 +423,16 @@ impl RootModel {
         let widgets_map = self.widgets_map.take();
         let mut builder =
             WidgetTreeBuilder::new(node_expression, app, frp, &*metadata_map, widgets_map);
-        builder.child_widget(&self.display_object, tree.root_ref(), 0);
+        builder.child_widget(&self.display_object.inner, tree.root_ref(), 0);
         self.widgets_map.replace(builder.new_widgets);
     }
 }
 
 
+#[derive(Debug)]
 pub struct ConfigContext<'a, 'b> {
     builder:              &'a mut WidgetTreeBuilder<'b>,
     parent_instance:      &'a display::object::Instance,
-    label:                Option<ImString>,
     display:              Display,
     span_tree_node:       span_tree::node::Ref<'a>,
     parent_parenthesized: bool,
@@ -447,11 +456,15 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct WidgetTreePointer {
     /// The latest set ast::Id in the span tree.
-    id:     Option<ast::Id>,
+    id:         Option<ast::Id>,
     /// Remaining crumbs to the widget, starting from the node with the latest set ast::Id.
-    crumbs: span_tree::Crumbs,
+    crumbs:     span_tree::Crumbs,
+    /// The optional additional identifier of the widget that is attached to the same node as its
+    /// parent. Used to distinguish between multiple widgets attached to the same node.
+    nested_key: Option<usize>,
 }
 
+#[derive(Debug)]
 struct WidgetTreeBuilder<'a> {
     app:                Application,
     frp:                SampledFrp,
@@ -491,6 +504,29 @@ impl<'a> WidgetTreeBuilder<'a> {
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
     ) -> WidgetTreePointer {
+        self.create_child_widget(parent_object, span_tree_node, depth, None, None)
+    }
+
+    pub(self) fn child_widget_of_type(
+        &mut self,
+        parent_object: &display::object::Instance,
+        span_tree_node: span_tree::node::Ref<'_>,
+        depth: usize,
+        meta: Metadata,
+        key: usize,
+    ) -> WidgetTreePointer {
+        self.create_child_widget(parent_object, span_tree_node, depth, Some(meta), Some(key))
+    }
+
+
+    fn create_child_widget(
+        &mut self,
+        parent_object: &display::object::Instance,
+        span_tree_node: span_tree::node::Ref<'_>,
+        depth: usize,
+        set_metadata: Option<Metadata>,
+        nested_key: Option<usize>,
+    ) -> WidgetTreePointer {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
         let mut ast_data_to_restore = None;
@@ -506,7 +542,7 @@ impl<'a> WidgetTreeBuilder<'a> {
                 let prev_crumbs =
                     std::mem::replace(&mut self.last_ast_id_crumbs, span_tree_node.crumbs.clone());
                 ast_data_to_restore = Some((prev_ast_id, prev_crumbs));
-                WidgetTreePointer { id: Some(ast_id), crumbs: default() }
+                WidgetTreePointer { id: Some(ast_id), crumbs: default(), nested_key }
             }
             None => {
                 let this_crumbs = &span_tree_node.crumbs;
@@ -516,26 +552,31 @@ impl<'a> WidgetTreeBuilder<'a> {
                 let id = self.last_ast_id;
                 let crumbs_since_id = &this_crumbs[self.last_ast_id_crumbs.len()..];
                 let crumbs = span_tree::Crumbs::new(crumbs_since_id.to_vec());
-                WidgetTreePointer { id, crumbs }
+                WidgetTreePointer { id, crumbs, nested_key }
             }
         };
 
+
+        let mut meta_fallback = None;
         let kind = &span_tree_node.kind;
-        let pointer_data = kind.call_id().zip(kind.argument_name());
-        let meta_pointer = pointer_data.map(|(call_id, argument_name)| MetadataPointer {
-            call_id,
-            argument_name: argument_name.into(),
-        });
-        let meta_received = meta_pointer.and_then(|ptr| self.metadata_map.get(&ptr));
-        let meta_fallback = meta_received.is_none().then(|| Metadata::from_kind(kind));
-        let meta = meta_received.or(meta_fallback.as_ref()).expect("Fallback must always exist.");
+        let meta = set_metadata
+            .as_ref()
+            .or_else(|| {
+                let pointer_data = kind.call_id().zip(kind.argument_name());
+                let meta_pointer = pointer_data.map(|(call_id, argument_name)| MetadataPointer {
+                    call_id,
+                    argument_name: argument_name.into(),
+                });
+
+                meta_pointer.and_then(|ptr| self.metadata_map.get(&ptr))
+            })
+            .unwrap_or_else(|| meta_fallback.get_or_insert_with(|| Metadata::from_kind(kind)));
 
         let old_widget = self.old_widgets.remove(&tree_ptr);
         let widget = {
             let ctx = ConfigContext {
                 builder: &mut *self,
                 parent_instance: parent_object,
-                label: meta.label.clone(),
                 display: meta.display,
                 span_tree_node,
                 parent_parenthesized,

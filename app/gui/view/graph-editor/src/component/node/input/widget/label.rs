@@ -2,62 +2,109 @@
 
 use crate::prelude::*;
 
+use super::debug::InstanceWithBg;
 use crate::component::node::input::area::TEXT_SIZE;
+use ensogl::data::color;
 use ensogl_component::text;
-
 
 // =============
 // === Label ===
 // =============
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-
 /// Label widget configuration options.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Config {
-    /// If true, the label will be displayed in a placeholder style.
-    pub placeholder: bool,
+    pub ignore_offset: bool,
+    pub bold:          bool,
+}
+
+impl Config {
+    /// Create a new label widget configuration.
+    pub const fn expression() -> Self {
+        Self { ignore_offset: false, bold: false }
+    }
+}
+
+ensogl::define_endpoints_2! {
+    Input {
+        content(ImString),
+        text_color(color::Lcha),
+        text_weight(text::Weight),
+    }
 }
 
 /// Label widget. Always displays the span tree node's expression as text.
 #[derive(Clone, Debug)]
 pub struct Widget {
+    frp:   Frp,
+    root:  InstanceWithBg,
     label: text::Text,
 }
 
 impl super::SpanWidget for Widget {
     type Config = Config;
     fn new(config: &Config, ctx: super::ConfigContext) -> Self {
+        // Embed the label in a vertically centered fixed height container, so that the label's
+        // baseline is aligned with other labels in the same row.
+
+        let layers = &ctx.app().display.default_scene.layers;
+        let root = InstanceWithBg::magenta();
+        root.inner.set_size_y(TEXT_SIZE);
         let label = text::Text::new(ctx.app());
         label.set_property_default(text::Size(TEXT_SIZE));
-        let text_layer = &ctx.app().display.default_scene.layers.above_nodes_text;
-        text_layer.add(&label);
+        label.set_y(TEXT_SIZE);
+        layers.above_nodes_text.add(&label);
+        root.inner.add_child(&label);
+        let frp = Frp::new();
+        let network = &frp.network;
 
-        // let label_display = label.display_object();
-        // frp::new_network! { network
-        //     text_size <- all(&label.width, &label.height);
-        //     eval text_size((size) {
-        //         label_display.set_size(*size);
-        //     });
-        // };
+        frp::extend! { network
+            content_change <- frp.content.on_change();
+            color_change <- frp.text_color.on_change();
+            weight_change <- frp.text_weight.on_change();
+            eval content_change((content) label.set_content(content));
+            eval color_change((color) label.set_property_default(color));
+            eval weight_change((weight) label.set_property_default(weight));
+        }
 
-        let mut this = Self { label };
+        let mut this = Self { frp, root, label };
         this.configure(config, ctx);
         this
     }
 
     fn configure(&mut self, config: &Config, ctx: super::ConfigContext) {
-        self.label.display_object().set_parent(ctx.parent_instance);
+        self.root.outer.set_parent(ctx.parent_instance);
+        let is_placeholder = ctx.span_tree_node.is_expected_argument();
 
-        let content = ctx.expression_at(ctx.span_tree_node.span());
+        let offset = if config.ignore_offset {
+            0.0
+        } else {
+            let min_offset = if is_placeholder { 1.0f32 } else { 0.0 };
+            min_offset.max(ctx.span_tree_node.sibling_offset.as_usize() as f32)
+        };
+
+        self.label.set_x(offset * super::hierarchy::SPACE_GLYPH_WIDTH);
+
+
+        let content = if is_placeholder {
+            ctx.span_tree_node.kind.argument_name().unwrap_or_default()
+        } else {
+            ctx.expression_at(ctx.span_tree_node.span())
+        };
+
 
         // let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        use ensogl::data::color;
-        let text_color = if config.placeholder {
+        let text_color = if is_placeholder {
             color::Lcha::new(0.5, 0.0, 0.0, 1.0)
         } else {
             color::Lcha::new(0.0, 0.0, 0.0, 1.0)
         };
-        self.label.set_property_default(text_color);
-        self.label.set_content(content);
+
+        let weight = if config.bold { text::Weight::Bold } else { text::Weight::Normal };
+
+        let input = &self.frp.public.input;
+        input.content.emit(content.clone());
+        input.text_color.emit(text_color);
+        input.text_weight.emit(weight);
     }
 }

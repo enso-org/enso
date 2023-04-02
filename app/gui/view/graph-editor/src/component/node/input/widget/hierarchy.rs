@@ -17,7 +17,7 @@ pub struct Config;
 /// Hierarchy widget. This widget expands each child of its span tree into a new widget.
 #[derive(Clone, Debug)]
 pub struct Widget {
-    display_object: Instance,
+    display_object: super::debug::InstanceWithBg,
     // shape:          debug_shape::View,
 }
 
@@ -28,15 +28,9 @@ pub const SPACE_GLYPH_WIDTH: f32 = 7.224_609_4;
 impl super::SpanWidget for Widget {
     type Config = Config;
     fn new(config: &Config, ctx: super::ConfigContext) -> Self {
-        // TODO: add display object, so we can handle mouse events.
-        let display_object = ctx.parent_instance.new_child();
-        display_object.use_auto_layout();
-        // display_object.set_size_y(100.pc());
-        display_object.set_children_alignment_left_center();
-        // let shape = debug_shape::View::new();
-        // display_object.add_child(&shape);
-        // shape.set_size((0, 1));
-
+        let display_object = super::debug::InstanceWithBg::olive();
+        display_object.inner.use_auto_layout();
+        display_object.inner.set_children_alignment_left_center().justify_content_center_y();
 
         let mut this = Self { display_object };
         this.configure(config, ctx);
@@ -44,16 +38,16 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, _config: &Config, ctx: super::ConfigContext) {
-        self.display_object.set_parent(ctx.parent_instance);
+        self.display_object.outer.set_parent(ctx.parent_instance);
         let offset = ctx.span_tree_node.sibling_offset.as_usize() as f32;
-        self.display_object.set_padding_left(offset * SPACE_GLYPH_WIDTH);
+        self.display_object.inner.set_padding_left(offset * SPACE_GLYPH_WIDTH);
 
         let preserve_depth =
             ctx.span_tree_node.is_chained() || ctx.span_tree_node.is_named_argument();
         let next_depth = if preserve_depth { ctx.depth } else { ctx.depth + 1 };
 
         for child in ctx.span_tree_node.children_iter() {
-            ctx.builder.child_widget(&self.display_object, child, next_depth);
+            ctx.builder.child_widget(&self.display_object.inner, child, next_depth);
         }
     }
 }

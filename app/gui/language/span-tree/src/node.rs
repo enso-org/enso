@@ -409,7 +409,7 @@ impl<'a, T> Ref<'a, T> {
 
     /// Iterator over all children of operator/prefix chain starting from this node. See crate's
     /// documentation for more information about _chaining_.
-    pub fn chain_children_iter(self) -> impl Iterator<Item = Ref<'a, T>> {
+    pub fn chain_children_iter(self) -> LeafIterator<'a, T> {
         LeafIterator::new(self, TreeFragment::ChainAndDirectChildren)
     }
 

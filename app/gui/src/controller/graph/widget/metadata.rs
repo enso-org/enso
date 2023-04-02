@@ -40,17 +40,16 @@ pub fn deserialize_widget_update(
 }
 
 fn map_metadata(resp: response::Widget) -> widget::Metadata {
-    widget::Metadata {
-        label:   resp.label.map(Into::into),
-        display: resp.display,
-        config:  map_config(resp.inner),
-    }
+    widget::Metadata { display: resp.display, config: map_config(resp.inner) }
 }
 
 fn map_config(inner: response::WidgetSpecific) -> widget::Config {
     match inner {
-        response::WidgetSpecific::SingleChoice { values } =>
-            widget::single_choice::Config { entries: Rc::new(map_entries(&values)) }.into(),
+        response::WidgetSpecific::SingleChoice { label, values } => widget::single_choice::Config {
+            label:   label.map(Into::into),
+            entries: Rc::new(map_entries(&values)),
+        }
+        .into(),
         _ => widget::label::Config::default().into(),
     }
 }

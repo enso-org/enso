@@ -4,6 +4,7 @@
 
 // === Features ===
 #![feature(associated_type_defaults)]
+#![feature(const_trait_impl)]
 #![feature(drain_filter)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]

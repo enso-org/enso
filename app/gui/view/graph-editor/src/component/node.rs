@@ -109,6 +109,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        pointer_events = false;
         alignment = center;
         (style:Style, bg_color:Vector4) {
             let bg_color = Var::<color::Rgba>::from(bg_color);

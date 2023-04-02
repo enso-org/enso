@@ -140,6 +140,20 @@ where JsEvent: AsRef<web::MouseEvent>
         )
     }
 
+    pub fn is_primary(&self) -> bool {
+        self.button() == mouse::PrimaryButton
+    }
+
+    /// Indicates whether the secondary mouse button was pressed when the event was triggered.
+    pub fn is_secondary(&self) -> bool {
+        self.button() == mouse::SecondaryButton
+    }
+
+    /// Indicates whether the middle mouse button was pressed when the event was triggered.
+    pub fn is_middle(&self) -> bool {
+        self.button() == mouse::MiddleButton
+    }
+
     /// Return the position relative to the event handler that was used to catch the event. If the
     /// event handler does not have a position in the DOM, the returned position will be relative to
     /// the viewport. This can happen if the event handler is, for example, the window.
@@ -184,6 +198,27 @@ where JsEvent: AsRef<web::MouseEvent>
         let event_type = default();
         Event { js_event, shape, event_type }
     }
+}
+
+// ===============
+// === Filters ===
+// ===============
+
+type FanMouseEvent<EventType> = crate::event::Event<Event<EventType, web::MouseEvent>>;
+
+/// Indicates whether the primary mouse button was pressed when the event was triggered.
+pub fn is_primary<T>(event: &FanMouseEvent<T>) -> bool {
+    event.button() == mouse::PrimaryButton
+}
+
+/// Indicates whether the primary mouse button was pressed when the event was triggered.
+pub fn is_middle<T>(event: &FanMouseEvent<T>) -> bool {
+    event.button() == mouse::MiddleButton
+}
+
+/// Indicates whether the primary mouse button was pressed when the event was triggered.
+pub fn is_secondary<T>(event: &FanMouseEvent<T>) -> bool {
+    event.button() == mouse::SecondaryButton
 }
 
 

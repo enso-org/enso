@@ -134,6 +134,27 @@ impl Network {
         self.register(OwnedGateNot::new(label, event, behavior))
     }
 
+    /// Passes the incoming event of the first stream only if the value of the second stream is
+    /// true. If the event is received when condition is false, it is buffered and emitted when
+    /// the condition becomes true. Only the last received event value is emitted next time the
+    /// condition becomes true. A single received event will be reemitted at most once.
+    ///
+    /// Behavior: T---F---T-----F-------T---T---F---T--
+    /// Event:    --1--2-----3---4-5-6-----------------
+    /// Output:   --1-----2--3----------6--------------
+    pub fn buffered_gate<T1, T2>(
+        &self,
+        label: Label,
+        event: &T1,
+        behavior: &T2,
+    ) -> Stream<Output<T1>>
+    where
+        T1: EventOutput,
+        T2: EventOutput<Output = bool>,
+    {
+        self.register(OwnedBufferedGate::new(label, event, behavior))
+    }
+
     /// Unwraps the value of incoming events and emits the unwrapped values.
     pub fn unwrap<T, S>(&self, label: Label, event: &T) -> Stream<S>
     where
@@ -2194,6 +2215,118 @@ where
 }
 
 impl<T1, T2> stream::InputBehaviors for GateNotData<T1, T2>
+where T2: EventOutput
+{
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![Link::behavior(&self.behavior)]
+    }
+}
+
+
+
+// ====================
+// === BufferedGate ===
+// ====================
+
+#[derive(Debug)]
+pub struct BufferedGateData<T1, T2> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:    watch::Ref<T1>,
+    behavior: T2,
+    state:    Cell<BufferedGateState>,
+}
+pub type OwnedBufferedGate<T1, T2> = stream::Node<BufferedGateData<T1, T2>>;
+pub type BufferedGate<T1, T2> = stream::WeakNode<BufferedGateData<T1, T2>>;
+struct BufferedGateEdgeTrigger<T1: EventOutput, T2: EventOutput> {
+    gate: BufferedGate<T1, T2>,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum BufferedGateState {
+    /// Gate is currently open.
+    Active,
+    /// Gate is currently closed and haven't received any events since it was closed.
+    Inactive,
+    /// Gate is currently closed and have received at least one event since it was closed.
+    Buffered,
+}
+
+impl<T1: EventOutput, T2> HasOutput for BufferedGateData<T1, T2> {
+    type Output = Output<T1>;
+}
+
+impl<T1, T2> OwnedBufferedGate<T1, T2>
+where
+    T1: EventOutput,
+    T2: EventOutput<Output = bool>,
+{
+    /// Constructor.
+    pub fn new(label: Label, src: &T1, behavior: &T2) -> Self {
+        let event = watch_stream(src);
+        let state = match behavior.value() {
+            true => BufferedGateState::Active,
+            false => BufferedGateState::Inactive,
+        };
+        let definition =
+            BufferedGateData { event, behavior: behavior.clone_ref(), state: Cell::new(state) };
+        let this = Self::construct(label, definition);
+        let weak = this.downgrade();
+        let on_edge = BufferedGateEdgeTrigger { gate: weak.clone() };
+        behavior.register_target(stream::EventInput::new(Rc::new(on_edge)));
+        src.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1, T2> stream::EventConsumer<Output<T1>> for OwnedBufferedGate<T1, T2>
+where
+    T1: EventOutput,
+    T2: EventOutput<Output = bool>,
+{
+    fn on_event(&self, stack: CallStack, event: &Output<T1>) {
+        match self.state.get() {
+            BufferedGateState::Active => self.emit_event(stack, event),
+            BufferedGateState::Inactive => {
+                self.state.set(BufferedGateState::Buffered);
+            }
+            BufferedGateState::Buffered => (),
+        }
+    }
+}
+
+impl<T1, T2> stream::WeakEventConsumer<Output<T2>> for BufferedGateEdgeTrigger<T1, T2>
+where
+    T1: EventOutput,
+    T2: EventOutput<Output = bool>,
+{
+    fn is_dropped(&self) -> bool {
+        self.gate.is_dropped()
+    }
+
+    fn on_event_if_exists(&self, stack: CallStack, is_active: &bool) -> bool {
+        if let Some(gate) = self.gate.upgrade() {
+            let new_state = match is_active {
+                true => BufferedGateState::Active,
+                false => BufferedGateState::Inactive,
+            };
+            match gate.state.replace(new_state) {
+                BufferedGateState::Active => {}
+                BufferedGateState::Inactive => {}
+                BufferedGateState::Buffered => {
+                    gate.event.with(|value| gate.emit_event(stack, value));
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+}
+
+
+impl<T1, T2> stream::InputBehaviors for BufferedGateData<T1, T2>
 where T2: EventOutput
 {
     fn input_behaviors(&self) -> Vec<Link> {

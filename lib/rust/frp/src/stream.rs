@@ -163,6 +163,15 @@ pub trait WeakEventConsumer<T> {
 pub trait ValueProvider: HasOutput {
     /// The current output value of the FRP node.
     fn value(&self) -> Self::Output;
+
+    /// Perform scoped operation on current output value of the FRP node  without cloning it. The
+    /// internal value is borrowed for the duration of the passed function scope. Emitting an event
+    /// on that node within the function scope will cause a panic.
+    ///
+    /// If the node has no cached value, the passed closure will not be executed and `None` will be
+    /// returned.
+    fn with<T>(&self, f: impl FnOnce(&Self::Output) -> T) -> Option<T>
+    where Self: Sized;
 }
 
 
@@ -316,10 +325,11 @@ impl<Out: Data> EventEmitter for NodeData<Out> {
 
 impl<Out: Data> ValueProvider for NodeData<Out> {
     fn value(&self) -> Out {
-        if !self.use_caching() {
-            Out::default();
-        }
-        self.value_cache.borrow().clone()
+        self.with(|t| t.clone()).unwrap_or_default()
+    }
+
+    fn with<T>(&self, f: impl FnOnce(&Self::Output) -> T) -> Option<T> {
+        self.use_caching().then(|| f(&self.value_cache.borrow()))
     }
 }
 
@@ -623,11 +633,21 @@ impl<Out: Data> ValueProvider for OwnedStream<Out> {
     fn value(&self) -> Self::Output {
         self.data.value()
     }
+
+    fn with<T>(&self, f: impl FnOnce(&Self::Output) -> T) -> Option<T>
+    where Self: Sized {
+        self.data.with(f)
+    }
 }
 
 impl<Out: Data> ValueProvider for Stream<Out> {
     fn value(&self) -> Self::Output {
         self.upgrade().map(|t| t.value()).unwrap_or_default()
+    }
+
+    fn with<T>(&self, f: impl FnOnce(&Self::Output) -> T) -> Option<T>
+    where Self: Sized {
+        self.upgrade().and_then(|t| t.with(f))
     }
 }
 
@@ -635,11 +655,21 @@ impl<Def: HasOutputStatic> ValueProvider for Node<Def> {
     fn value(&self) -> Self::Output {
         self.stream.value()
     }
+
+    fn with<T>(&self, f: impl FnOnce(&Self::Output) -> T) -> Option<T>
+    where Self: Sized {
+        self.stream.with(f)
+    }
 }
 
 impl<Def: HasOutputStatic> ValueProvider for WeakNode<Def> {
     fn value(&self) -> Self::Output {
         self.stream.value()
+    }
+
+    fn with<T>(&self, f: impl FnOnce(&Self::Output) -> T) -> Option<T>
+    where Self: Sized {
+        self.stream.with(f)
     }
 }
 
