@@ -534,16 +534,17 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       lamArg1Name shouldEqual appArg1Name
     }
 
-    "correctly translate the function in an application" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "correctly translate the function in an application" in {
       implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """(f _ _ b) b
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
-      val firstLam = ir.asInstanceOf[IR.Function.Lambda]
+      ir shouldBe an[IR.Application.Prefix]
+      val irFn = ir.asInstanceOf[IR.Application.Prefix].function
+      irFn shouldBe an[IR.Function.Lambda]
+      val firstLam = irFn.asInstanceOf[IR.Function.Lambda]
       firstLam.arguments.length shouldEqual 1
       val firstLamArgName = firstLam.arguments.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
@@ -555,7 +556,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .name
         .name
       val app = secondLam.body.asInstanceOf[IR.Application.Prefix]
-      app.arguments.length shouldEqual 4
+      app.arguments.length shouldEqual 3
       val appArg1Name = app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
