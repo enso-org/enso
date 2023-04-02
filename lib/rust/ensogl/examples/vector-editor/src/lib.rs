@@ -27,7 +27,7 @@ const DRAG_THRESHOLD: f32 = 4.0;
 const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -99,7 +99,7 @@ mod spacer {
             let collapsing = default();
             let size_animation = Animation::<f32>::new(frp.network());
             let viz = RoundedRectangle(10.0).build(|t| {
-                t.set_size(Vector2::new(100.0, 20.0))
+                t.set_size(Vector2::new(0.0, 20.0))
                     .allow_grow_x()
                     .set_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0))
                     .set_inset_border(5.0)
@@ -203,6 +203,17 @@ pub struct DropSpot<T> {
 impl<T: display::Object> DropSpot<T> {
     pub fn new(spacer: Spacer, elem: T) -> Self {
         spacer.add_child(&elem);
+        let network = spacer.frp.network();
+        let elem_display_object = elem.display_object();
+        let position_animation = Animation::<Vector2>::new(&network);
+        position_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
+
+        frp::extend! { network
+            eval position_animation.value ((p) {elem_display_object.set_xy(*p);});
+        }
+        position_animation.target.emit(elem_display_object.position().xy());
+        position_animation.skip.emit(());
+        position_animation.target.emit(Vector2(0.0, 0.0));
         Self { spacer, elem }
     }
 }
@@ -422,7 +433,11 @@ impl<T: display::Object> Model<T> {
         let index = self
             .items
             .iter()
-            .position(|item| item.display_object().as_ref() == Some(target))
+            .position(|item| match item {
+                Item::Regular(item) => item.display_object() == target,
+                Item::DropSpot(t) => t.elem.display_object() == target,
+                _ => false,
+            })
             .expect("Item not found");
         self.collapse_all_spacers();
         let prev_index = index.saturating_sub(1);
@@ -511,12 +526,16 @@ impl<T: display::Object> Model<T> {
         let prev_index = index.saturating_sub(1);
         if let Some(old_item) = self.items.get_mut(index) && let Item::Spacer(spacer) = old_item {
             warn!("replacing old");
-            *old_item = Item::Regular(item);
-            // *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
+            let spacer_position = spacer.global_position().xy();
+            let item_position = item.global_position().xy();
+            item.set_xy(item_position - spacer_position);
+            *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
         } else if let Some(old_item) = self.items.get_mut(prev_index) && let Item::Spacer(spacer) = old_item {
             warn!("replacing old");
-            *old_item = Item::Regular(item);
-            // *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
+            let spacer_position = spacer.global_position().xy();
+            let item_position = item.global_position().xy();
+            item.set_xy(item_position - spacer_position);
+            *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
         } else {
             panic!()
             // warn!("inserting new");
