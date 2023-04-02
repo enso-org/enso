@@ -27,7 +27,7 @@ const DRAG_THRESHOLD: f32 = 4.0;
 const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -138,6 +138,12 @@ mod placeholder {
             Self { model }
         }
 
+        pub fn new_with_size(size: f32) -> Self {
+            let placeholder = Self::new();
+            placeholder.set_target_size_no_animation(size);
+            placeholder
+        }
+
         pub fn downgrade(&self) -> WeakPlaceholder {
             WeakPlaceholder { model: Rc::downgrade(&self.model) }
         }
@@ -148,12 +154,16 @@ mod placeholder {
             self.collapsing.set(true);
         }
 
-        pub fn uncollapse(&self) {
+        pub fn drop_self_ref(&self) {
             *self.self_ref.borrow_mut() = None;
+        }
+
+        pub fn reuse(&self) {
+            self.drop_self_ref();
             self.collapsing.set(false);
         }
 
-        pub fn mod_size(&self, delta: f32) {
+        pub fn add_to_size(&self, delta: f32) {
             self.size_animation.simulator.update_value(|v| v + delta);
         }
 
@@ -268,6 +278,11 @@ impl<T: display::Object> Item<T> {
     }
 }
 
+impl<T> From<Placeholder> for Item<T> {
+    fn from(placeholder: Placeholder) -> Self {
+        Self::Placeholder(placeholder)
+    }
+}
 
 ensogl_core::define_endpoints_2! {
     Input {
@@ -292,7 +307,55 @@ pub struct VectorEditor<T> {
 #[derivative(Default(bound = ""))]
 pub struct Model<T> {
     dragged_item: Option<T>,
-    items:        Vec<Item<T>>,
+    items:        Items<T>,
+}
+
+#[derive(Debug, Derivative, Deref, DerefMut)]
+#[derivative(Default(bound = ""))]
+pub struct Items<T> {
+    items: Vec<Item<T>>,
+}
+
+impl<'t, T> IntoIterator for &'t Items<T> {
+    type Item = &'t Item<T>;
+    type IntoIter = std::slice::Iter<'t, Item<T>>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.items.iter()
+    }
+}
+
+impl<'t, T> IntoIterator for &'t mut Items<T> {
+    type Item = &'t mut Item<T>;
+    type IntoIter = std::slice::IterMut<'t, Item<T>>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.items.iter_mut()
+    }
+}
+
+impl<T> IntoIterator for Items<T> {
+    type Item = Item<T>;
+    type IntoIter = std::vec::IntoIter<Item<T>>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.items.into_iter()
+    }
+}
+
+impl<T> std::iter::FromIterator<Item<T>> for Items<T> {
+    fn from_iter<I: IntoIterator<Item = Item<T>>>(iter: I) -> Self {
+        let items = iter.into_iter().collect();
+        Self { items }
+    }
+}
+
+impl<T> Items<T> {
+    fn collapse_all_placeholders(&mut self) {
+        for item in self {
+            if let Item::Placeholder(placeholder) = item {
+                placeholder.collapse();
+                *item = Item::WeakPlaceholder(placeholder.downgrade());
+            }
+        }
+    }
 }
 
 impl<T: display::Object + 'static> VectorEditor<T> {
@@ -364,7 +427,7 @@ impl<T: display::Object + 'static> VectorEditor<T> {
 
             eval insert_index_on_drop ([model, layouted_elems] (index) {
                 let mut model = model.borrow_mut();
-                model.unset_dragged_item(*index);
+                model.place_dragged_item(*index);
                 model.redraw_items(&layouted_elems);
             });
 
@@ -379,7 +442,7 @@ impl<T: display::Object> VectorEditor<T> {
         self.layouted_elems.add_child(&item);
         let mut model = self.model.borrow_mut();
         model.items.push(Item::Regular(item));
-        model.reset_margins();
+        model.recompute_margins();
     }
 }
 
@@ -393,7 +456,7 @@ impl<T: display::Object> Model<T> {
         }
     }
 
-    fn reset_margins(&self) {
+    fn recompute_margins(&self) {
         let mut first_elem = true;
         for item in &self.items {
             match item {
@@ -402,6 +465,11 @@ impl<T: display::Object> Model<T> {
                     item.set_margin_left(gap);
                     first_elem = false;
                 }
+                // Item::DropSpot(t) => {
+                //     let gap = if first_elem { 0.0 } else { GAP };
+                //     t.placeholder.set_margin_left(gap);
+                //     first_elem = false;
+                // }
                 _ => {}
             }
         }
@@ -467,120 +535,137 @@ impl<T: display::Object> Model<T> {
         self.items.get(index).and_then(|t| t.upgraded_weak_placeholder().map(|t| (index, t)))
     }
 
+    /// Remove the selected item from the item list and mark it as an element being dragged. In the
+    /// place where the element was a new placeholder will be created or existing placeholder will
+    /// be reused and scaled to cover the size of the dragged element. The following cases are
+    /// covered:
+    ///
+    /// 1. No placeholders to reuse. In this case, dragging an element marked with "X" results in
+    /// the creation of a placeholder exactly where the dragged element was:   
+    ///
+    /// ```text
+    ///                                                ╭──X──╮
+    /// ╭─────╮ ╭─────╮ ╭─────╮    drag     ╭─────╮ ╭╌╌┼╌╌╮ ╭┼────╮
+    /// │  A  │ │  X  │ │  B  │   ------>   │  A  │ ┆  ╰──┼─┼╯ B  │
+    /// ╰─────╯ ╰─────╯ ╰─────╯             ╰─────╯ ╰╌╌╌╌╌╯ ╰─────╯
+    /// ```
+    ///
+    /// 2. A single placeholder to reuse (either to the left or to the right of the dragged
+    /// element). In this case, dragging the element marked with "X" results in the placeholder
+    /// being scaled to cover the size of the dragged element. The placeholder will then be animated
+    /// to finally get the same size as the dragged element.
+    ///
+    /// ```text                                                    
+    ///                                                       ╭──X──╮      
+    /// ╭─────╮ ╭─────╮ ╭╌╌╌╌╮ ╭─────╮    drag     ╭─────╮ ╭╌╌┼╌╌╌╌╌┼╮ ╭─────╮
+    /// │  A  │ │  X  │ ┆    ┆ │  B  │   ------>   │  A  │ ┆  ╰─────╯┆ │  B  │
+    /// ╰─────╯ ╰─────╯ ╰╌╌╌╌╯ ╰─────╯             ╰─────╯ ╰╌╌╌╌╌╌╌◀╌╯ ╰─────╯
+    /// ```       
+    ///      
+    /// 3. The element is surrounded with placeholders. In this case, dragging the element marked
+    /// with "X" results in the placeholders being merged into a single placeholder covering the
+    /// size of both placeholders and the dragged element. The resulting placeholder will then be
+    /// animated to finally get the same size as the dragged element.
+    ///
+    /// ```text                                                    
+    ///                                                                 ╭──X──╮      
+    /// ╭─────╮ ╭╌╌╌╌╮ ╭─────╮ ╭╌╌╌╌╮ ╭─────╮    drag     ╭─────╮ ╭╌╌╌╌╌┼╌╌╌╌╌┼╌╌╮ ╭─────╮
+    /// │  A  │ ┆    ┆ │  X  │ ┆    ┆ │  B  │   ------>   │  A  │ ┆     ╰─────╯  ┆ │  B  │
+    /// ╰─────╯ ╰╌╌╌╌╯ ╰─────╯ ╰╌╌╌╌╯ ╰─────╯             ╰─────╯ ╰╌╌╌╌╌╌╌╌╌╌╌╌◀╌╯ ╰─────╯
+    /// ```   
     fn set_as_dragged_item(
         &mut self,
         layouted_elems: &display::object::Instance,
         target: &display::object::Instance,
     ) {
         if let Some((index, elem)) = self.remove_item_by_display_object(target) {
-            self.collapse_all_placeholders();
-
-            // ╭─────╮ ╭╌╌╌╌╮
-            // │  1  │ ┆
-            // ╰─────╯
-            let prev_index = index.saturating_sub(1);
-            let prev_placeholder = self.get_upgraded_weak_placeholder(prev_index);
+            self.items.collapse_all_placeholders();
+            let prev_index = index.checked_sub(1);
+            let prev_placeholder = prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
             let next_placeholder = self.get_upgraded_weak_placeholder(index);
             let (placeholder, placeholder_to_merge) = match (prev_placeholder, next_placeholder) {
                 (Some(p1), Some(p2)) => (Some(p1), Some(p2)),
                 (p1, p2) => (p1.or(p2), None),
             };
+            let size = elem.computed_size().x + GAP;
             if let Some((placeholder_index, placeholder)) = placeholder {
-                let size = elem.computed_size().x + GAP;
-                placeholder.uncollapse();
-                placeholder.mod_size(size);
+                placeholder.reuse();
+                placeholder.add_to_size(size);
                 placeholder.set_target_size(size);
-                if let Some((placeholder_to_merge_index, placeholder_to_merge)) =
-                    placeholder_to_merge
-                {
-                    self.items.remove(placeholder_to_merge_index);
-                    placeholder.mod_size(placeholder_to_merge.computed_size().x);
-                    placeholder_to_merge.uncollapse();
+                if let Some((placeholder2_index, placeholder2)) = placeholder_to_merge {
+                    self.items.remove(placeholder2_index);
+                    placeholder.add_to_size(placeholder2.computed_size().x);
+                    placeholder2.drop_self_ref();
                 }
                 self.items[placeholder_index] = Item::Placeholder(placeholder);
-                self.dragged_item = Some(elem);
-                self.reset_margins();
-                self.redraw_items(layouted_elems);
             } else {
-                let placeholder = Placeholder::new();
-                placeholder.set_target_size_no_animation(elem.computed_size().x + GAP);
-                self.items.insert(index, Item::Placeholder(placeholder));
-                self.dragged_item = Some(elem);
-                self.reset_margins();
-                self.redraw_items(layouted_elems);
+                self.items.insert(index, Placeholder::new_with_size(size).into());
             }
-        }
-    }
-
-    fn potential_insertion_point(&mut self, index: usize) {
-        warn!("potential_insertion_point: {}", index);
-        // FIXME: this check should not be needed
-        if self.dragged_item.is_some() {
-            warn!(">>>");
-            let prev_index = index.saturating_sub(1);
-            self.collapse_all_placeholders();
-            let item = self.dragged_item.as_ref().expect("No dragged item");
-            let mut old_placeholder: Option<(usize, Placeholder)> = None;
-            if let Some(Item::WeakPlaceholder(weak)) = self.items.get(index) && let Some(placeholder) = weak.upgrade() {
-                old_placeholder = Some((index, placeholder));
-            } else if let Some(Item::WeakPlaceholder(weak)) = self.items.get(prev_index) && let Some(placeholder) = weak.upgrade() {
-                old_placeholder = Some((prev_index, placeholder));
-            }
-            if let Some((index, placeholder)) = old_placeholder {
-                warn!("reusing placeholder");
-                placeholder.set_target_size(item.computed_size().x + GAP);
-                placeholder.uncollapse();
-                self.items[index] = Item::Placeholder(placeholder);
-                self.reset_margins();
-            } else {
-                warn!("adding placeholder");
-                let placeholder = Placeholder::new();
-                placeholder.set_target_size(item.computed_size().x + GAP);
-                self.items.insert(index, Item::Placeholder(placeholder.clone_ref()));
-                self.reset_margins();
-                placeholder.set_current_size(0.0);
-            }
-        }
-    }
-
-    fn unset_dragged_item(&mut self, index: usize) {
-        warn!("unset_dragged_item");
-        let item = self.dragged_item.take().expect("No dragged item");
-        let prev_index = index.saturating_sub(1);
-        if let Some(old_item) = self.items.get_mut(index) && let Item::Placeholder(placeholder) = old_item {
-            warn!("replacing old");
-            let placeholder_position = placeholder.global_position().xy();
-            let item_position = item.global_position().xy();
-            item.set_xy(item_position - placeholder_position);
-            *old_item = Item::DropSpot(DropSpot::new(placeholder.clone_ref(), item));
-        } else if let Some(old_item) = self.items.get_mut(prev_index) && let Item::Placeholder(placeholder) = old_item {
-            warn!("replacing old");
-            let placeholder_position = placeholder.global_position().xy();
-            let item_position = item.global_position().xy();
-            item.set_xy(item_position - placeholder_position);
-            *old_item = Item::DropSpot(DropSpot::new(placeholder.clone_ref(), item));
+            self.dragged_item = Some(elem);
+            self.recompute_margins();
+            self.redraw_items(layouted_elems);
         } else {
-            panic!()
-            // warn!("inserting new");
-            // self.items.insert(index, item);
+            warn!("Dragged item not found in the item list.")
         }
-        self.collapse_all_placeholders();
-        self.reset_margins();
     }
 
-    fn collapse_all_placeholders(&mut self) {
-        for item in &mut self.items {
-            if let Item::Placeholder(placeholder) = item {
-                placeholder.collapse();
-                *item = Item::WeakPlaceholder(placeholder.downgrade());
+    /// Prepare place for the dragged item by creating or reusing a placeholder and growing it to
+    /// the dragged object size.
+    fn potential_insertion_point(&mut self, index: usize) {
+        if let Some(item) = self.dragged_item.as_ref() {
+            self.items.collapse_all_placeholders();
+            let prev_index = index.checked_sub(1);
+            let size = item.computed_size().x + GAP;
+            let old_placeholder = self
+                .get_upgraded_weak_placeholder(index)
+                .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
+            if let Some((index, placeholder)) = old_placeholder {
+                placeholder.reuse();
+                placeholder.set_target_size(size);
+                self.items[index] = placeholder.into();
+            } else {
+                let placeholder = Placeholder::new_with_size(0.0);
+                placeholder.set_target_size(size);
+                self.items.insert(index, placeholder.into());
             }
+        } else {
+            warn!("Called function to find insertion point while no element is being dragged.")
         }
     }
 
-    // fn insert_dragged_item(&mut self, index: usize) {
-    //     let elem = self.dragged_item.take().expect("No dragged item");
-    //     self.items.insert(index, elem);
-    // }
+    /// Place the currently dragged element in the given index. The item will be enclosed in the
+    /// [`DropSpot`] object, will handles its animation. See the documentation of [`Item`] to learn
+    /// more.
+    fn place_dragged_item(&mut self, index: usize) {
+        if let Some(item) = self.dragged_item.take() {
+            self.items.collapse_all_placeholders();
+            let prev_index = index.checked_sub(1);
+            let placeholder = self
+                .get_upgraded_weak_placeholder(index)
+                .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
+            let size = item.computed_size().x + GAP;
+            if let Some((index, placeholder)) = placeholder {
+                placeholder.reuse();
+                placeholder.set_target_size(size);
+                let placeholder_position = placeholder.global_position().xy();
+                let item_position = item.global_position().xy();
+                item.set_xy(item_position - placeholder_position);
+                self.items[index] = Item::DropSpot(DropSpot::new(placeholder, item));
+            } else {
+                // This branch should never be reached, as when dragging an element we always create
+                // a placeholder for it (see the [`potential_insertion_point`] function). However,
+                // in case something breaks, we want it to still provide the user with the correct
+                // outcome.
+                self.items.insert(index, Item::Regular(item));
+                warn!("An element was inserted without a placeholder. This should not happen.");
+            }
+            self.items.collapse_all_placeholders();
+            self.recompute_margins();
+        } else {
+            warn!("Called function to insert dragged element, but no element is being dragged.")
+        }
+    }
+
 
     // FIXME: does not work correctly with placeholders
     fn elems_center_points(&self) -> Vec<f32> {
@@ -621,6 +706,49 @@ impl<T> display::Object for VectorEditor<T> {
 impl<T: display::Object + 'static> Default for VectorEditor<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+
+#[derive(Clone, CloneRef, Debug)]
+pub struct RemoveIcon {
+    root: display::object::Instance,
+}
+
+impl RemoveIcon {
+    pub fn new() -> Self {
+        let root = display::object::Instance::new();
+
+        let bg = Rectangle().build(|t| {
+            t.set_size(Vector2::new(32.0, 32.0))
+                .set_corner_radius_max()
+                .set_color(color::Rgba::new(0.91, 0.32, 0.32, 1.0))
+                .set_inset_border(2.0)
+                .set_border_color(color::Rgba::new(1.0, 1.0, 1.0, 1.0));
+        });
+
+        let h_line = Rectangle().build(|t| {
+            t.set_size(Vector2::new(18.0, 2.0)).set_color(color::Rgba::new(1.0, 1.0, 1.0, 1.3));
+        });
+        let v_line = Rectangle().build(|t| {
+            t.set_size(Vector2::new(18.0, 2.0)).set_color(color::Rgba::new(1.0, 1.0, 1.0, 1.3));
+        });
+        v_line.rotate_90();
+        root.add_child(&bg);
+        root.add_child(&h_line);
+        root.add_child(&v_line);
+        root.set_rotation_z(std::f32::consts::PI / 4.0);
+        //FIXME:
+        mem::forget(bg);
+        mem::forget(h_line);
+        mem::forget(v_line);
+        Self { root }
+    }
+}
+
+impl display::Object for RemoveIcon {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.root
     }
 }
 
@@ -680,6 +808,12 @@ pub fn main() {
     root.set_size(Vector2::new(300.0, 100.0));
     root.add_child(&vector_editor);
     world.add_child(&root);
+
+
+    let icon = RemoveIcon::new();
+    root.add_child(&icon);
+
+    mem::forget(icon);
 
     world.keep_alive_forever();
     mem::forget(glob_frp);
