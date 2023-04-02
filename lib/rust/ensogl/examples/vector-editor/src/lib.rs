@@ -58,10 +58,10 @@ pub mod glob {
 
 
 // ==============
-// === Spacer ===
+// === Placeholder ===
 // ==============
 
-mod spacer {
+mod placeholder {
     use super::*;
     ensogl_core::define_endpoints_2! {
         Input {
@@ -74,14 +74,14 @@ mod spacer {
     }
 
     #[derive(Debug, Clone, CloneRef, Deref)]
-    pub struct Spacer {
+    pub struct Placeholder {
         model: Rc<SpacerModel>,
     }
 
     #[derive(Debug, Deref)]
     pub struct SpacerModel {
         #[deref]
-        pub frp:        spacer::Frp,
+        pub frp:        placeholder::Frp,
         root:           display::object::Instance,
         self_ref:       Rc<RefCell<Option<Rc<SpacerModel>>>>,
         margin_left:    Cell<f32>,
@@ -92,7 +92,7 @@ mod spacer {
 
     impl SpacerModel {
         fn new() -> Self {
-            let frp = spacer::Frp::new();
+            let frp = placeholder::Frp::new();
             let root = display::object::Instance::new();
             let self_ref = default();
             let margin_left = default();
@@ -111,7 +111,7 @@ mod spacer {
         }
     }
 
-    impl Spacer {
+    impl Placeholder {
         pub fn new() -> Self {
             let model = SpacerModel::new();
             let model = Rc::new(model);
@@ -138,8 +138,8 @@ mod spacer {
             Self { model }
         }
 
-        pub fn downgrade(&self) -> WeakSpacer {
-            WeakSpacer { model: Rc::downgrade(&self.model) }
+        pub fn downgrade(&self) -> WeakPlaceholder {
+            WeakPlaceholder { model: Rc::downgrade(&self.model) }
         }
 
         pub fn collapse(&self) {
@@ -168,26 +168,26 @@ mod spacer {
         // }
     }
 
-    impl display::Object for Spacer {
+    impl display::Object for Placeholder {
         fn display_object(&self) -> &display::object::Instance {
             &self.root
         }
     }
 
     #[derive(Debug, Clone, CloneRef, Deref)]
-    pub struct WeakSpacer {
+    pub struct WeakPlaceholder {
         model: Weak<SpacerModel>,
     }
 
-    impl WeakSpacer {
-        pub fn upgrade(&self) -> Option<Spacer> {
-            self.model.upgrade().map(|model| Spacer { model })
+    impl WeakPlaceholder {
+        pub fn upgrade(&self) -> Option<Placeholder> {
+            self.model.upgrade().map(|model| Placeholder { model })
         }
     }
 }
 
-use spacer::Spacer;
-use spacer::WeakSpacer;
+use placeholder::Placeholder;
+use placeholder::WeakPlaceholder;
 
 
 // ===========
@@ -196,14 +196,14 @@ use spacer::WeakSpacer;
 
 #[derive(Debug)]
 pub struct DropSpot<T> {
-    pub spacer: Spacer,
-    pub elem:   T,
+    pub placeholder: Placeholder,
+    pub elem:        T,
 }
 
 impl<T: display::Object> DropSpot<T> {
-    pub fn new(spacer: Spacer, elem: T) -> Self {
-        spacer.add_child(&elem);
-        let network = spacer.frp.network();
+    pub fn new(placeholder: Placeholder, elem: T) -> Self {
+        placeholder.add_child(&elem);
+        let network = placeholder.frp.network();
         let elem_display_object = elem.display_object();
         let position_animation = Animation::<Vector2>::new(&network);
         position_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
@@ -214,15 +214,15 @@ impl<T: display::Object> DropSpot<T> {
         position_animation.target.emit(elem_display_object.position().xy());
         position_animation.skip.emit(());
         position_animation.target.emit(Vector2(0.0, 0.0));
-        Self { spacer, elem }
+        Self { placeholder, elem }
     }
 }
 
 #[derive(Debug)]
 pub enum Item<T> {
     Regular(T),
-    Spacer(Spacer),
-    WeakSpacer(WeakSpacer),
+    Placeholder(Placeholder),
+    WeakPlaceholder(WeakPlaceholder),
     DropSpot(DropSpot<T>),
 }
 
@@ -230,20 +230,20 @@ impl<T: display::Object> Item<T> {
     pub fn is_regular(&self) -> bool {
         matches!(self, Self::Regular(_))
     }
-    pub fn is_spacer(&self) -> bool {
-        matches!(self, Self::Spacer(_))
+    pub fn is_placeholder(&self) -> bool {
+        matches!(self, Self::Placeholder(_))
     }
 
-    pub fn is_weak_spacer(&self) -> bool {
-        matches!(self, Self::WeakSpacer(_))
+    pub fn is_weak_placeholder(&self) -> bool {
+        matches!(self, Self::WeakPlaceholder(_))
     }
 
     pub fn display_object(&self) -> Option<display::object::Instance> {
         match self {
             Item::Regular(t) => Some(t.display_object().clone_ref()),
-            Item::Spacer(t) => Some(t.display_object().clone_ref()),
-            Item::WeakSpacer(t) => t.upgrade().map(|t| t.display_object().clone_ref()),
-            Item::DropSpot(t) => Some(t.spacer.display_object().clone_ref()),
+            Item::Placeholder(t) => Some(t.display_object().clone_ref()),
+            Item::WeakPlaceholder(t) => t.upgrade().map(|t| t.display_object().clone_ref()),
+            Item::DropSpot(t) => Some(t.placeholder.display_object().clone_ref()),
         }
     }
 
@@ -254,9 +254,16 @@ impl<T: display::Object> Item<T> {
     pub fn exists(&self) -> bool {
         match self {
             Item::Regular(_) => true,
-            Item::Spacer(_) => true,
+            Item::Placeholder(_) => true,
             Item::DropSpot(_) => true,
-            Item::WeakSpacer(t) => t.upgrade().is_some(),
+            Item::WeakPlaceholder(t) => t.upgrade().is_some(),
+        }
+    }
+
+    pub fn upgraded_weak_placeholder(&self) -> Option<Placeholder> {
+        match self {
+            Item::WeakPlaceholder(t) => t.upgrade(),
+            _ => None,
         }
     }
 }
@@ -425,67 +432,79 @@ impl<T: display::Object> Model<T> {
         (inv_object_matrix * world_space).xy()
     }
 
+
+    fn remove_item_by_display_object(
+        &mut self,
+        target: &display::object::Instance,
+    ) -> Option<(usize, T)> {
+        let mut result: Option<(usize, T)> = None;
+        let items = mem::take(&mut self.items);
+        self.items = items
+            .into_iter()
+            .enumerate()
+            .filter_map(|(i, item)| match item {
+                Item::Regular(item) =>
+                    if item.display_object() == target {
+                        result = Some((i, item));
+                        None
+                    } else {
+                        Some(Item::Regular(item))
+                    },
+                Item::DropSpot(t) =>
+                    if t.elem.display_object() == target {
+                        result = Some((i, t.elem));
+                        None
+                    } else {
+                        Some(Item::DropSpot(t))
+                    },
+                _ => Some(item),
+            })
+            .collect();
+        result
+    }
+
+    fn get_upgraded_weak_placeholder(&self, index: usize) -> Option<(usize, Placeholder)> {
+        self.items.get(index).and_then(|t| t.upgraded_weak_placeholder().map(|t| (index, t)))
+    }
+
     fn set_as_dragged_item(
         &mut self,
         layouted_elems: &display::object::Instance,
         target: &display::object::Instance,
     ) {
-        let index = self
-            .items
-            .iter()
-            .position(|item| match item {
-                Item::Regular(item) => item.display_object() == target,
-                Item::DropSpot(t) => t.elem.display_object() == target,
-                _ => false,
-            })
-            .expect("Item not found");
-        self.collapse_all_spacers();
-        let prev_index = index.saturating_sub(1);
-        let next_index = index.saturating_add(1);
-        let mut old_spacer: Option<(usize, Spacer)> = None;
-        let mut old_spacer_to_merge: Option<(usize, Spacer)> = None;
-        if let Some(Item::WeakSpacer(weak)) = self.items.get(prev_index) && let Some(spacer) = weak.upgrade() {
-            old_spacer = Some((prev_index, spacer));
-        }
-        if let Some(Item::WeakSpacer(weak)) = self.items.get(next_index) && let Some(spacer) = weak.upgrade() {
-            if old_spacer.is_some() {
-                old_spacer_to_merge = Some((next_index, spacer));
-            } else {
-                old_spacer = Some((next_index, spacer));
-            }
-        }
-        if let Some((spacer_index, spacer)) = old_spacer {
-            let elem_ref = &self.items[index];
-            let size = elem_ref.computed_size().x + GAP;
-            spacer.uncollapse();
-            spacer.mod_size(size);
-            spacer.set_target_size(size);
-            if let Some((spacer_to_merge_index, spacer_to_merge)) = old_spacer_to_merge {
-                self.items.remove(spacer_to_merge_index);
-                spacer.mod_size(spacer_to_merge.computed_size().x);
-                spacer_to_merge.uncollapse();
-            }
-            self.items[spacer_index] = Item::Spacer(spacer);
-            let elem = self.items.remove(index);
-            if let Item::Regular(elem) = elem {
+        if let Some((index, elem)) = self.remove_item_by_display_object(target) {
+            self.collapse_all_placeholders();
+            let prev_index = index.saturating_sub(1);
+            let prev_placeholder = self.get_upgraded_weak_placeholder(prev_index);
+            let next_placeholder = self.get_upgraded_weak_placeholder(index);
+            let (placeholder, placeholder_to_merge) = match (prev_placeholder, next_placeholder) {
+                (Some(p1), Some(p2)) => (Some(p1), Some(p2)),
+                (p1, p2) => (p1.or(p2), None),
+            };
+            if let Some((placeholder_index, placeholder)) = placeholder {
+                let size = elem.computed_size().x + GAP;
+                placeholder.uncollapse();
+                placeholder.mod_size(size);
+                placeholder.set_target_size(size);
+                if let Some((placeholder_to_merge_index, placeholder_to_merge)) =
+                    placeholder_to_merge
+                {
+                    self.items.remove(placeholder_to_merge_index);
+                    placeholder.mod_size(placeholder_to_merge.computed_size().x);
+                    placeholder_to_merge.uncollapse();
+                }
+                self.items[placeholder_index] = Item::Placeholder(placeholder);
                 self.dragged_item = Some(elem);
+                self.reset_margins();
+                self.redraw_items(layouted_elems);
             } else {
-                unreachable!();
-            }
-            self.reset_margins();
-            self.redraw_items(layouted_elems);
-        } else {
-            let spacer = Spacer::new();
-            let elem_ref = &self.items[index];
-            spacer.set_target_size_no_animation(elem_ref.computed_size().x + GAP);
-            let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
-            if let Item::Regular(elem) = elem {
+                let placeholder = Placeholder::new();
+                placeholder.set_target_size_no_animation(elem.computed_size().x + GAP);
+                self.items.insert(index, Item::Placeholder(placeholder));
                 self.dragged_item = Some(elem);
-            } else {
-                unreachable!();
+                self.reset_margins();
+                self.redraw_items(layouted_elems);
             }
-            self.reset_margins();
-            self.redraw_items(layouted_elems);
         }
     }
 
@@ -495,27 +514,27 @@ impl<T: display::Object> Model<T> {
         if self.dragged_item.is_some() {
             warn!(">>>");
             let prev_index = index.saturating_sub(1);
-            self.collapse_all_spacers();
+            self.collapse_all_placeholders();
             let item = self.dragged_item.as_ref().expect("No dragged item");
-            let mut old_spacer: Option<(usize, Spacer)> = None;
-            if let Some(Item::WeakSpacer(weak)) = self.items.get(index) && let Some(spacer) = weak.upgrade() {
-                old_spacer = Some((index, spacer));
-            } else if let Some(Item::WeakSpacer(weak)) = self.items.get(prev_index) && let Some(spacer) = weak.upgrade() {
-                old_spacer = Some((prev_index, spacer));
+            let mut old_placeholder: Option<(usize, Placeholder)> = None;
+            if let Some(Item::WeakPlaceholder(weak)) = self.items.get(index) && let Some(placeholder) = weak.upgrade() {
+                old_placeholder = Some((index, placeholder));
+            } else if let Some(Item::WeakPlaceholder(weak)) = self.items.get(prev_index) && let Some(placeholder) = weak.upgrade() {
+                old_placeholder = Some((prev_index, placeholder));
             }
-            if let Some((index, spacer)) = old_spacer {
-                warn!("reusing spacer");
-                spacer.set_target_size(item.computed_size().x + GAP);
-                spacer.uncollapse();
-                self.items[index] = Item::Spacer(spacer);
+            if let Some((index, placeholder)) = old_placeholder {
+                warn!("reusing placeholder");
+                placeholder.set_target_size(item.computed_size().x + GAP);
+                placeholder.uncollapse();
+                self.items[index] = Item::Placeholder(placeholder);
                 self.reset_margins();
             } else {
-                warn!("adding spacer");
-                let spacer = Spacer::new();
-                spacer.set_target_size(item.computed_size().x + GAP);
-                self.items.insert(index, Item::Spacer(spacer.clone_ref()));
+                warn!("adding placeholder");
+                let placeholder = Placeholder::new();
+                placeholder.set_target_size(item.computed_size().x + GAP);
+                self.items.insert(index, Item::Placeholder(placeholder.clone_ref()));
                 self.reset_margins();
-                spacer.set_current_size(0.0);
+                placeholder.set_current_size(0.0);
             }
         }
     }
@@ -524,32 +543,32 @@ impl<T: display::Object> Model<T> {
         warn!("unset_dragged_item");
         let item = self.dragged_item.take().expect("No dragged item");
         let prev_index = index.saturating_sub(1);
-        if let Some(old_item) = self.items.get_mut(index) && let Item::Spacer(spacer) = old_item {
+        if let Some(old_item) = self.items.get_mut(index) && let Item::Placeholder(placeholder) = old_item {
             warn!("replacing old");
-            let spacer_position = spacer.global_position().xy();
+            let placeholder_position = placeholder.global_position().xy();
             let item_position = item.global_position().xy();
-            item.set_xy(item_position - spacer_position);
-            *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
-        } else if let Some(old_item) = self.items.get_mut(prev_index) && let Item::Spacer(spacer) = old_item {
+            item.set_xy(item_position - placeholder_position);
+            *old_item = Item::DropSpot(DropSpot::new(placeholder.clone_ref(), item));
+        } else if let Some(old_item) = self.items.get_mut(prev_index) && let Item::Placeholder(placeholder) = old_item {
             warn!("replacing old");
-            let spacer_position = spacer.global_position().xy();
+            let placeholder_position = placeholder.global_position().xy();
             let item_position = item.global_position().xy();
-            item.set_xy(item_position - spacer_position);
-            *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
+            item.set_xy(item_position - placeholder_position);
+            *old_item = Item::DropSpot(DropSpot::new(placeholder.clone_ref(), item));
         } else {
             panic!()
             // warn!("inserting new");
             // self.items.insert(index, item);
         }
-        self.collapse_all_spacers();
+        self.collapse_all_placeholders();
         self.reset_margins();
     }
 
-    fn collapse_all_spacers(&mut self) {
+    fn collapse_all_placeholders(&mut self) {
         for item in &mut self.items {
-            if let Item::Spacer(spacer) = item {
-                spacer.collapse();
-                *item = Item::WeakSpacer(spacer.downgrade());
+            if let Item::Placeholder(placeholder) = item {
+                placeholder.collapse();
+                *item = Item::WeakPlaceholder(placeholder.downgrade());
             }
         }
     }
@@ -559,7 +578,7 @@ impl<T: display::Object> Model<T> {
     //     self.items.insert(index, elem);
     // }
 
-    // FIXME: does not work correctly with spacers
+    // FIXME: does not work correctly with placeholders
     fn elems_center_points(&self) -> Vec<f32> {
         let mut centers = Vec::new();
         let mut current = 0.0;
