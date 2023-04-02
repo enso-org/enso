@@ -474,6 +474,10 @@ impl<T: display::Object> Model<T> {
     ) {
         if let Some((index, elem)) = self.remove_item_by_display_object(target) {
             self.collapse_all_placeholders();
+
+            // ╭─────╮ ╭╌╌╌╌╮
+            // │  1  │ ┆
+            // ╰─────╯
             let prev_index = index.saturating_sub(1);
             let prev_placeholder = self.get_upgraded_weak_placeholder(prev_index);
             let next_placeholder = self.get_upgraded_weak_placeholder(index);
