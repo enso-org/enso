@@ -195,10 +195,24 @@ use spacer::WeakSpacer;
 // ===========
 
 #[derive(Debug)]
+pub struct DropSpot<T> {
+    pub spacer: Spacer,
+    pub elem:   T,
+}
+
+impl<T: display::Object> DropSpot<T> {
+    pub fn new(spacer: Spacer, elem: T) -> Self {
+        spacer.add_child(&elem);
+        Self { spacer, elem }
+    }
+}
+
+#[derive(Debug)]
 pub enum Item<T> {
     Regular(T),
     Spacer(Spacer),
     WeakSpacer(WeakSpacer),
+    DropSpot(DropSpot<T>),
 }
 
 impl<T: display::Object> Item<T> {
@@ -218,6 +232,7 @@ impl<T: display::Object> Item<T> {
             Item::Regular(t) => Some(t.display_object().clone_ref()),
             Item::Spacer(t) => Some(t.display_object().clone_ref()),
             Item::WeakSpacer(t) => t.upgrade().map(|t| t.display_object().clone_ref()),
+            Item::DropSpot(t) => Some(t.spacer.display_object().clone_ref()),
         }
     }
 
@@ -229,6 +244,7 @@ impl<T: display::Object> Item<T> {
         match self {
             Item::Regular(_) => true,
             Item::Spacer(_) => true,
+            Item::DropSpot(_) => true,
             Item::WeakSpacer(t) => t.upgrade().is_some(),
         }
     }
@@ -257,7 +273,7 @@ pub struct VectorEditor<T> {
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Model<T> {
-    dragged_item: Option<Item<T>>,
+    dragged_item: Option<T>,
     items:        Vec<Item<T>>,
 }
 
@@ -436,7 +452,11 @@ impl<T: display::Object> Model<T> {
             }
             self.items[spacer_index] = Item::Spacer(spacer);
             let elem = self.items.remove(index);
-            self.dragged_item = Some(elem);
+            if let Item::Regular(elem) = elem {
+                self.dragged_item = Some(elem);
+            } else {
+                unreachable!();
+            }
             self.reset_margins();
             self.redraw_items(layouted_elems);
         } else {
@@ -444,7 +464,11 @@ impl<T: display::Object> Model<T> {
             let elem_ref = &self.items[index];
             spacer.set_target_size_no_animation(elem_ref.computed_size().x + GAP);
             let elem = mem::replace(&mut self.items[index], Item::Spacer(spacer));
-            self.dragged_item = Some(elem);
+            if let Item::Regular(elem) = elem {
+                self.dragged_item = Some(elem);
+            } else {
+                unreachable!();
+            }
             self.reset_margins();
             self.redraw_items(layouted_elems);
         }
@@ -485,15 +509,18 @@ impl<T: display::Object> Model<T> {
         warn!("unset_dragged_item");
         let item = self.dragged_item.take().expect("No dragged item");
         let prev_index = index.saturating_sub(1);
-        if let Some(old_item) = self.items.get_mut(index) && old_item.is_spacer() {
+        if let Some(old_item) = self.items.get_mut(index) && let Item::Spacer(spacer) = old_item {
             warn!("replacing old");
-            *old_item = item;
-        } else if let Some(old_item) = self.items.get_mut(prev_index) && old_item.is_spacer() {
+            *old_item = Item::Regular(item);
+            // *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
+        } else if let Some(old_item) = self.items.get_mut(prev_index) && let Item::Spacer(spacer) = old_item {
             warn!("replacing old");
-            *old_item = item;
+            *old_item = Item::Regular(item);
+            // *old_item = Item::DropSpot(DropSpot::new(spacer.clone_ref(), item));
         } else {
-            warn!("inserting new");
-            self.items.insert(index, item);
+            panic!()
+            // warn!("inserting new");
+            // self.items.insert(index, item);
         }
         self.collapse_all_spacers();
         self.reset_margins();
@@ -508,10 +535,10 @@ impl<T: display::Object> Model<T> {
         }
     }
 
-    fn insert_dragged_item(&mut self, index: usize) {
-        let elem = self.dragged_item.take().expect("No dragged item");
-        self.items.insert(index, elem);
-    }
+    // fn insert_dragged_item(&mut self, index: usize) {
+    //     let elem = self.dragged_item.take().expect("No dragged item");
+    //     self.items.insert(index, elem);
+    // }
 
     // FIXME: does not work correctly with spacers
     fn elems_center_points(&self) -> Vec<f32> {
