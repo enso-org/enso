@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.state;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -36,6 +37,7 @@ public class ExecutionEnvironment {
     return this.name;
   }
 
+  @CompilerDirectives.TruffleBoundary
   public ExecutionEnvironment withContextEnabled(Atom context) {
     assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
     HashMap<String, Boolean> permissions1 = new HashMap<>();
@@ -46,6 +48,7 @@ public class ExecutionEnvironment {
     return new ExecutionEnvironment(name, permissions1);
   }
 
+  @CompilerDirectives.TruffleBoundary
   public ExecutionEnvironment withContextDisabled(Atom context) {
     assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
     HashMap<String, Boolean> permissions1 = new HashMap<>();
@@ -56,6 +59,7 @@ public class ExecutionEnvironment {
     return new ExecutionEnvironment(name, permissions1);
   }
 
+  @CompilerDirectives.TruffleBoundary
   public Boolean hasContextEnabled(String context) {
     return permissions.getOrDefault(context, false);
   }
