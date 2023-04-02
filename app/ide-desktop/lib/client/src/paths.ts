@@ -46,7 +46,7 @@ export const clientArguments = getClientArguments()
 /** Check if the given path represents the root of an Enso project. This is decided by the presence of Project Manager's metadata.
  */
 export function isProjectRoot(candidatePath: string): boolean {
-    let project_json_path = path.join(candidatePath, projectMetadataRelative)
+    const project_json_path = path.join(candidatePath, projectMetadataRelative)
     try {
         fss.accessSync(project_json_path, fss.constants.R_OK)
         return true

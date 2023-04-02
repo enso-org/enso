@@ -45,7 +45,7 @@ export function importProjectFromPath(openedPath: string): string {
         // Check if the project root is under the projects directory. If it is, we can open it.
         // Otherwise, we need to install it first.
         if (rootPath === null) {
-            let message = `File '${openedPath}' does not belong to the ${PRODUCT_NAME} project.`
+            const message = `File '${openedPath}' does not belong to the ${PRODUCT_NAME} project.`
             throw new Error(message)
         }
         return importDirectory(rootPath)
@@ -184,14 +184,14 @@ export function generateDirectoryName(name: string): string {
     name = path.parse(name).name
 
     // If the name already consists a suffix, reuse it.
-    let match = name.match(/^(.*)_(\d+)$/)
+    const match = name.match(/^(.*)_(\d+)$/)
     let suffix = 0
     if (match !== null && match.length === 3) {
         name = match[1] as string
         suffix = parseInt(match[2] as string) as number
     }
 
-    let projectsDirectory = getProjectsDirectory()
+    const projectsDirectory = getProjectsDirectory()
     for (; ; suffix++) {
         let candidatePath = path.join(
             projectsDirectory,
@@ -226,8 +226,8 @@ export function getProjectsDirectory(): string {
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */
 export function isProjectInstalled(projectRoot: string): boolean {
     // Project can be opened by project manager only if its root directory is directly under the projects directory.
-    let projectsDirectory = getProjectsDirectory()
-    let projectRootParent = path.dirname(projectRoot)
+    const projectsDirectory = getProjectsDirectory()
+    const projectRootParent = path.dirname(projectRoot)
     // Should resolve symlinks and relative paths. Normalize before comparison.
     return path.resolve(projectRootParent) === path.resolve(projectsDirectory)
 }

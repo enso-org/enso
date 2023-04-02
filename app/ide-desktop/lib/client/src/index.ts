@@ -116,11 +116,11 @@ class App {
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
-        let fileToOpen = attemptingToOpenFile(paths.clientArguments)
+        const fileToOpen = attemptingToOpenFile(paths.clientArguments)
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument), it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        let argsToParse = fileToOpen ? [] : paths.clientArguments
+        const argsToParse = fileToOpen ? [] : paths.clientArguments
         return { ...configParser.parseArgs(argsToParse), fileToOpen }
     }
 
