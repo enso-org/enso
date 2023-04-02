@@ -42,7 +42,6 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.controlflow.permission.PermissionGuardNode
 import org.enso.interpreter.node.expression.atom.{
   ConstantNode,
   QualifiedAccessorNode
@@ -1657,12 +1656,7 @@ class IrToTruffle(
           case _ =>
             ExpressionProcessor.this.run(body, false, subjectToInstrumentation)
         }
-        val block = BlockNode.build(argExpressions.toArray, bodyExpr)
-        effectContext match {
-          case Some("Input")  => new PermissionGuardNode(block, true, false);
-          case Some("Output") => new PermissionGuardNode(block, false, true);
-          case _              => block
-        }
+        BlockNode.build(argExpressions.toArray, bodyExpr)
       }
 
       private def computeSlots(): (

@@ -6,7 +6,7 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class ForbiddenOperation extends UniquelyConstructibleBuiltin {
+public class NotImplemented extends UniquelyConstructibleBuiltin {
 
   @Override
   protected String getConstructorName() {

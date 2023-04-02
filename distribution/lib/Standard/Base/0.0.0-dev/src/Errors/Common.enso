@@ -230,3 +230,21 @@ type No_Such_Conversion
        - that: the value to be converted.
        - conversion: the conversion that was attempted.
     Error target that conversion
+
+@Builtin_Type
+type Forbidden_Operation
+    ## PRIVATE
+       An error that occurs when the action is not allowed to perform the operation in the given context
+
+       Arguments:
+       - operation: attempted context that is not allowed
+    Error operation
+
+@Builtin_Type
+type Not_Implemented
+    ## PRIVATE
+       An error that occurs when a specified action has not be implemented
+
+       Arguments:
+       - operation: name of the operation attempted
+    Error operation
