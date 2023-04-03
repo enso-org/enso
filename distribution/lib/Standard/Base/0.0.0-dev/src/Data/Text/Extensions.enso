@@ -342,19 +342,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
         if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else
             case use_regex of
                 False ->
-                    delimiters = Vector.from_polyglot_array <|
-                        case delimiter of
-                            _ : Text -> case case_sensitivity of
-                                Case_Sensitivity.Sensitive ->
-                                    Text_Utils.span_of_all self delimiter
-                                Case_Sensitivity.Insensitive locale ->
-                                    Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
-                            _ : Vector -> case case_sensitivity of
-                                Case_Sensitivity.Sensitive ->
-                                    Text_Utils.span_of_all_multiple self delimiter
-                                Case_Sensitivity.Insensitive locale ->
-                                    Text_Utils.span_of_all_case_insensitive_multiple self delimiter locale.java_locale
-                            _ -> Error.throw (Illegal_Argument.Error "Cann't split on " + delimiter.to_display_text)
+                    delimiters = split_find_delimiters self delimiter case_sensitivity
                     Vector.new delimiters.length+1 i->
                         start = if i == 0 then 0 else
                             delimiters.at i-1 . codeunit_end
@@ -1362,3 +1350,22 @@ slice_text text char_ranges =
     char_ranges.map char_range->
        sb.append text char_range.start char_range.end
     sb.toString
+
+## PRIVATE
+
+   Find occurrences of delimiters in a string.
+split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
+split_find_delimiters input delimiter case_sensitivity =
+    Vector.from_polyglot_array <|
+    case delimiter of
+        _ : Text -> case case_sensitivity of
+            Case_Sensitivity.Sensitive ->
+                Text_Utils.span_of_all input delimiter
+            Case_Sensitivity.Insensitive locale ->
+                Text_Utils.span_of_all_case_insensitive input delimiter locale.java_locale
+        _ : Vector -> case case_sensitivity of
+            Case_Sensitivity.Sensitive ->
+                Text_Utils.span_of_all_multiple input delimiter
+            Case_Sensitivity.Insensitive locale ->
+                Text_Utils.span_of_all_case_insensitive_multiple input delimiter locale.java_locale
+        _ -> Error.throw (Illegal_Argument.Error "Can't split on " + delimiter.to_display_text)
