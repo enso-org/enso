@@ -137,7 +137,7 @@ class TableVisualization extends Visualization {
                     filter: true,
                     resizable: true,
                     minWidth: 50,
-                    headerValueGetter: params => params.colDef.field
+                    headerValueGetter: params => params.colDef.field,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
             }
