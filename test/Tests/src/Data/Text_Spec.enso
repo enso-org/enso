@@ -317,6 +317,11 @@ spec =
             'abc'.split ['a', ''] . should_fail_with Illegal_Argument
             'abc'.split 3 . should_fail_with Illegal_Argument
 
+            'abc'.split '' case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+            'abc'.split [] case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+            'abc'.split ['a', ''] case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+            'abc'.split 3 case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+
         Test.specify "examples should be correct" <|
             "Namespace::package::package::Type".split "::" . should_equal ["Namespace", "package", "package", "Type"]
             "abc--def==>ghi".split "[-=>]+" use_regex=True . should_equal ["abc", "def", "ghi"]
