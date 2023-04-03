@@ -207,7 +207,7 @@ bitflags::bitflags! {
 ///        // We'll be using the `main` layer directly. If we needed a dedicated layer, we could use
 ///        // [`Layer::create_sublayer`], but layers are expensive to render; always use existing
 ///        // layers when possible.
-///        let main = &world.default_scene.layers.main;
+///        let layer = &world.default_scene.layers.main;
 ///
 ///        let bottom = layer.create_symbol_partition::<rectangle::Shape>("bottom");
 ///        let top = layer.create_symbol_partition::<rectangle::Shape>("top");
