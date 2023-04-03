@@ -28,6 +28,7 @@ pub mod fullscreen;
 mod shape {
     use super::*;
     shape! {
+        alignment = center;
         (style: Style) {
             Plane().fill(INVISIBLE_HOVER_COLOR).into()
         }

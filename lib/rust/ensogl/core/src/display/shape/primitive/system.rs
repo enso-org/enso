@@ -887,11 +887,9 @@ macro_rules! _shape {
                     _out
                 }
 
-                fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
-                    let _out = $crate::display::layout::alignment::Dim2::center();
-                    $(let _out = $crate::display::layout::alignment::Dim2::$alignment();)?
-                    _out
-                }
+                $(fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
+                    $crate::display::layout::alignment::Dim2::$alignment()
+                })?
 
                 fn always_above() -> Vec<ShapeSystemId> {
                     vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]
@@ -945,11 +943,6 @@ macro_rules! _shape {
                 $(fn flavor(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
                     $flavor(data)
                 })?
-
-                $(fn initial_alignment(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
-                    $flavor(data)
-                })?
-
             }
 
             /// Register the shape definition in the global shape registry. It is used for shader
