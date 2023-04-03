@@ -1395,6 +1395,17 @@ spec =
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
+    Test.group "Regex tokenizing" <|
+        Test.specify "can tokenize with simple regexes without capturing groups"
+            "1-800-regex-yes" . tokenize "[a-z]+" . should_equal ["regex", "yes"]
+            "1-800-REGEX-YES" . tokenize "[a-z]+" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["REGEX", "YES"]
+            "12 hi345 67r890r" . tokenize "\d\d" . should_equal ["12", "34", "67", "89"]
+
+        Test.specify "examples are correct" <|
+            "ABCDEF" . tokenize  "..." . should_equal ["ABC","DEF"]
+            "ABCDEF" . tokenize "(.).(.)" . should_equal ["AC","DF"]
+            'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)" . should_equal ["Hello","Big","Wide","World","Goodbye!"]
+
     Test.group "Text.replace" <|
         Test.specify "should work as in examples" <|
             'aaa'.replace 'aa' 'b' . should_equal 'ba'
