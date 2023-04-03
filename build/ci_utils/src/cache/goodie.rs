@@ -37,7 +37,7 @@ pub trait Goodie: Debug + Clone + Send + Sync + 'static {
 pub trait GoodieExt: Goodie {
     /// Check if this goodie is active. If not, download it and activate it.
     ///
-    /// If the goodie was already ective, returns Ok(None). If it was not active, returns
+    /// If the goodie was already active, returns Ok(None). If it was not active, returns
     /// Ok(Some(path)), where path is the path to the downloaded goodie within the cache.
     /// Usually it should not be necessary to use the returned path, as the goodie should have been
     /// activated and the global state modified accordingly.
@@ -49,10 +49,21 @@ pub trait GoodieExt: Goodie {
                 trace!("Skipping activation of {this:?} because it already present.",);
                 Result::Ok(None)
             } else {
-                let package = this.get(&cache).await?;
-                this.activate(&package)?;
+                let package = this.install(&cache).await?;
                 Result::Ok(Some(package))
             }
+        }
+        .boxed()
+    }
+
+    // Download it and activate this goodie. Does not check if it is already active.
+    fn install(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+        let this = self.clone();
+        let cache = cache.clone();
+        async move {
+            let package = this.get(&cache).await?;
+            this.activate(&package)?;
+            Result::Ok(package)
         }
         .boxed()
     }

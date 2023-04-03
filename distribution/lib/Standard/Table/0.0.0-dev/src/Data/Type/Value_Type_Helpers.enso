@@ -1,0 +1,79 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from project.Data.Type.Value_Type import Value_Type, Auto
+
+## PRIVATE
+   Finds a type that can fit both a current type and a new type.
+reconcile_types current new = case current of
+    Value_Type.Mixed -> Value_Type.Mixed
+    Value_Type.Integer size -> case new of
+        Value_Type.Integer new_size ->
+            Value_Type.Integer (Math.max size new_size)
+        Value_Type.Byte    -> Value_Type.Integer size
+        Value_Type.Boolean -> Value_Type.Integer size
+        # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
+        Value_Type.Float _ -> Value_Type.Float
+        _                  -> Value_Type.Mixed
+    Value_Type.Float size -> case new of
+        Value_Type.Float new_size ->
+            Value_Type.Float (Math.max size new_size)
+        # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
+        Value_Type.Integer _ -> Value_Type.Float
+        Value_Type.Byte      -> Value_Type.Float
+        Value_Type.Boolean   -> Value_Type.Float
+        _                    -> Value_Type.Mixed
+    Value_Type.Byte -> case new of
+        Value_Type.Byte    -> Value_Type.Byte
+        Value_Type.Integer size ->
+            Value_Type.Integer size
+        Value_Type.Boolean -> Value_Type.Byte
+        Value_Type.Float _ -> Value_Type.Float
+        _                  -> Value_Type.Mixed
+    Value_Type.Boolean -> case new of
+        Value_Type.Boolean -> Value_Type.Boolean
+        Value_Type.Integer size ->
+            Value_Type.Integer size
+        Value_Type.Byte    -> Value_Type.Byte
+        Value_Type.Float _ -> Value_Type.Float
+        _                  -> Value_Type.Mixed
+    Value_Type.Char current_size current_variable -> case new of
+        Value_Type.Char new_size new_variable ->
+            result_variable = current_variable || new_variable || current_size != new_size
+            case result_variable of
+                True -> Value_Type.Char Nothing True
+                False -> Value_Type.Char current_size False
+        _ -> Value_Type.Mixed
+    Value_Type.Binary current_size current_variable -> case new of
+        Value_Type.Binary new_size new_variable ->
+            result_variable = current_variable || new_variable || current_size != new_size
+            case result_variable of
+                True -> Value_Type.Binary Nothing True
+                False -> Value_Type.Binary current_size False
+        _ -> Value_Type.Mixed
+    _ ->
+        if current == new then current else Value_Type.Mixed
+
+## PRIVATE
+   Finds the most specific value type that will fit all the provided types.
+
+   If `strict` is `True`, it is implemented as specified in the note
+   "Unifying Column Types" in `Table.union`. In that case, if no common type
+   is found, `Nothing` is returned.
+
+   It assumes that the `types` vector is not empty.
+find_common_type : Vector Value_Type -> Boolean -> Value_Type | Nothing
+find_common_type types strict =
+    most_generic_type = (types.drop 1).fold types.first reconcile_types
+    if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
+        # Double check if Mixed was really allowed to come out.
+        if types.contains Value_Type.Mixed then Value_Type.Mixed else
+            Nothing
+
+## PRIVATE
+   Checks if the given type is a valid target type for parsing.
+
+   This will be replaced once we change parse to rely on `Value_Type` instead.
+ensure_valid_parse_target type ~action =
+    expected_types = [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean]
+    if expected_types.contains type . not then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else action

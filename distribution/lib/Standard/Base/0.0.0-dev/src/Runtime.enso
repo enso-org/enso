@@ -96,6 +96,14 @@ type Stack_Trace_Element
     ## PRIVATE
     Value name source_location
 
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        loc = case self.source_location of
+            Nothing -> "Unknown location"
+            loc -> loc.formatted_coordinates
+        "at "+self.name+" ("+loc+")"
+
 ## ADVANCED
 
     Types indicating allowed IO operations

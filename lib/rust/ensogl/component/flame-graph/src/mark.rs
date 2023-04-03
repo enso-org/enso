@@ -37,6 +37,7 @@ const INFINITE: f32 = 99999.0;
 mod background {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let width  : Var<Pixels> = MARK_WIDTH.px();
             let height : Var<Pixels> = INFINITE.px();

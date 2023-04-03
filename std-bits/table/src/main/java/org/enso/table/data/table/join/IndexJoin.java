@@ -1,9 +1,8 @@
 package org.enso.table.data.table.join;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -11,9 +10,13 @@ import org.enso.table.data.table.join.scan.Matcher;
 import org.enso.table.data.table.join.scan.MatcherFactory;
 import org.enso.table.problems.AggregatedProblems;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class IndexJoin implements JoinStrategy {
   private record HashEqualityCondition(
-      Column left, Column right, TextFoldingStrategy textFoldingStrategy) {}
+      Column left, Column right, TextFoldingStrategy textFoldingStrategy) {
+  }
 
   @Override
   public JoinResult join(Table left, Table right, List<JoinCondition> conditions) {
@@ -94,6 +97,7 @@ public class IndexJoin implements JoinStrategy {
   }
 
   private static boolean isBuiltinType(Storage<?> storage) {
-    return storage.getType() != Storage.Type.OBJECT;
+    // TODO: this should be removed when #5626 and #5259 are implemented
+    return !storage.getType().equals(AnyObjectType.INSTANCE);
   }
 }

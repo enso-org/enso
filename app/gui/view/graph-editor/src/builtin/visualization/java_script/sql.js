@@ -126,10 +126,6 @@ class SqlVisualization extends Visualization {
         this.dom.appendChild(parentContainer)
 
         const tooltip = new Tooltip(parentContainer)
-        const baseMismatches = this.dom.getElementsByClassName('mismatch')
-        const extendedMismatchAreas = this.dom.getElementsByClassName('mismatch-mouse-area')
-        setupMouseInteractionForMismatches(tooltip, baseMismatches)
-        setupMouseInteractionForMismatches(tooltip, extendedMismatchAreas)
     }
 
     /**
@@ -260,7 +256,7 @@ class QualifiedTypeName {
  * Renders HTML for displaying an Enso parameter that is interpolated into the SQL code.
  */
 function renderInterpolationParameter(theme, param) {
-    const actualType = param.actual_type
+    const actualType = param.enso_type
     let value = param.value
 
     if (actualType === textType) {
@@ -270,37 +266,8 @@ function renderInterpolationParameter(theme, param) {
     const actualTypeColor = theme.getColorForType(actualType)
     const fgColor = actualTypeColor
     let bgColor = replaceAlpha(fgColor, interpolationBacgroundOpacity)
-    const expectedEnsoType = param.expected_enso_type
 
-    if (actualType === expectedEnsoType) {
-        return renderRegularInterpolation(value, fgColor, bgColor)
-    } else {
-        let expectedType = expectedEnsoType
-        if (expectedType === null) {
-            expectedType = customSqlTypePrefix + param.expected_sql_type
-        }
-
-        const expectedTypeColor = theme.getColorForType(expectedType)
-        const hoverBgColor = expectedTypeColor
-        bgColor = replaceAlpha(hoverBgColor, interpolationBacgroundOpacity)
-        const hoverFgColor = theme.getForegroundColorForType(expectedType)
-
-        const message = renderTypeHintMessage(
-            actualType,
-            expectedType,
-            actualTypeColor,
-            expectedTypeColor
-        )
-
-        return renderMismatchedInterpolation(
-            value,
-            message,
-            fgColor,
-            bgColor,
-            hoverFgColor,
-            hoverBgColor
-        )
-    }
+    return renderRegularInterpolation(value, fgColor, bgColor)
 }
 
 /**
@@ -314,38 +281,6 @@ function renderRegularInterpolation(value, fgColor, bgColor) {
         convertColorToRgba(bgColor) +
         ';">'
     html += value
-    html += '</div>'
-    return html
-}
-
-/**
- * A helper that renders the HTML representation of a type-mismatched SQL interpolation.
- *
- * This only prepares the HTML code, to setup the interactions, `setupMouseInteractionForMismatches`
- * must be called after these HTML elements are added to the DOM.
- */
-function renderMismatchedInterpolation(
-    value,
-    message,
-    fgColor,
-    bgColor,
-    hoverFgColor,
-    hoverBgColor
-) {
-    let html = '<div class="mismatch-parent">'
-    html += '<div class="mismatch-mouse-area"></div>'
-    html += '<div class="interpolation mismatch"'
-    let style = 'color:' + convertColorToRgba(fgColor) + ';'
-    style += 'background-color:' + convertColorToRgba(bgColor) + ';'
-    html += ' style="' + style + '"'
-    html += ' data-fgColor="' + convertColorToRgba(fgColor) + '"'
-    html += ' data-bgColor="' + convertColorToRgba(bgColor) + '"'
-    html += ' data-fgColorHover="' + convertColorToRgba(hoverFgColor) + '"'
-    html += ' data-bgColorHover="' + convertColorToRgba(hoverBgColor) + '"'
-    html += ' data-message="' + encodeURIComponent(message) + '"'
-    html += '>'
-    html += value
-    html += '</div>'
     html += '</div>'
     return html
 }
@@ -405,34 +340,6 @@ class Tooltip {
         const y = interpolantOffsetY - scrollOffsetY + belowOffset
 
         this.tooltip.style.transform = 'translate(' + x + 'px, ' + y + 'px)'
-    }
-}
-
-/**
- * Sets up mouse events for the interpolated parameters that have a type mismatch.
- */
-function setupMouseInteractionForMismatches(tooltip, elements) {
-    function interpolationMouseEnter(event) {
-        const target = this.parentElement.getElementsByClassName('mismatch')[0]
-        const fg = target.getAttribute('data-fgColorHover')
-        const bg = target.getAttribute('data-bgColorHover')
-        const message = decodeURIComponent(target.getAttribute('data-message'))
-        tooltip.show(target, message)
-        target.style.color = fg
-        target.style.backgroundColor = bg
-    }
-    function interpolationMouseLeave(event) {
-        const target = this.parentElement.getElementsByClassName('mismatch')[0]
-        const fg = target.getAttribute('data-fgColor')
-        const bg = target.getAttribute('data-bgColor')
-        target.style.color = fg
-        target.style.backgroundColor = bg
-        tooltip.hide(target)
-    }
-
-    for (let i = 0; i < elements.length; ++i) {
-        elements[i].addEventListener('mouseenter', interpolationMouseEnter)
-        elements[i].addEventListener('mouseleave', interpolationMouseLeave)
     }
 }
 

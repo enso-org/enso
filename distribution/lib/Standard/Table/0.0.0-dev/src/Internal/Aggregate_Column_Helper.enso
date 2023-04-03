@@ -227,10 +227,9 @@ java_aggregator name column =
                 order_columns = ordering.map c->c.column.java_column
                 order_direction = ordering.map c->c.direction.to_sign
                 LastAggregator.new name c.java_column ignore_nothing order_columns.to_array order_direction.to_array
-        Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1
-        Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1
-        Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1
-        Longest c _ -> ShortestOrLongestAggregator.new name c.java_column 1
+        Maximum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MAX
+        Minimum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MIN
+        Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.SHORTEST
+        Longest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.LONGEST
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
         _ -> Error.throw (Invalid_Aggregation.Error name -1 "Unsupported aggregation")
-
