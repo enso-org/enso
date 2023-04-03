@@ -336,39 +336,44 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
         _ : Text -> delimiter.is_empty
         _ : Vector -> delimiter.is_empty || delimiter.any (.is_empty)
         _ -> Error.throw (Illegal_Argument.Error "The delimiter must be a Text or Vector of Texts.")
+    delimiter_is_singleton_vector = case delimiter of
+        _ : Vector -> delimiter.length == 1
+        _ -> False
     if delimiter_is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty or contain empty entries.") else
-        case use_regex of
-            False ->
-                delimiters = Vector.from_polyglot_array <|
-                    case delimiter of
-                        _ : Text -> case case_sensitivity of
-                            Case_Sensitivity.Sensitive ->
-                                Text_Utils.span_of_all self delimiter
-                            Case_Sensitivity.Insensitive locale ->
-                                Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
-                        _ : Vector -> case case_sensitivity of
-                            Case_Sensitivity.Sensitive ->
-                                Text_Utils.span_of_all_multiple self delimiter
-                            Case_Sensitivity.Insensitive locale ->
-                                Text_Utils.span_of_all_case_insensitive_multiple self delimiter locale.java_locale
-                        _ -> Error.throw (Illegal_Argument.Error "Cann't split on " + delimiter.to_display_text)
-                Vector.new delimiters.length+1 i->
-                    start = if i == 0 then 0 else
-                        delimiters.at i-1 . codeunit_end
-                    end = if i == delimiters.length then (Text_Utils.char_length self) else
-                        delimiters.at i . codeunit_start
-                    Text_Utils.substring self start end
-            True -> case delimiter of
-                _ : Text ->
-                    Helpers.regex_assume_default_locale case_sensitivity <|
-                        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                        compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
-                        compiled_pattern.split self only_first
-                _ : Vector ->
-                    parenthesize s = "(?:" + s + ")"
-                    combined_delimiter = parenthesize (delimiter.map parenthesize . join '|')
-                    self.split combined_delimiter case_sensitivity=case_sensitivity only_first=only_first use_regex=True
-                _ -> Error.throw (Illegal_Argument.Error "Cann't split on " + delimiter.to_display_text)
+        # If it's a vector of one element, just call it on that one element.
+        if delimiter_is_singleton_vector then self.split delimiter=(delimiter.at 0) case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex else
+            case use_regex of
+                False ->
+                    delimiters = Vector.from_polyglot_array <|
+                        case delimiter of
+                            _ : Text -> case case_sensitivity of
+                                Case_Sensitivity.Sensitive ->
+                                    Text_Utils.span_of_all self delimiter
+                                Case_Sensitivity.Insensitive locale ->
+                                    Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
+                            _ : Vector -> case case_sensitivity of
+                                Case_Sensitivity.Sensitive ->
+                                    Text_Utils.span_of_all_multiple self delimiter
+                                Case_Sensitivity.Insensitive locale ->
+                                    Text_Utils.span_of_all_case_insensitive_multiple self delimiter locale.java_locale
+                            _ -> Error.throw (Illegal_Argument.Error "Cann't split on " + delimiter.to_display_text)
+                    Vector.new delimiters.length+1 i->
+                        start = if i == 0 then 0 else
+                            delimiters.at i-1 . codeunit_end
+                        end = if i == delimiters.length then (Text_Utils.char_length self) else
+                            delimiters.at i . codeunit_start
+                        Text_Utils.substring self start end
+                True -> case delimiter of
+                    _ : Text ->
+                        Helpers.regex_assume_default_locale case_sensitivity <|
+                            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                            compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+                            compiled_pattern.split self only_first
+                    _ : Vector ->
+                        parenthesize s = "(?:" + s + ")"
+                        combined_delimiter = parenthesize (delimiter.map parenthesize . join '|')
+                        self.split combined_delimiter case_sensitivity=case_sensitivity only_first=only_first use_regex=True
+                    _ -> Error.throw (Illegal_Argument.Error "Cann't split on " + delimiter.to_display_text)
 
 ## ALIAS Replace Text
    Perform a text or regex replace.
