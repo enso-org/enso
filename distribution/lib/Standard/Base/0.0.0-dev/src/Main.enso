@@ -93,6 +93,7 @@ import project.Data.Text.Extensions
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
+import project.Data.Text.Regex_2
 import project.Data.Text.Text_Ordering.Text_Ordering
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
@@ -140,6 +141,7 @@ export project.Data.Text.Extensions
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Location.Location
 export project.Data.Text.Matching_Mode.Matching_Mode
+export project.Data.Text.Regex_2
 export project.Data.Text.Text_Ordering.Text_Ordering
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date

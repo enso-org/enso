@@ -1,16 +1,16 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
-import Standard.Base.Data.Text.Regex.Match_2.Match_2
-import Standard.Base.Data.Text.Regex.Pattern_2.Pattern_2
-import Standard.Base.Data.Text.Regex.Replacer.Replacer
+import Standard.Base.Data.Text.Match_2.Match_2
+import Standard.Base.Data.Text.Pattern_2.Pattern_2
+import Standard.Base.Data.Text.Replacer.Replacer
 import Standard.Base.Data.Text.Regex_2
 import Standard.Base.Data.Text.Regex_2.No_Such_Group
 import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.IO
 
-from Standard.Base.Data.Text.Regex.Replacer import get_lru_size, replacer_cache_lookup
+from Standard.Base.Data.Text.Replacer import get_lru_size, replacer_cache_lookup
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

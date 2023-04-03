@@ -1,8 +1,8 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
-import project.Data.Text.Regex.Match_2.Match_2
-import project.Data.Text.Regex.Pattern_2.Match_Iterator_Value
-import project.Data.Text.Regex.Pattern_2.Pattern_2
+import project.Data.Text.Match_2.Match_2
+import project.Data.Text.Pattern_2.Match_Iterator_Value
+import project.Data.Text.Pattern_2.Pattern_2
 import project.Data.Text.Regex_2
 import project.Data.Text.Regex_2.No_Such_Group
 import project.Data.Text.Span.Utf_16_Span
