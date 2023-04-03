@@ -576,8 +576,6 @@ public class Text_Utils {
       int matchLength = stringSearches.get(earliestIndex).getMatchLength();
       GraphemeSpan graphemeSpan = findExtendedSpan(foldedHaystack, earliestStart, matchLength);
       occurrences.add(graphemeSpan);
-      System.out.println("AAA " + matchLength + " " + (earliestStart + matchLength) + " " +
-          graphemeSpan.codeunit_end + " " + ((earliestStart + matchLength) == graphemeSpan.codeunit_end));
       ix = graphemeSpan.codeunit_end;
     }
     return occurrences;
