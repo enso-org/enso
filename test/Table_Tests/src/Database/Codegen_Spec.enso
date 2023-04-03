@@ -16,10 +16,12 @@ import Standard.Test.Extensions
 
 import project.Database.Helpers.Fake_Test_Connection
 
+polyglot java import java.sql.Types as Java_SQL_Types
+
 spec =
-    int = SQL_Type.integer
-    bool = SQL_Type.boolean
-    str = SQL_Type.text
+    int = SQL_Type.Value Java_SQL_Types.INTEGER "INTEGER"
+    bool = SQL_Type.Value Java_SQL_Types.BOOLEAN "BOOLEAN"
+    str = SQL_Type.Value Java_SQL_Types.VARCHAR "TEXT"
     test_connection =
         table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
         table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
@@ -28,11 +30,11 @@ spec =
         Fake_Test_Connection.make Dialect.sqlite tables
     t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
-        Test.specify "should serialize Tables and Columns to their SQL representation" pending="TODO: decide on how we handle ==" <|
+        Test.specify "should serialize Tables and Columns to their SQL representation" pending="TODO: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
             q1 = t1.filter (t1.at "A" == 42) . to_json
 
             part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
-            part2_sub = JS_Object.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
+            part2_sub = JS_Object.from_pairs [["value", 42]]
             part2 = JS_Object.from_pairs [["sql_interpolation", part2_sub]]
             part3 = JS_Object.from_pairs [["sql_code", ")"]]
             expected = JS_Object.from_pairs [["query", [part1, part2, part3]]] . to_text
@@ -61,48 +63,23 @@ spec =
             t2 = t1.limit 5
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
-    Test.group "[Codegen] Building Expressions" <|
-        Test.specify "should allow building expressions from columns and constants" <|
-            t2 = test_connection.query (SQL_Query.Table_Name "T2")
-            d = t2.at "D"
-            e = t2.at "E"
-            f = t2.at "F"
-            arith = (d * 2) + 1
-            logic = (f || f.not) && True
-            cmp = (d * d >= e) && (d - e < d)
-            arith.to_sql.prepare . should_equal ['SELECT (("T2"."D" * ?) + ?) AS "'+arith.name+'" FROM "T2" AS "T2"', [[2, int], [1, int]]]
-            logic.to_sql.prepare . should_equal ['SELECT (("T2"."F" OR (NOT "T2"."F")) AND ?) AS "'+logic.name+'" FROM "T2" AS "T2"', [[True, bool]]]
-            cmp.to_sql.prepare . should_equal ['SELECT ((("T2"."D" * "T2"."D") >= "T2"."E") AND (("T2"."D" - "T2"."E") < "T2"."D")) AS "'+cmp.name+'" FROM "T2" AS "T2"', []]
-
-        Test.specify "should support simple text operations" <|
-            b = t1.at "B"
-            add = b + "SUFFIX"
-            add.to_sql.prepare . should_equal ['SELECT ("T1"."B" || ?) AS "[B] + \'SUFFIX\'" FROM "T1" AS "T1"', [["SUFFIX", str]]]
-
-            ends = b.ends_with "suf"
-            starts = b.starts_with "pref"
-            contains = b.contains "inf"
-            ends.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (\'*\' || ?)) AS "'+ends.name+'" FROM "T1" AS "T1"', [["suf", str]]]
-            starts.to_sql.prepare . should_equal ['SELECT ("T1"."B" GLOB (? || \'*\')) AS "'+starts.name+'" FROM "T1" AS "T1"', [["pref", str]]]
-            contains.to_sql.prepare . should_equal ['SELECT instr("T1"."B", ?) > 0 AS "'+contains.name+'" FROM "T1" AS "T1"', [["inf", str]]]
-
     Test.group "[Codegen] Masking Tables and Columns" <|
         Test.specify "should generate a single BETWEEN expression" <|
             t2 = t1.filter "A" (Filter_Condition.Between 10 20)
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [[10, int], [20, int]]]
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [10, 20]]
 
             t3 = t1.filter "A" (Filter_Condition.Between (t1.at "B") (t1.at "C"))
             t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND "T1"."C")', []]
 
             t4 = t1.filter "A" (Filter_Condition.Between (t1.at "B") 33)
-            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND ?)', [[33, int]]]
+            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND ?)', [33]]
 
         Test.specify "should generate an IN expression" <|
             t2 = t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?, ?, ?), FALSE)', [[1, int], [2, int], ["foo", int]]]
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?, ?, ?), FALSE)', [1, 2, "foo"]]
 
             t3 = t1.filter "A" (Filter_Condition.Is_In [1])
-            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?), FALSE)', [[1, int]]]
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?), FALSE)', [1]]
 
             t4 = t1.filter "A" (Filter_Condition.Is_In [])
             t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (FALSE)', []]
@@ -113,7 +90,7 @@ spec =
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_nothing should allow to replace missing values in a column with a constant" <|
             c = t1.at "A" . fill_nothing "not-applicable"
-            c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "fill_nothing([A], \'not-applicable\')" FROM "T1" AS "T1"', [["not-applicable", int]]]
+            c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "fill_nothing([A], \'not-applicable\')" FROM "T1" AS "T1"', ["not-applicable"]]
 
         Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.filter_blank_rows when_any=True

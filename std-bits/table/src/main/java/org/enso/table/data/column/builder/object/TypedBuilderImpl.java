@@ -2,8 +2,11 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   protected T[] data;
@@ -21,13 +24,13 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   }
 
   @Override
-  public boolean canRetypeTo(long type) {
-    return type == Storage.Type.OBJECT;
+  public boolean canRetypeTo(StorageType type) {
+    return Objects.equals(type, AnyObjectType.INSTANCE);
   }
 
   @Override
-  public TypedBuilder retypeTo(long type) {
-    if (type == Storage.Type.OBJECT) {
+  public TypedBuilder retypeTo(StorageType type) {
+    if (Objects.equals(type, AnyObjectType.INSTANCE)) {
       Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
       ObjectBuilder res = new ObjectBuilder(widenedData);
       res.setCurrentSize(currentSize);
@@ -53,7 +56,7 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (storage.getType() == getType()) {
+    if (storage.getType().equals(getType())) {
       if (storage instanceof SpecializedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")

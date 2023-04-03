@@ -1,0 +1,107 @@
+from Standard.Base import all
+
+from Standard.Table import Value_Type
+from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+
+    pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
+
+    Test.group prefix+"Date-Time support" pending=pending_datetime <|
+        Test.specify "should allow to create Table with Date columns and round-trip them back to Enso" <|
+            d = Date.new 2020 10 24
+            table = table_builder [["A", [d]], ["X", [123]]]
+            table.at "A" . value_type . should_equal Value_Type.Date
+            table.at "A" . to_vector . should_equal [d]
+            table.at "X" . to_vector . should_equal [123]
+
+        Test.specify "should allow to create Table with Time Of Day columns and round-trip them back to Enso" <|
+            # We do not check nanoseconds, as nano support may be optional.
+            t = Time_Of_Day.new hour=12 minute=3 second=5 millisecond=6 microsecond=7
+            table = table_builder [["B", [t]], ["X", [123]]]
+            table.at "B" . value_type . should_equal Value_Type.Time
+            table.at "B" . to_vector . should_equal [t]
+            table.at "X" . to_vector . should_equal [123]
+
+        Test.specify "should allow to create Table with Date Time columns and round-trip them back to Enso, preserving the exact instant in time (even if losing the timezone)" <|
+            dt1 = Date_Time.new 2020 10 24 1 2 3 millisecond=4 microsecond=5
+            offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
+            dt2 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
+            named_zone = Time_Zone.parse "US/Hawaii"
+            dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
+
+            to_utc dt = dt.at_zone Time_Zone.utc
+            dates = [dt1, dt2, dt3]
+            xs = [1, 2, 3]
+            table = table_builder [["C", dates], ["X", xs]]
+            table.at "C" . value_type . should_equal Value_Type.Date_Time
+            ## We compare the timestamps converted to UTC.
+               This ensures that the value we are getting back represents the
+               exact same instant in time as the one we put in.
+
+               We cannot guarantee that time time _zone_ itself will be the same
+               - for example Postgres stores all timestamps in UTC, regardless
+               of what timezone they were in at input.
+            table.at "C" . to_vector . map to_utc . should_equal (dates.map to_utc)
+            table.at "X" . to_vector . should_equal xs
+
+    Test.group prefix+"Date-Time operations" pending=pending_datetime <|
+        Test.specify "should allow to get the year/month/day of a Date" <|
+            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
+
+            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
+            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
+            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+                c.value_type.is_integer.should_be_true
+
+            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+
+        Test.specify "should allow to get the year/month/day of a Date_Time" <|
+            t = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59, Date_Time.new 2024 2 29 2 30 44, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+
+            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
+            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
+            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+
+        Test.specify "should allow to compute expressions with year/month/day" <|
+            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
+            c = t.compute "year([A]) + [X] + day([A]) * month([B])"
+            Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                c.value_type.is_integer.should_be_true
+            c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
+
+        Test.specify "should report a type error if year/month/day is invoked on a non-date column" <|
+            t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
+            r1 = t.at "A" . year
+            r1.should_fail_with Invalid_Value_Type
+            r1.catch . to_display_text . should_start_with "Expected A column to have Date or Date_Time type, but got Integer"
+            t.at "B" . month . should_fail_with Invalid_Value_Type
+            t.at "C" . day . should_fail_with Invalid_Value_Type
+
+    if setup.test_selection.date_time.not then
+        Test.group prefix+"partial Date-Time support" <|
+            Test.specify "will fail to upload a Table containing Dates" <|
+                d = Date.new 2020 10 24
+                table = table_builder [["A", [d]], ["X", [123]]]
+                table.should_fail_with Inexact_Type_Coercion

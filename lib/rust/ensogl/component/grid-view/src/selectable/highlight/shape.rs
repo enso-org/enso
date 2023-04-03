@@ -32,6 +32,7 @@ use ensogl_scroll_area::Viewport;
 
 ensogl_core::shape! {
     pointer_events = false;
+    alignment = center;
     (
         style: Style,
         // Corners radii of viewport (x), hover highlight (y) and selection highlight (z).

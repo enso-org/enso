@@ -26,11 +26,9 @@ type SQL_Expression
        be interpolated when building the query.
 
        Arguments:
-       - sql_type: The SQL type that this object is going to be serialized to.
-         It is usually inferred from the expression's context.
-       - value: the value to be interpolated; it should be a simple Number, Text
-         or other types that are serializable for JDBC.
-    Constant (sql_type : SQL_Type) (value : Any)
+       - value: the value to be interpolated; the set of supported interpolation
+         values depends on the database backend.
+    Constant (value : Any)
 
     ## PRIVATE
 
