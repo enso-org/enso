@@ -5,28 +5,6 @@ import slick.jdbc.SQLiteProfile.api._
 
 import scala.annotation.nowarn
 
-/** A row in the arguments table.
-  *
-  * @param id the id of an argument
-  * @param suggestionId the id of the suggestion
-  * @param index the argument position in the arguments list
-  * @param name the argument name
-  * @param tpe the argument type
-  * @param isSuspended is the argument lazy
-  * @param hasDefault does the argument have the default value
-  * @param defaultValue optional default value
-  */
-case class ArgumentRow(
-  id: Option[Long],
-  suggestionId: Long,
-  index: Int,
-  name: String,
-  tpe: String,
-  isSuspended: Boolean,
-  hasDefault: Boolean,
-  defaultValue: Option[String]
-)
-
 /** A row in the suggestions table.
   *
   * @param id the id of a suggestion
@@ -145,40 +123,6 @@ object NameColumn {
 
 }
 
-/** The schema of the arguments table. */
-@nowarn("msg=multiarg infix syntax")
-final class ArgumentsTable(tag: Tag)
-    extends Table[ArgumentRow](tag, "arguments") {
-
-  def id           = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def suggestionId = column[Long]("suggestion_id")
-  def index        = column[Int]("index")
-  def name         = column[String]("name")
-  def tpe          = column[String]("type")
-  def isSuspended  = column[Boolean]("is_suspended", O.Default(false))
-  def hasDefault   = column[Boolean]("has_default", O.Default(false))
-  def defaultValue = column[Option[String]]("default_value")
-  def * =
-    (
-      id.?,
-      suggestionId,
-      index,
-      name,
-      tpe,
-      isSuspended,
-      hasDefault,
-      defaultValue
-    ) <>
-    (ArgumentRow.tupled, ArgumentRow.unapply)
-
-  def suggestion =
-    foreignKey("suggestion_fk", suggestionId, Suggestions)(
-      _.id,
-      onUpdate = ForeignKeyAction.Restrict,
-      onDelete = ForeignKeyAction.Cascade
-    )
-}
-
 /** The schema of the suggestions table. */
 @nowarn("msg=multiarg infix syntax")
 final class SuggestionsTable(tag: Tag)
@@ -252,6 +196,17 @@ final class SuggestionsTable(tag: Tag)
     )
 }
 
+/** An element of unique suggestion index.
+  *
+  * @param kind the type of a suggestion
+  * @param module the module name
+  * @param name the suggestion name
+  * @param selfType the self type of a suggestion
+  * @param scopeStartLine the line of the start position of the scope
+  * @param scopeStartOffset the offset of the start position of the scope
+  * @param scopeEndLine the line of the end position of the scope
+  * @param scopeEndOffset the offset of the end position of the scope
+  */
 final case class SuggestionRowUniqueIndex(
   kind: Suggestion.Kind,
   module: String,
@@ -265,6 +220,11 @@ final case class SuggestionRowUniqueIndex(
 
 object SuggestionRowUniqueIndex {
 
+  /** Create an index element from the provided suggestion.
+    *
+    * @param suggestion the suggestion
+    * @return an index element representing the provided suggestion
+    */
   def apply(suggestion: Suggestion): SuggestionRowUniqueIndex = {
     val scope = Suggestion.Scope(suggestion)
     val suggestionName = suggestion match {
@@ -287,6 +247,11 @@ object SuggestionRowUniqueIndex {
     )
   }
 
+  /** Create an index element from the provided suggestion row.
+    *
+    * @param row the suggestion row
+    * @return an index element representing the provided suggestion row
+    */
   def apply(row: SuggestionRow): SuggestionRowUniqueIndex =
     new SuggestionRowUniqueIndex(
       SuggestionKind.toSuggestion(row.kind),
@@ -331,8 +296,6 @@ final class SchemaVersionTable(tag: Tag)
 
   def * = id.? <> (SchemaVersionRow.apply, SchemaVersionRow.unapply)
 }
-
-object Arguments extends TableQuery(new ArgumentsTable(_))
 
 object Suggestions extends TableQuery(new SuggestionsTable(_))
 
