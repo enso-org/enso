@@ -28,6 +28,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style,selected:f32,radius:f32,roundness:f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

@@ -8,7 +8,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
-from Standard.Table.Errors import Floating_Point_Equality,  Inexact_Type_Coercion
+from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -161,9 +161,13 @@ type Column
 
        Arguments:
        - op_kind: The kind of the unary operator.
-       - new_name: The name of the resulting column.
-    make_unary_op : Text -> Text -> Column
-    make_unary_op self op_kind new_name = self.make_op op_kind [] new_name
+       - new_name: The name of the resulting column. If nothing, will create a
+         name based on the operator.
+    make_unary_op : Text -> Text|Nothing -> Column
+    make_unary_op self op_kind new_name=Nothing =
+        effective_new_name = new_name.if_nothing <|
+            self.naming_helpers.function_name op_kind [self]
+        self.make_op op_kind [] effective_new_name
 
     ## UNSTABLE
 
@@ -811,6 +815,31 @@ type Column
     like self pattern =
         new_name = self.naming_helpers.binary_operation_name "like" self pattern
         self.make_binary_op "LIKE" pattern new_name
+
+    ## Gets the year as a number from the date stored in the column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    year : Column -> Column ! Invalid_Value_Type
+    year self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        self.make_unary_op "year"
+
+    ## Gets the month as a number (1-12) from the date stored in the column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    month : Column -> Column ! Invalid_Value_Type
+    month self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        self.make_unary_op "month"
+
+    ## Gets the day of the month as a number (1-31) from the date stored in the
+       column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    day : Column -> Column ! Invalid_Value_Type
+    day self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+        self.make_unary_op "day"
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.

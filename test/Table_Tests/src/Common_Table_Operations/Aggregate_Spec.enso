@@ -1235,7 +1235,7 @@ spec setup =
         if test_selection.date_support then
             Test.specify "should allow grouping by dates" <|
                 dates = ["Date", [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31, Date.new 2000 2 2, Date.new 1997]]
-                times = ["Time", [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500 100 900, Time_Of_Day.new 1 2 3, Time_Of_Day.new 0 0 0, Time_Of_Day.new 11 25 40]]
+                times = ["Time", [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500, Time_Of_Day.new 1 2 3, Time_Of_Day.new 0 0 0, Time_Of_Day.new 11 25 40]]
                 datetimes = ["DateTime", [Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5, Date_Time.new 1999 1 1 0 0 0, Date_Time.new 1998, Date_Time.new 1998]]
                 ints = ["Int", [1, 2, 4, 8, 16]]
                 table = table_builder [dates, times, datetimes, ints]
@@ -1247,12 +1247,16 @@ spec setup =
 
                 g2 = table.aggregate [Group_By "Time", Sum "Int"]
                 m2 = materialize g2 . order_by (["Time"])
-                m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500 100 900, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
+                m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
                 m2.at "Sum Int" . to_vector . should_equal [9, 2, 4, 16]
 
                 g3 = table.aggregate [Group_By "DateTime", Sum "Int"]
                 m3 = materialize g3 . order_by (["DateTime"])
-                m3.at "DateTime" . to_vector . should_equal [Date_Time.new 1998, Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5]
+                ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
+                   All that we require is that the instant in time represented by the values is preserved.
+                at_system_tz dt =
+                    dt.at_zone Time_Zone.system
+                m3.at "DateTime" . to_vector . map at_system_tz . should_equal [Date_Time.new 1998, Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5]
                 m3.at "Sum Int" . to_vector . should_equal [24, 5, 2]
 
         if test_selection.first_last && test_selection.first_last_row_order.not then

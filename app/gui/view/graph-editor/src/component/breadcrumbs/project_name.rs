@@ -44,6 +44,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()

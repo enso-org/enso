@@ -25,7 +25,6 @@ pub use shape::Shape;
 mod shape {
     use super::*;
     crate::shape! {
-        alignment = left_bottom;
         (
             style: Style,
             color: Vector4,
