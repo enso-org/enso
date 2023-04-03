@@ -78,7 +78,7 @@ public class OrderBuilder {
   /**
    * Builds an order mask based that will reverse the order of the data being masked.
    *
-   * @param size the size of the data being masked
+   * @param size the length of the data being masked
    * @return an order mask that will result in reversing the data it is applied to
    */
   public static OrderMask buildReversedMask(int size) {

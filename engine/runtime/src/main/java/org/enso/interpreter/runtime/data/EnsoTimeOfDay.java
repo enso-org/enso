@@ -25,7 +25,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
     name = "TimeOfDay",
     stdlibName = "Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day")
 public final class EnsoTimeOfDay implements TruffleObject {
-  private LocalTime localTime;
+  private final LocalTime localTime;
 
   public EnsoTimeOfDay(LocalTime localTime) {
     this.localTime = localTime;
@@ -170,5 +170,11 @@ public final class EnsoTimeOfDay implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().timeOfDay();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  @ExportMessage
+  public Object toDisplayString(boolean allowSideEffects) {
+    return DateTimeFormatter.ISO_LOCAL_TIME.format(localTime);
   }
 }

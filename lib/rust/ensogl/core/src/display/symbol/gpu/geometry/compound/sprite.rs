@@ -314,7 +314,6 @@ impl SpriteSystem {
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
         let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);
-        sprite.unsafe_set_forced_origin_alignment(self.alignment_value.get());
         self.add_child(&sprite);
         sprite
     }

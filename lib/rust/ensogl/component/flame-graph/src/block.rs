@@ -23,6 +23,7 @@ use ensogl_text as text;
 mod background {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

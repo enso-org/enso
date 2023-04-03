@@ -25,6 +25,7 @@ mod icon1 {
     use super::*;
     ensogl_core::cached_shape! {
         size = (32, 32);
+        alignment = center;
         (_style: Style) {
             let shape = Circle(16.px()).fill(color::Rgba::red());
             shape.recolorize(color::Rgba::green(), color::Rgba::red(), color::Rgba::blue()).into()
@@ -36,6 +37,7 @@ mod icon2 {
     use super::*;
     ensogl_core::cached_shape! {
         size = (200, 310);
+        alignment = center;
         (_style: Style) {
             let shape = Rect((200.px(), 310.px())).fill(color::Rgba::red());
             shape.into()
@@ -63,6 +65,7 @@ pub mod data_input {
 
     ensogl_core::cached_shape! {
         size = (16, 16);
+        alignment = center;
         (style: Style) {
             let vivid_color: Var<color::Rgba> = "srgba(1.0, 0.0, 0.0, 1.0)".into();
             let dull_color: Var<color::Rgba> = "srgba(0.0, 1.0, 0.0, 1.0)".into();
@@ -91,6 +94,7 @@ pub mod data_input {
 mod shape {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (_style: Style, shape: cached::AnyCachedShape, color: Vector4) {
             let bg = Rect((100.px(), 100.px())).fill(color::Rgba::white());
             let vivid_color: Var<color::Rgba> = color.into();
@@ -139,6 +143,7 @@ mod background {
     use super::*;
     ensogl_core::shape! {
         below = [texture, icon1, icon2];
+        alignment = center;
         (style: Style,) {
             Rect((296.0.px(), 326.0.px())).fill(color::Rgba::black()).into()
         }

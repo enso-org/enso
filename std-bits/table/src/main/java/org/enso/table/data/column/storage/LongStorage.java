@@ -1,8 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -11,13 +8,21 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
 
+import java.util.BitSet;
+import java.util.List;
+
 /** A column storing 64-bit integers. */
 public final class LongStorage extends NumericStorage<Long> {
+  // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
+  // for more compact storage and more efficient handling of smaller integers; for now we will be
+  // handling this just by checking the bounds
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -77,8 +82,9 @@ public final class LongStorage extends NumericStorage<Long> {
 
   /** @inheritDoc */
   @Override
-  public int getType() {
-    return Type.LONG;
+  public StorageType getType() {
+    // TODO add possibility to set integer bit limit
+    return IntegerType.INT_64;
   }
 
   /** @inheritDoc */
