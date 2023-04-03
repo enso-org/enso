@@ -10,7 +10,6 @@ import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Helpers
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
@@ -232,10 +231,9 @@ Text.characters self =
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    Helpers.regex_assume_default_locale case_sensitivity <|
-        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.match self
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern.match self
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -260,10 +258,9 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    Helpers.regex_assume_default_locale case_sensitivity <|
-        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.match_all self
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern.match_all self
 
 ## ALIAS Check Matches
 
@@ -291,10 +288,9 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
 Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
-    Helpers.regex_assume_default_locale case_sensitivity <|
-        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-        compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.matches self
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern.matches self
 
 ## ALIAS Split Text
 
@@ -339,10 +335,40 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_f
                     delimiters.at i . codeunit_start
                 Text_Utils.substring self start end
         True ->
-            Helpers.regex_assume_default_locale case_sensitivity <|
-                case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
-                compiled_pattern.split self only_first
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+            compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+            compiled_pattern.split self only_first
+
+## ADVANCED
+   Takes an input string and and a pattern and returns all the matches as a
+   `Vector Text`. If the pattern contains marked groups, the values are
+   concatenated together; otherwise the whole match is returned.
+
+   Arguments:
+   - input: The text to tokenize.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively. The values are compared case sensitively by default.
+
+   > Example
+     Split to blocks of 3 characters.
+
+        "ABCDEF" . tokenize  "..." == ["ABC","DEF"]
+
+   > Example
+     Split to blocks of 3 characters taking first and third letters.
+
+        "ABCDEF" . tokenize "(.).(.)" == ["AC","DF"]
+
+   > Example
+     Split a text on any white space.
+
+        'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)"
+            == ["Hello","Big","Wide","World","Goodbye!"]
+Text.tokenize : Text -> Case_Sensitivity -> Vector Text
+Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern.tokenize self
 
 ## ALIAS Replace Text
    Perform a text or regex replace.
@@ -434,10 +460,9 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
         True ->
-            Helpers.regex_assume_default_locale case_sensitivity <|
-                case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                compiled_pattern = Regex_2.compile term case_insensitive=case_insensitive
-                compiled_pattern.replace self replacement only_first
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+            compiled_pattern = Regex_2.compile term case_insensitive=case_insensitive
+            compiled_pattern.replace self replacement only_first
 
 ## ALIAS Get Words
 
