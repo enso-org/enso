@@ -339,7 +339,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
         _ -> False
     if delimiter_is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty or contain empty entries.") else
         # If it's a vector of one element, just call it on that one element.
-        if delimiter_is_singleton_vector then self.split delimiter=(delimiter.at 0) case_sensitivity=case_sensitivity use_regex=use_regex else
+        if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else
             case use_regex of
                 False ->
                     delimiters = Vector.from_polyglot_array <|
