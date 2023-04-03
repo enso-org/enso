@@ -287,19 +287,21 @@ impl<T> From<Placeholder> for Item<T> {
     }
 }
 
-ensogl_core::define_endpoints_2! {
+ensogl_core::define_endpoints_2! { <T: (frp::node::Data)>
     Input {
+        push_item(Weak<T>),
     }
     Output {
+        on_item_add((usize, Weak<T>)),
     }
 }
 
 
 #[derive(Derivative, CloneRef, Debug, Deref)]
 #[derivative(Clone(bound = ""))]
-pub struct VectorEditor<T> {
+pub struct ListEditor<T: frp::node::Data> {
     #[deref]
-    pub frp:        Frp,
+    pub frp:        Frp<T>,
     root:           display::object::Instance,
     layouted_elems: display::object::Instance,
     dragged_elems:  display::object::Instance,
@@ -361,7 +363,7 @@ impl<T> Items<T> {
     }
 }
 
-impl<T: display::Object + 'static> VectorEditor<T> {
+impl<T: display::Object + frp::node::Data> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
         let frp = Frp::new();
         let root = display::object::Instance::new();
@@ -376,6 +378,7 @@ impl<T: display::Object + 'static> VectorEditor<T> {
 
     fn init(self, cursor: &Cursor) -> Self {
         let scene = scene();
+        let frp = &self.frp;
         let network = self.frp.network();
         let root = &self.root;
         let layouted_elems = &self.layouted_elems;
@@ -386,6 +389,13 @@ impl<T: display::Object + 'static> VectorEditor<T> {
         let on_up = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
         frp::extend! { network
+
+            push_item_index <= frp.push_item.map(f!([model, layouted_elems] (item)
+                item.upgrade().map(|t| model.borrow_mut().push_item(&layouted_elems, (*t).clone()))
+            ));
+            on_item_pushed <- frp.push_item.map2(&push_item_index, |item, ix| (*ix, item.clone()));
+            frp.private.output.on_item_add <+ on_item_pushed;
+
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
             eval on_down ([] (event) event.stop_propagation());
@@ -447,16 +457,24 @@ impl<T: display::Object + 'static> VectorEditor<T> {
     }
 }
 
-impl<T: display::Object + 'static> VectorEditor<T> {
-    fn append(&self, item: T) {
-        self.layouted_elems.add_child(&item);
-        let mut model = self.model.borrow_mut();
-        model.items.push(Item::Regular(item));
-        model.recompute_margins();
-    }
-}
+// impl<T: display::Object + frp::node::Data> ListEditor<T> {
+//     fn _push_item(&self, item: T) {
+//         self.layouted_elems.add_child(&item);
+//         let mut model = self.model.borrow_mut();
+//         model.items.push(Item::Regular(item));
+//         model.recompute_margins();
+//     }
+// }
 
-impl<T: display::Object + 'static> Model<T> {
+impl<T: display::Object + frp::node::Data> Model<T> {
+    fn push_item(&mut self, layouted_elems: &display::object::Instance, item: T) -> usize {
+        layouted_elems.add_child(&item);
+        let index = self.items.len();
+        self.items.push(Item::Regular(item));
+        self.recompute_margins();
+        index
+    }
+
     fn redraw_items(&mut self, layouted_elems: &display::object::Instance) {
         self.retain_non_collapsed_items();
         for item in &self.items {
@@ -713,7 +731,7 @@ impl<T: display::Object + 'static> Model<T> {
     }
 }
 
-impl<T> display::Object for VectorEditor<T> {
+impl<T: frp::node::Data> display::Object for ListEditor<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.root
     }
@@ -782,7 +800,7 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
 
-    let vector_editor = VectorEditor::<Rectangle>::new(&app.cursor);
+    let vector_editor = ListEditor::<Rectangle>::new(&app.cursor);
 
 
     let shape1 = Circle().build(|t| {
@@ -816,9 +834,9 @@ pub fn main() {
         });
     }
 
-    vector_editor.append(shape1);
-    vector_editor.append(shape2);
-    vector_editor.append(shape3);
+    vector_editor.push_item(Rc::new(shape1).downgrade());
+    vector_editor.push_item(Rc::new(shape2).downgrade());
+    vector_editor.push_item(Rc::new(shape3).downgrade());
 
     let root = display::object::Instance::new();
     root.set_size(Vector2::new(300.0, 100.0));

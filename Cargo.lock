@@ -2620,6 +2620,7 @@ dependencies = [
  "ensogl-flame-graph",
  "ensogl-grid-view",
  "ensogl-label",
+ "ensogl-list-editor",
  "ensogl-list-view",
  "ensogl-scroll-area",
  "ensogl-scrollbar",
@@ -2980,15 +2981,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-example-vector-editor"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
@@ -3013,7 +3005,6 @@ dependencies = [
  "ensogl-example-sprite-system",
  "ensogl-example-sprite-system-benchmark",
  "ensogl-example-text-area",
- "ensogl-example-vector-editor",
 ]
 
 [[package]]
@@ -3081,6 +3072,16 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-shadow",
+ "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-list-editor"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
 ]
 

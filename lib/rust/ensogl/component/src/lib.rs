@@ -18,6 +18,7 @@ pub use ensogl_drop_manager as drop_manager;
 pub use ensogl_file_browser as file_browser;
 pub use ensogl_grid_view as grid_view;
 pub use ensogl_label as label;
+pub use ensogl_list_editor as list_editor;
 pub use ensogl_list_view as list_view;
 pub use ensogl_scroll_area as scroll_area;
 pub use ensogl_scrollbar as scrollbar;
