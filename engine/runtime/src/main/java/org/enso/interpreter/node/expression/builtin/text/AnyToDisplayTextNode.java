@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.text;
 
+import com.ibm.icu.text.BreakIterator;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -29,6 +30,24 @@ public abstract class AnyToDisplayTextNode extends Node {
       return Text.create(strings.asString(displays.getExceptionMessage(self)));
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  @Specialization
+  Text convertText(Text self) {
+    final var limit = 80;
+    if (self.length() < limit) {
+      return self;
+    } else {
+      var b = BreakIterator.getWordInstance();
+      b.setText(self.toString());
+      var l = b.preceding(limit);
+      if (l == BreakIterator.DONE) {
+        l = limit;
+      } else {
+        l--;
+      }
+      return Text.create(self.toString().substring(0, l));
     }
   }
 
