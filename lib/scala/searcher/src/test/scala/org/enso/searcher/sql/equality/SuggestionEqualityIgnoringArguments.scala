@@ -10,13 +10,11 @@ object SuggestionEqualityIgnoringArguments extends Equality[Suggestion] {
     o match {
       case b: Suggestion =>
         a.module == b.module &&
-          a.name == b.name &&
-          a.externalId == b.externalId &&
-          a.returnType == b.returnType &&
-          a.documentation == b.documentation
+        a.name == b.name &&
+        a.externalId == b.externalId &&
+        a.returnType == b.returnType &&
+        a.documentation == b.documentation
       case _ => false
     }
   }
 }
-
-

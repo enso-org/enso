@@ -11,6 +11,9 @@ trait SuggestionsEquality {
 
   implicit def suggestionEntryEquality: Equality[SuggestionEntry] =
     SuggestionEntryEqualityIgnoringArguments
+
+  implicit def suggestionOptionEquality: Equality[Option[Suggestion]] =
+    SuggestionOptionEqualityIgnoringArguments
 }
 
 object SuggestionsEquality extends SuggestionsEquality

@@ -342,13 +342,8 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case GetSuggestionsDatabase =>
-      suggestionsRepo.getAll
-        .map { case (version, entries) =>
-          GetSuggestionsDatabaseResult(
-            version,
-            entries.map { entry => SuggestionDatabaseEntry(entry) }
-          )
-        }
+      suggestionsRepo.currentVersion
+        .map(GetSuggestionsDatabaseResult(_, Seq()))
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
@@ -488,59 +483,24 @@ final class SuggestionsHandler(
     }
   }
 
-  def applyLoadedSuggestions(
-    suggestions: Vector[Suggestion]
-  ): Future[SuggestionsDatabaseUpdateNotification] = {
-    for {
-      (version, ids) <- suggestionsRepo.insertBatch(suggestions)
-    } yield {
-      val updates = ids
-        .zip(suggestions)
-        .map(SuggestionsDatabaseUpdate.Add.tupled)
-      SuggestionsDatabaseUpdateNotification(version, updates)
-    }
-  }
-
   /** Handle the suggestions of the loaded library.
     *
-    * Adds the new suggestions to the suggestions database and sends the
+    * Adds the new suggestions to the suggestions database and forma the
     * appropriate notification to the client.
     *
     * @param suggestions the loaded suggestions
     * @return the API suggestions database update notification
     */
-  def applyLoadedSuggestions1(
+  private def applyLoadedSuggestions(
     suggestions: Vector[Suggestion]
   ): Future[SuggestionsDatabaseUpdateNotification] = {
     for {
-      treeResults <- suggestionsRepo.applyTree(
-        suggestions.map(Api.SuggestionUpdate(_, Api.SuggestionAction.Add()))
-      )
-      version <- suggestionsRepo.currentVersion
+      (version, ids) <- suggestionsRepo.insertAll(suggestions)
     } yield {
-      val treeUpdates = treeResults.flatMap {
-        case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
-          action match {
-            case Api.SuggestionAction.Add() =>
-              if (ids.isEmpty) {
-                val verb = action.getClass.getSimpleName
-                logger.error("Cannot1 {} [{}].", verb, suggestion)
-              }
-              ids.map(
-                SuggestionsDatabaseUpdate.Add(
-                  _,
-                  suggestion
-                )
-              )
-            case action =>
-              logger.error(
-                "Invalid action during suggestions loading [{}].",
-                action
-              )
-              Seq()
-          }
-      }
-      SuggestionsDatabaseUpdateNotification(version, treeUpdates)
+      val updates = ids
+        .zip(suggestions)
+        .map(SuggestionsDatabaseUpdate.Add.tupled)
+      SuggestionsDatabaseUpdateNotification(version, updates)
     }
   }
 
