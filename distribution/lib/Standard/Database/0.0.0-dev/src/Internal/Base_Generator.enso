@@ -179,7 +179,8 @@ base_dialect =
     text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
-    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
+    types = [simple_cast]
+    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
@@ -198,6 +199,10 @@ make_iif arguments = case arguments.length of
         (Builder.code "CASE WHEN " ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
+
+## PRIVATE
+simple_cast = Base_Generator.lift_binary_op "CAST" a-> b->
+    Builder.code "CAST(" ++ a ++ " AS " ++ b ++ ")"
 
 ## PRIVATE
 make_between : Vector Builder -> Builder

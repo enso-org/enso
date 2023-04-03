@@ -107,8 +107,9 @@ type SQL_Type_Mapping
 ## PRIVATE
 default_sql_type_to_text sql_type =
     suffix = if sql_type.precision.is_nothing then "" else
-        " (" + sql_type.precision.to_text + "," + sql_type.scale.to_text + ")"
-    sql_type.name + suffix
+        if sql_type.scale.is_nothing then "(" + sql_type.precision.to_text + ")" else
+            " (" + sql_type.precision.to_text + "," + sql_type.scale.to_text + ")"
+    sql_type.name.trim + suffix
 
 ## PRIVATE
 default_make_cast mapping expression target_type on_problems =

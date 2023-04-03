@@ -191,6 +191,9 @@ spec setup =
             check_same <| t1.union [] keep_unmatched_columns=True
             check_same <| t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=True
 
+        # TODO tests for merging varchar (currently not possible in in-memory, so Postgres only)
+        # TODO unit tests for `find_common_type` helper
+
         Test.specify "should find a common type that will fit the merged columns" <|
             t1 = table_builder [["int+bool", [1, 2, 3]], ["int+float", [0, 1, 2]]]
             t2 = table_builder [["int+bool", [True, False, Nothing]], ["int+float", [1.0, 2.0, 2.5]]]
