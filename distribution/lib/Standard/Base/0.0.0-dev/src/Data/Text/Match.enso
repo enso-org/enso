@@ -3,7 +3,7 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
-import project.Data.Text.Regex_2.No_Such_Group
+import project.Data.Text.Regex.No_Such_Group
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
@@ -16,10 +16,10 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, True, False
 
 
-type Match_2
+type Match
     ## internal_regex_result : RegexResult (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
-    Value (pattern : Pattern_2) (internal_regex_result : Any) (input : Text)
+    Value (pattern : Pattern) (internal_regex_result : Any) (input : Text)
 
     ## PRIVATE
        Returns the start UTF16 character index of a group.
@@ -119,8 +119,8 @@ type Match_2
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
-       Match_2.utf_16_span will return the default value.
+       (Pattern.lookup_group 3) will return 3. If the caller tries to get group 3,
+       Match.utf_16_span will return the default value.
     utf_16_span : Integer | Text -> Any -> Utf_16_Span ! No_Such_Group
     utf_16_span self group=0 ~default=Nothing =
         group_id = self.pattern.lookup_group group
@@ -157,8 +157,8 @@ type Match_2
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get
-       group 3, Match_2.span will return the default value.
+       (Pattern.lookup_group 3) will return 3. If the caller tries to get
+       group 3, Match.span will return the default value.
     span : Integer | Text -> Any -> Span ! No_Such_Group
     span self group=0 ~default=Nothing =
         result = self.utf_16_span group Nothing
@@ -185,8 +185,8 @@ type Match_2
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get 
-       group 3, Match_2.text will return the default value.
+       (Pattern.lookup_group 3) will return 3. If the caller tries to get
+       group 3, Match.text will return the default value.
     text : Integer | Text -> Any -> Text ! No_Such_Group
     text self group=0 ~default=Nothing =
         result = self.span group Nothing
@@ -215,7 +215,7 @@ type Match_2
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern_2.lookup_group 3) will return 3. `groups` will return the
+       (Pattern.lookup_group 3) will return 3. `groups` will return the
        default value for groups that do not participate.
 
        > Example
@@ -247,14 +247,14 @@ type Match_2
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern_2.lookup_group 3) will return 3. `named_groups` will map
+       (Pattern.lookup_group 3) will return 3. `named_groups` will map
        a named group that does not participate to the default value.
 
        > Example
          Get the map of all of the named groups in this match, replacing the
          value for groups that didn't participate in the match with "UNMATCHED".
 
-            pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+            pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
             match = pattern.match input
             ## match.named_groups.keys.sort == ["empty", "letters"]

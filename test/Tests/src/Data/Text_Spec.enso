@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Regex_2.No_Such_Group
-import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
+import Standard.Base.Data.Text.Regex.No_Such_Group
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -1062,10 +1062,10 @@ spec =
                 term_1.length . should_equal 3
                 match_1.length . should_equal 2
                 term_2 = "ffiffl"
-                match_2 = ligatures . locate term_2 case_sensitivity=Case_Sensitivity.Insensitive
+                Match = ligatures . locate term_2 case_sensitivity=Case_Sensitivity.Insensitive
                 term_2.length . should_equal 6
-                match_2.length . should_equal 2
-                match_1 . should_equal match_2
+                Match.length . should_equal 2
+                match_1 . should_equal Match
 
             example_4 =
                 "Hello World!".locate_all "J" . should_equal []
@@ -1083,8 +1083,8 @@ spec =
                 ligatures.length . should_equal 7
                 match_1 = ligatures . locate_all "IFF" case_sensitivity=Case_Sensitivity.Insensitive
                 match_1 . map .length . should_equal [2, 3]
-                match_2 = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitivity.Insensitive
-                match_2 . map .length . should_equal [2, 5]
+                Match = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitivity.Insensitive
+                Match . map .length . should_equal [2, 5]
 
             ## Case_Sensitivity.Default should act like Case_Sensitivity.Default
             example_7 =

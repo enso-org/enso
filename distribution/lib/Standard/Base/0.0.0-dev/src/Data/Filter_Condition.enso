@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Extensions
-import project.Data.Text.Regex_2
+import project.Data.Text.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
@@ -196,4 +196,4 @@ type Filter_Condition
 ## PRIVATE
 sql_like_to_regex sql_pattern =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
-    Regex_2.compile regex_pattern
+    Regex.compile regex_pattern

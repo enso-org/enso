@@ -23,8 +23,8 @@ component-groups:
     - Parse:
         exports:
           - Standard.Base.Data.Json.Json.parse
-          - Standard.Base.Data.Text.Regex_2.compile
-          - Standard.Base.Data.Text.Regex_2.escape
+          - Standard.Base.Data.Text.Regex.compile
+          - Standard.Base.Data.Text.Regex.escape
     - Select:
         exports:
           - Standard.Base.Data.Vector.Vector.at

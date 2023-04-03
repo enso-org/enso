@@ -6,9 +6,9 @@ import project.Data.Range.Range
 import project.Data.Text.Helpers
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
-import project.Data.Text.Match_2.Match_2
+import project.Data.Text.Match.Match
 import project.Data.Text.Replacer.Replacer
-import project.Data.Text.Regex_2.No_Such_Group
+import project.Data.Text.Regex.No_Such_Group
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -23,7 +23,7 @@ from project.Data.Index_Sub_Range import sort_and_merge_ranges
 polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
 
-type Pattern_2
+type Pattern
     ## internal_regex_object : RegexObject (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (internal_regex_object : Any)
@@ -41,12 +41,12 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
-       Returns a `Match_2` containing the matched text and its match groups, or
+       Returns a `Match` containing the matched text and its match groups, or
        `Nothing` if the match failed.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match : Text -> Match_2 | Nothing | Illegal_Argument
+    match : Text -> Match | Nothing | Illegal_Argument
     match self input =
         Helpers.expect_text input <|
             it = Match_Iterator.new self input
@@ -56,12 +56,12 @@ type Pattern_2
 
     ## Tries to match the provided `input` against the pattern `self`.
 
-       Returns a `Vector Match_2` object, each containing the matched text
+       Returns a `Vector Match` object, each containing the matched text
        and its match groups.
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match_all : Text -> Vector Match_2 ! Illegal_Argument
+    match_all : Text -> Vector Match ! Illegal_Argument
     match_all self input =
         Helpers.expect_text input <|
             pattern_is_empty = self.internal_regex_object.pattern == ''
@@ -113,21 +113,21 @@ type Pattern_2
 
        > Example
          Split on the first instance of the pattern.
-             pattern = Regex_2.compile "cd"
+             pattern = Regex.compile "cd"
              input = "abcdefcdghij"
              texts = pattern.split input only_first=True
              texts . should_equal ["ab", "efcdghij"]
 
        > Example
          Split on the all instances of the pattern in the input.
-            pattern = Regex_2.compile "a"
+            pattern = Regex.compile "a"
             input = "bacadaeaf"
             texts = pattern.split input
             texts . should_equal ["b", "c", "d", "e", "f"]
 
        > Example
          Returns the original text if there are no matches.
-             pattern = Regex_2.compile "aa"
+             pattern = Regex.compile "aa"
              input = "abcdefghij"
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
@@ -158,17 +158,17 @@ type Pattern_2
        > Example
          Split to blocks of 3 characters.
 
-             Regex_2.compile '...' . tokenize 'ABCDEF' == ['ABC','DEF']
+             Regex.compile '...' . tokenize 'ABCDEF' == ['ABC','DEF']
 
        > Example
          Split to blocks of 3 characters taking first and third letters.
 
-             Regex_2.compile '(.).(.)' . tokenize 'ABCDEF' == ['AC','DF']
+             Regex.compile '(.).(.)' . tokenize 'ABCDEF' == ['AC','DF']
 
        > Example
          Split a text on any white space.
 
-             Regex_2.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
+             Regex.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
                  == ['Hello','Big','Wide','World','Goodbye!']
     tokenize : Text -> Vector Text
     tokenize self input =
@@ -197,31 +197,31 @@ type Pattern_2
        > Example
          Replace letters in the text "aa".
 
-             pattern = Regex_2.compile 'aa'
+             pattern = Regex.compile 'aa'
              pattern.replace 'aaa' 'b' == 'ba'
 
        > Example
          Replace all occurrences of letters 'l' and 'o' with '#'.
 
-              pattern = Regex_2.compile '[lo]'
+              pattern = Regex.compile '[lo]'
               pattern.replace 'Hello World!' '#' == 'He### W#r#d!'
 
        > Example
          Replace the first occurrence of letter 'l' with '#'.
 
-             pattern = Regex_2.compile 'l'
+             pattern = Regex.compile 'l'
              pattern.replace 'Hello World!' '#' only_first=True == 'He#lo World!'
 
        > Example
          Replace texts in quotes with parentheses.
 
-              pattern = Regex_2.compile '"(.*?)"'
+              pattern = Regex.compile '"(.*?)"'
               pattern.replace '"abc" foo "bar" baz' '($1)' == '(abc) foo (bar) baz'
 
        > Example
          Replace a literal string with a replacement value.
 
-             pattern = Regex_2.compile "aa"
+             pattern = Regex.compile "aa"
              input = "aa ab aa ac ad aa aa ax"
              match = pattern.replace input "xyz"
              match == "xyz ab xyz ac ad xyz xyz ax"
@@ -229,7 +229,7 @@ type Pattern_2
        > Example
          Replace each word with the same word surrounded by `[]`.
 
-             pattern = Regex_2.compile "([a-z]+)"
+             pattern = Regex.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
     replace : Text -> Text -> Boolean -> Text | Illegal_Argument
     replace self input replacement only_first=False =
@@ -277,8 +277,8 @@ type Pattern_2
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern_2.lookup_group 3) will return 3. If the caller tries to get group 3,
-       Match_2.group will return Nothing.
+       (Pattern.lookup_group 3) will return 3. If the caller tries to get group 3,
+       Match.group will return Nothing.
 
     lookup_group : Integer | Text -> Integer ! No_Such_Group
     lookup_group self id =
@@ -339,10 +339,10 @@ type Pattern_2
     the string, unmatched, as a single Last value. (Used for `replace` with
     `only_first=True`.)
 type Match_Iterator
-    new : Pattern_2 -> Text -> Match_Iterator
+    new : Pattern -> Text -> Match_Iterator
     new pattern input = Match_Iterator.Value pattern input 0
 
-    Value (pattern : Pattern_2) (input : Text) (cursor : Integer)
+    Value (pattern : Pattern) (input : Text) (cursor : Integer)
 
     ## Return the next match, or the last filler string if there is no
        additional match.
@@ -360,7 +360,7 @@ type Match_Iterator
                 match_start = regex_result.getStart 0
                 filler_range = Range.new self.cursor match_start
                 filler_span = (Utf_16_Span.Value filler_range self.input)
-                match = Match_2.Value self.pattern regex_result self.input
+                match = Match.Value self.pattern regex_result self.input
                 next_cursor = match.utf_16_end 0
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
@@ -387,7 +387,7 @@ type Match_Iterator
 
 ## PRIVATE
 type Match_Iterator_Value
-  Next (filler : Span) (match : Match_2) (next_iterator : Match_Iterator)
+  Next (filler : Span) (match : Match) (next_iterator : Match_Iterator)
   Last (filler : Span)
 
 ## PRIVATE
@@ -407,14 +407,14 @@ read_group_map polyglot_map name =
     map.get name
 
 ## PRIVATE
-match_to_group_maybe : Match_2 | Nothing -> Text | Nothing
+match_to_group_maybe : Match | Nothing -> Text | Nothing
 match_to_group_maybe match =
     if match.is_nothing then Nothing else match.text 0
 
 ## PRIVATE
-   Build an output string from a Match_2 resulting from `tokenize`.
+   Build an output string from a Match resulting from `tokenize`.
    See `tokenize`.
-build_tokenization_output_from_match : Pattern_2 -> Match_2 -> Text
+build_tokenization_output_from_match : Pattern -> Match -> Text
 build_tokenization_output_from_match pattern match =
     if pattern.group_count == 1 then match.text 0 else
         # Extract the ranges of the spans of all capturing groups

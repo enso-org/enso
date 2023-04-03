@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Match_2.Match_2
-import Standard.Base.Data.Text.Regex_2
+import Standard.Base.Data.Text.Match.Match
+import Standard.Base.Data.Text.Regex
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
@@ -268,7 +268,7 @@ transactions_table =
     (enso_project.data / "food_shop_transactions.csv") . read
 
 ## An example regex match.
-match : Match_2
+match : Match
 match =
-    pattern = Regex_2.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+    pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
     pattern.match "aa ab abc a bc bcd"

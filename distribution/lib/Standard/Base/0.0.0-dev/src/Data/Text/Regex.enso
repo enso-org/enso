@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Prim_Text_Helper
-import project.Data.Text.Pattern_2.Pattern_2
+import project.Data.Text.Pattern.Pattern
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -28,9 +28,9 @@ polyglot java import org.enso.base.Regex_Utils
    ? Why Compile?
      While many regex engines are able to cache ad-hoc patterns, it is often
      useful to be able to manually retain a pattern that you have computed. This
-     function exists so you can hold onto the resultant `Pattern_2` object,
+     function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
-compile : Text -> Boolean | Nothing -> Pattern_2 ! Regex_Syntax_Error | Illegal_Argument
+compile : Text -> Boolean | Nothing -> Pattern ! Regex_Syntax_Error | Illegal_Argument
 compile self expression case_insensitive=Nothing =
     if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
         options_string = if case_insensitive == True then "usgi" else "usg"
@@ -38,7 +38,7 @@ compile self expression case_insensitive=Nothing =
         internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
             Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
 
-        Pattern_2.Value internal_regex_object
+        Pattern.Value internal_regex_object
 
 ## ADVANCED
 
@@ -53,7 +53,7 @@ compile self expression case_insensitive=Nothing =
 
          example_escape =
              literal_string = "\!\.|abcde"
-             Regex_2.escape literal_string
+             Regex.escape literal_string
 escape : Text -> Text
 escape self expression = Regex_Utils.regexQuote expression
 
