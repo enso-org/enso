@@ -485,8 +485,8 @@ final class SuggestionsHandler(
 
   /** Handle the suggestions of the loaded library.
     *
-    * Adds the new suggestions to the suggestions database and forma the
-    * appropriate notification to the client.
+    * Adds the new suggestions to the suggestions database and returns the
+    * appropriate notification message.
     *
     * @param suggestions the loaded suggestions
     * @return the API suggestions database update notification

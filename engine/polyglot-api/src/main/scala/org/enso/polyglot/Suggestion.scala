@@ -52,6 +52,8 @@ object Suggestion {
 
   type ExternalId = UUID
 
+  /** @return `true` if the suggestion id defined in the global (module) scope.
+    */
   def isGlobal(suggestion: Suggestion): Boolean =
     suggestion match {
       case _: Suggestion.Module      => true
@@ -178,6 +180,12 @@ object Suggestion {
   case class Scope(start: Position, end: Position)
 
   object Scope {
+
+    /** Creates a scope from the provided suggestion.
+      *
+      * @param suggestion the provided suggestion
+      * @return the scope of the suggestion
+      */
     def apply(suggestion: Suggestion): Option[Scope] =
       suggestion match {
         case _: Module          => None

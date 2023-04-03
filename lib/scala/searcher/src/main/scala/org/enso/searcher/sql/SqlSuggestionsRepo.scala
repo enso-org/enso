@@ -270,10 +270,10 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the id of an inserted suggestion
     */
   private def insertQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
-    val suggestionRow= toSuggestionRow(suggestion)
+    val suggestionRow = toSuggestionRow(suggestion)
     val query = for {
       id <- Suggestions.returning(Suggestions.map(_.id)) += suggestionRow
-      _ <- incrementVersionQuery
+      _  <- incrementVersionQuery
     } yield id
     query.asTry.map {
       case Failure(_)  => None
@@ -435,7 +435,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the id of removed suggestion
     */
   private def removeQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
-    val raw    = toSuggestionRow(suggestion)
+    val raw         = toSuggestionRow(suggestion)
     val selectQuery = selectSuggestionQuery(raw)
     val deleteQuery = for {
       rows <- selectQuery.result
@@ -541,8 +541,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): DBIO[Option[Long]] = {
-    val raw = toSuggestionRow(suggestion)
-    val query    = selectSuggestionQuery(raw)
+    val raw   = toSuggestionRow(suggestion)
+    val query = selectSuggestionQuery(raw)
 
     val updateQ = for {
       r1 <- DBIO.sequenceOption {
