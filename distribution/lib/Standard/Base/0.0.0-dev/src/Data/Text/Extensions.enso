@@ -358,7 +358,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         parenthesize s = "(?:" + s + ")"
                         combined_delimiter = parenthesize (delimiter.map parenthesize . join '|')
                         self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
-                    _ -> Error.throw (Illegal_Argument.Error "Cann't split on " + delimiter.to_display_text)
+                    _ -> Error.throw (Illegal_Argument.Error "Can't split on " + delimiter.to_display_text)
 
 ## ALIAS Replace Text
    Perform a text or regex replace.

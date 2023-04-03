@@ -18,8 +18,6 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 import Standard.Base.Data.Text.Extensions
 
-polyglot java import java.lang.IllegalArgumentException
-
 type Auto
     Value a
 
