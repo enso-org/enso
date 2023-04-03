@@ -666,6 +666,7 @@
 - [Don't install Python component on Windows][5900]
 - [Detect potential name conflicts between exported types and FQNs][5966]
 - [Ensure calls involving warnings remain instrumented][6067]
+- [Vector.sort handles incomparable types][5998]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -768,7 +769,10 @@
 [5791]: https://github.com/enso-org/enso/pull/5791
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
+
 [6067]: https://github.com/enso-org/enso/pull/6067
+
+[5998]: https://github.com/enso-org/enso/pull/5998
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
