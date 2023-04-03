@@ -11,6 +11,7 @@ import project.Data.Column.Column
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 polyglot java import java.sql.Types
@@ -76,6 +77,15 @@ type SQLite_Type_Mapping
         on_not_found =
             Value_Type.Unsupported_Data_Type sql_type.name sql_type
         simple_types_map.get sql_type.typeid on_not_found
+
+    ## PRIVATE
+    sql_type_to_text : SQL_Type -> Text
+    sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
+
+    ## PRIVATE
+    make_cast : SQL_Expression -> Value_Type -> Problem_Behavior -> SQL_Expression
+    make_cast expression target_type on_problems =
+        SQL_Type_Mapping.default_make_cast SQLite_Type_Mapping expression target_type on_problems
 
     ## PRIVATE
        The SQLite type mapping takes special measures to keep boolean columns

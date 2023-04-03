@@ -1146,16 +1146,27 @@ type Table
                         [column_set, result_type]
             good_columns = merged_columns.filter r-> r.is_nothing.not
             if good_columns.is_empty then Error.throw No_Output_Columns else
+                type_mapping = self.connection.dialect.get_type_mapping
                 problem_builder.attach_problems_before on_problems <|
                     queries = all_tables.map_with_index i-> t->
                         columns_to_select = good_columns.map description->
                             column_set = description.first
+                            result_type = description.second
                             column_name = column_set.name
+                            ## We could cast the expression once at the end, but
+                               then some backends may not like merging pairs of
+                               columns like boolean with integers. So we cast at
+                               input here to already have a consistent type.
+                               Functionally it doesn't really change much.
                             expression = case column_set.column_indices.at i of
-                                Nothing -> SQL_Expression.Operation "NULL" []
+                                Nothing -> SQL_Expression.Literal "NULL"
                                 corresponding_column_index : Integer ->
                                     t.at corresponding_column_index . expression
-                            [column_name, expression]
+                            casted_expression = type_mapping.make_cast expression result_type Problem_Behavior.Report_Error
+                            casted_expression.catch Inexact_Type_Coercion error->
+                                Panic.throw <|
+                                    Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                            [column_name, casted_expression]
                         Query.Select columns_to_select t.context
 
                     union_alias = all_tables.map .name . join "_"
@@ -1168,10 +1179,7 @@ type Table
                        See #6118.
                     new_columns = good_columns.map description->
                         column_set = description.first
-                        result_type = description.second
                         name = column_set.name
-                        # TODO cast to type
-                        _ = result_type
                         expression = SQL_Expression.Column union_alias name
                         type_ref = SQL_Type_Reference.new self.connection new_ctx expression
                         Internal_Column.Value name type_ref expression
