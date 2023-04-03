@@ -41,6 +41,8 @@ pub mod predefined {
     pub const ASSIGNMENT: &str = "=";
     /// Used to create lambda expressions, e.g. `a -> b -> a + b`.
     pub const ARROW: &str = "->";
+    /// Used to create right-associative operators, e.g. `a <| b <| c`.
+    pub const RIGHT_ASSOC: &str = "<|";
 }
 
 
@@ -68,6 +70,11 @@ pub fn is_arrow_opr(ast: &Ast) -> bool {
 /// Checks if given Ast is an access operator identifier.
 pub fn is_access_opr(ast: &Ast) -> bool {
     is_opr_named(ast, predefined::ACCESS)
+}
+
+/// Checks if given Ast is a right-associative operator identifier.
+pub fn is_right_assoc_opr(ast: &Ast) -> bool {
+    is_opr_named(ast, predefined::RIGHT_ASSOC)
 }
 
 /// Interpret Ast as accessor chain, like `Int.method`.
@@ -116,9 +123,50 @@ pub fn assignment() -> known::Opr {
     known::Opr::new(opr, None)
 }
 
+/// Create a new [`ACCESS`] operator.
+pub fn access() -> known::Opr {
+    let name = predefined::ACCESS.into();
+    let opr = Opr { name, right_assoc: false };
+    known::Opr::new(opr, None)
+}
+
+/// Create a new [`RIGHT_ASSOC`] operator.
+pub fn right_assoc() -> known::Opr {
+    let name = predefined::RIGHT_ASSOC.into();
+    let opr = Opr { name, right_assoc: true };
+    known::Opr::new(opr, None)
+}
+
 /// Split qualified name into segments, like `"Int.add"` into `["Int","add"]`.
 pub fn name_segments(name: &str) -> impl Iterator<Item = &str> {
     name.split(predefined::ACCESS)
+}
+
+/// Create a chain of access operators representing a fully qualified name, like `"Int.add"`.
+pub fn qualified_name_chain(
+    mut segments: impl Iterator<Item = impl Into<String>>,
+) -> Option<Chain> {
+    let ast_from_identifier = |ident: &str| -> Ast {
+        let starts_with_uppercase = |s: &str| s.chars().next().map_or(false, |c| c.is_uppercase());
+        if starts_with_uppercase(ident) {
+            known::Cons::new(crate::Cons { name: ident.into() }, None).into()
+        } else {
+            known::Var::new(crate::Var { name: ident.into() }, None).into()
+        }
+    };
+    let arg_with_offset = |s: &str| ArgWithOffset { arg: ast_from_identifier(s), offset: 0 };
+    let target = segments.next()?;
+    let target = Some(arg_with_offset(target.into().as_str()));
+    let args = segments
+        .map(|segment| ChainElement {
+            operator: access(),
+            operand:  Some(arg_with_offset(segment.into().as_str())),
+            offset:   0,
+            infix_id: None,
+        })
+        .collect_vec();
+    let operator = access();
+    Some(Chain { target, args, operator })
 }
 
 
@@ -521,6 +569,25 @@ impl Chain {
     /// True if all operands are set, i.e. there are no section shapes in this chain.
     pub fn all_operands_set(&self) -> bool {
         self.target.is_some() && self.args.iter().all(|arg| arg.operand.is_some())
+    }
+
+    /// Try to convert the chain into a list of qualified name segments. Qualified name consists of
+    /// identifiers chained by [`ACCESS`] operator.
+    pub fn as_qualified_name_segments(&self) -> Option<Vec<ImString>> {
+        let every_operator_is_access = self
+            .enumerate_operators()
+            .all(|opr| opr.item.ast().repr() == crate::opr::predefined::ACCESS);
+        let name_segments: Option<Vec<_>> = self
+            .enumerate_operands()
+            .flatten()
+            .map(|opr| crate::identifier::name(&opr.item.arg).map(ImString::new))
+            .collect();
+        let name_segments = name_segments?;
+        if every_operator_is_access && !name_segments.is_empty() {
+            Some(name_segments)
+        } else {
+            None
+        }
     }
 }
 

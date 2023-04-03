@@ -53,7 +53,7 @@ class Metadata {
         val real = code.substring(item.start, item.start + item.len)
         if (real != expected) {
           throw new AssertionError(
-            "Expecting " + expected + " but found '" + real + "'"
+            "Expecting\n`" + expected + "`\nbut found\n'" + real + "'"
           )
         }
         return
