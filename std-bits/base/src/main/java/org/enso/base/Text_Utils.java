@@ -537,47 +537,15 @@ public class Text_Utils {
    */
   public static List<GraphemeSpan> span_of_all_case_insensitive_multiple(
           String haystack, List<String> needles, Locale locale) {
-    if (needles.isEmpty())
-      throw new IllegalArgumentException(
-              "The operation `span_of_all_case_insensitive_multiple` does not support searching for an empty term.");
-    for (String needle : needles) {
-      if (needle.isEmpty())
-        throw new IllegalArgumentException(
-                "The operation `span_of_all_case_insensitive_multiple` does not support searching for an empty term.");
-    }
-    if (haystack.isEmpty()) return List.of();
-
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
     List<String> foldedNeedles = IntStream.range(0, needles.size())
             .mapToObj(i -> CaseFoldedString.simpleFold(needles.get(i), locale))
             .collect(Collectors.toList());
-    List<StringSearch> stringSearches = IntStream.range(0, foldedNeedles.size())
-            .mapToObj(i -> new StringSearch(foldedNeedles.get(i), foldedHaystack.getFoldedString()))
-            .collect(Collectors.toList());
-
-    List<GraphemeSpan> occurrences = new ArrayList<>();
-
-    int ix = 0;
-    while (ix != StringSearch.DONE) {
-      int earliestIndex = -1;
-      int earliestStart = -1;
-      for (int i = 0; i < stringSearches.size(); ++i) {
-        StringSearch stringSearch = stringSearches.get(i);
-        int start = stringSearch.following(ix);
-        if (start != StringSearch.DONE && (earliestStart == -1 || start < earliestStart)) {
-          earliestIndex = i;
-          earliestStart = start;
-        }
-      }
-      if (earliestIndex == -1) {
-        // No more matches.
-        break;
-      }
-      int matchLength = stringSearches.get(earliestIndex).getMatchLength();
-      GraphemeSpan graphemeSpan = findExtendedSpan(foldedHaystack, earliestStart, matchLength);
-      occurrences.add(graphemeSpan);
-      ix = graphemeSpan.codeunit_end;
-    }
+    var foldedSpans = span_of_all_multiple(foldedHaystack.getFoldedString(), foldedNeedles);
+    List<GraphemeSpan> occurrences =
+            foldedSpans.stream()
+                    .map(span -> findExtendedSpan(foldedHaystack, span.codeunit_start, span.codeunit_end-span.codeunit_start))
+                    .collect(Collectors.toList());
     return occurrences;
   }
 
