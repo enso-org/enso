@@ -493,6 +493,8 @@ impl WorldData {
                 } else if key == "KeyQ" {
                     enso_debug_api::save_profile(&profiler::internal::get_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
+                } else if key == "KeyG" {
+                    enso_debug_api::open_gpu_debug_info();
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
                     if let Some(mode) = glsl::codes::DisplayModes::from_value(code_value) {
