@@ -75,7 +75,12 @@ type Process_Builder
                  builder = Process.new_builder "echo"
                  with_args = builder.set_arguments ["hello, world!"]
                  with_args.create
-    create : System_Process_Result
+    create : Process_Result
     create self =
-        result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=False redirect_out=False redirect_err=False
-        System_Process_Result.Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
+        result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=(self.stdin == False) redirect_out=False redirect_err=False
+        exit_code = Exit_Code.from_number result.exit_code
+        Process_Result.Value exit_code result.stdout result.stderr
+
+type Process_Result
+    ## PRIVATE
+    Value exit_code:Exit_Code stdout:Text stderr:Text

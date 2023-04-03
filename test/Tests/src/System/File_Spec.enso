@@ -89,12 +89,12 @@ spec =
                 f.delete_if_exists
                 "foobar".write f
 
-                Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Code.Success
+                Process.run "chmod" ["0777", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 rwx = [Permission.Read, Permission.Write, Permission.Execute]
                 f.posix_permissions . should_equal <|
                     File_Permissions.Value rwx rwx rwx
 
-                Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Code.Success
+                Process.run "chmod" ["0421", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 f.posix_permissions . should_equal <|
                     File_Permissions.Value [Permission.Read] [Permission.Write] [Permission.Execute]
                 f.is_writable.should_be_false
@@ -106,7 +106,7 @@ spec =
                 f.delete_if_exists
                 "foobar".write f
 
-                Process.run "chmod" ["0000", f.absolute.path] . should_equal Exit_Code.Success
+                Process.run "chmod" ["0000", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 f.posix_permissions . should_equal <|
                     File_Permissions.Value [] [] []
 
@@ -116,7 +116,7 @@ spec =
                 r1.catch.file . should_equal f
                 r1.catch.to_display_text.should_contain "Insufficient permissions"
 
-                Process.run "chmod" ["0744", f.absolute.path] . should_equal Exit_Code.Success
+                Process.run "chmod" ["0744", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 f.delete
 
     Test.group "read_bytes" <|

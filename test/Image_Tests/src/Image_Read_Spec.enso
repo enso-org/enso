@@ -11,7 +11,7 @@ polyglot java import java.lang.System as Java_System
 
 fetch addr file =
     if file.exists then Exit_Code.Success else
-        Process.run "curl" [addr, "--silent", "--output", file.path]
+        Process.run "curl" [addr, "--silent", "--output", file.path] . exit_code
 
 spec =
     rgba_addr = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
