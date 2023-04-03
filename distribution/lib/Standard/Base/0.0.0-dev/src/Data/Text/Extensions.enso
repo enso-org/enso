@@ -334,7 +334,8 @@ Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Boolean -> Ve
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
-        _ : Vector -> delimiter.any (.is_empty)
+        _ : Vector -> delimiter.is_empty || delimiter.any (.is_empty)
+        _ -> Error.throw (Illegal_Argument.Error "The delimiter must be a Text or Vector of Texts.")
     if delimiter_is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty or contain empty entries.") else
         case use_regex of
             False ->
