@@ -21,6 +21,7 @@ use double_representation::module;
 use double_representation::node;
 use double_representation::node::MainLine;
 use double_representation::node::NodeAst;
+use double_representation::node::NodeAstInfo;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
@@ -227,7 +228,7 @@ impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
-        let macros_info = *node.macros_info();
+        let ast_info = node.main_line.ast_info.clone();
         let outputs = if let Some(pat) = node.pattern() {
             Some(SpanTree::new(pat, context).ok()?)
         } else {
@@ -842,14 +843,13 @@ impl Handle {
     pub fn add_node(&self, node: NewNodeInfo) -> FallibleResult<ast::Id> {
         info!("Adding node with expression `{}`", node.expression);
         let expression_ast = self.parse_node_expression(&node.expression)?;
-        let (main_line, ast_info) =
-            MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
+        let main_line = MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
         let documentation = node
             .doc_comment
             .as_ref()
             .and_then(|pretty_text| self.documentation_comment_from_pretty_text(pretty_text));
 
-        let mut node_info = NodeInfo { documentation, main_line, ast_info };
+        let mut node_info = NodeInfo { documentation, main_line };
         if let Some(desired_id) = node.id {
             node_info.set_id(desired_id)
         }

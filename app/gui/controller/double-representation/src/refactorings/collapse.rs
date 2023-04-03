@@ -349,7 +349,7 @@ impl Collapser {
         };
         if !self.extracted.belongs_to_selection(ast) {
             Ok(LineDisposition::Keep)
-        } else if MainLine::from_ast(ast).contains_if(|(n, _)| n.id() == self.replaced_node) {
+        } else if MainLine::from_ast(ast).contains_if(|n| n.id() == self.replaced_node) {
             let no_node_err = failure::Error::from(CannotConstructCollapsedNode);
             let expression_ast = self.call_to_extracted(extracted_definition)?;
             let main_line = MainLine::from_ast(&expression_ast).ok_or(no_node_err)?;
