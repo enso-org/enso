@@ -37,12 +37,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     db.run(getAllQuery)
 
   /** @inheritdoc */
-  override def getAllMethods(
-    calls: Seq[(String, String, String)]
-  ): Future[Seq[Option[Long]]] =
-    db.run(getAllMethodsQuery(calls))
-
-  /** @inheritdoc */
   override def search(
     module: Option[String],
     selfType: Seq[String],
@@ -202,34 +196,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       version <- currentVersionQuery
     } yield (version, rows.map(toSuggestionEntry(_, Seq())))
   }
-
-  /** The query to get the suggestions by the method call info.
-    *
-    * @param calls the triples containing module name, self type, method name
-    * @return the list of found suggestion ids
-    */
-  private def getAllMethodsQuery(
-    calls: Seq[(String, String, String)]
-  ): DBIO[Seq[Option[Long]]] =
-    if (calls.isEmpty) {
-      DBIO.successful(Seq())
-    } else {
-      val query = Suggestions
-        .filter { row =>
-          calls
-            .map { case (module, selfType, name) =>
-              row.module === module && row.selfType === selfType && row.name === name
-            }
-            .reduce(_ || _)
-        }
-        .map(row => (row.id, row.module, row.selfType, row.name))
-      query.result.map { tuples =>
-        val result = tuples.map { case (id, module, selfType, name) =>
-          (module, selfType, name) -> id
-        }.toMap
-        calls.map(result.get)
-      }
-    }
 
   /** The query to search suggestion by various parameters.
     *
@@ -627,7 +593,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       id <- query.map(_.id).result.headOption
       n  <- updateQ
       _  <- if (n > 0) incrementVersionQuery else DBIO.successful(())
-    } yield id // if (n > 0) id else None
+    } yield id
   }
 
   /** The query to update a list of suggestions by external id.

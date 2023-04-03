@@ -23,13 +23,6 @@ trait SuggestionsRepo[F[_]] {
     */
   def getAll: F[(Long, Seq[SuggestionEntry])]
 
-  /** Get suggestions by the method call info.
-    *
-    * @param calls the list of triples: module, self type and method name
-    * @return the list of found suggestion ids
-    */
-  def getAllMethods(calls: Seq[(String, String, String)]): F[Seq[Option[Long]]]
-
   /** Search suggestion by various parameters.
     *
     * @param module the module name search parameter

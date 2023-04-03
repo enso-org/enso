@@ -125,53 +125,6 @@ class SuggestionsRepoTest
       )
     }
 
-    "get suggestions by method call info" taggedAs Retry in withRepo { repo =>
-      val action = for {
-        (_, ids) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.instanceMethod,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        results <- repo.getAllMethods(
-          Seq(
-            ("local.Test.Main", "local.Test.Main", "main"),
-            ("local.Test.Main", "local.Test.Main", "foo")
-          )
-        )
-      } yield (ids, results)
-
-      val (ids, results) = Await.result(action, Timeout)
-      results should contain theSameElementsInOrderAs Seq(Some(ids(3)), None)
-    }
-
-    "get suggestions by empty method call info" taggedAs Retry in withRepo {
-      repo =>
-        val action = for {
-          _ <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          results <- repo.getAllMethods(Seq())
-        } yield results
-
-        val results = Await.result(action, Timeout)
-        results.isEmpty shouldEqual true
-    }
-
     "fail to insertAll duplicate suggestion" taggedAs Retry in withRepo {
       repo =>
         val action =
@@ -709,7 +662,7 @@ class SuggestionsRepoTest
 
     "update suggestion empty request" taggedAs Retry in withRepo { repo =>
       val action = for {
-        (v1, _) <- repo.insertAll(
+        (v1, Seq(_, _, _, id1, _, _, _)) <- repo.insertAll(
           Seq(
             suggestion.module,
             suggestion.tpe,
@@ -728,10 +681,10 @@ class SuggestionsRepoTest
           None,
           None
         )
-      } yield (v1, v2, id2)
-      val (v1, v2, id2) = Await.result(action, Timeout)
+      } yield (v1, v2, id1, id2)
+      val (v1, v2, id1, id2) = Await.result(action, Timeout)
       v1 shouldEqual v2
-      id2 shouldEqual None
+      id2 shouldEqual Some(id1)
     }
 
     "change version after updateAll" taggedAs Retry in withRepo { repo =>
