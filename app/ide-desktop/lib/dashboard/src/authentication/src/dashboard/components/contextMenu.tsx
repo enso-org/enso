@@ -6,6 +6,7 @@ export interface ContextMenuProps {
     event: react.MouseEvent
 }
 
+// This component MUST NOT use `useState` because it is not rendered directly.
 function ContextMenu(props: react.PropsWithChildren<ContextMenuProps>) {
     const { children, event: event } = props
     return (

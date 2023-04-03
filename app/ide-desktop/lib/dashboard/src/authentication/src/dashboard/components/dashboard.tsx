@@ -22,8 +22,9 @@ import ContextMenuEntry from './contextMenuEntry'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
 
-import ConfirmDeleteModal from './confirmDeleteModal'
 import UploadFileModal from './uploadFileModal'
+import confirmDeleteModal from './confirmDeleteModal'
+import renameModal from './renameModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
@@ -253,6 +254,10 @@ interface OtherDashboardProps extends BaseDashboardProps {
 
 export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
 
+// TODO[sb]: Implement rename when clicking name of a selected row.
+// TODO[sb]: Implement label renaming.
+// TODO[sb]: Fix file create form.
+
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
     const { accessToken, organization } = auth.useFullUserSession()
@@ -277,7 +282,7 @@ function Dashboard(props: DashboardProps) {
     >([])
     const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
 
-    const [project, setProject] = react.useState<backend.Project | null>(null)
+    const [, setProject] = react.useState<backend.Project | null>(null)
     const [projectStates, setProjectStates] = react.useState<
         Record<backend.ProjectId, backend.ProjectState>
     >({})
@@ -290,6 +295,19 @@ function Dashboard(props: DashboardProps) {
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
+
+    function exitDirectory() {
+        setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
+        setDirectoryStack(
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            directoryStack.slice(0, -1)
+        )
+    }
+
+    function enterDirectory(directoryAsset: backend.Asset<backend.AssetType.directory>) {
+        setDirectoryId(directoryAsset.id)
+        setDirectoryStack([...directoryStack, directoryAsset])
+    }
 
     react.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
@@ -314,12 +332,27 @@ function Dashboard(props: DashboardProps) {
         }
     }, [directoryStack])
 
+    // FIXME[sb]: Figure out how to pass whether the row was selected.
     /** React components for the name column. */
     const nameRenderers: {
         [Type in backend.AssetType]: (asset: backend.Asset<Type>) => JSX.Element
     } = {
         [backend.AssetType.project]: projectAsset => (
-            <div className="flex text-left items-center align-middle whitespace-nowrap">
+            <div
+                className="flex text-left items-center align-middle whitespace-nowrap"
+                onClick={event => {
+                    if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+                        setModal(() =>
+                            renameModal({
+                                assetType: projectAsset.type,
+                                name: projectAsset.title,
+                                // FIXME[sb]: Wait for backend implementation.
+                                doRename: () => Promise.resolve(),
+                            })
+                        )
+                    }
+                }}
+            >
                 <ProjectActionButton
                     project={projectAsset}
                     state={projectStates[projectAsset.id] ?? backend.ProjectState.created}
@@ -351,21 +384,60 @@ function Dashboard(props: DashboardProps) {
         [backend.AssetType.directory]: directoryAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
+                onClick={event => {
+                    if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+                        setModal(() =>
+                            renameModal({
+                                assetType: directoryAsset.type,
+                                name: directoryAsset.title,
+                                // FIXME[sb]: Wait for backend implementation.
+                                doRename: () => Promise.resolve(),
+                            })
+                        )
+                    }
+                }}
                 onDoubleClick={() => {
-                    setDirectoryId(directoryAsset.id)
-                    setDirectoryStack([...directoryStack, directoryAsset])
+                    enterDirectory(directoryAsset)
                 }}
             >
                 {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
             </div>
         ),
         [backend.AssetType.secret]: secret => (
-            <div className="flex text-left items-center align-middle whitespace-nowrap">
+            <div
+                className="flex text-left items-center align-middle whitespace-nowrap"
+                onClick={event => {
+                    if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+                        setModal(() =>
+                            renameModal({
+                                assetType: secret.type,
+                                name: secret.title,
+                                // FIXME[sb]: Wait for backend implementation.
+                                doRename: () => Promise.resolve(),
+                            })
+                        )
+                    }
+                }}
+            >
                 {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
             </div>
         ),
         [backend.AssetType.file]: file => (
-            <div className="flex text-left items-center align-middle whitespace-nowrap">
+            <div
+                className="flex text-left items-center align-middle whitespace-nowrap"
+                onClick={event => {
+                    if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+                        setModal(() =>
+                            renameModal({
+                                assetType: file.type,
+                                name: file.title,
+                                // FIXME[sb]: Wait for backend implementation.
+                                doRename: () => Promise.resolve(),
+                            })
+                        )
+                    }
+                }}
+            >
                 {fileInfo.fileIcon(fileInfo.fileExtension(file.title))}{' '}
                 <span className="px-2">{file.title}</span>
             </div>
@@ -482,11 +554,7 @@ function Dashboard(props: DashboardProps) {
         setContextMenu(null)
     }
 
-    function onClick() {
-        closeAllDialogs()
-    }
-
-    function onKeyDown(event: react.KeyboardEvent<HTMLDivElement>) {
+    function handleEscapeKey(event: react.KeyboardEvent<HTMLDivElement>) {
         if (
             event.key === 'Escape' &&
             !event.ctrlKey &&
@@ -501,7 +569,7 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    function onDragEnter(event: react.DragEvent<HTMLDivElement>) {
+    function openDropZone(event: react.DragEvent<HTMLDivElement>) {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
         }
@@ -510,9 +578,9 @@ function Dashboard(props: DashboardProps) {
     return (
         <div
             className="select-none text-primary text-xs"
-            onClick={onClick}
-            onKeyDown={onKeyDown}
-            onDragEnter={onDragEnter}
+            onClick={closeAllDialogs}
+            onKeyDown={handleEscapeKey}
+            onDragEnter={openDropZone}
             onContextMenu={event => {
                 event.preventDefault()
                 event.stopPropagation()
@@ -533,7 +601,7 @@ function Dashboard(props: DashboardProps) {
                                             }
                                         }
                                     }
-                                    // TODO: Re-parent `fileIds` to `directoryId` when endpoint is ready.
+                                    // TODO[sb]: Re-parent `fileIds` to `directoryId` when endpoint is ready.
                                 } catch {
                                     // ignored
                                 }
@@ -555,18 +623,7 @@ function Dashboard(props: DashboardProps) {
                     <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
                         {directory ? (
                             <>
-                                <button
-                                    className="mx-2"
-                                    onClick={() => {
-                                        setDirectoryId(
-                                            parentDirectory?.id ?? rootDirectoryId(organization.id)
-                                        )
-                                        setDirectoryStack(
-                                            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                                            directoryStack.slice(0, -1)
-                                        )
-                                    }}
-                                >
+                                <button className="mx-2" onClick={exitDirectory}>
                                     {parentDirectory?.title ?? '~'}
                                 </button>
                                 {svg.SMALL_RIGHT_ARROW_ICON}
@@ -683,24 +740,50 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(projectAsset, event) => {
                             event.preventDefault()
                             event.stopPropagation()
+                            function doOpenForEditing() {
+                                // FIXME[sb]: Switch to IDE tab
+                                // once merged with `show-and-open-workspace` branch.
+                            }
+                            function doOpenAsFolder() {
+                                // FIXME[sb]: Uncomment once backend support
+                                // is in place.
+                                // The following code does not typecheck
+                                // since `ProjectId`s are not `DirectoryId`s.
+                                // enterDirectory(projectAsset)
+                            }
+                            function doRename() {
+                                setModal(() =>
+                                    renameModal({
+                                        name: projectAsset.title,
+                                        assetType: projectAsset.type,
+                                        // FIXME[sb]: Replace with API call
+                                        // when implemented in backend.
+                                        doRename: () => Promise.resolve(),
+                                    })
+                                )
+                            }
+                            function doDelete() {
+                                setModal(() =>
+                                    confirmDeleteModal({
+                                        name: projectAsset.title,
+                                        assetType: projectAsset.type,
+                                        doDelete: () =>
+                                            backendService.deleteProject(projectAsset.id),
+                                    })
+                                )
+                            }
                             setContextMenu(
                                 <ContextMenu event={event}>
-                                    <ContextMenuEntry
-                                        onClick={() => {
-                                            setModal(() => () => (
-                                                // FIXME[sb]: These need some way to close.
-                                                <ConfirmDeleteModal
-                                                    name={projectAsset.title}
-                                                    assetType={projectAsset.type}
-                                                    doDelete={() =>
-                                                        backendService.deleteProject(
-                                                            projectAsset.id
-                                                        )
-                                                    }
-                                                />
-                                            ))
-                                        }}
-                                    >
+                                    <ContextMenuEntry disabled onClick={doOpenForEditing}>
+                                        Open for editing
+                                    </ContextMenuEntry>
+                                    <ContextMenuEntry disabled onClick={doOpenAsFolder}>
+                                        Open as folder
+                                    </ContextMenuEntry>
+                                    <ContextMenuEntry disabled onClick={doRename}>
+                                        Rename
+                                    </ContextMenuEntry>
+                                    <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
@@ -742,21 +825,18 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(secret, event) => {
                             event.preventDefault()
                             event.stopPropagation()
+                            function doDelete() {
+                                setModal(() =>
+                                    confirmDeleteModal({
+                                        name: secret.title,
+                                        assetType: secret.type,
+                                        doDelete: () => backendService.deleteSecret(secret.id),
+                                    })
+                                )
+                            }
                             setContextMenu(
                                 <ContextMenu event={event}>
-                                    <ContextMenuEntry
-                                        onClick={() => {
-                                            setModal(() => () => (
-                                                <ConfirmDeleteModal
-                                                    name={secret.title}
-                                                    assetType={secret.type}
-                                                    doDelete={() =>
-                                                        backendService.deleteSecret(secret.id)
-                                                    }
-                                                />
-                                            ))
-                                        }}
-                                    >
+                                    <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
@@ -779,45 +859,36 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(file, event) => {
                             event.preventDefault()
                             event.stopPropagation()
+                            function doCopy() {
+                                /** TODO: Call endpoint for copying file. */
+                            }
+                            function doCut() {
+                                /** TODO: Call endpoint for downloading file. */
+                            }
+                            function doDelete() {
+                                setModal(() =>
+                                    confirmDeleteModal({
+                                        name: file.title,
+                                        assetType: file.type,
+                                        doDelete: () => backendService.deleteFile(file.id),
+                                    })
+                                )
+                            }
+                            function doDownload() {
+                                /** TODO: Call endpoint for downloading file. */
+                            }
                             setContextMenu(
                                 <ContextMenu event={event}>
-                                    <ContextMenuEntry
-                                        disabled
-                                        onClick={() => {
-                                            /** TODO: Call endpoint for downloading file. */
-                                        }}
-                                    >
+                                    <ContextMenuEntry disabled onClick={doCopy}>
                                         Copy
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry
-                                        disabled
-                                        onClick={() => {
-                                            /** TODO: Call endpoint for downloading file. */
-                                        }}
-                                    >
+                                    <ContextMenuEntry disabled onClick={doCut}>
                                         Cut
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry
-                                        onClick={() => {
-                                            setModal(() => () => (
-                                                <ConfirmDeleteModal
-                                                    name={file.title}
-                                                    assetType={file.type}
-                                                    doDelete={() =>
-                                                        backendService.deleteFile(file.id)
-                                                    }
-                                                />
-                                            ))
-                                        }}
-                                    >
+                                    <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry
-                                        disabled
-                                        onClick={() => {
-                                            /** TODO: Call endpoint for downloading file. */
-                                        }}
-                                    >
+                                    <ContextMenuEntry disabled onClick={doDownload}>
                                         Download
                                     </ContextMenuEntry>
                                 </ContextMenu>

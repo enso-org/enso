@@ -2,17 +2,11 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as backendModule from '../service'
+import * as dashboard from './dashboard'
 import * as fileInfo from '../../fileInfo'
+import * as svg from '../../components/svg'
 
-export interface UploadFileModalProps {
-    backend: backendModule.Backend
-    directoryId: backendModule.DirectoryId
-    onSuccess: () => void
-    close: () => void
-}
-
-function UploadFileModal(props: UploadFileModalProps) {
+function UploadFileModal(props: dashboard.ModalProps) {
     const { backend, directoryId, onSuccess, close } = props
 
     const [name, setName] = react.useState<string | null>(null)
@@ -38,11 +32,14 @@ function UploadFileModal(props: UploadFileModalProps) {
 
     return (
         <form
-            className="bg-white shadow-soft rounded-lg w-96 h-72 p-2"
+            className="relative bg-white shadow-soft rounded-lg w-96 h-72 p-2"
             onClick={event => {
                 event.stopPropagation()
             }}
         >
+            <button type="button" className="absolute right-0 top-0 m-2" onClick={close}>
+                {svg.CLOSE_ICON}
+            </button>
             <div className="m-2">
                 <label className="w-1/3" htmlFor="uploaded_file_name">
                     File name

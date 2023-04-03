@@ -7,6 +7,7 @@ export interface ContextMenuEntryProps {
     onClick: (event: react.MouseEvent<HTMLButtonElement>) => void
 }
 
+// This component MUST NOT use `useState` because it is not rendered directly.
 function ContextMenuEntry(props: react.PropsWithChildren<ContextMenuEntryProps>) {
     const { children, disabled, onClick } = props
     return (
