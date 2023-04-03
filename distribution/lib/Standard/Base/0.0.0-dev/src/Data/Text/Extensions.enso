@@ -363,10 +363,9 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         Text_Utils.substring self start end
                 True -> case delimiter of
                     _ : Text ->
-                        Helpers.regex_assume_default_locale case_sensitivity <|
-                            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                            compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
-                            compiled_pattern.split self
+                        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                        compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+                        compiled_pattern.split self
                     _ : Vector ->
                         parenthesize s = "(?:" + s + ")"
                         combined_delimiter = parenthesize (delimiter.map parenthesize . join '|')
