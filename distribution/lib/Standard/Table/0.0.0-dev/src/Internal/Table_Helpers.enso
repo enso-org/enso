@@ -238,7 +238,7 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
                             []
                         False ->
                             if use_regex.not then matches.map c-> Pair.new c replacement else
-                                pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive_in_memory
+                                pattern = Regex_2.compile name case_insensitive=case_sensitivity.is_case_insensitive_in_memory
                                 matches.map c-> Pair.new c (pattern.replace c.name replacement)
                 Column_Selector.Blank_Columns _ _ ->
                     Error.throw (Illegal_Argument.Error "Cannot use `Blank_Columns` to rename.")
