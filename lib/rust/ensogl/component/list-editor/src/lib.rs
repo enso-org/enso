@@ -90,7 +90,7 @@ mod placeholder {
         margin_left:    Cell<f32>,
         collapsing:     Rc<Cell<bool>>,
         size_animation: Animation<f32>,
-        viz:            Rectangle,
+        viz:            Option<Rectangle>,
     }
 
     impl SpacerModel {
@@ -101,15 +101,17 @@ mod placeholder {
             let margin_left = default();
             let collapsing = default();
             let size_animation = Animation::<f32>::new(frp.network());
-            let viz = RoundedRectangle(10.0).build(|t| {
-                t.set_size(Vector2::new(0.0, 20.0))
-                    .allow_grow_x()
-                    .set_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0))
-                    .set_inset_border(5.0)
-                    .set_border_color(color::Rgba::new(0.0, 1.0, 1.0, 1.0));
+            let viz = DEBUG_ANIMATION_SLOWDOWN.then(|| {
+                let viz = RoundedRectangle(10.0).build(|t| {
+                    t.set_size(Vector2::new(0.0, 20.0))
+                        .allow_grow_x()
+                        .set_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0))
+                        .set_inset_border(5.0)
+                        .set_border_color(color::Rgba::new(0.0, 1.0, 1.0, 1.0));
+                });
+                root.add_child(&viz);
+                viz
             });
-            root.add_child(&viz);
-
             Self { frp, root, self_ref, margin_left, collapsing, size_animation, viz }
         }
     }
