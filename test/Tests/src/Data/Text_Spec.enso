@@ -71,11 +71,21 @@ spec =
             'aśbs\u0301c'.split ['s\u0301'] . should_equal ['a', 'b', 'c']
             'aśbs\u0301cdef'.split ['ś', 'de'] . should_equal ['a', 'b', 'c', 'f']
 
+        Test.specify "should handle unicode normalization the same for single and multiple delimiters, case-insensitively" <|
             'aśbs\u0301c'.split 'ś' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aśbs\u0301c'.split ['ś'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aśbs\u0301c'.split 's\u0301' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aśbs\u0301c'.split ['s\u0301'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
             'aśbs\u0301cdef'.split ['ś', 'de'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c', 'f']
+
+        Test.specify "should handle splitting the same for the special case of a 1-element vector" <|
+            'abcdefgh'.split 'c' . should_equal ['ab', 'defgh']
+            'abcdefgh'.split ['c'] . should_equal ['ab', 'defgh']
+            'abcdefgh'.split ['c', 'q'] . should_equal ['ab', 'defgh']
+
+        Test.specify "should split on the leftmost delimiter in the case of a tie" <|
+            'abcdefgh'.split ['c', 'cd'] . should_equal ['ab', 'defgh']
+            'abcdefgh'.split ['cd', 'c'] . should_equal ['ab', 'efgh']
 
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
@@ -315,6 +325,7 @@ spec =
         Test.specify "should throw Illegal_Argument for a bad or empty delimiter" <|
             'abc'.split '' . should_fail_with Illegal_Argument
             'abc'.split [] . should_fail_with Illegal_Argument
+            'abc'.split ['a', ''] . should_fail_with Illegal_Argument
             'abc'.split 3 . should_fail_with Illegal_Argument
 
         Test.specify "examples should be correct" <|
