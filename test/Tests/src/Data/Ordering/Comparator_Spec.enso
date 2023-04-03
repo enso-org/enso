@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 
-import Standard.Base.Data.Ordering.Comparator
+polyglot java import org.enso.base.ObjectComparator
 
 polyglot java import org.enso.base.CompareException
 
@@ -38,8 +38,8 @@ Comparable.from (_:No_Ord) = No_Ord_Comparator
 
 spec = Test.group "Object Comparator" <|
     handle_comp_exc = Panic.catch CompareException handler=(exc -> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand))
-    default_comparator a b = handle_comp_exc <| Comparator.new.compare a b
-    case_insensitive a b = handle_comp_exc <| Comparator.for_text_ordering Text_Ordering.Case_Insensitive . compare a b
+    default_comparator a b = handle_comp_exc <| ObjectComparator.DEFAULT.compare a b
+    case_insensitive a b = handle_comp_exc <| ObjectComparator.new False Locale.default.java_locale . compare a b
 
     Test.specify "can compare numbers" <|
         ((default_comparator 1 2) < 0) . should_equal True

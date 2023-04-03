@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from project.Errors import Invalid_Value_Type, No_Such_Column, Missing_Input_Columns, Column_Indexes_Out_Of_Range
 import project.Data.Join_Condition.Join_Condition
-import project.Data.Value_Type.Value_Type
+import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 
 type Join_Condition_Resolver

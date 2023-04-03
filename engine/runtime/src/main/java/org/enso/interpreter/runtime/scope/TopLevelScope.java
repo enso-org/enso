@@ -14,6 +14,8 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+
 import org.enso.compiler.PackageRepository;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -173,9 +175,13 @@ public final class TopLevelScope implements TruffleObject {
               .getOptions()
               .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
       boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
-      context.getCompiler().compile(shouldCompileDependencies, useGlobalCache);
-
-      return true;
+      try {
+        return context.getCompiler().compile(shouldCompileDependencies, useGlobalCache).get();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     @Specialization

@@ -19,6 +19,7 @@ mod shape {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, background_color:Vector4<f32>, icon_color:Vector4<f32>) {
             let size = Var::canvas_size();
             let shadow_size = style.get_number(ensogl_hardcoded_theme::shadow::size);

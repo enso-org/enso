@@ -5,7 +5,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 
@@ -41,6 +41,7 @@ spec setup =
             t2 = t.filter "X" (Filter_Condition.Equal to=100)
             t2 . at "X" . to_vector . should_equal [100]
             t2 . at "ix" . to_vector . should_equal [1]
+
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
@@ -53,6 +54,13 @@ spec setup =
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 12]
             t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [12]
             t.filter "Y" (Filter_Condition.Between (t.at "ix") 100) . at "Y" . to_vector . should_equal [100, 4, 11]
+
+        Test.specify "Not_Equal test cases" pending="Specification needs clarifying, see: https://github.com/enso-org/enso/issues/5241#issuecomment-1480167927" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+            t3 = t.filter "X" (Filter_Condition.Not_Equal to=100)
+            t3 . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
+            t3 . at "ix" . to_vector . should_equal [2, 3, 4, 5]
+            t.filter "X" (Filter_Condition.Not_Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
 
         Test.specify "by text comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "b", Nothing, "c"]], ["Y", ["a", "b", "b", "c", "c"]]]

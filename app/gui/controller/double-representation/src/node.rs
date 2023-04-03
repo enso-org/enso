@@ -100,8 +100,8 @@ pub struct LocatedNode {
 
 /// Tests if given line contents can be seen as node with a given id
 pub fn is_main_line_of(line: &BlockLine<Option<Ast>>, id: Id) -> bool {
-    let node_info = MainLine::from_block_line(line);
-    node_info.contains_if(|(main_line, _)| main_line.id() == id)
+    let main_line = MainLine::from_block_line(line);
+    main_line.contains_if(|main_line| main_line.id() == id)
 }
 
 /// Searches for `NodeInfo` with the associated `id` index in `lines`.
@@ -180,6 +180,76 @@ impl NodeAstInfo {
 
 
 // ================
+// === MainLine ===
+// ================
+
+/// Representation of the main line of the node (as opposed to a documentation line).
+///
+/// Each node must have exactly one main line.
+/// Main line always contains an expression, either directly or under binding. The expression ID
+/// must be set and it serves as the whole node's expression.
+#[derive(Debug, Clone, Deref, DerefMut)]
+pub struct MainLine {
+    /// Information about SKIP and FREEZE macros used in the code.
+    pub macros_info:    MacrosInfo,
+    /// Existing context switch expression, if any.
+    pub context_switch: Option<ContextSwitchExpression>,
+    /// Node AST, contains a node's expression and an optional pattern binding.
+    #[deref]
+    #[deref_mut]
+    pub ast:            NodeAst,
+}
+
+impl MainLine {
+    /// Tries to interpret the whole binding as a node. Right-hand side will become node's
+    /// expression.
+    pub fn new_binding(infix: known::Infix) -> Option<MainLine> {
+        infix.rarg.id?;
+        let macros_info = MacrosInfo::from_ast(&infix.rarg);
+        let without_macros = without_macros(&infix.rarg);
+        let context_switch = ContextSwitchExpression::parse(&without_macros);
+        let ast = NodeAst::Binding { infix };
+        Some(Self { macros_info, context_switch, ast })
+    }
+
+    /// Tries to interpret AST as node, treating whole AST as an expression.
+    pub fn new_expression(ast: Ast) -> Option<MainLine> {
+        ast.id?;
+        let macros_info = MacrosInfo::from_ast(&ast);
+        let without_macros = without_macros(&ast);
+        let context_switch = ContextSwitchExpression::parse(&without_macros);
+        let ast = NodeAst::Expression { ast };
+        // TODO what if we are given an assignment.
+        Some(Self { macros_info, context_switch, ast })
+    }
+
+    /// Tries to interpret AST as node, treating whole AST as a node's primary line.
+    pub fn from_ast(ast: &Ast) -> Option<MainLine> {
+        // By definition, there are no nodes in the root scope.
+        // Being a node's line, we may assume that this is not a root scope.
+        let scope = ScopeKind::NonRoot;
+        Self::from_discerned_line(LineKind::discern(ast, scope))
+    }
+
+    /// Try retrieving node information from an already discerned line data.
+    pub fn from_discerned_line(line: LineKind) -> Option<MainLine> {
+        match line {
+            LineKind::ExpressionPlain { ast } => Self::new_expression(ast),
+            LineKind::ExpressionAssignment { ast } => Self::new_binding(ast),
+            LineKind::Definition { .. } => None,
+            LineKind::DocumentationComment { .. } => None,
+        }
+    }
+
+    /// Tries to interpret AST as node, treating whole AST as an expression.
+    pub fn from_block_line(line: &BlockLine<Option<Ast>>) -> Option<MainLine> {
+        Self::from_ast(line.elem.as_ref()?)
+    }
+}
+
+
+
+// ================
 // === NodeInfo ===
 // ================
 
@@ -248,7 +318,7 @@ impl NodeInfo {
     pub fn contains_line(&self, line_ast: &Ast) -> bool {
         // TODO refactor these two lambdas into methods
         let expression_id_matches =
-            || MainLine::from_ast(line_ast).as_ref().map(|(ml, _)| ml.id()).contains(&self.id());
+            || MainLine::from_ast(line_ast).as_ref().map(|ml| ml.id()).contains(&self.id());
         let doc_comment_id_matches = || match (self.doc_comment_id(), line_ast.id) {
             (Some(node_doc_id), Some(line_ast_id)) => node_doc_id == line_ast_id,
             _ => false,
@@ -273,16 +343,17 @@ impl NodeInfo {
         self.documentation.as_ref().map(|doc| doc.pretty_text())
     }
 
-    /// The info about macro calls in the expression.
-    pub fn macros_info(&self) -> &MacrosInfo {
-        &self.ast_info.macros_info
-    }
-
     /// Represents the visible portion of a node's expression. This excludes SKIP and FREEZE macro
     /// calls, as well as any context switch expressions.
     pub fn expression(&self) -> Ast {
         let ast = without_macros(self.main_line.whole_expression());
         ContextSwitchExpression::remove_from_ast(&ast)
+    }
+
+
+    /// The info about macro calls in the expression.
+    pub fn macros_info(&self) -> &MacrosInfo {
+        &self.main_line.macros_info
     }
 
     // Modify AST, adding or removing `SKIP` macro call. Does nothing if [`skip`] argument already
@@ -294,7 +365,7 @@ impl NodeInfo {
             } else {
                 self.main_line.remove_skip_macro();
             }
-            self.ast_info.macros_info.skip = skip;
+            self.main_line.macros_info.skip = skip;
         }
     }
 
@@ -307,16 +378,8 @@ impl NodeInfo {
             } else {
                 self.main_line.remove_freeze_macro();
             }
-            self.ast_info.macros_info.freeze = freeze;
+            self.main_line.macros_info.freeze = freeze;
         }
-    }
-
-    /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
-    /// assignment infix will be introduced.
-    pub fn set_pattern(&mut self, pattern: Ast) {
-        if let Some(ast_info) = self.main_line.set_pattern(pattern) {
-            self.ast_info = ast_info;
-        };
     }
 
     /// Clear the pattern (left side of assignment) for node.
@@ -328,7 +391,7 @@ impl NodeInfo {
 
     /// Add context switch expression to the node. Replaces the existing one, if any.
     pub fn set_context_switch(&mut self, context_switch_expr: ContextSwitchExpression) {
-        if self.ast_info.context_switch.is_some() {
+        if self.main_line.context_switch.is_some() {
             self.clear_context_switch_expression();
         }
         self.main_line.modify_expression(|ast| {
@@ -344,76 +407,37 @@ impl NodeInfo {
                 *ast = infix.into();
             });
         });
-        self.ast_info.context_switch = Some(context_switch_expr);
+        self.main_line.context_switch = Some(context_switch_expr);
     }
 
     /// Remove existing context switch expression from the node.
     pub fn clear_context_switch_expression(&mut self) {
-        if self.ast_info.context_switch.is_some() {
+        if self.main_line.context_switch.is_some() {
             self.main_line.modify_expression(|ast| {
                 *ast = preserving_skip_and_freeze(ast, |ast| {
-                    *ast = ContextSwitchExpression::remove_from_ast(ast);
+                    if ContextSwitchExpression::parse(ast).is_some() {
+                        let crumb = ast::crumbs::InfixCrumb::RightOperand.into();
+                        let rarg = ast.get(&crumb).unwrap_or(ast);
+                        *ast = rarg.clone();
+                    }
                 });
             });
-            self.ast_info.context_switch = None;
+            self.main_line.context_switch = None;
         }
     }
 }
 
-/// Representation of the main line of the node (as opposed to a documentation line).
-///
-/// Each node must have exactly one main line.
-/// Main line always contains an expression, either directly or under binding. The expression ID
-/// must be set and it serves as the whole node's expression.
+/// AST of a single node.
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
-pub enum MainLine {
+pub enum NodeAst {
     /// Code with assignment, e.g. `foo = 2 + 2`
     Binding { infix: known::Infix },
     /// Code without assignment (no variable binding), e.g. `2 + 2`.
     Expression { ast: Ast },
 }
 
-impl MainLine {
-    /// Tries to interpret the whole binding as a node. Right-hand side will become node's
-    /// expression.
-    pub fn new_binding(infix: known::Infix) -> Option<(MainLine, NodeAstInfo)> {
-        infix.rarg.id?;
-        let ast_info = NodeAstInfo::from_ast(&infix.rarg);
-        Some((MainLine::Binding { infix }, ast_info))
-    }
-
-    /// Tries to interpret AST as node, treating whole AST as an expression.
-    pub fn new_expression(ast: Ast) -> Option<(MainLine, NodeAstInfo)> {
-        ast.id?;
-        // TODO what if we are given an assignment.
-        let ast_info = NodeAstInfo::from_ast(&ast);
-        Some((MainLine::Expression { ast }, ast_info))
-    }
-
-    /// Tries to interpret AST as node, treating whole AST as a node's primary line.
-    pub fn from_ast(ast: &Ast) -> Option<(MainLine, NodeAstInfo)> {
-        // By definition, there are no nodes in the root scope.
-        // Being a node's line, we may assume that this is not a root scope.
-        let scope = ScopeKind::NonRoot;
-        Self::from_discerned_line(LineKind::discern(ast, scope))
-    }
-
-    /// Try retrieving node information from an already discerned line data.
-    pub fn from_discerned_line(line: LineKind) -> Option<(MainLine, NodeAstInfo)> {
-        match line {
-            LineKind::ExpressionPlain { ast } => Self::new_expression(ast),
-            LineKind::ExpressionAssignment { ast } => Self::new_binding(ast),
-            LineKind::Definition { .. } => None,
-            LineKind::DocumentationComment { .. } => None,
-        }
-    }
-
-    /// Tries to interpret AST as node, treating whole AST as an expression.
-    pub fn from_block_line(line: &BlockLine<Option<Ast>>) -> Option<(MainLine, NodeAstInfo)> {
-        Self::from_ast(line.elem.as_ref()?)
-    }
-
+impl NodeAst {
     /// Node's unique ID.
     pub fn id(&self) -> Id {
         // Panic must not happen, as the only available constructors checks that
@@ -424,7 +448,7 @@ impl MainLine {
     /// Updates the node's AST so the node bears the given ID.
     pub fn set_id(&mut self, new_id: Id) {
         match self {
-            MainLine::Binding { ref mut infix, .. } => {
+            NodeAst::Binding { ref mut infix, .. } => {
                 let new_rarg = infix.rarg.with_id(new_id);
                 let set = infix.set(&ast::crumbs::InfixCrumb::RightOperand.into(), new_rarg);
                 *infix = set.expect(
@@ -432,7 +456,7 @@ impl MainLine {
                                      succeed.",
                 );
             }
-            MainLine::Expression { ref mut ast, .. } => {
+            NodeAst::Expression { ref mut ast, .. } => {
                 *ast = ast.with_id(new_id);
             }
         };
@@ -442,16 +466,16 @@ impl MainLine {
     /// [`Self::expression`] instead.
     fn whole_expression(&self) -> &Ast {
         match self {
-            MainLine::Binding { infix, .. } => &infix.rarg,
-            MainLine::Expression { ast, .. } => ast,
+            NodeAst::Binding { infix, .. } => &infix.rarg,
+            NodeAst::Expression { ast, .. } => ast,
         }
     }
 
     /// AST of the node's pattern (assignment's left-hand side).
     pub fn pattern(&self) -> Option<&Ast> {
         match self {
-            MainLine::Binding { infix, .. } => Some(&infix.larg),
-            MainLine::Expression { .. } => None,
+            NodeAst::Binding { infix, .. } => Some(&infix.larg),
+            NodeAst::Expression { .. } => None,
         }
     }
 
@@ -465,20 +489,19 @@ impl MainLine {
     /// The whole AST of node.
     pub fn ast(&self) -> &Ast {
         match self {
-            MainLine::Binding { infix, .. } => infix.into(),
-            MainLine::Expression { ast, .. } => ast,
+            NodeAst::Binding { infix, .. } => infix.into(),
+            NodeAst::Expression { ast, .. } => ast,
         }
     }
 
     /// See [`NodeInfo::set_pattern`]. Returns the AST info if it was updated.
     fn set_pattern(&mut self, pattern: Ast) -> Option<NodeAstInfo> {
         match self {
-            MainLine::Binding { infix, .. } => {
+            NodeAst::Binding { infix, .. } => {
                 // Setting infix operand never fails.
                 infix.update_shape(|infix| infix.larg = pattern);
-                None
             }
-            MainLine::Expression { ast, .. } => {
+            NodeAst::Expression { ast, .. } => {
                 let infix = ast::Infix {
                     larg: pattern,
                     loff: 1,
@@ -487,9 +510,7 @@ impl MainLine {
                     rarg: ast.clone(),
                 };
                 let infix = known::Infix::new(infix, None);
-                let ast_info = NodeAstInfo::from_ast(&infix.rarg);
-                *self = MainLine::Binding { infix };
-                Some(ast_info)
+                *self = NodeAst::Binding { infix };
             }
         }
     }
@@ -541,14 +562,14 @@ impl MainLine {
     /// See [`NodeInfo::clear_pattern`]. Preserves the [`MacrosInfo`].
     pub fn clear_pattern(&mut self) {
         match self {
-            MainLine::Binding { infix } =>
-                *self = MainLine::Expression { ast: infix.rarg.clone_ref() },
-            MainLine::Expression { .. } => {}
+            NodeAst::Binding { infix } =>
+                *self = NodeAst::Expression { ast: infix.rarg.clone_ref() },
+            NodeAst::Expression { .. } => {}
         }
     }
 }
 
-impl ast::HasTokens for MainLine {
+impl ast::HasTokens for NodeAst {
     fn feed_to(&self, consumer: &mut impl ast::TokenConsumer) {
         self.ast().feed_to(consumer)
     }
@@ -754,7 +775,7 @@ mod tests {
             let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
             let node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
             assert_eq!(node.repr(), "foo = bar");
-            assert!(node.ast_info.context_switch.is_none());
+            assert!(node.main_line.context_switch.is_none());
             node
         };
         fn test_round_trip(
@@ -764,11 +785,11 @@ mod tests {
         ) {
             let original_repr = node.repr();
             node.set_context_switch(context_switch.clone());
-            assert_eq!(node.ast_info.context_switch, Some(context_switch));
+            assert_eq!(node.main_line.context_switch, Some(context_switch));
             assert_eq!(node.repr(), expected);
             node.clear_context_switch_expression();
             assert_eq!(node.repr(), original_repr);
-            assert!(node.ast_info.context_switch.is_none());
+            assert!(node.main_line.context_switch.is_none());
         }
 
         let expected = format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"design\" <| bar");
@@ -793,47 +814,71 @@ mod tests {
 
     #[test]
     fn mixing_skip_and_freeze_and_context_switch() {
-        let id = uuid::Uuid::new_v4();
-        let larg = Ast::var("foo");
-        let rarg = Ast::var("bar").with_id(id);
-        let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
-        let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
-        node.set_skip(true);
-        assert_eq!(node.repr(), format!("foo = {SKIP_MACRO_IDENTIFIER} bar"));
-        node.set_context_switch(ContextSwitchExpression {
-            switch:      ContextSwitch::Enable,
-            context:     Context::Output,
-            environment: "env".into(),
-        });
-        assert_eq!(
-            node.repr(),
-            format!(
-                "foo = {SKIP_MACRO_IDENTIFIER} {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"
-            )
-        );
-        assert!(node.ast_info.context_switch.is_some());
-        node.set_skip(false);
-        assert_eq!(node.repr(), format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"));
-        node.clear_context_switch_expression();
-        assert_eq!(node.repr(), format!("foo = bar"));
+        // TODO: Doesn't work because of the broken parsing for SKIP and FREEZE.
+        // See https://github.com/enso-org/enso/issues/5572
+        //
+        // let parser = Parser::new();
+        // let line = format!("foo = {SKIP_MACRO_IDENTIFIER} {FREEZE_MACRO_IDENTIFIER}
+        // {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar")
+        // let ast = parser.parse_line_ast(line).unwrap();
+        // let node = NodeInfo::from_main_line_ast(&ast).unwrap();
+        // assert!(node.ast_info. context_switch.is_some());
+        // assert!(node.ast_info.macros_info.skip);
+        // assert!(node.ast_info.macros_info.freeze);
 
-        node.set_freeze(true);
-        assert_eq!(node.repr(), format!("foo = {FREEZE_MACRO_IDENTIFIER} bar"));
-        node.set_context_switch(ContextSwitchExpression {
-            switch:      ContextSwitch::Enable,
-            context:     Context::Output,
-            environment: "env".into(),
-        });
-        assert_eq!(
-            node.repr(),
-            format!(
-                "foo = {FREEZE_MACRO_IDENTIFIER} {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"
-            )
-        );
-        assert!(node.ast_info.context_switch.is_some());
-        node.set_freeze(false);
-        assert_eq!(node.repr(), format!("foo = {ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\" <| bar"));
-        node.clear_context_switch_expression();
-        assert_eq!(node.repr(), format!("foo = bar"));
+
+        let foo_bar = || {
+            let id = uuid::Uuid::new_v4();
+            let larg = Ast::var("foo");
+            let rarg = Ast::var("bar").with_id(id);
+            let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
+            NodeInfo::from_main_line_ast(&line_ast).unwrap()
+        };
+        let context_switch = || format!("{ENABLE_CONTEXT} {OUTPUT_CONTEXT} \"env\"");
+
+        #[derive(Debug)]
+        struct Case {
+            skip:   bool,
+            freeze: bool,
+        }
+
+        #[rustfmt::skip]
+        let cases =
+            vec![
+                Case { skip: true, freeze: false },
+                Case { skip: false, freeze: true },
+                Case { skip: true, freeze: true },
+            ];
+
+        for case in cases {
+            let mut node = foo_bar();
+            node.set_skip(case.skip);
+            node.set_freeze(case.freeze);
+            node.set_context_switch(ContextSwitchExpression {
+                switch:      ContextSwitch::Enable,
+                context:     Context::Output,
+                environment: "env".into(),
+            });
+
+            let expected = format!(
+                "foo = {skip}{space}{freeze} {context_switch} <| bar",
+                space = if case.skip && case.freeze { " " } else { "" },
+                skip = if case.skip { SKIP_MACRO_IDENTIFIER } else { "" },
+                freeze = if case.freeze { FREEZE_MACRO_IDENTIFIER } else { "" },
+                context_switch = context_switch(),
+            );
+            assert_eq!(node.repr(), expected, "{case:?}");
+            assert!(node.main_line.context_switch.is_some());
+
+            node.clear_context_switch_expression();
+            assert!(node.main_line.context_switch.is_none());
+            let expected = format!(
+                "foo = {skip}{space}{freeze} bar",
+                space = if case.skip && case.freeze { " " } else { "" },
+                skip = if case.skip { SKIP_MACRO_IDENTIFIER } else { "" },
+                freeze = if case.freeze { FREEZE_MACRO_IDENTIFIER } else { "" },
+            );
+            assert_eq!(node.repr(), expected, "{case:?}");
+        }
     }
 }

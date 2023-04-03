@@ -1,0 +1,129 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table.Errors import Inexact_Type_Coercion
+
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+
+polyglot java import java.sql.Types
+
+## PRIVATE
+type Postgres_Type_Mapping
+    ## PRIVATE
+    value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
+    value_type_to_sql value_type on_problems =
+        result = case value_type of
+            Value_Type.Boolean ->
+                SQL_Type.Value Types.BIT "bool" precision=1
+            # Byte is not available on Postgres so we substitute it with int2, the closest integral type.
+            Value_Type.Byte ->
+                SQL_Type.Value Types.SMALLINT "int2"
+            Value_Type.Integer Bits.Bits_16 ->
+                SQL_Type.Value Types.SMALLINT "int2"
+            Value_Type.Integer Bits.Bits_32 ->
+                SQL_Type.Value Types.INTEGER "int4"
+            Value_Type.Integer Bits.Bits_64 ->
+                SQL_Type.Value Types.BIGINT "int8"
+            Value_Type.Float Bits.Bits_32 ->
+                SQL_Type.Value Types.REAL "float4"
+            Value_Type.Float Bits.Bits_64 ->
+                SQL_Type.Value Types.DOUBLE "float8"
+            Value_Type.Decimal precision scale ->
+                SQL_Type.Value Types.DECIMAL "decimal" precision scale
+            Value_Type.Char size variable ->
+                case variable of
+                    True  -> case size of
+                        Nothing -> SQL_Type.Value Types.VARCHAR "text"
+                        _       -> SQL_Type.Value Types.VARCHAR "varchar" size
+                    False -> SQL_Type.Value Types.CHAR "char" size
+            Value_Type.Time ->
+                SQL_Type.Value Types.TIME "time"
+            Value_Type.Date ->
+                SQL_Type.Value Types.DATE "date"
+            Value_Type.Date_Time with_timezone ->
+                type_name = if with_timezone then "timestamptz" else "timestamp"
+                SQL_Type.Value Types.TIMESTAMP type_name
+            Value_Type.Binary _ _ ->
+                # This is the maximum size that JDBC driver reports for Postgres.
+                max_int4 = 2147483647
+                SQL_Type.Value Types.BINARY "bytea" precision=max_int4
+            Value_Type.Mixed ->
+                Error.throw (Illegal_Argument.Error "Postgres tables do not support Mixed types.")
+            Value_Type.Unsupported_Data_Type type_name underlying_type ->
+                underlying_type.if_nothing <|
+                    Error.throw <|
+                        Illegal_Argument.Error <|
+                            "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
+        approximated_value_type = Postgres_Type_Mapping.sql_type_to_value_type result
+        problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
+        on_problems.attach_problems_before problems result
+
+    ## PRIVATE
+    sql_type_to_value_type : SQL_Type -> Value_Type
+    sql_type_to_value_type sql_type =
+        simple_type = simple_types_map.get sql_type.typeid Nothing
+        simple_type.if_nothing <|
+            ## If we didn't match any of the types from the simple mapping, we
+               continue with the more complex mappings that take stuff like
+               precision into account.
+            case complex_types_map.get sql_type.typeid Nothing of
+                Nothing -> on_unknown_type sql_type
+                builder -> builder sql_type
+
+    ## PRIVATE
+       The Postgres type mapping always relies on the return type determined by
+       the database backend.
+    infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        _ = [op_name, arguments]
+        infer_from_database_callback expression
+
+    ## PRIVATE
+       We want to respect any overriding references, but references that rely on
+       computing the type by the database are resolved to Nothing to just rely
+       on the `ResultSet` metadata and decrease overhead.
+    prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
+    prepare_type_overrides column_type_suggestions = case column_type_suggestions of
+        Nothing -> Nothing
+        _ : Vector -> column_type_suggestions.map .to_type_override
+
+## PRIVATE
+simple_types_map = Map.from_vector <|
+    ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
+    floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
+    # TODO Bit1, Date_Time
+    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
+    ints + floats + other
+
+## PRIVATE
+complex_types_map = Map.from_vector <|
+    make_decimal sql_type =
+        Value_Type.Decimal sql_type.precision sql_type.scale
+    make_varchar sql_type =
+        Value_Type.Char size=sql_type.precision variable_length=True
+    make_char sql_type =
+        Value_Type.Char size=sql_type.precision variable_length=False
+    make_binary variable sql_type =
+        Value_Type.Binary size=sql_type.precision variable_length=variable
+    handle_bit sql_type =
+        if sql_type.name == "bool" then Value_Type.Boolean else
+            # We currently do not support bit types.
+            on_unknown_type sql_type
+    handle_timestamp sql_type = case sql_type.name of
+        "timestamptz" -> Value_Type.Date_Time with_timezone=True
+        "timestamp"   -> Value_Type.Date_Time with_timezone=False
+        _             -> on_unknown_type sql_type
+
+    numerics = [[Types.DECIMAL, make_decimal], [Types.NUMERIC, make_decimal]]
+    strings = [[Types.VARCHAR, make_varchar], [Types.CHAR, make_char], [Types.CLOB, make_varchar]]
+    binaries = [[Types.BINARY, make_binary True], [Types.BIT, handle_bit]]
+    others = [[Types.TIMESTAMP, handle_timestamp]]
+    numerics + strings + binaries + others
+
+## PRIVATE
+on_unknown_type sql_type =
+    Value_Type.Unsupported_Data_Type sql_type.name sql_type

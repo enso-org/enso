@@ -18,7 +18,7 @@ type Naming_Helpers
     sanitize_name : Text -> Text
     sanitize_name name =
         # Using the regex matcher due to the #5831 bug.
-        name.replace '\0' '\\\\0' matcher=Regex_Matcher.Value
+        name.replace '\0' '\\0' use_regex=True
 
     ## PRIVATE
        Generates a column name for a binary operation.

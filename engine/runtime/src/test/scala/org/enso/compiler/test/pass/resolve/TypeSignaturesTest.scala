@@ -255,16 +255,16 @@ class TypeSignaturesTest extends CompilerTest {
         |f a (b = 1 : Int) : Double
         |""".stripMargin.preprocessExpression.get.resolve
 
-    // FIXME: Not supported by new parser--needs triage (#5894).
-    "associate the signature with the typed expression" ignore {
+    "associate the signature with the typed expression" in {
       ir shouldBe an[IR.Application.Prefix]
       ir.getMetadata(TypeSignatures) shouldBe defined
     }
 
-    // FIXME: Not supported by new parser--needs triage (#5894).
-    "work recursively" ignore {
+    "work recursively" in {
       val arg2Value = ir.asInstanceOf[IR.Application.Prefix].arguments(1).value
-      arg2Value shouldBe an[IR.Literal.Number]
+      arg2Value shouldBe an[IR.Application.Prefix]
+      val snd = arg2Value.asInstanceOf[IR.Application.Prefix]
+      snd.arguments(0).value shouldBe an[IR.Literal.Number]
     }
   }
 }

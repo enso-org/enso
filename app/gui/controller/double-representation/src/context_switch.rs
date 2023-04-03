@@ -26,10 +26,12 @@ use ast::opr::qualified_name_chain;
 
 /// FQN for the [`Context::Output`].
 const OUTPUT: [&str; 5] = ["Standard", "Base", "Runtime", "Context", "Output"];
-/// FQN for the [`ContextSwitch::Enable`].
+/// FQN for the `Runtime.with_enabled_context`, which corresponds to [`ContextSwitch::Enable`].
 const ENABLE: [&str; 4] = ["Standard", "Base", "Runtime", "with_enabled_context"];
-/// FQN for the [`ContextSwitch::Disable`].
+/// FQN for the `Runtime.with_disabled_context`, which corresponds to [`ContextSwitch::Disable`].
 const DISABLE: [&str; 4] = ["Standard", "Base", "Runtime", "with_disabled_context"];
+
+
 
 // ===============================
 // === ContextSwitchExpression ===
@@ -46,7 +48,7 @@ pub enum ContextSwitch {
 }
 
 impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
-    type Error = ();
+    type Error = anyhow::Error;
 
     fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
         // Unwraps are safe, because this function is tested.
@@ -58,10 +60,12 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
         } else if qualified_name == disable_name {
             Ok(ContextSwitch::Disable)
         } else {
-            Err(())
+            Err(anyhow::anyhow!("Invalid context switch name: {:?}.", qualified_name))
         }
     }
 }
+
+
 
 // === Context ===
 
@@ -73,7 +77,7 @@ pub enum Context {
 }
 
 impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
-    type Error = ();
+    type Error = anyhow::Error;
 
     fn try_from(qualified_name: QualifiedNameRef<'a>) -> Result<Self, Self::Error> {
         // Unwrap is safe, because this function is tested.
@@ -82,10 +86,11 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for Context {
         if qualified_name == output_name {
             Ok(Context::Output)
         } else {
-            Err(())
+            Err(anyhow::anyhow!("Invalid context name: {:?}.", qualified_name))
         }
     }
 }
+
 
 // === Environment ===
 
@@ -93,6 +98,7 @@ im_string_newtype! {
     /// The name of the execution environment.
     Environment
 }
+
 
 // === ContextSwitchExpression ===
 
@@ -111,14 +117,10 @@ impl ContextSwitchExpression {
         let infix = known::Infix::try_new(ast.clone()).ok()?;
         if ast::opr::is_right_assoc_opr(&infix.opr) {
             let prefix = ast::prefix::Chain::from_ast(&infix.larg)?;
-            let infix_chain = ast::opr::Chain::try_new(&prefix.func)?;
-            let name_segments = infix_chain.as_qualified_name_segments()?;
-            let qualified_name = QualifiedName::from_all_segments(name_segments).ok()?;
-            let switch = ContextSwitch::try_from(qualified_name.as_ref()).ok()?;
+            let context_switch = QualifiedName::try_from(&prefix.func).ok()?;
+            let switch = ContextSwitch::try_from(context_switch.as_ref()).ok()?;
             if let [context, environment] = &prefix.args[..] {
-                let context = ast::opr::Chain::try_new(&context.sast.wrapped)?;
-                let context_segments = context.as_qualified_name_segments()?;
-                let context_name = QualifiedName::from_all_segments(context_segments).ok()?;
+                let context_name = QualifiedName::try_from(&context.sast.wrapped).ok()?;
                 let context = Context::try_from(context_name.as_ref()).ok()?;
                 let environment = environment.sast.wrapped.clone();
                 let environment = known::Tree::try_from(environment).ok();
@@ -163,6 +165,8 @@ impl ContextSwitchExpression {
     }
 }
 
+
+
 // =============
 // === Tests ===
 // =============
@@ -183,19 +187,27 @@ mod tests {
         #[rustfmt::skip]
         let cases = vec![
             Case {
-                input: "foo <| bar", 
+                input: "foo",
                 expected: None,
             },
-            Case { 
-                input: "Runtime.with_enabled_context blabla <| bar", 
+            Case {
+                input: "foo <| bar",
                 expected: None,
             },
-            Case { 
-                input: "Runtime.with_enabled_context Context.Output \"context\" <| bar", 
+            Case {
+                input: "foo <| bar <| baz",
                 expected: None,
             },
-            Case { 
-                input: "Standard.Base.Runtime.with_enabled_context Context.Output \"context\" <| bar", 
+            Case {
+                input: "Runtime.with_enabled_context blabla <| bar",
+                expected: None,
+            },
+            Case {
+                input: "Runtime.with_enabled_context Context.Output \"context\" <| bar",
+                expected: None,
+            },
+            Case {
+                input: "Standard.Base.Runtime.with_enabled_context Context.Output \"context\" <| bar",
                 expected: None,
             },
             Case {
@@ -208,6 +220,14 @@ mod tests {
             },
             Case {
                 input: "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output \"context_name\" <| bar",
+                expected: Some(ContextSwitchExpression {
+                    switch:  ContextSwitch::Disable,
+                    context: Context::Output,
+                    environment: "context_name".into(),
+                }),
+            },
+            Case {
+                input: "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output \"context_name\" <| bar <| baz",
                 expected: Some(ContextSwitchExpression {
                     switch:  ContextSwitch::Disable,
                     context: Context::Output,

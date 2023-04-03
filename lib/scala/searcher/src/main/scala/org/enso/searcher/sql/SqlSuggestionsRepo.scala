@@ -65,9 +65,10 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): Future[(Long, Seq[Long])] =
-    db.run(searchQuery(module, selfType, returnType, kinds, position))
+    db.run(searchQuery(module, selfType, returnType, kinds, position, isStatic))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -142,21 +143,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): Future[(Long, Seq[Option[Long]])] =
     db.run(updateAllQuery(expressions).transactionally)
-
-  /** @inheritdoc */
-  override def renameProject(
-    oldName: String,
-    newName: String
-  ): Future[
-    (
-      Long,
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, Int, String)]
-    )
-  ] =
-    db.run(renameProjectQuery(oldName, newName).transactionally)
 
   /** @inheritdoc */
   override def currentVersion: Future[Long] =
@@ -289,6 +275,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
+    * @param isStatic the static attiribute
     * @return the list of suggestion ids, ranked by specificity (as for
     *         `selfType`)
     */
@@ -297,7 +284,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): DBIO[(Long, Seq[Long])] = {
     val typeSorterMap: HashMap[String, Int] = HashMap(selfType.zipWithIndex: _*)
     val searchAction =
@@ -306,12 +294,20 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         selfType.isEmpty &&
         returnType.isEmpty &&
         kinds.isEmpty &&
-        position.isEmpty
+        position.isEmpty &&
+        isStatic.isEmpty
       ) {
         DBIO.successful(Seq())
       } else {
         val query =
-          searchQueryBuilder(module, selfType, returnType, kinds, position)
+          searchQueryBuilder(
+            module,
+            selfType,
+            returnType,
+            kinds,
+            position,
+            isStatic
+          )
             .map(r => (r.id, r.selfType))
         query.result
       }
@@ -776,73 +772,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     query
   }
 
-  /** The query to update the project name.
-    *
-    * @param oldName the old name of the project
-    * @param newName the new project name
-    * @return the current database version and lists of suggestion ids
-    * with updated module name, self type, return type and arguments
-    */
-  private def renameProjectQuery(
-    oldName: String,
-    newName: String
-  ): DBIO[
-    (
-      Long,
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, Int, String)]
-    )
-  ] = {
-    def updateQuery(column: String) =
-      sqlu"""update suggestions
-          set #$column =
-            substr(#$column, 0, instr(#$column, $oldName)) ||
-            $newName ||
-            substr(#$column, instr(#$column, $oldName) + length($oldName))
-          where #$column like '%.#$oldName.%'"""
-    val argumentsUpdateQuery =
-      sqlu"""update arguments
-          set type =
-            substr(type, 0, instr(type, $oldName)) ||
-            $newName ||
-            substr(type, instr(type, $oldName) + length($oldName))
-          where type like '%.#$oldName.%'"""
-    def noop[A] = DBIO.successful(Seq[A]())
-
-    val selectUpdatedModulesQuery = Suggestions
-      .filter(row => row.module.like(s"%.$newName.%"))
-      .map(row => (row.id, row.module))
-      .result
-    val selectUpdatedSelfTypesQuery = Suggestions
-      .filter(_.selfType.like(s"%.$newName.%"))
-      .map(row => (row.id, row.selfType))
-      .result
-    val selectUpdatedReturnTypesQuery = Suggestions
-      .filter(_.returnType.like(s"%.$newName.%"))
-      .map(row => (row.id, row.returnType))
-      .result
-    val selectUpdatedArgumentsQuery = Arguments
-      .filter(_.tpe.like(s"%.$newName.%"))
-      .map(row => (row.suggestionId, row.index, row.tpe))
-      .result
-
-    for {
-      n1            <- updateQuery("module")
-      moduleIds     <- if (n1 > 0) selectUpdatedModulesQuery else noop
-      n2            <- updateQuery("self_type")
-      selfTypeIds   <- if (n2 > 0) selectUpdatedSelfTypesQuery else noop
-      n3            <- updateQuery("return_type")
-      returnTypeIds <- if (n3 > 0) selectUpdatedReturnTypesQuery else noop
-      n4            <- argumentsUpdateQuery
-      argumentIds   <- if (n4 > 0) selectUpdatedArgumentsQuery else noop
-      version <-
-        if (n1 > 0 || n2 > 0 || n3 > 0 || n4 > 0) incrementVersionQuery
-        else currentVersionQuery
-    } yield (version, moduleIds, selfTypeIds, returnTypeIds, argumentIds)
-  }
-
   /** The query to get current version of the repo. */
   private def currentVersionQuery: DBIO[Long] = {
     for {
@@ -917,6 +846,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
+    * @param isStatic the static attribute
     * @return the search query
     */
   private def searchQueryBuilder(
@@ -924,13 +854,16 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     selfTypes: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
       .filterOpt(module) { case (row, value) =>
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
-      .filterIf(selfTypes.nonEmpty) { row => row.selfType.inSet(selfTypes) }
+      .filterIf(selfTypes.nonEmpty) { row =>
+        row.selfType.inSet(selfTypes)
+      }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
       }
@@ -943,6 +876,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           row.scopeStartLine <= value.line &&
           row.scopeEndLine >= value.line
         )
+      }
+      .filterOpt(isStatic) { case (row, value) =>
+        row.isStatic === value
       }
   }
 

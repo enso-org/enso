@@ -273,8 +273,7 @@ class FunctionBindingTest extends CompilerTest {
       cArg.defaultValue shouldBe defined
     }
 
-    "work recursively" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "work recursively" in {
       val ir =
         """
           |f (a = (f a = a)) =
@@ -290,8 +289,12 @@ class FunctionBindingTest extends CompilerTest {
         .asInstanceOf[IR.DefinitionArgument.Specified]
       aArg.name.name shouldEqual "a"
       aArg.defaultValue.get
-        .asInstanceOf[IR.Expression.Binding]
-        .name
+        .asInstanceOf[IR.Application.Operator.Binary]
+        .left
+        .value
+        .asInstanceOf[IR.Application.Prefix]
+        .function
+        .asInstanceOf[IR.Name.Literal]
         .name shouldEqual "f"
 
       val body = ir.expression

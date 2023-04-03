@@ -23,6 +23,7 @@ use ensogl_core::display::object::ObjectOps;
 mod shape {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let circle1    = Circle(50.px());
             let circle_bg  = circle1.translate_x(-(50.0.px()));
@@ -58,9 +59,9 @@ pub fn main() {
     world.keep_alive_forever();
 
     frp::new_network! { network
-        trace view.events.mouse_over;
-        trace view.events.mouse_out;
-        trace view.events.mouse_down;
+        trace view.events_deprecated.mouse_over;
+        trace view.events_deprecated.mouse_out;
+        trace view.events_deprecated.mouse_down;
     }
 
     let mut i = 0;

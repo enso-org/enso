@@ -61,6 +61,7 @@ pub mod overlay {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, radius: f32, roundness: f32, selection: f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
@@ -83,6 +84,7 @@ pub mod background {
     use ensogl_hardcoded_theme::graph_editor::visualization as theme;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style, radius:f32, roundness:f32, selection:f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
@@ -561,7 +563,7 @@ impl Container {
         // === Selecting Visualization ===
 
         frp::extend! { network
-            mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
+            mouse_down_target <- scene.mouse.frp_deprecated.down.map(f_!(scene.mouse.target.get()));
             selected_by_click <= mouse_down_target.map(f!([model] (target){
                 let vis        = &model.visualization;
                 let activate   = || vis.borrow().as_ref().map(|v| v.activate.clone_ref());

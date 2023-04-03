@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 
@@ -7,11 +8,12 @@ import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
+import project.Data.Table as Database_Table_Module
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
-
-import project.Data.Table as Database_Table_Module
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
@@ -99,9 +101,8 @@ type Connection
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
-            table = result_set_to_table <|
-                metadata.getTables database schema name_like types_array
-
+            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_array) .close result_set->
+                result_set_to_table result_set self.dialect.make_column_fetcher_for_type
             renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
@@ -134,14 +135,17 @@ type Connection
                     False ->
                         Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
-            columns = self.jdbc_connection.fetch_columns raw_sql
-            name = if alias == "" then (UUID.randomUUID.to_text) else alias
-            ctx = Context.for_query raw_sql name
-            Database_Table_Module.make_table self name columns ctx
+            self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
+                columns = self.jdbc_connection.fetch_columns raw_sql Statement_Setter.null
+                name = if alias == "" then (UUID.randomUUID.to_text) else alias
+                ctx = Context.for_query raw_sql name
+                Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
             result = handle_sql_errors <|
                 ctx = Context.for_table name (if alias == "" then name else alias)
-                columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select Nothing ctx))
+                statement = self.dialect.generate_sql (Query.Select Nothing ctx)
+                statement_setter = self.dialect.get_statement_setter
+                columns = self.jdbc_connection.fetch_columns statement statement_setter
                 Database_Table_Module.make_table self name columns ctx
             result.catch SQL_Error sql_error->
                 Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
@@ -161,22 +165,18 @@ type Connection
 
        Arguments:
        - statement: SQL_Statement to execute.
-       - expected_types: Optional vector of expected types for each column.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
-    read_statement self statement expected_types=Nothing =
-        self.jdbc_connection.with_prepared_statement statement stmt->
-            result_set_to_table stmt.executeQuery expected_types
-
-    ## PRIVATE
-       Internal read function for a statement with optional types returning just last row.
-
-       Arguments:
-       - statement: SQL_Statement to execute.
-       - expected_types: Optional vector of expected types for each column.
-    read_last_row : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
-    read_last_row self statement expected_types=Nothing =
-        self.jdbc_connection.with_prepared_statement statement stmt->
-            result_set_to_table stmt.executeQuery expected_types True
+       - column_type_suggestions: A vector of SQL type references that can act
+         as suggested column types. By default, the overrides are respected and
+         types that should be computed by the database are passed as `Nothing`
+         to ensure that default `ResultSet` metadata is used for these columns.
+       - last_row_only: If set true, only the last row of the query is fetched.
+         Defaults to false.
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Materialized_Table
+    read_statement self statement column_type_suggestions=Nothing last_row_only=False =
+        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
+        statement_setter = self.dialect.get_statement_setter
+        self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
+            result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
 
     ## ADVANCED
 
@@ -189,7 +189,8 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        self.jdbc_connection.with_prepared_statement query stmt->
+        statement_setter = self.dialect.get_statement_setter
+        self.jdbc_connection.with_prepared_statement query statement_setter stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
 
@@ -218,14 +219,19 @@ type Connection
          batch.
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Table
     upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State <|
-        create_sql = create_table_statement name table temporary
+        type_mapping = self.dialect.get_type_mapping
+        ## TODO [RW] problem handling! probably want to add on_problems to this method?
+           This is just a prototype, so ignoring this. To be revisited as part of #5161.
+        type_mapper value_type = type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error
+        create_sql = create_table_statement type_mapper name table temporary
         create_table = self.execute_update create_sql
 
         db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant col.sql_type Nothing]
+            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant Nothing]
             insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
-            self.jdbc_connection.load_table insert_template db_table table batch_size
+            statement_setter = self.dialect.get_statement_setter
+            self.jdbc_connection.load_table insert_template statement_setter table batch_size
 
         db_table

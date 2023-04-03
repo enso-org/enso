@@ -972,9 +972,11 @@ impl Searcher {
         let this = self.clone_ref();
         executor::global::spawn(async move {
             let this_type = this_type.await;
+            let is_static = this_type.is_some().then_some(false);
             info!("Requesting new suggestion list. Type of `self` is {this_type:?}.");
             let file = graph.module.path().file_path();
-            let response = ls.completion(file, &position, &this_type, &None, &tags).await;
+            let response =
+                ls.completion(file, &position, &this_type, &None, &tags, &is_static).await;
             match response {
                 Ok(response) => {
                     info!("Received suggestions from Language Server.");
@@ -1359,7 +1361,7 @@ pub mod test {
 
     pub fn expect_completion(client: &mut language_server::MockClient, results: &[SuggestionId]) {
         let response = completion_response(results);
-        client.expect.completion(|_, _, _, _, _| Ok(response))
+        client.expect.completion(|_, _, _, _, _, _| Ok(response))
     }
 
     #[derive(Debug, Derivative)]
@@ -1389,12 +1391,14 @@ pub mod test {
             result: &[SuggestionId],
         ) {
             let completion_response = completion_response(result);
+            let is_static = self_type.is_some().then_some(false);
             expect_call!(client.completion(
                 module      = self.graph.module.path.file_path().clone(),
                 position    = self.code_location,
                 self_type   = self_type.map(Into::into),
                 return_type = None,
-                tag         = None
+                tag         = None,
+                is_static   = is_static
             ) => Ok(completion_response));
         }
     }

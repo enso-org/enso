@@ -6,8 +6,8 @@ import * as path from 'node:path'
 
 import * as esbuild from 'esbuild'
 
-import * as esbuildConfig from './esbuild-config.js'
-import * as paths from './paths.js'
+import * as esbuildConfig from './esbuild-config'
+import * as paths from './paths'
 
 const GUI_PATH = path.resolve(paths.getGuiDirectory())
 const IDE_PATH = paths.getIdeDirectory()

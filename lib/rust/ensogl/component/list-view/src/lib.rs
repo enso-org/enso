@@ -98,6 +98,7 @@ pub mod selection {
 
     ensogl_core::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, color: Vector4, corner_radius: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -123,6 +124,7 @@ pub mod background {
 
     ensogl_core::shape! {
         below = [selection];
+        alignment = center;
         (style: Style, shadow_alpha: f32, corners_radius_px: f32, color: Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -148,6 +150,7 @@ pub mod overlay {
     ensogl_core::shape! {
         above = [background];
         below = [selection];
+        alignment = center;
         (style: Style, corners_radius_px: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -472,7 +475,7 @@ where E::Model: Default
         let network = &frp.network;
         let model = &self.model;
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let view_y = Animation::<f32>::new(network);
         let selection_y = Animation::<f32>::new(network);
         let selection_height = Animation::<f32>::new(network);
@@ -498,7 +501,7 @@ where E::Model: Default
 
             // === Mouse Position ===
 
-            let overlay_events = &model.overlay.events;
+            let overlay_events = &model.overlay.events_deprecated;
             mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             frp.source.is_mouse_over <+ mouse_in;
             mouse_moved <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD ).on_true();

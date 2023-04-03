@@ -1,0 +1,179 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import Standard.Table.Data.Type.Enso_Types
+import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table.Errors import Inexact_Type_Coercion
+
+import project.Data.Column.Column
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+
+polyglot java import java.sql.Types
+
+## PRIVATE
+   Mapping from Value_Type to SQLite is done by finding the closest matching
+   type corresponding to one of the 4 supported affinities: INTEGER, REAL,
+   NUMERIC, TEXT, BLOB. Thus many value types will end up being approximated by
+   a close but inexact type. Apart from that, a fourth artificial affinity is
+   introduced: BOOLEAN. Normally, SQLite does not have a dedicated boolean type
+   and uses INTEGER instead. However, it is useful for our users to distinguish
+   the boolean columns. We do this by manually overriding the type of columns
+   detected as boolean or returned from our boolean operations. The JDBC
+   automatically handles translating between the underlying INTEGER storage and
+   Java Booleans, so it is all seamless - only our type logic needs to be aware
+   that it cannot rely on the JDBC metadata as the type reported for boolean
+   operations will be INTEGER - so we need to carefully ensure there is the
+   override.
+
+   While the JDBC driver tries to approximate more precise types based on the
+   type name, these approximations are not fully true as the underlying SQLite
+   storage is still only one of the supported affinities. So to avoid suggesting
+   to the user that the database can do stuff which it cannot (like storing
+   integers truncating them at 32-bits or storing fixed-length text) we
+   approximate the supported types by data types that correspond to what can
+   actually be stored in the given column to match its affinity. While SQLite
+   allows to store any data in a column, we restrict the data to only what can
+   match the column's affinity to be aligned with our other backends.
+
+   We map the BLOB affinity to our Mixed type to allow for Mixed type columns.
+   One can still store binary data in such a column.
+
+   See `JDBC3ResultSet::getColumnType` method in the `org.xerial.sqlite-jdbc`
+   module for the logic JDBC is using to map the SQLite types.
+type SQLite_Type_Mapping
+    ## PRIVATE
+    value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
+    value_type_to_sql value_type on_problems =
+        result = case value_type of
+            Value_Type.Boolean -> SQLite_Types.boolean
+            Value_Type.Byte -> SQLite_Types.integer
+            Value_Type.Integer _ -> SQLite_Types.integer
+            Value_Type.Float _ -> SQLite_Types.real
+            Value_Type.Decimal _ _ -> SQLite_Types.numeric
+            Value_Type.Char _ _ -> SQLite_Types.text
+            Value_Type.Time -> SQLite_Types.blob
+            Value_Type.Date -> SQLite_Types.blob
+            Value_Type.Date_Time _ -> SQLite_Types.blob
+            Value_Type.Binary _ _ -> SQLite_Types.blob
+            Value_Type.Mixed -> SQLite_Types.blob
+            Value_Type.Unsupported_Data_Type type_name underlying_type ->
+                underlying_type.if_nothing <|
+                    Error.throw <|
+                        Illegal_Argument.Error <|
+                            "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
+        approximated_value_type = SQLite_Type_Mapping.sql_type_to_value_type result
+        problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
+        on_problems.attach_problems_before problems result
+
+    ## PRIVATE
+    sql_type_to_value_type : SQL_Type -> Value_Type
+    sql_type_to_value_type sql_type =
+        on_not_found =
+            Value_Type.Unsupported_Data_Type sql_type.name sql_type
+        simple_types_map.get sql_type.typeid on_not_found
+
+    ## PRIVATE
+       The SQLite type mapping takes special measures to keep boolean columns
+       boolean even if the Database will say that they are numeric.
+
+       To do so, any operation that returns booleans will override its return
+       type to boolean, and operations that return the same type as inputs will
+       also ensure to override to the boolean type if the input was boolean. In
+       particular, if the operations accept multiple arguments, they will
+       override the return type to boolean if all the input arguments had
+       boolean type.
+    infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        return value_type =
+            sql_type = SQLite_Type_Mapping.value_type_to_sql value_type Problem_Behavior.Ignore
+            SQL_Type_Reference.from_constant sql_type
+        infer_default_type =
+            infer_from_database_callback expression
+
+        find_type arg = case arg of
+            column : Column -> column.value_type
+            internal_column : Internal_Column ->
+                SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
+            enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
+
+        handle_preserve_input_type _ =
+            inputs_types = arguments.map find_type
+            if inputs_types.is_empty then infer_default_type else
+                first_type = inputs_types.first
+                if inputs_types.all (== first_type) then return first_type else
+                    infer_default_type
+
+        handle_iif _ =
+            if arguments.length != 3 then
+                Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
+            inputs_types = arguments.drop 1 . map find_type
+            if inputs_types.first == inputs_types.second then return inputs_types.first else
+                infer_default_type
+
+        always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
+        always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]
+        preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL"]
+        others = [["IIF", handle_iif]]
+        mapping = Map.from_vector <|
+            v1 = always_boolean_ops.map [_, const (return Value_Type.Boolean)]
+            v2 = preserve_input_type_ops.map [_, handle_preserve_input_type]
+            v3 = always_text_ops.map [_, const (return default_text)]
+            v1 + v2 + v3 + others
+        handler = mapping.get op_name (_ -> infer_default_type)
+        handler Nothing
+
+    ## PRIVATE
+       SQLite `ResultSet` metadata may differ row-by-row, so we cannot rely on
+       this metadata. Instead, we get the types inferred for each colum,
+       regardless if it was initially overridden or not.
+    prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
+    prepare_type_overrides column_type_suggestions = case column_type_suggestions of
+        Nothing -> Nothing
+        _ : Vector -> column_type_suggestions.map .get
+
+## The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
+   SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,
+   TIMESTAMP, CHAR, VARCHAR, BINARY, BLOB, CLOB.
+
+   We map the types to how they are actually stored, with the exception of
+   boolean which is mapped as boolean type as explained above.
+
+   For types like dates - we map them to unsupported type, because date
+   operations in SQLite are currently not supported due to their weird storage.
+simple_types_map = Map.from_vector <|
+    ints = [Types.TINYINT, Types.SMALLINT, Types.BIGINT, Types.INTEGER] . map x-> [x, Value_Type.Integer Bits.Bits_64]
+    floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, Value_Type.Float Bits.Bits_64]
+    # We treat numeric as a float, since that is what really sits in SQLite under the hood.
+    numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Float Bits.Bits_64]
+    strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, default_text]
+    blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Mixed]
+    special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
+    ints + floats + numerics + strings + blobs + special_types
+
+type SQLite_Types
+    ## PRIVATE
+    text = SQL_Type.Value Types.VARCHAR "TEXT"
+
+    ## PRIVATE
+    numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
+
+    ## PRIVATE
+    integer = SQL_Type.Value Types.INTEGER "INTEGER"
+
+    ## PRIVATE
+    real = SQL_Type.Value Types.REAL "REAL"
+
+    ## PRIVATE
+    blob = SQL_Type.Value Types.BLOB "BLOB"
+
+    ## PRIVATE
+       The artificial 6th affinity that is used to distinguish boolean columns.
+    boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
+
+## PRIVATE
+default_text = Value_Type.Char size=Nothing variable_length=True

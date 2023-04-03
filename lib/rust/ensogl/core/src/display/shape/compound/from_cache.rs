@@ -14,6 +14,7 @@ use crate::display::shape::AnyCachedShape;
 
 crate::shape! {
     pointer_events = false;
+    alignment = center;
     (style: Style, icon: AnyCachedShape) {
         icon.into()
     }
@@ -30,6 +31,7 @@ crate::shape! {
 pub mod recolorized {
     crate::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, icon: AnyCachedShape, r_component: Vector4, g_component: Vector4, b_component: Vector4) {
             let r: Var<color::Rgba> = r_component.into();
             let g: Var<color::Rgba> = g_component.into();
