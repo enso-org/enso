@@ -8,7 +8,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
-from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
+from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Lossy_Conversion
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -934,14 +934,28 @@ type Column
          truncating needs to occur when converting a non-text column, a warning
          will still be reported.
 
+         Currently, the warning is not reported for Database backends.
+
+       ? Inexact Target Type
+
+         If the backend does not support the requested target type, the closest
+         supported type is chosen and a `Inexact_Type_Coercion` problem is
+         reported.
+
        Arguments:
        - value_type: The `Value_Type` to cast the column to.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
-    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument_Error | Lossy_Conversion
+    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument_Error | Inexact_Type_Coercion | Lossy_Conversion
     cast self value_type=self.value_type on_problems =
-        _ = [value_type, on_problems]
-        Error.throw <| Unsupported_Database_Operation.Error "TODO"
+        dialect = self.connection.dialect
+        type_mapping = dialect.get_type_mapping
+        target_sql_type = type_mapping.value_type_to_sql value_type on_problems
+        target_sql_type.if_not_error <|
+            infer_from_database new_expression =
+                SQL_Type_Reference.new self.connection self.context new_expression
+            new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
+            Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS Transform Column
 

@@ -44,24 +44,6 @@ type SQL_Type_Mapping
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Creates an SQL expression that casts the given expression to the given
-       target type.
-
-       If the target type is not supported by the dialect, a closest match will
-       be selected and an `Inexact_Type_Coercion` will be reported according to
-       the `on_problems` argument.
-
-       Arguments:
-       - expression: the input expression.
-       - target_type: the target type.
-       - problem_behavior: specifies how to report if an exact cast was not
-         possible.
-    make_cast : SQL_Expression -> Value_Type -> Problem_Behavior -> SQL_Expression ! Inexact_Type_Coercion
-    make_cast expression target_type on_problems =
-        _ = [expression, target_type, on_problems]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
        ADVANCED
        Returns a `SQL_Type_Reference` that will resolve to the resulting type of
        the given operation.

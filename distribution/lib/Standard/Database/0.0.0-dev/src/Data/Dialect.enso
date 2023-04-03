@@ -114,6 +114,21 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Builds an SQL expression that casts the given expression to the given
+       target type.
+
+       Arguments:
+       - column: the input column to transform.
+       - target_type: the target type.
+       - infer_result_type_from_database_callback: A callback that can be used
+         to infer the type of the newly built expression from the Database. It
+         should be used by default, unless an override is chosen.
+    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column target_type infer_result_type_from_database_callback =
+        _ = [column, target_type, infer_result_type_from_database_callback]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Checks if the given aggregate is supported.
 
        Should raise an appropriate dataflow error if not, or just return `True`.
