@@ -1,7 +1,7 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
-import * as react from "react";
+import * as react from 'react'
 
-import * as loggerProvider from "./providers/logger";
+import * as loggerProvider from './providers/logger'
 
 // ============
 // === Bind ===
@@ -21,8 +21,8 @@ import * as loggerProvider from "./providers/logger";
  * <input {...bind} />
  * ``` */
 interface Bind {
-  value: string;
-  onChange: (value: react.ChangeEvent<HTMLInputElement>) => void;
+    value: string
+    onChange: (value: react.ChangeEvent<HTMLInputElement>) => void
 }
 
 // ================
@@ -37,12 +37,12 @@ interface Bind {
  * use the `value` prop and the `onChange` event handler. However, this can be tedious to do for
  * every input field, so we can use a custom hook to handle this for us. */
 export function useInput(initialValue: string): [string, Bind] {
-  const [value, setValue] = react.useState(initialValue);
-  const onChange = (event: react.ChangeEvent<HTMLInputElement>) => {
-    setValue(event.target.value);
-  };
-  const bind = { value, onChange };
-  return [value, bind];
+    const [value, setValue] = react.useState(initialValue)
+    const onChange = (event: react.ChangeEvent<HTMLInputElement>) => {
+        setValue(event.target.value)
+    }
+    const bind = { value, onChange }
+    return [value, bind]
 }
 
 // ======================
@@ -65,37 +65,37 @@ export function useInput(initialValue: string): [string, Bind] {
  * @param deps - The list of dependencies that, when updated, trigger the asynchronous fetch.
  * @returns The current value of the state controlled by this hook. */
 export function useAsyncEffect<T>(
-  initialValue: T,
-  fetch: (signal: AbortSignal) => Promise<T>,
-  deps?: react.DependencyList
+    initialValue: T,
+    fetch: (signal: AbortSignal) => Promise<T>,
+    deps?: react.DependencyList
 ): T {
-  const logger = loggerProvider.useLogger();
-  const [value, setValue] = react.useState<T>(initialValue);
+    const logger = loggerProvider.useLogger()
+    const [value, setValue] = react.useState<T>(initialValue)
 
-  react.useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
+    react.useEffect(() => {
+        const controller = new AbortController()
+        const { signal } = controller
 
-    /** Declare the async data fetching function. */
-    const load = async () => {
-      const result = await fetch(signal);
+        /** Declare the async data fetching function. */
+        const load = async () => {
+            const result = await fetch(signal)
 
-      /** Set state with the result only if this effect has not been aborted. This prevents race
-       * conditions by making it so that only the latest async fetch will update the state on
-       * completion. */
-      if (!signal.aborted) {
-        setValue(result);
-      }
-    };
+            /** Set state with the result only if this effect has not been aborted. This prevents race
+             * conditions by making it so that only the latest async fetch will update the state on
+             * completion. */
+            if (!signal.aborted) {
+                setValue(result)
+            }
+        }
 
-    load().catch((error) => {
-      logger.error("Error while fetching data", error);
-    });
-    /** Cancel any future `setValue` calls. */
-    return () => {
-      controller.abort();
-    };
-  }, deps);
+        load().catch(error => {
+            logger.error('Error while fetching data', error)
+        })
+        /** Cancel any future `setValue` calls. */
+        return () => {
+            controller.abort()
+        }
+    }, deps)
 
-  return value;
+    return value
 }

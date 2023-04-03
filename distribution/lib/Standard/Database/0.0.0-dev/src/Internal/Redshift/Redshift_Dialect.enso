@@ -8,6 +8,8 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
@@ -15,6 +17,10 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.Statement_Setter.Statement_Setter
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -38,6 +44,9 @@ type Redshift_Dialect
     name self = "redshift"
 
     ## PRIVATE
+    to_text self = "Redshift_Dialect"
+
+    ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
@@ -45,20 +54,18 @@ type Redshift_Dialect
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate =
-        Postgres_Dialect.resolve_target_sql_type aggregate
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
+
+       Arguments:
+       - internal_column: the column to order by.
+       - sort_direction: the direction of the ordering.
+       - text_ordering: If provided, specifies that the column should be treated
+         as text values according to the provided ordering. For non-text types,
+         it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
 
@@ -81,3 +88,28 @@ type Redshift_Dialect
        given backend.
     get_naming_helpers : Naming_Helpers
     get_naming_helpers self = Naming_Helpers
+
+    ## PRIVATE
+       Returns the mapping between SQL types of this dialect and Enso
+       `Value_Type`.
+    get_type_mapping : SQL_Type_Mapping
+    get_type_mapping self = Postgres_Type_Mapping
+
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
+    make_column_fetcher_for_type self sql_type =
+        type_mapping = self.get_type_mapping
+        value_type = type_mapping.sql_type_to_value_type sql_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
+    ## PRIVATE
+    get_statement_setter : Statement_Setter
+    get_statement_setter self = Postgres_Dialect.postgres_statement_setter
+
+    ## PRIVATE
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate =
+        _ = aggregate
+        True

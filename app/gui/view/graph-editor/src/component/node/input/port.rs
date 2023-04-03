@@ -32,6 +32,7 @@ pub const PADDING_X: f32 = 4.0;
 pub mod hover {
     use super::*;
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -60,6 +61,7 @@ pub mod viz {
     ensogl::shape! {
         above = [hover];
         pointer_events = false;
+        alignment = center;
         (style:Style, color:Vector4) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

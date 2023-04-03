@@ -93,7 +93,7 @@ spec =
 
         Test.specify 'should write CSV to a file' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
-            out = enso_project.data / 'out.csv'
+            out = enso_project.data / "transient" / "out.csv"
             out.delete_if_exists
             varied_column.write out
             exp = normalize_lines <| '''

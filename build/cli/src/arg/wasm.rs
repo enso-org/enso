@@ -81,6 +81,12 @@ pub struct BuildInput {
         default_value_if("skip-wasm-opt", None, Some("0")),
     )]
     pub wasm_size_limit: Option<byte_unit::Byte>,
+
+    /// Allow usage of system installation of `shaderc`, `spirv-opt` and `spirv-cross`. When
+    /// present, the binaries from PATH will be preferred over downloading prebuilt distribution.
+    /// Caution: old versions of those tools might introduce subtle bugs in optimized shaders.
+    #[clap(long, enso_env())]
+    pub system_shader_tools: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Eq)]

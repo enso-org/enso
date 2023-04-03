@@ -13,62 +13,82 @@ import project.Internal.IR.Internal_Column.Internal_Column
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
-   Creates an `Internal_Column` that computes the specified statistic.
-   It returns a dataflow error if the given operation is not supported.
+   Creates an `Internal_Column` that will represent the computed aggregate.
 
-   The provided `aggregate` is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_aggregate` first.
-make_aggregate_column : Table -> Aggregate_Column -> Text -> Internal_Column
-make_aggregate_column table aggregate new_name =
-    sql_type = table.connection.dialect.resolve_target_sql_type aggregate
-    expression = make_expression aggregate table.connection.dialect
-    Internal_Column.Value new_name sql_type expression
-
-## PRIVATE
-   Creates an Internal Representation of the expression that computes a
-   requested statistic.
-make_expression : Aggregate_Column -> Dialect -> SQL_Expression
-make_expression aggregate dialect =
+   Arguments:
+   - aggregate: The description of the aggregation to compute.
+   - new_name: The name for the created column.
+   - dialect: The dialect of the database to generate the SQL for.
+   - infer_return_type: A function that takes 3 arguments (name of the
+     operation, list of input columns and a raw SQL IR Expression) and returns
+     the inferred type for the aggregation.
+make_aggregate_column : Aggregate_Column -> Text -> Dialect -> SQL_Expression
+make_aggregate_column aggregate new_name dialect infer_return_type =
     is_non_empty_selector v = v.is_nothing.not && v.not_empty
-    case aggregate of
-        Group_By c _ -> c.expression
-        Count _ -> SQL_Expression.Operation "COUNT_ROWS" []
+    simple_aggregate op_kind columns =
+        expression = SQL_Expression.Operation op_kind (columns.map .expression)
+        sql_type_ref = infer_return_type op_kind columns expression
+        Internal_Column.Value new_name sql_type_ref expression
+
+    aggregate_with_order_by op_kind column order_by =
+        order_bys = order_by.map sc->
+            effective_ordering = if sc.column.value_type.is_text then Text_Ordering.Default else Nothing
+            dialect.prepare_order_descriptor sc.column.as_internal sc.direction effective_ordering
+        expression = SQL_Expression.Operation op_kind [column.expression]+order_bys
+        sql_type_ref = infer_return_type op_kind [column] expression
+        Internal_Column.Value new_name sql_type_ref expression
+
+    dialect.check_aggregate_support aggregate . if_not_error <| case aggregate of
+        Group_By c _ ->
+            Internal_Column.Value new_name c.sql_type_reference c.expression
+        Count _ -> simple_aggregate "COUNT_ROWS" []
         Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument.Error "Count_Distinct must have at least one column.") else
             case ignore_nothing of
-                True -> SQL_Expression.Operation "COUNT_DISTINCT" (columns.map .expression)
-                False -> SQL_Expression.Operation "COUNT_DISTINCT_INCLUDE_NULL" (columns.map .expression)
-        Count_Not_Nothing c _ -> SQL_Expression.Operation "COUNT" [c.expression]
-        Count_Nothing c _ -> SQL_Expression.Operation "COUNT_IS_NULL" [c.expression]
-        Count_Not_Empty c _ -> SQL_Expression.Operation "COUNT_NOT_EMPTY" [c.expression]
-        Count_Empty c _ -> SQL_Expression.Operation "COUNT_EMPTY" [c.expression]
-        Percentile p c _ -> SQL_Expression.Operation "PERCENTILE" [SQL_Expression.Constant SQL_Type.double p, c.expression]
-        Mode c _ -> SQL_Expression.Operation "MODE" [c.expression]
+                True -> simple_aggregate "COUNT_DISTINCT" columns
+                False -> simple_aggregate "COUNT_DISTINCT_INCLUDE_NULL" columns
+        Count_Not_Nothing c _ -> simple_aggregate "COUNT" [c]
+        Count_Nothing c _ -> simple_aggregate "COUNT_IS_NULL" [c]
+        Count_Not_Empty c _ -> simple_aggregate "COUNT_NOT_EMPTY" [c]
+        Count_Empty c _ -> simple_aggregate "COUNT_EMPTY" [c]
+        Percentile p c _ ->
+            op_kind = "PERCENTILE"
+            expression = SQL_Expression.Operation op_kind [SQL_Expression.Constant p, c.expression]
+            sql_type_ref = infer_return_type op_kind [c] expression
+            Internal_Column.Value new_name sql_type_ref expression
+        Mode c _ -> simple_aggregate "MODE" [c]
         First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.")
             True ->
-                order_bys = order_by.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
-                case ignore_nothing of
-                    False -> SQL_Expression.Operation "FIRST" [c.expression]+order_bys
-                    True -> SQL_Expression.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
+                op = case ignore_nothing of
+                    False -> "FIRST"
+                    True -> "FIRST_NOT_NULL"
+                aggregate_with_order_by op c order_by
         Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column.")
             True ->
-                order_bys = order_by.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
-                case ignore_nothing of
-                    False -> SQL_Expression.Operation "LAST" [c.expression]+order_bys
-                    True -> SQL_Expression.Operation "LAST_NOT_NULL" [c.expression]+order_bys
-        Maximum c _ -> SQL_Expression.Operation "MAX" [c.expression]
-        Minimum c _ -> SQL_Expression.Operation "MIN" [c.expression]
-        Shortest c _ -> SQL_Expression.Operation "SHORTEST" [c.expression]
-        Longest c _ -> SQL_Expression.Operation "LONGEST" [c.expression]
+                op = case ignore_nothing of
+                    False -> "LAST"
+                    True -> "LAST_NOT_NULL"
+                aggregate_with_order_by op c order_by
+        Maximum c _ -> simple_aggregate "MAX" [c]
+        Minimum c _ -> simple_aggregate "MIN" [c]
+        Shortest c _ -> simple_aggregate "SHORTEST" [c]
+        Longest c _ -> simple_aggregate "LONGEST" [c]
         Standard_Deviation c _ population -> case population of
-            True -> SQL_Expression.Operation "STDDEV_POP" [c.expression]
-            False -> SQL_Expression.Operation "STDDEV_SAMP" [c.expression]
+            True -> simple_aggregate "STDDEV_POP" [c]
+            False -> simple_aggregate "STDDEV_SAMP" [c]
         Concatenate c _ separator prefix suffix quote_char ->
-            base_args = [c.expression, SQL_Expression.Constant SQL_Type.text separator, SQL_Expression.Constant SQL_Type.text prefix, SQL_Expression.Constant SQL_Type.text suffix]
-            case quote_char.is_empty of
-                True -> SQL_Expression.Operation "CONCAT" base_args
-                False -> SQL_Expression.Operation "CONCAT_QUOTE_IF_NEEDED" base_args+[SQL_Expression.Constant SQL_Type.text quote_char]
-        Sum c _ -> SQL_Expression.Operation "SUM" [c.expression]
-        Average c _ -> SQL_Expression.Operation "AVG" [c.expression]
-        Median c _ -> SQL_Expression.Operation "MEDIAN" [c.expression]
+            base_args = [c.expression, SQL_Expression.Constant separator, SQL_Expression.Constant prefix, SQL_Expression.Constant suffix]
+            op_kind = case quote_char.is_empty of
+                True -> "CONCAT"
+                False -> "CONCAT_QUOTE_IF_NEEDED"
+            effective_args = case op_kind of
+                "CONCAT_QUOTE_IF_NEEDED" ->
+                    base_args+[SQL_Expression.Constant quote_char]
+                "CONCAT" -> base_args
+            expression = SQL_Expression.Operation op_kind effective_args
+            sql_type_ref = infer_return_type op_kind [c] expression
+            Internal_Column.Value new_name sql_type_ref expression
+        Sum c _ -> simple_aggregate "SUM" [c]
+        Average c _ -> simple_aggregate "AVG" [c]
+        Median c _ -> simple_aggregate "MEDIAN" [c]

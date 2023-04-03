@@ -22,18 +22,10 @@ import esbuildPluginAlias from 'esbuild-plugin-alias'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as esbuildWatch from '../../esbuild-watch.js'
 import * as utils from '../../utils.js'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-
-// =================
-// === Constants ===
-// =================
-
-const TAILWIND_BINARY_PATH = '../../node_modules/.bin/tailwindcss'
-const TAILWIND_CSS_PATH = path.resolve(THIS_PATH, 'src', 'tailwind.css')
 
 // =============================
 // === Environment variables ===
@@ -89,7 +81,6 @@ export function alwaysCopiedFiles(wasmArtifacts: string) {
         path.resolve(THIS_PATH, 'src', 'run.js'),
         path.resolve(THIS_PATH, 'src', 'style.css'),
         path.resolve(THIS_PATH, 'src', 'docsStyle.css'),
-        path.resolve(THIS_PATH, 'src', 'tailwind.css'),
         ...wasmArtifacts.split(path.delimiter),
     ]
 }
@@ -107,45 +98,6 @@ export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: st
     console.log('Generator for files to copy finished.')
 }
 
-// ======================
-// === Inline plugins ===
-// ======================
-
-function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esbuild.Plugin {
-    return {
-        name: 'enso-generate-tailwind',
-        setup: build => {
-            // Required since `onStart` is called on every rebuild.
-            let firstRun = true
-            build.onStart(() => {
-                if (firstRun) {
-                    const dest = path.join(args.assetsPath, 'tailwind.css')
-                    const config = path.resolve(THIS_PATH, 'tailwind.config.ts')
-                    console.log(`Generating tailwind css from '${TAILWIND_CSS_PATH}' to '${dest}'.`)
-                    const child = childProcess.spawn(`node`, [
-                        TAILWIND_BINARY_PATH,
-                        '-i',
-                        TAILWIND_CSS_PATH,
-                        'o',
-                        dest,
-                        '-c',
-                        config,
-                        '--minify',
-                    ])
-                    firstRun = false
-                    return new Promise(resolve =>
-                        child.on('close', () => {
-                            resolve({})
-                        })
-                    )
-                } else {
-                    return {}
-                }
-            })
-        },
-    }
-}
-
 // ================
 // === Bundling ===
 // ================
@@ -155,14 +107,11 @@ function esbuildPluginGenerateTailwind(args: Pick<Arguments, 'assetsPath'>): esb
  */
 export function bundlerOptions(args: Arguments) {
     const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath } = args
-    // This is required to make the `true` properties be typed as `boolean`.
-    // eslint-disable-next-line no-restricted-syntax
-    let trueBoolean = true as boolean
     const buildOptions = {
         // Disabling naming convention because these are third-party options.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
-        bundle: trueBoolean,
+        bundle: true,
         entryPoints: [path.resolve(THIS_PATH, 'src', 'index.ts')],
         outdir: outputPath,
         outbase: 'src',
@@ -172,8 +121,6 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
             esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
-            // This must run before the copy plugin so that the generated `tailwind.css` is used.
-            esbuildPluginGenerateTailwind({ assetsPath }),
             esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
         ],
         define: {
@@ -181,14 +128,12 @@ export function bundlerOptions(args: Arguments) {
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
         },
-        sourcemap: trueBoolean,
-        minify: trueBoolean,
-        metafile: trueBoolean,
+        sourcemap: true,
+        minify: true,
+        metafile: true,
         format: 'esm',
-        publicPath: '/assets',
         platform: 'browser',
-        incremental: trueBoolean,
-        color: trueBoolean,
+        color: true,
         logOverride: {
             // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
             //    1 │ ...typeof module!=="undefined"){module["exports"]=Module}process["o...
@@ -213,32 +158,10 @@ export function bundlerOptionsFromEnv() {
     return bundlerOptions(argumentsFromEnv())
 }
 
-/** ESBuild options for spawning a watcher, that will continuously rebuild the package. */
-export function watchOptions(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
-    return esbuildWatch.toWatchOptions(bundlerOptionsFromEnv(), onRebuild, inject)
-}
-
 /** ESBuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set.
  */
 export function bundleOptions() {
-    const ret = bundlerOptionsFromEnv()
-    ret.watch = false
-    ret.incremental = false
-    return ret
+    return bundlerOptionsFromEnv()
 }
-
-/**
- * Bundles the package.
- */
-export async function bundle() {
-    try {
-        return esbuild.build(bundleOptions())
-    } catch (error) {
-        console.error(error)
-        throw error
-    }
-}
-
-export default { watchOptions, bundle, bundleOptions }

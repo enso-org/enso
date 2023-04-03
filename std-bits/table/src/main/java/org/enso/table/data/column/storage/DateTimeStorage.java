@@ -3,8 +3,10 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.DateTimeBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.SpecializedIsInOp;
+import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 import java.time.ZonedDateTime;
 
@@ -24,6 +26,27 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
+    t.add(
+        new UnaryIntegerOp<>(Maps.YEAR) {
+          @Override
+          protected long doOperation(ZonedDateTime date) {
+            return (long) date.getYear();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.MONTH) {
+          @Override
+          protected long doOperation(ZonedDateTime date) {
+            return (long) date.getMonthValue();
+          }
+        });
+    t.add(
+        new UnaryIntegerOp<>(Maps.DAY) {
+          @Override
+          protected long doOperation(ZonedDateTime date) {
+            return (long) date.getDayOfMonth();
+          }
+        });
     return t;
   }
 
@@ -38,8 +61,8 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   }
 
   @Override
-  public int getType() {
-    return Type.DATE_TIME;
+  public StorageType getType() {
+    return DateTimeType.INSTANCE;
   }
 
   @Override

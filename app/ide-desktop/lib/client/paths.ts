@@ -1,6 +1,6 @@
 /** @file This module defines paths within the client distribution's resources. */
 
-import * as utils from '../../utils.js'
+import * as utils from '../../utils'
 
 /** Path to the Project Manager bundle within the electron distribution (relative to the electron's resources directory). */
 export const PROJECT_MANAGER_BUNDLE = 'enso'

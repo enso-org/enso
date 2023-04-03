@@ -43,7 +43,6 @@ import project.Data.Ordering.Vector_Lexicographic_Order_Spec
 import project.Data.Pair_Spec
 import project.Data.Problems_Spec
 import project.Data.Range_Spec
-import project.Data.Ref_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
 import project.Data.Statistics_Spec
@@ -65,8 +64,10 @@ import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
 import project.Network.URI_Spec
 
+import project.Runtime.Lazy_Spec
 import project.Runtime.Lazy_Generator_Spec
 import project.Runtime.Managed_Resource_Spec
+import project.Runtime.Ref_Spec
 import project.Runtime.Stack_Traces_Spec
 
 import project.System.Environment_Spec
@@ -125,6 +126,7 @@ main = Test_Suite.run_main <|
     Problems_Spec.spec
     Range_Spec.spec
     Ref_Spec.spec
+    Lazy_Spec.spec
     Default_Regex_Engine_Spec.spec
     Regex_Spec.spec
     Matching_Spec.spec
