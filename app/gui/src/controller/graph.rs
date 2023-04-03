@@ -13,6 +13,7 @@ use ast::crumbs::Located;
 use ast::macros::skip_and_freeze::MacrosInfo;
 use ast::macros::DocumentationCommentInfo;
 use double_representation::connection;
+use double_representation::context_switch::ContextSwitchExpression;
 use double_representation::definition;
 use double_representation::definition::DefinitionProvider;
 use double_representation::graph::GraphInfo;
@@ -20,6 +21,7 @@ use double_representation::identifier::generate_name;
 use double_representation::module;
 use double_representation::node;
 use double_representation::node::MainLine;
+use double_representation::node::NodeAst;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
@@ -226,7 +228,7 @@ impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
-        let macros_info = *node.main_line.macros_info();
+        let macros_info = *node.macros_info();
         let outputs = if let Some(pat) = node.pattern() {
             Some(SpanTree::new(pat, context).ok()?)
         } else {
@@ -578,7 +580,7 @@ impl Handle {
     /// Analyzes the expression, e.g. result for "a+b" shall be named "sum".
     /// The caller should make sure that obtained name won't collide with any symbol usage before
     /// actually introducing it. See `variable_name_for`.
-    pub fn variable_name_base_for(node: &MainLine) -> String {
+    pub fn variable_name_base_for(node: &NodeAst) -> String {
         name_for_ast(&node.expression())
     }
 
@@ -592,8 +594,8 @@ impl Handle {
         let body = def.body();
         let usage = if matches!(body.shape(), ast::Shape::Block(_)) {
             alias_analysis::analyze_crumbable(body.item)
-        } else if let Some(node) = MainLine::from_ast(&body) {
-            alias_analysis::analyze_ast(node.ast())
+        } else if let Some(main_line) = MainLine::from_ast(&body) {
+            alias_analysis::analyze_ast(main_line.ast())
         } else {
             // Generally speaking - impossible. But if there is no node in the definition
             // body, then there is nothing that could use any symbols, so nothing is used.
@@ -961,6 +963,23 @@ impl Handle {
     pub fn set_node_action_freeze(&self, node_id: ast::Id, freeze: bool) -> FallibleResult {
         self.update_node(node_id, |mut node| {
             node.set_freeze(freeze);
+            node
+        })?;
+        Ok(())
+    }
+
+    /// Sets or clears the context switch expression for the specified node.
+    pub fn set_node_context_switch(
+        &self,
+        node_id: ast::Id,
+        expr: Option<ContextSwitchExpression>,
+    ) -> FallibleResult {
+        self.update_node(node_id, |mut node| {
+            if let Some(expr) = expr {
+                node.set_context_switch(expr);
+            } else {
+                node.clear_context_switch_expression();
+            }
             node
         })?;
         Ok(())

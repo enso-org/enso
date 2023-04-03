@@ -36,6 +36,11 @@ pub enum InvalidQualifiedName {
     TooManySegments,
 }
 
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "No qualified name found in AST")]
+pub struct QualifiedNameNotFoundInAst;
+
 
 
 // ================
@@ -326,6 +331,21 @@ impl QualifiedName {
     /// ```
     pub fn pop_segment(&mut self) -> Option<ImString> {
         self.path.pop()
+    }
+}
+
+
+// === Conversion from AST ===
+
+impl TryFrom<&Ast> for QualifiedName {
+    type Error = failure::Error;
+
+    fn try_from(ast: &Ast) -> Result<Self, Self::Error> {
+        let segments = ast::opr::Chain::try_new(ast)
+            .ok_or(QualifiedNameNotFoundInAst)?
+            .as_qualified_name_segments()
+            .ok_or(QualifiedNameNotFoundInAst)?;
+        Self::from_all_segments(segments)
     }
 }
 
