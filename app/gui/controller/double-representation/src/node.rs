@@ -488,7 +488,8 @@ impl NodeAst {
         }
     }
 
-    /// See [`NodeInfo::set_pattern`]. Returns the AST info if it was updated.
+    /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
+    /// assignment infix will be introduced.
     pub fn set_pattern(&mut self, pattern: Ast) {
         match self {
             NodeAst::Binding { infix, .. } => {
