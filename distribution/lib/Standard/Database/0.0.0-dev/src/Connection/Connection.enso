@@ -171,7 +171,7 @@ type Connection
          to ensure that default `ResultSet` metadata is used for these columns.
        - last_row_only: If set true, only the last row of the query is fetched.
          Defaults to false.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Materialized_Table
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Materialized_Table
     read_statement self statement column_type_suggestions=Nothing last_row_only=False =
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         statement_setter = self.dialect.get_statement_setter

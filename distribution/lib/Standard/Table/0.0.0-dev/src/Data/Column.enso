@@ -912,7 +912,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    year : Column -> Column ! Invalid_Value_Type
+    year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self.value_type related_column=self.name <|
         simple_unary_op self "year"
 
@@ -921,7 +921,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    month : Column -> Column ! Invalid_Value_Type
+    month : Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self.value_type related_column=self.name <|
         simple_unary_op self "month"
 
@@ -930,7 +930,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day : Column -> Column ! Invalid_Value_Type
+    day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self.value_type related_column=self.name <|
         simple_unary_op self "day"
 
