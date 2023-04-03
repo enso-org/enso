@@ -13,14 +13,19 @@ public class ExecutionEnvironment {
   private final String name;
   private final Map<String, Boolean> permissions;
 
-  public static final ExecutionEnvironment LIVE = initLive();
-  public static final ExecutionEnvironment DESIGN = new ExecutionEnvironment("design");
+  public static final String LIVE_ENVIRONMENT_NAME = "live";
 
-  private static final ExecutionEnvironment initLive() {
+  public static final String DESIGN_ENVIRONMENT_NAME = "design";
+
+  public static final ExecutionEnvironment LIVE = initLive(LIVE_ENVIRONMENT_NAME);
+  public static final ExecutionEnvironment DESIGN =
+      new ExecutionEnvironment(DESIGN_ENVIRONMENT_NAME);
+
+  private static final ExecutionEnvironment initLive(String name) {
     Map<String, Boolean> contexts = new HashMap<>();
-    contexts.put("Input", true);
-    contexts.put("Output", true);
-    return new ExecutionEnvironment("live", contexts);
+    contexts.put(Context.INPUT_CONTEXT, true);
+    contexts.put(Context.OUTPUT_CONTEXT, true);
+    return new ExecutionEnvironment(name, contexts);
   }
 
   public ExecutionEnvironment(String name) {
@@ -66,12 +71,12 @@ public class ExecutionEnvironment {
 
   public static ExecutionEnvironment forName(String name) {
     switch (name) {
-      case "live":
+      case LIVE_ENVIRONMENT_NAME:
         return LIVE;
-      case "design":
+      case DESIGN_ENVIRONMENT_NAME:
         return DESIGN;
       default:
-        return new ExecutionEnvironment(name);
+        throw new RuntimeException("Unsupported Execution Environment `" + name + "`");
     }
   }
 }

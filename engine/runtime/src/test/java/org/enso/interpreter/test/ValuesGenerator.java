@@ -724,7 +724,6 @@ class ValuesGenerator {
 
       if (m.getName().startsWith("type")) {
         if (m.getReturnType() == Value.class) {
-          System.out.println("All methhods " + getClass() + " for " + m);
           var r = (Value) m.invoke(this);
           collect.add(r);
         }

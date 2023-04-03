@@ -11,7 +11,10 @@ type Context
     Output
 
     name : Text
-    name self = @Builtin_Method "Context.name"
+    name self =
+        case self of
+            Input  -> "Input"
+            Output -> "Output"
 
     if_enabled : Function -> Text -> Any
     if_enabled self ~action environment="design" =
