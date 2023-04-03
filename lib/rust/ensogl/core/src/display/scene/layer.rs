@@ -112,7 +112,6 @@ bitflags::bitflags! {
 /// symbol A will be drawn first, below symbol B!
 ///
 /// # Symbol Instance Ordering
-///
 /// Within a layer, instances of a symbol are ordered first by partition, and then partially by
 /// creation-order.
 ///
@@ -187,6 +186,58 @@ bitflags::bitflags! {
 /// Please note that the current implementation does not allow for hierarchical masks (masks applied
 /// to already masked area or masks applied to masks). If you try using masks in hierarchical way,
 /// the nested masks will be skipped and a warning will be emitted to the console.
+///
+/// # Example
+/// ```
+///    use ensogl_core::display;
+///    use ensogl_core::display::world::*;
+///    use ensogl_core::prelude::*;
+///    use ensogl_core::data::color;
+///    use ensogl_core::display::shape::compound::rectangle;
+///    use ensogl_core::display::shape::compound::rectangle::Rectangle;
+///    # use ensogl_core::display::navigation::navigator::Navigator;
+///    # const RED: color::Rgba = color::Rgba::new(1.0, 0.5, 0.5, 0.9);
+///    # const BLUE: color::Rgba = color::Rgba::new(0.5, 0.5, 1.0, 0.9);
+///    # pub fn main() {
+///        # let world = World::new().displayed_in("root");
+///        # let scene = &world.default_scene;
+///        # let camera = scene.camera().clone_ref();
+///        # let navigator = Navigator::new(scene, &camera);
+///
+///        // We'll be using the `main` layer directly. If we needed a dedicated layer, we could use
+///        // [`Layer::create_sublayer`], but layers are expensive to render; always use existing
+///        // layers when possible.
+///        let main = &world.default_scene.layers.main;
+///
+///        let bottom = layer.create_symbol_partition::<rectangle::Shape>("bottom");
+///        let top = layer.create_symbol_partition::<rectangle::Shape>("top");
+///
+///
+///        // === Component 1 ===
+///
+///        // Create a component that always draws in the higher symbol-partition ([`top`]).
+///        let root1 = display::object::Instance::new();
+///        world.add_child(&root1);
+///        let rectangle1 = Rectangle().build(|t| {
+///            t.set_size(Vector2::new(64.0, 64.0)).set_color(RED);
+///        });
+///        root1.add_child(&rectangle1);
+///        top.add(&rectangle1);
+///
+///
+///        // === Component 2 ===
+///
+///        // This component draws in the lower symbol-partition ([`bottom`]). Without layer symbol
+///        // partitions, it would be drawn above Component 1, because it was added more recently.
+///        let root2 = display::object::Instance::new();
+///        world.add_child(&root2);
+///        let rectangle2 = Rectangle().build(|t| {
+///            t.set_size(Vector2::new(128.0, 128.0)).set_color(BLUE);
+///        });
+///        root2.add_child(&rectangle2);
+///        bottom.add(&rectangle2);
+///    }
+/// ```
 #[derive(Clone, CloneRef, Deref)]
 pub struct Layer {
     model: Rc<LayerModel>,
