@@ -1,0 +1,135 @@
+from Standard.Base import all
+
+from Standard.Table import Aggregate_Column, Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+
+from Standard.Database import SQL_Query
+
+from Standard.Test import Problems, Test, Test_Suite
+import Standard.Test.Extensions
+
+import project.Database.Helpers.Name_Generator
+from project.Database.Postgres_Spec import test_with_connection
+
+spec connection db_name =
+    _ = db_name
+
+    make_table prefix columns =
+        name = Name_Generator.random_name prefix
+        column_exprs = columns.map col_def->
+            col_def.first + " " + col_def.second
+        stmt = 'CREATE TEMPORARY TABLE "'+name+'" ('+(column_exprs.join ', ')+');'
+        Problems.assume_no_problems <| connection.execute_update stmt
+        connection.query (SQL_Query.Table_Name name)
+
+    Test.group "[PostgreSQL] Type Mapping" <|
+        Test.specify "numeric" <|
+            t = make_table "ints" [["a", "smallint"], ["b", "int2"], ["c", "int"], ["d", "integer"], ["e", "int4"], ["f", "bigint"], ["g", "int8"]]
+            t.at "a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t.at "c" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t.at "d" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t.at "e" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t.at "f" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t.at "g" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+            t2 = make_table "floats" [["a", "real"], ["b", "float4"], ["c", "double precision"], ["d", "float8"]]
+            t2.at "a" . value_type . should_equal (Value_Type.Float Bits.Bits_32)
+            t2.at "b" . value_type . should_equal (Value_Type.Float Bits.Bits_32)
+            t2.at "c" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t2.at "d" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+
+            t3 = make_table "decimals" [["a", "decimal"], ["b", "numeric"], ["c", "decimal(10, 2)"], ["d", "numeric(20, 4)"], ["e", "decimal(10)"], ["f", "numeric(20)"]]
+            t3.at "a" . value_type . should_equal Value_Type.Decimal
+            t3.at "b" . value_type . should_equal Value_Type.Decimal
+            t3.at "c" . value_type . should_equal (Value_Type.Decimal precision=10 scale=2)
+            t3.at "d" . value_type . should_equal (Value_Type.Decimal precision=20 scale=4)
+            t3.at "e" . value_type . should_equal (Value_Type.Decimal precision=10)
+            t3.at "f" . value_type . should_equal (Value_Type.Decimal precision=20)
+
+        Test.specify "text" <|
+            t = make_table "texts" [["a", "char(10)"], ["b", "varchar"], ["c", "varchar(20)"], ["d", "text"]]
+            t.at "a" . value_type . should_equal (Value_Type.Char size=10 variable_length=False)
+            t.at "b" . value_type . should_equal default_text
+            t.at "c" . value_type . should_equal (Value_Type.Char size=20 variable_length=True)
+            t.at "d" . value_type . should_equal default_text
+
+        Test.specify "binary" <|
+            # Postgres does not support a BLOB type, it has `bytea` instead.
+            t = make_table "binaries" [["a", "bytea"]]
+            t.at "a" . value_type . should_equal (Value_Type.Binary size=max_int4 variable_length=True)
+
+        Test.specify "datetime" <|
+            t = make_table "dates" [["a", "date"]]
+            t.at "a" . value_type . should_equal Value_Type.Date
+
+            t2 = make_table "times" [["a", "time"], ["b", "timetz"], ["c", "time without time zone"], ["d", "time with time zone"]]
+            t2.at "a" . value_type . should_equal Value_Type.Time
+            t2.at "b" . value_type . should_equal Value_Type.Time
+            t2.at "c" . value_type . should_equal Value_Type.Time
+            t2.at "d" . value_type . should_equal Value_Type.Time
+
+            t3 = make_table "timestamps" [["a", "timestamp"], ["b", "timestamptz"], ["c", "timestamp without time zone"], ["d", "timestamp with time zone"]]
+            t3.at "a" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
+            t3.at "b" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+            t3.at "c" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
+            t3.at "d" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+
+        Test.specify "boolean" <|
+            t = make_table "bools" [["a", "boolean"], ["b", "bool"]]
+            t.at "a" . value_type . should_equal Value_Type.Boolean
+            t.at "b" . value_type . should_equal Value_Type.Boolean
+
+        Test.specify "should correctly handle types through operations" <|
+            t = make_table "foo" [["a", "int2"], ["b", "text"], ["c", "boolean"], ["d", "double precision"], ["e", "int4"]]
+
+            t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
+            t.compute '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.compute '[a] + [e]' . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
+            t.compute '[b] + "_suf"' . value_type . should_equal default_text
+            t.compute 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
+            t.compute 'fill_empty([b], "<NA>")' . value_type . should_equal default_text
+            t.compute 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
+            t.compute 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
+            t.compute 'is_nan([d])' . value_type . should_equal Value_Type.Boolean
+            t.compute 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
+
+            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count, (Aggregate_Column.First "c" order_by="a")]
+            t2.at "b" . value_type . should_equal default_text
+            t2.at "Sum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t2.at "Count Not Nothing c" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Concatenate b" . value_type . should_equal default_text
+            t2.at "Count" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "First c" . value_type . should_equal Value_Type.Boolean
+
+            # Postgres does not try to be clever and two fixed-length columns concatenated get promoted to a varying column.
+            t3 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
+            t3.compute '[a] + [b]' . value_type . should_equal default_text
+
+        Test.specify "other types" <|
+            t = make_table "other" [["a", "box"], ["b", "polygon"]]
+            t.at "a" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t.at "a" . value_type . type_name . should_equal "box"
+            t.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t.at "b" . value_type . type_name . should_equal "polygon"
+
+            # Bit strings are not supported by Enso tables at the moment.
+            t2 = make_table "bit strings" [["a", "bit(2)"], ["b", "bit varying"], ["c", "bit varying(10)"]]
+            t2.at "a" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t2.at "a" . value_type . type_name . should_equal "bit"
+            t2.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+            t2.at "c" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
+
+        Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
+            # TODO this will be tested once the cast operator is implemented
+            # Binary 10 variable_length=False -> Binary max_int4 variable_length=True
+            # Byte -> Integer Bits.Bits_16
+            Nothing
+
+main = Test_Suite.run_main (test_with_connection spec)
+
+max_int4 = 2147483647
+default_text = Value_Type.Char size=max_int4 variable_length=True

@@ -262,7 +262,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
           if (cachedObject != null) {
             return Optional.of(cachedObject);
           } else {
-            logger.log(logLevel, "`" + logName + "` was corrupt on disk.");
+            logger.log(logLevel, "`{0}` was corrupt on disk.", logName);
             invalidateCache(cacheRoot, logger);
             return Optional.empty();
           }
@@ -276,8 +276,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
           return Optional.empty();
         }
       } else {
-        logger.log(
-            logLevel, "One or more digests did not match for the cache for [" + logName + "].");
+        logger.log(logLevel, "One or more digests did not match for the cache for [{0}].", logName);
         invalidateCache(cacheRoot, logger);
         return Optional.empty();
       }

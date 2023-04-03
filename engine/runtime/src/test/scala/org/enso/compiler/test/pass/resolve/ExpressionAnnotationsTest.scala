@@ -56,14 +56,13 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
   // === The Tests ============================================================
 
-  "Annotations resolution" ignore {
-    // FIXME: New parser handles the syntax error differently--needs triage (#5894).
+  "Annotations resolution" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =
       """
         |foo x =
-        |    @Tail_Call
+        |    first expression
         |    @Unknown_Annotation foo bar baz
         |    @Builtin_Method "myBuiltin"
         |    @Auto_Parallel a.f bar baz
@@ -77,15 +76,6 @@ class ExpressionAnnotationsTest extends CompilerTest {
       .asInstanceOf[IR.Function.Lambda]
       .body
       .asInstanceOf[IR.Expression.Block]
-
-    "create an error when discovering an unexpected annotation" in {
-      items.expressions(0) shouldBe an[IR.Error.Resolution]
-      items
-        .expressions(0)
-        .asInstanceOf[IR.Error.Resolution]
-        .reason shouldEqual IR.Error.Resolution.UnexpectedAnnotation
-
-    }
 
     "create an error when discovering an unknown annotation" in {
       val unknown =
@@ -139,6 +129,32 @@ class ExpressionAnnotationsTest extends CompilerTest {
         .value
       misplaced shouldBe an[IR.Error.Resolution]
       misplaced
+        .asInstanceOf[IR.Error.Resolution]
+        .reason shouldEqual IR.Error.Resolution.UnexpectedAnnotation
+    }
+  }
+
+  "Annotations resolution 2" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val ir =
+      """
+        |foo x =
+        |    @Tail_Call
+        |""".stripMargin.preprocessModule.analyse
+
+    val items = ir.bindings.head
+      .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Expression.Block]
+
+    "create an error when discovering an unexpected annotation" in {
+      items.expressions.size shouldBe 0
+      items.returnValue shouldBe an[IR.Error.Resolution]
+      val err = items.returnValue.asInstanceOf[IR.Error.Resolution]
+      err
         .asInstanceOf[IR.Error.Resolution]
         .reason shouldEqual IR.Error.Resolution.UnexpectedAnnotation
     }

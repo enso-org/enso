@@ -29,9 +29,15 @@ type Test
         if config.should_run_group name then
             case pending of
                 Nothing ->
-                    r = State.run Spec (Spec.Value name List.Nil) <|
-                        behaviors
-                        State.get Spec
+                    handle_failed_group_builder caught_panic =
+                        stack_trace_text = caught_panic.stack_trace.map .to_display_text . join '\n'
+                        result = Test_Result.Failure "A Panic has been thrown outside of `Test.specify`, failed to run the test group: "+caught_panic.payload.to_display_text details=caught_panic.to_text+'\n'+stack_trace_text
+                        behavior = Behavior.Value "{Building the test group.}" result Duration.zero
+                        Spec.Value name (List.Cons behavior List.Nil)
+                    r = Panic.catch Any handler=handle_failed_group_builder <|
+                        State.run Spec (Spec.Value name List.Nil) <|
+                            behaviors
+                            State.get Spec
                     Test_Reporter.print_report r config suite.builder
                     new_suite = Test_Suite.Value suite.config (List.Cons r suite.specs) suite.builder
                     State.put Test_Suite new_suite

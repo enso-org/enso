@@ -1,5 +1,6 @@
 package org.enso.table.aggregations;
 
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.Problem;
 
@@ -10,10 +11,10 @@ import java.util.stream.Collectors;
 /** Interface used to define aggregate columns. */
 public abstract class Aggregator {
   private final String name;
-  private final int type;
+  private final StorageType type;
   private AggregatedProblems problems;
 
-  protected Aggregator(String name, int type) {
+  protected Aggregator(String name, StorageType type) {
     this.name = name;
     this.type = type;
     this.problems = null;
@@ -33,7 +34,7 @@ public abstract class Aggregator {
    *
    * @return The type of the new column.
    */
-  public int getType() {
+  public StorageType getType() {
     return type;
   }
 

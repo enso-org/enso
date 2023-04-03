@@ -44,6 +44,7 @@ const OPEN_ANIMATION_OFFSET: f32 = OPEN_ANIMATION_SCALE - 1.001;
 mod rounded_rect {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style, color_rgba: Vector4<f32>, corner_radius: f32) {
             let color = Var::<color::Rgba>::from(color_rgba);
             let rect  = Rect(Var::canvas_size()).corners_radius(corner_radius.px());

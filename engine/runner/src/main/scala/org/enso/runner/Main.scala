@@ -502,13 +502,19 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches           = true,
+      strictErrors             = true,
       useGlobalIrCacheLocation = shouldUseGlobalCache
     )
     val topScope = context.getTopScope
-    topScope.compile(shouldCompileDependencies)
-
-    context.context.close()
-    exitSuccess()
+    try {
+      topScope.compile(shouldCompileDependencies)
+      exitSuccess()
+    } catch {
+      case _: Throwable =>
+        exitFail()
+    } finally {
+      context.context.close()
+    }
   }
 
   /** Handles the `--run` CLI option.
@@ -723,7 +729,7 @@ object Main {
       .reverse
     val msg: String = HostEnsoUtils.findExceptionMessage(exception)
     println(s"Execution finished with an error: ${msg}")
-    dropInitJava.foreach { frame =>
+    def printFrame(frame: PolyglotException#StackFrame): Unit = {
       val langId =
         if (frame.isHostFrame) "java" else frame.getLanguage.getId
       val fmtFrame = if (frame.getLanguage.getId == LanguageInfo.ID) {
@@ -763,6 +769,11 @@ object Main {
         frame.toString
       }
       println(s"        at <$langId> $fmtFrame")
+    }
+    if (dropInitJava.isEmpty) {
+      fullStack.foreach(printFrame)
+    } else {
+      dropInitJava.foreach(printFrame)
     }
   }
 

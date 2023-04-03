@@ -258,7 +258,7 @@ spec =
 
         Test.specify "should define modulo for integers and decimals" <|
             5%3 . should_equal 2
-            5%3 . should_be_an Integer
+            5%3 . should_be_a Integer
 
             5.0%3.0 . should_equal 2.0
             5%3.0 . should_equal 2.0
@@ -271,7 +271,7 @@ spec =
             10.5%1.0 . should_equal 0.5
 
             3%1 . should_equal 0
-            3%1 . should_be_an Integer
+            3%1 . should_be_a Integer
 
             3.5%1 . should_equal 0.5
 

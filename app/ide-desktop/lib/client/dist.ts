@@ -4,6 +4,6 @@
  * @see Arguments
  */
 
-import * as electronBuilderConfig from './electron-builder-config.js'
+import * as electronBuilderConfig from './electron-builder-config'
 
 await electronBuilderConfig.buildPackage(electronBuilderConfig.args)
