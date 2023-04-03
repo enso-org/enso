@@ -98,6 +98,7 @@ pub mod selection {
 
     ensogl_core::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, color: Vector4, corner_radius: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -123,6 +124,7 @@ pub mod background {
 
     ensogl_core::shape! {
         below = [selection];
+        alignment = center;
         (style: Style, shadow_alpha: f32, corners_radius_px: f32, color: Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -148,6 +150,7 @@ pub mod overlay {
     ensogl_core::shape! {
         above = [background];
         below = [selection];
+        alignment = center;
         (style: Style, corners_radius_px: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();

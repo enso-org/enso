@@ -229,6 +229,25 @@ impl Kind {
         }
     }
 
+    /// Call ID setter. Returns bool indicating whether the operation was possible.
+    pub fn set_call_id(&mut self, call_id: Option<ast::Id>) -> bool {
+        match self {
+            Self::Chained(t) => {
+                t.call_id = call_id;
+                true
+            }
+            Self::Argument(t) => {
+                t.call_id = call_id;
+                true
+            }
+            Self::InsertionPoint(t) => {
+                t.call_id = call_id;
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// Short string representation. Skips the inner fields and returns only the variant name.
     pub fn variant_name(&self) -> &str {
         match self {

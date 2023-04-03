@@ -386,6 +386,8 @@ impl View {
         let shape = scene.shape().clone_ref();
 
         frp::extend! { network
+            init <- source::<()>();
+            shape <- all(shape, init)._0();
             eval shape ((shape) model.on_dom_shape_changed(shape));
 
             eval_ frp.show_graph_editor(model.show_graph_editor());
@@ -488,7 +490,7 @@ impl View {
                     (searcher.as_ref()?.input == *node_id).then(input_change)
                 }
             );
-            searcher_input_change <- searcher_input_change_opt.filter_map(|change| change.clone());
+            searcher_input_change <- searcher_input_change_opt.unwrap();
             input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
             input_change_delay.cancel <+ update_searcher_input_on_commit;
@@ -592,8 +594,6 @@ impl View {
                     model.hide_fullscreen_visualization()
                 }
             });
-
-            init <- source::<()>();
 
             // === Disabling Navigation ===
 

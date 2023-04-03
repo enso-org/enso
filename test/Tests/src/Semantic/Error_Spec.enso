@@ -207,7 +207,7 @@ spec =
 
             error = Panic.recover Any <| Panic.catch Illegal_Argument (Panic.throw (Illegal_State.Error "foo" Nothing)) caught_panic->
                 caught_panic.payload.message
-            error.catch . should_be_an Illegal_State.Error
+            error.catch . should_be_a Illegal_State.Error
 
             message_2 = Panic.catch Any (Panic.throw (Illegal_Argument.Error "msg" Nothing)) _->
                 "caught"
@@ -227,10 +227,10 @@ spec =
             Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types
 
         Test.specify "should be able to be recovered selectively" <|
-            Panic.recover Illegal_Argument (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
-            Panic.recover Any (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
-            Panic.recover [Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
-            Panic.recover [Illegal_State, Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
+            Panic.recover Illegal_Argument (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
+            Panic.recover Any (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
+            Panic.recover [Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
+            Panic.recover [Illegal_State, Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
 
             Test.expect_panic_with <| Panic.recover Illegal_State (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
             Test.expect_panic_with <| Panic.recover [Illegal_State] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch

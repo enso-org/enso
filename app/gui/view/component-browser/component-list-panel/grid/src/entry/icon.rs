@@ -35,6 +35,7 @@ define_icons! {
     pub mod star(Star) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let shape = FiveStar(8.0.px(),0.447);
                 let shape = shape.fill(VIVID_COLOR.glsl());
@@ -47,6 +48,7 @@ define_icons! {
     pub mod local_scope(LocalScope) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dot = Circle(3.0.px());
                 let outer = Circle(8.0.px()) - Circle(7.0.px());
@@ -62,6 +64,7 @@ define_icons! {
     pub mod sub_modules(SubModules) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let corners_radius = 1.5;
                 let top = Rect((8.0.px(), 1.5.px()));
@@ -82,6 +85,7 @@ define_icons! {
     pub mod libraries(Libraries) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 use special_icons::libraries as theme;
                 let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
@@ -120,6 +124,7 @@ define_icons! {
     pub mod marketplace(Marketplace) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 use special_icons::marketplace as theme;
                 let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
@@ -158,6 +163,7 @@ define_icons! {
     pub mod data_input(DataInput) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -188,6 +194,7 @@ define_icons! {
     pub mod data_output(DataOutput) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -218,6 +225,7 @@ define_icons! {
     pub mod text_input(TextInput) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -257,6 +265,7 @@ define_icons! {
     pub mod number_input(NumberInput) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -312,6 +321,7 @@ define_icons! {
     pub mod table_edit(TableEdit) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -334,6 +344,7 @@ define_icons! {
     pub mod convert(Convert) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let upper_arrow = arrow(11.0,2.0,4.0,6.0).rotate((-PI/2.0).radians());
                 let upper_arrow = upper_arrow.translate(((-8.0).px(),2.0.px()));
@@ -351,6 +362,7 @@ define_icons! {
     pub mod dataframe_clean(DataframeClean) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -384,6 +396,7 @@ define_icons! {
     pub mod add_column(AddColumn) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -407,6 +420,7 @@ define_icons! {
     pub mod add_row(AddRow) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -429,6 +443,7 @@ define_icons! {
     pub mod select_column(SelectColumn) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -448,6 +463,7 @@ define_icons! {
     pub mod select_row(SelectRow) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -467,6 +483,7 @@ define_icons! {
     pub mod dataframe_map_column(DataframeMapColumn) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -489,6 +506,7 @@ define_icons! {
     pub mod dataframe_map_row(DataframeMapRow) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -511,6 +529,7 @@ define_icons! {
     pub mod dataframes_join(DataframesJoin) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -534,6 +553,7 @@ define_icons! {
     pub mod dataframes_union(DataframesUnion) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -557,6 +577,7 @@ define_icons! {
     pub mod sigma(Sigma) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let shape = path(2.0,&[
                     ( 4.0 ,  4.0),
@@ -579,6 +600,7 @@ define_icons! {
     pub mod split_text(SplitText) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -629,6 +651,7 @@ define_icons! {
     pub mod data_science(DataScience) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -653,6 +676,7 @@ define_icons! {
     pub mod network(Network) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -676,6 +700,7 @@ define_icons! {
     pub mod system(System) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 use special_icons::system as theme;
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
@@ -702,6 +727,7 @@ define_icons! {
     pub mod io(IO) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -726,6 +752,7 @@ define_icons! {
     pub mod preparation(Preparation) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
@@ -770,6 +797,7 @@ define_icons! {
     pub mod join(Join) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 use special_icons::join as theme;
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
@@ -801,6 +829,7 @@ define_icons! {
     pub mod text(Text) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let page = Rect((10.0.px(),14.0.px())).corners_radius(2.0.px());
                 let page = page.translate_x((-2.0).px());
@@ -825,6 +854,7 @@ define_icons! {
     pub mod date_and_time(DateAndTime) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let circle = Circle(7.75.px());
                 let circle = &circle - circle.shrink(1.0.px());
@@ -846,6 +876,7 @@ define_icons! {
     pub mod spatial(Spatial) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let circle = Circle(4.5.px()).translate_y(3.5.px());
                 let circle = &circle - circle.shrink(2.0.px());
@@ -871,6 +902,7 @@ define_icons! {
     pub mod predictive(Predictive) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let circle = Circle(5.5.px());
                 let sphere = &circle - circle.shrink(1.0.px());
@@ -896,6 +928,7 @@ define_icons! {
     pub mod machine_learning(MachineLearning) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 let body = Rect((10.0.px(),15.0.px()))
                     .corners_radiuses(5.0.px(),5.0.px(),2.0.px(),2.0.px())
@@ -923,6 +956,7 @@ define_icons! {
     pub mod computer_vision(ComputerVision) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
+            alignment = center;
             (style: Style) {
                 use special_icons::computer_vision as theme;
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
@@ -952,7 +986,8 @@ define_icons! {
     pub mod r#type(Type) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
-                        (style: Style) {
+            alignment = center;
+            (style: Style) {
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
                 let shape = circle.fill(VIVID_COLOR.glsl());
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -967,7 +1002,8 @@ define_icons! {
     pub mod constructor(Constructor) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
-                        (style: Style) {
+            alignment = center;
+            (style: Style) {
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
                 let shape = circle.fill(VIVID_COLOR.glsl());
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -982,7 +1018,8 @@ define_icons! {
     pub mod function(Function) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
-                        (style: Style) {
+            alignment = center;
+            (style: Style) {
                 let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
                 let shape = triangle.fill(VIVID_COLOR.glsl());
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -997,7 +1034,8 @@ define_icons! {
     pub mod local(Local) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
-                        (style: Style) {
+            alignment = center;
+            (style: Style) {
                 let dot = Circle(4.0.px());
                 let shape = dot.fill(VIVID_COLOR.glsl());
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -1012,7 +1050,8 @@ define_icons! {
     pub mod method(Method) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
-                        (style: Style) {
+            alignment = center;
+            (style: Style) {
                 let rhomb = path(1.5, &[
                     (6.0, 0.0),
                     (0.0, -6.0),
@@ -1033,7 +1072,8 @@ define_icons! {
     pub mod module(Module) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
-                        (style: Style) {
+            alignment = center;
+            (style: Style) {
                 let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
                 let rect = &rect - rect.shrink(1.5.px());
                 let shape = rect.fill(VIVID_COLOR.glsl());

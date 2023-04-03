@@ -12,7 +12,7 @@ import Standard.Test.Extensions
 spec = Test.group "Examples" <|
     Test.specify "should allow construction of Example_Error_Type" <|
         val = Examples.Example_Error_Type.Error "Oh, no! Something went wrong!"
-        val.should_be_an Examples.Example_Error_Type.Error
+        val.should_be_a Examples.Example_Error_Type.Error
 
     Test.specify "should allow getting the examples data directory" <|
         dir = Examples.data_dir
@@ -53,7 +53,7 @@ spec = Test.group "Examples" <|
         Examples.map.size . should_equal 3
 
     Test.specify "should provide a type with no methods" <|
-        Examples.No_Methods.should_be_an Examples.No_Methods
+        Examples.No_Methods.should_be_a Examples.No_Methods
 
     Test.specify "should provide a no method error value" <|
         Examples.no_such_method

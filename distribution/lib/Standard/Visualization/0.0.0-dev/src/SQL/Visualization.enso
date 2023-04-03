@@ -22,31 +22,8 @@ prepare_visualization x = Helpers.recover_errors <|
     prepared = x.to_sql.prepare
     code = prepared.first
     interpolations = prepared.second
-    mapped = interpolations.map e->
-        value = e.first
-        actual_type = Meta.get_qualified_type_name value
-        expected_sql_type = e.second.name
-        expected_enso_type = find_expected_enso_type_for_sql e.second
-        JS_Object.from_pairs [["value", value], ["actual_type", actual_type], ["expected_sql_type", expected_sql_type], ["expected_enso_type", expected_enso_type]]
+    mapped = interpolations.map value->
+        enso_type = Meta.get_qualified_type_name value
+        JS_Object.from_pairs [["value", value], ["enso_type", enso_type]]
     dialect = x.connection.dialect.name
     JS_Object.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text
-
-## PRIVATE
-
-   Return an expected Enso type for an SQL type.
-
-   Arguments:
-   - sql_type: The SQL type to convert to an Enso type.
-
-   Expected Enso types are only inferred for some known SQL types. For unknown
-   types it will return `Nothing`.
-find_expected_enso_type_for_sql : SQL_Type -> Text
-find_expected_enso_type_for_sql sql_type =
-    expected_type = if sql_type.is_definitely_integer then Integer else
-        if sql_type.is_definitely_double then Decimal else
-            if sql_type.is_definitely_text then Text else
-                if sql_type.is_definitely_boolean then Boolean else
-                   Nothing
-    case expected_type of
-        Nothing -> Nothing
-        _ -> Meta.get_qualified_type_name expected_type

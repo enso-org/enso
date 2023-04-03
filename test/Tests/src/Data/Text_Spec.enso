@@ -242,30 +242,42 @@ spec =
             'abc'.split '' . should_fail_with Illegal_Argument
 
         Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
-            matcher = Text_Matcher.Case_Insensitive
-            "AbCdABCDabDCba" . split "ab" matcher . should_equal ["", "Cd", "CD", "DCba"]
-            "abc".split "d" matcher . should_equal ["abc"]
-            "AAA".split "a" matcher . should_equal ["", "", "", ""]
-            "baB".split "b" matcher . should_equal ["", "a", ""]
-            "".split "a" matcher . should_equal [""]
-            'aŚbS\u{301}c'.split 'ś' matcher . should_equal ['a', 'b', 'c']
-            'abc'.split '' matcher . should_fail_with Illegal_Argument
+            "AbCdABCDabDCba" . split "ab" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "Cd", "CD", "DCba"]
+            "abc".split "d" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["abc"]
+            "AAA".split "a" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "", "", ""]
+            "baB".split "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "a", ""]
+            "".split "a" case_sensitivity=Case_Sensitivity.Insensitive . should_equal [""]
+            'aŚbS\u{301}c'.split 'ś' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'abc'.split '' case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
 
         Test.specify "should be able to split the text on Regex patterns" <|
-            "cababdabe" . split "ab" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["c", "", "d", "e"]
-            "cababdabe" . split "(ab)+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["c", "d", "e"]
-            "abc" . split "[a-z]" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["", "", "", ""]
-            "abc--def==>ghi".split "[-=>]+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) == ["abc", "def", "ghi"]
-            "abc".split "." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["", "", "", ""]
-            "abc".split "d" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["abc"]
-            ".a.".split "\." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["", "a", ""]
-            "".split "a" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal [""]
-            'aśbs\u{301}c'.split 'ś' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ['a', 'b', 'c']
-            'abc'.split '' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_fail_with Illegal_Argument
+            "cababdabe" . split "ab" use_regex=True . should_equal ["c", "", "d", "e"]
+            "cababdabe" . split "(ab)+" use_regex=True . should_equal ["c", "d", "e"]
+            "abc" . split "[a-z]" use_regex=True . should_equal ["", "", "", ""]
+            "abc--def==>ghi".split "[-=>]+" use_regex=True == ["abc", "def", "ghi"]
+            "abc".split "." use_regex=True . should_equal ["", "", "", ""]
+            "abc".split "d" use_regex=True . should_equal ["abc"]
+            ".a.".split "\." use_regex=True . should_equal ["", "a", ""]
+            "".split "a" use_regex=True . should_equal [""]
+            'abc'.split '' use_regex=True . should_fail_with Illegal_Argument
+
+        Test.specify "should be able to split the text on Regex patterns, case-insensitively" <|
+            "CAbaBDaBe" . split "ab" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["C", "", "D", "e"]
+            "caBAbdAbe" . split "(ab)+" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["c", "d", "e"]
+            "ABc" . split "[a-z]" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["", "", "", ""]
+
+        Test.specify "regex and non-regex `split` handle accented grapheme splitting differently" <|
+            'aśbs\u{301}c'.split 'ś' use_regex=True . should_equal ['a', 'bs\u{301}c']
+            'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
-            utf_8_whitespace.split "\s+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal utf_8_whitespace_split
-            'abc  def\tghi'.split '\\s+' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["abc", "def", "ghi"]
+            utf_8_whitespace.split "\s+" use_regex=True . should_equal utf_8_whitespace_split
+            'abc  def\tghi'.split '\\s+' use_regex=True . should_equal ["abc", "def", "ghi"]
+
+        Test.specify "exmples should be correct" <|
+            "Namespace::package::package::Type".split "::" . should_equal ["Namespace", "package", "package", "Type"]
+            "abc--def==>ghi".split "[-=>]+" use_regex=True . should_equal ["abc", "def", "ghi"]
+            'abc  def\tghi'.split '\\s+' use_regex=True . should_equal ["abc", "def", "ghi"]
 
         Test.specify "should convert any type to text automatically and using provided methods" <|
             t = Auto.Value (Manual.Value 123) . to_text
@@ -1363,52 +1375,25 @@ spec =
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|
-            splits = "abcde".split "[bd]" Regex_Matcher.Value
+            splits = "abcde".split "[bd]" use_regex=True
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
             splits.at 2 . should_equal "e"
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반 (hangul)".split " " Regex_Matcher.Value
+            match = "Korean: 건반 (hangul)".split " " use_regex=True
             match.length . should_equal 3
             match.at 0 . should_equal "Korean:"
             match.at 1 . should_equal "건반"
             match.at 2 . should_equal "(hangul)"
 
-        Test.specify "should be possible in ascii mode" <|
-            splits = "İiİ".split "\w" (Regex_Matcher.Value match_ascii=True)
-            splits.length . should_equal 2
-            splits.at 0 . should_equal "İ"
-            splits.at 1 . should_equal "İ"
-
         Test.specify "should be possible in case-insensitive mode" <|
-            splits = "abaBa".split "b" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive)
+            splits = "abaBa".split "b" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
-
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            splits = 'ab\nabcd'.split "b." (Regex_Matcher.Value dot_matches_newline=True)
-            splits.length . should_equal 3
-            splits.at 0 . should_equal "a"
-            splits.at 1 . should_equal "a"
-            splits.at 2 . should_equal "d"
-
-        Test.specify "should be possible in multiline mode" <|
-            text = """
-                Foo
-                bar
-            match = text.split "$" (Regex_Matcher.Value multiline=True)
-            match.length . should_equal 3
-
-        Test.specify "should be possible in comments mode" <|
-            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" (Regex_Matcher.Value comments=True)
-            splits.length . should_equal 3
-            splits.at 0 . should_equal "a"
-            splits.at 1 . should_equal "c"
-            splits.at 2 . should_equal "e"
 
     Test.group "Text.replace" <|
         Test.specify "should work as in examples" <|
@@ -1486,7 +1471,7 @@ spec =
 
             "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
 
-        Test.specify "regex and non-regex replace handle accented grapheme splitting differently" <|
+        Test.specify "regex and non-regex `replace` handle accented grapheme splitting differently" <|
             'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'
             'sśs\u{301}' . replace 's' 'O' use_regex=True . should_equal 'OśO\u{301}'
 
