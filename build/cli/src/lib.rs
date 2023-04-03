@@ -616,6 +616,7 @@ impl Resolvable for Wasm {
             wasm_uncollapsed_log_level,
             wasm_size_limit,
             skip_wasm_opt,
+            system_shader_tools,
         } = from;
         ok_ready_boxed(wasm::BuildInput {
             crate_path,
@@ -627,6 +628,7 @@ impl Resolvable for Wasm {
             log_level: wasm_log_level,
             uncollapsed_log_level: wasm_uncollapsed_log_level,
             wasm_size_limit: wasm_size_limit.filter(|size_limit| size_limit.get_bytes() > 0),
+            system_shader_tools,
         })
     }
 }

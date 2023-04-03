@@ -103,6 +103,7 @@ mod mask {
     use ensogl_core::display::shape::*;
     ensogl_core::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, corners_radius: f32) {
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");

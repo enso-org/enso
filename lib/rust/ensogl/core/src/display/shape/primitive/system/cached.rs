@@ -355,6 +355,7 @@ macro_rules! cached_shape {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(alignment = $alignment:tt;)?
         ($style:ident : Style) {$($body:tt)*}
     ) => {
         $crate::_shape! {
@@ -364,6 +365,7 @@ macro_rules! cached_shape {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
+            $(alignment = $alignment;)?
             [$style] (){$($body)*}
         }
 
@@ -429,6 +431,7 @@ mod tests {
     mod shape1 {
         cached_shape! {
             size = (240, 240);
+            alignment = center;
             (_style: Style) {
                 Plane().into()
             }
@@ -438,6 +441,7 @@ mod tests {
     mod shape2 {
         cached_shape! {
             size = (240, 112);
+            alignment = center;
             (_style: Style) {
                 Plane().into()
             }
@@ -447,6 +451,7 @@ mod tests {
     mod shape3 {
         cached_shape! {
             size = (112, 114);
+            alignment = center;
             (_style: Style) {
                 Plane().into()
             }
