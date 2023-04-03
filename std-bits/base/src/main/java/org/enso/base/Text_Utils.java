@@ -365,14 +365,9 @@ public class Text_Utils {
    * @return a list of UTF-16 code unit spans at which the needle occurs in the haystack
    */
   public static List<Utf16Span> span_of_all_multiple(String haystack, List<String> needles) {
-    if (needles.isEmpty())
+    if (needles.isEmpty() || needles.stream().anyMatch(String::isEmpty))
       throw new IllegalArgumentException(
               "The operation `span_of_all_multiple` does not support searching for an empty term.");
-    for (String needle : needles) {
-        if (needle.isEmpty())
-          throw new IllegalArgumentException(
-                  "The operation `span_of_all_multiple` does not support searching for an empty term.");
-    }
     if (haystack.isEmpty()) return List.of();
 
     StringSearch stringSearches[] = IntStream.range(0, needles.size())
