@@ -42,26 +42,30 @@ public class ExecutionEnvironment {
     return this.name;
   }
 
-  @CompilerDirectives.TruffleBoundary
   public ExecutionEnvironment withContextEnabled(Atom context) {
     assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
     HashMap<String, Boolean> permissions1 = new HashMap<>();
     for (Map.Entry<String, Boolean> permission : permissions.entrySet()) {
-      permissions1.put(permission.getKey(), permission.getValue());
+      updateContext(permissions1, permission.getKey(), permission.getValue());
     }
-    permissions1.put(context.getConstructor().getName(), true);
+    updateContext(permissions1, context.getConstructor().getName(), true);
     return new ExecutionEnvironment(name, permissions1);
   }
 
-  @CompilerDirectives.TruffleBoundary
   public ExecutionEnvironment withContextDisabled(Atom context) {
     assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
     HashMap<String, Boolean> permissions1 = new HashMap<>();
     for (Map.Entry<String, Boolean> permission : permissions.entrySet()) {
-      permissions1.put(permission.getKey(), permission.getValue());
+      updateContext(permissions1, permission.getKey(), permission.getValue());
     }
-    permissions1.put(context.getConstructor().getName(), false);
+    updateContext(permissions1, context.getConstructor().getName(), false);
     return new ExecutionEnvironment(name, permissions1);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void updateContext(
+      Map<String, Boolean> permissions, String contextKey, boolean contextEnabled) {
+    permissions.put(contextKey, contextEnabled);
   }
 
   @CompilerDirectives.TruffleBoundary

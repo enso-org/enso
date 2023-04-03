@@ -239,12 +239,3 @@ type Forbidden_Operation
        Arguments:
        - operation: attempted context that is not allowed.
     Error operation
-
-@Builtin_Type
-type Not_Implemented
-    ## PRIVATE
-       An error that occurs when a specified action has not be implemented
-
-       Arguments:
-       - operation: name of the operation attempted.
-    Error operation

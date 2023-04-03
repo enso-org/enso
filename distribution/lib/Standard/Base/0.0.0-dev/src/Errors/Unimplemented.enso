@@ -2,6 +2,7 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.Panic.Panic
 
+@Builtin_Type
 type Unimplemented
     ## UNSTABLE
 

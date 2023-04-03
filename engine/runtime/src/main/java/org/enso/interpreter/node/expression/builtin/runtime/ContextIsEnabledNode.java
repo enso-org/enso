@@ -2,9 +2,6 @@ package org.enso.interpreter.node.expression.builtin.runtime;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Suspend;
-import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -27,7 +24,7 @@ public class ContextIsEnabledNode extends Node {
           EnsoContext.get(this)
               .getBuiltins()
               .error()
-              .makeNotImplemented("execution environment mismatch");
+              .makeUnimplemnted("execution environment mismatch");
       throw new PanicException(error, this);
     }
     return currentEnv.hasContextEnabled(self.getConstructor().getName());
