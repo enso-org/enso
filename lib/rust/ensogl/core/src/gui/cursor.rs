@@ -13,7 +13,7 @@ use crate::frp;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
 use crate::Easing;
-
+use std::f32::consts::PI;
 
 
 // =================
@@ -44,13 +44,14 @@ define_style! {
     /// Host defines an object which the cursor position is bound to. It is used to implement
     /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
     /// it will inherit its position from the label instead.
-    host                 : display::object::Instance,
-    size                 : Vector2<f32>,
-    offset               : Vector2<f32>,
-    color                : color::Lcha,
-    radius               : f32,
-    press                : f32,
-    port_selection_layer : bool
+    host: display::object::Instance,
+    size: Vector2<f32>,
+    offset: Vector2<f32>,
+    color: color::Lcha,
+    radius: f32,
+    press: f32,
+    port_selection_layer : bool,
+    trash: f32,
 }
 
 
@@ -97,6 +98,11 @@ impl Style {
         let color = Some(StyleValue::new(TEXT_CURSOR_COLOR));
         Self { size, color, ..default() }
     }
+
+    pub fn trash() -> Self {
+        let trash = Some(StyleValue::new(1.0));
+        Self { trash, ..default() }
+    }
 }
 
 
@@ -137,11 +143,12 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::shape! {
-        pointer_events = false;
-        ( style  : Style
-        , press  : f32
-        , radius : f32
-        , color  : Vector4
+        pointer_events = false; (
+            style: Style,
+            press: f32,
+            radius: f32,
+            color: Vector4,
+            trash: f32,
         ) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -151,8 +158,18 @@ pub mod shape {
             let sides_padding     = 1.px() * SIDES_PADDING;
             let width             = &width  - &press_diff * 2.0 - &sides_padding;
             let height            = &height - &press_diff * 2.0 - &sides_padding;
-            let cursor            = Rect((width,height)).corners_radius(radius);
+            let cursor            = Rect((&width,&height)).corners_radius(radius);
+
+            let color: Var<color::Rgba> = color.into();
+            let trash_color: Var<color::Rgba> = color::Rgba::new(0.91, 0.32, 0.32, 1.0).into();
+            let color = color.mix(&trash_color, &trash);
             let cursor            = cursor.fill(color);
+
+            let trash_bar1 = Rect((2.px(), (&height - 4.px()) * &trash - 1.px()));
+            let trash_bar2 = trash_bar1.rotate((PI/2.0).radians());
+            let trash_bar_x = (trash_bar1 + trash_bar2).rotate((PI/4.0).radians());
+            let trash_bar_x = trash_bar_x.fill(color::Rgba::new(1.0,1.0,1.0,0.8));
+            let cursor = cursor + trash_bar_x;
             cursor.into()
         }
     }
@@ -271,6 +288,7 @@ impl Cursor {
         let host_follow_weight = DEPRECATED_Animation::<f32>::new(network);
         let host_attached_weight = Easing::new(network);
         let port_selection_layer_weight = Animation::<f32>::new(network);
+        let trash = Animation::<f32>::new(network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
@@ -288,6 +306,7 @@ impl Cursor {
                 let dim = Vector2(v.x+SIDES_PADDING,v.y+SIDES_PADDING);
                 model.for_each_view(|vw| {vw.set_size(dim);});
             });
+            eval trash.value ((v) model.for_each_view(|vw| vw.trash.set(*v)));
 
             alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);
 
@@ -359,6 +378,11 @@ impl Cursor {
                         radius.set_target_value(value);
                         if !t.animate { radius.skip() }
                     }
+                }
+
+                match &new_style.trash {
+                    None => trash.target.emit(0.0),
+                    Some(t) => trash.target.emit(1.0),
                 }
 
                 *model.style.borrow_mut() = new_style.clone();

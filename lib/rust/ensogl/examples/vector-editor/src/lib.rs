@@ -14,11 +14,14 @@ use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
+use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::gui::cursor;
+use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::Animation;
 
 const DRAG_THRESHOLD: f32 = 4.0;
@@ -27,7 +30,7 @@ const DRAG_THRESHOLD: f32 = 4.0;
 const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -359,7 +362,7 @@ impl<T> Items<T> {
 }
 
 impl<T: display::Object + 'static> VectorEditor<T> {
-    pub fn new() -> Self {
+    pub fn new(cursor: &Cursor) -> Self {
         let frp = Frp::new();
         let root = display::object::Instance::new();
         let layouted_elems = display::object::Instance::new();
@@ -368,10 +371,10 @@ impl<T: display::Object + 'static> VectorEditor<T> {
         root.add_child(&dragged_elems);
         let model = default();
         layouted_elems.use_auto_layout(); //.set_gap((GAP, GAP));
-        Self { frp, root, layouted_elems, dragged_elems, model }.init()
+        Self { frp, root, layouted_elems, dragged_elems, model }.init(cursor)
     }
 
-    fn init(self) -> Self {
+    fn init(self, cursor: &Cursor) -> Self {
         let scene = scene();
         let network = self.frp.network();
         let root = &self.root;
@@ -405,6 +408,13 @@ impl<T: display::Object + 'static> VectorEditor<T> {
             start <- status.on_true();
             target_on_start <- target.sample(&start);
 
+            trashing <- glob_pos_offset_on_move.map(|t| t.y.abs() >= 100.0).on_change();
+            on_trashing <- trashing.on_true();
+            on_trash <- on_up.gate(&trashing);
+            eval trashing ((t) cursor.frp.set_style(if *t { cursor::Style::trash() } else { cursor::Style::default() }));
+            eval_ on_trashing (model.borrow_mut().items.collapse_all_placeholders());
+            eval_ on_trash (model.borrow_mut().trash_dragged_item());
+
             // Re-parent the dragged element.
             eval target_on_start ((t) dragged_elems.add_child(&t));
             eval target_on_start([model, layouted_elems] (t) model.borrow_mut().set_as_dragged_item(&layouted_elems, t));
@@ -415,9 +425,9 @@ impl<T: display::Object + 'static> VectorEditor<T> {
             target_new_pos <- map2(&glob_pos_offset_on_move, &target_pos_on_down, |a, b| a + b);
             _eval <- target_new_pos.map2(&target, |pos, t| t.set_xy(*pos));
 
-            insert_index <- pos_on_move.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
-            trace insert_index;
-            insert_index_on_drop <- insert_index.sample(&on_up);
+            pos_non_trash <- pos_on_move.gate_not(&trashing);
+            insert_index <- pos_non_trash.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
+            insert_index_on_drop <- insert_index.sample(&on_up).gate_not(&trashing);
 
             eval insert_index ([model, layouted_elems] (index) {
                 let mut model = model.borrow_mut();
@@ -437,7 +447,7 @@ impl<T: display::Object + 'static> VectorEditor<T> {
     }
 }
 
-impl<T: display::Object> VectorEditor<T> {
+impl<T: display::Object + 'static> VectorEditor<T> {
     fn append(&self, item: T) {
         self.layouted_elems.add_child(&item);
         let mut model = self.model.borrow_mut();
@@ -446,7 +456,7 @@ impl<T: display::Object> VectorEditor<T> {
     }
 }
 
-impl<T: display::Object> Model<T> {
+impl<T: display::Object + 'static> Model<T> {
     fn redraw_items(&mut self, layouted_elems: &display::object::Instance) {
         self.retain_non_collapsed_items();
         for item in &self.items {
@@ -666,6 +676,12 @@ impl<T: display::Object> Model<T> {
         }
     }
 
+    pub fn trash_dragged_item(&mut self) {
+        if let Some(item) = mem::take(&mut self.dragged_item) {
+            Trash::new(item);
+        }
+    }
+
 
     // FIXME: does not work correctly with placeholders
     fn elems_center_points(&self) -> Vec<f32> {
@@ -703,54 +719,52 @@ impl<T> display::Object for VectorEditor<T> {
     }
 }
 
-impl<T: display::Object + 'static> Default for VectorEditor<T> {
-    fn default() -> Self {
-        Self::new()
+
+mod trash {
+    use super::*;
+    ensogl_core::define_endpoints_2! {}
+
+    #[derive(Debug, CloneRef, Derivative)]
+    #[derivative(Clone(bound = ""))]
+    pub struct Trash<T> {
+        model: Rc<TrashModel<T>>,
+    }
+
+    #[derive(Debug)]
+    pub struct TrashModel<T> {
+        frp:      Frp,
+        elem:     T,
+        self_ref: Rc<RefCell<Option<Rc<TrashModel<T>>>>>,
+    }
+
+    impl<T: display::Object + 'static> Trash<T> {
+        pub fn new(elem: T) -> Self {
+            let self_ref = Rc::new(RefCell::new(None));
+            let frp = Frp::new();
+            let display_object = elem.display_object();
+            let network = &frp.network;
+            let scale_animation = Animation::<f32>::new_with_init(&network, 1.0);
+            scale_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
+            frp::extend! { network
+                eval scale_animation.value ((t) display_object.set_scale_xy(Vector2(*t,*t)));
+                eval_ scale_animation.on_end (self_ref.borrow_mut().take(););
+            }
+            scale_animation.target.emit(0.0);
+
+            let model = TrashModel { frp, elem, self_ref: self_ref.clone() };
+            let model = Rc::new(model);
+            *self_ref.borrow_mut() = Some(model.clone());
+            Self { model }
+        }
+    }
+
+    impl<T: display::Object> display::Object for Trash<T> {
+        fn display_object(&self) -> &display::object::Instance {
+            self.model.elem.display_object()
+        }
     }
 }
-
-
-#[derive(Clone, CloneRef, Debug)]
-pub struct RemoveIcon {
-    root: display::object::Instance,
-}
-
-impl RemoveIcon {
-    pub fn new() -> Self {
-        let root = display::object::Instance::new();
-
-        let bg = Rectangle().build(|t| {
-            t.set_size(Vector2::new(32.0, 32.0))
-                .set_corner_radius_max()
-                .set_color(color::Rgba::new(0.91, 0.32, 0.32, 1.0))
-                .set_inset_border(2.0)
-                .set_border_color(color::Rgba::new(1.0, 1.0, 1.0, 1.0));
-        });
-
-        let h_line = Rectangle().build(|t| {
-            t.set_size(Vector2::new(18.0, 2.0)).set_color(color::Rgba::new(1.0, 1.0, 1.0, 1.3));
-        });
-        let v_line = Rectangle().build(|t| {
-            t.set_size(Vector2::new(18.0, 2.0)).set_color(color::Rgba::new(1.0, 1.0, 1.0, 1.3));
-        });
-        v_line.rotate_90();
-        root.add_child(&bg);
-        root.add_child(&h_line);
-        root.add_child(&v_line);
-        root.set_rotation_z(std::f32::consts::PI / 4.0);
-        //FIXME:
-        mem::forget(bg);
-        mem::forget(h_line);
-        mem::forget(v_line);
-        Self { root }
-    }
-}
-
-impl display::Object for RemoveIcon {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
-    }
-}
+use trash::Trash;
 
 
 // ===================
@@ -761,32 +775,34 @@ impl display::Object for RemoveIcon {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
-    let world = World::new().displayed_in("root");
+    let app = Application::new("root");
+    let world = app.display.clone();
     let scene = &world.default_scene;
+
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
 
-    let vector_editor = VectorEditor::<Rectangle>::new();
+    let vector_editor = VectorEditor::<Rectangle>::new(&app.cursor);
 
 
     let shape1 = Circle().build(|t| {
         t.set_size(Vector2::new(100.0, 100.0))
-            .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-            .set_inset_border(5.0)
-            .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0))
+            .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
+            .set_inset_border(2.0)
+            .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5))
             .keep_bottom_left_quarter();
     });
     let shape2 = RoundedRectangle(10.0).build(|t| {
         t.set_size(Vector2::new(100.0, 100.0))
-            .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-            .set_inset_border(5.0)
-            .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0));
+            .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
+            .set_inset_border(2.0)
+            .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
     });
     let shape3 = RoundedRectangle(10.0).build(|t| {
         t.set_size(Vector2::new(100.0, 100.0))
-            .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-            .set_inset_border(5.0)
-            .set_border_color(color::Rgba::new(0.0, 1.0, 1.0, 1.0));
+            .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
+            .set_inset_border(2.0)
+            .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
     });
 
 
@@ -809,13 +825,8 @@ pub fn main() {
     root.add_child(&vector_editor);
     world.add_child(&root);
 
-
-    let icon = RemoveIcon::new();
-    root.add_child(&icon);
-
-    mem::forget(icon);
-
     world.keep_alive_forever();
+    mem::forget(app);
     mem::forget(glob_frp);
     mem::forget(navigator);
     mem::forget(root);
