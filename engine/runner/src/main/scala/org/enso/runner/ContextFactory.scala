@@ -40,8 +40,12 @@ class ContextFactory {
     strictErrors: Boolean                  = false,
     useGlobalIrCacheLocation: Boolean      = true,
     enableAutoParallelism: Boolean         = false,
+    executionEnvironment: Option[String]   = None,
     options: java.util.Map[String, String] = java.util.Collections.emptyMap
   ): PolyglotContext = {
+    executionEnvironment.foreach { name =>
+      options.put("enso.ExecutionEnvironment", name)
+    }
     val context = Context
       .newBuilder()
       .allowExperimentalOptions(true)
