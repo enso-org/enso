@@ -4212,6 +4212,14 @@ main =
 
 Sent from client to the server to receive the full suggestions database.
 
+#### Deprecated
+
+The request always returns empty `entries` field with the correct
+`currentVersion`. The suggestions are sent during the initial project
+compilation as a part of
+[`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
+notification.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
