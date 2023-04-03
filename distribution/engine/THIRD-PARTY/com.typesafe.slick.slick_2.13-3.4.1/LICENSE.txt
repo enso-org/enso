@@ -1,4 +1,4 @@
-Copyright 2011-2016 Typesafe, Inc.
+Copyright 2011-2021 Lightbend, Inc.
 
 All rights reserved.
 
