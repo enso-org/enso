@@ -22,19 +22,24 @@ spec setup =
     table_builder = setup.table_builder
     Test.group prefix+"Table.union" <|
         Test.specify "should merge columns from multiple tables" <|
-            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-            t2 = table_builder [["A", [4, 5, 6]], ["B", ["d", "e", "f"]]]
-            t3 = table_builder [["A", [7, 8, 9]], ["B", ["g", "h", "i"]]]
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", ["d", "e", "f"]], ["C", [False, True, False]]]
+            t3 = table_builder [["A", [7, 8, 9]], ["B", ["g", "h", "i"]], ["C", [True, False, False]]]
 
             t4 = t1.union t2
-            expect_column_names ["A", "B"] t4
+            expect_column_names ["A", "B", "C"] t4
+            IO.println t4.to_sql.prepare
+            t4.print
+            t4.info.print
             t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
             t4.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
+            t4.at "C" . to_vector . should_equal [True, False, True, False, True, False]
 
             t5 = t3.union [t1, t2]
-            expect_column_names ["A", "B"] t5
+            expect_column_names ["A", "B", "C"] t5
             t5.at "A" . to_vector . should_equal [7, 8, 9, 1, 2, 3, 4, 5, 6]
             t5.at "B" . to_vector . should_equal ["g", "h", "i", "a", "b", "c", "d", "e", "f"]
+            t5.at "C" . to_vector . should_equal [True, False, False, True, False, True, False, True, False]
 
         Test.specify "should fill unmatched columns (by name matching) with nulls and report a warning by default" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]

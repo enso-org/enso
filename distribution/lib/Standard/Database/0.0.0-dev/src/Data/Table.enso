@@ -1179,10 +1179,12 @@ type Table
                        See #6118.
                     new_columns = good_columns.map description->
                         column_set = description.first
+                        result_type = description.second
                         name = column_set.name
                         expression = SQL_Expression.Column union_alias name
-                        type_ref = SQL_Type_Reference.new self.connection new_ctx expression
-                        Internal_Column.Value name type_ref expression
+                        casted_expression = type_mapping.make_cast expression result_type Problem_Behavior.Report_Error
+                        type_ref = SQL_Type_Reference.new self.connection new_ctx casted_expression
+                        Internal_Column.Value name type_ref casted_expression
 
                     Table.Value union_alias self.connection new_columns new_ctx
 
