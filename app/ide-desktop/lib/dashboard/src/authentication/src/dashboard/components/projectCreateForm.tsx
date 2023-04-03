@@ -35,7 +35,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     }
 
     return (
-        <form className="bg-white shadow-soft rounded-lg w-80" onSubmit={onSubmit}>
+        <form className="bg-white shadow-soft rounded-lg w-60" onSubmit={onSubmit}>
             <button type="button" className="absolute right-0 m-2" onClick={close}>
                 {svg.CLOSE_ICON}
             </button>
@@ -47,6 +47,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                 <input
                     id="project_name"
                     type="text"
+                    size={1}
                     className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
                     onChange={event => {
                         setName(event.target.value)
@@ -61,6 +62,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                 <input
                     id="project_template_name"
                     type="text"
+                    size={1}
                     className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
                     onChange={event => {
                         setTemplate(event.target.value)

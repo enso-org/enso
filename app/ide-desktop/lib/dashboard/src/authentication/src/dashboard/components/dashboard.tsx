@@ -160,69 +160,6 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
     ],
 }
 
-/** React components for every column except for the name column. */
-const COLUMN_RENDERER: Record<
-    Exclude<Column, Column.name>,
-    (asset: backend.Asset) => JSX.Element
-> = {
-    [Column.lastModified]: () => <>aa</>,
-    [Column.sharedWith]: asset => (
-        <>
-            {(asset.permissions ?? []).map(user => (
-                <PermissionDisplay
-                    key={user.user.organization_id}
-                    permissions={PERMISSION[user.permission]}
-                >
-                    <img
-                        className="rounded-full h-8"
-                        src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
-                    />
-                </PermissionDisplay>
-            ))}
-        </>
-    ),
-    [Column.docs]: () => <>aa</>,
-    [Column.labels]: () => (
-        <>
-            <Label status={label.Status.warning}>outdated version</Label>
-            <Label status={label.Status.severeWarning}>low resources</Label>
-            <Label>do not change</Label>
-        </>
-    ),
-    [Column.dataAccess]: () => (
-        <>
-            <PermissionDisplay permissions={{ type: permissionDisplay.Permission.admin }}>
-                <div className="px-4 py-1">./user_data</div>
-            </PermissionDisplay>
-            <PermissionDisplay
-                permissions={{
-                    type: permissionDisplay.Permission.regular,
-                    write: true,
-                    read: true,
-                    exec: true,
-                    docsWrite: true,
-                }}
-            >
-                <div className="px-4 py-1">this folder</div>
-            </PermissionDisplay>
-            <PermissionDisplay
-                permissions={{
-                    type: permissionDisplay.Permission.regular,
-                    write: false,
-                    read: false,
-                    exec: false,
-                    docsWrite: false,
-                }}
-            >
-                <div className="px-4 py-1">no access</div>
-            </PermissionDisplay>
-        </>
-    ),
-    [Column.usagePlan]: () => <>aa</>,
-    [Column.engine]: () => <>aa</>,
-    [Column.ide]: () => <>aa</>,
-}
-
 // ========================
 // === Helper functions ===
 // ========================
@@ -255,8 +192,7 @@ interface OtherDashboardProps extends BaseDashboardProps {
 export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
-// TODO[sb]: Implement label renaming.
-// TODO[sb]: Fix file create form.
+// There is currently no way to tell whether a row is selected from a column.
 
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
@@ -444,13 +380,100 @@ function Dashboard(props: DashboardProps) {
         ),
     }
 
+    /** React components for every column except for the name column. */
+    const columnRenderer: Record<
+        Exclude<Column, Column.name>,
+        (asset: backend.Asset) => JSX.Element
+    > = {
+        [Column.lastModified]: () => <>aa</>,
+        [Column.sharedWith]: asset => (
+            <>
+                {(asset.permissions ?? []).map(user => (
+                    <PermissionDisplay
+                        key={user.user.organization_id}
+                        permissions={PERMISSION[user.permission]}
+                    >
+                        <img
+                            className="rounded-full h-8"
+                            src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
+                        />
+                    </PermissionDisplay>
+                ))}
+            </>
+        ),
+        [Column.docs]: () => <>aa</>,
+        [Column.labels]: () => {
+            // This is not a React component even though it contains JSX.
+            // eslint-disable-next-line no-restricted-syntax
+            function onContextMenu(event: react.MouseEvent) {
+                event.preventDefault()
+                event.stopPropagation()
+                setContextMenu(
+                    <ContextMenu event={event}>
+                        <ContextMenuEntry
+                            disabled
+                            onClick={() => {
+                                // TODO[sb]: AAA
+                            }}
+                        >
+                            Rename label
+                        </ContextMenuEntry>
+                    </ContextMenu>
+                )
+            }
+            return (
+                <>
+                    <Label status={label.Status.warning} onContextMenu={onContextMenu}>
+                        outdated version
+                    </Label>
+                    <Label status={label.Status.severeWarning} onContextMenu={onContextMenu}>
+                        low resources
+                    </Label>
+                    <Label onContextMenu={onContextMenu}>do not change</Label>
+                </>
+            )
+        },
+        [Column.dataAccess]: () => (
+            <>
+                <PermissionDisplay permissions={{ type: permissionDisplay.Permission.admin }}>
+                    <div className="px-4 py-1">./user_data</div>
+                </PermissionDisplay>
+                <PermissionDisplay
+                    permissions={{
+                        type: permissionDisplay.Permission.regular,
+                        write: true,
+                        read: true,
+                        exec: true,
+                        docsWrite: true,
+                    }}
+                >
+                    <div className="px-4 py-1">this folder</div>
+                </PermissionDisplay>
+                <PermissionDisplay
+                    permissions={{
+                        type: permissionDisplay.Permission.regular,
+                        write: false,
+                        read: false,
+                        exec: false,
+                        docsWrite: false,
+                    }}
+                >
+                    <div className="px-4 py-1">no access</div>
+                </PermissionDisplay>
+            </>
+        ),
+        [Column.usagePlan]: () => <>aa</>,
+        [Column.engine]: () => <>aa</>,
+        [Column.ide]: () => <>aa</>,
+    }
+
     function renderer<Type extends backend.AssetType>(column: Column, assetType: Type) {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
 
               // eslint-disable-next-line no-restricted-syntax
               (nameRenderers[assetType] as (asset: backend.Asset<Type>) => JSX.Element)
-            : COLUMN_RENDERER[column]
+            : columnRenderer[column]
     }
 
     /** Heading element for every column. */

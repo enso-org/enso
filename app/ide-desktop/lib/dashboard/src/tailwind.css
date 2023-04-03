@@ -20,7 +20,7 @@ body {
   @tailwind components;
   @tailwind utilities;
 
-  @layer components {
+  @layer utilities {
     .clip-path-top-left {
       clip-path: polygon(
         0 0,
