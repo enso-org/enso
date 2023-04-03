@@ -166,6 +166,14 @@ spec setup =
             t2.at "A" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 1, 2, 3]
             t2.at "B" . to_vector . should_equal ["a", "b", "c", "a", "b", "c", "a", "b", "c"]
 
+        Test.specify "should not de-duplicate rows" <|
+            t1 = table_builder [["A", [1, 1, 3]], ["B", ["a", "a", "c"]]]
+            t2 = table_builder [["A", [1, 2, 2]], ["B", ["a", "b", "b"]]]
+            t3 = t1.union t2
+            expect_column_names ["A", "B"] t3
+            t3.at "A" . to_vector . should_equal [1, 1, 3, 1, 2, 2]
+            t3.at "B" . to_vector . should_equal ["a", "a", "c", "a", "b", "b"]
+
         Test.specify "should gracefully handle the case where no tables to union were provided" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
 
