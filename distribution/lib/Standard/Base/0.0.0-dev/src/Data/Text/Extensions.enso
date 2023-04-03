@@ -15,13 +15,11 @@ import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
-import project.Data.Text.Regex_Matcher.Regex_Matcher
 import project.Data.Text.Regex_2
 import project.Data.Text.Regex_2.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
-import project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
@@ -237,7 +235,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
         compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.if_not_error <| compiled_pattern.match self
+        compiled_pattern.match self
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
@@ -265,7 +263,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
         compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.if_not_error <| compiled_pattern.match_all self
+        compiled_pattern.match_all self
 
 ## ALIAS Check Matches
 
@@ -296,7 +294,7 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     Helpers.regex_assume_default_locale case_sensitivity <|
         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
         compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
-        compiled_pattern.if_not_error <| compiled_pattern.matches self
+        compiled_pattern.matches self
 
 ## ALIAS Split Text
 
@@ -305,34 +303,34 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
    Arguments:
    - delimiter: The pattern used to split the text.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-     regular expression and matched using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively. The values are compared case sensitively by default.
+   - only_first: If true, only replace the first match.
+   - use_regex: If true, the term is used as a regular expression.
 
    > Example
      Split the text on any occurrence of the separator `"::"`.
 
-         example_split =
-             text = "Namespace::package::package::Type"
-             text.split "::" == ["Namespace", "package", "package", "Type"]
+         text = "Namespace::package::package::Type"
+         text.split "::" == ["Namespace", "package", "package", "Type"]
 
    > Example
      Split the text on a regex pattern.
 
-         "abc--def==>ghi".split "[-=>]+" Regex_Matcher.Value == ["abc", "def", "ghi"]
+         "abc--def==>ghi".split "[-=>]+" use_regex=True == ["abc", "def", "ghi"]
 
    > Example
      Split the text on any whitespace.
 
-         'abc  def\tghi'.split '\\s+' Regex_Matcher.Value == ["abc", "def", "ghi"]
-Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
-Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
-    case matcher of
-        _ : Text_Matcher ->
-            delimiters = Vector.from_polyglot_array <| case matcher of
-                Text_Matcher.Case_Sensitive ->
+         'abc  def\tghi'.split '\\s+' use_regex=True == ["abc", "def", "ghi"]
+Text.split : Text -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
+Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
+    case use_regex of
+        False ->
+            delimiters = Vector.from_polyglot_array <| case case_sensitivity of
+                Case_Sensitivity.Sensitive ->
                     Text_Utils.span_of_all self delimiter
-                Text_Matcher.Case_Insensitive locale ->
+                Case_Sensitivity.Insensitive locale ->
                     Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
             Vector.new delimiters.length+1 i->
                 start = if i == 0 then 0 else
@@ -340,9 +338,11 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
                 end = if i == delimiters.length then (Text_Utils.char_length self) else
                     delimiters.at i . codeunit_start
                 Text_Utils.substring self start end
-        _ : Regex_Matcher ->
-            compiled_pattern = matcher.compile delimiter
-            compiled_pattern.split self mode=Regex_Mode.All
+        True ->
+            Helpers.regex_assume_default_locale case_sensitivity <|
+                case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+                compiled_pattern.split self only_first
 
 ## ALIAS Replace Text
    Perform a text or regex replace.
@@ -360,9 +360,8 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    Arguments:
    - term: The string or regex to find.
    - replacement: The text to replace matches with.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
    - only_first: If True, only replace the first match.
    - use_regex: If true, the term is used as a regular expression.
 
@@ -438,8 +437,7 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
             Helpers.regex_assume_default_locale case_sensitivity <|
                 case_insensitive = case_sensitivity.is_case_insensitive_in_memory
                 compiled_pattern = Regex_2.compile term case_insensitive=case_insensitive
-                compiled_pattern.if_not_error <|
-                    compiled_pattern.replace self replacement only_first
+                compiled_pattern.replace self replacement only_first
 
 ## ALIAS Get Words
 
