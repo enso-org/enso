@@ -25,7 +25,7 @@ spec = Test.group "Process" <|
                 r = Process.run "bash" ["-c", "exit 42"]
                 r.exit_code.should_equal <| Exit_Code.Failure 42
 
-                s = Process.run "bash" ["-c", "exit 42"]
+                s = Process.run "bash" ["-c", "exit 0"]
                 s.exit_code.should_equal <| Exit_Code.Success
     Test.specify "should return stdout" <|
         case Platform.os of

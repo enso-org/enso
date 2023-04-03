@@ -113,7 +113,7 @@ spec setup =
 
             t3 = t1.cross_join t2
             expect_column_names ["X", "Y", "Right_Y", "Right_X", "Right_Y_1"] t3
-            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["Y"]]
+            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["Right_Y"]]
             t3.row_count . should_equal 1
             t3.at "X" . to_vector . should_equal [1]
             t3.at "Y" . to_vector . should_equal [5]
