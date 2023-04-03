@@ -43,7 +43,7 @@ type Case_Sensitivity
         Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
             True -> True
             False ->
-                msg = "Custom locales are not supported for this operation."
+                msg = "Custom locales are not supported for this operationc."
                 Error.throw (Illegal_Argument.Error msg)
 
     ## PRIVATE

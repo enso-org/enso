@@ -77,6 +77,17 @@ type Context
 
     ## PRIVATE
 
+       Returns a copy of the context with added `where_filters`.
+
+       Arguments:
+       - new_filters: The new filters to add to the existing filters in the
+         query.
+    add_where_filters : Vector SQL_Expression -> Context
+    add_where_filters self new_filters =
+        Context.Value self.from_spec (self.where_filters+new_filters) self.orders self.groups self.limit self.distinct_on
+
+    ## PRIVATE
+
        Returns a copy of the context with changed `orders`.
 
        Arguments:
@@ -147,7 +158,7 @@ type Context
     as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
-            Internal_Column.Value column.name column.sql_type (SQL_Expression.Column alias column.name)
+            Internal_Column.Value column.name column.sql_type_reference (SQL_Expression.Column alias column.name)
 
         new_columns = column_lists.map columns->
             columns.map rewrite_internal_column

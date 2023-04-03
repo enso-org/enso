@@ -72,7 +72,8 @@ case object OperatorToFunction extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     ir.transformExpressions {
-      case asc: IR.Type.Ascription => asc
+      case asc: IR.Type.Ascription =>
+        asc.copy(typed = runExpression(asc.typed, inlineContext))
       case IR.Application.Operator.Binary(l, op, r, loc, passData, diag) =>
         IR.Application.Prefix(
           op,

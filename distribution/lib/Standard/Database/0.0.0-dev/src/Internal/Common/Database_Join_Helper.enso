@@ -13,6 +13,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 ## PRIVATE
 default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
@@ -31,9 +32,9 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
     resolve_right = resolve_target_expression right_column_mapping
 
     make_equals problem_builder left right =
-        if left.sql_type.is_definitely_double then
+        if left.value_type.is_floating_point then
             problem_builder.report_other_warning (Floating_Point_Equality.Error left.name)
-        if right.sql_type.is_definitely_double then
+        if right.value_type.is_floating_point then
             problem_builder.report_other_warning (Floating_Point_Equality.Error right.name)
         SQL_Expression.Operation "==" [resolve_left left, resolve_right right]
     make_equals_ignore_case _ left right locale =
@@ -93,12 +94,12 @@ prepare_subqueries left right needs_left_indicator needs_right_indicator =
         renamer = Unique_Name_Strategy.new
         renamer.mark_used (left.internal_columns.map .name)
         # This is an operation, not a constant to avoid adding unnecessary interpolations to the query.
-        [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type.boolean (SQL_Expression.Operation "TRUE" [])]
+        [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type_Reference.null (SQL_Expression.Operation "TRUE" [])]
 
     right_indicators = if needs_right_indicator.not then [] else
         renamer = Unique_Name_Strategy.new
         renamer.mark_used (right.internal_columns.map .name)
-        [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type.boolean (SQL_Expression.Operation "TRUE" [])]
+        [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type_Reference.null (SQL_Expression.Operation "TRUE" [])]
 
     # Create subqueries that encapsulate the original queries and provide needed columns.
     # The generated new sets of columns refer to the encapsulated expressions within the subquery and are

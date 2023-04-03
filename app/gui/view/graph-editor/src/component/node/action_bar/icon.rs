@@ -15,6 +15,7 @@ pub mod visibility {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color  = Var::<color::Rgba>::from(color_rgba);
 
@@ -52,6 +53,7 @@ pub mod visibility2 {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
@@ -95,6 +97,7 @@ pub mod freeze {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color       = Var::<color::Rgba>::from(color_rgba);
             let width            = Var::<Pixels>::from("input_size.x");
@@ -132,6 +135,7 @@ pub mod skip {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
@@ -168,6 +172,7 @@ pub mod disable_reevaluation {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
@@ -198,6 +203,7 @@ pub mod enable_reevaluation {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");

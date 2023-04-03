@@ -1,5 +1,7 @@
 from Standard.Base import all
-import Standard.Base
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Errors.Common import Uninitialized_State
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -11,8 +13,7 @@ polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
-from Standard.Base.Errors.Common import Uninitialized_State
-import Standard.Base.Errors.File_Error.File_Error
+import Standard.Test.Test_Result.Test_Result
 
 type My_Type
     @foo (test_method)
@@ -143,15 +144,15 @@ spec =
         Test.specify "constructor True check" <|
             True . should_be_a True
             True . should_be_a Boolean
-            Panic.recover Any (True . should_be_a False) . should_fail_with Any
+            Panic.recover Any (True . should_be_a False) . should_fail_with Test_Result
 
         Test.specify "constructor Case.Lower check" <|
             Case.Lower . should_be_a Case.Lower
             Case.Lower . should_be_a Case
-            Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Any
+            Panic.recover Any (Case.Lower . should_be_a Case.Upper) . should_fail_with Test_Result
 
         Test.specify "5 isn't a constructor" <|
-            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Any
+            Panic.recover Any (5.should_be_a File_Error.Not_Found) . should_fail_with Test_Result
 
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42

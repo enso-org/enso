@@ -61,6 +61,7 @@ pub mod overlay {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, radius: f32, roundness: f32, selection: f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
@@ -83,6 +84,7 @@ pub mod background {
     use ensogl_hardcoded_theme::graph_editor::visualization as theme;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style, radius:f32, roundness:f32, selection:f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");

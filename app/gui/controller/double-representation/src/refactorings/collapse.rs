@@ -352,8 +352,8 @@ impl Collapser {
         } else if MainLine::from_ast(ast).contains_if(|n| n.id() == self.replaced_node) {
             let no_node_err = failure::Error::from(CannotConstructCollapsedNode);
             let expression_ast = self.call_to_extracted(extracted_definition)?;
-            let expression = MainLine::from_ast(&expression_ast).ok_or(no_node_err)?;
-            let mut new_node = NodeInfo { documentation: None, main_line: expression };
+            let main_line = MainLine::from_ast(&expression_ast).ok_or(no_node_err)?;
+            let mut new_node = NodeInfo { documentation: None, main_line };
             new_node.set_id(self.collapsed_node);
             if let Some(Output { identifier, .. }) = &self.extracted.output {
                 new_node.set_pattern(identifier.with_new_id().into())
