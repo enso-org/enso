@@ -375,17 +375,17 @@ public class Text_Utils {
     }
     if (haystack.isEmpty()) return List.of();
 
-    List<StringSearch> stringSearches = IntStream.range(0, needles.size())
+    StringSearch stringSearches[] = IntStream.range(0, needles.size())
             .mapToObj(i -> new StringSearch(needles.get(i), haystack))
-            .collect(Collectors.toList());
+            .toArray(StringSearch[]::new);
     List<Utf16Span> occurrences = new ArrayList<>();
 
     int ix = 0;
     while (ix != StringSearch.DONE) {
       int earliestIndex = -1;
       int earliestStart = -1;
-      for (int i = 0; i < stringSearches.size(); ++i) {
-        StringSearch stringSearch = stringSearches.get(i);
+      for (int i = 0; i < stringSearches.length; ++i) {
+        StringSearch stringSearch = stringSearches[i];
         int start = stringSearch.following(ix);
         if (start != StringSearch.DONE && (earliestStart == -1 || start < earliestStart)) {
           earliestIndex = i;
@@ -396,7 +396,7 @@ public class Text_Utils {
         // No more matches.
         break;
       }
-      int matchLength = stringSearches.get(earliestIndex).getMatchLength();
+      int matchLength = stringSearches[earliestIndex].getMatchLength();
       occurrences.add(new Utf16Span(earliestStart, earliestStart + matchLength));
       ix = earliestStart + matchLength;
     }
