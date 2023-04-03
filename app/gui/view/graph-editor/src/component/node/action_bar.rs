@@ -45,6 +45,7 @@ mod hover_area {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, corner_radius: f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

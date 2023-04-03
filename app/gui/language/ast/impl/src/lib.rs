@@ -557,6 +557,26 @@ impl<T> Tree<T> {
     }
 }
 
+/// Helper getters.
+impl<T> Tree<T> {
+    /// Retrieves the string content of the Tree node, if any.
+    pub fn as_text(&self) -> Option<&str> {
+        if self.type_info == TreeType::Expression && self.descriptive_name == Some("text") {
+            self.leaf_info.as_deref().and_then(|s| {
+                if s.starts_with(repr::FMT_BLOCK_QUOTES) || s.starts_with(repr::RAW_BLOCK_QUOTES) {
+                    s.get(3..s.len() - 3)
+                } else if s.starts_with(repr::FMT_QUOTE) || s.starts_with(repr::RAW_QUOTE) {
+                    s.get(1..s.len() - 1)
+                } else {
+                    None
+                }
+            })
+        } else {
+            None
+        }
+    }
+}
+
 /// The semantic information about a node.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum TreeType {

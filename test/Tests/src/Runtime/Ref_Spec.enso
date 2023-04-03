@@ -8,8 +8,12 @@ import Standard.Test.Extensions
 spec = Test.group "Refs" <|
     Test.specify "should be able to store and retrieve value in references" <|
         r = Ref.new 'foo'
-        r . put 'bar'
-        v = r.get
-        v.should_equal 'bar'
+        r.get . should_equal 'foo'
+        r.put 'bar'
+        r.get . should_equal 'bar'
+
+        vec = [r, r]
+        vec.at 0 . put 123
+        vec.at 1 . get . should_equal 123
 
 main = Test_Suite.run_main spec

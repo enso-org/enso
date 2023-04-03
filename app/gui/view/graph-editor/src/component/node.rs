@@ -108,6 +108,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style, bg_color:Vector4) {
             let bg_color = Var::<color::Rgba>::from(bg_color);
             let width    = Var::<Pixels>::from("input_size.x");
@@ -129,6 +130,7 @@ pub mod backdrop {
     ensogl::shape! {
         // Disabled to allow interaction with the output port.
         pointer_events = false;
+        alignment = center;
         (style:Style, selection:f32) {
 
             let width  = Var::<Pixels>::from("input_size.x");
@@ -188,6 +190,7 @@ pub mod drag_area {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -214,6 +217,7 @@ pub mod error_shape {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
 

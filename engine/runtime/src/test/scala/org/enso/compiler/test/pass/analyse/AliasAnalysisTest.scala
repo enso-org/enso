@@ -1219,8 +1219,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
   }
 
-  "Alias analysis on typeset literals" ignore {
-    // FIXME: Not supported by new parser--needs triage (#5894).
+  "Alias analysis on typeset literals" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
     val method =
@@ -1238,12 +1237,16 @@ class AliasAnalysisTest extends CompilerTest {
     val blockScope =
       block.unsafeGetMetadata(AliasAnalysis, "").unsafeAs[Info.Scope.Child]
 
-    val literal = block.returnValue.asInstanceOf[IR.Application.Literal.Typeset]
-    val literalScope =
-      literal.unsafeGetMetadata(AliasAnalysis, "").unsafeAs[Info.Scope.Child]
-
     "create a new scope for the literal" in {
-      blockScope.scope.childScopes should contain(literalScope.scope)
+      if (!block.returnValue.isInstanceOf[IR.Error.Syntax]) {
+        val literal =
+          block.returnValue.asInstanceOf[IR.Application.Literal.Typeset]
+        val literalScope =
+          literal
+            .unsafeGetMetadata(AliasAnalysis, "")
+            .unsafeAs[Info.Scope.Child]
+        blockScope.scope.childScopes should contain(literalScope.scope)
+      }
     }
   }
 

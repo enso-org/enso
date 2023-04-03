@@ -24,12 +24,9 @@ use ensogl_core::display::object::ObjectOps;
 mod rectangle {
     use super::*;
     ensogl_core::shape! {
-        alignment = left_bottom;
         (style: Style, color: Vector4<f32>) {
             let color = Var::<color::Rgba>::from(color);
-            let width = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let rect = Rect((&width, &height)).corners_radius(5.0.px());
+            let rect = Rect(Var::canvas_size()).corners_radius(5.0.px());
             let shape = rect.fill(color);
             shape.into()
         }
@@ -52,10 +49,10 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let _navigator = Navigator::new(scene, &camera).leak();
 
-    let root = scene.new_child_named("root").leak();
-    root.use_auto_layout().reverse_columns().set_gap((5.0, 5.0));
+    let root1 = scene.new_child_named("root").leak();
+    root1.use_auto_layout().reverse_columns().set_gap((5.0, 5.0));
 
-    let rect1 = root.new_child_named("rect1").leak();
+    let rect1 = root1.new_child_named("rect1").leak();
     let rect1_bg = rectangle::View::new().leak();
     rect1.add_child(&rect1_bg);
     rect1_bg.color.set(Rgba::new(0.0, 0.0, 0.0, 0.3).into());
@@ -81,7 +78,7 @@ pub fn main() {
 
 
     let rect2 = rectangle::View::new().leak();
-    root.add_child(&rect2);
+    root1.add_child(&rect2);
     rect2.set_size(Vector2::new(100.0, 100.0));
     rect2.color.set(Rgba::new(0.5, 0.0, 0.0, 0.3).into());
 
@@ -96,7 +93,34 @@ pub fn main() {
     rect2_inner2.color.set(Rgba::new(0.0, 0.0, 0.0, 0.4).into());
 
 
-    let mut logged = false;
+    let root2 = scene.new_child_named("root2").leak();
+
+    let rect_outer = rectangle::View::new().leak();
+    rect_outer.allow_grow();
+    rect_outer.color.set(Rgba::new(0.5, 0.5, 0.0, 0.2).into());
+    root2.add_child(&rect_outer);
+
+    let overflow_auto_layout = root2.new_child().leak();
+    overflow_auto_layout.use_auto_layout().set_padding_all(10.0);
+
+    let rect_inner = rectangle::View::new().leak();
+    rect_inner.color.set(Rgba::new(0.0, 0.0, 0.0, 0.3).into());
+    overflow_auto_layout.add_child(&rect_inner);
+
+    let rect_inner_1 = rectangle::View::new().leak();
+    rect_inner_1.color.set(Rgba::new(0.0, 0.5, 0.5, 0.8).into());
+    rect_inner_1.set_size((100, 100)).set_xy((50.0, -50.0));
+    rect_inner.add_child(&rect_inner_1);
+
+    let rect_inner_2 = rectangle::View::new().leak();
+    rect_inner_2.set_size((100, 100)).set_xy((-50.0, 50.0));
+    rect_inner_2.color.set(Rgba::new(0.5, 0.0, 0.5, 0.8).into());
+    rect_inner.add_child(&rect_inner_2);
+
+    root1.set_y(-100.0);
+    root2.set_y(100.0);
+
+    let mut i = 0;
     world
         .on
         .before_frame
@@ -109,11 +133,12 @@ pub fn main() {
             rect2_inner1.set_alignment(anim_align_at_time(s));
             rect2_inner2.set_alignment(anim_align_at_time(s + 3.0));
 
-            if !logged {
-                logged = true;
+            if i == 1 {
                 warn!("rect1: {:?}", rect1.display_object());
                 warn!("rect2: {:?}", rect2.display_object());
             }
+
+            i += 1;
         })
         .forget();
 }

@@ -112,10 +112,21 @@ final class TreeToIr {
         for (Line statement : b.getStatements()) {
           Tree exprTree = statement.getExpression();
           IR.Expression expr = switch (exprTree) {
+            case null -> null;
             case Tree.Export x -> null;
             case Tree.Import x -> null;
             case Tree.Invalid x -> null;
-            case null -> null;
+            case Tree.TypeSignature sig -> {
+              IR.Expression methodReference;
+              try {
+                methodReference = translateMethodReference(sig.getVariable(), true);
+              } catch (SyntaxException ex) {
+                methodReference = translateExpression(sig.getVariable());
+              }
+              var signature = translateType(sig.getType(), false);
+              var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+              yield ascription;
+            }
             default -> translateExpression(exprTree);
           };
           if (expr != null) {
@@ -125,37 +136,37 @@ final class TreeToIr {
             }
           }
         }
-        if (expressions.size() == 0) {
-          yield Option.empty();
-        } else if (expressions.size() == 1) {
-          yield Option.apply(expressions.apply(0));
-        } else {
-          Option<IdentifiedLocation> combinedLocation;
-          if (locations.isEmpty()) {
-            combinedLocation = Option.empty();
-          } else {
-            combinedLocation = Option.apply(
-                new IdentifiedLocation(
-                    new Location(
-                      locations.get(1).start(),
-                      locations.get(locations.size() - 1).end()
-                    ),
-                    Option.empty()
-                )
-            );
+        yield switch (expressions.size()) {
+          case 0 -> Option.empty();
+          case 1 -> Option.apply(expressions.head());
+          default -> {
+            Option<IdentifiedLocation> combinedLocation;
+            if (locations.isEmpty()) {
+              combinedLocation = Option.empty();
+            } else {
+              combinedLocation = Option.apply(
+                      new IdentifiedLocation(
+                              new Location(
+                                      locations.get(1).start(),
+                                      locations.get(locations.size() - 1).end()
+                              ),
+                              Option.empty()
+                      )
+              );
+            }
+            var returnValue = expressions.head();
+            @SuppressWarnings("unchecked")
+            var statements = ((List<IR.Expression>) expressions.tail()).reverse();
+            yield Option.apply(new IR$Expression$Block(
+              statements,
+              returnValue,
+              combinedLocation,
+              false,
+              meta(),
+              diag()
+            ));
           }
-
-          yield Option.apply(
-              new IR$Expression$Block(
-                  expressions,
-                  expressions.last(),
-                  combinedLocation,
-                  false,
-                  meta(),
-                  diag()
-              )
-          );
-        }
+        };
       }
       default -> {
         throw new IllegalStateException();
@@ -523,6 +534,9 @@ final class TreeToIr {
           getIdentifiedLocation(fun), meta(), diag()
         );
       } else {
+        if (body == null) {
+          return translateSyntaxError(fun, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
+        }
         return new IR$Function$Binding(name, args, body,
           getIdentifiedLocation(fun), true, meta(), diag()
         );

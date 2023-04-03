@@ -401,32 +401,13 @@ impl InsertContext<'_> {
     /// Whether the context of the edited expression contains a qualified name. Qualified name is a
     /// infix chain of `ACCESS` operators with identifiers.
     fn has_qualified_name(&self) -> bool {
-        if let Some(ref context) = self.context {
-            let there_are_operands = context.enumerate_operands().flatten().count() > 0;
-            let every_operand_is_name = context.enumerate_operands().flatten().all(|opr| {
-                matches!(opr.item.arg.shape(), ast::Shape::Cons(_) | ast::Shape::Var(_))
-            });
-            let every_operator_is_access = context
-                .enumerate_operators()
-                .all(|opr| opr.item.ast().repr() == ast::opr::predefined::ACCESS);
-            there_are_operands && every_operand_is_name && every_operator_is_access
-        } else {
-            false
-        }
+        self.qualified_name_segments().is_some()
     }
 
     /// All the segments of the qualified name already written by the user.
     fn qualified_name_segments(&self) -> Option<Vec<ImString>> {
-        if self.has_qualified_name() {
-            // Unwrap is safe here, because `has_qualified_name` would not return true in case of no
-            // context.
-            let context = self.context.as_ref().unwrap();
-            let name_segments = context
-                .enumerate_operands()
-                .flatten()
-                .filter_map(|opr| ast::identifier::name(&opr.item.arg).map(ImString::new))
-                .collect_vec();
-            (!name_segments.is_empty()).as_some(name_segments)
+        if let Some(context) = self.context.as_ref() {
+            context.as_qualified_name_segments()
         } else {
             None
         }

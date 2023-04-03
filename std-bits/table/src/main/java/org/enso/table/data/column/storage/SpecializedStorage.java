@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -15,7 +16,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   protected abstract T[] newUnderlyingArray(int size);
 
   @Override
-  public abstract int getType();
+  public abstract StorageType getType();
 
   /**
    * @param data the underlying data

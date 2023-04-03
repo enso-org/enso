@@ -1,11 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Base.Data.Ordering import all
-
 import project.Data.Column.Column
 
 polyglot java import java.sql.Types
+polyglot java import java.sql.ResultSetMetaData
 
 ## Represents an internal SQL data-type.
 type SQL_Type
@@ -15,182 +14,31 @@ type SQL_Type
        Arguments:
        - typeid: a numerical type id, as defined in `java.sql.Types`.
        - name: a database-specific type name, used for pretty printing.
-    Value typeid name
+       - precision: For character types, specifies their length.
+         See `ResultSetMetaData.getPrecision`.
+       - scale: The scale for fixed precision numeric types. Not applicable for
+         other types, so it's value is undefined and will usually just be 0.
+         See `ResultSetMetaData.getScale`.
+       - nullable: Specifies if the given column is nullable. May be `Nothing`
+         if that is unknown / irrelevant for the type.
+         TODO: the precise meaning of this will be revised with #5872.
+    Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Integer = 0) (nullable : Boolean | Nothing = Nothing)
 
-    ## The SQL representation of `Boolean` type.
-    boolean : SQL_Type
-    boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
-
-    ## The SQL representation of `Integer` type.
-    integer : SQL_Type
-    integer = SQL_Type.Value Types.INTEGER "INTEGER"
-
-    ## The SQL representation of the `BIGINT` type.
-    bigint : SQL_Type
-    bigint = SQL_Type.Value Types.BIGINT "BIGINT"
-
-    ## The SQL representation of the `TINYINT` type.
-    tinyint : SQL_Type
-    tinyint = SQL_Type.Value Types.TINYINT "TINYINT"
-
-    ## The SQL representation of the `SMALLINT` type.
-    smallint : SQL_Type
-    smallint = SQL_Type.Value Types.SMALLINT "SMALLINT"
-
-    ## The SQL type representing decimal numbers.
-    decimal : SQL_Type
-    decimal = SQL_Type.Value Types.DECIMAL "DECIMAL"
-
-    ## The SQL type representing decimal numbers.
-    real : SQL_Type
-    real = SQL_Type.Value Types.REAL "REAL"
-
-    ## The SQL type representing double-precision floating-point numbers.
-    double : SQL_Type
-    double = SQL_Type.Value Types.DOUBLE "DOUBLE PRECISION"
-
-    ## The SQL type representing a general numeric type.
-    numeric : SQL_Type
-    numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
-
-    ## The SQL type representing one of the supported textual types.
-       It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
-    text : SQL_Type
-    text = SQL_Type.Value Types.VARCHAR "VARCHAR"
-
-    ## The SQL type representing a binary object.
-    blob : SQL_Type
-    blob = SQL_Type.Value Types.BLOB "BLOB"
-
-    ## The SQL type representing a date type.
-    date : SQL_Type
-    date = SQL_Type.Value Types.DATE "DATE"
-
-    ## The SQL type representing a time type.
-    time : SQL_Type
-    time = SQL_Type.Value Types.TIME "TIME"
-
-    ## The SQL type representing a time type.
-    date_time : SQL_Type
-    date_time = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMP"
-
-    ## The SQL type representing a null column.
+    ## The SQL type representing a null value.
     null : SQL_Type
     null = SQL_Type.Value Types.NULL "NULL"
 
-    ## ADVANCED
-       Given an Enso value gets the approximate SQL type.
-    approximate_type : Any -> SQL_Type ! Illegal_Argument
-    approximate_type value = case value of
-        _ : Column -> value.sql_type
-        _ : Boolean -> SQL_Type.boolean
-        _ : Integer -> if value.abs >= 2^32 then SQL_Type.bigint else SQL_Type.integer
-        _ : Decimal -> SQL_Type.double
-        _ : Text -> SQL_Type.text
-        _ : Date -> SQL_Type.date
-        _ : Time_Of_Day -> SQL_Type.time
-        _ : Date_Time -> SQL_Type.date_time
-        Nothing -> SQL_Type.null
-        _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")
-
     ## PRIVATE
-       Returns the SQL type that is the result of applying an  operation to the
-       two given types.
-    merge_type : SQL_Type -> SQL_Type -> SQL_Type ! Illegal_Argument
-    merge_type left right =
-        if left.typeid == right.typeid then left else
-            if left.is_null.not && right.is_null then left else
-                if left.is_null && right.is_null.not then right else
-                    case left.is_definitely_numeric && right.is_definitely_numeric of
-                        True -> if left.is_definitely_integer && right.is_definitely_integer then merge_integer_type left right else
-                            merge_number_type left right
-                        False -> if left.is_definitely_text && right.is_definitely_text then SQL_Type.text else
-                            Error.throw (Illegal_Argument.Error "Unmatched types for operation.")
-
-    ## PRIVATE
-
-       Returns True if this type represents an integer or a double.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_numeric : Boolean
-    is_definitely_numeric self = self.is_definitely_double || self.is_definitely_integer
-
-    ## PRIVATE
-
-       Returns True if this type represents an integer.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_integer : Boolean
-    is_definitely_integer self =
-        [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains self.typeid
-
-    ## PRIVATE
-
-       Returns True if this type represents a boolean.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_boolean : Boolean
-    is_definitely_boolean self =
-        [Types.BOOLEAN, Types.BIT].contains self.typeid
-
-    ## PRIVATE
-
-       Returns True if this type represents a floating point number.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_double : Boolean
-    is_definitely_double self =
-        [Types.FLOAT, Types.DOUBLE, Types.REAL].contains self.typeid
-
-    ## PRIVATE
-       Returns True if this type represents a Text.
-    is_definitely_text : Boolean
-    is_definitely_text self =
-       [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains self.typeid
-
-    ## PRIVATE
-       Returns True if this type represents a Text, using heuristics that may
-       match more possible types.
-    is_likely_text : Boolean
-    is_likely_text self =
-       self.is_definitely_text || self.name.contains "text" Case_Sensitivity.Insensitive
-
-    ## PRIVATE
-    is_null : Boolean
-    is_null self = self.typeid == Types.NULL
-
-## PRIVATE
-   Joins two integer SQL types into the larger one.
-merge_integer_type : SQL_Type -> SQL_Type -> SQL_Type
-merge_integer_type left right =
-    integer_types = [Types.TINYINT, Types.SMALLINT, Types.INTEGER, Types.BIGINT]
-    left_index = integer_types.index_of left.typeid
-    right_index = integer_types.index_of right.typeid
-    new_index = left_index.max right_index
-    [SQL_Type.tinyint, SQL_Type.smallint, SQL_Type.integer, SQL_Type.bigint].at new_index
-
-## PRIVATE
-   Joins two numeric SQL types into the larger one.
-   One of the types must be non-integer (otherwise use merge_integer_type).
-merge_number_type :  SQL_Type -> SQL_Type -> SQL_Type
-merge_number_type left right = if left.is_definitely_integer then merge_number_type right left else
-    numeric_types = [Types.NUMERIC, Types.DECIMAL, Types.FLOAT, Types.REAL, Types.DOUBLE]
-    left_index = numeric_types.index_of left.typeid
-    right_index = numeric_types.index_of right.typeid
-    if right_index.is_nothing then left else
-        new_index = left_index.max right_index
-        [SQL_Type.numeric, SQL_Type.decimal, SQL_Type.real, SQL_Type.real, SQL_Type.double].at new_index
-
-## PRIVATE
-type SQL_Type_Comparator
-    compare x y =
-        if x.typeid == y.typeid then Ordering.Equal else
-            Nothing
-
-    hash x = x.typeid.hashCode
-
-Comparable.from (_:SQL_Type) = SQL_Type_Comparator
+       Constructs a `SQL_Type` from a `ResultSetMetaData` object.
+    from_metadata metadata ix =
+        typeid = metadata.getColumnType ix
+        typename = metadata.getColumnTypeName ix
+        precision = case metadata.getPrecision ix of
+            0 -> Nothing
+            p : Integer -> p
+        scale = metadata.getScale ix
+        nullable_id = metadata.isNullable ix
+        nullable = if nullable_id == ResultSetMetaData.columnNoNulls then False else
+            if nullable_id == ResultSetMetaData.columnNullable then True else
+                Nothing
+        SQL_Type.Value typeid typename precision scale nullable

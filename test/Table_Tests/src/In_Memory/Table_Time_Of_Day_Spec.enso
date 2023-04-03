@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Table, Delimited, Column, Data_Formatter
 import Standard.Table.Data.Table_Conversions
-import Standard.Table.Data.Storage.Storage
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -20,7 +20,7 @@ spec =
         Test.specify "should be able to read in a table with dates" <|
             table.column_count.should_equal 3
             table.info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting time']
-            table.info.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Time_Of_Day]
+            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Time]
             table.row_count.should_equal 6
 
         Test.specify "should be able to treat a single value as a Time_Of_Days" <|

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 from Standard.Database import SQL_Query
@@ -36,7 +37,7 @@ type Fake_Test_Connection
        - limit: the maximum number of rows to return (default 1000).
     read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table
     read self _ _="" _=Nothing =
-        Error.throw "Materialization not supported on fake connection."
+        Error.throw (Illegal_State.Error "Materialization not supported on fake connection.")
 
     ## PRIVATE
     close : Nothing
@@ -45,8 +46,22 @@ type Fake_Test_Connection
     ## PRIVATE
     execute_update : Text | SQL_Statement -> Integer
     execute_update self _ =
-        Error.throw "Materialization not supported on fake connection."
+        Error.throw (Illegal_State.Error "Materialization not supported on fake connection.")
+
+    ## PRIVATE
+    jdbc_connection : Fake_JDBC_Connection
+    jdbc_connection self =
+        Fake_JDBC_Connection.Value self.tables
 
 ## PRIVATE
 make dialect tables =
     Fake_Test_Connection.Value tables dialect
+
+type Fake_JDBC_Connection
+    ## PRIVATE
+    Value tables
+
+    ## PRIVATE
+    fetch_columns self statement =
+        _ = statement
+        Error.throw (Illegal_State.Error "Cannot fetch columns from a fake connection.")

@@ -169,6 +169,7 @@ mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let sprite_width: Var<Pixels> = "input_size.x".into();
             let sprite_height: Var<Pixels> = "input_size.y".into();
