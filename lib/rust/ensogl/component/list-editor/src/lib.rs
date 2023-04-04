@@ -249,10 +249,9 @@ mod spot {
                 elem_size <- elem_display_object.on_transformed.map(f!((_)
                     elem_display_object.computed_size().x
                 ));
-                width.target <+ elem_size;
-                eval_ <- all_with(&width.value, &margin_left.value, f!((w, m) {
-                    root.set_size_x(w + m);
-                }));
+                target_size <- all_with(&elem_size, &margin_left.target, f!([](w, m) w + m));
+                width.target <+ target_size;
+                eval width.value ((t) {root.set_size_x(*t);});
                 eval_ <- all_with(&margin_left.value, &elem_offset.value, f!((m, o) {
                     elem_display_object.set_xy(*o + Vector2(*m, 0.0));
                 }));
@@ -528,7 +527,6 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
 impl<T: display::Object + frp::node::Data> Model<T> {
     fn push_item(&mut self, layouted_elems: &display::object::Instance, item: T) -> usize {
         let index = self.items.len();
-        warn!(">>> {:?}", item.computed_size().x);
         let spot = DropSpot::new(item, 0.0);
         layouted_elems.add_child(&spot);
         self.items.push(Item::DropSpot(spot));
@@ -565,6 +563,18 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 _ => {}
             }
         }
+    }
+
+    fn first_non_weak_placeholder_index(&self) -> Option<usize> {
+        let mut index = 0;
+        for item in &self.items {
+            match item {
+                Item::DropSpot(t) => return Some(index),
+                Item::Placeholder(_) => return Some(index),
+                _ => index += 1,
+            }
+        }
+        None
     }
 
     fn retain_non_collapsed_items(&mut self) {
@@ -709,19 +719,19 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn potential_insertion_point(&mut self, index: usize) {
         if let Some(item) = self.dragged_item.as_ref() {
             self.items.collapse_all_placeholders();
-            let prev_index = index.checked_sub(1);
-            let prev_index_placeholder =
-                prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
-            let gap = if index == 0 || (index == 1 && prev_index_placeholder.is_some()) {
-                0.0
-            } else {
-                GAP
-            };
-            warn!(">>> {:?}", gap);
+
+            let gap = self.first_non_weak_placeholder_index().map_or(0.0, |i| {
+                if index <= i {
+                    0.0
+                } else {
+                    GAP
+                }
+            });
             let size = item.computed_size().x + gap;
-            let gap = if index == 0 { 0.0 } else { GAP };
-            let old_placeholder =
-                prev_index_placeholder.or_else(|| self.get_upgraded_weak_placeholder(index));
+            let prev_index = index.checked_sub(1);
+            let old_placeholder = self
+                .get_upgraded_weak_placeholder(index)
+                .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
             if let Some((index, placeholder)) = old_placeholder {
                 placeholder.reuse();
                 placeholder.set_target_size(size);
