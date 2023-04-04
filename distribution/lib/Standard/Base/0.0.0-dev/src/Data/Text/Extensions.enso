@@ -1184,11 +1184,11 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          term_1.length == 3
          match_1.length == 2
          term_2 = "ffiffl"
-         Match = ligatures . locate term_2 case_sensitivity=Case_Sensitive.Insensitive
+         match_2 = ligatures . locate term_2 case_sensitivity=Case_Sensitive.Insensitive
          term_2.length == 6
-         Match.length == 2
+         match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
-         match_1 == Match
+         match_1 == match_2
 
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
 Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
@@ -1277,8 +1277,8 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
          ligatures.length == 7
          match_1 = ligatures . locate_all "IFF" case_sensitivity=Case_Sensitive.Insensitive
          match_1 . map .length == [2, 3]
-         Match = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitive.Insensitive
-         Match . map .length == [2, 5]
+         match_2 = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitive.Insensitive
+         match_2 . map .length == [2, 5]
 Text.locate_all : Text -> Case_Sensitivity -> Vector Span
 Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
