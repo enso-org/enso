@@ -99,6 +99,12 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
+
+       ! Known Limitations.
+         The Truffle regex engine does not transparently handle normalization.
+         Due to this limitation, Unicode normalization has been disabled for
+         this function, so beware that some equivalent graphemes like 'ś' and
+         's\u0301' will not be matched.
     Like pattern:Text
 
     ## Does the value not match the SQL pattern (Text only)?
@@ -112,6 +118,12 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
+
+       ! Known Limitations.
+         The Truffle regex engine does not transparently handle normalization.
+         Due to this limitation, Unicode normalization has been disabled for
+         this function, so beware that some equivalent graphemes like 'ś' and
+         's\u0301' will not be matched.
     Not_Like pattern:Text
 
     ## Is the value contained in `values`?

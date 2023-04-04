@@ -12,6 +12,7 @@ import project.Data.Text.Regex.No_Such_Group
 import project.Data.Text.Regex.Replacer.Replacer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
@@ -34,7 +35,7 @@ type Pattern
 
        Arguments:
        - input: The text to check for matching.
-    matches : Text -> Boolean | Illegal_Argument
+    matches : Text -> Boolean | Type_Error
     matches self input =
         Helpers.expect_text input <|
             m = self.internal_regex_object.exec input 0
@@ -47,7 +48,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match : Text -> Match | Nothing | Illegal_Argument
+    match : Text -> Match | Nothing | Type_Error
     match self input =
         Helpers.expect_text input <|
             it = Match_Iterator.new self input
@@ -62,7 +63,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match_all : Text -> Vector Match ! Illegal_Argument
+    match_all : Text -> Vector Match ! Type_Error
     match_all self input =
         Helpers.expect_text input <|
             pattern_is_empty = self.internal_regex_object.pattern == ''
@@ -84,7 +85,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    find : Text -> Text | Nothing | Illegal_Argument
+    find : Text -> Text | Nothing | Type_Error
     find self input =
         Helpers.expect_text input <|
            match_to_group_maybe <| self.match input
@@ -96,7 +97,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    find_all : Text -> Vector Text | Illegal_Argument
+    find_all : Text -> Vector Text | Type_Error
     find_all self input =
         Helpers.expect_text input <|
            self.match_all input . map match_to_group_maybe
@@ -132,7 +133,7 @@ type Pattern
              input = "abcdefghij"
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
-    split : Text -> Boolean -> Vector Text | Illegal_Argument
+    split : Text -> Boolean -> Vector Text | Type_Error
     split self input only_first=False =
         Helpers.expect_text input <|
             builder = Vector.new_builder
@@ -233,7 +234,7 @@ type Pattern
 
              pattern = Regex.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
-    replace : Text -> Text -> Boolean -> Text | Illegal_Argument
+    replace : Text -> Text -> Boolean -> Text | Type_Error
     replace self input replacement only_first=False =
         Helpers.expect_text input <|
             it = Match_Iterator.new self input

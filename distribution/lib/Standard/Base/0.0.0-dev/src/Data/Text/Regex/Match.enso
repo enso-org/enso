@@ -17,7 +17,8 @@ from project.Data.Boolean import Boolean, True, False
 
 
 type Match
-    ## internal_regex_result : RegexResult (Truffle)
+    ## PRIVATE
+       internal_regex_result : RegexResult (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (pattern : Pattern) (internal_regex_result : Any) (input : Text)
 
