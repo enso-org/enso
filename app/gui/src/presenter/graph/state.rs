@@ -9,6 +9,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use bimap::BiMap;
 use bimap::Overwritten;
+use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
@@ -25,13 +26,14 @@ use ide_view::graph_editor::EdgeEndpoint;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Node {
-    pub view_id:       Option<ViewNodeId>,
-    pub position:      Vector2,
-    pub expression:    node_view::Expression,
-    pub is_skipped:    bool,
-    pub is_frozen:     bool,
-    pub error:         Option<node_view::Error>,
-    pub visualization: Option<visualization_view::Path>,
+    pub view_id:        Option<ViewNodeId>,
+    pub position:       Vector2,
+    pub expression:     node_view::Expression,
+    pub is_skipped:     bool,
+    pub is_frozen:      bool,
+    pub context_switch: Option<ContextSwitchExpression>,
+    pub error:          Option<node_view::Error>,
+    pub visualization:  Option<visualization_view::Path>,
 
     /// Indicate whether this node view is updated automatically by changes from the controller
     /// or view, or will be explicitly updated..
@@ -46,6 +48,7 @@ impl Default for Node {
             expression:             node_view::Expression::default(),
             is_skipped:             false,
             is_frozen:              false,
+            context_switch:         None,
             error:                  None,
             visualization:          None,
             expression_auto_update: true,
@@ -479,7 +482,7 @@ impl<'a> ControllerChange<'a> {
         let ast_id = node.main_line.id();
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
-        let skip = node.info.main_line.macros_info().skip;
+        let skip = node.info.macros_info().skip;
         if displayed.is_skipped != skip {
             displayed.is_skipped = skip;
             Some(skip)
@@ -494,7 +497,7 @@ impl<'a> ControllerChange<'a> {
         let ast_id = node.main_line.id();
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
-        let freeze = node.info.main_line.macros_info().freeze;
+        let freeze = node.info.macros_info().freeze;
         if displayed.is_frozen != freeze {
             displayed.is_frozen = freeze;
             Some(freeze)
@@ -731,6 +734,23 @@ impl<'a> ViewChange<'a> {
         }
     }
 
+    /// Set the node context switch. Returns `None` if no changes to the expression are needed.
+    pub fn set_node_context_switch(
+        &self,
+        id: ViewNodeId,
+        expr: Option<ContextSwitchExpression>,
+    ) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.context_switch != expr {
+            displayed.context_switch = expr;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
     /// Set the node expression.
     pub fn set_node_expression(&self, id: ViewNodeId, expression: ImString) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
@@ -832,11 +852,9 @@ mod tests {
     fn create_test_node(expression: &str) -> controller::graph::Node {
         let parser = Parser::new();
         let ast = parser.parse_line_ast(expression).unwrap();
+        let main_line = double_representation::node::MainLine::from_ast(&ast).unwrap();
         controller::graph::Node {
-            info:     double_representation::node::NodeInfo {
-                documentation: None,
-                main_line:     double_representation::node::MainLine::from_ast(&ast).unwrap(),
-            },
+            info:     double_representation::node::NodeInfo { documentation: None, main_line },
             metadata: None,
         }
     }
@@ -970,11 +988,9 @@ mod tests {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
         let node_id = nodes[0].node.id();
         let new_ast = Parser::new().parse_line_ast("foo baz").unwrap().with_id(node_id);
+        let main_line = double_representation::node::MainLine::from_ast(&new_ast).unwrap();
         let new_node = controller::graph::Node {
-            info:     double_representation::node::NodeInfo {
-                documentation: None,
-                main_line:     double_representation::node::MainLine::from_ast(&new_ast).unwrap(),
-            },
+            info:     double_representation::node::NodeInfo { documentation: None, main_line },
             metadata: None,
         };
         let new_subexpressions = new_ast.iter_recursive().filter_map(|ast| ast.id).collect_vec();

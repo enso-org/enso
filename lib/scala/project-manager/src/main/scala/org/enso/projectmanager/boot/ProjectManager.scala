@@ -17,10 +17,9 @@ import org.enso.projectmanager.boot.configuration.{
 import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
-import zio.ZIO.effectTotal
-import zio._
-import zio.console._
+import zio.Console.{printLine, printLineError, readLine}
 import zio.interop.catz.core._
+import zio.{ExitCode, Runtime, Scope, UIO, ZAny, ZIO, ZIOAppArgs, ZIOAppDefault}
 
 import java.io.IOException
 import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
@@ -31,7 +30,7 @@ import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
 /** Project manager runner containing the main method.
   */
-object ProjectManager extends App with LazyLogging {
+object ProjectManager extends ZIOAppDefault with LazyLogging {
 
   /** A configuration of the project manager. */
   lazy val config: ProjectManagerConfig =
@@ -52,15 +51,21 @@ object ProjectManager extends App with LazyLogging {
     )
 
   /** ZIO runtime. */
-  implicit val runtime: Runtime[ZEnv] =
-    Runtime(environment, new ZioPlatform(computeExecutionContext))
+  implicit override lazy val runtime: Runtime[ZAny] =
+    zio.Unsafe.unsafe { implicit unsafe =>
+      zio.Runtime.unsafe.fromLayer(
+        zio.Runtime.setExecutor(
+          zio.Executor.fromExecutionContext(computeExecutionContext)
+        )
+      )
+    }
 
   /** Main process starting up the server. */
-  def mainProcess(
+  private def mainProcess(
     processConfig: MainProcessConfig
-  ): ZIO[ZEnv, IOException, Unit] = {
+  ): ZIO[ZAny, IOException, Unit] = {
     val mainModule =
-      new MainModule[ZIO[ZEnv, +*, +*]](
+      new MainModule[ZIO[ZAny, +*, +*]](
         config,
         processConfig,
         computeExecutionContext
@@ -68,75 +73,80 @@ object ProjectManager extends App with LazyLogging {
     for {
       binding <- bindServer(mainModule)
       _       <- logServerStartup()
-      _       <- getStrLn
-      _       <- effectTotal { logger.info("Stopping server...") }
-      _       <- effectTotal { binding.unbind() }
+      _       <- readLine
+      _       <- ZIO.succeed { logger.info("Stopping server...") }
+      _       <- ZIO.succeed { binding.unbind() }
       _       <- killAllLanguageServer(mainModule)
       _       <- waitTillAllShutdownHooksWillBeFired(mainModule)
-      _       <- effectTotal { mainModule.system.terminate() }
+      _       <- ZIO.succeed { mainModule.system.terminate() }
     } yield ()
   }
 
-  private def killAllLanguageServer(mainModule: MainModule[ZIO[ZEnv, +*, +*]]) =
+  private def killAllLanguageServer(mainModule: MainModule[ZIO[ZAny, +*, +*]]) =
     mainModule.languageServerGateway
       .killAllServers()
-      .foldM(
+      .foldZIO(
         failure = th =>
-          effectTotal {
+          ZIO.succeed {
             logger.error("An error occurred during killing lang servers.", th)
           },
         success = ZIO.succeed(_)
       )
 
   private def waitTillAllShutdownHooksWillBeFired(
-    mainModule: MainModule[ZIO[ZEnv, +*, +*]]
+    mainModule: MainModule[ZIO[ZAny, +*, +*]]
   ) =
     mainModule.languageServerGateway
       .waitTillAllHooksFired()
-      .foldM(
+      .foldZIO(
         failure = th =>
-          effectTotal {
+          ZIO.succeed {
             logger
               .error("An error occurred during waiting for shutdown hooks.", th)
           },
         success = ZIO.succeed(_)
       )
 
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
+  private def runArgs(
+    args: Seq[String]
+  ): ZIO[Environment with ZIOAppArgs with Scope, Any, Any] = {
     Cli.parse(args.toArray) match {
       case Right(opts) =>
         runOpts(opts).catchAll(th =>
-          effectTotal(
+          ZIO.succeed(
             logger.error("An error occurred during the program startup", th)
           ) *>
           ZIO.succeed(FailureExitCode)
         )
       case Left(error) =>
-        (putStrLn(error) *>
-        effectTotal(Cli.printHelp()) *>
+        (printLine(error) *>
+        ZIO.succeed(Cli.printHelp()) *>
         ZIO.succeed(FailureExitCode)).catchAll(th =>
-          effectTotal(logger.error("Unexpected error", th)) *>
+          ZIO.succeed(logger.error("Unexpected error", th)) *>
           ZIO.succeed(FailureExitCode)
         )
     }
   }
 
+  override def run: ZIO[Environment with ZIOAppArgs with Scope, Any, Any] =
+    getArgs.flatMap(runArgs)
+
   /** Parses and validates the command line arguments.
     *
     * @param options the command line arguments
     */
-  def parseOpts(
+  private def parseOpts(
     options: CommandLine
-  ): ZIO[ZEnv, Throwable, ProjectManagerOptions] = {
+  ): ZIO[ZAny, Throwable, ProjectManagerOptions] = {
     val parseProfilingPath = ZIO
-      .effect {
+      .attempt {
         Option(options.getOptionValue(Cli.PROFILING_PATH))
           .map(Paths.get(_).toAbsolutePath)
       }
       .flatMap {
         case pathOpt @ Some(path) =>
-          ZIO.ifM(ZIO.effect(Files.isDirectory(path)))(
-            onTrue = putStrLnErr(
+          ZIO.ifZIO(ZIO.attempt(Files.isDirectory(path)))(
+            onTrue = printLineError(
               s"Error: ${Cli.PROFILING_PATH} is a directory: $path"
             ) *>
               ZIO.fail(new FileAlreadyExistsException(path.toString)),
@@ -146,27 +156,31 @@ object ProjectManager extends App with LazyLogging {
           ZIO.succeed(None)
       }
       .catchAll { err =>
-        putStrLnErr(s"Invalid ${Cli.PROFILING_PATH} argument.") *> ZIO.fail(err)
+        printLineError(s"Invalid ${Cli.PROFILING_PATH} argument.") *> ZIO.fail(
+          err
+        )
       }
 
     val parseProfilingTime = ZIO
-      .effect {
+      .attempt {
         Option(options.getOptionValue(Cli.PROFILING_TIME))
           .map(_.toInt.seconds)
       }
       .catchAll { err =>
-        putStrLnErr(s"Invalid ${Cli.PROFILING_TIME} argument.") *> ZIO.fail(err)
+        printLineError(s"Invalid ${Cli.PROFILING_TIME} argument.") *> ZIO.fail(
+          err
+        )
       }
 
     val parseProfilingEventsLogPath = ZIO
-      .effect {
+      .attempt {
         Option(options.getOptionValue(Cli.PROFILING_EVENTS_LOG_PATH))
           .map(Paths.get(_).toAbsolutePath)
       }
       .flatMap {
         case pathOpt @ Some(path) =>
-          ZIO.ifM(ZIO.effect(Files.isDirectory(path)))(
-            onTrue = putStrLnErr(
+          ZIO.ifZIO(ZIO.attempt(Files.isDirectory(path)))(
+            onTrue = printLineError(
               s"Error: ${Cli.PROFILING_EVENTS_LOG_PATH} is a directory: $path"
             ) *>
               ZIO.fail(new FileAlreadyExistsException(path.toString)),
@@ -176,7 +190,7 @@ object ProjectManager extends App with LazyLogging {
           ZIO.succeed(None)
       }
       .catchAll { err =>
-        putStrLnErr(s"Invalid ${Cli.PROFILING_EVENTS_LOG_PATH} argument.") *>
+        printLineError(s"Invalid ${Cli.PROFILING_EVENTS_LOG_PATH} argument.") *>
         ZIO.fail(err)
       }
 
@@ -194,9 +208,9 @@ object ProjectManager extends App with LazyLogging {
   /** The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  def runOpts(options: CommandLine): ZIO[ZEnv, Throwable, ExitCode] = {
+  private def runOpts(options: CommandLine): ZIO[ZAny, Throwable, ExitCode] = {
     if (options.hasOption(Cli.HELP_OPTION)) {
-      ZIO.effectTotal(Cli.printHelp()) *>
+      ZIO.succeed(Cli.printHelp()) *>
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
@@ -229,7 +243,7 @@ object ProjectManager extends App with LazyLogging {
     verbosityLevel: Int,
     logMasking: Boolean,
     profilingLog: Option[Path]
-  ): ZIO[Console, IOException, LogLevel] = {
+  ): ZIO[ZAny, IOException, LogLevel] = {
     val level = verbosityLevel match {
       case 0 => LogLevel.Info
       case 1 => LogLevel.Debug
@@ -241,29 +255,29 @@ object ProjectManager extends App with LazyLogging {
     val colorMode = ColorMode.Auto
 
     ZIO
-      .effect {
+      .attempt {
         Logging.setup(Some(level), None, colorMode, logMasking, profilingLog)
       }
       .catchAll { exception =>
-        putStrLnErr(s"Failed to setup the logger: $exception")
+        printLineError(s"Failed to setup the logger: $exception")
       }
       .as(level)
   }
 
   private def displayVersion(
     useJson: Boolean
-  ): ZIO[Console, IOException, ExitCode] = {
+  ): ZIO[ZAny, IOException, ExitCode] = {
     val versionDescription = VersionDescription.make(
       "Enso Project Manager",
       includeRuntimeJVMInfo         = false,
       enableNativeImageOSWorkaround = true
     )
-    putStrLn(versionDescription.asString(useJson)) *>
+    printLine(versionDescription.asString(useJson)) *>
     ZIO.succeed(SuccessExitCode)
   }
 
   private def logServerStartup(): UIO[Unit] =
-    effectTotal {
+    ZIO.succeed {
       logger.info(
         "Started server at {}:{}, press enter to kill server",
         config.server.host,
@@ -272,9 +286,9 @@ object ProjectManager extends App with LazyLogging {
     }
 
   private def bindServer(
-    module: MainModule[ZIO[ZEnv, +*, +*]]
+    module: MainModule[ZIO[ZAny, +*, +*]]
   ): UIO[Http.ServerBinding] =
-    effectTotal {
+    ZIO.succeed {
       Await.result(
         module.server.bind(config.server.host, config.server.port),
         3.seconds

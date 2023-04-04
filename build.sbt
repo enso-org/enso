@@ -444,8 +444,8 @@ val icuVersion = "71.1"
 
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.12"
-val zioInteropCatsVersion = "3.2.9.0"
+val zioVersion            = "2.0.10"
+val zioInteropCatsVersion = "23.0.0.2"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
@@ -856,8 +856,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
-        staticOnLinux       = true,
-        initializeAtRuntime = Seq("scala.util.Random")
+        staticOnLinux = true,
+        initializeAtRuntime = Seq(
+          "scala.util.Random",
+          "zio.internal.ZScheduler$$anon$4",
+          "zio.Runtime$",
+          "zio.FiberRef$"
+        )
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(installNativeImage)
@@ -1139,7 +1144,7 @@ val distributionEnvironmentOverrides = {
   )
 }
 
-val frgaalSourceLevel = "19"
+val frgaalSourceLevel = FrgaalJavaCompiler.sourceLevel
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 11
@@ -1582,7 +1587,8 @@ lazy val `engine-runner` = project
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
           "io.methvin.watchservice.jna.CarbonAPI",
-          "org.enso.syntax2.Parser"
+          "org.enso.syntax2.Parser",
+          "zio.internal.ZScheduler$$anon$4"
         )
       )
       .dependsOn(installNativeImage)
@@ -2114,7 +2120,32 @@ buildEngineDistribution := {
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
     targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = true
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val buildEngineDistributionNoIndex =
+  taskKey[Unit]("Builds the engine distribution without generating indexes")
+buildEngineDistributionNoIndex := {
+  val _ = (`engine-runner` / assembly).value
+  updateLibraryManifests.value
+  val root         = engineDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    graalVersion        = graalVersion,
+    javaVersion         = javaVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = false
   )
   log.info(s"Engine package created at $root")
 }
@@ -2131,8 +2162,9 @@ runEngineDistribution := {
   )
 }
 
+val allStdBitsSuffix = List("All", "AllWithIndex")
 val stdBitsProjects =
-  List("Base", "Database", "Google_Api", "Image", "Table", "All")
+  List("Base", "Database", "Google_Api", "Image", "Table") ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
@@ -2162,10 +2194,12 @@ buildStdLib := Def.inputTaskDyn {
 
 lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
 pkgStdLibInternal := Def.inputTask {
-  val cmd             = allStdBits.parsed
-  val root            = engineDistributionRoot.value
-  val log: sbt.Logger = streams.value.log
-  val cacheFactory    = streams.value.cacheStoreFactory
+  val cmd               = allStdBits.parsed
+  val root              = engineDistributionRoot.value
+  val log: sbt.Logger   = streams.value.log
+  val cacheFactory      = streams.value.cacheStoreFactory
+  val standardNamespace = "Standard"
+  val buildAllCmd       = allStdBitsSuffix.contains(cmd)
   cmd match {
     case "Base" =>
       (`std-base` / Compile / packageBin).value
@@ -2179,7 +2213,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
-    case "All" =>
+    case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
@@ -2189,13 +2223,14 @@ pkgStdLibInternal := Def.inputTask {
     case _ =>
   }
   val libs =
-    if (cmd != "All") Seq(cmd)
+    if (!buildAllCmd) Seq(cmd)
     else {
-      val prefix = "Standard."
+      val prefix = s"$standardNamespace."
       Editions.standardLibraries
         .filter(_.startsWith(prefix))
         .map(_.stripPrefix(prefix))
     }
+  val generateIndex = cmd.endsWith("WithIndex")
   libs.foreach { lib =>
     StdBits.buildStdLibPackage(
       lib,
@@ -2204,6 +2239,18 @@ pkgStdLibInternal := Def.inputTask {
       log,
       defaultDevEnsoVersion
     )
+    if (generateIndex) {
+      val stdlibStandardRoot = root / "lib" / standardNamespace
+      DistributionPackage.indexStdLib(
+        libMajor       = stdlibStandardRoot,
+        libName        = stdlibStandardRoot / lib,
+        stdLibVersion  = defaultDevEnsoVersion,
+        ensoVersion    = defaultDevEnsoVersion,
+        ensoExecutable = root / "bin" / "enso",
+        cacheFactory   = cacheFactory.sub("stdlib"),
+        log            = log
+      )
+    }
   }
 }.evaluated
 

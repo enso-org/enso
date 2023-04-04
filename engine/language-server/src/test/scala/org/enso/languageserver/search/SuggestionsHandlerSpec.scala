@@ -11,7 +11,6 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
@@ -743,89 +742,6 @@ class SuggestionsHandlerSpec
         connector.reply(Api.Response(Api.InvalidateModulesIndexResponse()))
 
         expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
-    }
-
-    "rename module when renaming project" taggedAs Retry in withDb {
-      (_, repo, router, _, handler) =>
-        Await.ready(repo.insert(Suggestions.constructor), Timeout)
-        val clientId      = UUID.randomUUID()
-        val newModuleName = "Vest"
-
-        // acquire capability
-        handler ! AcquireCapability(
-          newJsonSession(clientId),
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
-        )
-        expectMsg(CapabilityAcquired)
-
-        handler ! ProjectNameChangedEvent("Test", newModuleName)
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              2,
-              Seq(
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id     = 1,
-                  module = Some(fieldUpdate("local.Vest.Main"))
-                )
-              )
-            )
-          )
-        )
-    }
-
-    "rename types when renaming project" taggedAs Retry in withDb {
-      (_, repo, router, _, handler) =>
-        val method = Suggestions.method.copy(
-          selfType = "local.Test.MyType",
-          arguments = Suggestions.method.arguments.map(arg =>
-            arg.copy(reprType = "local.Test.MyType")
-          )
-        )
-        Await.ready(repo.insert(method), Timeout)
-        val clientId      = UUID.randomUUID()
-        val newModuleName = "Vest"
-
-        // acquire capability
-        handler ! AcquireCapability(
-          newJsonSession(clientId),
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
-        )
-        expectMsg(CapabilityAcquired)
-
-        handler ! ProjectNameChangedEvent("Test", newModuleName)
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              2,
-              Seq(
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id     = 1,
-                  module = Some(fieldUpdate("local.Vest.Main"))
-                ),
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id       = 1,
-                  selfType = Some(fieldUpdate("local.Vest.MyType"))
-                ),
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id = 1,
-                  arguments = Some(
-                    method.arguments.zipWithIndex.map { case (_, index) =>
-                      SearchProtocol.SuggestionArgumentUpdate.Modify(
-                        index    = index,
-                        reprType = Some(fieldUpdate("local.Vest.MyType"))
-                      )
-                    }
-                  )
-                )
-              )
-            )
-          )
-        )
     }
 
     "search entries by empty search query" taggedAs Retry in withDb {

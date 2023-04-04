@@ -940,23 +940,23 @@
 //! node2.allow_grow();
 //! ```
 //!
-//! ## The content origin
+//! ## Children at negative coordinates.
 //! In the parent container size is set to hug, the container size will be automatically increased
-//! to fit the children, however, the children will not be moved, so they can still overflow the
-//! parent container. In such a case, the content origin point is set to the minimum X-axis and
-//! Y-axis of the content. For example, the following code creates a manual layout with three that
-//! overflow the parent container:
+//! to fit the children in the top or right direction. However, the children will not be moved, so
+//! they can still overflow the parent container. Elements that overflow into negative coordinates
+//! will never influence their container's size. For example, the following code creates a manual
+//! layout with three children, where two of those overflow the parent container into negative
+//! coordinates:
 //! ```
-//! //     ╭──────── ▶ ◀ ──────────────────╮
-//! //     │ root                          │
-//! //     │                 ╭────────╮    │
-//! // ╭───┼────╮            │ node3  │    │
-//! // │ node1  │            │        │    ▼
-//! // │   │    │ ╭────────╮ ╰────────╯    ▲
-//! // ╰───┼────╯ │ node2  │               │
-//! //     ╰──────┼────────┼───────────────╯
-//! //   ╱        │        │           
-//! // ◎          ╰────────╯
+//! //     ╭──────── ▶ ◀ ───────────────╮
+//! //     │ root            ╭────────╮ │
+//! // ╭───┼────╮            │ node3  │ │
+//! // │ node1  │            │        │ ▼
+//! // │   │    │ ╭────────╮ ╰────────╯ ▲
+//! // ╰───┼────╯ │ node2  │            │
+//! //     ╰──────┼────────┼────────────╯
+//! //            │        │
+//! //            ╰────────╯
 //!
 //! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
@@ -972,25 +972,22 @@
 //! node3.set_xy((3.0, 1.0));
 //! ```
 //!
-//! The content origin tells the layout manager where the real bottom-left corner is. For example,
-//! we can place several manual layouts with children that overflow their parents in an auto-layout
-//! and get the correct result:
+//! The automatic layout manager will only take the elements own size and position into account. If
+//! those elements have any overflowing children, that overflow will be ignored by the auto-layout.
+//! For example, we can place several manual layouts with children that overflow their parents in an
+//! auto-layout. Those children will effectively overflow the auto-layout as well:
 //! ```
-//! //          ╭────── ▶ ◀ ──────────────╮    ╭────── ▶ ◀ ─────────────╮
-//! //          │ node1                   │    │ node2                  │
-//! // ╔════════╪═══════════════════ ▶ ◀ ═╪════╪════════════════════════╪╗
-//! // ║ ╭──────┼───────────────────────┬─┼────┼──────────────────────╮ │║
-//! // ║ │ root │                       ┆ │    │                      │ │║
-//! // ║ │  ╭───┼──────╮                ┆ ▼╭───┼──────╮               │ ▼║
-//! // ║ │  │ node1_1  │                ┆ ▲│ node2_1  │               │ ▲║
-//! // ║ │  │   │      │  ╭──────────╮  ┆ ││   │      │  ╭─────────╮  │ │▼
-//! // ║ │  ╰───┼──────╯  │ node1_2  │  ┆ │╰───┼──────╯  │ node2_2 │  │ │▲
-//! // ║ │      ╰─────────┼──────────┼──┼─╯    ╰─────────┼─────────┼──┼─╯║
-//! // ║ │    ╱           │          │  ┆    ╱           │         │  │  ║
-//! // ║ │  ◎             ╰──────────╯  ┆  ◎             ╰─────────╯  │  ║
-//! // ║ ╰──────────────────────────────┴─────────────────────────────╯  ║
-//! // ╚═════════════════════════════════════════════════════════════════╝
-//!
+//! //    ╔═════════════════════ ▶ ◀ ═════════════════════╗
+//! //    ║ ╭ root ───────────────┬─────────────────────╮ ║
+//! //    ║ │╭ node1 ─ ▶ ◀ ──────╮┆╭ node2 ─ ▶ ◀ ──────╮│ ║
+//! //   ╭╫─┼┼─────╮           ╭─┼┼┼─────╮             ││ ║
+//! //   │║node1_1 │           │ node2_1 │             ││ ▼
+//! //   │║ ││     │           │ │┆│     │             ││ ▲
+//! //   │║ ││     │  ╭────────┼╮│┆│     │  ╭─────────╮││ ║
+//! //   ╰╫─┼┼─────╯  │ node1_2╰┼┼┼┼─────╯  │ node2_2 │││ ║
+//! //    ║ │╰────────┼─────────┼╯┆╰────────┼─────────┼╯│ ║
+//! //    ║ ╰─────────┼─────────┼─┴─────────┼─────────┼─╯ ║
+//! //    ╚═══════════╰─────────╯═══════════╰─────────╯═══╝
 //!
 //! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
@@ -1014,6 +1011,83 @@
 //! node2_2.set_xy((1.0, -1.0));
 //! ```
 //!
+//! # Shape view alignment inside layout objects.
+//!
+//! The shape views defined using `shape!` can have their own set alignment, which defines how the
+//! shape sprite is positioned relative to its display object's position. For example, when the
+//! alignment is set to `center`, the shape sprite will be positioned such that it's center aligns
+//! with the display objects (0.0, 0.0) origin point. When that shape is a child of an auto-layout,
+//! it will visually overflow the parent container.
+//!
+//! ```text
+//!       alignment = center                alignment = bottom_right    
+//!            ╭╌view╌╌╌╌╌╌╌╌╮
+//!            ┊             ┊            ╭ sprite ─────╮╌view╌╌╌╌╌╌╌╌╮
+//!            ┊             ┊            │             │             ┊
+//!     ╭ sprite ─────╮      ┊            │             │             ┊
+//!     │      ┊      │      ┊            │             │             ┊
+//!     │      ┊      │      ┊            │             │             ┊
+//!     │      ◎╌╌╌╌╌╌┼╌╌╌╌╌╌╯            │             │             ┊
+//!     │             │                   ╰─────────────◎╌╌╌╌╌╌╌╌╌╌╌╌╌╯
+//!     │             │
+//!     ╰─────────────╯
+//! ```
+//!
+//! To avoid this effect and make sprites compatible with layout's understanding of display objects,
+//! you have to use shapes with `alignment` property set to `bottom_left` corner. It is the default
+//! shape alignment value when not specified. That way, the sprites will be exactly overlapping the
+//! display object's position and size, as set by the layout.
+//!
+//! ```text
+//!    alignment = bottom_left
+//!        ╭ view/sprite ╮
+//!        │             │
+//!        │             │
+//!        │             │
+//!        │             │
+//!        │             │
+//!        ◎─────────────╯
+//! ```
+//!
+//! Shape views that are aligned to the bottom left corner can be used as children within the
+//! auto-layout and will be positioned as expected.
+//!
+//! ```
+//! // ╔═════════════════════════ ▶ ◀ ═╗
+//! // ║ ╭ root ───────┬─────────────╮ ║
+//! // ║ │ ╭ shape1 ─╮ ┆ ╭ shape2 ─╮ │ ║
+//! // ║ │ │         │ ┆ │         │ │ ║
+//! // ║ │ │         │ ┆ │         │ │ ▼
+//! // ║ │ │         │ ┆ │         │ │ ▲
+//! // ║ │ ◎─────────╯ ┆ ◎─────────╯ │ ║
+//! // ║ ╰─────────────┴─────────────╯ ║
+//! // ╚═══════════════════════════════╝
+//!
+//! # use ensogl_core::prelude::*;
+//! # use ensogl_core::display;
+//!
+//! mod rectangle {
+//!     use super::*;
+//!     ensogl_core::shape! {
+//!         alignment = left_bottom; // This is also the default value.
+//!         (style: Style) {
+//!             let rect = Rect(Var::canvas_size()).corners_radius(5.0.px());
+//!             let shape = rect.fill(color::Rgba::new(0.7, 0.5, 0.3, 0.5));
+//!             shape.into()
+//!         }
+//!     }
+//! }
+//!
+//! fn build_layout(root: &display::object::Instance) {
+//!     root.use_auto_layout();
+//!     let shape1 = rectangle::View::new();
+//!     let shape2 = rectangle::View::new();
+//!     root.add_child(&shape1);
+//!     root.add_child(&shape2);
+//!     shape1.set_size((100.0, 100.0));
+//!     shape2.set_size((100.0, 100.0));
+//! }
+//! ```
 //!
 //! # Size and computed size.
 //! Display objects expose two functions to get their size: `size` and `computed_size`. The first
@@ -1033,6 +1107,7 @@ use crate::prelude::*;
 use crate::display::layout::alignment;
 use crate::display::object::event;
 use crate::display::object::transformation;
+use crate::display::scene::layer::AnySymbolPartition;
 use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
@@ -1405,6 +1480,7 @@ pub mod dirty {
     type ModifiedChildren = crate::data::dirty::RefCellSet<ChildIndex, OnDirtyCallback>;
     type RemovedChildren = crate::data::dirty::RefCellSet<WeakInstance, OnDirtyCallback>;
     type Transformation = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+    type ComputedSize = crate::data::dirty::RefCellBool<OnDirtyCallback>;
     type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
 
 
@@ -1431,6 +1507,7 @@ pub mod dirty {
         pub modified_children: ModifiedChildren,
         pub removed_children:  RemovedChildren,
         pub transformation:    Transformation,
+        pub computed_size:     ComputedSize,
         pub new_layer:         SceneLayer,
     }
 
@@ -1441,8 +1518,16 @@ pub mod dirty {
             let modified_children = ModifiedChildren::new(on_dirty_callback(parent_bind));
             let removed_children = RemovedChildren::new(on_dirty_callback(parent_bind));
             let transformation = Transformation::new(on_dirty_callback(parent_bind));
+            let computed_size = ComputedSize::new(on_dirty_callback(parent_bind));
             let new_layer = SceneLayer::new(on_dirty_callback(parent_bind));
-            Self { new_parent, modified_children, removed_children, transformation, new_layer }
+            Self {
+                new_parent,
+                modified_children,
+                removed_children,
+                transformation,
+                computed_size,
+                new_layer,
+            }
         }
 
         /// Check whether any of the dirty flags is set.
@@ -1487,8 +1572,13 @@ pub struct HierarchyFrp {
     /// from a visible parent. It will fire during the first scene refresh if this object was
     /// removed from a visible parent or added to an invisible one.
     pub on_hide:            frp::Stream<Option<Scene>>,
-    /// Fires during the scene refresh if this object was moved between scene layers.
-    pub on_layer_change:    frp::Stream<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
+    /// Fires during the first scene refresh if this object was moved between scene layers.
+    pub on_layer_change: frp::Stream<(
+        Option<Scene>,
+        Option<WeakLayer>,
+        Option<WeakLayer>,
+        Option<AnySymbolPartition>,
+    )>,
     /// Fires during the scene refresh if this object needed an update and the update was
     /// performed.
     pub on_transformed:     frp::Stream<()>,
@@ -1496,9 +1586,14 @@ pub struct HierarchyFrp {
     pub on_resized:         frp::Stream<Vector2>,
     on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     on_hide_source:         frp::Source<Option<Scene>>,
-    on_layer_change_source: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
     on_transformed_source:  frp::Source<()>,
     on_resized_source:      frp::Source<Vector2>,
+    on_layer_change_source: frp::Source<(
+        Option<Scene>,
+        Option<WeakLayer>,
+        Option<WeakLayer>,
+        Option<AnySymbolPartition>,
+    )>,
 }
 
 impl HierarchyFrp {
@@ -1546,9 +1641,9 @@ pub struct HierarchyModel {
     parent_bind:    SharedParentBind,
     children:       RefCell<OptVecSorted<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer: RefCell<Option<WeakLayer>>,
+    assigned_layer: RefCell<Option<LayerAssignment>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:          RefCell<Option<WeakLayer>>,
+    layer:          RefCell<Option<LayerAssignment>>,
     dirty:          dirty::Flags,
 }
 
@@ -1578,13 +1673,27 @@ impl Model {
     /// Get the layer this object is displayed in. May be equal to layer explicitly set by the user
     /// or a layer inherited from the parent.
     fn display_layer(&self) -> Option<Layer> {
-        self.layer.borrow().as_ref().and_then(|t| t.upgrade())
+        self.layer.borrow().as_ref().and_then(|t| t.layer.upgrade())
     }
 
     /// Add this object to the provided scene layer. Do not use this method explicitly. Use layers'
     /// methods instead.
     pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
-        let layer = layer.downgrade();
+        self.set_display_layer(layer, default())
+    }
+
+    /// Add this object to the specified symbol partition of the provided scene layer. Do not use
+    /// this method explicitly. Use layers' methods instead.
+    pub(crate) fn add_to_display_layer_symbol_partition(
+        &self,
+        layer: &Layer,
+        symbol_partition: AnySymbolPartition,
+    ) {
+        self.set_display_layer(layer, Some(symbol_partition))
+    }
+
+    fn set_display_layer(&self, layer: &Layer, symbol_partition: Option<AnySymbolPartition>) {
+        let layer = LayerAssignment { layer: layer.downgrade(), symbol_partition };
         let mut assigned_layer = self.assigned_layer.borrow_mut();
         if assigned_layer.as_ref() != Some(&layer) {
             self.dirty.new_layer.set();
@@ -1596,10 +1705,10 @@ impl Model {
     /// layers' methods instead.
     pub(crate) fn remove_from_display_layer(&self, layer: &Layer) {
         let layer = layer.downgrade();
-        let mut assigned_layer = self.assigned_layer.borrow_mut();
-        if assigned_layer.as_ref() == Some(&layer) {
+        if self.assigned_layer.borrow().as_ref().map(|assignment| &assignment.layer) == Some(&layer)
+        {
             self.dirty.new_layer.set();
-            *assigned_layer = None;
+            *self.assigned_layer.borrow_mut() = None;
         }
     }
 }
@@ -1642,7 +1751,7 @@ impl Model {
             trace!("Showing.");
             self.visible.set(true);
             let assigned_layer_borrow = self.assigned_layer.borrow();
-            let assigned_layer = assigned_layer_borrow.as_ref();
+            let assigned_layer = assigned_layer_borrow.as_ref().map(|assignment| &assignment.layer);
             let new_layer = assigned_layer.or(parent_layer);
             self.on_show_source.emit((scene.cloned(), new_layer.cloned()));
             self.children
@@ -1739,7 +1848,7 @@ impl Model {
         parent_origin: Matrix4<f32>,
         parent_origin_changed: bool,
         parent_layers_changed: bool,
-        parent_layer: Option<&WeakLayer>,
+        parent_layer: Option<&LayerAssignment>,
     ) {
         // === Scene Layers Update ===
 
@@ -1774,8 +1883,9 @@ impl Model {
                 let old_layer = mem::replace(&mut *self.layer.borrow_mut(), new_layer.cloned());
                 self.on_layer_change_source.emit((
                     Some(scene.clone_ref()),
-                    old_layer,
-                    new_layer.cloned(),
+                    old_layer.map(|assignment| assignment.layer),
+                    new_layer.map(|assignment| assignment.layer.clone()),
+                    new_layer.and_then(|assignment| assignment.symbol_partition),
                 ));
             });
         }
@@ -1786,7 +1896,7 @@ impl Model {
 
         // === Origin & Visibility Update ===
 
-        self.update_visibility(scene, parent_layer);
+        self.update_visibility(scene, parent_layer.as_ref().map(|assignment| &assignment.layer));
         let is_origin_dirty = has_new_parent || parent_origin_changed || layer_changed;
         let new_parent_origin = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() { "new" } else { "old" };
@@ -1819,6 +1929,12 @@ impl Model {
                 }
             } else {
                 trace!("Self origin and layers did not change.");
+
+                if self.dirty.computed_size.check() {
+                    trace!("Computed size changed.");
+                    self.on_transformed_source.emit(());
+                }
+
                 if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
@@ -1841,6 +1957,7 @@ impl Model {
             }
         });
         self.dirty.transformation.unset();
+        self.dirty.computed_size.unset();
         self.dirty.new_parent.unset();
     }
 
@@ -1953,6 +2070,21 @@ impl InstanceDef {
 
 
 
+// ========================
+// === Layer assignment ===
+// ========================
+
+/// Identifies an assigned layer, including symbol partition information, if any.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct LayerAssignment {
+    /// The layer.
+    pub layer:            WeakLayer,
+    /// The symbol partition, if any.
+    pub symbol_partition: Option<AnySymbolPartition>,
+}
+
+
+
 // =======================
 // === Transformations ===
 // =======================
@@ -1993,6 +2125,16 @@ impl Model {
         self.dirty.transformation.set();
         f(&mut self.transformation.borrow_mut())
     }
+
+    /// Access the transformation of the object as mutable, but only mark it as dirty if the
+    /// provided function returns true.
+    fn with_mut_borrowed_transformation_manually_flagged<F>(&self, f: F)
+    where F: FnOnce(&mut CachedTransformation) -> bool {
+        let modified = f(&mut self.transformation.borrow_mut());
+        if modified {
+            self.dirty.transformation.set();
+        }
+    }
 }
 
 macro_rules! generate_transformation_getters_and_setters {
@@ -2012,8 +2154,8 @@ macro_rules! generate_transformation_getters_and_setters {
 
             fn [<set_ $name _dim>]<D>(&self, dim: D, value: f32)
             where Vector3<f32>: DimSetter<D> {
-                self.with_mut_borrowed_transformation(|t|
-                    t.[<modify_ $name>](|v| v.set_dim(dim, value))
+                self.with_mut_borrowed_transformation_manually_flagged(|t|
+                    t.[<set_ $name _dim_checked>](dim, value)
                 );
             }
 
@@ -2255,23 +2397,19 @@ pub struct LayoutModel {
     /// used often. This field can contain [`AutoLayout`] instance even if auto layout is not used.
     /// For example, if someone sets auto layout options (e.g. the `gap`), but the auto-layout
     /// was not enabled, it will be instantiated with the `enabled` field set to `false`.
-    auto_layout:             RefCell<Option<AutoLayout>>,
-    alignment:               Cell<alignment::OptDim2>,
-    margin:                  Cell<Vector2<SideSpacing>>,
-    padding:                 Cell<Vector2<SideSpacing>>,
+    auto_layout:   RefCell<Option<AutoLayout>>,
+    alignment:     Cell<alignment::OptDim2>,
+    margin:        Cell<Vector2<SideSpacing>>,
+    padding:       Cell<Vector2<SideSpacing>>,
     #[derivative(Default(
         value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector_trans())"
     ))]
-    max_size:                Cell<Vector2<Unit>>,
-    min_size:                Cell<Vector2<Unit>>,
-    size:                    Cell<Vector2<Size>>,
-    grow_factor:             Cell<Vector2<f32>>,
-    shrink_factor:           Cell<Vector2<f32>>,
-    computed_size:           Cell<Vector2<f32>>,
-    content_origin:          Cell<Vector2<f32>>,
-    /// Force the alignment of origin. This will assume the origin to be placed differently than
-    /// computed. It is used by sprite system, as sprites handle their alignment by themselves.
-    forced_origin_alignment: Cell<alignment::Dim2>,
+    max_size:      Cell<Vector2<Unit>>,
+    min_size:      Cell<Vector2<Unit>>,
+    size:          Cell<Vector2<Size>>,
+    grow_factor:   Cell<Vector2<f32>>,
+    shrink_factor: Cell<Vector2<f32>>,
+    computed_size: Cell<Vector2<f32>>,
 }
 
 impl Model {
@@ -2295,12 +2433,6 @@ impl Model {
     fn modify_padding(&self, f: impl FnOnce(&mut Vector2<SideSpacing>)) {
         self.modify_layout(|layout| {
             layout.padding.modify(f);
-        });
-    }
-
-    fn modify_forced_origin_alignment(&self, f: impl FnOnce(&mut alignment::Dim2)) {
-        self.modify_layout(|layout| {
-            layout.forced_origin_alignment.modify(f);
         });
     }
 
@@ -2371,6 +2503,13 @@ pub trait LayoutOps: Object {
     gen_content_justification!(y, space_around_y, 0.5.fr(), 0.5.fr(), 1.fr());
     gen_content_justification!(y, space_evenly_y, 1.fr(), 1.fr(), 1.fr());
 
+    /// Set the alignment of this object. Alignment positions the object within the free space
+    /// around them. For example, if objects are placed in a column, the right alignment will
+    /// move them to the right border of the column.
+    fn set_alignment(&self, alignment: alignment::OptDim2) {
+        self.display_object().def.modify_alignment(|a| *a = alignment);
+    }
+
     /// Content justification. See docs of this module to learn more and see examples.
     fn justify_content_center(&self) -> &Self {
         self.justify_content_center_x().justify_content_center_y()
@@ -2407,18 +2546,17 @@ pub trait LayoutOps: Object {
     /// the size either to a fixed pixel value, a percentage parent container size, or to a fraction
     /// of the free space left after placing siblings with fixed sizes.
     ///
-    /// In case the size was modified to a fixed pixels value, the [`computed_size`] will be updated
-    /// immediately for convenience. See the docs of this module to learn more.
+    /// Please note that the [`computed_size`] will not be updated immediately. It will be updated
+    /// during the next display object refresh cycle, which happens once per frame. When the size is
+    /// set to a fixed pixel value, the final `computed_size` can still differ from the requested
+    /// size, because the layout might apply growing or shrinking to the object if it is configured
+    /// to do so.
+    ///
+    /// If you need to know the final computed size of the object, use the [`on_changed`] stream
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
     fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
         self.display_object().modify_layout(|layout| {
-            let new_size = layout.size.modify(f);
-            if let Some(x) = new_size.x.as_pixels() {
-                layout.computed_size.set_x(x);
-            }
-            if let Some(y) = new_size.y.as_pixels() {
-                layout.computed_size.set_y(y);
-            }
+            layout.size.modify(f);
         });
         self
     }
@@ -2451,13 +2589,6 @@ pub trait LayoutOps: Object {
     fn set_size_hug(&self) -> &Self {
         self.set_size((Size::Hug, Size::Hug));
         self
-    }
-
-    /// The left bottom corner of the content. In case the children overflow the parent, this is set
-    /// to the min x and y values of the children. Otherwise, it is set to (0.0, 0.0). This value
-    /// will be updated during display object refresh cycle, which happens once per frame.
-    fn content_origin(&self) -> Vector2<f32> {
-        self.display_object().def.layout.content_origin.get()
     }
 
     /// The maximum size of the object. During auto layout, if the object [`grow_factor`] is
@@ -2607,16 +2738,6 @@ pub trait LayoutOps: Object {
         let horizontal = SideSpacing::new(left.into(), right.into());
         let vertical = SideSpacing::new(bottom.into(), top.into());
         self.display_object().layout.padding.set(Vector2(horizontal, vertical));
-    }
-
-    /// Set the forced origin alignment of this object. You should not use this function. It
-    /// tells the object to assume where is the alignment origin and ignore the real value. It
-    /// is used by sprite system, as sprites handle their alignment by themselves.
-    fn unsafe_set_forced_origin_alignment(&self, alignment: alignment::Dim2) -> &Self {
-        self.display_object().modify_layout(|l| {
-            l.forced_origin_alignment.set(alignment);
-        });
-        self
     }
 }
 
@@ -2965,8 +3086,8 @@ impl Model {
     /// ║ │╱╱╱╱╱  ╭── ▶ ◀ ──┬▷ ┆  ╭ R ▶ ◀ ───┤  │ ║
     /// ║ │╱╱╱╱╱  │ L       │  ┆  │      △   │  │ ║
     /// ║ │╱╱╱╱╱  │ ╭ L1 ┬▷ │  ┆  │ ╭ R2 ┤   │  │ ║
-    /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ │ 30 │   │  │ ║                 
-    /// ║ │╱╱╱╱╱  │ │    │  ▼  ┆  │ ╰────╯   │  ▼ ║            
+    /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ │ 30 │   │  │ ║
+    /// ║ │╱╱╱╱╱  │ │    │  ▼  ┆  │ ╰────╯   │  ▼ ║
     /// ║ │╱╱╱╱╱  │ │    │  ▲  ┆  │      △   │  ▲ ║
     /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ ╭ R1 ┤   │  │ ║
     /// ║ │╱╱╱╱╱  │ │ 10 │  │  ┆  │ │ 20 │   │  │ ║
@@ -3034,12 +3155,13 @@ impl Model {
         if self.should_refresh_layout() {
             let old_size = self.layout.computed_size.get();
             self.reset_size_to_static_values(X, 0.0);
-            self.refresh_layout_internal(X, PassConfig::Default);
             self.reset_size_to_static_values(Y, 0.0);
+            self.refresh_layout_internal(X, PassConfig::Default);
             self.refresh_layout_internal(Y, PassConfig::Default);
             let new_size = self.layout.computed_size.get();
             if old_size != new_size {
                 self.on_resized_source.emit(new_size);
+                self.dirty.computed_size.set();
             }
         }
     }
@@ -3088,11 +3210,16 @@ impl Model {
     /// the size does not change.
     fn reset_size_to_static_values<Dim>(&self, x: Dim, parent_size: f32)
     where Dim: ResolutionDim {
-        let size = match self.layout.size.get_dim(x) {
+        let size = self.resolve_size_static_values(x, parent_size);
+        self.layout.computed_size.set_dim(x, size);
+    }
+
+    fn resolve_size_static_values<Dim>(&self, x: Dim, parent_size: f32) -> f32
+    where Dim: ResolutionDim {
+        match self.layout.size.get_dim(x) {
             Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
             Size::Hug => 0.0,
-        };
-        self.layout.computed_size.set_dim(x, size);
+        }
     }
 
     fn should_propagate_parent_layout_refresh<Dim>(&self, x: Dim) -> bool
@@ -3125,49 +3252,86 @@ impl Model {
         let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
         let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
         let children = self.children();
+        let old_child_computed_sizes: Vec<f32> =
+            children.iter().map(|child| child.layout.computed_size.get_dim(x)).collect();
 
-        let mut min_x = if children.is_empty() { 0.0 } else { f32::MAX };
-        let mut max_x = if children.is_empty() { 0.0 } else { f32::MIN };
-        let mut children_to_grow = vec![];
+        let mut max_x = 0.0f32;
+        let mut has_aligned_non_grow_children = false;
+        let mut has_grow_children = false;
         for child in &children {
-            if child.layout.grow_factor.get_dim(x) > 0.0 {
-                children_to_grow.push(child);
-            } else {
+            let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
+            if !to_grow {
                 // If the child is not growing, doesn't depend on parent size and by itself was not
                 // modified since last update, it is guaranteed to already have correct size.
                 if child.should_propagate_parent_layout_refresh(x) {
                     child.reset_size_to_static_values(x, self.layout.computed_size.get_dim(x));
                     child.refresh_layout_internal(x, PassConfig::Default);
                 }
-                let child_pos = child.position().get_dim(x);
-                let child_size = child.computed_size().get_dim(x);
-                let child_content_origin = child.content_origin().get_dim(x);
-                let child_min_x = child_pos + child_content_origin;
-                let child_max_x = child_min_x + child_size;
-                min_x = min_x.min(child_min_x);
-                max_x = max_x.max(child_max_x);
-            }
-        }
-        if hug_children {
-            self.layout.computed_size.set_dim(x, max_x - min_x);
-        }
-        for child in children_to_grow {
-            let current_size = self.layout.computed_size.get_dim(x);
-            let current_child_size = child.computed_size().get_dim(x);
-            if current_size != current_child_size || child.should_refresh_layout() {
-                child.layout.computed_size.set_dim(x, current_size);
-                child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
-            }
-            let child_pos = child.position().get_dim(x);
-            let child_content_origin = child.content_origin().get_dim(x);
-            min_x = min_x.min(child_pos + child_content_origin);
-        }
-        self.layout.content_origin.set_dim(x, min_x);
 
+                if child.layout.alignment.get().get_dim(x).is_some() {
+                    // If the child is aligned, the parent manages its position relative to its own
+                    // size and position. That child must not be taken into account when calculating
+                    // size for hugging. It will be hugged again after its alignment is resolved.
+                    has_aligned_non_grow_children = true;
+                } else {
+                    let child_pos = child.position().get_dim(x);
+                    let child_size = child.computed_size().get_dim(x);
+                    max_x = max_x.max(child_pos + child_size);
+                }
+            } else {
+                has_grow_children = true;
+            }
+        }
+
+        if hug_children {
+            self.layout.computed_size.set_dim(x, max_x);
+        }
+
+        // Resolve aligned children and hug them again.
+        if has_aligned_non_grow_children {
+            let base_size = self.layout.computed_size.get_dim(x);
+            for child in &children {
+                let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
+                if let Some(alignment) = *child.layout.alignment.get().get_dim(x) && !to_grow {
+                    let child_size = child.computed_size().get_dim(x);
+                    let remaining_size = base_size - child_size;
+                    let aligned_position = remaining_size * alignment.normalized();
+                    child.set_position_dim(x, aligned_position);
+                    max_x = max_x.max(aligned_position + child_size);
+                }
+            }
+            if hug_children {
+                self.layout.computed_size.set_dim(x, max_x);
+            }
+        }
+
+        // From this point on, the size of this node is not changing anymore.
         let self_size = self.layout.computed_size.get_dim(x);
-        let forced_origin_alignment = self.layout.forced_origin_alignment.get().get_dim(x);
-        let origin_shift = forced_origin_alignment.normalized() * self_size;
-        self.layout.content_origin.update_dim(x, |t| t - origin_shift);
+
+        if has_grow_children {
+            for child in &children {
+                let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
+                if to_grow {
+                    let current_child_size = child.computed_size().get_dim(x);
+                    if self_size != current_child_size || child.should_refresh_layout() {
+                        child.layout.computed_size.set_dim(x, self_size);
+                        child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
+                    }
+
+                    if child.layout.alignment.get().get_dim(x).is_some() {
+                        // If child is set to grow, there will never be any leftover space to align
+                        // it. It should always be positioned at 0.0 relative to its parent.
+                        child.set_position_dim(x, 0.0);
+                    }
+                }
+            }
+        }
+
+        for (child, old_size) in children.iter().zip(old_child_computed_sizes) {
+            if child.layout.computed_size.get_dim(x) != old_size {
+                child.dirty.computed_size.set();
+            }
+        }
     }
 }
 
@@ -3257,6 +3421,7 @@ impl Model {
     where
         Dim: ResolutionDim,
     {
+        let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
         let columns = unresolved_columns
             .into_iter()
             .map(|column| {
@@ -3270,24 +3435,24 @@ impl Model {
                 for child in &children {
                     let child_grow_factor = child.layout.grow_factor.get_dim(x);
                     let child_shrink_factor = child.layout.shrink_factor.get_dim(x);
-                    let child_can_grow_or_shrink =
-                        child_grow_factor > 0.0 || child_shrink_factor > 0.0;
-                    let refresh_child =
-                        child_can_grow_or_shrink || child.should_propagate_parent_layout_refresh(x);
 
-                    let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
-                    if refresh_child {
-                        child.reset_size_to_static_values(x, self_const_size);
-                    }
                     match child.layout.size.get_dim(x) {
-                        Size::Hug =>
+                        Size::Hug => {
+                            let child_can_grow_or_shrink =
+                                child_grow_factor > 0.0 || child_shrink_factor > 0.0;
+                            let refresh_child = child_can_grow_or_shrink
+                                || child.should_propagate_parent_layout_refresh(x);
                             if refresh_child {
+                                child.reset_size_to_static_values(x, self_const_size);
                                 child.refresh_layout_internal(x, PassConfig::Default);
-                            },
+                            }
+                        }
                         Size::Fixed(unit) => {
                             max_child_fr = max(max_child_fr, unit.as_fraction_or_default());
+                            child.reset_size_to_static_values(x, self_const_size);
                         }
-                    }
+                    };
+
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
                     let child_min_size =
@@ -3362,6 +3527,8 @@ impl Model {
         if children.is_empty() {
             return;
         }
+        let old_child_computed_sizes: Vec<f32> =
+            children.iter().map(|child| child.layout.computed_size.get_dim(x)).collect();
 
         let unresolved_columns = self.divide_children_to_columns(x, opts, &children);
         let mut columns = self.resolve_columns(x, opts, unresolved_columns);
@@ -3431,9 +3598,9 @@ impl Model {
             let column_size = column.computed_size + fr_diff;
             let column_size = f32::max(column.min_size, column_size);
             let column_size = f32::min(column.max_size, column_size);
-            for child in &column.children {
-                let child_size = child.layout.computed_size.get_dim(x);
-                let child_unused_space = f32::max(0.0, column_size - child_size);
+            for (child, previous_size) in column.children.iter().zip(&old_child_computed_sizes) {
+                let child_base_size = child.layout.computed_size.get_dim(x);
+                let child_unused_space = f32::max(0.0, column_size - child_base_size);
                 let unresolved_margin = child.layout.margin.get_dim(x);
                 let margin_fr = unresolved_margin.as_fraction_or_default().total();
                 let margin = unresolved_margin.resolve(self_size, child_unused_space, margin_fr);
@@ -3441,7 +3608,7 @@ impl Model {
 
                 let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
-                if child_can_grow && child_size < column_size_minus_margin {
+                if child_can_grow && child_base_size < column_size_minus_margin {
                     let size = f32::min(
                         column_size_minus_margin,
                         child.layout.max_size.get_dim(x).resolve_pixels_or_default(),
@@ -3457,7 +3624,7 @@ impl Model {
                         child.layout.computed_size.set_dim(x, size);
                     }
                 }
-                if child_can_shrink && child_size > column_size_minus_margin {
+                if child_can_shrink && child_base_size > column_size_minus_margin {
                     let size = f32::max(
                         column_size_minus_margin,
                         child.layout.min_size.get_dim(x).resolve_pixels_or_default(),
@@ -3465,7 +3632,7 @@ impl Model {
                     child.layout.computed_size.set_dim(x, size);
                 }
 
-                let child_size_changed = child_size != child.layout.computed_size.get_dim(x);
+                let child_size_changed = child_base_size != child.layout.computed_size.get_dim(x);
                 let child_not_computed =
                     child.layout.size.get_dim(x).is_fixed() && child.should_refresh_layout();
                 if child_size_changed || child_not_computed {
@@ -3475,14 +3642,17 @@ impl Model {
                     // child size, we need to refresh the child layout again.
                     child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
                 }
+
                 let child_width = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size_minus_margin - child_width);
                 let def_alignment = opts.children_alignment.get_dim(x);
                 let alignment = child.layout.alignment.get().get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
-                let content_origin = child.content_origin();
-                let child_left = pos_x - content_origin.get_dim(x) + child_offset + margin.start;
+                let child_left = pos_x + child_offset + margin.start;
                 child.set_position_dim(x, child_left);
+                if *previous_size != child_width {
+                    child.dirty.computed_size.set();
+                }
             }
             pos_x += column_size + gap;
         }
@@ -4577,12 +4747,6 @@ mod layout_tests {
                 }
 
                 #[track_caller]
-                fn assert_root_content_origin(&self, x:f32, y:f32) -> &Self {
-                    assert_eq!(self.root.content_origin(), Vector2(x,y));
-                    self
-                }
-
-                #[track_caller]
                 fn assert_root_position(&self, x:f32, y:f32) -> &Self {
                     assert_eq!(self.root.position().xy(), Vector2(x,y));
                     self
@@ -4595,12 +4759,6 @@ mod layout_tests {
                 }
 
                 $(
-                    #[track_caller]
-                    fn [<assert_node $num _content_origin>](&self, x:f32, y:f32) -> &Self {
-                        assert_eq!(self.[<node $num>].content_origin(), Vector2(x,y));
-                        self
-                    }
-
                     #[track_caller]
                     fn [<assert_node $num _position>](&self, x:f32, y:f32) -> &Self {
                         assert_eq!(self.[<node $num>].position().xy(), Vector2(x,y));
@@ -5518,8 +5676,8 @@ mod layout_tests {
     /// │   │    │ ╭────────╮ ╰───┼────╯
     /// ╰───┼────╯ │ node2  │     │
     ///     ╰──────┼────────┼─────╯
-    ///   ╱        │        │
-    /// ◎          ╰────────╯
+    ///            │        │
+    ///            ╰────────╯
     /// ```
     #[test]
     fn test_layout_manual_fixed() {
@@ -5536,7 +5694,6 @@ mod layout_tests {
                 .assert_node1_computed_size(2.0, 2.0)
                 .assert_node2_computed_size(2.0, 2.0)
                 .assert_node3_computed_size(2.0, 2.0)
-                .assert_root_content_origin(-1.0, -1.0)
                 .assert_root_position(0.0, 0.0)
                 .assert_node1_position(-1.0, 0.0)
                 .assert_node2_position(1.0, -1.0)
@@ -5545,16 +5702,15 @@ mod layout_tests {
     }
 
     /// ```text
-    ///     ╭──────── ▶ ◀ ──────────────────╮
-    ///     │ root                          │
-    ///     │                 ╭────────╮    │
-    /// ╭───┼────╮            │ node3  │    │
-    /// │ node1  │            │        │    ▼
-    /// │   │    │ ╭────────╮ ╰────────╯    ▲
-    /// ╰───┼────╯ │ node2  │               │
-    ///     ╰──────┼────────┼───────────────╯
-    ///   ╱        │        │
-    /// ◎          ╰────────╯
+    ///     ╭──────── ▶ ◀ ──────────────╮
+    ///     │ root            ╭────────╮│
+    /// ╭───┼────╮            │ node3  ││
+    /// │ node1  │            │        │▼
+    /// │   │    │ ╭────────╮ ╰────────╯▲
+    /// ╰───┼────╯ │ node2  │           │
+    ///     ╰──────┼────────┼───────────╯
+    ///            │        │
+    ///            ╰────────╯
     /// ```
     #[test]
     fn test_layout_manual_hug() {
@@ -5566,11 +5722,10 @@ mod layout_tests {
         test.node2.set_xy((1.0, -1.0));
         test.node3.set_xy((3.0, 1.0));
         test.run(|| {
-            test.assert_root_computed_size(6.0, 4.0)
+            test.assert_root_computed_size(5.0, 3.0)
                 .assert_node1_computed_size(2.0, 2.0)
                 .assert_node2_computed_size(2.0, 2.0)
                 .assert_node3_computed_size(2.0, 2.0)
-                .assert_root_content_origin(-1.0, -1.0)
                 .assert_root_position(0.0, 0.0)
                 .assert_node1_position(-1.0, 0.0)
                 .assert_node2_position(1.0, -1.0)
@@ -5579,23 +5734,19 @@ mod layout_tests {
     }
 
     /// ```text
-    ///          ╭────── ▶ ◀ ──────────────╮    ╭────── ▶ ◀ ─────────────╮
-    ///          │ node1                   │    │ node2                  │
-    /// ╔════════╪═══════════════════ ▶ ◀ ═╪════╪════════════════════════╪╗
-    /// ║ ╭──────┼───────────────────────┬─┼────┼──────────────────────╮ │║
-    /// ║ │ root │                       ┆ │    │                      │ │║
-    /// ║ │  ╭───┼──────╮                ┆ ▼╭───┼──────╮               │ ▼║
-    /// ║ │  │ node1_1  │                ┆ ▲│ node2_1  │               │ ▲║
-    /// ║ │  │   │      │  ╭──────────╮  ┆ ││   │      │  ╭─────────╮  │ │▼
-    /// ║ │  ╰───┼──────╯  │ node1_2  │  ┆ │╰───┼──────╯  │ node2_2 │  │ │▲
-    /// ║ │      ╰─────────┼──────────┼──┼─╯    ╰─────────┼─────────┼──┼─╯║
-    /// ║ │    ╱           │          │  ┆    ╱           │         │  │  ║
-    /// ║ │  ◎             ╰──────────╯  ┆  ◎             ╰─────────╯  │  ║
-    /// ║ ╰──────────────────────────────┴─────────────────────────────╯  ║
-    /// ╚═════════════════════════════════════════════════════════════════╝
+    ///    ╔══════════════════════ ▶ ◀ ══════════════════════╗
+    ///    ║ ╭ root ────────────────┬──────────────────────╮ ║
+    ///    ║ │╭ node1 ─ ▶ ◀ ───────╮┆╭ node2 ─ ▶ ◀ ───────╮│ ║
+    ///   ╭╫─┼┼──────╮           ╭─┼┼┼──────╮             ││ ║
+    ///   │║node1_1  │           │ node2_1  │             ││ ▼
+    ///   │║ ││      │  ╭────────┼╮│┆│      │  ╭─────────╮││ ▲
+    ///   ╰╫─┼┼──────╯  │ node1_2╰┼┼┼┼──────╯  │ node2_2 │││ ║
+    ///    ║ │╰─────────┼─────────┼╯┆╰─────────┼─────────┼╯│ ║
+    ///    ║ ╰──────────┼─────────┼─┴──────────┼─────────┼─╯ ║
+    ///    ╚════════════╰─────────╯════════════╰─────────╯═══╝
     /// ```
     #[test]
-    fn test_layout_with_children_with_shifted_content_origins() {
+    fn test_layout_with_children_with_overflow() {
         let test = TestFlatChildren2::new();
 
         test.root.use_auto_layout();
@@ -5619,135 +5770,121 @@ mod layout_tests {
             assert_eq!(node1_2.position().xy(), Vector2(1.0, -1.0));
             assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
             assert_eq!(node1_2.computed_size(), Vector2(2.0, 2.0));
-            assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
-            assert_eq!(test.node1.computed_size(), Vector2(4.0, 3.0));
+            assert_eq!(test.node1.computed_size(), Vector2(3.0, 2.0));
 
             assert_eq!(node2_1.position().xy(), Vector2(-1.0, 0.0));
             assert_eq!(node2_2.position().xy(), Vector2(1.0, -1.0));
             assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
             assert_eq!(node2_2.computed_size(), Vector2(2.0, 2.0));
-            assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
-            assert_eq!(test.node2.computed_size(), Vector2(4.0, 3.0));
+            assert_eq!(test.node2.computed_size(), Vector2(3.0, 2.0));
 
-            test.assert_node1_position(1.0, 1.0)
-                .assert_node2_position(5.0, 1.0)
-                .assert_root_computed_size(8.0, 3.0)
-                .assert_root_content_origin(0.0, 0.0)
+            test.assert_node1_position(0.0, 0.0)
+                .assert_node2_position(3.0, 0.0)
+                .assert_node1_computed_size(3.0, 2.0)
+                .assert_node2_computed_size(3.0, 2.0)
+                .assert_root_computed_size(6.0, 2.0)
                 .assert_root_position(0.0, 0.0);
         });
     }
 
     /// ```text
-    /// ◎╌╌╌╌╌╌╌┬───────────────╮
-    ///         │ root          │
-    ///         │       △       │
-    /// ╭ node1 ┼───────┼▷      │
-    /// │       │       │       │
-    /// │       │       │       │
-    /// │       ╰───────┼───────┤
-    /// │               │       ┆
-    /// │               │       ┆
-    /// ╰───────────────╯       ◎
-    /// ```
-
-    /// ```text
     /// ╭───────────────────╮
     /// │ root              │
-    /// │    ╭─────────╮    ▼
-    /// │    │ node1   │    ▲
-    /// │    │    ◎    │    │
+    /// │    ╭─────────╮    │
+    /// │    │ node1   │    │
+    /// │    │         │    │
     /// │    │         │    │
     /// │    ╰─────────╯    │
     /// │                   │
     /// ╰───────────────────╯
     /// ```
     #[test]
-    fn test_layout_horizontal_origin_alignment_center() {
+    fn test_layout_fraction_padding_all() {
         let test = TestFlatChildren1::new();
         test.root.use_auto_layout().set_size((10.0, 10.0)).set_padding_all(1.fr());
-        test.node1
-            .set_size((2.0, 2.0))
-            .unsafe_set_forced_origin_alignment(alignment::Dim2::center());
+        test.node1.set_size((2.0, 2.0));
         test.run(|| {
             test.assert_root_computed_size(10.0, 10.0)
                 .assert_node1_computed_size(2.0, 2.0)
                 .assert_root_position(0.0, 0.0)
-                .assert_node1_position(5.0, 5.0)
-                .assert_root_content_origin(0.0, 0.0)
-                .assert_node1_content_origin(-1.0, -1.0);
+                .assert_node1_position(4.0, 4.0);
         });
     }
 
     /// ```text
-    /// ◎╌╌╌╌╌╌╌┬───────────────╮
-    ///         │ root          │
-    ///         │       △       │
-    /// ╭ node1 ┼───────┼▷      │
-    /// │       │       │       │
-    /// │       │       │       │
-    /// │       ╰───────┼───────┤
-    /// │               │       ┆
-    /// │               │       ┆
-    /// ╰───────────────╯       ◎
+    /// ╭───────────────────╮
+    /// │ root              │
+    /// │    ╭─────────╮    │
+    /// │    │ node1   │    │
+    /// │    │         │    │
+    /// │    │         │    │
+    /// │    ╰─────────╯    │
+    /// │                   │
+    /// ╰───────────────────╯
     /// ```
     #[test]
-    fn test_manual_layout_with_child_with_origin_alignment_center() {
+    fn test_manual_layout_alignment_center() {
         let test = TestFlatChildren1::new();
         test.root.set_size((10.0, 10.0));
-        test.node1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
+        test.node1.set_size((5.0, 5.0));
+        test.node1.set_alignment_center();
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 10.0)
+                .assert_node1_computed_size(5.0, 5.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(2.5, 2.5);
+        });
+    }
+
+    /// ```text
+    ///        ╭─root─────────────╮
+    ///        │╭─node1──╮        │
+    ///        ││        │        │
+    ///        ││        │        │
+    /// ╭─node2┼┼────────┼───────╮│
+    /// │      ││        │       ││
+    /// │      ││        │       ││
+    /// ╰──────┼┼────────┼───────╯│
+    ///        ││        │        │
+    ///        ││        │        │
+    ///        │╰────────╯        │
+    ///        ╰──────────────────╯
+    /// ```
+    #[test]
+    fn test_manual_layout_alignment_center_hug() {
+        let test = TestFlatChildren2::new();
+        test.node1.set_size((5.0, 10.0));
+        test.node2.set_size((10.0, 5.0));
+        test.node2.set_alignment_center();
+        test.run(|| {
+            test.assert_root_computed_size(7.5, 10.0)
+                .assert_node1_computed_size(5.0, 10.0)
+                .assert_node2_computed_size(10.0, 5.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(0.0, 0.0)
+                .assert_node2_position(-2.5, 2.5);
+        });
+    }
+
+    /// ```text
+    /// ╭ root ───────────╮
+    /// │╭ node1 ───◀ ▶──╮│
+    /// ││               ▲│
+    /// ││               ▼│
+    /// ││               ││
+    /// │╰───────────────╯│
+    /// ╰─────────────────╯
+    /// ```
+    #[test]
+    fn test_manual_layout_with_child_with_grow() {
+        let test = TestFlatChildren1::new();
+        test.root.set_size((10.0, 10.0));
+        test.node1.allow_grow();
         test.run(|| {
             test.assert_root_computed_size(10.0, 10.0)
                 .assert_node1_computed_size(10.0, 10.0)
                 .assert_root_position(0.0, 0.0)
-                .assert_node1_position(0.0, 0.0)
-                .assert_node1_content_origin(-5.0, -5.0)
-                .assert_root_content_origin(-5.0, -5.0);
-        });
-    }
-
-    /// ```text
-    ///          ╭────── ▶ ◀ ──────────────╮    ╭────── ▶ ◀ ─────────────╮
-    ///          │ node1                   │    │ node2                  │
-    /// ╔════════╪═══════════════════ ▶ ◀ ═╪════╪════════════════════════╪╗
-    /// ║ ╭──────┼───────────────────────┬─┼────┼──────────────────────╮ │║
-    /// ║ │ root │                       ┆ │    │                      │ │║
-    /// ║ │  ╭───┼──────╮                ┆ ▼╭───┼──────╮               │ ▼║
-    /// ║ │  │ node1_1  │                ┆ ▲│ node2_1  │               │ ▲║
-    /// ║ │  │   │      │  ╭──────────╮  ┆ ││   │      │  ╭─────────╮  │ │▼
-    /// ║ │  ╰───┼──────╯  │ node1_2  │  ┆ │╰───┼──────╯  │ node2_2 │  │ │▲
-    /// ║ │      ╰─────────┼──────────┼──┼─╯    ╰─────────┼─────────┼──┼─╯║
-    /// ║ │    ╱           │          │  ┆    ╱           │         │  │  ║
-    /// ║ │  ◎             ╰──────────╯  ┆  ◎             ╰─────────╯  │  ║
-    /// ║ ╰──────────────────────────────┴─────────────────────────────╯  ║
-    /// ╚═════════════════════════════════════════════════════════════════╝
-    #[test]
-    fn test_horizontal_layout_with_children_with_forced_origins() {
-        let test = TestFlatChildren2::new();
-
-        test.root.use_auto_layout();
-        test.node1.set_size((2.0, 2.0));
-        test.node2.set_size((2.0, 2.0));
-
-        let node1_1 = test.node1.new_child_named("node1_1");
-        let node2_1 = test.node2.new_child_named("node2_1");
-        node1_1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
-        node2_1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
-
-        test.run(|| {
-            assert_eq!(node1_1.position().xy(), Vector2(0.0, 0.0));
-            assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
-            assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
-            assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
-            assert_eq!(node1_1.content_origin(), Vector2(-1.0, -1.0));
-            assert_eq!(node2_1.content_origin(), Vector2(-1.0, -1.0));
-            assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
-            assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
-            assert_eq!(test.node1.computed_size(), Vector2(2.0, 2.0));
-            assert_eq!(test.node2.computed_size(), Vector2(2.0, 2.0));
-            assert_eq!(test.node1.position().xy(), Vector2(1.0, 1.0));
-            assert_eq!(test.node2.position().xy(), Vector2(3.0, 1.0));
-
-            test.assert_root_position(0.0, 0.0);
+                .assert_node1_position(0.0, 0.0);
         });
     }
 

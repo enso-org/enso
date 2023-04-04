@@ -15,6 +15,8 @@ loadStyleFromString(scrollbarStyle)
 // === Table visualization ===
 // ===========================
 
+const SIDE_MARGIN = 20
+
 class TableVisualization extends Visualization {
     // IMPORTANT: When updating this, also update the test in
     // test/Visualization_Tests/src/Default_Visualizations_Spec.enso:15 as this verifies that the
@@ -125,7 +127,6 @@ class TableVisualization extends Visualization {
             tabElem.setAttributeNS(null, 'class', 'scrollable ag-theme-alpine')
             this.dom.appendChild(tabElem)
             this.tabElem = tabElem
-            this.updateTableSize()
 
             this.agGridOptions = {
                 rowData: [],
@@ -136,7 +137,9 @@ class TableVisualization extends Visualization {
                     filter: true,
                     resizable: true,
                     minWidth: 50,
+                    headerValueGetter: params => params.colDef.field,
                 },
+                onColumnResized: e => this.lockColumnSize(e),
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
@@ -150,11 +153,11 @@ class TableVisualization extends Visualization {
         if (parsedData.error !== undefined) {
             this.agGridOptions.api.setColumnDefs([
                 {
-                    field: 'error',
+                    field: 'Error',
                     cellStyle: { 'white-space': 'normal' },
                 },
             ])
-            this.agGridOptions.api.setRowData([{ error: parsedData.error }])
+            this.agGridOptions.api.setRowData([{ Error: parsedData.error }])
         } else if (parsedData.json != null && isMatrix(parsedData.json)) {
             columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
             rowData = parsedData.json
@@ -167,18 +170,15 @@ class TableVisualization extends Visualization {
             )
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && Array.isArray(parsedData.json)) {
-            columnDefs = [{ field: '#', headerName: 'Row#' }, { field: 'value' }]
-            rowData = parsedData.json.map((row, i) => ({ ['#']: i, value: toRender(row) }))
+            columnDefs = [{ field: '#' }, { field: 'Value' }]
+            rowData = parsedData.json.map((row, i) => ({ ['#']: i, Value: toRender(row) }))
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null) {
-            columnDefs = [{ field: 'value' }]
-            rowData = [{ value: toRender(parsedData.json) }]
+            columnDefs = [{ field: 'Value' }]
+            rowData = [{ Value: toRender(parsedData.json) }]
         } else {
             const indices_header = (parsedData.indices_header ? parsedData.indices_header : []).map(
-                h => {
-                    const headerName = h === '#' ? 'Row#' : h
-                    return { field: h, headerName: headerName }
-                }
+                h => ({ field: h })
             )
             columnDefs = [...indices_header, ...parsedData.header.map(h => ({ field: h }))]
 
@@ -222,24 +222,48 @@ class TableVisualization extends Visualization {
             this.agGridOptions.api.setPinnedTopRowData([extraRow])
         }
         this.agGridOptions.api.setRowData(rowData)
-        this.agGridOptions.api.sizeColumnsToFit()
+        this.updateTableSize(this.dom.getAttributeNS(null, 'width'))
     }
 
-    updateTableSize() {
-        if (this.tabElem !== undefined) {
-            const width = this.dom.getAttributeNS(null, 'width')
-            const height = this.dom.getAttributeNS(null, 'height')
-            const tblViewStyle = `width: ${width}px; height: ${height}px; overflow: scroll;`
-            this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
+    updateTableSize(clientWidth) {
+        // Check the grid has been initialised and return if not.
+        if (!this.agGridOptions) {
+            return
         }
 
-        this.agGridOptions && this.agGridOptions.api.sizeColumnsToFit()
+        // Resize columns to fit the table width unless the user manually resized them.
+        const cols = this.agGridOptions.columnApi
+            .getAllGridColumns()
+            .filter(c => !c.colDef.manuallySized)
+
+        // Compute the maximum width of a column: the client width minus a small margin.
+        const maxWidth = clientWidth - SIDE_MARGIN
+
+        // Resize based on the data and then shrink any columns that are too wide.
+        this.agGridOptions.columnApi.autoSizeColumns(cols, true)
+        const bigCols = cols
+            .filter(c => c.getActualWidth() > maxWidth)
+            .map(c => ({ key: c, newWidth: maxWidth }))
+        this.agGridOptions.columnApi.setColumnWidths(bigCols)
+    }
+
+    lockColumnSize(e) {
+        // Check if the resize is finished, and it's not from the API (which is triggered by us).
+        if (!e.finished || e.source === 'api') {
+            return
+        }
+
+        // If the user manually resized a column, we don't want to auto-size it on a resize.
+        const manuallySized = e.source !== 'autosizeColumns'
+        for (const column of e.columns) {
+            column.colDef.manuallySized = manuallySized
+        }
     }
 
     setSize(size) {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
-        this.updateTableSize()
+        this.updateTableSize(size[0])
     }
 }
 

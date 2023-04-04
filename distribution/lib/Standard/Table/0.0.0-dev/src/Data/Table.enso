@@ -23,8 +23,6 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Data.Storage.Storage
-import project.Data.Value_Type.Value_Type
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -39,7 +37,8 @@ import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Value_Type import Auto, ensure_valid_parse_target
+from project.Data.Type.Value_Type import Value_Type, Auto
+from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
@@ -843,8 +842,8 @@ type Table
             parse_problem_builder.attach_problems_before on_problems <|
                 Table.new new_columns
 
-    ## Replaces the first, last, or all occurrences of `term` with
-       `new_text` in each text row of selected columns.
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       text row of selected columns.
        If `term` is empty, the function returns the table unchanged.
 
        This method follows the exact replacement semantics of the
@@ -854,15 +853,13 @@ type Table
        - columns: Column selection criteria or a column name or index.
        - term: The term to find.
        - new_text: The new text to replace occurrences of `term` with.
-         If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
-         patterns (such as `$<n>`) for a marked group.
-       - mode: Specifies which occurences of term the engine tries to find. When the
-         mode is `First` or `Last`, this method replaces the first or last occurence
-         of term in each individual table cell. If set to `All`, it replaces all
-         occurences of term.
-       - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-         rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-         regular expression and matched using the associated options.
+         If use_regex is true, `new_text` can include replacement patterns
+         (such as `$<n>`) for a marked group.
+       - case_insensitive: Enables or disables case-insensitive matching. Case
+         insensitive matching behaves as if it normalises the case of all input
+         text before matching on it.
+       - only_first: If True, only replace the first match.
+       - use_regex: If true, the term is used as a regular expression.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -881,28 +878,30 @@ type Table
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
 
-             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
+             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" use_regex=True
 
        > Example
          Replace texts in quotes with parentheses in column at index 1.
 
-             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
-    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
-    replace_text self columns=[0] term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
+             table.replace_text 1 '"(.*?)"' '($1)' use_regex=True
+    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Table
+    replace_text self columns=[0] term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
 
         selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
+        ## TODO [RW] we should inherit the parent type here, but extend fixed length strings to varied length
+           To be done in #6106.
         map_preserve_name column f = column.map f . rename column.name
-        do_replace = _.replace term new_text mode matcher
+        do_replace = _.replace term new_text case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex
         do_replace_only_text = case _ of
                 item : Text -> do_replace item
                 item -> item
 
-        transform column = case column.storage_type of
-            Storage.Text -> map_preserve_name column do_replace
-            Storage.Any -> map_preserve_name column do_replace_only_text
+        transform column = case column.value_type of
+            Value_Type.Char _ _ -> map_preserve_name column do_replace
+            Value_Type.Mixed -> map_preserve_name column do_replace_only_text
             _ ->
                 problem = Invalid_Value_Type.Error Value_Type.Char column.value_type
                 problem_builder.report_other_warning problem
@@ -1010,9 +1009,6 @@ type Table
     filter_by_expression self expression on_problems=Report_Warning =
         column = self.compute expression on_problems
         self.filter column Filter_Condition.Is_True
-
-    ## PRIVATE
-    with_no_rows self = self.take (First 0)
 
     ## Creates a new Table with the specified range of rows from the input
        Table.
@@ -1507,7 +1503,7 @@ type Table
                 case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
                     Nothing -> Nothing
                     result_type : Value_Type ->
-                        concat_columns column_set all_tables result_type result_row_count
+                        concat_columns column_set all_tables result_type result_row_count on_problems
             good_columns = merged_columns.filter Filter_Condition.Not_Nothing
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
@@ -1554,7 +1550,7 @@ type Table
     info : Table
     info self =
         cols = self.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
+        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -1910,8 +1906,8 @@ check_table arg_name table =
 
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
-concat_columns column_set all_tables result_type result_row_count =
-    storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=result_row_count
+concat_columns column_set all_tables result_type result_row_count on_problems =
+    storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count
     column_set.column_indices.zip all_tables i-> parent_table->
         case i of
             Nothing ->

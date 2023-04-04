@@ -179,6 +179,8 @@
   all symbols rendered in a given frame. You can also pause the performance
   monitor and inspect results recorded in the past.
 - [ToggleButtons can now have tooltips][6035].
+- [Rendering of tooltips was improved.][6097] Their text is now more vertically
+  centered and the delay before showing them was extended.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -186,6 +188,7 @@
 [4003]: https://github.com/enso-org/enso/pull/4003
 [5895]: https://github.com/enso-org/enso/pull/5895
 [6035]: https://github.com/enso-org/enso/pull/6035
+[6097]: https://github.com/enso-org/enso/pull/6097
 
 #### Enso Standard Library
 
@@ -363,6 +366,14 @@
 - [Aligned names of columns created by column operations.][5850]
 - [Improved `cross_tab`. Renamed `fill_missing` and `is_missing` to
   `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
+- [Removed many regex compile flags from `replace`; added `only_first` and
+  `use_regex` flag.][5959]
+- [Implemented proper support for Value Types in the Table library.][6073]
+- [Removed many regex compile flags from `split`; added `only_first` and
+  `use_regex` flag.][6116]
+- [Added `Text.tokenize`][6150]
+- [Added support for Date/Time columns in the Postgres backend and added
+  `year`/`month`/`day` operations to Table columns.][6153]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -550,6 +561,11 @@
 [5863]: https://github.com/enso-org/enso/pull/5863
 [5917]: https://github.com/enso-org/enso/pull/5917
 [5705]: https://github.com/enso-org/enso/pull/5705
+[5959]: https://github.com/enso-org/enso/pull/5959
+[6073]: https://github.com/enso-org/enso/pull/6073
+[6116]: https://github.com/enso-org/enso/pull/6116
+[6150]: https://github.com/enso-org/enso/pull/6150
+[6153]: https://github.com/enso-org/enso/pull/6153
 
 #### Enso Compiler
 

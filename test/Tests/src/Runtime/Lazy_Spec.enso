@@ -1,0 +1,95 @@
+from Standard.Base import all
+
+import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Runtime.Lazy.Lazy
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec = Test.group "Lazy" <|
+    Test.specify "should compute the result only once" <|
+        ref = Ref.new 0
+        compute =
+            ref.put (ref.get+1)
+            "Value"
+        r = Lazy.new compute
+        ref.get . should_equal 0
+
+        r.get . should_equal "Value"
+        ref.get . should_equal 1
+
+        r.get . should_equal "Value"
+        ref.get . should_equal 1
+
+        compute . should_equal "Value"
+        compute . should_equal "Value"
+
+        ref.get . should_equal 3
+
+    Test.specify "should compute the result only once, even if copied" <|
+        ref = Ref.new 0
+        compute =
+            ref.put (ref.get+1)
+            "Value"
+        r = Lazy.new compute
+        ref.get . should_equal 0
+
+        vec = [r, r, r, r]
+        vec.map .get . should_equal ["Value", "Value", "Value", "Value"]
+        ref.get . should_equal 1
+
+    Test.specify "should cache the result even if it results in a dataflow error" <|
+        ref = Ref.new 0
+        compute =
+            ref.put (ref.get+1)
+            Error.throw (Illegal_Argument.Error "FOO")
+        r = Lazy.new compute
+        ref.get . should_equal 0
+
+        r.get.should_fail_with Illegal_Argument
+        ref.get . should_equal 1
+
+        r.get.catch.message . should_equal "FOO"
+        ref.get . should_equal 1
+
+    Test.specify "should cache the result even if the operation panics" <|
+        ref = Ref.new 0
+        compute =
+            ref.put (ref.get+1)
+            Panic.throw (Illegal_Argument.Error "FOO")
+        r = Lazy.new compute
+        ref.get . should_equal 0
+
+        Test.expect_panic_with r.get Illegal_Argument
+        ref.get . should_equal 1
+
+        Test.expect_panic_with r.get Illegal_Argument
+        ref.get . should_equal 1
+
+        msg = Panic.catch Illegal_Argument r.get caught-> caught.payload.message
+        msg.should_equal "FOO"
+        ref.get . should_equal 1
+
+    Test.specify "should allow to create a Lazy instance that is computed eagerly" <|
+        ref = Ref.new 0
+        compute =
+            ref.put (ref.get+1)
+            "Value"
+        r = Lazy.new_eager compute
+        ref.get . should_equal 1
+
+        r.get . should_equal "Value"
+        ref.get . should_equal 1
+
+        r.get . should_equal "Value"
+        ref.get . should_equal 1
+
+    Test.specify "eager mode will not handle dataflow errors/panics specially" <|
+        r = Lazy.new_eager (Error.throw (Illegal_Argument.Error "FOO"))
+        r.should_fail_with Illegal_Argument
+
+        Test.expect_panic_with matcher=Illegal_Argument <|
+            Lazy.new_eager (Panic.throw (Illegal_Argument.Error "FOO"))
+
+main = Test_Suite.run_main spec

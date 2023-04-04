@@ -9,6 +9,9 @@ use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
+use double_representation::context_switch::Context;
+use double_representation::context_switch::ContextSwitch;
+use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
@@ -143,12 +146,6 @@ impl Model {
         );
     }
 
-    /// Node expression was edited in the view. Should be called whenever the user changes the
-    /// contents of a node during editing.
-    fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
-        self.state.update_from_view().set_node_expression(id, expression);
-    }
-
     /// Update a part of node expression under specific span tree crumbs. Preserves identity of
     /// unaffected parts of the expression.
     fn node_expression_span_set(
@@ -166,6 +163,54 @@ impl Model {
                 Some(graph.set_expression_span(ast_id, crumbs, expression, &self.controller))
             },
             "update expression input span",
+        );
+    }
+
+    /// TODO(#5930): Provide the state of the output context in the current environment.
+    fn output_context_enabled(&self) -> bool {
+        false
+    }
+
+    /// TODO(#5930): Provide the current execution environment of the project.
+    fn execution_environment(&self) -> &str {
+        "design"
+    }
+
+    /// Sets or clears a context switch expression for the specified node.
+    ///
+    /// A context switch expression allows enabling or disabling the execution of a particular node
+    /// in the Output context. This function adds or removes the context switch expression based on
+    /// the provided `active` flag (representing the state of the icon) and the current context
+    /// state.
+    ///
+    /// The behavior of this function can be summarized in the following table:
+    /// ```ignore
+    /// | Context Enabled | Active      | Action       |
+    /// |-----------------|-------------|--------------|
+    /// | Yes             | Yes         | Add Disable  |
+    /// | Yes             | No          | Clear        |
+    /// | No              | Yes         | Add Enable   |
+    /// | No              | No          | Clear        |
+    /// ```
+    /// TODO(#5929): Connect this function with buttons on nodes.
+    #[allow(dead_code)]
+    fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
+        let context = Context::Output;
+        let current_state = self.output_context_enabled();
+        let environment = self.execution_environment().into();
+        let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
+        let expr = if active {
+            Some(ContextSwitchExpression { switch, context, environment })
+        } else {
+            None
+        };
+        self.log_action(
+            || {
+                let ast_id =
+                    self.state.update_from_view().set_node_context_switch(id, expr.clone())?;
+                Some(self.controller.graph().set_node_context_switch(ast_id, expr))
+            },
+            "node context switch expression",
         );
     }
 
@@ -709,7 +754,6 @@ impl Graph {
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
-            eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone_ref()));
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
