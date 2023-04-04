@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Regex_2.No_Such_Group
-import Standard.Base.Data.Text.Regex_2.Regex_Syntax_Error
+import Standard.Base.Data.Text.Regex.No_Such_Group
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -8,8 +8,6 @@ import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.IO
-
-import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
 from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
