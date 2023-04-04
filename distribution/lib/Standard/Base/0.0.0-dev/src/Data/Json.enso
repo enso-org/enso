@@ -163,7 +163,8 @@ type JS_Object
         proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
         Vector.from_polyglot_array proxy
 
-    ## Convert the object to a JS_Object.
+    ## PRIVATE
+       Convert the object to a JS_Object.
     to_js_object : JS_Object
     to_js_object self = self
 

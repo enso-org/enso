@@ -161,7 +161,8 @@ type Table
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## Converts this table into a JS_Object.
+    ## PRIVATE
+       Converts this table into a JS_Object.
 
        > Example
          Convert a table to a corresponding JavaScript JS_Object representation.

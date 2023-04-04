@@ -279,7 +279,8 @@ type File
     resolve : File
     resolve self = @Builtin_Method "File.resolve"
 
-    ## Convert the file descriptor to a JS_Object.
+    ## PRIVATE
+       Convert the file descriptor to a JS_Object.
 
        > Example
          Convert a file to a JS_Object.

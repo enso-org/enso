@@ -595,7 +595,8 @@ type Date_Time
     to_text : Text
     to_text self = @Builtin_Method "Date_Time.to_text"
 
-    ## Convert to a JavaScript Object representing a Date_Time.
+    ## PRIVATE
+       Convert to a JavaScript Object representing a Date_Time.
 
        > Example
          Convert the current time to a JS_Object.

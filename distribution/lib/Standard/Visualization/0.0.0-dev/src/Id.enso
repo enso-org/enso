@@ -10,8 +10,10 @@ type Id
     ## A visualization implemented in a library.
     Library project name
 
-    ## Serializes this ID to a JSON format understandable by the graphical
+    ## PRIVATE
+       Serializes this ID to a JSON format understandable by the graphical
        interface.
+    to_js_object : JS_Object
     to_js_object self =
         project = case self of
             Id.Builtin _ -> Nothing

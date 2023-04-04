@@ -1206,8 +1206,7 @@ type Column
         storage_type = self.java_column.getStorage.getType
         Storage.to_value_type storage_type
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Converts this column to JS_Object representation.
 
        > Example

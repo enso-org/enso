@@ -67,8 +67,7 @@ type SQL_Statement
         substitutions = self.fragments.flat_map to_subst
         [sql, substitutions]
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Returns a JS_Object representation of the statement.
     to_js_object : JS_Object
     to_js_object self =

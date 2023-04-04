@@ -194,7 +194,8 @@ type URI
     to_text : Text
     to_text self = self.internal_uri.toString
 
-    ## Convert to a JavaScript Object representing this URI.
+    ## PRIVATE
+       Convert to a JavaScript Object representing this URI.
 
        > Example
          Convert a URI to a JS_Object.

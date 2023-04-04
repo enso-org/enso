@@ -399,8 +399,7 @@ type Image
         arr = Java_Image.to_vector self.opencv_mat
         Vector.from_polyglot_array arr
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the image to a JS_Object.
 
        > Example

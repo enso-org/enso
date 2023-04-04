@@ -398,8 +398,7 @@ type Matrix
         arr = Java_Matrix.to_vector self.opencv_mat
         Vector.from_polyglot_array arr
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert this matrix to a JS_Object.
 
        > Example
@@ -412,7 +411,6 @@ type Matrix
     to_js_object self = self.opencv_mat.to_text
 
 ## PRIVATE
-
    Apply a core matrix operation.
 
    Arguments:
@@ -433,7 +431,6 @@ core_op mat value function =
     Matrix.Value result
 
 ## PRIVATE
-
    Handles errors in `core_op`.
 
    Arguments:

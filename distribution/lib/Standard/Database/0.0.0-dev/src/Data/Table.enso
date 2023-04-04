@@ -85,8 +85,7 @@ type Table
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Converts this column to JS_Object representation.
     to_js_object : JS_Object
     to_js_object self = case self.internal_columns.is_empty of
