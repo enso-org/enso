@@ -34,6 +34,7 @@ pub mod component;
 pub mod automation;
 pub mod builtin;
 pub mod data;
+pub mod execution_mode;
 pub mod new_node_position;
 #[warn(missing_docs)]
 pub mod profiling;
@@ -42,6 +43,7 @@ pub mod view;
 
 #[warn(missing_docs)]
 mod selection;
+mod shortcuts;
 
 use crate::application::command::FrpNetworkProvider;
 use crate::component::node;
@@ -56,7 +58,6 @@ use application::tooltip;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
-use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -654,6 +655,9 @@ ensogl::define_endpoints_2! {
 
         /// Set the execution modes available to the graph.
         set_available_execution_modes          (Rc<Vec<execution_mode_selector::ExecutionMode>>),
+        set_execution_mode                     (execution_mode_selector::ExecutionMode),
+        toggle_execution_mode(),
+
 
     }
 
@@ -2657,67 +2661,8 @@ impl application::View for GraphEditor {
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
-        use shortcut::ActionType::*;
-        [
-            (Press, "!node_editing", "tab", "start_node_creation"),
-            (Press, "!node_editing", "enter", "start_node_creation"),
-            // === Drag ===
-            (Press, "", "left-mouse-button", "node_press"),
-            (Release, "", "left-mouse-button", "node_release"),
-            (Press, "!node_editing", "backspace", "remove_selected_nodes"),
-            (Press, "!node_editing", "delete", "remove_selected_nodes"),
-            (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-            (Press, "", "cmd g", "collapse_selected_nodes"),
-            // === Visualization ===
-            (Press, "!node_editing", "space", "press_visualization_visibility"),
-            (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
-            (Release, "!node_editing", "space", "release_visualization_visibility"),
-            (Press, "", "cmd i", "reload_visualization_registry"),
-            (Press, "is_fs_visualization_displayed", "space", "close_fullscreen_visualization"),
-            (Press, "", "cmd", "enable_quick_visualization_preview"),
-            (Release, "", "cmd", "disable_quick_visualization_preview"),
-            // === Selection ===
-            (Press, "", "shift", "enable_node_multi_select"),
-            (Press, "", "shift left-mouse-button", "enable_node_multi_select"),
-            (Release, "", "shift", "disable_node_multi_select"),
-            (Release, "", "shift left-mouse-button", "disable_node_multi_select"),
-            (Press, "", "shift ctrl", "toggle_node_merge_select"),
-            (Release, "", "shift ctrl", "toggle_node_merge_select"),
-            (Press, "", "shift alt", "toggle_node_subtract_select"),
-            (Release, "", "shift alt", "toggle_node_subtract_select"),
-            (Press, "", "shift ctrl alt", "toggle_node_inverse_select"),
-            (Release, "", "shift ctrl alt", "toggle_node_inverse_select"),
-            // === Navigation ===
-            (
-                Press,
-                "!is_fs_visualization_displayed",
-                "ctrl space",
-                "cycle_visualization_for_selected_node",
-            ),
-            (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
-            (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
-            (Press, "", "right-mouse-button", "start_node_creation_from_port"),
-            (Press, "!node_editing", "cmd enter", "enter_selected_node"),
-            (Press, "", "alt enter", "exit_node"),
-            // === Node Editing ===
-            (Press, "", "cmd", "edit_mode_on"),
-            (Release, "", "cmd", "edit_mode_off"),
-            (Press, "", "cmd left-mouse-button", "edit_mode_on"),
-            (Release, "", "cmd left-mouse-button", "edit_mode_off"),
-            (Press, "node_editing", "cmd enter", "stop_editing"),
-            // === Profiling Mode ===
-            (Press, "", "cmd p", "toggle_profiling_mode"),
-            // === Debug ===
-            (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
-            (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
-            (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
-            (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
-            // TODO(#5930): Temporary shortcut for testing different execution environments
-            (Press, "", "cmd shift c", "toggle_execution_environment"),
-        ]
-        .iter()
-        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-        .collect()
+        use crate::shortcuts::SHORTCUTS;
+        SHORTCUTS.iter().map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b)).collect()
     }
 }
 
@@ -3880,30 +3825,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Execution Mode Selection ===
     // ================================
 
-    let execution_mode_selector = &model.execution_mode_selector;
-    frp::extend! { network
-
-        execution_mode_selector.set_available_execution_modes <+ frp.set_available_execution_modes;
-        out.execution_mode <+ execution_mode_selector.selected_execution_mode;
-        out.execution_mode_play_button_pressed <+ execution_mode_selector.play_press;
-
-        // === Layout ===
-        init <- source::<()>();
-        size_update <- all(init,execution_mode_selector.size,inputs.space_for_window_buttons);
-        eval size_update ([model]((_,size,gap_size)) {
-            let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
-            let traffic_light_width = traffic_lights_gap_width();
-
-            let execution_mode_selector_x = gap_size.x + traffic_light_width;
-            model.execution_mode_selector.set_x(execution_mode_selector_x);
-            let breadcrumb_gap_width = execution_mode_selector_x + size.x + TOP_BAR_ITEM_MARGIN;
-            model.breadcrumbs.gap_width(breadcrumb_gap_width);
-
-            model.execution_mode_selector.set_y(y_offset + size.y / 2.0);
-            model.breadcrumbs.set_y(y_offset + component::breadcrumbs::HEIGHT / 2.0);
-        });
-    }
-    init.emit(());
+    execution_mode::init_frp(&frp, &model);
 
 
     // ==================

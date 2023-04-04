@@ -97,6 +97,7 @@ pub type ExecutionModes = Rc<Vec<ExecutionMode>>;
 ensogl::define_endpoints_2! {
     Input {
         set_available_execution_modes      (ExecutionModes),
+        set_execution_mode                 (ExecutionMode),
     }
     Output {
         selected_execution_mode (ExecutionMode),
@@ -252,6 +253,11 @@ impl component::Frp<Model> for Frp {
             // == Inputs ==
 
             eval input.set_available_execution_modes ((entries) model.set_entries(entries.clone()));
+
+            update_selected_entry <- input.set_execution_mode.map2(&input.set_available_execution_modes, |entry, entries| {
+                    entries.iter().position(|mode| mode == entry)
+            });
+            dropdown.frp.set_selected <+ update_selected_entry;
 
             selected_id <- dropdown.frp.chosen_entry.unwrap();
             selection <- all(input.set_available_execution_modes, selected_id);
