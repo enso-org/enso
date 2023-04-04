@@ -7,8 +7,8 @@ import project.Data.Range.Range
 import project.Data.Text.Helpers
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
-import project.Data.Text.Match.Match
-import project.Data.Text.Replacer.Replacer
+import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Replacer.Replacer
 import project.Data.Text.Regex.No_Such_Group
 import project.Data.Text.Text
 import project.Data.Vector.Vector
