@@ -96,7 +96,8 @@ parse_builtin text = @Builtin_Method "Date_Time.parse_builtin"
    the Europe/Paris timezone" can be stored as `Time`.
 @Builtin_Type
 type Date_Time
-    ## Obtains the start of the epoch for Enso.
+    ## PRIVATE
+       Obtains the start of the epoch for Enso.
 
         ? Start of the epoch
         For Enso, start of the epoch is equal to the start of the Gregorian calendar,
@@ -583,17 +584,6 @@ type Date_Time
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
         ensure_in_epoch result result
-
-    ## Convert this time to text using the default formatter.
-
-       > Example
-         Convert the current time to text.
-
-             from Standard.Base import Date_Time
-
-             example_to_text = Date_Time.now.to_text
-    to_text : Text
-    to_text self = @Builtin_Method "Date_Time.to_text"
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.
