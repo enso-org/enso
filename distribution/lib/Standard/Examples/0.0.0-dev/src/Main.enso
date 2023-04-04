@@ -1,11 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.No_Such_Method
 
+import Standard.Base.Data.Text.Regex.Match.Match
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
-
-import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Engine.Default.Match as Default_Engine_Match
 
 from Standard.Table import Table, Column
 
@@ -269,8 +267,7 @@ transactions_table =
     (enso_project.data / "food_shop_transactions.csv") . read
 
 ## An example regex match.
-match : Default_Engine_Match
+match : Match
 match =
-    engine = Default_Engine.new
-    pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
-    pattern.match "aa ab abc a bc bcd" mode=Matching_Mode.First
+    pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+    pattern.match "aa ab abc a bc bcd"

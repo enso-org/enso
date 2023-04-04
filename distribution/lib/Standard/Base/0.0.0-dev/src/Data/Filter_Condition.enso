@@ -100,13 +100,11 @@ type Filter_Condition
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
 
-       ! Known Bugs
-         There is a known bug in Java Regex where escape characters are not
-         handled properly in Unicode-normalized matching mode. Due to this
-         limitation, Unicode normalization has been disabled for this function,
-         so beware that some equivalent graphemes like 'ś' and 's\u0301' will
-         not be matched.
-         See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+       ! Known Limitations.
+         The Truffle regex engine does not transparently handle normalization.
+         Due to this limitation, Unicode normalization has been disabled for
+         this function, so beware that some equivalent graphemes like 'ś' and
+         's\u0301' will not be matched.
     Like pattern:Text
 
     ## Does the value not match the SQL pattern (Text only)?
@@ -121,13 +119,11 @@ type Filter_Condition
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
 
-       ! Known Bugs
-         There is a known bug in Java Regex where escape characters are not
-         handled properly in Unicode-normalized matching mode. Due to this
-         limitation, Unicode normalization has been disabled for this function,
-         so beware that some equivalent graphemes like 'ś' and 's\u0301' will
-         not be matched.
-         See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+       ! Known Limitations.
+         The Truffle regex engine does not transparently handle normalization.
+         Due to this limitation, Unicode normalization has been disabled for
+         this function, so beware that some equivalent graphemes like 'ś' and
+         's\u0301' will not be matched.
     Not_Like pattern:Text
 
     ## Is the value contained in `values`?
@@ -212,7 +208,4 @@ type Filter_Condition
 ## PRIVATE
 sql_like_to_regex sql_pattern =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
-    ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
-       https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
-       Once that bug is fixed, `match_ascii` may be set back to `False`.
-    Regex.compile regex_pattern dot_matches_newline=True match_ascii=True
+    Regex.compile regex_pattern
