@@ -1,5 +1,6 @@
 package org.enso.base;
 
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import java.time.LocalDate;
@@ -7,67 +8,87 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.Locale;
-import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.BiFunction;
 
-public class ObjectComparator implements Comparator<Object> {
-  private static ObjectComparator INSTANCE;
+public final class ObjectComparator implements Comparator<Object> {
+  public static final ObjectComparator DEFAULT = new ObjectComparator();
+  private static Function<Object, Integer> ensoHashCodeCallback = null;
+  private static BiFunction<Object, Object, Integer> ensoCompareCallback = null;
+  private static BiFunction<Object, Object, Boolean> ensoAreEqualCallback = null;
 
-  /**
-   * A singleton instance of an ObjectComparator.
-   *
-   * @param fallbackComparator this MUST be the default .compare_to function for Enso. Needs to be
-   *     passed to allow calling back from Java.
-   * @return Comparator object.
-   */
-  public static ObjectComparator getInstance(Function<Object, Function<Object, Value>> fallbackComparator) {
-    if (INSTANCE == null) {
-      INSTANCE = new ObjectComparator(fallbackComparator);
+  private static void initCallbacks() {
+    if (ensoCompareCallback == null) {
+      var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
+      var type = module.invokeMember("get_type", "Comparable");
+
+      var hash_callback = module.invokeMember("get_method", type, "hash_callback");
+      ensoHashCodeCallback = v -> {
+        var result = hash_callback.execute(null, v);
+        if (result.isNull()) {
+          throw new IllegalStateException("Unable to object hash in EnsoObjectWrapper for " + v.toString());
+        } else {
+          return result.asInt();
+        }
+      };
+
+      var compare_callback = module.invokeMember("get_method", type, "compare_callback");
+      ensoCompareCallback = (v, u) -> {
+        var result = compare_callback.execute(null, v, u);
+        if (result.isNull()) {
+          throw new CompareException(u, v);
+        } else {
+          return result.asInt();
+        }
+      };
+      ensoAreEqualCallback = (v, u) -> {
+        var result = compare_callback.execute(null, v, u);
+        return !result.isNull() && result.asInt() == 0;
+      };
     }
-
-    return INSTANCE;
   }
 
-  private final Function<Object, Function<Object, Value>> fallbackComparator;
-  private final Function<String, Function<String, Value>> textComparator;
+  public static int ensoCompare(Object value, Object other) throws CompareException {
+    initCallbacks();
+    return ensoCompareCallback.apply(value, other);
+  }
 
+  public static int ensoHashCode(Object value) {
+    initCallbacks();
+    return ensoHashCodeCallback.apply(value);
+  }
+
+  public static boolean areEqual(Object value, Object other) {
+    initCallbacks();
+    return ensoAreEqualCallback.apply(value, other);
+  }
+
+  private final BiFunction<String, String, Integer> textComparator;
 
   public ObjectComparator() {
-    this(
-        (a) -> (b) -> {
-          throw new CompareException(a, b);
-        });
+    this(true, Locale.ROOT);
   }
 
-  public ObjectComparator(Function<Object, Function<Object, Value>> fallbackComparator) {
-    this(fallbackComparator, (a) -> (b) -> Value.asValue(Text_Utils.compare_normalized(a, b)));
+  public ObjectComparator(boolean caseSensitive, Locale locale) {
+    if (caseSensitive) {
+        textComparator = Text_Utils::compare_normalized;
+    } else {
+        textComparator = (a, b) -> Text_Utils.compare_normalized_ignoring_case(a, b, locale);
+    }
   }
 
-  private ObjectComparator(Function<Object, Function<Object, Value>> fallbackComparator, Function<String, Function<String, Value>> textComparator) {
-    this.fallbackComparator = fallbackComparator;
-    this.textComparator = textComparator;
-  }
-
-  /**
-   * Create a copy of the ObjectComparator with case-insensitive text comparisons.
-   * @param locale to use for case folding.
-   * @return Comparator object.
-   */
-  public ObjectComparator withCaseInsensitivity(Locale locale) {
-    return new ObjectComparator(this.fallbackComparator, (a) -> (b) -> Value.asValue(Text_Utils.compare_normalized_ignoring_case(a, b, locale)));
-  }
-
-  /**
-   * Create a copy of the ObjectComparator with case-insensitive text comparisons.
-   * @param textComparator custom comparator for Text.
-   * @return Comparator object.
-   */
-  public ObjectComparator withCustomTextComparator(Function<String, Function<String, Value>> textComparator) {
-    return new ObjectComparator(this.fallbackComparator, textComparator);
+  public ObjectComparator(Function<Object, Function<Object, Value>> textComparator) {
+    this.textComparator = (a, b) -> {
+      var result = textComparator.apply(a).apply(b);
+      if (result.isNull()) {
+        throw new CompareException(a, b);
+      }
+      return result.asInt();
+    };
   }
 
   @Override
-  public int compare(Object thisValue, Object thatValue) throws ClassCastException {
+  public int compare(Object thisValue, Object thatValue) {
     // NULLs
     if (thisValue == null) {
       if (thatValue != null) {
@@ -121,7 +142,7 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Text
     if (thisValue instanceof String thisString && thatValue instanceof String thatString) {
-      return convertComparatorResult(textComparator.apply(thisString).apply(thatString), thisString, thatString);
+      return this.textComparator.apply(thisString, thatString);
     }
 
     // DateTimes
@@ -145,14 +166,6 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Fallback to Enso
-    return convertComparatorResult(fallbackComparator.apply(thisValue).apply(thatValue), thisValue, thatValue);
-  }
-
-  private static int convertComparatorResult(Value comparatorResult, Object leftOperand, Object rightOperand) {
-    if (comparatorResult.isNumber() && comparatorResult.fitsInInt()) {
-      return comparatorResult.asInt();
-    } else {
-      throw new CompareException(leftOperand, rightOperand);
-    }
+    return ensoCompare(thisValue, thatValue);
   }
 }

@@ -487,7 +487,7 @@ impl Monitor {
             let config = renderer.borrow().user_config.clone();
             let scene = scene();
             let network = &self.frp.network;
-            let mouse = &scene.mouse.frp;
+            let mouse = &scene.mouse.frp_deprecated;
             let label_width = config.outer_margin + 2.0 * config.margin + config.labels_width;
             enso_frp::extend! { network
                 init <- source_();

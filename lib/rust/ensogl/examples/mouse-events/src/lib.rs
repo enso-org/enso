@@ -44,6 +44,7 @@ mod shape {
     use super::*;
 
     shape! {
+        alignment = center;
         (style: Style) {
             Circle(100.px()).fill(color::Rgb(1.0,0.0,0.0)).into()
         }
@@ -106,12 +107,12 @@ impl View {
         let model = Model::new(app);
         let network = &frp.network;
         frp::extend! { network
-            trace model.shape.events.mouse_up;
-            trace model.shape.events.mouse_release;
-            trace model.shape.events.mouse_down;
-            trace model.shape.events.mouse_over;
-            trace model.shape.events.mouse_out;
-            trace model.shape.events.on_drop;
+            trace model.shape.events_deprecated.mouse_up;
+            trace model.shape.events_deprecated.mouse_release;
+            trace model.shape.events_deprecated.mouse_down;
+            trace model.shape.events_deprecated.mouse_over;
+            trace model.shape.events_deprecated.mouse_out;
+            trace model.shape.events_deprecated.on_drop;
         }
 
         Self { frp, model }

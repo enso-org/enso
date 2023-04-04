@@ -1,10 +1,12 @@
 package org.enso.table.data.column.builder.object;
 
-public class StorageTypeMismatch extends RuntimeException {
-  private final int expectedType;
-  private final int gotType;
+import org.enso.table.data.column.storage.type.StorageType;
 
-  public StorageTypeMismatch(int expectedType, int gotType) {
+public class StorageTypeMismatch extends RuntimeException {
+  private final StorageType expectedType;
+  private final StorageType gotType;
+
+  public StorageTypeMismatch(StorageType expectedType, StorageType gotType) {
     this.expectedType = expectedType;
     this.gotType = gotType;
   }
@@ -18,7 +20,7 @@ public class StorageTypeMismatch extends RuntimeException {
         + ". This is a bug in the Table library.";
   }
 
-  public int gotType() {
+  public StorageType gotType() {
     return gotType;
   }
 }

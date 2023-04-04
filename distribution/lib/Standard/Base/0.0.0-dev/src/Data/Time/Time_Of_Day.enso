@@ -284,17 +284,6 @@ type Time_Of_Day
             duration : Duration -> self.minus_builtin duration
             _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
 
-    ## Format this time of day as text using the default formatter.
-
-       > Example
-         Convert the current time to text.
-
-             from Standard.Base import Time_Of_Day
-
-             example_to_text = Time_Of_Day.now.to_text
-    to_text : Text
-    to_text self = @Builtin_Method "Time_Of_Day.to_text"
-
     ## Convert to a JavaScript Object representing this Time_Of_Day.
 
        > Example

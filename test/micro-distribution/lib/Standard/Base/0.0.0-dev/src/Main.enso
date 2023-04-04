@@ -31,11 +31,11 @@ from project.Data.Numbers export Number, Integer
 import project.Data.Vector.Vector
 export project.Data.Vector.Vector
 
-import project.Polyglot
-export project.Polyglot
-
 import project.Polyglot.Java
 export project.Polyglot.Java
+
+import project.Polyglot.Polyglot
+export project.Polyglot.Polyglot
 
 import project.Runtime
 export project.Runtime

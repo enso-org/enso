@@ -13,8 +13,9 @@ self.addEventListener('fetch', event => {
         url.pathname !== '/esbuild'
     ) {
         event.respondWith(fetch('/index.html'))
+        return
     } else {
-        event.respondWith(fetch(event.request))
+        return false
     }
 })
 

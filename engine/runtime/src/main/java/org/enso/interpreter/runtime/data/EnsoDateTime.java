@@ -9,7 +9,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.time.DateTimeException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -73,13 +72,8 @@ public final class EnsoDateTime implements TruffleObject {
   public static EnsoDateTime parse(String text) {
     String iso = Core_Date_Utils.normaliseISODateTime(text);
 
-    var datetime = DATE_TIME_FORMATTER.parseBest(iso, ZonedDateTime::from, LocalDateTime::from);
-    if (datetime instanceof ZonedDateTime zdt) {
-      return new EnsoDateTime(zdt);
-    } else if (datetime instanceof LocalDateTime ldt) {
-      return new EnsoDateTime(ldt.atZone(ZoneId.systemDefault()));
-    }
-    throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
+    var datetime = Core_Date_Utils.parseZonedDateTime(iso, DATE_TIME_FORMATTER);
+    return new EnsoDateTime(datetime);
   }
 
   @Builtin.Method(
@@ -268,5 +262,6 @@ public final class EnsoDateTime implements TruffleObject {
   private static final EnsoDateTime epochStart =
       EnsoDateTime.create(1582, 10, 15, 0, 0, 0, 0, EnsoTimeZone.parse("UTC"));
 
-  private static final DateTimeFormatter DATE_TIME_FORMATTER = Core_Date_Utils.defaultZonedDateTimeFormatter();
+  private static final DateTimeFormatter DATE_TIME_FORMATTER =
+      Core_Date_Utils.defaultZonedDateTimeFormatter();
 }

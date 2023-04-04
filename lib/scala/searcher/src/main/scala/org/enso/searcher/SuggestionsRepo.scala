@@ -45,6 +45,7 @@ trait SuggestionsRepo[F[_]] {
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
+    * @param isStatic the static attribute
     * @return the current database version and the list of found suggestion ids,
     *         ranked by specificity
     */
@@ -53,7 +54,8 @@ trait SuggestionsRepo[F[_]] {
     selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position]
+    position: Option[Suggestion.Position],
+    isStatic: Option[Boolean]
   ): F[(Long, Seq[Long])]
 
   /** Select the suggestion by id.
@@ -155,24 +157,4 @@ trait SuggestionsRepo[F[_]] {
 
   /** Cleans the repo resetting the version. */
   def clean: F[Unit]
-
-  /** Update the suggestions with the new project name.
-    *
-    * @param oldName the old name of the project
-    * @param newName the new project name
-    * @return the current database version and lists of suggestion ids with
-    * updated module name, self type, return type and arguments
-    */
-  def renameProject(
-    oldName: String,
-    newName: String
-  ): F[
-    (
-      Long,
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, String)],
-      Seq[(Long, Int, String)]
-    )
-  ]
 }

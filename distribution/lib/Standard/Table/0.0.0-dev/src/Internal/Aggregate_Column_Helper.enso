@@ -1,5 +1,4 @@
 from Standard.Base import all hiding First, Last
-import Standard.Base.Data.Ordering.Comparator
 
 import project.Data.Column.Column
 import project.Data.Column_Selector.Column_Selector
@@ -110,7 +109,8 @@ default_aggregate_column_name aggregate_column include_column=True =
             c = aggregate_column.column
             prefix + " " + (if include_column then c.name else "")
 
-## Utility function to check if all same column
+## PRIVATE
+   Utility function to check if all aggregates are operating on the same source column.
 all_same_column : Vector Aggregate_Column -> Boolean
 all_same_column aggregates =
     is_not_count c = case c of
@@ -221,16 +221,15 @@ java_aggregator name column =
             if ordering.is_nothing then FirstAggregator.new name c.java_column ignore_nothing else
                 order_columns = ordering.map c->c.column.java_column
                 order_directions = ordering.map c->c.direction.to_sign
-                FirstAggregator.new name c.java_column ignore_nothing order_columns.to_array order_directions.to_array Comparator.new
+                FirstAggregator.new name c.java_column ignore_nothing order_columns.to_array order_directions.to_array
         Last c _ ignore_nothing ordering ->
             if ordering.is_nothing then LastAggregator.new name c.java_column ignore_nothing else
                 order_columns = ordering.map c->c.column.java_column
                 order_direction = ordering.map c->c.direction.to_sign
-                LastAggregator.new name c.java_column ignore_nothing order_columns.to_array order_direction.to_array Comparator.new
-        Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1 Comparator.new
-        Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1 Comparator.new
-        Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1
-        Longest c _ -> ShortestOrLongestAggregator.new name c.java_column 1
+                LastAggregator.new name c.java_column ignore_nothing order_columns.to_array order_direction.to_array
+        Maximum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MAX
+        Minimum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MIN
+        Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.SHORTEST
+        Longest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.LONGEST
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
         _ -> Error.throw (Invalid_Aggregation.Error name -1 "Unsupported aggregation")
-

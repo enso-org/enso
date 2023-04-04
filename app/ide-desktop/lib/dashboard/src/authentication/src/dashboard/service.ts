@@ -119,6 +119,8 @@ export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
 
 export type Ami = newtype.Newtype<string, 'Ami'>
 
+export type Subject = newtype.Newtype<string, 'Subject'>
+
 /** An RFC 3339 DateTime string. */
 export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 
@@ -263,7 +265,8 @@ export interface Version {
     number: VersionNumber
     ami: Ami | null
     created: Rfc3339DateTime
-    // This does not follow our naming convention because it's defined this way in the backend, so we need to match it.
+    // This does not follow our naming convention because it's defined this way in the backend,
+    // so we need to match it.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     version_type: VersionType
 }
@@ -278,12 +281,34 @@ export interface ResourceUsage {
     storage: number
 }
 
+export interface User {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    pk: Subject
+    user_name: string
+    user_email: EmailAddress
+    organization_id: UserOrOrganizationId
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+export enum PermissionAction {
+    own = 'Own',
+    execute = 'Execute',
+    edit = 'Edit',
+    read = 'Read',
+}
+
+export interface UserPermission {
+    user: User
+    permission: PermissionAction
+}
+
 /** Metadata uniquely identifying a directory entry.
  * Thes can be Projects, Files, Secrets, or other directories. */
 interface BaseAsset {
     title: string
     id: string
     parentId: string
+    permissions: UserPermission[] | null
 }
 
 export enum AssetType {
@@ -417,16 +442,6 @@ interface ListVersionsResponseBody {
     versions: Version[]
 }
 
-export interface ListVersionsRequestParams {
-    versionType: VersionType
-    default: boolean
-}
-
-/** HTTP response body for the "list versions" endpoint. */
-interface ListVersionsResponseBody {
-    versions: Version[]
-}
-
 // ===================
 // === Type guards ===
 // ===================
@@ -456,10 +471,10 @@ export class Backend {
             return
         }
     }
-    
+
     throw(message: string): never {
-        this.logger.error(message);
-        throw new Error(message);
+        this.logger.error(message)
+        throw new Error(message)
     }
 
     /** Sets the username of the current user, on the Cloud backend API. */
@@ -679,13 +694,7 @@ export class Backend {
      *
      * @throws An error if a 401 or 404 status code was received. */
     async createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo> {
-        const response = await this.post<SecretAndInfo>(CREATE_SECRET_PATH, {
-            /* eslint-disable @typescript-eslint/naming-convention */
-            secret_name: body.secretName,
-            secret_value: body.secretValue,
-            parent_directory_id: body.parentDirectoryId,
-            /* eslint-enable @typescript-eslint/naming-convention */
-        })
+        const response = await this.post<SecretAndInfo>(CREATE_SECRET_PATH, body)
         if (response.status !== STATUS_OK) {
             return this.throw(`Unable to create secret with name '${body.secretName}'.`)
         } else {

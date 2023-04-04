@@ -154,6 +154,7 @@ pub struct BuildInput {
     pub log_level:             LogLevel,
     pub uncollapsed_log_level: LogLevel,
     pub wasm_size_limit:       Option<byte_unit::Byte>,
+    pub system_shader_tools:   bool,
 }
 
 impl BuildInput {
@@ -219,8 +220,6 @@ impl IsTarget for Wasm {
             // We want to be able to pass --profile this way.
             WasmPack.require_present_that(VersionReq::parse(">=0.10.1")?).await?;
 
-            ShaderTools.install_if_missing(&cache).await?;
-
             let BuildInput {
                 crate_path,
                 wasm_opt_options,
@@ -231,7 +230,18 @@ impl IsTarget for Wasm {
                 log_level,
                 uncollapsed_log_level,
                 wasm_size_limit: _wasm_size_limit,
+                system_shader_tools,
             } = &inner;
+
+            // NOTE: We cannot trust locally installed version of shader tools to be correct.
+            // Those binaries have no reliable versioning, and existing common distributions (e.g.
+            // Vulkan SDK) contain old builds with bugs that impact our shaders. By default, we have
+            // to force usage of our own distribution built on our CI.
+            if *system_shader_tools {
+                ShaderTools.install_if_missing(&cache).await?;
+            } else {
+                ShaderTools.install(&cache).await?;
+            }
 
             cache::goodie::binaryen::Binaryen { version: BINARYEN_VERSION_TO_INSTALL }
                 .install_if_missing(&cache)
@@ -334,6 +344,7 @@ impl IsWatchable for Wasm {
                 log_level,
                 uncollapsed_log_level,
                 wasm_size_limit,
+                system_shader_tools: _,
             } = inner;
 
 

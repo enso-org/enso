@@ -1,0 +1,72 @@
+from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+import Standard.Table.Data.Type.Value_Type.Value_Type
+
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+
+type SQL_Type_Mapping
+    ## Converts the given Value_Type to its corresponding SQL_Type.
+
+       Some SQL dialects may not support all Value_Types (in fact most will
+       have at least a few exceptions, and some like SQLite may have very
+       limited support). If an SQL_Type that matches the Value_Type cannot be
+       found, a closest approximate match is returned instead. If an exact match
+       cannot be found, an `Inexact_Type_Coercion` warning is reported according
+       to the `on_problems` setting.
+
+       If the conversion is exact, it should be reversible, i.e.
+       `sql_type_to_value_type (value_type_to_sql x Problem_Behavior.Report_Error) = x`.
+    value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
+    value_type_to_sql value_type on_problems =
+        _ = [value_type, on_problems]
+        Unimplemented.throw "This is an interface only."
+
+    ## Converts the given SQL_Type to its corresponding Value_Type.
+    sql_type_to_value_type : SQL_Type -> Value_Type
+    sql_type_to_value_type sql_type =
+        _ = sql_type
+        Unimplemented.throw "This is an interface only."
+
+    ## Returns a `SQL_Type_Reference` that will resolve to the resulting type of
+       the given operation.
+
+       In most cases this will just delegate to `infer_from_database_callback`
+       which should ask the particular database backend to infer the type, but
+       some specific cases may override the default behavior. The notable
+       example is the ability to support Boolean types in SQLite.
+
+       The particular operation is identified by its name. It also gets a vector
+       of supplied arguments in case the result type may depend on them. The
+       arguments are passed as-is, i.e. they may be Database columns or raw Enso
+       values. The generated IR expression is also provided as
+       depending on the backend the raw arguments or the target expression may
+       be more useful to create the return type. In particular, the expression
+       may be used as an argument for the `infer_from_database_callback`.
+    infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        _ = [infer_from_database_callback, op_name, arguments, expression]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Gets a list of type suggestions and returns a list of type overrides for
+       a query.
+
+       This is used to customize type override behavior - most backends will
+       correctly infer types from metadata, so unless specifically overridden,
+       we can rely on the `ResultSet` metadata and reduce any overhead. However,
+       in some backends (SQLite) the metadata may not be as useful (in SQLite,
+       the metadata is changing depending on the result row, so the first row
+       that is usually used may not reflect the needs of the whole column) -
+       this method allows to provide custom overrides in such case.
+
+       If the vector contains a `Nothing` at a given position, that column type
+       will be inferred from the `ResultSet` metadata. If it contains a concrete
+       type, that type will be used instead, regardless of what is coming from
+       the metadata.
+    prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
+    prepare_type_overrides column_type_suggestions =
+        _ = column_type_suggestions
+        Unimplemented.throw "This is an interface only."
