@@ -330,10 +330,10 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
         _ : Text -> delimiter.is_empty
         _ : Vector -> delimiter.is_empty || delimiter.any (.is_empty)
         _ -> Error.throw (Illegal_Argument.Error "The delimiter must be a Text or Vector of Texts.")
-    delimiter_is_singleton_vector = case delimiter of
-        _ : Vector -> delimiter.length == 1
-        _ -> False
     if delimiter_is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
+        delimiter_is_singleton_vector = case delimiter of
+            _ : Vector -> delimiter.length == 1
+            _ -> False
         # If it's a vector of one element, just call it on that one element.
         if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else
             case use_regex of
@@ -354,7 +354,6 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         parenthesize s = "(?:" + s + ")"
                         combined_delimiter = parenthesize (delimiter.map parenthesize . join '|')
                         self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
-                    _ -> Error.throw (Illegal_Argument.Error "Can't split on " + delimiter.to_display_text)
 
 ## ADVANCED
    Takes an input string and and a pattern and returns all the matches as a
@@ -1382,8 +1381,7 @@ slice_text text char_ranges =
    Find occurrences of delimiters in a string.
 split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
 split_find_delimiters input delimiter case_sensitivity =
-    Vector.from_polyglot_array <|
-    case delimiter of
+    Vector.from_polyglot_array <| case delimiter of
         _ : Text -> case case_sensitivity of
             Case_Sensitivity.Sensitive ->
                 Text_Utils.span_of_all input delimiter
@@ -1394,4 +1392,3 @@ split_find_delimiters input delimiter case_sensitivity =
                 Text_Utils.span_of_all_multiple input delimiter
             Case_Sensitivity.Insensitive locale ->
                 Text_Utils.span_of_all_case_insensitive_multiple input delimiter locale.java_locale
-        _ -> Error.throw (Illegal_Argument.Error "Can't split on " + delimiter.to_display_text)
