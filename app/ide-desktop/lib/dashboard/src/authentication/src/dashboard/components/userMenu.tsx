@@ -11,23 +11,19 @@ import ChangePasswordModal from './changePasswordModal'
 /** This is the UI component for a `UserMenu` list item.
  * The main interaction logic is in the `onClick` injected by `UserMenu`. */
 interface UserMenuItemProps {
-    needHoverClass?: boolean
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
 function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
-    const { children, onClick, needHoverClass = false } = props
-    /** User menu cell normal className. */
-    const cellClassName = 'whitespace-nowrap px-4 py-2'
-    /** User menu cell hover className. */
-    const cellHoverClassName = 'hover:bg-blue-500 hover:text-white cursor-pointer'
+    const { children, onClick } = props
 
-    let className = cellClassName
-    if (needHoverClass) {
-        className += ` ${cellHoverClassName}`
-    }
     return (
-        <div className={className} onClick={onClick}>
+        <div
+            className={`whitespace-nowrap px-4 py-2 ${
+                onClick ? 'hover:bg-blue-500 hover:text-white cursor-pointer' : ''
+            }`}
+            onClick={onClick}
+        >
             {children}
         </div>
     )
@@ -39,10 +35,15 @@ function UserMenu() {
     const { organization } = auth.useFullUserSession()
 
     const [visibleChangePassword, setVisibleChangePassword] = react.useState(false)
-    const handleResetPassword = () => {
+
+    const goToProfile = () => {
+        // TODO: Implement this when the backend endpoints are implemented.
+    }
+
+    const showChangePasswordModal = () => {
         setVisibleChangePassword(true)
     }
-    const handleCancelChangePassword = () => {
+    const hideChangePasswordModal = () => {
         setVisibleChangePassword(false)
     }
 
@@ -54,13 +55,11 @@ function UserMenu() {
                         <UserMenuItem>
                             Signed in as <span className="font-bold">{organization.name}</span>
                         </UserMenuItem>
-                        <UserMenuItem needHoverClass>Your profile</UserMenuItem>
-                        <UserMenuItem needHoverClass onClick={handleResetPassword}>
+                        <UserMenuItem onClick={goToProfile}>Your profile</UserMenuItem>
+                        <UserMenuItem onClick={showChangePasswordModal}>
                             Change your password
                         </UserMenuItem>
-                        <UserMenuItem needHoverClass onClick={signOut}>
-                            Sign out
-                        </UserMenuItem>
+                        <UserMenuItem onClick={signOut}>Sign out</UserMenuItem>
                     </>
                 ) : (
                     <>
@@ -70,7 +69,7 @@ function UserMenu() {
             </div>
             <ChangePasswordModal
                 visible={visibleChangePassword}
-                handleCancel={handleCancelChangePassword}
+                handleCancel={hideChangePasswordModal}
             />
         </>
     )

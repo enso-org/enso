@@ -25,7 +25,7 @@ function ChangePasswordModal(props: ChangePasswordModalProps) {
     const [newPasswordConfirm, bindNewPasswordConfirm] = hooks.useInput('')
     const handleSubmit = async () => {
         if (newPassword !== newPasswordConfirm) {
-            toast.error('The confirmed password must be the same as the new password.')
+            toast.error('Passwords do not match.')
         } else {
             await changePassword(oldPassword, newPassword)
         }

@@ -28,6 +28,7 @@ function Dashboard() {
             <div id="templates" />
             <div id="drive-header" />
             <div id="directory-listing" />
+            <div id="modal-root" />
         </>
     )
 }
