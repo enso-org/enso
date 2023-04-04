@@ -1,6 +1,8 @@
 import project.Data.Locale.Locale
 import project.Data.Text.Regex
 import project.Data.Text.Text
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -31,12 +33,18 @@ type Case_Sensitivity
             TextFoldingStrategy.caseInsensitiveFold locale.java_locale
 
     ## PRIVATE
-       Is case insensitive when in memory.
+       Is case insensitive when in memory. This requires that, if
+       case-insensitive, that the locale be the default locale, and if it's not,
+       throws Illegal_Argument.
     is_case_insensitive_in_memory : Boolean
     is_case_insensitive_in_memory self = case self of
         Case_Sensitivity.Default -> False
         Case_Sensitivity.Sensitive -> False
-        Case_Sensitivity.Insensitive _ -> True
+        Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
+            True -> True
+            False ->
+                msg = "Custom locales are not supported for this operationc."
+                Error.throw (Illegal_Argument.Error msg)
 
     ## PRIVATE
        Create matcher function
