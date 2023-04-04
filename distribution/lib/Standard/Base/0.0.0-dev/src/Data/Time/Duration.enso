@@ -262,14 +262,3 @@ type Duration
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
         JS_Object.from_pairs b.to_vector
-
-    ## Check if this duration represents an empty time-span.
-
-       > Example
-         Check if the duration of 10 seconds is empty.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_is_empty = Duration.zero.is_empty
-    is_empty : Boolean
-    is_empty self = self.to_vector . all (==0)
