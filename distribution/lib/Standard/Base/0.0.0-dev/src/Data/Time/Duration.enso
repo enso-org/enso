@@ -244,27 +244,6 @@ type Duration
     total_hours : Decimal ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 
-    ## Convert this duration to a Vector of hours, minutes, seconds, milliseconds
-       and nanoseconds.
-
-       > Example
-         Convert a duration of one hour to a vector resulting in
-         `[1, 0, 30, 0, 0]`.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = (Duration.new hours=1 seconds=30).to_vector
-
-       > Example
-         Convert duration of 800 nanoseconds to a vector returning
-         `[0, 0, 0, 0, 0, 800]`
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = (Duration.new nanoseconds=800)).to_vector
-    to_vector : Vector Integer
-    to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
-
     ## PRIVATE
        Convert to a JavaScript Object representing a Duration.
 
