@@ -12,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @BuiltinMethod(type = "Any", name = "to_display_text")
 public abstract class AnyToDisplayTextNode extends Node {
@@ -39,15 +40,8 @@ public abstract class AnyToDisplayTextNode extends Node {
     if (self.length() < limit) {
       return self;
     } else {
-      var b = BreakIterator.getWordInstance();
-      b.setText(self.toString());
-      var l = b.preceding(limit);
-      if (l == BreakIterator.DONE) {
-        l = limit;
-      } else {
-        l--;
-      }
-      return Text.create(self.toString().substring(0, l));
+      var prefix = Core_Text_Utils.take_prefix(self.toString(), limit);
+      return Text.create(prefix);
     }
   }
 
