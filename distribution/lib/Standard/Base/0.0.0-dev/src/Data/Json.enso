@@ -186,6 +186,7 @@ type JS_Object
 
 ## PRIVATE
 type JS_Object_Comparator
+    ## PRIVATE
     compare : JS_Object -> JS_Object -> (Ordering|Nothing)
     compare obj1 obj2 =
         obj1_keys = obj1.field_names
@@ -194,6 +195,7 @@ type JS_Object_Comparator
             (obj1.get key == obj2.at key).catch No_Such_Key _->False
         if same_values then Ordering.Equal else Nothing
 
+    ## PRIVATE
     hash : JS_Object -> Integer
     hash obj =
         values_hashes = obj.field_names.map field_name->
