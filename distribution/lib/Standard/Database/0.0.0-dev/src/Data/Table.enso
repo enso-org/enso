@@ -1441,8 +1441,8 @@ type Table
 
     ## Returns a Table describing this table's contents.
 
-       The table lists all columns, counts of non-null items and storage types
-       of each column.
+       The table lists all columns, counts of non-null items and value types of
+       each column.
     info : Materialized_Table
     info self =
         cols = self.internal_columns

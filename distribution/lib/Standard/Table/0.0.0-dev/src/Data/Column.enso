@@ -1240,6 +1240,13 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
+    ## Returns a Table describing this column's contents.
+
+       The table behaves like `Table.info` - it lists the column name, the count
+       of non-null items and the value type.
+    info : Table
+    info self = self.to_table.info
+
     ## UNSTABLE
 
        Sorts the column according to the specified rules.

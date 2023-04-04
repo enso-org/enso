@@ -45,11 +45,12 @@ type SQL_Type_Reference
     new : Connection -> Context -> SQL_Expression -> SQL_Type_Reference
     new connection context expression =
         do_fetch =
-            empty_context = context.add_where_filters [SQL_Expression.Constant False]
-            statement = connection.dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
+            statement = connection.dialect.prepare_fetch_types_query expression context
             statement_setter = connection.dialect.get_statement_setter
-            columns = connection.jdbc_connection.fetch_columns statement statement_setter
+            IO.println "Fetching type for expression "+expression.to_text
+            columns = connection.fetch_columns statement statement_setter
             only_column = columns.first
+            IO.println "  Got: "+only_column.to_text
             only_column.second
         SQL_Type_Reference.Computed_By_Database (Lazy.new do_fetch)
 

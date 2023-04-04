@@ -77,6 +77,13 @@ type Column
     to_table self =
         Table.Value self.name self.connection [self.as_internal] self.context
 
+    ## Returns a Table describing this column's contents.
+
+       The table behaves like `Table.info` - it lists the column name, the count
+       of non-null items and the value type.
+    info : Table
+    info self = self.to_table.info
+
     ## Returns a materialized column containing rows of this column.
 
        Arguments:
@@ -946,8 +953,8 @@ type Column
        - value_type: The `Value_Type` to cast the column to.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
-    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument_Error | Inexact_Type_Coercion | Lossy_Conversion
-    cast self value_type=self.value_type on_problems =
+    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
+    cast self value_type=self.value_type on_problems=Problem_Behavior.Report_Warning =
         dialect = self.connection.dialect
         type_mapping = dialect.get_type_mapping
         target_sql_type = type_mapping.value_type_to_sql value_type on_problems

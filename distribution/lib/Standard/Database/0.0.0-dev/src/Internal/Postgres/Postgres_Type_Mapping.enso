@@ -86,12 +86,6 @@ type Postgres_Type_Mapping
             False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
 
     ## PRIVATE
-    make_cast : SQL_Expression -> Value_Type -> Problem_Behavior -> SQL_Expression
-    make_cast expression target_type on_problems =
-        # TODO we need to know the source type!
-        SQL_Type_Mapping.default_make_cast Postgres_Type_Mapping expression target_type on_problems
-
-    ## PRIVATE
        The Postgres type mapping always relies on the return type determined by
        the database backend.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference

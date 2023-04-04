@@ -83,11 +83,6 @@ type SQLite_Type_Mapping
     sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
 
     ## PRIVATE
-    make_cast : SQL_Expression -> Value_Type -> Problem_Behavior -> SQL_Expression
-    make_cast expression target_type on_problems =
-        SQL_Type_Mapping.default_make_cast SQLite_Type_Mapping expression target_type on_problems
-
-    ## PRIVATE
        The SQLite type mapping takes special measures to keep boolean columns
        boolean even if the Database will say that they are numeric.
 
