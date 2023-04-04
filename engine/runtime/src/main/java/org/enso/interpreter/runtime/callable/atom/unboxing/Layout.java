@@ -3,18 +3,11 @@ package org.enso.interpreter.runtime.callable.atom.unboxing;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * This class mediates the use of {@link UnboxingAtom} instances. It is responsible for describing
@@ -165,7 +158,8 @@ public class Layout {
     for (int i = 0; i < fieldGetterFactories.length; i++) {
       getters[i] = fieldGetterFactories[i].createNode();
       if (args[i].isSuspended()) {
-        getters[i] = SuspendedFieldGetterNode.build(getters[i], buildSetter(i));
+        var setterOrNull = buildSetter(i);
+        getters[i] = SuspendedFieldGetterNode.build(getters[i], setterOrNull);
       }
     }
     return getters;
@@ -188,7 +182,8 @@ public class Layout {
   }
 
   public UnboxingAtom.FieldSetterNode buildSetter(int index) {
-    return fieldSetterFactories[index].createNode();
+    var fieldSetterFactory = fieldSetterFactories[index];
+    return fieldSetterFactory == null ? null : fieldSetterFactory.createNode();
   }
 
   public boolean isDoubleAt(int fieldIndex) {

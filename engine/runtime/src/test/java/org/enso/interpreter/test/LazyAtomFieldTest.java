@@ -90,6 +90,39 @@ public class LazyAtomFieldTest {
     assertEquals(log, 2, hellos);
   }
 
+  @Test
+  public void testInfiniteListGenerator() throws Exception {
+    final String code = """
+    import Standard.Base.IO
+
+    type Lazy
+        Nil
+        Cons ~x ~xs
+
+        take self n = if n == 0 then Lazy.Nil else case self of
+            Lazy.Nil -> Lazy.Nil
+            Lazy.Cons x xs -> Lazy.Cons x (xs.take n-1)
+
+        sum self acc = case self of
+            Lazy.Nil -> acc
+            Lazy.Cons x xs -> @Tail_Call xs.sum acc+x
+
+        generator n = Lazy.Cons n (Lazy.generator n+1)
+
+    both n =
+        g = Lazy.generator 1
+        // IO.println "Generator is computed"
+        t = g.take n
+        // IO.println "Generator is taken"
+        t . sum 0
+    """;
+
+    var both = evalCode(code, "both");
+    var sum = both.execute(100);
+    String log = out.toString(StandardCharsets.UTF_8);
+    assertEquals(log, 5050, sum.asLong());
+  }
+
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
