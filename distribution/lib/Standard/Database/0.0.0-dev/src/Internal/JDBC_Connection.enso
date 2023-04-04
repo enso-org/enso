@@ -103,8 +103,9 @@ type JDBC_Connection
                 sql_type = SQL_Type.from_metadata metadata ix+1
                 [name, sql_type]
 
+            # FIXME [RW] remove the print statement but first try running IDE with it
             res = Vector.new metadata.getColumnCount resolve_column
-            IO.println "Fetched columns for "+statement.to_text+": "+res.to_text
+            #IO.println "Fetched columns for "+statement.to_text+": "+res.to_text
             res
 
     ## PRIVATE

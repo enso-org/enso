@@ -76,14 +76,15 @@ type Postgres_Type_Mapping
     ## PRIVATE
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type =
-        variable_length_types = [Types.VARCHAR, Types.BINARY]
-        ## If the type is variable length and the maximum is provided, we treat
-           it as unbounded, otherwise too big max length may be not accepted by
-           Postgres.
-        skip_precision = (variable_length_types.contains sql_type.typeid) && (sql_type.precision == max_precision)
-        case skip_precision of
-            True -> sql_type.name
-            False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
+        if sql_type.name == "bool" then "bool" else
+            variable_length_types = [Types.VARCHAR, Types.BINARY]
+            ## If the type is variable length and the maximum is provided, we treat
+               it as unbounded, otherwise too big max length may be not accepted by
+               Postgres.
+            skip_precision = (variable_length_types.contains sql_type.typeid) && (sql_type.precision == max_precision)
+            case skip_precision of
+                True -> sql_type.name
+                False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
 
     ## PRIVATE
        The Postgres type mapping always relies on the return type determined by

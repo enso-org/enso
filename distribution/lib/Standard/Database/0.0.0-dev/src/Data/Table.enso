@@ -1139,52 +1139,65 @@ type Table
         all_tables.all (check_db_table "tables") . if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
+            dialect = self.connection.dialect
+            type_mapping = dialect.get_type_mapping
             merged_columns = matched_column_sets.map column_set->
                 case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
                     Nothing -> Nothing
                     result_type : Value_Type ->
-                        [column_set, result_type]
+                        sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
+                        sql_type.catch Inexact_Type_Coercion error->
+                            Panic.throw <|
+                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                        [column_set, sql_type]
             good_columns = merged_columns.filter r-> r.is_nothing.not
             if good_columns.is_empty then Error.throw No_Output_Columns else
-                type_mapping = self.connection.dialect.get_type_mapping
                 problem_builder.attach_problems_before on_problems <|
                     queries = all_tables.map_with_index i-> t->
                         columns_to_select = good_columns.map description->
                             column_set = description.first
                             result_type = description.second
                             column_name = column_set.name
-                            ## We could cast the expression once at the end, but
-                               then some backends may not like merging pairs of
-                               columns like boolean with integers. So we cast at
-                               input here to already have a consistent type.
-                               Functionally it doesn't really change much.
-                            expression = case column_set.column_indices.at i of
-                                Nothing -> SQL_Expression.Literal "NULL"
+                            input_column = case column_set.column_indices.at i of
+                                Nothing ->
+                                    typ = SQL_Type_Reference.from_constant SQL_Type.null
+                                    expr = SQL_Expression.Literal "NULL"
+                                    Internal_Column.Value column_name typ expr
                                 corresponding_column_index : Integer ->
-                                    t.at corresponding_column_index . expression
-                            casted_expression = type_mapping.make_cast expression result_type Problem_Behavior.Report_Error
-                            casted_expression.catch Inexact_Type_Coercion error->
-                                Panic.throw <|
-                                    Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                            [column_name, casted_expression]
-                        Query.Select columns_to_select t.context
+                                    t.at corresponding_column_index . as_internal . rename column_name
+                            ## We return `null` return type, as this type should
+                               never be queried - we will just put it into the
+                               union and the overall queried type will be taken
+                               from there. This is just needed to create an
+                               internal representation.
+                            infer_return_type _ = SQL_Type_Reference.null
+                            dialect.make_cast input_column result_type infer_return_type
+                        pairs = columns_to_select.map c->
+                            [c.name, c.expression]
+                        Query.Select pairs t.context
 
+                    # TODO
+                    needs_casting_at_output = False
                     union_alias = all_tables.map .name . join "_"
                     new_from = From_Spec.Union queries union_alias
                     new_ctx = Context.for_subquery new_from
-
                     ## TODO [RW] The result type is currently fetched
                        independently for each column, instead we should fetch it
                        for all columns at once.
                        See #6118.
+                    infer_return_type expression =
+                        SQL_Type_Reference.new self.connection new_ctx expression
                     new_columns = good_columns.map description->
                         column_set = description.first
                         result_type = description.second
                         name = column_set.name
                         expression = SQL_Expression.Column union_alias name
-                        casted_expression = type_mapping.make_cast expression result_type Problem_Behavior.Report_Error
-                        type_ref = SQL_Type_Reference.new self.connection new_ctx casted_expression
-                        Internal_Column.Value name type_ref casted_expression
+                        basic_column = Internal_Column.Value name (infer_return_type expression) expression
+                        case needs_casting_at_output of
+                            False -> basic_column
+                            True ->
+                                dialect.make_cast basic_column result_type infer_return_type
+
 
                     Table.Value union_alias self.connection new_columns new_ctx
 
