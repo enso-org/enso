@@ -1577,7 +1577,7 @@ pub struct HierarchyFrp {
     /// performed.
     pub on_transformed:     frp::Stream<()>,
     /// Fires during the scene refresh if this object was resized due to auto-layout rules.
-    pub on_resized:         frp::Stream<Vector2>,
+    pub on_resized:         frp::Sampler<Vector2>,
     on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     on_hide_source:         frp::Source<Option<Scene>>,
     on_transformed_source:  frp::Source<()>,
@@ -1597,7 +1597,7 @@ impl HierarchyFrp {
             on_hide <- on_hide_source.batch().iter();
             on_layer_change <- on_layer_change_source.batch().iter();
             on_transformed <- on_transformed_source.batch().iter();
-            on_resized <- on_resized_source.batch().iter();
+            on_resized <- on_resized_source.batch().iter().sampler();
         }
         Self {
             on_show_source,

@@ -30,7 +30,7 @@ const DRAG_THRESHOLD: f32 = 4.0;
 const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -101,7 +101,8 @@ mod placeholder {
             let margin_left = default();
             let collapsing = default();
             let size_animation = Animation::<f32>::new(frp.network());
-            let viz = DEBUG_ANIMATION_SLOWDOWN.then(|| {
+            let viz = true.then(|| {
+                //DEBUG_ANIMATION_SLOWDOWN
                 let viz = RoundedRectangle(10.0).build(|t| {
                     t.set_size(Vector2::new(0.0, 20.0))
                         .allow_grow_x()
@@ -209,42 +210,101 @@ use placeholder::WeakPlaceholder;
 // === FRP ===
 // ===========
 
-#[derive(Debug)]
-pub struct DropSpot<T> {
-    pub placeholder: Placeholder,
-    pub elem:        T,
-}
+mod spot {
+    use super::*;
 
-impl<T: display::Object> DropSpot<T> {
-    pub fn new(placeholder: Placeholder, elem: T) -> Self {
-        placeholder.add_child(&elem);
-        let network = placeholder.frp.network();
-        let elem_display_object = elem.display_object();
-        let position_animation = Animation::<Vector2>::new(&network);
-        position_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
-
-        frp::extend! { network
-            eval position_animation.value ((p) {elem_display_object.set_xy(*p);});
+    ensogl_core::define_endpoints_2! {
+        Input {
+            set_margin_left(f32),
+            skip_anim(),
         }
-        position_animation.target.emit(elem_display_object.position().xy());
-        position_animation.skip.emit(());
-        position_animation.target.emit(Vector2(0.0, 0.0));
-        Self { placeholder, elem }
+        Output {
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct DropSpot<T> {
+        pub root: display::object::Instance,
+        pub frp:  Frp,
+        pub elem: T,
+        viz:      Option<Rectangle>,
+    }
+
+    impl<T: display::Object> DropSpot<T> {
+        pub fn new(elem: T, init_width: f32) -> Self {
+            let frp = Frp::new();
+            let root = display::object::Instance::new();
+            root.add_child(&elem);
+            let network = frp.network();
+            let elem_display_object = elem.display_object();
+            let width = Animation::<f32>::new_with_init(&network, 0.0);
+            let margin_left = Animation::<f32>::new_with_init(&network, 0.0);
+            let elem_offset = Animation::<Vector2>::new_with_init(&network, elem.position().xy());
+            margin_left.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
+            elem_offset.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
+            width.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
+
+            frp::extend! { network
+                margin_left.target <+ frp.set_margin_left;
+                elem_size <- elem_display_object.on_transformed.map(f!((_)
+                    elem_display_object.computed_size().x
+                ));
+                width.target <+ elem_size;
+                eval_ <- all_with(&width.value, &margin_left.value, f!((w, m) {
+                    root.set_size_x(w + m);
+                }));
+                eval_ <- all_with(&margin_left.value, &elem_offset.value, f!((m, o) {
+                    elem_display_object.set_xy(*o + Vector2(*m, 0.0));
+                }));
+
+                width.skip <+ frp.skip_anim;
+                margin_left.skip <+ frp.skip_anim;
+                // eval margin_left.value((t) elem_display_object.set_x(*t));
+                // eval elem_offset.value((t) elem_display_object.set_xy(*t));
+            }
+            elem_offset.target.emit(Vector2(0.0, 0.0));
+            width.target.emit(init_width);
+            width.skip.emit(());
+            mem::forget(margin_left);
+            mem::forget(elem_offset);
+
+            let viz = true.then(|| {
+                // DEBUG_ANIMATION_SLOWDOWN
+                let viz = RoundedRectangle(10.0).build(|t| {
+                    t.set_size(Vector2::new(0.0, 20.0))
+                        .allow_grow_x()
+                        .set_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0))
+                        .set_inset_border(5.0)
+                        .set_border_color(color::Rgba::new(0.0, 1.0, 1.0, 1.0));
+                });
+                root.add_child(&viz);
+                viz
+            });
+
+            Self { root, frp, elem, viz }
+        }
+
+        pub fn set_margin_left(&self, margin: f32) {
+            self.frp.set_margin_left.emit(margin)
+        }
+    }
+
+    impl<T> display::Object for DropSpot<T> {
+        fn display_object(&self) -> &display::object::Instance {
+            &self.root
+        }
     }
 }
+use spot::DropSpot;
 
 #[derive(Debug)]
 pub enum Item<T> {
-    Regular(T),
     Placeholder(Placeholder),
     WeakPlaceholder(WeakPlaceholder),
     DropSpot(DropSpot<T>),
 }
 
 impl<T: display::Object> Item<T> {
-    pub fn is_regular(&self) -> bool {
-        matches!(self, Self::Regular(_))
-    }
     pub fn is_placeholder(&self) -> bool {
         matches!(self, Self::Placeholder(_))
     }
@@ -255,10 +315,9 @@ impl<T: display::Object> Item<T> {
 
     pub fn display_object(&self) -> Option<display::object::Instance> {
         match self {
-            Item::Regular(t) => Some(t.display_object().clone_ref()),
             Item::Placeholder(t) => Some(t.display_object().clone_ref()),
             Item::WeakPlaceholder(t) => t.upgrade().map(|t| t.display_object().clone_ref()),
-            Item::DropSpot(t) => Some(t.placeholder.display_object().clone_ref()),
+            Item::DropSpot(t) => Some(t.display_object().clone_ref()),
         }
     }
 
@@ -268,7 +327,6 @@ impl<T: display::Object> Item<T> {
 
     pub fn exists(&self) -> bool {
         match self {
-            Item::Regular(_) => true,
             Item::Placeholder(_) => true,
             Item::DropSpot(_) => true,
             Item::WeakPlaceholder(t) => t.upgrade().is_some(),
@@ -428,8 +486,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             eval_ on_trash (model.borrow_mut().trash_dragged_item());
 
             // Re-parent the dragged element.
-            eval target_on_start ((t) dragged_elems.add_child(&t));
-            eval target_on_start([model, layouted_elems] (t) model.borrow_mut().set_as_dragged_item(&layouted_elems, t));
+            eval target_on_start([model, layouted_elems, dragged_elems] (t) model.borrow_mut().set_as_dragged_item(&layouted_elems, &dragged_elems, t));
             // center_points <- target_on_start.map(f_!(model.borrow().elems_center_points()));
             // trace center_points;
 
@@ -470,9 +527,11 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
 
 impl<T: display::Object + frp::node::Data> Model<T> {
     fn push_item(&mut self, layouted_elems: &display::object::Instance, item: T) -> usize {
-        layouted_elems.add_child(&item);
         let index = self.items.len();
-        self.items.push(Item::Regular(item));
+        warn!(">>> {:?}", item.computed_size().x);
+        let spot = DropSpot::new(item, 0.0);
+        layouted_elems.add_child(&spot);
+        self.items.push(Item::DropSpot(spot));
         self.recompute_margins();
         index
     }
@@ -490,16 +549,19 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         let mut first_elem = true;
         for item in &self.items {
             match item {
-                Item::Regular(item) => {
-                    let gap = if first_elem { 0.0 } else { GAP };
-                    item.set_margin_left(gap);
-                    first_elem = false;
-                }
-                // Item::DropSpot(t) => {
+                // Item::Regular(item) => {
                 //     let gap = if first_elem { 0.0 } else { GAP };
-                //     t.placeholder.set_margin_left(gap);
+                //     item.set_margin_left(gap);
                 //     first_elem = false;
                 // }
+                Item::DropSpot(t) => {
+                    let gap = if first_elem { 0.0 } else { GAP };
+                    t.set_margin_left(gap);
+                    first_elem = false;
+                }
+                Item::Placeholder(_) => {
+                    first_elem = false;
+                }
                 _ => {}
             }
         }
@@ -534,23 +596,23 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn remove_item_by_display_object(
         &mut self,
         target: &display::object::Instance,
-    ) -> Option<(usize, T)> {
-        let mut result: Option<(usize, T)> = None;
+    ) -> Option<(usize, DropSpot<T>)> {
+        let mut result: Option<(usize, DropSpot<T>)> = None;
         let items = mem::take(&mut self.items);
         self.items = items
             .into_iter()
             .enumerate()
             .filter_map(|(i, item)| match item {
-                Item::Regular(item) =>
-                    if item.display_object() == target {
-                        result = Some((i, item));
-                        None
-                    } else {
-                        Some(Item::Regular(item))
-                    },
+                // Item::Regular(item) =>
+                //     if item.display_object() == target {
+                //         result = Some((i, item));
+                //         None
+                //     } else {
+                //         Some(Item::Regular(item))
+                //     },
                 Item::DropSpot(t) =>
                     if t.elem.display_object() == target {
-                        result = Some((i, t.elem));
+                        result = Some((i, t));
                         None
                     } else {
                         Some(Item::DropSpot(t))
@@ -606,6 +668,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn set_as_dragged_item(
         &mut self,
         layouted_elems: &display::object::Instance,
+        dragged_elems: &display::object::Instance,
         target: &display::object::Instance,
     ) {
         if let Some((index, elem)) = self.remove_item_by_display_object(target) {
@@ -617,7 +680,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 (Some(p1), Some(p2)) => (Some(p1), Some(p2)),
                 (p1, p2) => (p1.or(p2), None),
             };
-            let size = elem.computed_size().x + GAP;
+            let size = elem.computed_size().x;
             if let Some((placeholder_index, placeholder)) = placeholder {
                 placeholder.reuse();
                 placeholder.add_to_size(size);
@@ -631,7 +694,9 @@ impl<T: display::Object + frp::node::Data> Model<T> {
             } else {
                 self.items.insert(index, Placeholder::new_with_size(size).into());
             }
-            self.dragged_item = Some(elem);
+            dragged_elems.set_xy(elem.position().xy());
+            dragged_elems.add_child(&elem.elem);
+            self.dragged_item = Some(elem.elem);
             self.recompute_margins();
             self.redraw_items(layouted_elems);
         } else {
@@ -645,10 +710,18 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         if let Some(item) = self.dragged_item.as_ref() {
             self.items.collapse_all_placeholders();
             let prev_index = index.checked_sub(1);
-            let size = item.computed_size().x + GAP;
-            let old_placeholder = self
-                .get_upgraded_weak_placeholder(index)
-                .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
+            let prev_index_placeholder =
+                prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
+            let gap = if index == 0 || (index == 1 && prev_index_placeholder.is_some()) {
+                0.0
+            } else {
+                GAP
+            };
+            warn!(">>> {:?}", gap);
+            let size = item.computed_size().x + gap;
+            let gap = if index == 0 { 0.0 } else { GAP };
+            let old_placeholder =
+                prev_index_placeholder.or_else(|| self.get_upgraded_weak_placeholder(index));
             if let Some((index, placeholder)) = old_placeholder {
                 placeholder.reuse();
                 placeholder.set_target_size(size);
@@ -658,6 +731,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 placeholder.set_target_size(size);
                 self.items.insert(index, placeholder.into());
             }
+            self.recompute_margins();
         } else {
             warn!("Called function to find insertion point while no element is being dragged.")
         }
@@ -675,22 +749,27 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
             let size = item.computed_size().x + GAP;
             if let Some((index, placeholder)) = placeholder {
-                placeholder.reuse();
-                placeholder.set_target_size(size);
+                placeholder.drop_self_ref();
                 let placeholder_position = placeholder.global_position().xy();
                 let item_position = item.global_position().xy();
                 item.set_xy(item_position - placeholder_position);
-                self.items[index] = Item::DropSpot(DropSpot::new(placeholder, item));
+                let spot = DropSpot::new(item, placeholder.computed_size().x - GAP);
+                let spot_frp = spot.frp.clone_ref();
+                self.items[index] = Item::DropSpot(spot);
+                self.items.collapse_all_placeholders();
+                self.recompute_margins();
+                spot_frp.skip_anim();
             } else {
                 // This branch should never be reached, as when dragging an element we always create
                 // a placeholder for it (see the [`potential_insertion_point`] function). However,
                 // in case something breaks, we want it to still provide the user with the correct
                 // outcome.
-                self.items.insert(index, Item::Regular(item));
+                // self.items.insert(index, Item::Regular(item));
                 warn!("An element was inserted without a placeholder. This should not happen.");
+                panic!();
             }
-            self.items.collapse_all_placeholders();
-            self.recompute_margins();
+            // self.items.collapse_all_placeholders();
+            // self.recompute_margins();
         } else {
             warn!("Called function to insert dragged element, but no element is being dragged.")
         }
@@ -712,9 +791,9 @@ impl<T: display::Object + frp::node::Data> Model<T> {
             current += size.x / 2.0;
             centers.push(current);
             current += size.x / 2.0;
-            if item.is_regular() {
-                current += GAP;
-            }
+            // if item.is_regular() {
+            //     current += GAP;
+            // }
         }
         // warn!("centers: {:#?}", centers);
         centers
