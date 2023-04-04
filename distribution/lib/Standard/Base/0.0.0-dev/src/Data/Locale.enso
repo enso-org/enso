@@ -38,8 +38,8 @@ type Locale
         java_locale = JavaLocale.new language country_text variant_text
         Locale.Value java_locale
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Convert a java locale to an Enso locale.
 
        Arguments:
