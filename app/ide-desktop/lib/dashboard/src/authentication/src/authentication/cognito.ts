@@ -600,10 +600,15 @@ async function currentAuthenticatedUser() {
     )
     return result.mapErr(intoAmplifyErrorOrThrow)
 }
+
 async function changePassword(oldPassword: string, newPassword: string) {
-    return (await currentAuthenticatedUser()).map(cognitoUser =>
-        results.Result.wrapAsync(async () => {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+        const cognitoUser = cognitoUserResult.unwrap()
+        return results.Result.wrapAsync(async () => {
             await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
         }).then(result => result.mapErr(intoAmplifyErrorOrThrow))
-    )
+    } else {
+        return results.Err(cognitoUserResult.val)
+    }
 }
