@@ -5,6 +5,7 @@ import * as react from 'react'
 import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
 import Input from './input'
+import SvgIcon from './svgIcon'
 
 // ===================
 // === SetUsername ===
@@ -36,7 +37,7 @@ function SetUsername() {
                     >
                         <div className="flex flex-col mb-6">
                             <div className="relative">
-                                {svg.AT}
+                                <SvgIcon svg={svg.AT} />
 
                                 <Input
                                     id="username"

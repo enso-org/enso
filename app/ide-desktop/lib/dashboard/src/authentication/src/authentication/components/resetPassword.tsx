@@ -8,6 +8,7 @@ import * as app from '../../components/app'
 import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
 import Input from './input'
+import SvgIcon from './svgIcon'
 
 // =================
 // === Constants ===
@@ -68,7 +69,7 @@ function ResetPassword() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                {svg.AT}
+                                <SvgIcon svg={svg.AT} />
 
                                 <Input
                                     id="email"
@@ -88,7 +89,7 @@ function ResetPassword() {
                                 Confirmation Code:
                             </label>
                             <div className="relative">
-                                {svg.LOCK}
+                                <SvgIcon svg={svg.LOCK} />
 
                                 <Input
                                     id="code"
@@ -108,7 +109,7 @@ function ResetPassword() {
                                 New Password:
                             </label>
                             <div className="relative">
-                                {svg.LOCK}
+                                <SvgIcon svg={svg.LOCK} />
 
                                 <Input
                                     id="new_password"

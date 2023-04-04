@@ -7,6 +7,7 @@ import * as app from '../../components/app'
 import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
 import Input from './input'
+import SvgIcon from './svgIcon'
 
 // ====================
 // === Registration ===
@@ -54,7 +55,7 @@ function Registration() {
                             E-Mail Address:
                         </label>
                         <div className="relative">
-                            {svg.AT}
+                            <SvgIcon svg={svg.AT} />
 
                             <Input
                                 id="email"
@@ -74,7 +75,7 @@ function Registration() {
                             Password:
                         </label>
                         <div className="relative">
-                            {svg.LOCK}
+                            <SvgIcon svg={svg.LOCK} />
 
                             <Input
                                 id="password"
@@ -94,7 +95,7 @@ function Registration() {
                             Confirm Password:
                         </label>
                         <div className="relative">
-                            {svg.LOCK}
+                            <SvgIcon svg={svg.LOCK} />
 
                             <Input
                                 id="password_confirmation"
