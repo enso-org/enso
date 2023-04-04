@@ -252,6 +252,7 @@ impl component::Frp<Model> for Frp {
             output.selected_execution_mode <+ selected_entry;
 
             // == Outputs ==
+
             output.play_press <+ play_icon.events_deprecated.mouse_down.constant(());
             output.size <+ style_update.map(|style| {
                 Vector2::new(style.overall_width(),style.height)
