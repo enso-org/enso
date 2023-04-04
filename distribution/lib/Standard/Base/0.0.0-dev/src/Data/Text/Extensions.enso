@@ -40,6 +40,7 @@ polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.Regex_Utils
 
 ## Returns a new `Text` object with the characters in the reverse order of the input.
 
@@ -301,7 +302,6 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - delimiter: The pattern used to split the text.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively. The values are compared case sensitively by default.
-   - only_first: If true, only replace the first match.
    - use_regex: If true, the term is used as a regular expression.
 
    > Example
@@ -319,25 +319,41 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Split the text on any whitespace.
 
          'abc  def\tghi'.split '\\s+' use_regex=True == ["abc", "def", "ghi"]
-Text.split : Text -> Case_Sensitivity -> Boolean -> Boolean -> Vector Text | Illegal_Argument
-Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
-    case use_regex of
-        False ->
-            delimiters = Vector.from_polyglot_array <| case case_sensitivity of
-                Case_Sensitivity.Sensitive ->
-                    Text_Utils.span_of_all self delimiter
-                Case_Sensitivity.Insensitive locale ->
-                    Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
-            Vector.new delimiters.length+1 i->
-                start = if i == 0 then 0 else
-                    delimiters.at i-1 . codeunit_end
-                end = if i == delimiters.length then (Text_Utils.char_length self) else
-                    delimiters.at i . codeunit_start
-                Text_Utils.substring self start end
-        True ->
-            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-            compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
-            compiled_pattern.split self only_first
+
+   > Example
+     Split with a vector of strings.
+
+         'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
+Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
+Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
+    delimiter_is_empty = case delimiter of
+        _ : Text -> delimiter.is_empty
+        _ : Vector -> delimiter.is_empty || delimiter.any (.is_empty)
+        _ -> Error.throw (Illegal_Argument.Error "The delimiter must be a Text or Vector of Texts.")
+    if delimiter_is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
+        delimiter_is_singleton_vector = case delimiter of
+            _ : Vector -> delimiter.length == 1
+            _ -> False
+        # If it's a vector of one element, just call it on that one element.
+        if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else
+            case use_regex of
+                False ->
+                    delimiters = split_find_delimiters self delimiter case_sensitivity
+                    Vector.new delimiters.length+1 i->
+                        start = if i == 0 then 0 else
+                            delimiters.at i-1 . codeunit_end
+                        end = if i == delimiters.length then (Text_Utils.char_length self) else
+                            delimiters.at i . codeunit_start
+                        Text_Utils.substring self start end
+                True -> case delimiter of
+                    _ : Text ->
+                        case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                        compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+                        compiled_pattern.split self
+                    _ : Vector ->
+                        parenthesize s = "(?:" + s + ")"
+                        combined_delimiter = parenthesize (delimiter.map parenthesize . join '|')
+                        self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
 
 ## ADVANCED
    Takes an input string and and a pattern and returns all the matches as a
@@ -1359,3 +1375,20 @@ slice_text text char_ranges =
     char_ranges.map char_range->
        sb.append text char_range.start char_range.end
     sb.toString
+
+## PRIVATE
+
+   Find occurrences of delimiters in a string.
+split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
+split_find_delimiters input delimiter case_sensitivity =
+    Vector.from_polyglot_array <| case delimiter of
+        _ : Text -> case case_sensitivity of
+            Case_Sensitivity.Sensitive ->
+                Text_Utils.span_of_all input delimiter
+            Case_Sensitivity.Insensitive locale ->
+                Text_Utils.span_of_all_case_insensitive input delimiter locale.java_locale
+        _ : Vector -> case case_sensitivity of
+            Case_Sensitivity.Sensitive ->
+                Text_Utils.span_of_all_multiple input delimiter
+            Case_Sensitivity.Insensitive locale ->
+                Text_Utils.span_of_all_case_insensitive_multiple input delimiter locale.java_locale

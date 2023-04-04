@@ -274,7 +274,61 @@ spec =
             utf_8_whitespace.split "\s+" use_regex=True . should_equal utf_8_whitespace_split
             'abc  def\tghi'.split '\\s+' use_regex=True . should_equal ["abc", "def", "ghi"]
 
-        Test.specify "exmples should be correct" <|
+        Test.specify 'should be able to split with a vector of strings' <|
+            'azbzczdzezfzg'.split ['b', 'zez'] . should_equal ['az', 'zczd', 'fzg']
+            'a1b2c3d4e5f6g7h8'.split ['c', '5'] . should_equal ['a1b2', '3d4e', 'f6g7h8']
+
+        Test.specify 'should handle overlapping delimiters correctly' <|
+            'blah x 123'.split [' ', ' x ' , 'x'] . should_equal ['blah', '', '', '123']
+            'abcdef'.split ['bc', 'cd'] . should_equal ['a', 'def']
+            'abcdef'.split ['cd', 'bc'] . should_equal ['a', 'def']
+            'abcdef'.split ['bc', 'bcd'] . should_equal ['a', 'def']
+            'abcdef'.split ['bcd', 'bc'] . should_equal ['a', 'ef']
+
+        Test.specify 'should be able to split with a vector of strings, case insensitively' <|
+            'azBZczDZEZFzg'.split ['B', 'zez'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['az', 'ZczD', 'Fzg']
+            'blah X 123'.split [' ', ' x ' , 'x'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['blah', '', '', '123']
+            'A1B2C3D4E5F6G7H8'.split ['c', '5'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['A1B2', '3D4E', 'F6G7H8']
+
+        Test.specify 'should be able to split with a vector of strings, using regexes' <|
+            'a1b2c3d4e5f6g7h8'.split ['[cde]', '[456]'] use_regex=True . should_equal ['a1b2', '3', '', '', '', 'f', 'g7h8']
+            'abcde1fghij2klmnop'.split ["\d", '[hm]'] use_regex=True . should_equal ['abcde', 'fg', 'ij', 'kl', 'nop']
+
+        Test.specify "should handle unicode normalization the same for single and multiple delimiters" <|
+            'aśbs\u0301c'.split 'ś' . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['ś'] . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split 's\u0301' . should_equal ['a', 'b', 'c']
+            'aśbs\u0301c'.split ['s\u0301'] . should_equal ['a', 'b', 'c']
+            'aśbs\u0301cdef'.split ['ś', 'de'] . should_equal ['a', 'b', 'c', 'f']
+
+        Test.specify "should handle unicode normalization the same for single and multiple delimiters, case-insensitively" <|
+            'aśbS\u0301c'.split 'ś' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aśbS\u0301c'.split ['ś'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aŚbS\u0301c'.split 's\u0301' case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aśbS\u0301c'.split ['s\u0301'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c']
+            'aŚbS\u0301cdef'.split ['ś', 'de'] case_sensitivity=Case_Sensitivity.Insensitive . should_equal ['a', 'b', 'c', 'f']
+
+        Test.specify "should handle splitting the same for the special case of a 1-element vector" <|
+            'abcdefgh'.split 'c' . should_equal ['ab', 'defgh']
+            'abcdefgh'.split ['c'] . should_equal ['ab', 'defgh']
+            'abcdefgh'.split ['c', 'q'] . should_equal ['ab', 'defgh']
+
+        Test.specify "should split on the leftmost delimiter in the case of a tie" <|
+            'abcdefgh'.split ['c', 'cd'] . should_equal ['ab', 'defgh']
+            'abcdefgh'.split ['cd', 'c'] . should_equal ['ab', 'efgh']
+
+        Test.specify "should throw Illegal_Argument for a bad or empty delimiter" <|
+            'abc'.split '' . should_fail_with Illegal_Argument
+            'abc'.split [] . should_fail_with Illegal_Argument
+            'abc'.split ['a', ''] . should_fail_with Illegal_Argument
+            'abc'.split 3 . should_fail_with Illegal_Argument
+
+            'abc'.split '' case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+            'abc'.split [] case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+            'abc'.split ['a', ''] case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+            'abc'.split 3 case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Illegal_Argument
+
+        Test.specify "examples should be correct" <|
             "Namespace::package::package::Type".split "::" . should_equal ["Namespace", "package", "package", "Type"]
             "abc--def==>ghi".split "[-=>]+" use_regex=True . should_equal ["abc", "def", "ghi"]
             'abc  def\tghi'.split '\\s+' use_regex=True . should_equal ["abc", "def", "ghi"]
