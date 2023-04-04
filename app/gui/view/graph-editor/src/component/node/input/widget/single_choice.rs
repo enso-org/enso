@@ -18,9 +18,9 @@ use crate::component::node::input::widget::Metadata;
 /// === Constants ===
 /// =================
 
-const ACTIVATION_SHAPE_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
+pub const ACTIVATION_SHAPE_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
 const ACTIVATION_SHAPE_Y_OFFSET: f32 = 15.0;
-const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
+pub const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
 /// Distance between the dropdown and the bottom of the port.
 const DROPDOWN_Y_OFFSET: f32 = 5.0;
 
@@ -250,7 +250,6 @@ impl super::SpanWidget for Widget {
         // Do not increment the depth. If the dropdown is displayed, it should also display
         // its arguments.
 
-        self.label_wrapper.remove_all_children();
         self.content_wrapper.remove_all_children();
 
         if ctx.span_tree_node.is_chained() {
@@ -258,18 +257,16 @@ impl super::SpanWidget for Widget {
             if let Some(first_child) = chain_children.next() {
                 let label =
                     ctx.builder.child_widget_of_type(first_child, ctx.depth, LABEL_CONFIG, 0);
-                self.label_wrapper.add_child(&label.root);
+                self.label_wrapper.replace_children(&[label]);
             }
-            for child in chain_children {
-                // No depth change. If the dropdown is displayed, it should also display its
-                // arguments.
-                let child = ctx.builder.child_widget(child, ctx.depth);
-                self.content_wrapper.add_child(&child.root);
-            }
+            let content_children = chain_children
+                .map(|child| ctx.builder.child_widget(child, ctx.depth))
+                .collect_vec();
+            self.content_wrapper.replace_children(&content_children);
         } else {
             let label =
                 ctx.builder.child_widget_of_type(ctx.span_tree_node, ctx.depth, LABEL_CONFIG, 0);
-            self.label_wrapper.add_child(&label.root);
+            self.label_wrapper.replace_children(&[label]);
         }
     }
 }

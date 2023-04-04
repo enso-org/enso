@@ -1912,7 +1912,7 @@ impl Model {
                 }
                 if !self.children.borrow().is_empty() {
                     debug_span!("Updating all children.").in_scope(|| {
-                        let children = self.children.borrow().clone();
+                        let children = self.children.borrow();
                         children.values().for_each(|weak_child| {
                             weak_child.upgrade().for_each(|child| {
                                 child.update_with_origin(
@@ -1937,7 +1937,7 @@ impl Model {
                 if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
-                            self.children.borrow().get(ix).and_then(|t| t.upgrade()).for_each(
+                            self.children.borrow().get(&ix).and_then(|t| t.upgrade()).for_each(
                                 |child| {
                                     child.update_with_origin(
                                         scene,
@@ -5941,8 +5941,8 @@ mod layout_tests {
         test.root.add_child(&test.node1);
         test.run(|| {
             test.assert_root_computed_size(20.0, 10.0)
-                .assert_node2_position(0.0, 0.0)
-                .assert_node1_position(10.0, 0.0);
+                .assert_node1_position(10.0, 0.0)
+                .assert_node2_position(0.0, 0.0);
         });
 
         let node3 = Instance::new();
@@ -5950,8 +5950,8 @@ mod layout_tests {
         test.root.add_child(&node3);
         test.run(|| {
             test.assert_root_computed_size(32.0, 10.0)
-                .assert_node2_position(0.0, 0.0)
-                .assert_node1_position(10.0, 0.0);
+                .assert_node1_position(10.0, 0.0)
+                .assert_node2_position(0.0, 0.0);
         });
         assert_eq!(node3.position().xy(), Vector2(20.0, 0.0));
     }

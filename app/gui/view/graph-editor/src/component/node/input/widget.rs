@@ -432,7 +432,7 @@ impl RootModel {
         let mut builder =
             WidgetTreeBuilder::new(node_expression, app, frp, &*metadata_map, widgets_map);
         let child = builder.child_widget(tree.root_ref(), 0);
-        self.display_object.inner.add_child(&child.root);
+        self.display_object.inner.replace_children(&[child]);
         self.widgets_map.replace(builder.new_widgets);
     }
 
@@ -492,12 +492,6 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
     }
 }
 
-#[derive(Debug)]
-struct ChildWidget {
-    root:    display::object::Instance,
-    pointer: WidgetTreePointer,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct WidgetTreePointer {
     /// The latest set ast::Id in the span tree.
@@ -546,7 +540,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         &mut self,
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
-    ) -> ChildWidget {
+    ) -> display::object::Instance {
         self.create_child_widget(span_tree_node, depth, None, None)
     }
 
@@ -557,7 +551,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         depth: usize,
         meta: Metadata,
         key: usize,
-    ) -> ChildWidget {
+    ) -> display::object::Instance {
         self.create_child_widget(span_tree_node, depth, Some(meta), Some(key))
     }
 
@@ -568,7 +562,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         depth: usize,
         set_metadata: Option<Metadata>,
         nested_key: Option<usize>,
-    ) -> ChildWidget {
+    ) -> display::object::Instance {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
         let mut ast_data_to_restore = None;
@@ -644,7 +638,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             self.last_ast_id = id;
             self.last_ast_id_crumbs = crumbs;
         }
-        ChildWidget { pointer: tree_ptr, root }
+        root
     }
 }
 
@@ -704,347 +698,4 @@ impl display::Object for Port {
     fn display_object(&self) -> &display::object::Instance {
         self.shape.display_object()
     }
-}
-
-
-
-// ========================
-// === KindModel / Kind ===
-// ========================
-
-/// Possible widgets for a node input.
-///
-/// Currently, all widget types are hardcoded. This is likely to be a temporary solution. In the
-/// future the widget types might be user-defined, similar to visualizations.
-#[derive(serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Kind {
-    /// A widget for selecting a single value from a list of available options.
-    #[serde(rename = "Single_Choice")]
-    SingleChoice,
-}
-
-/// A part of widget model that is dependant on the widget kind.
-#[derive(Debug)]
-pub enum KindModel {
-    /// A widget for selecting a single value from a list of available options.
-    SingleChoice(SingleChoiceModel),
-}
-
-impl KindModel {
-    fn new(
-        app: &Application,
-        display_object: &display::object::Instance,
-        kind: Kind,
-        frp: &SampledFrp,
-        meta: &Option<Metadata>,
-        node_data: &NodeData,
-    ) -> Self {
-        let this = match kind {
-            Kind::SingleChoice =>
-                Self::SingleChoice(SingleChoiceModel::new(app, display_object, frp)),
-        };
-
-        this.update(meta, node_data);
-        this
-    }
-
-    fn update(&self, meta: &Option<Metadata>, node_data: &NodeData) {
-        match self {
-            KindModel::SingleChoice(inner) => {
-                let dynamic_entries = meta.as_ref().map(|meta| meta.dynamic_entries.clone());
-                let entries = dynamic_entries
-                    .unwrap_or_else(|| node_data.tag_values.iter().map(Into::into).collect());
-
-                inner.set_port_size(node_data.port_size);
-                inner.set_entries(entries);
-            }
-        }
-    }
-
-    fn kind(&self) -> Kind {
-        match self {
-            Self::SingleChoice(_) => Kind::SingleChoice,
-        }
-    }
-}
-
-
-
-// ======================
-// === Triangle Shape ===
-// ======================
-
-/// Temporary dropdown activation shape definition.
-pub mod triangle {
-    use super::*;
-    ensogl::shape! {
-        above = [
-            crate::component::node::background,
-            crate::component::node::input::port::hover
-        ];
-        alignment = center;
-        (style:Style, color:Vector4) {
-            let size   = Var::canvas_size();
-            let radius = 1.0.px();
-            let shrink = &radius * 2.0;
-            let shape  = Triangle(size.x() - &shrink, size.y() - &shrink)
-                .flip_y()
-                .grow(radius);
-            shape.fill(color).into()
-        }
-    }
-}
-
-
-
-// ====================
-// === SingleChoice ===
-// ====================
-
-/// A widget for selecting a single value from a list of available options. The options can be
-/// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
-#[derive(Debug)]
-pub struct SingleChoiceModel {
-    #[allow(dead_code)]
-    network:          frp::Network,
-    dropdown:         Rc<RefCell<LazyDropdown>>,
-    /// temporary click handling
-    activation_shape: triangle::View,
-}
-
-impl SingleChoiceModel {
-    fn new(
-        app: &Application,
-        display_object: &display::object::Instance,
-        frp: &SampledFrp,
-    ) -> Self {
-        let activation_shape = triangle::View::new();
-        activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
-        display_object.add_child(&activation_shape);
-
-        frp::new_network! { network
-            init <- source_();
-            let focus_in = display_object.on_event::<event::FocusIn>();
-            let focus_out = display_object.on_event::<event::FocusOut>();
-            is_focused <- bool(&focus_out, &focus_in);
-            is_open <- frp.set_visible && is_focused;
-            is_open <- is_open.sampler();
-        };
-
-        let set_current_value = frp.set_current_value.clone_ref();
-        let dropdown_output = frp.out_value_changed.clone_ref();
-        let request_import = frp.out_request_import.clone_ref();
-        let dropdown = LazyDropdown::new(
-            app,
-            display_object,
-            set_current_value,
-            is_open,
-            dropdown_output,
-            request_import,
-        );
-        let dropdown = Rc::new(RefCell::new(dropdown));
-
-        frp::extend! { network
-            clicked <- activation_shape.events_deprecated.mouse_down_primary.gate_not(&frp.set_read_only);
-            toggle_focus <- clicked.map(f!([display_object](()) !display_object.is_focused()));
-            set_focused <- any(toggle_focus, frp.set_focused);
-            eval set_focused([display_object](focus) match focus {
-                true => display_object.focus(),
-                false => display_object.blur(),
-            });
-
-            set_visible <- all(&frp.set_visible, &init)._0();
-            shape_alpha <- set_visible.map(|visible| if *visible { 1.0 } else { 0.0 });
-            shape_color <- shape_alpha.map(|a| ACTIVATION_SHAPE_COLOR.with_alpha(*a));
-            eval shape_color([activation_shape] (color) {
-                activation_shape.color.set(color::Rgba::from(color).into());
-            });
-
-            eval focus_in((_) dropdown.borrow_mut().initialize_on_open());
-        }
-
-        init.emit(());
-
-        Self { network, dropdown, activation_shape }
-    }
-
-    fn set_port_size(&self, port_size: Vector2) {
-        self.activation_shape.set_x(port_size.x() / 2.0);
-        self.activation_shape
-            .set_y(-port_size.y() / 2.0 - ACTIVATION_SHAPE_SIZE.y() - ACTIVATION_SHAPE_Y_OFFSET);
-        self.dropdown.borrow_mut().set_port_size(port_size);
-    }
-
-    fn set_entries(&self, entries: Vec<Entry>) {
-        self.dropdown.borrow_mut().set_entries(entries);
-    }
-}
-
-
-
-// ====================
-// === LazyDropdown ===
-// ====================
-
-/// A lazy dropdown that is only initialized when it is opened for the first time. This prevents
-/// very long initialization time, as dropdown view creation is currently a very slow process.
-///
-/// FIXME [PG]: Improve grid-view creation performance, so that this is no longer needed.
-/// https://www.pivotaltracker.com/story/show/184223891
-///
-/// Once grid-view creation is reasonably fast, this might be replaced by direct dropdown
-/// initialization on widget creation.
-#[derive(Debug)]
-enum LazyDropdown {
-    NotInitialized {
-        app:               Application,
-        display_object:    display::object::Instance,
-        dropdown_y:        f32,
-        entries:           Vec<Entry>,
-        set_current_value: frp::Sampler<Option<ImString>>,
-        is_open:           frp::Sampler<bool>,
-        output_value:      frp::Any<Option<ImString>>,
-        request_import:    frp::Any<ImString>,
-    },
-    Initialized {
-        _network:    frp::Network,
-        dropdown:    Dropdown<Entry>,
-        set_entries: frp::Any<Vec<Entry>>,
-    },
-}
-
-impl LazyDropdown {
-    fn new(
-        app: &Application,
-        display_object: &display::object::Instance,
-        set_current_value: frp::Sampler<Option<ImString>>,
-        is_open: frp::Sampler<bool>,
-        output_value: frp::Any<Option<ImString>>,
-        request_import: frp::Any<ImString>,
-    ) -> Self {
-        let app = app.clone_ref();
-        let display_object = display_object.clone_ref();
-        let dropdown_y = default();
-        let entries = default();
-        LazyDropdown::NotInitialized {
-            app,
-            display_object,
-            dropdown_y,
-            entries,
-            set_current_value,
-            is_open,
-            output_value,
-            request_import,
-        }
-    }
-
-    fn set_port_size(&mut self, new_port_size: Vector2) {
-        let y = -new_port_size.y() - DROPDOWN_Y_OFFSET;
-        match self {
-            LazyDropdown::Initialized { dropdown, .. } => {
-                dropdown.set_y(y);
-            }
-            LazyDropdown::NotInitialized { dropdown_y, .. } => {
-                *dropdown_y = y;
-            }
-        }
-    }
-
-    fn set_entries(&mut self, new_entries: Vec<Entry>) {
-        match self {
-            LazyDropdown::Initialized { set_entries, .. } => {
-                set_entries.emit(new_entries);
-            }
-            LazyDropdown::NotInitialized { entries, .. } => {
-                *entries = new_entries;
-            }
-        }
-    }
-
-    #[profile(Detail)]
-    fn initialize_on_open(&mut self) {
-        match self {
-            LazyDropdown::Initialized { .. } => {}
-            LazyDropdown::NotInitialized {
-                app,
-                display_object,
-                dropdown_y,
-                entries,
-                is_open,
-                set_current_value,
-                output_value,
-                request_import,
-            } => {
-                let dropdown = app.new_view::<Dropdown<Entry>>();
-                display_object.add_child(&dropdown);
-                app.display.default_scene.layers.above_nodes.add(&dropdown);
-                dropdown.set_y(*dropdown_y);
-                dropdown.set_max_open_size(Vector2(300.0, 500.0));
-                dropdown.allow_deselect_all(true);
-
-                frp::new_network! { network
-                    init <- source_();
-                    set_entries <- any(...);
-
-                    dropdown.set_all_entries <+ set_entries;
-                    entries_and_value <- all(&set_entries, set_current_value);
-                    entries_and_value <- entries_and_value.debounce();
-
-                    selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
-                    dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
-
-                    dropdown_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
-                    // Emit the output value only after actual user action. This prevents the
-                    // dropdown from emitting its initial value when it is opened, which can
-                    // represent slightly different version of code than actually written.
-                    submitted_entry <- dropdown_entry.sample(&dropdown.user_select_action);
-                    dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Entry::value));
-                    dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
-                    request_import <+ dropdown_out_import.unwrap();
-                    output_value <+ dropdown_out_value.sample(&dropdown.user_select_action);
-
-                    is_open <- all(is_open, &init)._0();
-                    dropdown.set_open <+ is_open.on_change();
-
-                    // Close the dropdown after a short delay after selection. Because the dropdown
-                    // value application triggers operations that can introduce a few dropped frames,
-                    // we want to delay the dropdown closing animation after that is handled.
-                    // Otherwise the animation finishes within single frame, which looks bad.
-                    let close_after_selection_timer = frp::io::timer::Timeout::new(&network);
-                    close_after_selection_timer.restart <+ dropdown.user_select_action.constant(1);
-                    eval close_after_selection_timer.on_expired((()) display_object.blur());
-                }
-
-                set_entries.emit(std::mem::take(entries));
-                init.emit(());
-                *self = LazyDropdown::Initialized { _network: network, dropdown, set_entries };
-            }
-        }
-    }
-}
-
-fn entry_for_current_value(
-    all_entries: &[Entry],
-    current_value: &Option<ImString>,
-) -> Option<Entry> {
-    let current_value = current_value.clone()?;
-    let found_entry = all_entries.iter().find(|entry| entry.value.as_ref() == current_value);
-    let with_partial_match = found_entry.or_else(|| {
-        // Handle parentheses in current value. Entries with parenthesized expressions will match if
-        // they start with the same expression as the current value. That way it is still matched
-        // once extra arguments are added to the nested function call.
-        if current_value.starts_with('(') {
-            let current_value = current_value.trim_start_matches('(').trim_end_matches(')');
-            all_entries.iter().find(|entry| {
-                let trimmed_value = entry.value.trim_start_matches('(').trim_end_matches(')');
-                current_value.starts_with(trimmed_value)
-            })
-        } else {
-            None
-        }
-    });
-
-    let with_fallback =
-        with_partial_match.cloned().unwrap_or_else(|| Entry::from_value(current_value.clone()));
-    Some(with_fallback)
 }

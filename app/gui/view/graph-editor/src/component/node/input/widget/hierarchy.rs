@@ -42,15 +42,16 @@ impl super::SpanWidget for Widget {
     fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
         let offset = ctx.span_tree_node.sibling_offset.as_usize() as f32;
         self.display_object.inner.set_padding_left(offset * SPACE_GLYPH_WIDTH);
-        self.display_object.inner.remove_all_children();
 
         let preserve_depth =
             ctx.span_tree_node.is_chained() || ctx.span_tree_node.is_named_argument();
         let next_depth = if preserve_depth { ctx.depth } else { ctx.depth + 1 };
 
-        for node in ctx.span_tree_node.children_iter() {
-            let child = ctx.builder.child_widget(node, next_depth);
-            self.display_object.inner.add_child(&child.root);
-        }
+        let children = ctx
+            .span_tree_node
+            .children_iter()
+            .map(|node| ctx.builder.child_widget(node, next_depth))
+            .collect_vec();
+        self.display_object.inner.replace_children(&children);
     }
 }

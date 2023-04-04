@@ -6,10 +6,9 @@
 
 use crate::prelude::*;
 
-use crate::component::node::input::widget::triangle;
-use crate::component::node::input::widget::SampledFrp;
-use crate::component::node::input::widget::ACTIVATION_SHAPE_COLOR;
-use crate::component::node::input::widget::ACTIVATION_SHAPE_SIZE;
+use crate::component::node::input::widget::single_choice::triangle;
+use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_COLOR;
+use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_SIZE;
 
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
@@ -20,9 +19,16 @@ use ensogl_component::text::Text;
 
 
 
-// =============
-// === Model ===
-// =============
+// ==============
+// === Widget ===
+// ==============
+
+ensogl::define_endpoints_2! {
+    Input {
+        current_value(Option<ImString>),
+        current_crumbs(span_tree::Crumbs),
+    }
+}
 
 /// A model for the vector editor widget.
 ///
@@ -43,7 +49,7 @@ pub struct Model {
     pub set_port_size: frp::Source<Vector2>,
 }
 
-impl Model {
+impl Widget {
     /// A gap between the `activation_shape` and `elements` view.
     const GAP: f32 = 3.0;
 
@@ -198,24 +204,4 @@ impl Model {
         });
         opt_iterator.into_iter().flatten()
     }
-}
-
-
-
-/// ==============
-/// === Widget ===
-/// ==============
-
-struct Widget {}
-
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-struct Config {}
-
-impl super::SpanWidget for Widget {
-    type Config = Config;
-    fn new(config: &Config, ctx: super::ConfigContext<'_>) -> Self {
-        Self {}
-    }
-
-    fn configure(&mut self, config: &Config, ctx: super::ConfigContext<'_>) {}
 }
