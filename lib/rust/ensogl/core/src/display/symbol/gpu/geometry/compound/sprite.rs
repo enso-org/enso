@@ -310,12 +310,7 @@ impl SpriteSystem {
 
     /// Creates a new sprite instance.
     pub fn new_instance(&self) -> Sprite {
-        self.new_instance_at(default())
-    }
-
-    /// Creates a new sprite instance in the specified buffer.
-    pub fn new_instance_at(&self, buffer_partition: attribute::BufferPartitionId) -> Sprite {
-        let instance = self.symbol.new_instance(buffer_partition);
+        let instance = self.symbol.new_instance();
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
         let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);

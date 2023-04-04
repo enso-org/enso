@@ -7,7 +7,6 @@ use crate::application::command::CommandApi;
 use crate::application::Application;
 use crate::display;
 use crate::display::scene;
-use crate::display::scene::layer::AnySymbolPartition;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::Shape;
@@ -16,7 +15,6 @@ use crate::display::symbol;
 use crate::display::world;
 use crate::display::Sprite;
 use crate::frp;
-
 
 
 // ==============
@@ -96,12 +94,10 @@ impl<S: Shape> ShapeView<S> {
         let display_object = self.display_object();
         let network = &display_object.network;
         frp::extend! { network
-            eval display_object.on_layer_change([] ((scene, old_layer, new_layer, symbol_partition)) {
+            eval display_object.on_layer_change([] ((scene, old_layer, new_layer)) {
                 let scene = scene.as_ref().unwrap();
                 if let Some(model) = weak_model.upgrade() {
-                    let old_layer = old_layer.as_ref();
-                    let new_layer = new_layer.as_ref();
-                    model.on_scene_layer_changed(scene, old_layer, new_layer, *symbol_partition);
+                    model.on_scene_layer_changed(scene, old_layer.as_ref(), new_layer.as_ref());
                 }
             });
         }
@@ -154,7 +150,7 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
-        let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data, default()));
+        let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data));
         let events_deprecated = PointerTarget_DEPRECATED::new();
         let pointer_targets = default();
         let data = RefCell::new(data);
@@ -167,15 +163,16 @@ impl<S: Shape> ShapeViewModel<S> {
         scene: &Scene,
         old_layer: Option<&WeakLayer>,
         new_layer: Option<&WeakLayer>,
-        new_symbol_partition: Option<AnySymbolPartition>,
     ) {
         if let Some(old_layer) = old_layer {
             self.remove_from_scene_layer(old_layer);
         }
-        if let Some(new_layer) = new_layer.and_then(|layer| layer.upgrade()) {
-            self.add_to_scene_layer(scene, &new_layer, new_symbol_partition)
+        if let Some(new_layer) = new_layer {
+            if let Some(layer) = new_layer.upgrade() {
+                self.add_to_scene_layer(scene, &layer)
+            }
         } else {
-            let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow(), default());
+            let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow());
             self.shape.swap(&shape);
         }
     }
@@ -191,18 +188,11 @@ impl<S: Shape> ShapeViewModel<S> {
         }
         self.unregister_existing_mouse_targets();
     }
+}
 
-    fn add_to_scene_layer(
-        &self,
-        scene: &Scene,
-        layer: &scene::Layer,
-        symbol_partition: Option<AnySymbolPartition>,
-    ) {
-        let shape_system = display::shape::system::ShapeSystem::<S>::id();
-        let symbol_partition = symbol_partition
-            .and_then(|assignment| assignment.partition_id(shape_system))
-            .unwrap_or_default();
-        let (shape, instance) = layer.instantiate(&*self.data.borrow(), symbol_partition);
+impl<S: Shape> ShapeViewModel<S> {
+    fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
+        let (shape, instance) = layer.instantiate(&*self.data.borrow());
         scene.pointer_target_registry.insert(
             instance.global_instance_id,
             self.events_deprecated.clone_ref(),
@@ -211,7 +201,9 @@ impl<S: Shape> ShapeViewModel<S> {
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
     }
+}
 
+impl<S: Shape> ShapeViewModel<S> {
     fn unregister_existing_mouse_targets(&self) {
         for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
             scene().pointer_target_registry.remove(global_instance_id);
