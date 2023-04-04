@@ -108,8 +108,8 @@ type Any
     == self that =
         # If there is No_Such_Conversion, then `self` and `that` are probably
         # host or polyglot values, so we just compare them with the default comparator.
-        eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Comparator
-        eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Comparator
+        eq_self = Comparable.from self
+        eq_that = Comparable.from that
         similar_type = Meta.is_same_object eq_self eq_that
         case similar_type of
             False -> False
