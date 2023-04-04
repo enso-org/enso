@@ -531,28 +531,30 @@ mod allocator_tests {
         use rand_chacha::ChaCha8Rng;
         let mut rng = ChaCha8Rng::seed_from_u64(0);
         let mut partition_counts = [0, 0];
-        let steps = (0..1000).map(|_| {
-            let partition = match rng.gen() {
-                false => 0,
-                true => 1,
-            };
-            let count = rng.gen::<u8>() as usize;
-            match rng.gen() {
-                false => {
-                    partition_counts[partition] += count;
-                    Op::Alloc { partition, count }
-                },
-                true => {
-                    let count = std::cmp::min(count, partition_counts[partition]);
-                    partition_counts[partition] -= count;
-                    Op::Free { partition, count }
-                },
-            }
-        }).collect_vec();
+        let steps = (0..1000)
+            .map(|_| {
+                let partition = match rng.gen() {
+                    false => 0,
+                    true => 1,
+                };
+                let count = rng.gen::<u8>() as usize;
+                match rng.gen() {
+                    false => {
+                        partition_counts[partition] += count;
+                        Op::Alloc { partition, count }
+                    }
+                    true => {
+                        let count = std::cmp::min(count, partition_counts[partition]);
+                        partition_counts[partition] -= count;
+                        Op::Free { partition, count }
+                    }
+                }
+            })
+            .collect_vec();
         check_allocator(2, &steps);
     }
 
-    fn check_allocator(partitions: usize, steps: impl IntoIterator<Item=&Op>) {
+    fn check_allocator(partitions: usize, steps: impl IntoIterator<Item = &Op>) {
         use enso_web::traits::WindowOps;
         let stats = Stats::new(enso_web::window.performance_or_panic());
         let scope = AttributeScope::new(&stats, || ());
@@ -577,14 +579,13 @@ mod allocator_tests {
         }
         for step in steps {
             match step {
-                Op::Alloc { partition, count } => {
+                Op::Alloc { partition, count } =>
                     for _ in 0..*count {
                         let instance =
                             scope.add_instance_at(BufferPartitionId { index: *partition });
                         instances[*partition].push(instance);
                         check_live_instances!();
-                    }
-                }
+                    },
                 Op::Free { partition, count } => {
                     for instance_ix in instances[*partition].splice(..count, None) {
                         scope.dispose(instance_ix);
