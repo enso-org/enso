@@ -1119,7 +1119,7 @@ spec =
                 match_2 = ligatures . locate term_2 case_sensitivity=Case_Sensitivity.Insensitive
                 term_2.length . should_equal 6
                 match_2.length . should_equal 2
-                match_1 . should_equal Match
+                match_1 . should_equal match_2
 
             example_4 =
                 "Hello World!".locate_all "J" . should_equal []
