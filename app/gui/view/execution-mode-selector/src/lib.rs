@@ -50,6 +50,7 @@ pub struct Style {
     height:              f32,
     background:          Rgba,
     divider:             Rgba,
+    menu_offset:         f32,
 }
 
 impl Style {
@@ -123,9 +124,9 @@ pub struct Model {
 }
 
 impl Model {
-    fn update_dropdown_style(&self, overall_width: f32, divider_offset: f32) {
-        self.dropdown.set_menu_offset_y(20.0);
-        self.dropdown.set_x(overall_width / 2.0 - divider_offset);
+    fn update_dropdown_style(&self, overall_width: f32, style: &Style) {
+        self.dropdown.set_menu_offset_y(style.menu_offset);
+        self.dropdown.set_x(overall_width / 2.0 - style.divider_offset);
         self.dropdown.set_label_color(Rgba::white());
         self.dropdown.set_icon_size(Vector2::new(1.0, 1.0));
         self.dropdown.set_menu_alignment(ensogl_drop_down_menu::Alignment::Right);
@@ -145,9 +146,9 @@ impl Model {
         self.divider.set_color(style.divider);
     }
 
-    fn update_play_icon_style(&self, max_width: f32, play_button_offset: f32) {
-        self.play_icon.set_size(Vector2::new(10.0, 11.0));
-        self.play_icon.set_x(max_width / 2.0 - play_button_offset);
+    fn update_play_icon_style(&self, max_width: f32, style: &Style) {
+        self.play_icon.set_size(Vector2::new(style.play_button_size, style.play_button_size));
+        self.play_icon.set_x(max_width / 2.0 - style.play_button_offset);
     }
 
     fn update_position(&self, style: &Style, camera: &Camera2d) {
@@ -227,7 +228,7 @@ impl component::Frp<Model> for Frp {
 
         frp::extend! { network
 
-            // Layout
+            // == Layout ==
 
             let camera_changed = scene.frp.camera_changed.clone_ref();
             update_position <- all(camera_changed, style_update)._1();
@@ -236,13 +237,12 @@ impl component::Frp<Model> for Frp {
             });
 
             eval style_update((style) {
-               model.update_dropdown_style(style.overall_width(), style.divider_offset);
+               model.update_dropdown_style(style.overall_width(), style);
                model.update_background_style(style.overall_width(), style);
-               model.update_play_icon_style(style.overall_width(), style.play_button_offset);
+               model.update_play_icon_style(style.overall_width(), style);
             });
 
-
-            // Inputs
+            // == Inputs ==
 
             eval input.set_available_execution_modes ((entries) model.set_entries(entries.clone()));
 
@@ -251,7 +251,7 @@ impl component::Frp<Model> for Frp {
             selected_entry <- selection.map(|(entries, entry_id)| entries[*entry_id].clone());
             output.selected_execution_mode <+ selected_entry;
 
-            // Outputs
+            // == Outputs ==
             output.play_press <+ play_icon.events_deprecated.mouse_down.constant(());
             output.size <+ style_update.map(|style| {
                 Vector2::new(style.overall_width(),style.height)

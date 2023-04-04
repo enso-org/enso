@@ -3870,17 +3870,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             model.execution_mode_selector.set_y(y_offset + size.y / 2.0);
             model.breadcrumbs.set_y(y_offset + component::breadcrumbs::HEIGHT / 2.0);
         });
-
-        // breadcrumb_gap_update <- all(inputs.space_for_window_buttons,size_update);
-        // eval breadcrumb_gap_update([model]((gap_size, execution_mode_selector_size)) {
-        //     let traffic_light_width = traffic_lights_gap_width();
-        //     let breadcrumb_gap_width = traffic_light_width + execution_mode_selector_size.x + TOP_BAR_ITEM_MARGIN;
-        //
-        //     let execution_mode_selector_x = traffic_light_width + execution_mode_selector_size.x / 2.0;
-        //     model.execution_mode_selector.set_x(gap_size.x + execution_mode_selector_x);
-        //     model.breadcrumbs.gap_width(gap_size.x + breadcrumb_gap_width);
-        // });
-
     }
     init.emit(());
 

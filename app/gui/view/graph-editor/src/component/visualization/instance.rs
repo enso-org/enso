@@ -165,6 +165,9 @@ impl FrpInputs {
             activate   <- source();
             deactivate <- source();
             set_layer  <- source();
+
+            eval send_data ([](data) error!("Received data: {:?}",data));
+            eval deactivate ([](_) error!("Deactivated"));
         };
         Self { set_size, send_data, activate, deactivate, set_layer }
     }
