@@ -2039,7 +2039,7 @@ lazy val `std-database` = project
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.xerial"          % "sqlite-jdbc"             % "3.36.0.3",
+      "org.xerial"          % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"      % "postgresql"              % "42.4.0",
       "com.amazon.redshift" % "redshift-jdbc42"         % "2.1.0.9",
       "com.amazonaws"       % "aws-java-sdk-core"       % "1.12.273",
