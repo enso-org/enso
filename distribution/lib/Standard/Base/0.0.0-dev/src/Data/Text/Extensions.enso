@@ -12,10 +12,9 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
+import project.Data.Text.Regex
 import project.Data.Text.Regex.Match.Match
-import project.Data.Text.Regex.Regex_Mode.Regex_Mode
-import project.Data.Text.Regex_2
-import project.Data.Text.Regex_2.Regex_Syntax_Error
+import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
@@ -233,7 +232,7 @@ Text.characters self =
 Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
 ## Finds all the matches of the regular expression `pattern` in `self`,
@@ -260,7 +259,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match_all self
 
 ## ALIAS Check Matches
@@ -290,7 +289,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
 Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
 
 ## ALIAS Split Text
@@ -348,7 +347,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                 True -> case delimiter of
                     _ : Text ->
                         case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                        compiled_pattern = Regex_2.compile delimiter case_insensitive=case_insensitive
+                        compiled_pattern = Regex.compile delimiter case_insensitive=case_insensitive
                         compiled_pattern.split self
                     _ : Vector ->
                         parenthesize s = "(?:" + s + ")"
@@ -383,7 +382,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
 Text.tokenize : Text -> Case_Sensitivity -> Vector Text
 Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    compiled_pattern = Regex_2.compile pattern case_insensitive=case_insensitive
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.tokenize self
 
 ## ALIAS Replace Text
@@ -477,7 +476,7 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
             Text_Utils.replace_spans self spans_array replacement
         True ->
             case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-            compiled_pattern = Regex_2.compile term case_insensitive=case_insensitive
+            compiled_pattern = Regex.compile term case_insensitive=case_insensitive
             compiled_pattern.replace self replacement only_first
 
 ## ALIAS Get Words

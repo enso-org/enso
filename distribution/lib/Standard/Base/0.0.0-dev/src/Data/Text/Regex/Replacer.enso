@@ -1,10 +1,10 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
-import project.Data.Text.Regex.Match_2.Match_2
-import project.Data.Text.Regex.Pattern_2.Match_Iterator_Value
-import project.Data.Text.Regex.Pattern_2.Pattern_2
-import project.Data.Text.Regex_2
-import project.Data.Text.Regex_2.No_Such_Group
+import project.Data.Text.Regex
+import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.No_Such_Group
+import project.Data.Text.Regex.Pattern.Match_Iterator_Value
+import project.Data.Text.Regex.Pattern.Pattern
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -23,7 +23,7 @@ type Replacer
 
        Implements a replacement for a regular expression.
 
-       Pattern_2.replace uses a Replacer to replace each regex match with
+       Pattern.replace uses a Replacer to replace each regex match with
        a replacement string. This string can contain references to match
        groups from the original regex.
 
@@ -40,7 +40,7 @@ type Replacer
        Arguments
        - replacement_string: a string, possibly containing group references,
          that will be used to provide a replacement in a regex match.
-    new : Text -> Pattern_2 -> Replacer ! No_Such_Group
+    new : Text -> Pattern -> Replacer ! No_Such_Group
     new replacement_string pattern =
         Replacer.Value (build_replacement_vector_cached replacement_string pattern)
 
@@ -48,7 +48,7 @@ type Replacer
 
        Arguments:
        - match: the match from the original string that is to be replaced.
-    replace : Match_2 -> Text
+    replace : Match -> Text
     replace self match =
         string_builder = StringBuilder.new
         self.replacement.each replacement->
@@ -82,7 +82,7 @@ group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
 
    Uses Replacement_Cache to avoid rebuilding the vector for recently used
    replacement strings.
-build_replacement_vector_cached : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group
+build_replacement_vector_cached : Text -> Pattern -> Vector Replacement ! No_Such_Group
 build_replacement_vector_cached replacement_string pattern =
     Replacer_Cache.get_or_set replacement_string _->
         build_replacement_vector replacement_string pattern
@@ -93,9 +93,9 @@ build_replacement_vector_cached replacement_string pattern =
 
    Parse the replacement string into an alternating series of literal
    strings and group reference numbers.
-build_replacement_vector : Text -> Pattern_2 -> Vector Replacement ! No_Such_Group
+build_replacement_vector : Text -> Pattern -> Vector Replacement ! No_Such_Group
 build_replacement_vector replacement_string pattern =
-    replacement_pattern = Regex_2.compile group_reference_regex
+    replacement_pattern = Regex.compile group_reference_regex
     it = replacement_pattern.iterator replacement_string
 
     builder = Vector.new_builder
@@ -117,14 +117,14 @@ build_replacement_vector replacement_string pattern =
    Parse a capture group reference.
 
    Arguments:
-   - pattern: the Pattern_2 used to initiate the replacement. This is used
+   - pattern: the Pattern used to initiate the replacement. This is used
      to identify and validate capture groups.
    - match: the match of the replacement string against group_reference_regex.
 
    Returns a Replacement: a group number, or, in the case of `$$`, a literal.
 
    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-parse_group_number : Pattern_2 -> Match_2 -> Replacement ! No_Such_Group
+parse_group_number : Pattern -> Match -> Replacement ! No_Such_Group
 parse_group_number pattern match = case match.text.take 2 of
     "$$" -> Replacement.Literal "$"
     "$<" ->
