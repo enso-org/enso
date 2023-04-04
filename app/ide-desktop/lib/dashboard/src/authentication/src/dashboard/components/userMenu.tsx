@@ -1,6 +1,7 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
-import { PropsWithChildren, useState } from 'react'
-import * as auth from '../../../authentication/providers/auth'
+import * as react from 'react'
+
+import * as auth from '../../authentication/providers/auth'
 import ChangePasswordModal from './changePasswordModal'
 
 // ================
@@ -14,7 +15,7 @@ interface UserMenuItemProps {
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-function UserMenuItem(props: PropsWithChildren<UserMenuItemProps>) {
+function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
     const { children, onClick, needHoverClass = false } = props
     /** User menu cell normal className. */
     const cellClassName = 'whitespace-nowrap px-4 py-2'
@@ -37,7 +38,7 @@ function UserMenu() {
     const { signOut } = auth.useAuth()
     const { organization } = auth.useFullUserSession()
 
-    const [visibleChangePassword, setVisibleChangePassword] = useState(false)
+    const [visibleChangePassword, setVisibleChangePassword] = react.useState(false)
     const handleResetPassword = () => {
         setVisibleChangePassword(true)
     }

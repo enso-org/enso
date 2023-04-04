@@ -1,6 +1,7 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
-import { useEffect } from 'react'
+import * as react from 'react'
+
 import * as hooks from '../../hooks'
 import TopBar from './topBar'
 
@@ -13,9 +14,12 @@ function Dashboard() {
     const [searchVal, bindSearchVal] = hooks.useInput('')
 
     // The purpose of this effect is to enable search action.
-    useEffect(() => {
-        return () => {}
+    react.useEffect(() => {
+        return () => {
+            // TODO
+        }
     }, [searchVal])
+
     return (
         <>
             {/* These are placeholders. When implementing a feature,

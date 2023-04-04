@@ -1,10 +1,11 @@
 /** @file Managing the logic and displaying the UI for the password change function. */
 import toast from 'react-hot-toast'
-import * as auth from '../../../authentication/providers/auth'
-import * as hooks from '../../../hooks'
-import * as icons from '../../../components/svg'
-import * as utils from '../../../utils'
-import Modal from '../../../components/model'
+
+import * as auth from '../../authentication/providers/auth'
+import * as hooks from '../../hooks'
+import * as icons from '../../components/svg'
+import * as utils from '../../utils'
+import Modal from './modal'
 
 interface ChangePasswordModalProps {
     visible: boolean
@@ -22,13 +23,12 @@ function ChangePasswordModal(props: ChangePasswordModalProps) {
     const [oldPassword, bindOldPassword] = hooks.useInput('')
     const [newPassword, bindNewPassword] = hooks.useInput('')
     const [newPasswordConfirm, bindNewPasswordConfirm] = hooks.useInput('')
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (newPassword !== newPasswordConfirm) {
             toast.error('The confirmed password must be the same as the new password.')
-            return Promise.resolve()
+        } else {
+            await changePassword(oldPassword, newPassword)
         }
-
-        return changePassword(oldPassword, newPassword)
     }
 
     return (

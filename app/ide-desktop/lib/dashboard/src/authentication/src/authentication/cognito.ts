@@ -288,9 +288,10 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     /** The `email` field is mandatory, so we assert that it exists and is a string. */
     if (typeof email !== 'string') {
         throw new Error('Payload does not have an email field.')
+    } else {
+        const accessToken = session.getAccessToken().getJwtToken()
+        return { email, accessToken }
     }
-    const accessToken = session.getAccessToken().getJwtToken()
-    return { email, accessToken }
 }
 
 const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
@@ -594,18 +595,15 @@ async function currentAuthenticatedUser() {
         /** The interface provided by Amplify declares that the return type is `Promise<CognitoUser | any>`,
          * but TypeScript automatically converts it to `Promise<any>`. Therefore, it is necessary to use
          * `as` to narrow down the type to `Promise<CognitoUser>`. */
+        // eslint-disable-next-line no-restricted-syntax
         () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
     )
     return result.mapErr(intoAmplifyErrorOrThrow)
 }
 async function changePassword(oldPassword: string, newPassword: string) {
-    const cognitoUserResult = await currentAuthenticatedUser()
-    if (cognitoUserResult.ok) {
-        const cognitoUser = cognitoUserResult.unwrap()
-        return results.Result.wrapAsync(async () => {
+    return (await currentAuthenticatedUser()).map(cognitoUser =>
+        results.Result.wrapAsync(async () => {
             await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
         }).then(result => result.mapErr(intoAmplifyErrorOrThrow))
-    }
-
-    return results.Err(cognitoUserResult.val)
+    )
 }
