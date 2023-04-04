@@ -66,7 +66,6 @@ impl<'a> TryFrom<QualifiedNameRef<'a>> for ContextSwitch {
 }
 
 
-
 // === Context ===
 
 /// Available execution contexts.
@@ -152,9 +151,9 @@ impl ContextSwitchExpression {
         ast::prefix::Chain::new(func, args).into_ast()
     }
 
-    /// Remove the context switch expression from the given AST. Does nothing if `ast` does not
-    /// contain any context switch expression.
-    pub fn remove_from_ast(ast: &Ast) -> Ast {
+    /// Remove the context switch expression from the given AST. The unmodified `ast` is returned
+    /// if it does not contain any context switch expression.
+    pub fn without_expression(ast: &Ast) -> Ast {
         if ContextSwitchExpression::parse(ast).is_some() {
             let crumb = ast::crumbs::InfixCrumb::RightOperand.into();
             let rarg = ast.get(&crumb).unwrap_or(ast);

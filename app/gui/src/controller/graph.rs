@@ -244,9 +244,10 @@ impl NodeTrees {
         ast_crumbs: &'b [ast::Crumb],
     ) -> Option<span_tree::node::NodeFoundByAstCrumbs<'a, 'b>> {
         use ast::crumbs::Crumb::Infix;
-        // If we have macros in the expression, we need to skip their crumbs, as [`SKIP`] and
-        // [`FREEZE`] macros are not displayed in the expression.
-        let crumbs_to_skip = self.ast_info.ast_crumbs_to_skip();
+        // We can display only a part of the expression to the user. We hide [`SKIP`] and [`FREEZE`]
+        // macros and context switch expressions. In this case, we skip an additional
+        // number of AST crumbs.
+        let expression_crumbs_to_skip = self.ast_info.ast_crumbs_to_skip();
         if let Some(outputs) = self.outputs.as_ref() {
             // Node in assignment form. First crumb decides which span tree to use.
             let first_crumb = ast_crumbs.get(0);
@@ -256,10 +257,10 @@ impl NodeTrees {
                 Some(Infix(InfixCrumb::RightOperand)) => Some(&self.inputs),
                 _ => None,
             };
-            let skip = if is_input { crumbs_to_skip + 1 } else { 1 };
+            let skip = if is_input { expression_crumbs_to_skip + 1 } else { 1 };
             tree.and_then(|tree| tree.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..]))
         } else {
-            let skip = crumbs_to_skip;
+            let skip = expression_crumbs_to_skip;
             // Expression node - there is only inputs span tree.
             self.inputs.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..])
         }

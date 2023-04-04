@@ -453,7 +453,7 @@ impl NodeAst {
     /// calls, as well as any context switch expressions.
     pub fn expression(&self) -> Ast {
         let ast = without_macros(self.whole_expression());
-        ContextSwitchExpression::remove_from_ast(&ast)
+        ContextSwitchExpression::without_expression(&ast)
     }
 
     /// AST of the node's expression. Typically no external user wants to access it directly. Use
