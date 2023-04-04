@@ -1,14 +1,13 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
-import Standard.Base.Data.Text.Match.Match
-import Standard.Base.Data.Text.Pattern.Pattern
-import Standard.Base.Data.Text.Replacer.Replacer
 import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Match.Match
 import Standard.Base.Data.Text.Regex.No_Such_Group
+import Standard.Base.Data.Text.Pattern.Pattern
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Data.Text.Replacer.Replacer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.IO
 
 from Standard.Base.Data.Text.Replacer import get_lru_size, replacer_cache_lookup
 
@@ -18,13 +17,6 @@ import Standard.Test.Extensions
 polyglot java import org.enso.base.Replacer_Cache
 
 spec =
-    Test.group "gmt" <|
-        Test.specify "asdf" <|
-            IO.println <| Regex.compile 's\u{301}' . replace 'sśs\u{301}' '-'
-            IO.println <| Regex.compile 'a\u{301}' . match_all "aááêe xêy"
-            #Regex.compile 'a\u{301}+' . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
-            Regex.compile 'a\u{301}+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex.compile "(?<dots>..)" case_insensitive=True
@@ -60,9 +52,9 @@ spec =
             pattern = Regex.compile ""
             pattern.matches "ABC" . should_fail_with Illegal_Argument
 
-        Test.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
-            pattern = Regex.compile "abc"
-            pattern.matches 1 . should_fail_with Illegal_Argument
+         Test.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
+             pattern = Regex.compile "abc"
+             pattern.matches 1 . should_fail_with Illegal_Argument
 
     Test.group "Pattern.match and .match_all" <|
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
@@ -192,12 +184,12 @@ spec =
             pattern.split 1 . should_fail_with Illegal_Argument
 
     Test.group "Pattern.tokenize" <|
-        Test.specify "can tokenize simple regexes without capturing groups"
+        Test.specify "can tokenize with simple regexes without capturing groups"
             Regex.compile "[a-z]+" . tokenize "1-800-regex-yes" . should_equal ["regex", "yes"]
             Regex.compile "[a-z]+" case_insensitive=True . tokenize "1-800-REGEX-YES" . should_equal ["REGEX", "YES"]
             Regex.compile "\d\d" . tokenize "12 hi345 67r890r" . should_equal ["12", "34", "67", "89"]
 
-        Test.specify "can tokenize regexes with capturing groups"
+        Test.specify "can tokenize with regexes with capturing groups"
             Regex.compile "(\d\d)\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "[a-z]+(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
             Regex.compile "[a-z]+(\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["", "182", "20", ""]
@@ -205,25 +197,24 @@ spec =
         Test.specify "ignores non-capturing groups"
             Regex.compile "(?:(\d\d)\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "(\d\d)(?:\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex.compile "(?<foo>\d\d)(?:\d)" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "(?:[a-z]+)(\d+)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
 
         Test.specify "ignores nested groups"
             Regex.compile "(\d(\d))\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
+            Regex.compile "(?<foo>\d(?<bar>\d))\d" . tokenize "12 hi345 67r890r" . should_equal ["34", "89"]
             Regex.compile "[a-z]+((\d)\d*)" . tokenize "xy blink182 !!matchbox20 foo" . should_equal ["182", "20"]
             Regex.compile "\d(\d(\d\d)\d)\d" . tokenize "012345678901" . should_equal ["1234", "7890"]
 
+        Test.specify "non-participating groups are rendered as the empty string"
+            Regex.compile "(\d).(?:(\d)|([a-z])).(\d)" . tokenize "3_4_0" . should_equal ['340']
+            Regex.compile "(\d).(?:(\d)|([a-z])).(\d)" . tokenize "3_q_0" . should_equal ['3q0']
+
         Test.specify "handles unicode" <|
             Regex.compile "[áê]+" . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
-            #fail
-            #Regex.compile '[a\u{301}e\u{301}]+' . tokenize 'aááêe xêy' . should_equal ['a\u{301}a\u{301}e\u{301}', 'e\u{301}']
-            #Regex.compile '(?:a\u{301})+' . tokenize 'aááêe xêy' . should_equal ['a\u{301}a\u{301}']
-            #Regex.compile 'a\u{301}' . tokenize 'aááêe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-            # Wrong
+            # `+` only applies to the accent `\u{301}`, not to the entire grapheme.
             Regex.compile 'a\u{301}+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-            # Fails
-            Regex.compile '(?:a\u{301})+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}', 'a\u{301}']
-            # fails
-            #Regex.compile "a\u{301}+" . tokenize "aááêe xêy" . should_equal ["ááê", "ê"]
+            Regex.compile '(?:a\u{301})+' . tokenize 'aa\u{301}a\u{301}êe xêy' . should_equal ['a\u{301}a\u{301}']
             Regex.compile "x([áê]+)y" . tokenize "xáy xêy" . should_equal ["á", "ê"]
 
         Test.specify "examples are correct" <|
