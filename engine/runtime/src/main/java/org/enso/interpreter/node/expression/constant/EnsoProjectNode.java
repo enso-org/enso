@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.constant;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -14,30 +15,38 @@ import java.util.Optional;
 
 @NodeInfo(description = "Returns a language-level representation of the given Enso project.")
 public class EnsoProjectNode extends RootNode {
-  private final Object result;
+  private final Optional<Package<TruffleFile>> pkgOpt;
 
   public EnsoProjectNode(
       TruffleLanguage<?> language, EnsoContext context, Optional<Package<TruffleFile>> pkgOpt) {
     super(language);
+    this.pkgOpt = pkgOpt;
+  }
+
+  @Override
+  public Object execute(VirtualFrame frame) {
+    return createProjectDescription();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Object createProjectDescription() {
+    var context = EnsoContext.get(this);
     if (pkgOpt.isPresent()) {
       Package<TruffleFile> pkg = pkgOpt.get();
       EnsoFile rootPath = new EnsoFile(pkg.root().normalize());
       Object cfg = context.getEnvironment().asGuestValue(pkg.config());
-      result =
+      var result =
           context
               .getBuiltins()
               .getProjectDescription()
               .getUniqueConstructor()
               .newInstance(rootPath, cfg);
+      return result;
     } else {
-      result =
+      var result =
           DataflowError.withoutTrace(
               context.getBuiltins().error().makeModuleNotInPackageError(), this);
+      return result;
     }
-  }
-
-  @Override
-  public Object execute(VirtualFrame frame) {
-    return result;
   }
 }

@@ -61,17 +61,20 @@ type Unique_Name_Strategy
         Vector.from_polyglot_array <|
             self.deduplicator.combineWithPrefix first second second_prefix
 
-    ## Vector of any duplicates renamed
+    ## Vector of any duplicates renamed.
+
+       Note that this vector will not contain renames where just the
+       second_prefix was added.
     renames : Vector
     renames self = Vector.from_polyglot_array self.deduplicator.getDuplicatedNames
 
 
-    ## Vector of any invalid names
+    ## Vector of any invalid names.
     invalid_names : Vector
     invalid_names self = Vector.from_polyglot_array self.deduplicator.getInvalidNames
 
 
-    ## Takes a value and converts to a valid (but not necessarily unique) name
+    ## Takes a value and converts to a valid (but not necessarily unique) name.
 
        Arguments:
        - name: The column name to make valid.
@@ -89,7 +92,7 @@ type Unique_Name_Strategy
             _ -> self.make_valid_name input.to_text
 
 
-    ## Takes a name and gets a unique version
+    ## Takes a name and gets a unique version.
 
        Arguments:
        - name: The column name to make unique.
@@ -101,8 +104,7 @@ type Unique_Name_Strategy
     make_unique : Text -> Text
     make_unique self name = self.deduplicator.makeUnique name
 
-    ## PRIVATE
-       Tells if the given name has not yet been encountered.
+    ## Tells if the given name has not yet been encountered.
 
        It does not use up the name - it needs to be marked with `mark_used` if
        needed.

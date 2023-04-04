@@ -47,11 +47,16 @@ bitflags::bitflags! {
 // === Layer ===
 // =============
 
-/// Display layers implementation. Layer consist of a [`Camera`] and a set of [`LayerItem`]s. Layers
-/// are hierarchical and contain sublayers. Items of a layer containing sublayers layers are
-/// displayed below items of sublayers layers. Layers are allowed to share references to the same
-/// camera. and the same [`Symbol`]s.
+/// Display layers. A [`Layer`] consists of a [`Camera`] and a set of [`LayerItem`]s.
 ///
+/// Layers are hierarchical and contain sublayers. Any items directly-contained by a layer are
+/// displayed below any items of the layer's sublayers. Layers can also be divided into
+/// [`LayerSymbolPartition`]s; symbol partitions manage the relative ordering of instances of a
+/// particular symbol more efficiently than splitting it into multiple layers (any other symbols
+/// placed in a partition will be drawn in the same order as if they were placed in the parent
+/// layer).
+///
+/// Layers are allowed to share references to the same camera, and the same [`Symbol`]s.
 ///
 /// # Symbol Management
 /// [`Symbol`]s are the basic primitives managed by layers. Even if you add an user-defined shape
@@ -72,7 +77,6 @@ bitflags::bitflags! {
 ///    `+------+ (Camera 1 and symbols [3,6,7])
 /// ```
 ///
-///
 /// # ShapeProxy and ShapeSystem Management
 /// You are allowed to define custom [`ShapeProxy`]s, which are like [`Shape`]s, but may not be
 /// bound to a [`Scene`] (and thus to WebGL context) yet. You can use the [`Layer::add_exclusive`]
@@ -86,11 +90,9 @@ bitflags::bitflags! {
 /// a single draw-call. This provides a great control over performance and possible rendering
 /// optimizations.
 ///
-///
 /// # Layer Ordering
 /// Layers can be ordered by using the `set_sublayers` method on their parent. By default,
 /// layers are ordered according to their creation order.
-///
 ///
 /// # Symbols Ordering
 /// There are two ways to define symbol ordering in scene layers, a global, and local (per-layer)
@@ -109,6 +111,19 @@ bitflags::bitflags! {
 /// to be above the symbol B, but you place symbol B on a layer above the layer of the symbol A, the
 /// symbol A will be drawn first, below symbol B!
 ///
+/// # Symbol Instance Ordering
+/// Within a layer, instances of a symbol are ordered first by partition, and then partially by
+/// creation-order.
+///
+/// Partitions created earlier are drawn below partitions created later. Within a partition, if two
+/// instance are added to the partition with no intervening instance removals, the instance added
+/// earlier is drawn below the later instance. If any instance may have been removed from the
+/// partition in between the addition of two instances to the partition, the relative order of those
+/// instances is unspecified.
+///
+/// Symbol partitions allow managing relative ordering of a particular symbol, much more efficiently
+/// than using separate layers: All partitions are allocated in the same set of buffers, and
+/// rendered in one draw call.
 ///
 /// # Shapes Ordering
 /// Ordering of shapes is more tricky than ordering of [`Symbol`]s. Each shape instance will be
@@ -127,7 +142,6 @@ bitflags::bitflags! {
 /// Also, there is a macro [`shapes_order_dependencies!`] which allows convenient form for
 /// defining the depth-order dependency graph for shapes based on their types.
 ///
-///
 /// # Compile Time Shapes Ordering Relations
 /// There is also a third way to define depth-dependencies for shapes. However, unlike previous
 /// methods, this one does not require you to own a reference to [`Scene`] or its [`Layer`]. Also,
@@ -138,7 +152,6 @@ bitflags::bitflags! {
 /// depth-dependencies. In order to define such compile tie shapes ordering relations, you have to
 /// define them while defining the shape system. The easiest way to do it is by using the
 /// [`shape!`] macro. Refer to its documentation to learn more.
-///
 ///
 /// # Layer Lifetime Management
 /// Every [`Layer`] allows you to add symbols while removing them from other layers automatically.
@@ -173,6 +186,58 @@ bitflags::bitflags! {
 /// Please note that the current implementation does not allow for hierarchical masks (masks applied
 /// to already masked area or masks applied to masks). If you try using masks in hierarchical way,
 /// the nested masks will be skipped and a warning will be emitted to the console.
+///
+/// # Example
+/// ```
+///    use ensogl_core::display;
+///    use ensogl_core::display::world::*;
+///    use ensogl_core::prelude::*;
+///    use ensogl_core::data::color;
+///    use ensogl_core::display::shape::compound::rectangle;
+///    use ensogl_core::display::shape::compound::rectangle::Rectangle;
+///    # use ensogl_core::display::navigation::navigator::Navigator;
+///    # const RED: color::Rgba = color::Rgba::new(1.0, 0.5, 0.5, 0.9);
+///    # const BLUE: color::Rgba = color::Rgba::new(0.5, 0.5, 1.0, 0.9);
+///    # pub fn main() {
+///        # let world = World::new().displayed_in("root");
+///        # let scene = &world.default_scene;
+///        # let camera = scene.camera().clone_ref();
+///        # let navigator = Navigator::new(scene, &camera);
+///
+///        // We'll be using the `main` layer directly. If we needed a dedicated layer, we could use
+///        // [`Layer::create_sublayer`], but layers are expensive to render; always use existing
+///        // layers when possible.
+///        let layer = &world.default_scene.layers.main;
+///
+///        let bottom = layer.create_symbol_partition::<rectangle::Shape>("bottom");
+///        let top = layer.create_symbol_partition::<rectangle::Shape>("top");
+///
+///
+///        // === Component 1 ===
+///
+///        // Create a component that always draws in the higher symbol-partition ([`top`]).
+///        let root1 = display::object::Instance::new();
+///        world.add_child(&root1);
+///        let rectangle1 = Rectangle().build(|t| {
+///            t.set_size(Vector2::new(64.0, 64.0)).set_color(RED);
+///        });
+///        root1.add_child(&rectangle1);
+///        top.add(&rectangle1);
+///
+///
+///        // === Component 2 ===
+///
+///        // This component draws in the lower symbol-partition ([`bottom`]). Without layer symbol
+///        // partitions, it would be drawn above Component 1, because it was added more recently.
+///        let root2 = display::object::Instance::new();
+///        world.add_child(&root2);
+///        let rectangle2 = Rectangle().build(|t| {
+///            t.set_size(Vector2::new(128.0, 128.0)).set_color(BLUE);
+///        });
+///        root2.add_child(&rectangle2);
+///        bottom.add(&rectangle2);
+///    }
+/// ```
 #[derive(Clone, CloneRef, Deref)]
 pub struct Layer {
     model: Rc<LayerModel>,
@@ -220,10 +285,16 @@ impl Layer {
     }
 
     /// Instantiate the provided [`ShapeProxy`].
-    pub fn instantiate<S>(&self, data: &S::ShapeData) -> (ShapeInstance<S>, LayerShapeBinding)
-    where S: Shape {
+    pub fn instantiate<S>(
+        &self,
+        data: &S::ShapeData,
+        symbol_partition: SymbolPartitionId,
+    ) -> (ShapeInstance<S>, LayerShapeBinding)
+    where
+        S: Shape,
+    {
         let (shape_system_info, symbol_id, shape_instance, global_instance_id) =
-            self.shape_system_registry.instantiate(data);
+            self.shape_system_registry.instantiate(data, symbol_partition);
         self.add_shape(shape_system_info, symbol_id);
         (shape_instance, LayerShapeBinding::new(self, global_instance_id))
     }
@@ -352,12 +423,13 @@ pub struct LayerModel {
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
     elements: RefCell<BTreeSet<LayerItem>>,
-    symbols_renderable: Rc<RefCell<RenderGroup>>,
+    symbols_renderable: RefCell<RenderGroup>,
     depth_order: RefCell<DependencyGraph<LayerItem>>,
     depth_order_dirty: dirty::SharedBool<OnDepthOrderDirty>,
     parent: Rc<RefCell<Option<Sublayers>>>,
-    global_element_depth_order: Rc<RefCell<DependencyGraph<LayerItem>>>,
+    global_element_depth_order: RefCell<DependencyGraph<LayerItem>>,
     sublayers: Sublayers,
+    symbol_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
     mask: RefCell<Option<WeakLayer>>,
     scissor_box: RefCell<Option<ScissorBox>>,
     mem_mark: Rc<()>,
@@ -385,38 +457,28 @@ impl Drop for LayerModel {
 impl LayerModel {
     fn new(name: impl Into<String>, flags: LayerFlags) -> Self {
         let name = name.into();
-        let camera = default();
-        let shape_system_registry = default();
-        let shape_system_to_symbol_info_map = default();
-        let symbol_to_shape_system_map = default();
-        let elements = default();
-        let symbols_renderable = default();
-        let depth_order = default();
         let parent = default();
         let on_mut = on_depth_order_dirty(&parent);
         let depth_order_dirty = dirty::SharedBool::new(on_mut);
-        let global_element_depth_order = default();
         let sublayers = Sublayers::new(&parent);
-        let mask = default();
-        let scissor_box = default();
-        let mem_mark = default();
         Self {
             name,
-            camera,
-            shape_system_registry,
-            shape_system_to_symbol_info_map,
-            symbol_to_shape_system_map,
-            elements,
-            symbols_renderable,
-            depth_order,
             depth_order_dirty,
-            parent,
-            global_element_depth_order,
             sublayers,
-            mask,
-            scissor_box,
-            mem_mark,
             flags,
+            parent,
+            camera: default(),
+            shape_system_registry: default(),
+            shape_system_to_symbol_info_map: default(),
+            symbol_to_shape_system_map: default(),
+            elements: default(),
+            symbols_renderable: default(),
+            depth_order: default(),
+            global_element_depth_order: default(),
+            symbol_buffer_partitions: default(),
+            mask: default(),
+            scissor_box: default(),
+            mem_mark: default(),
         }
     }
 
@@ -768,7 +830,6 @@ impl LayerModel {
         layer
     }
 
-
     /// Create a new sublayer to this layer. It will inherit this layer's camera, but will not be
     /// rendered as a part of standard layer stack. Instead, it will only be rendered as a mask for
     /// other layers. See [`Layer::set_mask`] for more information. Note that this will not set up
@@ -778,6 +839,20 @@ impl LayerModel {
         let layer = Layer::new_with_flags(name, LayerFlags::INHERIT_PARENT_CAMERA);
         self.add_sublayer(&layer);
         layer
+    }
+
+    /// Create a symbol partition in the layer. The order of symbol partition creation determines
+    /// depth ordering of their content objects of the type specified in the type parameter.
+    pub fn create_symbol_partition<S: Shape>(
+        self: &Rc<Self>,
+        _name: impl Into<String>,
+    ) -> LayerSymbolPartition<S> {
+        let system_id = ShapeSystem::<S>::id();
+        let mut partitions = self.symbol_buffer_partitions.borrow_mut();
+        let index = partitions.entry(system_id).or_default();
+        let id = SymbolPartitionId { index: *index };
+        *index += 1;
+        LayerSymbolPartition { layer: WeakLayer { model: self.downgrade() }, id, shape: default() }
     }
 
     /// The layer's mask, if any.
@@ -889,6 +964,71 @@ impl AsRef<LayerModel> for Layer {
 impl std::borrow::Borrow<LayerModel> for Layer {
     fn borrow(&self) -> &LayerModel {
         &self.model
+    }
+}
+
+
+// === Layer symbol partitions ===
+
+/// A symbol partition within a [`Layer`].
+///
+/// Symbol partitions determine the depth-order of instances of a particular symbol within a layer.
+/// Any other symbol added to a symbol partition will be treated as if present in the parent layer.
+#[derive(Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct LayerSymbolPartition<S> {
+    layer: WeakLayer,
+    id:    SymbolPartitionId,
+    shape: PhantomData<*const S>,
+}
+
+/// Identifies a symbol partition, for some [`Symbol`], relative to some [`Layer`].
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct SymbolPartitionId {
+    index: usize,
+}
+
+impl<S: Shape> LayerSymbolPartition<S> {
+    /// Add the display object to this symbol partition and remove it from a layer it was assigned
+    /// to, if any.
+    pub fn add(&self, object: impl display::Object) {
+        if let Some(layer) = self.layer.upgrade() {
+            object.display_object().add_to_display_layer_symbol_partition(&layer, self.into());
+        } else {
+            error!("Shape added to symbol partition of non-existent layer.");
+        }
+    }
+
+    /// Remove the display object from a layer it was assigned to, if any.
+    pub fn remove(&self, object: impl display::Object) {
+        if let Some(layer) = self.layer.upgrade() {
+            object.display_object().remove_from_display_layer(&layer);
+        }
+    }
+}
+
+
+// === Type-erased symbol partitions ===
+
+/// Identifies a [`Symbol`] and ID of its partition, relative to some [`Layer`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AnySymbolPartition {
+    id:    SymbolPartitionId,
+    shape: ShapeSystemId,
+}
+
+impl AnySymbolPartition {
+    /// Get the partition id assigned to the specified shape system, if any.
+    pub fn partition_id(&self, shape_system: ShapeSystemId) -> Option<SymbolPartitionId> {
+        (self.shape == shape_system).then_some(self.id)
+    }
+}
+
+impl<S: Shape> From<&'_ LayerSymbolPartition<S>> for AnySymbolPartition {
+    fn from(value: &'_ LayerSymbolPartition<S>) -> Self {
+        let shape = ShapeSystem::<S>::id();
+        let id = value.id;
+        Self { shape, id }
     }
 }
 
@@ -1149,12 +1289,14 @@ pub struct ShapeSystemRegistryData {
 impl {
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
-    (&mut self, data: &S::ShapeData) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
+    (&mut self, data: &S::ShapeData, symbol_partition: SymbolPartitionId) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
     where S : Shape {
         self.with_get_or_register_mut::<S,_,_>(data, |entry| {
             let system = entry.shape_system;
             let system_id = ShapeSystem::<S>::id();
-            let (shape_instance, global_instance_id) = system.instantiate();
+            let SymbolPartitionId { index } = symbol_partition;
+            let partition_id = crate::system::gpu::data::BufferPartitionId { index };
+            let (shape_instance, global_instance_id) = system.instantiate(partition_id);
             let symbol_id = system.sprite_system().symbol.id;
             let above = S::always_above().to_vec();
             let below = S::always_below().to_vec();
