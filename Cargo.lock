@@ -2855,6 +2855,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-instance-ordering"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "getrandom 0.2.8",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rand_distr",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-list-view"
 version = "0.1.0"
 dependencies = [
@@ -3004,6 +3016,7 @@ dependencies = [
  "ensogl-example-easing-animator",
  "ensogl-example-focus-management",
  "ensogl-example-grid-view",
+ "ensogl-example-instance-ordering",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
  "ensogl-example-profiling-run-graph",
