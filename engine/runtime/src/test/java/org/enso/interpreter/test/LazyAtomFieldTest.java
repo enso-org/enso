@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -96,7 +97,6 @@ public class LazyAtomFieldTest {
             .uri(testUri)
             .buildLiteral();
     var module = ctx.eval(src);
-    var powers = module.invokeMember("eval_expression", methodName);
-    return powers;
+    return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, methodName);
   }
 }
