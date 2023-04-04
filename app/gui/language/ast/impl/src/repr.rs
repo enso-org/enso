@@ -19,10 +19,10 @@ pub const NUMBER_BASE_SEPARATOR: char = '_';
 pub const MOD_SUFFIX: char = '=';
 
 /// Symbol enclosing raw Text line.
-pub const FMT_QUOTE: char = '\'';
+pub const FMT_QUOTE: &str = "'";
 
 /// Symbol enclosing formatted Text line.
-pub const RAW_QUOTE: char = '"';
+pub const RAW_QUOTE: &str = "\"";
 
 /// Symbol used to break lines in Text block.
 pub const NEWLINE: char = '\n';
@@ -52,7 +52,7 @@ pub const RAW_BLOCK_QUOTES: &str = "\"\"\"";
 pub const FMT_BLOCK_QUOTES: &str = "'''";
 
 /// A list of possible delimiters of the text literals.
-pub const STRING_DELIMITERS: &[&str] = &[RAW_BLOCK_QUOTES, FMT_BLOCK_QUOTES, "\"", "'"];
+pub const STRING_DELIMITERS: &[&str] = &[RAW_BLOCK_QUOTES, FMT_BLOCK_QUOTES, RAW_QUOTE, FMT_QUOTE];
 
 
 

@@ -368,9 +368,10 @@
   `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
 - [Removed many regex compile flags from `replace`; added `only_first` and
   `use_regex` flag.][5959]
+- [Implemented proper support for Value Types in the Table library.][6073]
 - [Removed many regex compile flags from `split`; added `only_first` and
   `use_regex` flag.][6116]
-- [Implemented proper support for Value Types in the Table library.][6073]
+- [Added `Text.tokenize`][6150]
 - [Added support for Date/Time columns in the Postgres backend and added
   `year`/`month`/`day` operations to Table columns.][6153]
 
@@ -561,8 +562,9 @@
 [5917]: https://github.com/enso-org/enso/pull/5917
 [5705]: https://github.com/enso-org/enso/pull/5705
 [5959]: https://github.com/enso-org/enso/pull/5959
-[6116]: https://github.com/enso-org/enso/pull/6116
 [6073]: https://github.com/enso-org/enso/pull/6073
+[6116]: https://github.com/enso-org/enso/pull/6116
+[6150]: https://github.com/enso-org/enso/pull/6150
 [6153]: https://github.com/enso-org/enso/pull/6153
 
 #### Enso Compiler
