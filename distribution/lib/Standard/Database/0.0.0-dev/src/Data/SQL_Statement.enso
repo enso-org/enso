@@ -44,7 +44,7 @@ type SQL_Statement
             SQL_Fragment.Code_Part code -> code
             # TODO at some point we may try more sophisticated serialization based on data type
             # TODO #183734954: date and time formatting is limited and will lose sub-second precision and timezone offset.
-            SQL_Fragment.Interpolation _ obj -> case obj of
+            SQL_Fragment.Interpolation obj -> case obj of
                 Number -> obj.to_text
                 Date_Time -> "'" + (obj.format "yyyy-MM-dd HH:mm:ss") + "'"
                 Date -> "'" + (obj.format "yyyy-MM-dd") + "'"
@@ -56,14 +56,13 @@ type SQL_Statement
 
        Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.
-    # prepare : [Text, Vector Any]
     prepare self =
         to_code fragment = case fragment of
             SQL_Fragment.Code_Part code -> code
-            SQL_Fragment.Interpolation _ _ -> "?"
+            SQL_Fragment.Interpolation _ -> "?"
         to_subst fragment = case fragment of
             SQL_Fragment.Code_Part _ -> []
-            SQL_Fragment.Interpolation typ obj -> [[obj, typ]]
+            SQL_Fragment.Interpolation obj -> [obj]
         sql = self.fragments.map to_code . join ""
         substitutions = self.fragments.flat_map to_subst
         [sql, substitutions]
@@ -75,8 +74,8 @@ type SQL_Statement
     to_js_object self =
         jsonify fragment = case fragment of
             SQL_Fragment.Code_Part code -> JS_Object.from_pairs [["sql_code", code]]
-            SQL_Fragment.Interpolation typ obj ->
-                inner = JS_Object.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
+            SQL_Fragment.Interpolation obj ->
+                inner = JS_Object.from_pairs [["value", obj]]
                 JS_Object.from_pairs [["sql_interpolation", inner]]
         fragments = self.internal_fragments.map jsonify
         JS_Object.from_pairs [["query", fragments]]

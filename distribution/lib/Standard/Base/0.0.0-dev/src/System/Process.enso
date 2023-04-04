@@ -3,6 +3,7 @@ import project.Data.Vector.Vector
 import project.System
 import project.System.Process.Exit_Code.Exit_Code
 import project.System.Process.Process_Builder.Process_Builder
+import project.System.Process.Process_Builder.Process_Result
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -24,10 +25,9 @@ from project.Data.Boolean import Boolean, True, False
          example_run = case Platform.os of
              Platform.OS.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
              _ -> Process.run "bash" ["-c", "exit 42"]
-run : Text -> Vector Text -> Exit_Code
-run command arguments=[] =
-    result = System.create_process command arguments.to_array input="" redirect_in=True redirect_out=True redirect_err=True
-    Exit_Code.from_number result.exit_code
+run : Text -> Vector Text -> Text -> Process_Result
+run command arguments=[] stdin="" =
+    new_builder command arguments stdin . create
 
 ## Create a new process builder.
 

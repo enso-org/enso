@@ -10,6 +10,14 @@ use crate::display;
 
 
 
+// ===============
+// === Exports ===
+// ===============
+
+pub use shape::Shape;
+
+
+
 // =============
 // === Shape ===
 // =============
@@ -17,7 +25,6 @@ use crate::display;
 mod shape {
     use super::*;
     crate::shape! {
-        alignment = left_bottom;
         (
             style: Style,
             color: Vector4,

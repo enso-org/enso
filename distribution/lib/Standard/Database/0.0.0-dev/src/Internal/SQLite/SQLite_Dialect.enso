@@ -13,6 +13,8 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -21,7 +23,9 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
-
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
@@ -46,6 +50,9 @@ type SQLite_Dialect
     name self = "SQLite"
 
     ## PRIVATE
+    to_text self = "SQLite_Dialect"
+
+    ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
@@ -53,21 +60,22 @@ type SQLite_Dialect
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
-    prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
-        True ->
+
+       Arguments:
+       - internal_column: the column to order by.
+       - sort_direction: the direction of the ordering.
+       - text_ordering: If provided, specifies that the column should be treated
+         as text values according to the provided ordering. For non-text types,
+         it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
+    prepare_order_descriptor self internal_column sort_direction text_ordering = case text_ordering of
+        Nothing ->
+            Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
+        _ ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
@@ -79,8 +87,6 @@ type SQLite_Dialect
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
-        False ->
-            Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
 
     ## PRIVATE
        Prepares a join operation, returning a new table instance encapsulating a
@@ -106,7 +112,10 @@ type SQLite_Dialect
         new_columns = setup.new_columns.first
         column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder)
+        type_mapping = self.get_type_mapping
+        distinct_expressions = new_key_columns.map column->
+            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
@@ -123,6 +132,51 @@ type SQLite_Dialect
     get_naming_helpers : Naming_Helpers
     get_naming_helpers self = Naming_Helpers
 
+    ## PRIVATE
+       Returns the mapping between SQL types of this dialect and Enso
+       `Value_Type`.
+    get_type_mapping : SQL_Type_Mapping
+    get_type_mapping self = SQLite_Type_Mapping
+
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
+    make_column_fetcher_for_type self sql_type =
+        type_mapping = self.get_type_mapping
+        value_type = type_mapping.sql_type_to_value_type sql_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
+    ## PRIVATE
+    get_statement_setter : Statement_Setter
+    get_statement_setter self = Statement_Setter.default
+
+    ## PRIVATE
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate = case aggregate of
+        Group_By _ _ -> True
+        Count _ -> True
+        Count_Distinct columns _ _ ->
+            if columns.length == 1 then True else
+                unsupported "Count_Distinct on multiple columns"
+        Count_Not_Nothing _ _ -> True
+        Count_Nothing _ _ -> True
+        Count_Not_Empty _ _ -> True
+        Count_Empty _ _ -> True
+        Percentile _ _ _ -> unsupported "Percentile"
+        Mode _ _ -> unsupported "Mode"
+        First _ _ _ _ -> unsupported "First"
+        Last _ _ _ _ -> unsupported "Last"
+        Maximum _ _ -> True
+        Minimum _ _ -> True
+        Shortest _ _ -> unsupported "Shortest"
+        Longest _ _ -> unsupported "Longest"
+        Standard_Deviation _ _ _ -> True
+        Concatenate _ _ _ _ _ _ -> True
+        Sum _ _ -> True
+        Average _ _ -> True
+        Median _ _ -> unsupported "Median"
+
 ## PRIVATE
 make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops
@@ -133,33 +187,6 @@ make_internal_generator_dialect =
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool
     Base_Generator.base_dialect . extend_with my_mappings
-
-## PRIVATE
-   The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_aggregate` first.
-resolve_target_sql_type aggregate = case aggregate of
-    Group_By c _ -> c.sql_type
-    Count _ -> SQL_Type.integer
-    Count_Distinct columns _ _ ->
-        if columns.length == 1 then SQL_Type.integer else
-            unsupported "Count_Distinct on multiple columns"
-    Count_Not_Nothing _ _ -> SQL_Type.integer
-    Count_Nothing _ _ -> SQL_Type.integer
-    Count_Not_Empty _ _ -> SQL_Type.integer
-    Count_Empty _ _ -> SQL_Type.integer
-    Percentile _ _ _ -> unsupported "Percentile"
-    Mode _ _ -> unsupported "Mode"
-    First _ _ _ _ -> unsupported "First"
-    Last _ _ _ _ -> unsupported "Last"
-    Maximum c _ -> c.sql_type
-    Minimum c _ -> c.sql_type
-    Shortest _ _ -> unsupported "Shortest"
-    Longest _ _ -> unsupported "Longest"
-    Standard_Deviation _ _ _ -> SQL_Type.real
-    Concatenate _ _ _ _ _ _ -> SQL_Type.text
-    Sum c _ -> c.sql_type
-    Average _ _ -> SQL_Type.real
-    Median _ _ -> unsupported "Median"
 
 ## PRIVATE
 unsupported name =

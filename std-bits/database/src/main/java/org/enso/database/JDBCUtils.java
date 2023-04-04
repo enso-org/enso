@@ -1,16 +1,31 @@
 package org.enso.database;
 
-import java.sql.Timestamp;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 
 public class JDBCUtils {
+
   /**
-   * Converts a ZonedDateTime to a Timestamp (note loses the timezone).
+   * Gets a ZonedDateTime from a ResultSet.
    *
-   * @param zonedDateTime the ZonedDateTime to convert
-   * @return the converted Timestamp
+   * <p>Note that the only timezone information is based on the offset provided by the database, so
+   * only simple offset timezones will be returned. No support for named timezones.
    */
-  public static Timestamp getTimestamp(ZonedDateTime zonedDateTime) {
-    return Timestamp.from(zonedDateTime.toInstant());
+  public static ZonedDateTime getZonedDateTime(ResultSet rs, int columnIndex) throws SQLException {
+    OffsetDateTime offsetDateTime = rs.getObject(columnIndex, OffsetDateTime.class);
+    if (offsetDateTime == null) {
+      return null;
+    }
+    return offsetDateTime.toZonedDateTime();
+  }
+
+  /** Sets a ZonedDateTime in a PreparedStatement. */
+  public static void setZonedDateTime(
+      PreparedStatement stmt, int columnIndex, ZonedDateTime zonedDateTime) throws SQLException {
+    stmt.setObject(columnIndex, zonedDateTime.toOffsetDateTime(), Types.TIMESTAMP_WITH_TIMEZONE);
   }
 }

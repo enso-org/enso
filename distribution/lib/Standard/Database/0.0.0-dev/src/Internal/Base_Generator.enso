@@ -195,7 +195,7 @@ make_iif arguments = case arguments.length of
         expr = arguments.at 0
         when_true = arguments.at 1
         when_false = arguments.at 2
-        (Builder.code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
+        (Builder.code "CASE WHEN " ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
@@ -248,7 +248,7 @@ generate_expression : Internal_Dialect -> SQL_Expression | Order_Descriptor | Qu
 generate_expression dialect expr = case expr of
     SQL_Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-    SQL_Expression.Constant sql_type value -> Builder.interpolation sql_type value
+    SQL_Expression.Constant value -> Builder.interpolation value
     SQL_Expression.Operation kind arguments ->
         op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
@@ -395,7 +395,7 @@ generate_query dialect query = case query of
         Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE
    Arguments:

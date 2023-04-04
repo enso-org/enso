@@ -26,7 +26,8 @@ import java.io.FileWriter
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
 
-  val frgaal = "org.frgaal" % "compiler" % "19.0.0" % "provided"
+  val frgaal      = "org.frgaal" % "compiler" % "19.0.1" % "provided"
+  val sourceLevel = "19"
 
   def compilers(
     classpath: sbt.Keys.Classpath,

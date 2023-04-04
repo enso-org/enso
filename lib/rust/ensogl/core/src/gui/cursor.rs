@@ -138,6 +138,7 @@ pub mod shape {
     use super::*;
     crate::shape! {
         pointer_events = false;
+        alignment = center;
         ( style  : Style
         , press  : f32
         , radius : f32

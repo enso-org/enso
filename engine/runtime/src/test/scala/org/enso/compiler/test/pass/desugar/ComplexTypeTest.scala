@@ -148,8 +148,7 @@ class ComplexTypeTest extends CompilerTest {
     }
   }
 
-  "Invalid complex types" ignore {
-    // FIXME: Not supported by new parser--needs triage (#5894).
+  "Invalid complex types" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =

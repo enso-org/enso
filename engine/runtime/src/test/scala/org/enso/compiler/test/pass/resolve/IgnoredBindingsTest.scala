@@ -89,14 +89,13 @@ class IgnoredBindingsTest extends CompilerTest {
     }
   }
 
-  "Ignored bindings desugaring for bindings" ignore {
-    // FIXME: Not supported by new parser--needs triage (#5894).
+  "Ignored bindings desugaring for bindings" should {
     implicit val ctx: InlineContext = mkInlineContext
 
     val ir =
       """
-        |_ =
-        |    _ = f a b
+        |f =
+        |    g = h a b
         |    x = y
         |    10
         |""".stripMargin.preprocessExpression.get.resolve
@@ -109,8 +108,8 @@ class IgnoredBindingsTest extends CompilerTest {
       bindingName shouldBe an[IR.Name.Literal]
     }
 
-    "mark the binding as ignored if it was" in {
-      ir.getMetadata(IgnoredBindings) shouldEqual Some(State.Ignored)
+    "f is a regular definition of a function" in {
+      ir.getMetadata(IgnoredBindings) shouldEqual Some(State.NotIgnored)
     }
 
     "mark the binding as not ignored if it wasn't" in {

@@ -1,6 +1,7 @@
 package org.enso.table.aggregations;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class CountNothing extends Aggregator {
    * @param isNothing true to count nulls, false to count non-nulls
    */
   public CountNothing(String name, Column column, boolean isNothing) {
-    super(name, Storage.Type.LONG);
+    super(name, IntegerType.INT_64);
     this.storage = column.getStorage();
     this.isNothing = isNothing;
   }
@@ -30,7 +31,7 @@ public class CountNothing extends Aggregator {
   public Object aggregate(List<Integer> indexes) {
     long count = 0;
     for (int row : indexes) {
-      count += ((storage.getItemBoxed(row) == null) == isNothing ? 1 : 0);
+      count += ((storage.getItemBoxed(row) == null) == isNothing ? 1L : 0L);
     }
     return count;
   }
