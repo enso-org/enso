@@ -79,8 +79,7 @@ public class Layout {
       NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories,
       NodeFactory<? extends UnboxingAtom.FieldSetterNode>[] fieldSetterFactories,
       NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory,
-      ArgumentDefinition[] args
-  ) {
+      ArgumentDefinition[] args) {
     this.args = args;
     this.inputFlags = inputFlags;
     this.fieldToStorage = fieldToStorage;
@@ -98,7 +97,9 @@ public class Layout {
       this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
       assert this.uncachedFieldGetters[i] != null;
       if (args[i].isSuspended()) {
-        this.uncachedFieldGetters[i] = new SuspendedReadCheckNode(this.uncachedFieldGetters[i], this.uncachedFieldSetters[i]);
+        this.uncachedFieldGetters[i] =
+            SuspendedFieldGetterNode.build(
+                this.uncachedFieldGetters[i], this.uncachedFieldSetters[i]);
       }
     }
   }
@@ -152,9 +153,7 @@ public class Layout {
     var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
 
     return new Layout(
-      typeFlags, fieldToStorage, getterFactories,
-      setterFactories, instantiatorFactory, args
-    );
+        typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory, args);
   }
 
   public UnboxingAtom.FieldGetterNode[] getUncachedFieldGetters() {
@@ -166,7 +165,7 @@ public class Layout {
     for (int i = 0; i < fieldGetterFactories.length; i++) {
       getters[i] = fieldGetterFactories[i].createNode();
       if (args[i].isSuspended()) {
-        getters[i] = new SuspendedReadCheckNode(getters[i], buildSetter(i));
+        getters[i] = SuspendedFieldGetterNode.build(getters[i], buildSetter(i));
       }
     }
     return getters;
@@ -179,7 +178,7 @@ public class Layout {
   public UnboxingAtom.FieldGetterNode buildGetter(int index) {
     var node = fieldGetterFactories[index].createNode();
     if (args[index].isSuspended()) {
-      node = new SuspendedReadCheckNode(node, buildSetter(index));
+      node = SuspendedFieldGetterNode.build(node, buildSetter(index));
     }
     return node;
   }
@@ -291,33 +290,6 @@ public class Layout {
         }
       }
       return flags;
-    }
-  }
-
-  private static class SuspendedReadCheckNode extends UnboxingAtom.FieldGetterNode {
-    private @Node.Child
-    UnboxingAtom.FieldSetterNode set;
-    private @Node.Child
-    UnboxingAtom.FieldGetterNode get;
-    private @Node.Child
-    InvokeFunctionNode invoke = InvokeFunctionNode.build(new CallArgumentInfo[0], InvokeCallableNode.DefaultsExecutionMode.EXECUTE, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
-
-    private SuspendedReadCheckNode(UnboxingAtom.FieldGetterNode get, UnboxingAtom.FieldSetterNode set) {
-      this.get = get;
-      this.set = set;
-    }
-
-    @Override
-    public Object execute(Atom atom) {
-      var value = get.execute(atom);
-      if (value instanceof Function fn && fn.isThunk()) {
-        var ctx = EnsoContext.get(this);
-        var newValue = invoke.execute(fn, null, State.create(ctx), new Object[0]);
-        set.execute(atom, newValue);
-        return newValue;
-      } else {
-        return value;
-      }
     }
   }
 }
