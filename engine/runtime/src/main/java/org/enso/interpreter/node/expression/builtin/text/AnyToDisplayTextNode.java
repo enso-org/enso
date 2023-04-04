@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.text;
 
 import com.ibm.icu.text.BreakIterator;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -40,9 +41,14 @@ public abstract class AnyToDisplayTextNode extends Node {
     if (self.length() < limit) {
       return self;
     } else {
-      var prefix = Core_Text_Utils.take_prefix(self.toString(), limit);
-      return Text.create(prefix);
+      return takePrefix(self, limit);
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static Text takePrefix(Text self, final int limit) {
+    var prefix = Core_Text_Utils.take_prefix(self.toString(), limit);
+    return Text.create(prefix);
   }
 
   @Fallback
