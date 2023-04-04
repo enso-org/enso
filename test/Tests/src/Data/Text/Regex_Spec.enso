@@ -7,6 +7,7 @@ import Standard.Base.Data.Text.Regex.No_Such_Group
 import Standard.Base.Data.Text.Regex.Pattern.Pattern
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Regex.Replacer.Replacer
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Text.Regex.Replacer import get_lru_size, replacer_cache_lookup
@@ -54,7 +55,7 @@ spec =
 
          Test.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
              pattern = Regex.compile "abc"
-             pattern.matches 1 . should_fail_with Illegal_Argument
+             pattern.matches 1 . should_fail_with Type_Error
 
     Test.group "Pattern.match and .match_all" <|
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
@@ -97,11 +98,11 @@ spec =
 
         Test.specify "`match` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
-            pattern.match 1 . should_fail_with Illegal_Argument
+            pattern.match 1 . should_fail_with Type_Error
 
         Test.specify "`match_all` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
-            pattern.match_all 1 . should_fail_with Illegal_Argument
+            pattern.match_all 1 . should_fail_with Type_Error
 
     Test.group "Pattern.find and .find_all" <|
         Test.specify "should be able to `find` the first instance of the pattern in the input" <|
@@ -181,7 +182,7 @@ spec =
 
         Test.specify "`split` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
-            pattern.split 1 . should_fail_with Illegal_Argument
+            pattern.split 1 . should_fail_with Type_Error
 
     Test.group "Pattern.tokenize" <|
         Test.specify "can tokenize with simple regexes without capturing groups"
@@ -310,7 +311,7 @@ spec =
 
         Test.specify "`replace` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
-            pattern.replace 1 "abc" . should_fail_with Illegal_Argument
+            pattern.replace 1 "abc" . should_fail_with Type_Error
 
     Test.group "Match.text" <|
         pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
