@@ -753,12 +753,12 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 let placeholder_position = placeholder.global_position().xy();
                 let item_position = item.global_position().xy();
                 item.set_xy(item_position - placeholder_position);
-                let spot = DropSpot::new(item, placeholder.computed_size().x - GAP);
+                let spot = DropSpot::new(item, placeholder.computed_size().x);
                 let spot_frp = spot.frp.clone_ref();
                 self.items[index] = Item::DropSpot(spot);
                 self.items.collapse_all_placeholders();
                 self.recompute_margins();
-                spot_frp.skip_anim();
+                // spot_frp.skip_anim();
             } else {
                 // This branch should never be reached, as when dragging an element we always create
                 // a placeholder for it (see the [`potential_insertion_point`] function). However,
