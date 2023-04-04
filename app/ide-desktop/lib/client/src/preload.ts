@@ -15,9 +15,9 @@ import * as ipc from 'ipc'
  * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
 
-// ======================
-// === Profiling APIs ===
-// ======================
+// =======================
+// === Debug Info APIs ===
+// =======================
 
 // These APIs expose functionality for use from Rust. See the bindings in the `debug_api` module for
 // the primary documentation.
@@ -55,6 +55,13 @@ electron.contextBridge.exposeInMainWorld('enso_profiling_data', {
         } else {
             callback(profilesLoaded)
         }
+    },
+})
+
+electron.contextBridge.exposeInMainWorld('enso_hardware_info', {
+    // Open a page displaying GPU debug info.
+    openGpuDebugInfo: () => {
+        electron.ipcRenderer.send(ipc.Channel.openGpuDebugInfo)
     },
 })
 
