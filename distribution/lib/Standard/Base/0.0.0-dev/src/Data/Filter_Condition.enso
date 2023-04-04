@@ -157,6 +157,7 @@ type Filter_Condition
     ## Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
        accepted by the filter.
+    to_predicate : (Any -> Bool)
     to_predicate self = case self of
         Less value -> <value
         Equal_Or_Less value -> <=value
