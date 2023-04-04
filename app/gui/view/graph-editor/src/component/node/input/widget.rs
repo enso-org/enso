@@ -307,7 +307,6 @@ impl Root {
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(RootModel::new(app));
-        let network = frp.network();
 
         let value_changed = frp.private.output.value_changed.clone_ref();
         let request_import = frp.private.output.request_import.clone_ref();
@@ -619,6 +618,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             match old_widget {
                 Some(mut port) => {
                     port.widget.configure(&meta.config, ctx);
+                    port.update_root();
                     port
                 }
                 None => {
@@ -675,14 +675,25 @@ pub mod port {
 pub(super) struct Port {
     shape:  port::View,
     widget: DynWidget,
+    inner:  display::object::Instance,
 }
 
 impl Port {
     fn new(widget: DynWidget) -> Self {
         let shape = port::View::new();
         shape.color.set(color::Rgba::transparent().into());
-        shape.add_child(widget.root_object());
-        Self { shape, widget }
+        let inner = widget.root_object().clone_ref();
+        shape.add_child(&inner);
+        Self { shape, widget, inner }
+    }
+
+    fn update_root(&mut self) {
+        let new_root = self.widget.root_object();
+        if new_root != &self.inner {
+            self.shape.remove_child(&self.inner);
+            self.shape.add_child(new_root);
+            self.inner = new_root.clone_ref();
+        }
     }
 
     fn set_connected(&self, status: ConnectionStatus) {

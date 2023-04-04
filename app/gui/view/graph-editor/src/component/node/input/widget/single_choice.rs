@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::component::node::input::area::TEXT_SIZE;
+use crate::component::node::input::widget::Entry;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
@@ -9,10 +11,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
-
-
-use crate::component::node::input::widget::Entry;
-use crate::component::node::input::widget::Metadata;
+use ensogl_component::text;
 
 /// =================
 /// === Constants ===
@@ -23,9 +22,6 @@ const ACTIVATION_SHAPE_Y_OFFSET: f32 = 15.0;
 pub const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
 /// Distance between the dropdown and the bottom of the port.
 const DROPDOWN_Y_OFFSET: f32 = 5.0;
-
-const LABEL_CONFIG: Metadata =
-    Metadata::always(super::label::Config { ignore_offset: true, bold: true });
 
 // ======================
 // === Triangle Shape ===
@@ -82,17 +78,16 @@ ensogl::define_endpoints_2! {
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct Widget {
     config_frp:       Frp,
     display_object:   display::object::Instance,
-    #[allow(dead_code)]
     content_wrapper:  display::object::Instance,
-    #[allow(dead_code)]
     dropdown_wrapper: display::object::Instance,
-    #[allow(dead_code)]
-    dropdown:         Dropdown<Entry>,
     label_wrapper:    display::object::Instance,
-    #[allow(dead_code)]
+    args_wrapper:     display::object::Instance,
+    dropdown:         Dropdown<Entry>,
+    label:            text::Text,
     activation_shape: triangle::View,
 }
 
@@ -104,53 +99,64 @@ impl super::SpanWidget for Widget {
     }
 
     fn new(_: &Config, app: &Application, widgets_frp: &super::WidgetsFrp) -> Self {
-        //  ╭─display_object───────────────╮
-        //  │╭─content_wrapper────────────╮│
-        //  ││╭ shape ╮ ╭─label_wrapper──╮││
-        //  │││       │ │                │││
-        //  │││       │ │                │││
-        //  ││╰───────╯ ╰────────────────╯││
-        //  │╰────────────────────────────╯│
-        //  ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-        //  │ ◎ dropdown_wrapper size=0    │
-        //  ╰──────────────────────────────╯
+        //  ╭─display_object─────────────────────────────────────╮
+        //  │╭─content_wrapper──────────────────────────────────╮│
+        //  ││╭ shape ╮ ╭ label_wrapper ────╮ ╭ args_wrapper ─╮ ││
+        //  │││       │ │                   │ │               │ ││
+        //  │││       │ │                   │ │               │ ││
+        //  ││╰───────╯ ╰───────────────────╯ ╰───────────────╯ ││
+        //  │╰──────────────────────────────────────────────────╯│
+        //  ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+        //  │ ◎ dropdown_wrapper size=0                          │
+        //  ╰────────────────────────────────────────────────────╯
 
+        let layers = &app.display.default_scene.layers;
         let dot_color = color::Rgba::from(ACTIVATION_SHAPE_COLOR.with_alpha(1.0)).into();
         let activation_shape = triangle::View::new();
         activation_shape.color.set(dot_color);
         activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
-        // activation_shape.set_y(-ACTIVATION_SHAPE_SIZE.y() - ACTIVATION_SHAPE_Y_OFFSET);
 
+        let label = text::Text::new(app);
+        layers.above_nodes_text.add(&label);
+        label.set_property_default(text::Size(TEXT_SIZE));
+        label.set_property_default(text::Weight::Bold);
+        label.set_y(TEXT_SIZE);
+
+        let dropdown = app.new_view::<Dropdown<Entry>>();
+        layers.above_nodes.add(&dropdown);
+        dropdown.set_y(-20.0);
+        dropdown.set_max_open_size(Vector2(300.0, 500.0));
+        dropdown.allow_deselect_all(true);
 
         let display_object = display::object::Instance::new();
+        let content_wrapper = display_object.new_child();
+        content_wrapper.add_child(&activation_shape);
+        let label_wrapper = content_wrapper.new_child();
+        label_wrapper.add_child(&label);
+        let args_wrapper = content_wrapper.new_child();
+        let dropdown_wrapper = display_object.new_child();
+        dropdown_wrapper.add_child(&dropdown);
+
+
         display_object
             .use_auto_layout()
             .set_column_flow()
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
-        let content_wrapper = display_object.new_child();
         content_wrapper
             .use_auto_layout()
             .set_children_alignment_left_center()
             .justify_content_center_y();
-        content_wrapper.add_child(&activation_shape);
-        let label_wrapper = content_wrapper.new_child();
-        label_wrapper
+
+        args_wrapper
             .use_auto_layout()
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
-        let dropdown_wrapper = display_object.new_child();
         dropdown_wrapper.set_size((0.0, 0.0)).set_alignment_left_top();
+        label_wrapper.set_size_y(TEXT_SIZE);
 
-        let dropdown = app.new_view::<Dropdown<Entry>>();
-        dropdown_wrapper.add_child(&dropdown);
-        let layers = &app.display.default_scene.layers;
-        layers.above_nodes.add(&dropdown);
-        dropdown.set_y(-20.0);
-        dropdown.set_max_open_size(Vector2(300.0, 500.0));
-        dropdown.allow_deselect_all(true);
 
 
         let config_frp = Frp::new();
@@ -160,6 +166,8 @@ impl super::SpanWidget for Widget {
         let focus_receiver = display_object.clone_ref();
 
         frp::extend! { network
+            label.set_content <+ input.content.on_change();
+
             let focus_in = focus_receiver.on_event::<event::FocusIn>();
             let focus_out = focus_receiver.on_event::<event::FocusOut>();
             is_open <- bool(&focus_out, &focus_in);
@@ -214,14 +222,17 @@ impl super::SpanWidget for Widget {
             );
         };
 
+
         Self {
             config_frp,
             display_object,
             content_wrapper,
             dropdown_wrapper,
+            label_wrapper,
+            args_wrapper,
             dropdown,
             activation_shape,
-            label_wrapper,
+            label,
         }
     }
 
@@ -236,38 +247,36 @@ impl super::SpanWidget for Widget {
         let has_value = !ctx.span_tree_node.is_insertion_point();
         let current_value: Option<ImString> =
             has_value.then(|| ctx.expression_at(ctx.span_tree_node.span()).into());
-        let content = current_value
-            .clone()
+
+        input.current_crumbs(ctx.span_tree_node.crumbs.clone());
+        input.current_value(current_value);
+        input.set_entries(config.entries.clone());
+
+
+        let mut label_expr_span = ctx.span_tree_node.span();
+
+        if ctx.span_tree_node.is_chained() {
+            let mut chain = ctx.span_tree_node.clone().chain_children_iter();
+            if let Some(first_child) = chain.next() {
+                label_expr_span = first_child.span();
+            };
+
+            // Do not increment the depth. If the dropdown is displayed, it should also display
+            // its arguments.
+            let children =
+                chain.map(|child| ctx.builder.child_widget(child, ctx.depth)).collect_vec();
+            self.args_wrapper.replace_children(&children);
+        } else {
+            self.args_wrapper.remove_all_children();
+        }
+
+        let content: ImString = has_value
+            .then(|| ctx.expression_at(label_expr_span).into())
             .or_else(|| config.label.clone())
             .or_else(|| ctx.span_tree_node.kind.argument_name().map(Into::into))
             .unwrap_or_default();
 
-        input.current_crumbs(ctx.span_tree_node.crumbs.clone());
-        input.current_value(current_value);
         input.content(content);
-        input.set_entries(config.entries.clone());
-
-        // Do not increment the depth. If the dropdown is displayed, it should also display
-        // its arguments.
-
-        self.content_wrapper.remove_all_children();
-
-        if ctx.span_tree_node.is_chained() {
-            let mut chain_children = ctx.span_tree_node.chain_children_iter();
-            if let Some(first_child) = chain_children.next() {
-                let label =
-                    ctx.builder.child_widget_of_type(first_child, ctx.depth, LABEL_CONFIG, 0);
-                self.label_wrapper.replace_children(&[label]);
-            }
-            let content_children = chain_children
-                .map(|child| ctx.builder.child_widget(child, ctx.depth))
-                .collect_vec();
-            self.content_wrapper.replace_children(&content_children);
-        } else {
-            let label =
-                ctx.builder.child_widget_of_type(ctx.span_tree_node, ctx.depth, LABEL_CONFIG, 0);
-            self.label_wrapper.replace_children(&[label]);
-        }
     }
 }
 

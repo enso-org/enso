@@ -15,23 +15,12 @@ use ensogl_component::text;
 
 /// Label widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Config {
-    pub ignore_offset: bool,
-    pub bold:          bool,
-}
-
-impl Config {
-    /// Create a new label widget configuration.
-    pub const fn expression() -> Self {
-        Self { ignore_offset: false, bold: false }
-    }
-}
+pub struct Config;
 
 ensogl::define_endpoints_2! {
     Input {
         content(ImString),
         text_color(color::Lcha),
-        text_weight(text::Weight),
     }
 }
 
@@ -52,7 +41,7 @@ impl super::SpanWidget for Widget {
 
     fn new(_: &Config, app: &Application, _: &super::WidgetsFrp) -> Self {
         // Embed the label in a vertically centered fixed height container, so that the label's
-        // baseline is aligned with other labels in the same row.
+        // baseline is properly aligned to center and lines up with other labels in the line.
 
         let layers = &app.display.default_scene.layers;
         let root = InstanceWithBg::magenta();
@@ -66,28 +55,21 @@ impl super::SpanWidget for Widget {
         let network = &frp.network;
 
         frp::extend! { network
-            content_change <- frp.content.on_change();
             color_change <- frp.text_color.on_change();
-            weight_change <- frp.text_weight.on_change();
+            eval color_change((color) label.set_property_default(color));
+            content_change <- frp.content.on_change();
             eval content_change([label] (content) {
                 label.set_content(content);
             });
-            eval color_change((color) label.set_property_default(color));
-            eval weight_change((weight) label.set_property_default(weight));
         }
 
         Self { frp, root, label }
     }
 
-    fn configure(&mut self, config: &Config, ctx: super::ConfigContext) {
+    fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
         let is_placeholder = ctx.span_tree_node.is_expected_argument();
-
-        let offset = if config.ignore_offset {
-            0.0
-        } else {
-            let min_offset = if is_placeholder { 1.0f32 } else { 0.0 };
-            min_offset.max(ctx.span_tree_node.sibling_offset.as_usize() as f32)
-        };
+        let min_offset = if is_placeholder { 1.0f32 } else { 0.0 };
+        let offset = min_offset.max(ctx.span_tree_node.sibling_offset.as_usize() as f32);
 
         self.label.set_x(offset * super::hierarchy::SPACE_GLYPH_WIDTH);
 
@@ -105,11 +87,9 @@ impl super::SpanWidget for Widget {
             color::Lcha::new(0.0, 0.0, 0.0, 1.0)
         };
 
-        let weight = if config.bold { text::Weight::Bold } else { text::Weight::Normal };
 
         let input = &self.frp.public.input;
         input.content.emit(content.clone());
         input.text_color.emit(text_color);
-        input.text_weight.emit(weight);
     }
 }

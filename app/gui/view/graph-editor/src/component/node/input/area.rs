@@ -966,9 +966,9 @@ impl Area {
             selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
             // model.ports_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
 
-            std_base_color      <- all(std_base_color,init)._0();
-            profiled_base_color <- all(profiled_base_color,init)._0();
-            base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
+            // std_base_color      <- all(std_base_color,init)._0();
+            // profiled_base_color <- all(profiled_base_color,init)._0();
+            // base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
             // eval base_color ((color) model.ports_label.set_property_default(color));
         }
 
