@@ -24,7 +24,7 @@ public class ContextIsEnabledNode extends Node {
           EnsoContext.get(this)
               .getBuiltins()
               .error()
-              .makeUnimplemnted("execution environment mismatch");
+              .makeUnimplemented("execution environment mismatch");
       throw new PanicException(error, this);
     }
     return currentEnv.hasContextEnabled(self.getConstructor().getName());

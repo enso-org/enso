@@ -1,17 +1,18 @@
 package org.enso.interpreter.runtime.state;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class ExecutionEnvironment {
 
   private final String name;
-  private final Map<String, Boolean> permissions;
+
+  // Ideally we would "just" use a map here. But that leads
+  // to native image build problems. This in turn leads to
+  // TruffleBoundary annotations which in turn leads to slow path.
+  private final String[] keys;
+  private final Boolean[] permissions;
 
   public static final String LIVE_ENVIRONMENT_NAME = "live";
 
@@ -22,19 +23,20 @@ public class ExecutionEnvironment {
       new ExecutionEnvironment(DESIGN_ENVIRONMENT_NAME);
 
   private static final ExecutionEnvironment initLive(String name) {
-    Map<String, Boolean> contexts = new HashMap<>();
-    contexts.put(Context.INPUT_CONTEXT, true);
-    contexts.put(Context.OUTPUT_CONTEXT, true);
-    return new ExecutionEnvironment(name, contexts);
+    String[] keys = new String[] {Context.INPUT_NAME, Context.OUTPUT_NAME};
+    Boolean[] permissions = new Boolean[] {true, true};
+    return new ExecutionEnvironment(name, keys, permissions);
   }
 
   public ExecutionEnvironment(String name) {
     this.name = name;
-    this.permissions = new HashMap<>();
+    this.keys = new String[0];
+    this.permissions = new Boolean[0];
   }
 
-  private ExecutionEnvironment(String name, Map<String, Boolean> permissions) {
+  private ExecutionEnvironment(String name, String[] keys, Boolean[] permissions) {
     this.name = name;
+    this.keys = keys;
     this.permissions = permissions;
   }
 
@@ -42,31 +44,57 @@ public class ExecutionEnvironment {
     return this.name;
   }
 
-  @CompilerDirectives.TruffleBoundary
   public ExecutionEnvironment withContextEnabled(Atom context) {
-    assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
-    Map<String, Boolean> permissions1 = new HashMap<>();
-    for (Map.Entry<String, Boolean> permission : permissions.entrySet()) {
-      permissions1.put(permission.getKey(), permission.getValue());
-    }
-    permissions1.put(context.getConstructor().getName(), true);
-    return new ExecutionEnvironment(name, permissions1);
+    return update(context, true);
   }
 
-  @CompilerDirectives.TruffleBoundary
   public ExecutionEnvironment withContextDisabled(Atom context) {
-    assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
-    Map<String, Boolean> permissions1 = new HashMap<>();
-    for (Map.Entry<String, Boolean> permission : permissions.entrySet()) {
-      permissions1.put(permission.getKey(), permission.getValue());
-    }
-    permissions1.put(context.getConstructor().getName(), false);
-    return new ExecutionEnvironment(name, permissions1);
+    return update(context, false);
   }
 
-  @CompilerDirectives.TruffleBoundary
+  private ExecutionEnvironment update(Atom context, boolean value) {
+    assert context.getType() == EnsoContext.get(null).getBuiltins().context().getType();
+    int keyFound = -1;
+    for (int i = 0; i < keys.length; i++) {
+      if (keys[i].equals(context.getConstructor().getName())) {
+        keyFound = i;
+      }
+    }
+    String[] keys1;
+    Boolean[] permissions1;
+    if (keyFound != -1) {
+      keys1 = cloneArray(keys, new String[keys.length]);
+      permissions1 = cloneArray(permissions, new Boolean[keys.length]);
+      permissions1[keyFound] = value;
+    } else {
+      keys1 = cloneArray(keys, new String[keys.length + 1]);
+      permissions1 = cloneArray(permissions, new Boolean[keys.length + 1]);
+      keyFound = keys.length;
+      keys1[keyFound] = context.getConstructor().getName();
+      permissions1[keyFound] = value;
+    }
+    return new ExecutionEnvironment(name, keys1, permissions1);
+  }
+
+  private <T> T[] cloneArray(T[] fromArray, T[] toArray) {
+    for (int i = 0; i < fromArray.length; i++) {
+      toArray[i] = fromArray[i];
+    }
+    return toArray;
+  }
+
   public Boolean hasContextEnabled(String context) {
-    return permissions.getOrDefault(context, false);
+    int keyFound = -1;
+    for (int i = 0; i < keys.length; i++) {
+      if (keys[i].equals(context)) {
+        keyFound = i;
+      }
+    }
+    if (keyFound != -1) {
+      return permissions[keyFound];
+    } else {
+      return false;
+    }
   }
 
   public static ExecutionEnvironment forName(String name) {

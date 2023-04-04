@@ -362,7 +362,7 @@ object Main {
       .numberOfArgs(1)
       .argName("name")
       .desc(
-        "Execution environment to use during execution (`live` or `design`)"
+        "Execution environment to use during execution (`live`/`design`). Defaults to: `live`."
       )
       .build()
 

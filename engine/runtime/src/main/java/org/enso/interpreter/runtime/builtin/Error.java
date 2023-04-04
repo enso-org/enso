@@ -229,7 +229,7 @@ public class Error {
     return forbiddenOperation;
   }
 
-  public Atom makeUnimplemnted(String operation) {
+  public Atom makeUnimplemented(String operation) {
     return unimplemented.newInstance(operation);
   }
 

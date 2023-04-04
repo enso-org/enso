@@ -10,12 +10,12 @@ import java.util.List;
 public class Context extends Builtin {
   @Override
   protected List<Cons> getDeclaredConstructors() {
-    return List.of(new Cons(INPUT_CONTEXT), new Cons(OUTPUT_CONTEXT));
+    return List.of(new Cons(INPUT_NAME), new Cons(OUTPUT_NAME));
   }
 
-  public static String INPUT_CONTEXT = "Input";
+  public static final String INPUT_NAME = "Input";
 
-  public static String OUTPUT_CONTEXT = "Output";
+  public static final String OUTPUT_NAME = "Output";
 
   public AtomConstructor getInput() {
     return getConstructors()[0];
