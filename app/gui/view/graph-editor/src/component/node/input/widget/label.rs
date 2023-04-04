@@ -4,7 +4,9 @@ use crate::prelude::*;
 
 use super::debug::InstanceWithBg;
 use crate::component::node::input::area::TEXT_SIZE;
+use ensogl::application::Application;
 use ensogl::data::color;
+use ensogl::display::object;
 use ensogl_component::text;
 
 // =============
@@ -43,14 +45,19 @@ pub struct Widget {
 
 impl super::SpanWidget for Widget {
     type Config = Config;
-    fn new(config: &Config, ctx: super::ConfigContext) -> Self {
+
+    fn root_object(&self) -> &object::Instance {
+        &self.root.outer
+    }
+
+    fn new(_: &Config, app: &Application, _: &super::WidgetsFrp) -> Self {
         // Embed the label in a vertically centered fixed height container, so that the label's
         // baseline is aligned with other labels in the same row.
 
-        let layers = &ctx.app().display.default_scene.layers;
+        let layers = &app.display.default_scene.layers;
         let root = InstanceWithBg::magenta();
         root.inner.set_size_y(TEXT_SIZE);
-        let label = text::Text::new(ctx.app());
+        let label = text::Text::new(app);
         label.set_property_default(text::Size(TEXT_SIZE));
         label.set_y(TEXT_SIZE);
         layers.above_nodes_text.add(&label);
@@ -62,18 +69,17 @@ impl super::SpanWidget for Widget {
             content_change <- frp.content.on_change();
             color_change <- frp.text_color.on_change();
             weight_change <- frp.text_weight.on_change();
-            eval content_change((content) label.set_content(content));
+            eval content_change([label] (content) {
+                label.set_content(content);
+            });
             eval color_change((color) label.set_property_default(color));
             eval weight_change((weight) label.set_property_default(weight));
         }
 
-        let mut this = Self { frp, root, label };
-        this.configure(config, ctx);
-        this
+        Self { frp, root, label }
     }
 
     fn configure(&mut self, config: &Config, ctx: super::ConfigContext) {
-        self.root.outer.set_parent(ctx.parent_instance);
         let is_placeholder = ctx.span_tree_node.is_expected_argument();
 
         let offset = if config.ignore_offset {
@@ -84,7 +90,6 @@ impl super::SpanWidget for Widget {
         };
 
         self.label.set_x(offset * super::hierarchy::SPACE_GLYPH_WIDTH);
-
 
         let content = if is_placeholder {
             ctx.span_tree_node.kind.argument_name().unwrap_or_default()

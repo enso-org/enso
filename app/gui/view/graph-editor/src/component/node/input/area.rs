@@ -7,7 +7,6 @@ use ensogl::display::traits::*;
 
 use crate::component::type_coloring;
 use crate::node;
-use crate::node::input::port;
 use crate::node::input::widget;
 use crate::node::profiling;
 use crate::view;
@@ -60,12 +59,7 @@ pub const TEXT_SIZE: f32 = 12.0;
 
 pub use span_tree::Crumb;
 pub use span_tree::Crumbs;
-
-/// Specialized `SpanTree` for the input ports model.
-pub type SpanTree = span_tree::SpanTree<()>;
-
-/// Mutable reference to port inside of a `SpanTree`.
-pub type PortRefMut<'a> = span_tree::node::RefMut<'a, port::Model>;
+pub use span_tree::SpanTree;
 
 
 
@@ -150,13 +144,6 @@ impl From<node::Expression> for InputExpression {
 pub struct Model {
     app:             Application,
     display_object:  display::object::Instance,
-    // ports:           display::object::Instance,
-    // header:          display::object::Instance,
-    /// Text label used for displaying the ports. Contains both expression text and inserted
-    /// argument placeholders. The style is adjusted based on port types.
-    // ports_label:     text::Text,
-    /// Text label used during edit mode. Contains only the expression text without any
-    /// modifications. Handles user input in edit mode.
     edit_mode_label: text::Text,
     expression:      RefCell<InputExpression>,
     id_crumbs_map:   RefCell<HashMap<ast::Id, Crumbs>>,
@@ -243,28 +230,17 @@ impl Model {
         self
     }
 
-    /// Return a list of Node's input ports.
-    pub fn ports(&self) -> Vec<port::Model> {
-        // let expression = self.expression.borrow();
-        // let mut ports = Vec::new();
-        // expression.span_tree.root_ref().dfs(|n| ports.push(n.payload.clone()));
-        // ports
-        todo!()
-    }
-
-
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.edit_mode_label.add_to_scene_layer(layer);
         // self.ports_label.add_to_scene_layer(layer);
     }
 
-    /// Run the provided function on the target port if exists.
-    // fn with_port_mut(&self, crumbs: &Crumbs, f: impl FnOnce(PortRefMut)) {
-    //     let mut expression = self.expression.borrow_mut();
-    //     if let Ok(node) = expression.span_tree.root_ref_mut().get_descendant(crumbs) {
-    //         f(node)
-    //     }
-    // }
+    /// Set connection status of the given port.
+    fn set_connected(&self, crumbs: &Crumbs, status: node::ConnectionStatus) {
+        let expr = self.expression.borrow();
+        let port = expr.span_tree.get_node(crumbs).ok();
+        port.map(|port| self.root_widget.set_connected(&port, status));
+    }
 
     /// Traverse all `SpanTree` leaves of the given port and emit hover style to set their colors.
     fn set_port_hover(&self, target: &Switch<Crumbs>) {
@@ -791,14 +767,9 @@ ensogl::define_endpoints! {
         /// Disable the node (aka "skip mode").
         set_disabled (bool),
 
-        /// Set the connection status of the port indicated by the breadcrumbs. The optional type
-        /// is the type of the edge that was connected or disconnected if the edge was typed.
-        set_connected (Crumbs,Option<Type>,bool),
-
-        /// Set the expression USAGE type. This is not the definition type, which can be set with
-        /// `set_expression` instead. In case the usage type is set to None, ports still may be
-        /// colored if the definition type was present.
-        set_expression_usage_type (Crumbs,Option<Type>),
+        /// Set the connection status of the port indicated by the breadcrumbs. For connected ports,
+        /// contains the color of connected edge.
+        set_connected (Crumbs, node::ConnectionStatus),
 
         /// Update widget metadata for widgets already present in this input area.
         update_widgets   (WidgetUpdates),
@@ -922,11 +893,7 @@ impl Area {
             // === Port Hover ===
 
             eval frp.on_port_hover ((t) model.set_port_hover(t));
-
-            // eval frp.set_connected ([model]((crumbs,edge_tp,is_connected)) {
-            //     model.with_port_mut(crumbs,|n|n.set_connected(is_connected,edge_tp));
-            //     model.with_port_mut(crumbs,|n|n.set_parent_connected(is_connected));
-            // });
+            eval frp.set_connected (((crumbs,status)) model.set_connected(crumbs,*status));
 
 
             // === Properties ===
@@ -976,10 +943,6 @@ impl Area {
             frp.output.source.on_port_code_update <+ widget_code_update;
             frp.output.source.request_import <+ model.root_widget.request_import;
 
-            // === Expression Type ===
-
-            // eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
-
             // === Widgets ===
 
             eval frp.update_widgets ((a) model.apply_widget_updates(a));
@@ -1017,24 +980,23 @@ impl Area {
     /// An offset from node position to a specific port.
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
-        None
-        // nocheckin
-        // expr.root_ref().get_descendant(crumbs).ok().map(|node| {
-        //     let unit = GLYPH_WIDTH;
-        //     let range_before = enso_text::Range::new(ByteDiff(0), node.payload.index);
-        //     let char_offset = expr.viz_code[range_before].chars().count();
-        //     let char_count = expr.viz_code[node.payload.range()].chars().count();
-        //     let width = unit * (char_count as f32);
-        //     let x = width / 2.0 + unit * (char_offset as f32);
-        //     Vector2::new(TEXT_OFFSET + x, 0.0)
-        // })
+        let node = expr.get_node(crumbs).ok()?;
+        let instance = self.model.root_widget.get_port_display_object(&node)?;
+        let pos = instance.global_position();
+        let node_pos = self.model.display_object.global_position();
+        let size = instance.computed_size();
+        Some(pos.xy() - node_pos.xy() + size * 0.5)
     }
 
     /// A type of the specified port.
-    pub fn port_type(&self, _crumbs: &Crumbs) -> Option<Type> {
-        // let expression = self.model.expression.borrow();
-        // expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
-        None
+    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
+        let expression = self.model.expression.borrow();
+        expression
+            .span_tree
+            .root_ref()
+            .get_descendant(crumbs)
+            .ok()
+            .and_then(|t| t.tp().map(|t| Type(t.into())))
     }
 
     /// A crumb by AST ID.
@@ -1080,13 +1042,5 @@ impl CallInfoMap {
         });
 
         Self { call_info }
-    }
-
-    fn has_target(&self, call_id: &ast::Id) -> bool {
-        self.call_info.get(call_id).map_or(false, |info| info.target_id.is_some())
-    }
-
-    fn target(&self, call_id: &ast::Id) -> Option<ast::Id> {
-        self.call_info.get(call_id).and_then(|info| info.target_id)
     }
 }

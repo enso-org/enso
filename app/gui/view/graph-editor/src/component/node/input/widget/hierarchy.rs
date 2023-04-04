@@ -3,7 +3,8 @@
 
 use crate::prelude::*;
 
-use ensogl::display::object::Instance;
+use ensogl::application::Application;
+use ensogl::display::object;
 
 // =================
 // === Hierarchy ===
@@ -18,7 +19,6 @@ pub struct Config;
 #[derive(Clone, Debug)]
 pub struct Widget {
     display_object: super::debug::InstanceWithBg,
-    // shape:          debug_shape::View,
 }
 
 /// Width of a single space glyph
@@ -27,43 +27,30 @@ pub const SPACE_GLYPH_WIDTH: f32 = 7.224_609_4;
 
 impl super::SpanWidget for Widget {
     type Config = Config;
-    fn new(config: &Config, ctx: super::ConfigContext) -> Self {
+
+    fn root_object(&self) -> &object::Instance {
+        &self.display_object.outer
+    }
+
+    fn new(_: &Config, _: &Application, _: &super::WidgetsFrp) -> Self {
         let display_object = super::debug::InstanceWithBg::olive();
         display_object.inner.use_auto_layout();
         display_object.inner.set_children_alignment_left_center().justify_content_center_y();
-
-        let mut this = Self { display_object };
-        this.configure(config, ctx);
-        this
+        Self { display_object }
     }
 
-    fn configure(&mut self, _config: &Config, ctx: super::ConfigContext) {
-        self.display_object.outer.set_parent(ctx.parent_instance);
+    fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
         let offset = ctx.span_tree_node.sibling_offset.as_usize() as f32;
         self.display_object.inner.set_padding_left(offset * SPACE_GLYPH_WIDTH);
+        self.display_object.inner.remove_all_children();
 
         let preserve_depth =
             ctx.span_tree_node.is_chained() || ctx.span_tree_node.is_named_argument();
         let next_depth = if preserve_depth { ctx.depth } else { ctx.depth + 1 };
 
-        for child in ctx.span_tree_node.children_iter() {
-            ctx.builder.child_widget(&self.display_object.inner, child, next_depth);
-        }
-    }
-}
-
-
-/// Temporary dropdown activation shape definition.
-pub mod debug_shape {
-    use super::*;
-    ensogl::shape! {
-        above = [
-            crate::component::node::background,
-            crate::component::node::input::port::hover
-        ];
-        (style:Style) {
-            let color = Var::<color::Rgba>::from("srgba(1.0,0.0,0.0,0.1)");
-            Rect(Var::canvas_size()).fill(color).into()
+        for node in ctx.span_tree_node.children_iter() {
+            let child = ctx.builder.child_widget(node, next_depth);
+            self.display_object.inner.add_child(&child.root);
         }
     }
 }

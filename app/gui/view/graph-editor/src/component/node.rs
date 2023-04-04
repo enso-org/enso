@@ -289,6 +289,15 @@ impl Default for Crumbs {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum ConnectionStatus {
+    #[default]
+    Disconnected,
+    Connected {
+        color: color::Lcha,
+    },
+}
+
 
 
 // ============
@@ -303,7 +312,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
+        set_input_connected   (span_tree::Crumbs,ConnectionStatus),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -500,9 +509,8 @@ impl NodeModel {
                 background                -> drag_area;
                 drag_area                 -> edge::front::corner;
                 drag_area                 -> edge::front::line;
-                edge::front::corner       -> input::port::hover;
-                edge::front::line         -> input::port::hover;
-                input::port::hover        -> input::port::viz;
+                edge::front::corner       -> input::widget::port;
+                edge::front::line         -> input::widget::port;
             }
         }
 
@@ -640,7 +648,7 @@ impl NodeModel {
     #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         match crumbs.endpoint {
-            Endpoint::Input => self.input.set_expression_usage_type(&crumbs.crumbs, tp),
+            Endpoint::Input => {} //self.input.set_expression_usage_type(&crumbs.crumbs, tp),
             Endpoint::Output => self.output.set_expression_usage_type(&crumbs.crumbs, tp),
         }
     }
@@ -1123,7 +1131,7 @@ pub mod test_utils {
         /// 1. If there are no input ports.
         /// 2. If the port does not have a `Shape`. Some port models does not initialize the
         ///    `Shape`, see [`input::port::Model::init_shape`].
-        fn input_port_shape(&self) -> Option<input::port::Shape>;
+        fn input_port_shape(&self) -> Option<input::widget::port::View>;
     }
 
     impl NodeModelExt for NodeModel {
@@ -1138,10 +1146,11 @@ pub mod test_utils {
             }
         }
 
-        fn input_port_shape(&self) -> Option<input::port::Shape> {
-            let ports = self.input.model.ports();
-            let port = ports.first()?;
-            port.shape.as_ref().map(CloneRef::clone_ref)
+        fn input_port_shape(&self) -> Option<input::widget::port::View> {
+            // let ports = self.input.model.ports();
+            // let port = ports.first()?;
+            // port.shape.as_ref().map(CloneRef::clone_ref)
+            None // TODO
         }
     }
 }

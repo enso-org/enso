@@ -6,17 +6,17 @@ use crate::prelude::*;
 
 use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
+use crate::component::node::ConnectionStatus;
 use enso_config::ARGS;
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
+use ensogl::data::color;
 use ensogl::display;
 use ensogl_component::drop_down::DropdownValue;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use text::index::Byte;
-
-
 
 // ===========
 // === FRP ===
@@ -24,11 +24,15 @@ use text::index::Byte;
 
 ensogl::define_endpoints_2! {
     Input {
-        /// Set the widget's metadata that was received from the language server. It overrides
-        /// widget's configuration, even allowing the widget type to be completely changed. When
-        /// the metadata is set to `Some` value, the corresponding widget will ignore its span-tree
-        /// type.
-        set_metadata   (MetadataPointer, Option<Metadata>),
+        // /// Set the widget's metadata that was received from the language server. It overrides
+        // /// widget's configuration, even allowing the widget type to be completely changed. When
+        // /// the metadata is set to `Some` value, the corresponding widget will ignore its span-tree
+        // /// type.
+        // set_metadata   (MetadataPointer, Option<Metadata>),
+
+        // /// Set the connection status of the port indicated by the breadcrumbs. The optional type
+        // /// is the type of the edge that was connected or disconnected if the edge was typed.
+        // set_connected  (span_tree::Crumbs, ConnectionStatus),
     }
     Output {
         value_changed  (span_tree::Crumbs, Option<ImString>),
@@ -55,25 +59,12 @@ pub struct MetadataPointer {
 pub trait SpanWidget {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
+    /// Root display object of a widget. It is returned to the parent widget for positioning.
+    fn root_object(&self) -> &display::object::Instance;
     /// Create a new widget with given configuration.
-    fn new(config: &Self::Config, ctx: ConfigContext) -> Self;
+    fn new(config: &Self::Config, app: &Application, frp: &WidgetsFrp) -> Self;
     /// Update configuration for existing widget.
     fn configure(&mut self, config: &Self::Config, ctx: ConfigContext);
-}
-
-/// Create a widget if it does not exist, or reconfigure if it does.
-pub fn create_or_update_widget<T: SpanWidget>(
-    old_widget: Option<T>,
-    config: &T::Config,
-    ctx: ConfigContext,
-) -> T {
-    match old_widget {
-        Some(mut widget) => {
-            widget.configure(config, ctx);
-            widget
-        }
-        None => T::new(config, ctx),
-    }
 }
 
 macro_rules! define_widget_modules(
@@ -116,10 +107,16 @@ macro_rules! define_widget_modules(
 
         impl SpanWidget for DynWidget {
             type Config = Config;
-            fn new(config: &Config, ctx: ConfigContext) -> Self {
+            fn root_object(&self) -> &display::object::Instance {
+                match self {
+                    $(DynWidget::$name(inner) => inner.root_object(),)*
+                }
+            }
+
+            fn new(config: &Config, app: &Application, frp: &WidgetsFrp) -> Self {
                 match config {
                     $(
-                        Config::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),
+                        Config::$name(config) => DynWidget::$name(SpanWidget::new(config, app, frp)),
                     )*
                 }
             }
@@ -130,7 +127,8 @@ macro_rules! define_widget_modules(
                         SpanWidget::configure(model, config, ctx);
                     },)*
                     (this, _) => {
-                        *this = SpanWidget::new(config, ctx);
+                        *this = SpanWidget::new(config, ctx.app(), ctx.frp());
+                        this.configure(config, ctx)
                     },
                 }
             }
@@ -177,11 +175,10 @@ impl Metadata {
     }
 
     fn vector_editor() -> Metadata {
-        let config = vector_editor::Config::default().into();
-        Self { label: None, display: Display::Always, config }
+        Self::always(vector_editor::Config::default())
     }
 
-    fn from_kind(kind: &span_tree::node::Kind) -> Self {
+    fn from_kind(kind: &span_tree::node::Kind, has_children: bool) -> Self {
         use span_tree::node::Kind;
 
         const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
@@ -200,7 +197,8 @@ impl Metadata {
                 } else {
                     Self::always(label::Config::default())
                 },
-            Kind::Root | Kind::NamedArgument | Kind::Chained(_) => Self::always(hierarchy::Config),
+            Kind::Root | Kind::NamedArgument | Kind::Chained(_) if has_children =>
+                Self::always(hierarchy::Config),
             _ => Self::always(label::Config::default()),
         }
     }
@@ -269,17 +267,15 @@ impl DropdownValue for Entry {
 
 
 
-// ==================
-// === SampledFrp ===
-// ==================
+/// ==================
+/// === WidgetsFrp ===
+/// ==================
 
-/// Sampled version of widget FRP endpoints that can be used by widget views that are initialized
-/// on demand after first interaction. Without samplers, when a widget view would be initialized
-/// after the endpoints were set, it would not receive previously set endpoint values.
+/// Widget FRP endpoints that can be used by widget views, and go straight to the root.
 #[derive(Debug, Clone, CloneRef)]
-struct SampledFrp {
-    value_changed:  frp::Any<(span_tree::Crumbs, Option<ImString>)>,
-    request_import: frp::Any<ImString>,
+pub struct WidgetsFrp {
+    pub(self) value_changed:  frp::Any<(span_tree::Crumbs, Option<ImString>)>,
+    pub(self) request_import: frp::Any<ImString>,
 }
 
 
@@ -294,7 +290,7 @@ struct SampledFrp {
 pub struct Root {
     #[deref]
     frp:         Frp,
-    sampled_frp: SampledFrp,
+    sampled_frp: WidgetsFrp,
     model:       Rc<RootModel>,
 }
 
@@ -313,17 +309,21 @@ impl Root {
         let model = Rc::new(RootModel::new(app));
         let network = frp.network();
 
-        frp::extend! { network
-            eval frp.input.set_metadata([model]((pointer, meta)) {
-                model.set_metadata(pointer.clone(), meta.clone());
-            });
-        }
-
         let value_changed = frp.private.output.value_changed.clone_ref();
         let request_import = frp.private.output.request_import.clone_ref();
-        let sampled_frp = SampledFrp { value_changed, request_import };
+        let sampled_frp = WidgetsFrp { value_changed, request_import };
 
         Self { frp, sampled_frp, model }
+    }
+
+    pub fn set_metadata(&self, pointer: MetadataPointer, meta: Option<Metadata>) {
+        self.model.set_metadata(pointer, meta);
+    }
+
+    pub fn set_connected(&self, tree_node: &span_tree::node::Ref, status: ConnectionStatus) {
+        self.model
+            .get_port_widget_pointer(tree_node)
+            .map(|pointer| self.model.with_port_mut(&pointer, |p| p.set_connected(status)));
     }
 
     pub fn rebuild_tree_on_metadata_change(
@@ -339,6 +339,14 @@ impl Root {
     pub fn rebuild_tree(&self, tree: &span_tree::SpanTree, node_expression: &str) {
         self.model.rebuild_tree(self.sampled_frp.clone_ref(), tree, node_expression)
     }
+
+    pub fn get_port_display_object(
+        &self,
+        tree_node: &span_tree::node::Ref,
+    ) -> Option<display::object::Instance> {
+        let pointer = self.model.get_port_widget_pointer(tree_node)?;
+        self.model.with_port(&pointer, |w| w.display_object().clone())
+    }
 }
 
 /// =============
@@ -349,7 +357,7 @@ impl Root {
 struct RootModel {
     app:            Application,
     display_object: debug::InstanceWithBg,
-    widgets_map:    RefCell<HashMap<WidgetTreePointer, DynWidget>>,
+    widgets_map:    RefCell<HashMap<WidgetTreePointer, Port>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
     metadata_dirty: AtomicBool,
 }
@@ -416,27 +424,58 @@ impl RootModel {
     }
 
     #[profile(Task)]
-    fn rebuild_tree(&self, frp: SampledFrp, tree: &span_tree::SpanTree, node_expression: &str) {
+    fn rebuild_tree(&self, frp: WidgetsFrp, tree: &span_tree::SpanTree, node_expression: &str) {
         self.metadata_dirty.store(false, Ordering::Release);
         let app = self.app.clone();
         let metadata_map = self.metadata_map.borrow();
         let widgets_map = self.widgets_map.take();
         let mut builder =
             WidgetTreeBuilder::new(node_expression, app, frp, &*metadata_map, widgets_map);
-        builder.child_widget(&self.display_object.inner, tree.root_ref(), 0);
+        let child = builder.child_widget(tree.root_ref(), 0);
+        self.display_object.inner.add_child(&child.root);
         self.widgets_map.replace(builder.new_widgets);
+    }
+
+    pub fn get_port_widget_pointer(
+        &self,
+        tree_node: &span_tree::node::Ref,
+    ) -> Option<WidgetTreePointer> {
+        if let Some(id) = tree_node.node.ast_id {
+            Some(WidgetTreePointer {
+                id:         Some(id),
+                crumbs:     default(),
+                nested_key: None,
+            })
+        } else {
+            // TODO
+            None
+        }
+    }
+
+    pub fn with_port<T>(
+        &self,
+        pointer: &WidgetTreePointer,
+        f: impl FnOnce(&Port) -> T,
+    ) -> Option<T> {
+        self.widgets_map.borrow().get(pointer).map(f)
+    }
+
+    pub fn with_port_mut<T>(
+        &self,
+        pointer: &WidgetTreePointer,
+        f: impl FnOnce(&mut Port) -> T,
+    ) -> Option<T> {
+        self.widgets_map.borrow_mut().get_mut(pointer).map(f)
     }
 }
 
 
 #[derive(Debug)]
 pub struct ConfigContext<'a, 'b> {
-    builder:              &'a mut WidgetTreeBuilder<'b>,
-    parent_instance:      &'a display::object::Instance,
-    display:              Display,
-    span_tree_node:       span_tree::node::Ref<'a>,
-    parent_parenthesized: bool,
-    depth:                usize,
+    builder:        &'a mut WidgetTreeBuilder<'b>,
+    display:        Display,
+    span_tree_node: span_tree::node::Ref<'a>,
+    depth:          usize,
 }
 
 impl<'a, 'b> ConfigContext<'a, 'b> {
@@ -444,13 +483,19 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
         &self.builder.app
     }
 
-    fn frp(&self) -> &SampledFrp {
+    fn frp(&self) -> &WidgetsFrp {
         &self.builder.frp
     }
 
     fn expression_at(&self, range: text::Range<Byte>) -> &str {
         &self.builder.node_expression[range]
     }
+}
+
+#[derive(Debug)]
+struct ChildWidget {
+    root:    display::object::Instance,
+    pointer: WidgetTreePointer,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -467,23 +512,22 @@ struct WidgetTreePointer {
 #[derive(Debug)]
 struct WidgetTreeBuilder<'a> {
     app:                Application,
-    frp:                SampledFrp,
+    frp:                WidgetsFrp,
     metadata_map:       &'a HashMap<MetadataPointer, Metadata>,
-    old_widgets:        HashMap<WidgetTreePointer, DynWidget>,
-    new_widgets:        HashMap<WidgetTreePointer, DynWidget>,
+    old_widgets:        HashMap<WidgetTreePointer, Port>,
+    new_widgets:        HashMap<WidgetTreePointer, Port>,
     last_ast_id:        Option<ast::Id>,
     last_ast_id_crumbs: span_tree::Crumbs,
     node_expression:    &'a str,
-    parenthesized:      bool,
 }
 
 impl<'a> WidgetTreeBuilder<'a> {
     fn new(
         node_expression: &'a str,
         app: Application,
-        frp: SampledFrp,
+        frp: WidgetsFrp,
         metadata_map: &'a HashMap<MetadataPointer, Metadata>,
-        old_widgets: HashMap<WidgetTreePointer, DynWidget>,
+        old_widgets: HashMap<WidgetTreePointer, Port>,
     ) -> Self {
         Self {
             app,
@@ -494,44 +538,40 @@ impl<'a> WidgetTreeBuilder<'a> {
             last_ast_id: default(),
             last_ast_id_crumbs: default(),
             node_expression,
-            parenthesized: false,
         }
     }
 
+    #[must_use]
     pub(self) fn child_widget(
         &mut self,
-        parent_object: &display::object::Instance,
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
-    ) -> WidgetTreePointer {
-        self.create_child_widget(parent_object, span_tree_node, depth, None, None)
+    ) -> ChildWidget {
+        self.create_child_widget(span_tree_node, depth, None, None)
     }
 
+    #[must_use]
     pub(self) fn child_widget_of_type(
         &mut self,
-        parent_object: &display::object::Instance,
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
         meta: Metadata,
         key: usize,
-    ) -> WidgetTreePointer {
-        self.create_child_widget(parent_object, span_tree_node, depth, Some(meta), Some(key))
+    ) -> ChildWidget {
+        self.create_child_widget(span_tree_node, depth, Some(meta), Some(key))
     }
 
 
     fn create_child_widget(
         &mut self,
-        parent_object: &display::object::Instance,
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
         set_metadata: Option<Metadata>,
         nested_key: Option<usize>,
-    ) -> WidgetTreePointer {
+    ) -> ChildWidget {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
         let mut ast_data_to_restore = None;
-        let parent_parenthesized = self.parenthesized;
-        self.parenthesized = span_tree_node.parenthesized;
 
         // Figure out the widget tree pointer for the current node. That pointer determines the
         // widget identity, allowing it to maintain internal state. If the previous tree already
@@ -559,6 +599,7 @@ impl<'a> WidgetTreeBuilder<'a> {
 
         let mut meta_fallback = None;
         let kind = &span_tree_node.kind;
+        let has_children = !span_tree_node.children.is_empty();
         let meta = set_metadata
             .as_ref()
             .or_else(|| {
@@ -570,32 +611,98 @@ impl<'a> WidgetTreeBuilder<'a> {
 
                 meta_pointer.and_then(|ptr| self.metadata_map.get(&ptr))
             })
-            .unwrap_or_else(|| meta_fallback.get_or_insert_with(|| Metadata::from_kind(kind)));
+            .unwrap_or_else(|| {
+                meta_fallback.get_or_insert_with(|| Metadata::from_kind(kind, has_children))
+            });
 
         let old_widget = self.old_widgets.remove(&tree_ptr);
-        let widget = {
-            let ctx = ConfigContext {
-                builder: &mut *self,
-                parent_instance: parent_object,
-                display: meta.display,
-                span_tree_node,
-                parent_parenthesized,
-                depth,
-            };
+        let port = {
+            let ctx =
+                ConfigContext { builder: &mut *self, display: meta.display, span_tree_node, depth };
             // Widget creation/update can recurse into the builder. All borrows must be dropped
             // at this point.
-            create_or_update_widget(old_widget, &meta.config, ctx)
+
+            match old_widget {
+                Some(mut port) => {
+                    port.widget.configure(&meta.config, ctx);
+                    port
+                }
+                None => {
+                    let app = ctx.app();
+                    let frp = ctx.frp();
+                    let mut widget = DynWidget::new(&meta.config, app, frp);
+                    widget.configure(&meta.config, ctx);
+                    Port::new(widget)
+                }
+            }
         };
-        self.new_widgets.insert(tree_ptr.clone(), widget);
+        let root = port.display_object().clone();
+        self.new_widgets.insert(tree_ptr.clone(), port);
 
         // After visiting child node, restore previous layer's data.
         if let Some((id, crumbs)) = ast_data_to_restore {
             self.last_ast_id = id;
             self.last_ast_id_crumbs = crumbs;
         }
-        self.parenthesized = parent_parenthesized;
+        ChildWidget { pointer: tree_ptr, root }
+    }
+}
 
-        tree_ptr
+
+// =================
+// === Constants ===
+// =================
+
+/// The horizontal padding of ports. It affects how the port hover should extend the target text
+/// boundary on both sides.
+pub const PADDING_X: f32 = 4.0;
+
+
+// ============
+// === Port ===
+// ============
+
+/// Port shape definition.
+pub mod port {
+    use super::*;
+    ensogl::shape! {
+        (style:Style, color:Vector4) {
+            let size = Var::canvas_size();
+            let transparent = Var::<color::Rgba>::from("srgba(1.0,1.0,1.0,0.00001)");
+            let shape_color = Var::<color::Rgba>::from(color);
+            let hover_shape  = Rect(&size).fill(transparent);
+            let visual_shape  = Rect(&size).corners_radius(size.y() / 2.0).fill(shape_color);
+            hover_shape.union(visual_shape).into()
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(super) struct Port {
+    shape:  port::View,
+    widget: DynWidget,
+}
+
+impl Port {
+    fn new(widget: DynWidget) -> Self {
+        let shape = port::View::new();
+        shape.color.set(color::Rgba::transparent().into());
+        shape.add_child(widget.root_object());
+        Self { shape, widget }
+    }
+
+    fn set_connected(&self, status: ConnectionStatus) {
+        match status {
+            ConnectionStatus::Connected { color } =>
+                self.shape.color.set(color::Rgba::from(color).into()),
+            ConnectionStatus::Disconnected => self.shape.color.modify(|c| c.xyz().push(0.0)),
+        };
+    }
+}
+
+impl display::Object for Port {
+    fn display_object(&self) -> &display::object::Instance {
+        self.shape.display_object()
     }
 }
 

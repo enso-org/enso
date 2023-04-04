@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
@@ -37,7 +38,7 @@ pub mod triangle {
         above = [
             crate::component::node::background,
             crate::component::node::drag_area,
-            crate::component::node::input::port::hover
+            crate::component::node::input::widget::port
         ];
         alignment = left_bottom;
         (style:Style, color:Vector4) {
@@ -75,7 +76,6 @@ ensogl::define_endpoints_2! {
         content(ImString),
         current_value(Option<ImString>),
         current_crumbs(span_tree::Crumbs),
-        is_open(bool),
     }
 }
 
@@ -98,10 +98,12 @@ pub struct Widget {
 
 impl super::SpanWidget for Widget {
     type Config = Config;
-    fn new(config: &Config, ctx: super::ConfigContext) -> Self {
-        let app = ctx.app();
 
+    fn root_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
 
+    fn new(_: &Config, app: &Application, widgets_frp: &super::WidgetsFrp) -> Self {
         //  ╭─display_object───────────────╮
         //  │╭─content_wrapper────────────╮│
         //  ││╭ shape ╮ ╭─label_wrapper──╮││
@@ -144,7 +146,7 @@ impl super::SpanWidget for Widget {
 
         let dropdown = app.new_view::<Dropdown<Entry>>();
         dropdown_wrapper.add_child(&dropdown);
-        let layers = &ctx.app().display.default_scene.layers;
+        let layers = &app.display.default_scene.layers;
         layers.above_nodes.add(&dropdown);
         dropdown.set_y(-20.0);
         dropdown.set_max_open_size(Vector2(300.0, 500.0));
@@ -154,7 +156,6 @@ impl super::SpanWidget for Widget {
         let config_frp = Frp::new();
         let network = &config_frp.network;
         let input = &config_frp.private.input;
-        let widgets_frp = ctx.frp();
 
         let focus_receiver = display_object.clone_ref();
 
@@ -213,7 +214,7 @@ impl super::SpanWidget for Widget {
             );
         };
 
-        let mut this = Self {
+        Self {
             config_frp,
             display_object,
             content_wrapper,
@@ -221,13 +222,10 @@ impl super::SpanWidget for Widget {
             dropdown,
             activation_shape,
             label_wrapper,
-        };
-        this.configure(config, ctx);
-        this
+        }
     }
 
     fn configure(&mut self, config: &Config, ctx: super::ConfigContext) {
-        self.display_object.set_parent(ctx.parent_instance);
         let input = &self.config_frp.public.input;
 
         let is_placeholder = ctx.span_tree_node.is_expected_argument();
@@ -251,31 +249,27 @@ impl super::SpanWidget for Widget {
 
         // Do not increment the depth. If the dropdown is displayed, it should also display
         // its arguments.
-        let mut chain_children = ctx.span_tree_node.chain_children_iter();
 
+        self.label_wrapper.remove_all_children();
+        self.content_wrapper.remove_all_children();
 
-        if let Some(first_child) = chain_children.next() {
-            ctx.builder.child_widget_of_type(
-                &self.label_wrapper,
-                first_child,
-                ctx.depth,
-                LABEL_CONFIG,
-                0,
-            );
-
+        if ctx.span_tree_node.is_chained() {
+            let mut chain_children = ctx.span_tree_node.chain_children_iter();
+            if let Some(first_child) = chain_children.next() {
+                let label =
+                    ctx.builder.child_widget_of_type(first_child, ctx.depth, LABEL_CONFIG, 0);
+                self.label_wrapper.add_child(&label.root);
+            }
             for child in chain_children {
                 // No depth change. If the dropdown is displayed, it should also display its
                 // arguments.
-                ctx.builder.child_widget(ctx.parent_instance, child, ctx.depth);
+                let child = ctx.builder.child_widget(child, ctx.depth);
+                self.content_wrapper.add_child(&child.root);
             }
         } else {
-            ctx.builder.child_widget_of_type(
-                &self.label_wrapper,
-                chain_children.into_base(),
-                ctx.depth,
-                LABEL_CONFIG,
-                0,
-            );
+            let label =
+                ctx.builder.child_widget_of_type(ctx.span_tree_node, ctx.depth, LABEL_CONFIG, 0);
+            self.label_wrapper.add_child(&label.root);
         }
     }
 }

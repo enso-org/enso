@@ -18,7 +18,6 @@ use crate::model::execution_context::VisualizationUpdateData;
 
 use engine_protocol::language_server::SuggestionId;
 use ensogl::define_endpoints_2;
-use ide_view::graph_editor::component::node::input::widget;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Metadata;
 use ide_view::graph_editor::data::enso::Code;

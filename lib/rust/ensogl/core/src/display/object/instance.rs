@@ -1633,18 +1633,17 @@ impl HierarchyFrp {
 #[derive(Debug, Deref)]
 pub struct HierarchyModel {
     #[deref]
-    frp:              HierarchyFrp,
-    visible:          Cell<bool>,
-    transformation:   RefCell<CachedTransformation>,
-    parent_bind:      SharedParentBind,
-    next_child_index: Cell<ChildIndex>,
+    frp:            HierarchyFrp,
+    visible:        Cell<bool>,
+    transformation: RefCell<CachedTransformation>,
+    parent_bind:    SharedParentBind,
     // We are using [`BTreeMap`] here in order to preserve the child insertion order.
-    children:         RefCell<BTreeMap<ChildIndex, WeakInstance>>,
+    children:       RefCell<BTreeMap<ChildIndex, WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer:   RefCell<Option<LayerAssignment>>,
+    assigned_layer: RefCell<Option<LayerAssignment>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:            RefCell<Option<LayerAssignment>>,
-    dirty:            dirty::Flags,
+    layer:          RefCell<Option<LayerAssignment>>,
+    dirty:          dirty::Flags,
 }
 
 impl HierarchyModel {
@@ -1653,22 +1652,11 @@ impl HierarchyModel {
         let visible = default();
         let transformation = default();
         let parent_bind = default();
-        let next_child_index = default();
         let children = default();
         let assigned_layer = default();
         let layer = default();
         let dirty = dirty::Flags::new(&parent_bind);
-        Self {
-            frp,
-            visible,
-            transformation,
-            parent_bind,
-            next_child_index,
-            children,
-            assigned_layer,
-            layer,
-            dirty,
-        }
+        Self { frp, visible, transformation, parent_bind, children, assigned_layer, layer, dirty }
     }
 }
 
@@ -2021,12 +2009,9 @@ impl InstanceDef {
         })
     }
 
-    /// Replaces the parent binding with a new parent. Does nothing if the provided parent is the
-    /// same as the current one.
+    /// Replaces the parent binding with a new parent.
     pub fn set_parent(&self, parent: &InstanceDef) {
-        if !parent.is_parent_of(self) {
-            parent.add_child(self);
-        }
+        parent.add_child(self);
     }
 
     /// Checks if the provided object is a parent of the current one.
@@ -2058,9 +2043,11 @@ impl InstanceDef {
     }
 
     fn register_child(&self, child: &InstanceDef) -> ChildIndex {
-        let index = self.next_child_index.get();
-        self.next_child_index.set(ChildIndex(*index + 1));
-        self.children.borrow_mut().insert(index, child.downgrade());
+        let mut children_borrow = self.children.borrow_mut();
+        let next_key = children_borrow.last_key_value().map_or(0, |(k, _)| **k + 1);
+        let index = ChildIndex(next_key);
+        children_borrow.insert(index, child.downgrade());
+        drop(children_borrow);
         self.dirty.modified_children.set(index);
         index
     }

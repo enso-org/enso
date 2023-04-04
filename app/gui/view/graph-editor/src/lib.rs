@@ -1920,7 +1920,7 @@ impl GraphEditorModel {
             }
 
             if let Some(target) = edge.take_target() {
-                self.set_input_connected(&target, None, false); // FIXME None
+                self.set_input_connected(&target, node::ConnectionStatus::Disconnected);
                 if let Some(target_node) = self.nodes.get_cloned_ref(&target.node_id) {
                     target_node.in_edges.remove(&edge_id);
                 }
@@ -1928,21 +1928,36 @@ impl GraphEditorModel {
         }
     }
 
-    fn set_input_connected(&self, target: &EdgeEndpoint, tp: Option<Type>, status: bool) {
+    fn set_input_connected(&self, target: &EdgeEndpoint, status: node::ConnectionStatus) {
         if let Some(node) = self.nodes.get_cloned(&target.node_id) {
-            node.view.set_input_connected(&target.port, tp, status);
+            node.view.set_input_connected(&target.port, status);
         }
     }
 
-    fn set_edge_target_connection_status(&self, edge_id: EdgeId, status: bool) {
+    fn set_edge_target_connection_status(
+        &self,
+        edge_id: EdgeId,
+        status: bool,
+        neutral_color: color::Lcha,
+    ) {
         self.with_edge_target(edge_id, |tgt| {
-            self.set_endpoint_connection_status(edge_id, &tgt, status)
+            self.set_endpoint_connection_status(edge_id, &tgt, status, neutral_color)
         });
     }
 
-    fn set_endpoint_connection_status(&self, edge_id: EdgeId, target: &EdgeEndpoint, status: bool) {
-        let tp = self.edge_source_type(edge_id);
-        self.set_input_connected(target, tp, status);
+    fn set_endpoint_connection_status(
+        &self,
+        edge_id: EdgeId,
+        target: &EdgeEndpoint,
+        status: bool,
+        neutral_color: color::Lcha,
+    ) {
+        let status = match status {
+            true =>
+                node::ConnectionStatus::Connected { color: self.edge_color(edge_id, neutral_color) },
+            false => node::ConnectionStatus::Disconnected,
+        };
+        self.set_input_connected(target, status);
     }
 
     fn enable_visualization(&self, node_id: impl Into<NodeId>) {
@@ -3657,11 +3672,15 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // === Source / Target ===
 
+    let neutral_color = model.model.styles_frp.get_color(theme::code::types::any::selection);
+
     eval out.on_edge_source_set   (((id,tgt)) model.set_edge_source(*id,tgt));
     eval out.on_edge_target_set   (((id,tgt)) model.set_edge_target(*id,tgt));
 
-    eval out.on_edge_target_set   (((id,tgt)) model.set_endpoint_connection_status(*id,tgt,true));
-    eval out.on_edge_target_unset (((id,tgt)) model.set_endpoint_connection_status(*id,tgt,false));
+    eval out.on_edge_target_set   ([model, neutral_color] ((id,tgt))
+        model.set_endpoint_connection_status(*id,tgt,true, neutral_color.value().into()));
+    eval out.on_edge_target_unset ([model, neutral_color] ((id,tgt))
+        model.set_endpoint_connection_status(*id,tgt,false, neutral_color.value().into()));
 
     eval out.on_edge_source_unset (((id,_)) model.remove_edge_source(*id));
     eval out.on_edge_target_unset (((id,_)) model.remove_edge_target(*id));
@@ -3678,7 +3697,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.on_edge_only_source_not_set <+ out.on_edge_target_set_with_source_not_set._0();
     out.on_edge_only_source_not_set <+ out.on_edge_source_unset._0();
 
-    let neutral_color = model.model.styles_frp.get_color(theme::code::types::any::selection);
     eval out.on_edge_source_set ([model,neutral_color]((id, _))
         model.refresh_edge_color(*id,neutral_color.value().into()));
     eval out.on_edge_target_set ([model,neutral_color]((id, _))
@@ -3737,7 +3755,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval inputs.set_node_expression (((id, expr)) model.set_node_expression(id, expr));
     eval inputs.edit_node_expression (((id, range, ins)) model.edit_node_expression(id, range, ins));
     port_to_refresh <= inputs.set_node_expression.map(f!(((id, _))model.node_in_edges(id)));
-    eval port_to_refresh ((id) model.set_edge_target_connection_status(*id,true));
+    eval port_to_refresh ([model, neutral_color]
+        (id) model.set_edge_target_connection_status(*id,true, neutral_color.value().into()));
 
     // === Remove implementation ===
     out.node_removed <+ inputs.remove_node;
