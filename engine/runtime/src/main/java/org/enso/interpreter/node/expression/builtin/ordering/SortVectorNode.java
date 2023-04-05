@@ -210,9 +210,7 @@ public abstract class SortVectorNode extends Node {
       var sortedVector = Vector.fromArray(new Array(resultVec.toArray()));
       // Attach gathered warnings along with different comparators warning
       return attachDifferentComparatorsWarning(
-          attachWarnings(sortedVector, gatheredWarnings),
-          groups
-      );
+          attachWarnings(sortedVector, gatheredWarnings), groups);
     } catch (CompareException e) {
       return DataflowError.withoutTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
