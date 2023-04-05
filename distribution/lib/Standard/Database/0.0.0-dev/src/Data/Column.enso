@@ -98,11 +98,10 @@ type Column
     to_vector self =
         self.to_table.read . at self.name . to_vector
 
-    ## UNSTABLE TODO this is a very early prototype that will be revisited later
-       This implementation is really just so that we can use the types in
-       `filter`, it does not provide even a decent approximation of the true
-       type in many cases. It will be improved when the types work is
-       implemented.
+    ## Returns the `Value_Type` associated with that column.
+
+       The value type determines what type of values the column is storing and
+       what operations are permitted.
     value_type : Value_Type
     value_type self =
         mapping = self.connection.dialect.get_type_mapping
