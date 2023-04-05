@@ -1,6 +1,5 @@
 /** @file File system paths used by the application. */
 
-import fss from 'node:fs'
 import * as path from 'node:path'
 
 import * as electron from 'electron'
@@ -38,30 +37,19 @@ export const PROJECT_MANAGER_PATH = path.join(
 )
 
 /** Relative path of Enso Project PM metadata relative to project's root. */
-export const projectMetadataRelative = path.join('.enso', 'project.json')
+export const PROJECT_METADATA_RELATIVE = path.join('.enso', 'project.json')
 
 /** Get the arguments, excluding the initial program name and any electron dev mode arguments. */
-export const clientArguments = getClientArguments()
+export const CLIENT_ARGUMENTS = getClientArguments()
 
-/** Check if the given path represents the root of an Enso project. This is decided by the presence of Project Manager's metadata.
- */
-export function isProjectRoot(candidatePath: string): boolean {
-    const project_json_path = path.join(candidatePath, projectMetadataRelative)
-    try {
-        fss.accessSync(project_json_path, fss.constants.R_OK)
-        return true
-    } catch (e) {
-        return false
-    }
-}
-
-/** Decide what are client arguments, @see {@link clientArguments}. */
+/** Decide what are client arguments, @see {@link CLIENT_ARGUMENTS}. */
 function getClientArguments(): string[] {
     if (electronIsDev) {
         // Client arguments are separated from the electron dev mode arguments by a '--' argument.
         const separator = '--'
         const separatorIndex = process.argv.indexOf(separator)
-        if (separatorIndex === -1) {
+        const notFoundIndexPlaceholder = -1
+        if (separatorIndex === notFoundIndexPlaceholder) {
             // If there is no separator, client gets no arguments.
             return []
         } else {

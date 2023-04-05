@@ -3,6 +3,17 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import process from 'node:process'
 
+// =================
+// === Constants ===
+// =================
+
+/** Indent size for outputting JSON. */
+export const INDENT_SIZE = 4
+
+// ===================
+// === Environment ===
+// ===================
+
 /**
  * Get the environment variable value.
  *
@@ -45,6 +56,10 @@ export function requireEnvPathExist(name: string) {
         throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
     }
 }
+
+// ======================
+// === String Helpers ===
+// ======================
 
 /** Get the common prefix of the two strings. */
 export function getCommonPrefix(a: string, b: string): string {

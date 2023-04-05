@@ -12,12 +12,14 @@ import process from 'node:process'
 
 import * as electron from 'electron'
 
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
 import * as debug from 'debug'
+// eslint-disable-next-line no-restricted-syntax
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
 import * as naming from 'naming'
@@ -25,7 +27,7 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
-import { PRODUCT_NAME } from 'enso-common'
+import * as utils from '../../../utils'
 
 const logger = contentConfig.logger
 
@@ -33,26 +35,25 @@ const logger = contentConfig.logger
 // === Constants ===
 // =================
 
-/** Indent size for outputting JSON. */
-const INDENT_SIZE = 4
-
 /** Check if the given arguments show that we've been invoked with a file to open.
  *
  * For example, this happens when the user double-clicks on a file in the file explorer.
  *
- * @returns The path to the file to open, or `null` if no file was specified.
- **/
+ * @returns The path to the file to open, or `null` if no file was specified. */
 export function attemptingToOpenFile(clientArgs: string[]): string | null {
     // If we are invoked with exactly one argument and this argument is a file, we assume that we have been
     // invoked with a file to open. In this case, we must translate this path to the actual argument that'd open the
     // project containing this file.
-    if (clientArgs.length === 1 && clientArgs[0] !== undefined) {
+    if (clientArgs.length === 1 && typeof clientArgs[0] !== 'undefined') {
         try {
             fsSync.accessSync(clientArgs[0])
+            // eslint-disable-next-line no-restricted-syntax
             return clientArgs[0]
         } catch (e) {
             console.log(
-                `The single argument '${clientArgs[0]}' does not denote a readable file: ${e}`
+                `The single argument '${clientArgs[0]}' does not denote a readable file: ${String(
+                    e
+                )}`
             )
         }
     }
@@ -76,7 +77,7 @@ class App {
         electron.app.on('open-file', fileAssociations.onFileOpened)
 
         const { windowSize, chromeOptions, fileToOpen } = this.processArguments()
-        if (fileToOpen !== null) {
+        if (fileToOpen != null) {
             try {
                 // This makes the IDE open the relevant project. Also, this prevents us from using this
                 // method after IDE has been fully set up, as the initializing code would have already
@@ -116,11 +117,11 @@ class App {
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
-        const fileToOpen = attemptingToOpenFile(paths.clientArguments)
+        const fileToOpen = attemptingToOpenFile(paths.CLIENT_ARGUMENTS)
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument), it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse = fileToOpen ? [] : paths.clientArguments
+        const argsToParse = fileToOpen ? [] : paths.CLIENT_ARGUMENTS
         return { ...configParser.parseArgs(argsToParse), fileToOpen }
     }
 
@@ -337,7 +338,7 @@ class App {
     }
 
     printVersion(): Promise<void> {
-        const indent = ' '.repeat(INDENT_SIZE)
+        const indent = ' '.repeat(utils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)
@@ -401,8 +402,8 @@ class App {
 // ===================
 
 process.on('uncaughtException', (err, origin) => {
-    console.error(`Uncaught exception: ${err}\nException origin: ${origin}`)
-    electron.dialog.showErrorBox(PRODUCT_NAME, err.stack ?? err.toString())
+    console.error(`Uncaught exception: ${String(err)}\nException origin: ${origin}`)
+    electron.dialog.showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString())
     electron.app.exit(1)
 })
 
