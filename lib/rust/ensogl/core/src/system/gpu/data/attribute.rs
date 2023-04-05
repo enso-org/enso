@@ -35,9 +35,9 @@ pub struct InstanceIndex {
 ///
 /// If this is `None`, accesses will not be validated; if it is `Some(value)`, the value must not
 /// collide with any actual index.
-//#[cfg(debug_assertions)]
-//const FREED_INDEX: Option<usize> = Some(usize::MAX);
-//#[cfg(not(debug_assertions))]
+#[cfg(debug_assertions)]
+const FREED_INDEX: Option<usize> = Some(usize::MAX);
+#[cfg(not(debug_assertions))]
 const FREED_INDEX: Option<usize> = None;
 
 impl InstanceIndex {
@@ -47,22 +47,10 @@ impl InstanceIndex {
         self.is_valid().then_some(self.raw)
     }
 
-    /// Unless this value is a freed-entry marker, update it by applying the given function to it.
-    /// If the function returns `None`, the value becomes a freed-entry marker.
+    /// Return a reference to the value for mutation, unless it is a freed-entry marker.
     #[inline(always)]
-    fn relocate(&mut self, f: impl FnOnce(usize) -> Option<usize>) {
-        // The freed-entry sentinel is a special value if validation is enabled; otherwise, it is 0.
-        //
-        // Even when validation is disabled, it is important not to try to relocate sentinel values,
-        // because index 0 will not be legal if the scope has been emptied. However in this case the
-        // sentinel value 0 is indistinguishable from the legal value 0. This is OK: Because we
-        // guarantee stable ordering of live elements, index 0 will never be reallocated. We can
-        // skip the mutation function for index 0 without knowing whether it's a sentinel value or
-        // a live reference.
-        let sentinel = FREED_INDEX.unwrap_or_default();
-        if self.raw != sentinel {
-            self.raw = f(self.raw).unwrap_or(sentinel);
-        }
+    fn raw_mut(&mut self) -> Option<&mut usize> {
+        self.is_valid().then_some(&mut self.raw)
     }
 
     /// Return true if this value is not the [`FREED_INDEX`] sentinel.
@@ -77,6 +65,7 @@ impl InstanceIndex {
     /// Return the value; it must be live.
     #[inline(always)]
     pub fn valid_index(self) -> usize {
+        debug_assert!(self.is_valid());
         if self.is_valid() {
             self.raw
         } else {
@@ -88,6 +77,13 @@ impl InstanceIndex {
             report_access_error();
             0
         }
+    }
+}
+
+impl From<Option<usize>> for InstanceIndex {
+    fn from(value: Option<usize>) -> Self {
+        let raw = value.or(FREED_INDEX).unwrap_or_default();
+        Self { raw }
     }
 }
 
@@ -290,14 +286,10 @@ impl {
                 buffer.insert_elements(partition_orig_end, partition_increment);
             }
             // Update shifted entries in the id->index map.
-            for index in &mut *self.indexes.borrow_mut() {
-                index.relocate(|index| {
-                    let increment = match index >= partition_orig_end {
-                        true => partition_increment,
-                        false => 0,
-                    };
-                    Some(index + increment)
-                })
+            for index in self.indexes.borrow_mut().iter_mut().filter_map(|index| index.raw_mut()) {
+                if *index >= partition_orig_end {
+                    *index += partition_increment;
+                }
             }
             // Add new space to the freelist.
             let new_allocations = 1;
@@ -358,12 +350,12 @@ impl {
         }
         // Update the id->index map.
         for index in &mut *self.indexes.borrow_mut() {
-            index.relocate(|i| {
-                match relocations[i] {
-                    NO_ALLOCATION => None,
-                    valid => Some(valid as usize),
-                }
-            });
+            if let Some(i) = index.raw() {
+                *index = (match relocations.get(i).copied() {
+                    None | Some(NO_ALLOCATION) => None,
+                    Some(valid) => Some(valid as usize),
+                }).into();
+            }
         }
     }
 
@@ -531,26 +523,22 @@ mod allocator_tests {
         use rand_chacha::ChaCha8Rng;
         let mut rng = ChaCha8Rng::seed_from_u64(0);
         let mut partition_counts = [0, 0];
-        let steps = (0..1000)
-            .map(|_| {
-                let partition = match rng.gen() {
-                    false => 0,
-                    true => 1,
-                };
-                let count = rng.gen::<u8>() as usize;
-                match rng.gen() {
-                    false => {
-                        partition_counts[partition] += count;
-                        Op::Alloc { partition, count }
-                    }
-                    true => {
-                        let count = std::cmp::min(count, partition_counts[partition]);
-                        partition_counts[partition] -= count;
-                        Op::Free { partition, count }
-                    }
+        let random_valid_op = |_| {
+            let partition = rng.gen::<bool>() as usize;
+            let count = rng.gen::<u8>() as usize;
+            match rng.gen() {
+                false => {
+                    partition_counts[partition] += count;
+                    Op::Alloc { partition, count }
                 }
-            })
-            .collect_vec();
+                true => {
+                    let count = std::cmp::min(count, partition_counts[partition]);
+                    partition_counts[partition] -= count;
+                    Op::Free { partition, count }
+                }
+            }
+        };
+        let steps = (0..1000).map(random_valid_op).collect_vec();
         check_allocator(2, &steps);
     }
 
@@ -562,37 +550,53 @@ mod allocator_tests {
         instances.resize(partitions, default());
         macro_rules! check_live_instances {
             () => {{
-                let mut assigned_to_index_0 = 0;
+                if let Some(freed_index) = FREED_INDEX {
+                    let scope = scope.rc.borrow();
+                    let indexes = scope.indexes.borrow();
+                    for (_partition, instances) in instances.iter().enumerate() {
+                        for instance in instances {
+                            assert_ne!(indexes[instance.raw].raw, freed_index);
+                        }
+                    }
+                }
+            }};
+        }
+        macro_rules! check_unique_locations {
+            () => {{
+                let mut locations_used: HashSet<usize> = default();
                 let scope = scope.rc.borrow();
                 let indexes = scope.indexes.borrow();
                 for (_partition, instances) in instances.iter().enumerate() {
                     for instance in instances {
                         if let Some(freed_index) = FREED_INDEX {
                             assert_ne!(indexes[instance.raw].raw, freed_index);
-                        } else if indexes[instance.raw].raw == 0 {
-                            assigned_to_index_0 += 1;
                         }
+                        let no_collision = locations_used.insert(indexes[instance.raw].raw);
+                        assert!(no_collision);
                     }
                 }
-                assert!(assigned_to_index_0 <= 1);
             }};
         }
         for step in steps {
             match step {
-                Op::Alloc { partition, count } =>
+                Op::Alloc { partition, count } => {
                     for _ in 0..*count {
                         let instance =
                             scope.add_instance_at(BufferPartitionId { index: *partition });
                         instances[*partition].push(instance);
                         check_live_instances!();
-                    },
+                    }
+                    check_unique_locations!();
+                }
                 Op::Free { partition, count } => {
                     for instance_ix in instances[*partition].splice(..count, None) {
                         scope.dispose(instance_ix);
                     }
                     check_live_instances!();
+                    check_unique_locations!();
                     scope.shrink_to_fit();
                     check_live_instances!();
+                    check_unique_locations!();
                 }
             }
         }
