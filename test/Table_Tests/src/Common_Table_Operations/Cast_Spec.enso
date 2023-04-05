@@ -32,6 +32,12 @@ spec setup =
             c.value_type.is_text . should_be_true
             c.to_vector . should_equal ["true", "false", "true"]
 
+        Test.specify "should allow to cast a text column to fixed-length" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
+            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+            c.to_vector . should_equal ["a  ", "DEF", "a s"]
+
         Test.specify "should work if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
 
@@ -69,3 +75,19 @@ spec setup =
             c4 = c2 + 1000
             c4.value_type.is_integer . should_be_true
             c4.to_vector . should_equal [Nothing, 1001, 1000, 1001]
+
+    Test.group prefix+"Table.cast" pending=(if setup.is_database.not then "Cast is not implemented in the in-memory backend yet.") <|
+        Test.specify "should cast the columns in-place and not reorder them" <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [4, 5, 6]], ["Z", [7, 8, 9]], ["A", [True, False, True]]]
+            t2 = t.cast ["Z", "Y"] Value_Type.Char
+            t2.column_names . should_equal ["X", "Y", "Z", "A"]
+
+            t2.at "X" . value_type . is_integer . should_be_true
+            t2.at "Y" . value_type . is_text . should_be_true
+            t2.at "Z" . value_type . is_text . should_be_true
+            t2.at "A" . value_type . is_boolean . should_be_true
+
+            t2.at "X" . to_vector . should_equal [1, 2, 3000]
+            t2.at "Y" . to_vector . should_equal ["4", "5", "6"]
+            t2.at "Z" . to_vector . should_equal ["7", "8", "9"]
+            t2.at "A" . to_vector . should_equal [True, False, True]

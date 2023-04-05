@@ -911,6 +911,11 @@ type Column
     ## UNSTABLE
        Cast the column to a specific type.
 
+       Arguments:
+       - value_type: The `Value_Type` to cast the column to.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
        TODO [RW] this is a prototype needed for debugging, proper implementation
        and testing will come with #6112.
 
@@ -948,11 +953,6 @@ type Column
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
-
-       Arguments:
-       - value_type: The `Value_Type` to cast the column to.
-       - on_problems: Specifies how to handle problems if they occur, reporting
-         them as warnings by default.
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
     cast self value_type=self.value_type on_problems=Problem_Behavior.Report_Warning =
         dialect = self.connection.dialect
