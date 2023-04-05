@@ -26,9 +26,7 @@ from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsu
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
 type Column
-
-    ## UNSTABLE
-       PRIVATE
+    ## PRIVATE
 
        Represents a single column backed by a database.
 
@@ -47,8 +45,8 @@ type Column
        able to be combined.
     Value name:Text connection:Connection sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
 
-    ## UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
@@ -58,8 +56,8 @@ type Column
     display self show_rows=10 format_terminal=False =
         self.to_table.display show_rows format_terminal
 
-    ## UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
@@ -74,15 +72,12 @@ type Column
     to_js_object : JS_Object
     to_js_object self = self.to_sql.to_js_object
 
-    ## UNSTABLE
-       Converts this column into a single-column table.
+    ## Converts this column into a single-column table.
     to_table : Table
     to_table self =
         Table.Value self.name self.connection [self.as_internal] self.context
 
-    ## UNSTABLE
-
-       Returns a materialized column containing rows of this column.
+    ## Returns a materialized column containing rows of this column.
 
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
@@ -91,9 +86,7 @@ type Column
     read self max_rows=Nothing =
         self.to_table.read max_rows . at self.name
 
-    ## UNSTABLE
-
-       Returns a vector containing all the elements in this column.
+    ## Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
         self.to_table.read . at self.name . to_vector
@@ -108,9 +101,7 @@ type Column
         mapping = self.connection.dialect.get_type_mapping
         mapping.sql_type_to_value_type self.sql_type
 
-    ## UNSTABLE
-
-       Returns an SQL statement that will be used for materializing this column.
+    ## Returns an SQL statement that will be used for materializing this column.
     to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql
 
