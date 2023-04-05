@@ -3,17 +3,21 @@ import * as react from 'react'
 import toast from 'react-hot-toast'
 
 import * as backendModule from '../service'
-import * as svg from '../../components/svg'
+import * as error from '../../error'
+import * as modalProvider from '../../providers/modal'
+import CreateForm, * as createForm from './createForm'
 
-export interface ProjectCreateFormProps {
+export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
-    close: () => void
 }
 
+// FIXME[sb]: Extract shared shape to a common component.
 function ProjectCreateForm(props: ProjectCreateFormProps) {
-    const { backend, directoryId, onSuccess, close } = props
+    const { backend, directoryId, onSuccess, ...passThrough } = props
+    const { unsetModal } = modalProvider.useSetModal()
+
     const [name, setName] = react.useState<string | null>(null)
     const [template, setTemplate] = react.useState<string | null>(null)
 
@@ -22,24 +26,26 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
         if (name == null) {
             toast.error('Please provide a project name.')
         } else {
-            close()
-            const toastId = toast.loading('Creating project...')
-            await backend.createProject({
-                parentDirectoryId: directoryId,
-                projectName: name,
-                projectTemplateName: template,
-            })
-            toast.success('Sucessfully created project.', { id: toastId })
-            onSuccess()
+            unsetModal()
+            await toast
+                .promise(
+                    backend.createProject({
+                        parentDirectoryId: directoryId,
+                        projectName: name,
+                        projectTemplateName: template,
+                    }),
+                    {
+                        loading: 'Creating project...',
+                        success: 'Sucessfully created project.',
+                        error: error.unsafeIntoErrorMessage,
+                    }
+                )
+                .then(onSuccess)
         }
     }
 
     return (
-        <form className="bg-white shadow-soft rounded-lg w-60" onSubmit={onSubmit}>
-            <button type="button" className="absolute right-0 m-2" onClick={close}>
-                {svg.CLOSE_ICON}
-            </button>
-            <h2 className="inline-block font-semibold m-2">New Project</h2>
+        <CreateForm title="New Project" onSubmit={onSubmit} {...passThrough}>
             <div className="flex flex-row flex-nowrap m-1">
                 <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
                     Name
@@ -69,12 +75,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                     }}
                 />
             </div>
-            <input
-                type="submit"
-                className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2"
-                value="Create"
-            />
-        </form>
+        </CreateForm>
     )
 }
 

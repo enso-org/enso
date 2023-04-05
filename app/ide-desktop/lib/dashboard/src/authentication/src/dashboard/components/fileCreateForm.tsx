@@ -2,18 +2,16 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as backendModule from '../service'
+import * as dashboard from './dashboard'
+import * as error from '../../error'
+import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
-export interface FileCreateFormProps {
-    backend: backendModule.Backend
-    directoryId: backendModule.DirectoryId
-    onSuccess: () => void
-    close: () => void
-}
+export interface FileCreateFormProps extends dashboard.CreateFormProps {}
 
 function FileCreateForm(props: FileCreateFormProps) {
-    const { backend, directoryId, onSuccess, close } = props
+    const { backend, directoryId, onSuccess } = props
+    const { unsetModal } = modalProvider.useSetModal()
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
 
@@ -23,23 +21,29 @@ function FileCreateForm(props: FileCreateFormProps) {
             // TODO[sb]: Uploading a file may be a mistake when creating a new file.
             toast.error('Please select a file to upload.')
         } else {
-            close()
-            const toastId = toast.loading('Uploading file...')
-            await backend.uploadFile(
-                {
-                    parentDirectoryId: directoryId,
-                    fileName: name ?? file.name,
-                },
-                file
-            )
-            toast.success('Sucessfully uploaded file.', { id: toastId })
-            onSuccess()
+            unsetModal()
+            await toast
+                .promise(
+                    backend.uploadFile(
+                        {
+                            parentDirectoryId: directoryId,
+                            fileName: name ?? file.name,
+                        },
+                        file
+                    ),
+                    {
+                        loading: 'Uploading file...',
+                        success: 'Sucessfully uploaded file.',
+                        error: error.unsafeIntoErrorMessage,
+                    }
+                )
+                .then(onSuccess)
         }
     }
 
     return (
         <form className="bg-white shadow-soft rounded-lg w-60" onSubmit={onSubmit}>
-            <button type="button" className="absolute right-0 m-2" onClick={close}>
+            <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
                 {svg.CLOSE_ICON}
             </button>
             <h2 className="inline-block font-semibold m-2">New File</h2>

@@ -43,6 +43,7 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 import * as authProvider from '../authentication/providers/auth'
 import * as authService from '../authentication/service'
 import * as loggerProvider from '../providers/logger'
+import * as modalProvider from '../providers/modal'
 import * as platformModule from '../platform'
 import * as session from '../authentication/providers/session'
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
@@ -147,33 +148,44 @@ function AppRouter(props: AppProps) {
                     authService={memoizedAuthService}
                     onAuthenticated={onAuthenticated}
                 >
-                    <router.Routes>
-                        <react.Fragment>
-                            {/* Login & registration pages are visible to unauthenticated users. */}
-                            <router.Route element={<authProvider.GuestLayout />}>
-                                <router.Route path={REGISTRATION_PATH} element={<Registration />} />
-                                <router.Route path={LOGIN_PATH} element={<Login />} />
-                            </router.Route>
-                            {/* Protected pages are visible to authenticated users. */}
-                            <router.Route element={<authProvider.ProtectedLayout />}>
+                    <modalProvider.ModalProvider>
+                        <router.Routes>
+                            <react.Fragment>
+                                {/* Login & registration pages are visible to unauthenticated users. */}
+                                <router.Route element={<authProvider.GuestLayout />}>
+                                    <router.Route
+                                        path={REGISTRATION_PATH}
+                                        element={<Registration />}
+                                    />
+                                    <router.Route path={LOGIN_PATH} element={<Login />} />
+                                </router.Route>
+                                {/* Protected pages are visible to authenticated users. */}
+                                <router.Route element={<authProvider.ProtectedLayout />}>
+                                    <router.Route
+                                        path={DASHBOARD_PATH}
+                                        element={<Dashboard {...props} />}
+                                    />
+                                    <router.Route
+                                        path={SET_USERNAME_PATH}
+                                        element={<SetUsername />}
+                                    />
+                                </router.Route>
+                                {/* Other pages are visible to unauthenticated and authenticated users. */}
                                 <router.Route
-                                    path={DASHBOARD_PATH}
-                                    element={<Dashboard {...props} />}
+                                    path={CONFIRM_REGISTRATION_PATH}
+                                    element={<ConfirmRegistration />}
                                 />
-                                <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
-                            </router.Route>
-                            {/* Other pages are visible to unauthenticated and authenticated users. */}
-                            <router.Route
-                                path={CONFIRM_REGISTRATION_PATH}
-                                element={<ConfirmRegistration />}
-                            />
-                            <router.Route
-                                path={FORGOT_PASSWORD_PATH}
-                                element={<ForgotPassword />}
-                            />
-                            <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
-                        </react.Fragment>
-                    </router.Routes>
+                                <router.Route
+                                    path={FORGOT_PASSWORD_PATH}
+                                    element={<ForgotPassword />}
+                                />
+                                <router.Route
+                                    path={RESET_PASSWORD_PATH}
+                                    element={<ResetPassword />}
+                                />
+                            </react.Fragment>
+                        </router.Routes>
+                    </modalProvider.ModalProvider>
                 </authProvider.AuthProvider>
             </session.SessionProvider>
         </loggerProvider.LoggerProvider>

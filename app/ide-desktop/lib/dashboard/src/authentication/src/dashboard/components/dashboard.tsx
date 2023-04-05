@@ -10,6 +10,7 @@ import * as backend from '../service'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
@@ -22,9 +23,9 @@ import ContextMenuEntry from './contextMenuEntry'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
 
+import ConfirmDeleteModal from './confirmDeleteModal'
+import RenameModal from './renameModal'
 import UploadFileModal from './uploadFileModal'
-import confirmDeleteModal from './confirmDeleteModal'
-import renameModal from './renameModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
@@ -54,20 +55,13 @@ enum Column {
     ide = 'ide',
 }
 
-/** Values provided to modals. */
-export interface ModalProps {
-    backend: backend.Backend
-    directoryId: backend.DirectoryId
-    onSuccess: () => void
-    close: () => void
-}
-
-/** Values provided to modals. */
+/** Values provided to form creation dialogs. */
 export interface CreateFormProps {
+    left: number
+    top: number
     backend: backend.Backend
     directoryId: backend.DirectoryId
     onSuccess: () => void
-    close: () => void
 }
 
 // =================
@@ -198,6 +192,8 @@ function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
+    const { modal } = modalProvider.useModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
@@ -224,10 +220,7 @@ function Dashboard(props: DashboardProps) {
     >({})
 
     const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
-    const [visibleCreateForm, setVisibleCreateForm] = react.useState<backend.AssetType | null>(null)
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
-    const [Modal, setModal] = react.useState<((props: ModalProps) => JSX.Element) | null>(null)
-    const [contextMenu, setContextMenu] = react.useState<JSX.Element | null>(null)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -278,14 +271,15 @@ function Dashboard(props: DashboardProps) {
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                        setModal(() =>
-                            renameModal({
-                                assetType: projectAsset.type,
-                                name: projectAsset.title,
-                                // FIXME[sb]: Wait for backend implementation.
-                                doRename: () => Promise.resolve(),
-                            })
-                        )
+                        setModal(() => (
+                            <RenameModal
+                                assetType={projectAsset.type}
+                                name={projectAsset.title}
+                                // TODO: Wait for backend implementation.
+                                doRename={() => Promise.resolve()}
+                                onSuccess={doRefresh}
+                            />
+                        ))
                     }
                 }}
             >
@@ -322,14 +316,15 @@ function Dashboard(props: DashboardProps) {
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                        setModal(() =>
-                            renameModal({
-                                assetType: directoryAsset.type,
-                                name: directoryAsset.title,
-                                // FIXME[sb]: Wait for backend implementation.
-                                doRename: () => Promise.resolve(),
-                            })
-                        )
+                        setModal(() => (
+                            <RenameModal
+                                assetType={directoryAsset.type}
+                                name={directoryAsset.title}
+                                // TODO: Wait for backend implementation.
+                                doRename={() => Promise.resolve()}
+                                onSuccess={doRefresh}
+                            />
+                        ))
                     }
                 }}
                 onDoubleClick={() => {
@@ -344,14 +339,15 @@ function Dashboard(props: DashboardProps) {
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                        setModal(() =>
-                            renameModal({
-                                assetType: secret.type,
-                                name: secret.title,
+                        setModal(() => (
+                            <RenameModal
+                                assetType={secret.type}
+                                name={secret.title}
                                 // FIXME[sb]: Wait for backend implementation.
-                                doRename: () => Promise.resolve(),
-                            })
-                        )
+                                doRename={() => Promise.resolve()}
+                                onSuccess={doRefresh}
+                            />
+                        ))
                     }
                 }}
             >
@@ -363,14 +359,15 @@ function Dashboard(props: DashboardProps) {
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                        setModal(() =>
-                            renameModal({
-                                assetType: file.type,
-                                name: file.title,
+                        setModal(() => (
+                            <RenameModal
+                                assetType={file.type}
+                                name={file.title}
                                 // FIXME[sb]: Wait for backend implementation.
-                                doRename: () => Promise.resolve(),
-                            })
-                        )
+                                doRename={() => Promise.resolve()}
+                                onSuccess={doRefresh}
+                            />
+                        ))
                     }
                 }}
             >
@@ -408,7 +405,7 @@ function Dashboard(props: DashboardProps) {
             function onContextMenu(event: react.MouseEvent) {
                 event.preventDefault()
                 event.stopPropagation()
-                setContextMenu(
+                setModal(() => (
                     <ContextMenu event={event}>
                         <ContextMenuEntry
                             disabled
@@ -419,7 +416,7 @@ function Dashboard(props: DashboardProps) {
                             Rename label
                         </ContextMenuEntry>
                     </ContextMenu>
-                )
+                ))
             }
             return (
                 <>
@@ -478,42 +475,34 @@ function Dashboard(props: DashboardProps) {
 
     /** Heading element for every column. */
     function ColumnHeading(column: Column, assetType: backend.AssetType) {
-        // This is a React component even though it doesn't contain JSX.
-        // eslint-disable-next-line no-restricted-syntax
-        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+        const buttonRef = react.useRef<HTMLButtonElement | null>(null)
         return column === Column.name ? (
             <div className="inline-flex">
                 {ASSET_TYPE_NAME[assetType]}{' '}
-                {assetType === visibleCreateForm ? (
-                    <div
-                        className="relative font-medium mx-1"
-                        onClick={event => {
-                            event.stopPropagation()
-                        }}
-                    >
-                        <div className="absolute z-10">
+                <button
+                    ref={buttonRef}
+                    className="mx-1"
+                    onClick={event => {
+                        event.stopPropagation()
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        const buttonPosition = buttonRef.current!.getBoundingClientRect()
+                        // This is a React component even though it doesn't contain JSX.
+                        // eslint-disable-next-line no-restricted-syntax
+                        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                        setModal(() => (
                             <CreateForm
+                                left={buttonPosition.left}
+                                top={buttonPosition.top}
+                                // FIXME[sb]: Don't pass outdated `doRefresh` - maybe `backendService` too.
                                 backend={backendService}
                                 directoryId={directoryId}
                                 onSuccess={doRefresh}
-                                close={() => {
-                                    setVisibleCreateForm(null)
-                                }}
                             />
-                        </div>
-                    </div>
-                ) : (
-                    <button
-                        className="mx-1"
-                        onClick={event => {
-                            event.stopPropagation()
-                            closeAllDialogs()
-                            setVisibleCreateForm(assetType)
-                        }}
-                    >
-                        {svg.ADD_ICON}
-                    </button>
-                )}
+                        ))
+                    }}
+                >
+                    {svg.ADD_ICON}
+                </button>
             </div>
         ) : (
             <>{COLUMN_NAME[column]}</>
@@ -571,12 +560,6 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    function closeAllDialogs() {
-        setModal(null)
-        setVisibleCreateForm(null)
-        setContextMenu(null)
-    }
-
     function handleEscapeKey(event: react.KeyboardEvent<HTMLDivElement>) {
         if (
             event.key === 'Escape' &&
@@ -585,10 +568,10 @@ function Dashboard(props: DashboardProps) {
             !event.altKey &&
             !event.metaKey
         ) {
-            if (visibleCreateForm || Modal || contextMenu) {
+            if (modal) {
                 event.preventDefault()
+                unsetModal()
             }
-            closeAllDialogs()
         }
     }
 
@@ -600,14 +583,14 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className="select-none text-primary text-xs"
-            onClick={closeAllDialogs}
+            className="select-none text-primary text-xs min-h-screen"
+            onClick={unsetModal}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
             onContextMenu={event => {
                 event.preventDefault()
                 event.stopPropagation()
-                setContextMenu(
+                setModal(() => (
                     <ContextMenu event={event}>
                         <ContextMenuEntry
                             disabled
@@ -633,7 +616,7 @@ function Dashboard(props: DashboardProps) {
                             Paste
                         </ContextMenuEntry>
                     </ContextMenu>
-                )
+                ))
             }}
         >
             {/* These are placeholders. When implementing a feature,
@@ -672,8 +655,13 @@ function Dashboard(props: DashboardProps) {
                         className="mx-1"
                         onClick={event => {
                             event.stopPropagation()
-                            closeAllDialogs()
-                            setModal(() => UploadFileModal)
+                            setModal(() => (
+                                <UploadFileModal
+                                    backend={backendService}
+                                    directoryId={directoryId}
+                                    onSuccess={doRefresh}
+                                />
+                            ))
                         }}
                     >
                         {svg.UPLOAD_ICON}
@@ -774,28 +762,35 @@ function Dashboard(props: DashboardProps) {
                                 // since `ProjectId`s are not `DirectoryId`s.
                                 // enterDirectory(projectAsset)
                             }
+                            // This is not a React component even though it contains JSX.
+                            // eslint-disable-next-line no-restricted-syntax
                             function doRename() {
-                                setModal(() =>
-                                    renameModal({
-                                        name: projectAsset.title,
-                                        assetType: projectAsset.type,
+                                setModal(() => (
+                                    <RenameModal
+                                        name={projectAsset.title}
+                                        assetType={projectAsset.type}
                                         // FIXME[sb]: Replace with API call
                                         // when implemented in backend.
-                                        doRename: () => Promise.resolve(),
-                                    })
-                                )
+                                        doRename={() => Promise.resolve()}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
                             }
+                            // This is not a React component even though it contains JSX.
+                            // eslint-disable-next-line no-restricted-syntax
                             function doDelete() {
-                                setModal(() =>
-                                    confirmDeleteModal({
-                                        name: projectAsset.title,
-                                        assetType: projectAsset.type,
-                                        doDelete: () =>
-                                            backendService.deleteProject(projectAsset.id),
-                                    })
-                                )
+                                setModal(() => (
+                                    <ConfirmDeleteModal
+                                        name={projectAsset.title}
+                                        assetType={projectAsset.type}
+                                        doDelete={() =>
+                                            backendService.deleteProject(projectAsset.id)
+                                        }
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
                             }
-                            setContextMenu(
+                            setModal(() => (
                                 <ContextMenu event={event}>
                                     <ContextMenuEntry disabled onClick={doOpenForEditing}>
                                         Open for editing
@@ -810,7 +805,7 @@ function Dashboard(props: DashboardProps) {
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
-                            )
+                            ))
                         }}
                     />
                     <tr className="h-8" />
@@ -829,7 +824,7 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(_directory, event) => {
                             event.preventDefault()
                             event.stopPropagation()
-                            setContextMenu(<ContextMenu event={event}></ContextMenu>)
+                            setModal(() => <ContextMenu event={event}></ContextMenu>)
                         }}
                     />
                     <tr className="h-8" />
@@ -848,22 +843,25 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(secret, event) => {
                             event.preventDefault()
                             event.stopPropagation()
+                            // This is not a React component even though it contains JSX.
+                            // eslint-disable-next-line no-restricted-syntax
                             function doDelete() {
-                                setModal(() =>
-                                    confirmDeleteModal({
-                                        name: secret.title,
-                                        assetType: secret.type,
-                                        doDelete: () => backendService.deleteSecret(secret.id),
-                                    })
-                                )
+                                setModal(() => (
+                                    <ConfirmDeleteModal
+                                        name={secret.title}
+                                        assetType={secret.type}
+                                        doDelete={() => backendService.deleteSecret(secret.id)}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
                             }
-                            setContextMenu(
+                            setModal(() => (
                                 <ContextMenu event={event}>
                                     <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
-                            )
+                            ))
                         }}
                     />
                     <tr className="h-8" />
@@ -888,19 +886,22 @@ function Dashboard(props: DashboardProps) {
                             function doCut() {
                                 /** TODO: Call endpoint for downloading file. */
                             }
+                            // This is not a React component even though it contains JSX.
+                            // eslint-disable-next-line no-restricted-syntax
                             function doDelete() {
-                                setModal(() =>
-                                    confirmDeleteModal({
-                                        name: file.title,
-                                        assetType: file.type,
-                                        doDelete: () => backendService.deleteFile(file.id),
-                                    })
-                                )
+                                setModal(() => (
+                                    <ConfirmDeleteModal
+                                        name={file.title}
+                                        assetType={file.type}
+                                        doDelete={() => backendService.deleteFile(file.id)}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
                             }
                             function doDownload() {
                                 /** TODO: Call endpoint for downloading file. */
                             }
-                            setContextMenu(
+                            setModal(() => (
                                 <ContextMenu event={event}>
                                     <ContextMenuEntry disabled onClick={doCopy}>
                                         Copy
@@ -915,7 +916,7 @@ function Dashboard(props: DashboardProps) {
                                         Download
                                     </ContextMenuEntry>
                                 </ContextMenu>
-                            )
+                            ))
                         }}
                     />
                 </tbody>
@@ -929,41 +930,22 @@ function Dashboard(props: DashboardProps) {
                     onDragOver={event => {
                         event.preventDefault()
                     }}
-                    onDrop={event => {
+                    onDrop={async event => {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
-                        uploadMultipleFiles.uploadMultipleFiles(
+                        await uploadMultipleFiles.uploadMultipleFiles(
                             backendService,
                             directoryId,
                             Array.from(event.dataTransfer.files)
                         )
+                        doRefresh()
                     }}
                 >
                     Drop to upload files.
                 </div>
-            ) : (
-                <></>
-            )}
-            {contextMenu}
-            {Modal ? (
-                <div
-                    className="fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
-                    onClick={() => {
-                        setModal(null)
-                    }}
-                >
-                    <Modal
-                        backend={backendService}
-                        directoryId={directoryId}
-                        onSuccess={doRefresh}
-                        close={() => {
-                            setModal(null)
-                        }}
-                    />
-                </div>
-            ) : (
-                <></>
-            )}
+            ) : null}
+            {/* This should be just `{modal}`, however TypeScript throws an error for some reason. */}
+            {modal ? <>{modal}</> : null}
         </div>
     )
 }

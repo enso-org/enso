@@ -2,30 +2,31 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as dashboard from './dashboard'
+import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+
+import Modal from './modal'
 
 export interface RenameModalProps {
     assetType: string
     name: string
     doRename: (newName: string) => Promise<void>
+    onSuccess: () => void
 }
 
-// This is not a component even though it contains JSX.
-// eslint-disable-next-line no-restricted-syntax
-function renameModal(props: RenameModalProps) {
-    return function RenameModal(dashboardProps: dashboard.ModalProps) {
-        const { assetType, name, doRename } = props
-        const { close, onSuccess } = dashboardProps
-        const [newName, setNewName] = react.useState<string | null>(null)
-        return (
+function RenameModal(props: RenameModalProps) {
+    const { assetType, name, doRename, onSuccess } = props
+    const { unsetModal } = modalProvider.useSetModal()
+    const [newName, setNewName] = react.useState<string | null>(null)
+    return (
+        <Modal className="bg-opacity-90">
             <form
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
                 onClick={event => {
                     event.stopPropagation()
                 }}
             >
-                <button type="button" className="absolute right-0 top-0 m-2" onClick={close}>
+                <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
                 </button>
                 What do you want to rename the {assetType} '{name}' to?
@@ -51,7 +52,7 @@ function renameModal(props: RenameModalProps) {
                             if (newName == null) {
                                 toast.error('Please provide a new name.')
                             } else {
-                                close()
+                                unsetModal()
                                 await toast.promise(doRename(newName), {
                                     loading: `Deleting ${assetType}...`,
                                     success: `Deleted ${assetType}.`,
@@ -65,14 +66,14 @@ function renameModal(props: RenameModalProps) {
                     </div>
                     <div
                         className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
-                        onClick={close}
+                        onClick={unsetModal}
                     >
                         Cancel
                     </div>
                 </div>
             </form>
-        )
-    }
+        </Modal>
+    )
 }
 
-export default renameModal
+export default RenameModal

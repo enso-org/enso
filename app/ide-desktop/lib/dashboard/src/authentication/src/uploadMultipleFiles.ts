@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 
 import * as backend from './dashboard/service'
 
-export function uploadMultipleFiles(
+export async function uploadMultipleFiles(
     backendService: backend.Backend,
     directoryId: backend.DirectoryId,
     files: File[]
@@ -13,42 +13,45 @@ export function uploadMultipleFiles(
     const fileCount = files.length
     if (fileCount === 0) {
         toast.error('No files were dropped.')
+        return []
     } else {
         let successfulUploadCount = 0
         let completedUploads = 0
         /** "file" or "files", whicheven is appropriate. */
         const filesWord = fileCount === 1 ? 'file' : 'files'
         const toastId = toast.loading(`Uploading ${fileCount} ${filesWord}.`)
-        for (const file of files) {
-            void backendService
-                .uploadFile(
-                    {
-                        fileName: file.name,
-                        parentDirectoryId: directoryId,
-                    },
-                    file
-                )
-                .then(() => {
-                    successfulUploadCount += 1
-                })
-                .catch(() => {
-                    toast.error(`Could not upload file '${file.name}'.`)
-                })
-                .finally(() => {
-                    completedUploads += 1
-                    if (completedUploads === fileCount) {
-                        const progress =
-                            successfulUploadCount === fileCount
-                                ? fileCount
-                                : `${successfulUploadCount}/${fileCount}`
-                        toast.success(`${progress} ${filesWord} uploaded.`, { id: toastId })
-                    } else {
-                        toast.loading(
-                            `${successfulUploadCount}/${fileCount} ${filesWord} uploaded.`,
-                            { id: toastId }
-                        )
-                    }
-                })
-        }
+        return await Promise.allSettled(
+            files.map(file =>
+                backendService
+                    .uploadFile(
+                        {
+                            fileName: file.name,
+                            parentDirectoryId: directoryId,
+                        },
+                        file
+                    )
+                    .then(() => {
+                        successfulUploadCount += 1
+                    })
+                    .catch(() => {
+                        toast.error(`Could not upload file '${file.name}'.`)
+                    })
+                    .finally(() => {
+                        completedUploads += 1
+                        if (completedUploads === fileCount) {
+                            const progress =
+                                successfulUploadCount === fileCount
+                                    ? fileCount
+                                    : `${successfulUploadCount}/${fileCount}`
+                            toast.success(`${progress} ${filesWord} uploaded.`, { id: toastId })
+                        } else {
+                            toast.loading(
+                                `${successfulUploadCount}/${fileCount} ${filesWord} uploaded.`,
+                                { id: toastId }
+                            )
+                        }
+                    })
+            )
+        )
     }
 }

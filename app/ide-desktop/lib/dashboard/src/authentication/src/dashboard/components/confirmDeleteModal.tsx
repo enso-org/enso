@@ -1,29 +1,29 @@
 /** @file Modal for confirming delete of any type of asset. */
 import toast from 'react-hot-toast'
 
-import * as dashboard from './dashboard'
+import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+
+import Modal from './modal'
+
+// =================
+// === Component ===
+// =================
 
 export interface ConfirmDeleteModalProps {
     assetType: string
     name: string
     doDelete: () => Promise<void>
+    onSuccess: () => void
 }
 
-// This is not a component even though it contains JSX.
-// eslint-disable-next-line no-restricted-syntax
-function confirmDeleteModal(props: ConfirmDeleteModalProps) {
-    return function ConfirmDeleteModal(dashboardProps: dashboard.ModalProps) {
-        const { assetType, name, doDelete } = props
-        const { close, onSuccess } = dashboardProps
-        return (
-            <form
-                className="relative bg-white shadow-soft rounded-lg w-96 p-2"
-                onClick={event => {
-                    event.stopPropagation()
-                }}
-            >
-                <button type="button" className="absolute right-0 top-0 m-2" onClick={close}>
+function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
+    const { assetType, name, doDelete, onSuccess } = props
+    const { unsetModal } = modalProvider.useSetModal()
+    return (
+        <Modal className="bg-opacity-90">
+            <form className="relative bg-white shadow-soft rounded-lg w-96 p-2">
+                <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
                 </button>
                 Are you sure you want to delete the {assetType} '{name}'?
@@ -31,7 +31,7 @@ function confirmDeleteModal(props: ConfirmDeleteModalProps) {
                     <div
                         className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"
                         onClick={async () => {
-                            close()
+                            unsetModal()
                             await toast.promise(doDelete(), {
                                 loading: `Deleting ${assetType}...`,
                                 success: `Deleted ${assetType}.`,
@@ -44,14 +44,14 @@ function confirmDeleteModal(props: ConfirmDeleteModalProps) {
                     </div>
                     <div
                         className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
-                        onClick={close}
+                        onClick={unsetModal}
                     >
                         Cancel
                     </div>
                 </div>
             </form>
-        )
-    }
+        </Modal>
+    )
 }
 
-export default confirmDeleteModal
+export default ConfirmDeleteModal
