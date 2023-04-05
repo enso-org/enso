@@ -812,15 +812,15 @@ type Table
            Parse all columns inferring their types, using `,` as the decimal point for numbers.
 
                table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
-    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
+    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_parse_target type <|
         formatter = case format of
             _ : Text ->
                 Data_Formatter.Value.with_format type format
-            _ -> format
+            _ : Data_Formatter -> format
+            _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
 
-        parser = if type == Auto then formatter.make_auto_parser else
-            formatter.make_datatype_parser type
+        parser = formatter.make_datatype_parser type
 
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
