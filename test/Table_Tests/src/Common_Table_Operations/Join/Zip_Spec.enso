@@ -148,32 +148,33 @@ spec setup =
             t3.at "W" . to_vector . should_equal ['b', Nothing, Nothing]
 
         Test.specify "should rename columns of the right table to avoid duplicates" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]]]
+            t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]], ["Right_Y", [7, 8]]]
             t2 = table_builder [["X", ['a']], ["Y", ['d']]]
 
             t3 = t1.zip t2 keep_unmatched=True
-            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t3
-            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["X", "Y"]]
+            expect_column_names ["X", "Y", "Right_Y", "Right_X", "Right_Y_1"] t3
+            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["Right_Y"]]
             t3.row_count . should_equal 2
             t3.at "X" . to_vector . should_equal [1, 2]
             t3.at "Y" . to_vector . should_equal [5, 6]
+            t3.at "Right_Y" . to_vector . should_equal [7, 8]
             t3.at "Right_X" . to_vector . should_equal ['a', Nothing]
-            t3.at "Right_Y" . to_vector . should_equal ['d', Nothing]
+            t3.at "Right_Y_1" . to_vector . should_equal ['d', Nothing]
 
             t1.zip t2 keep_unmatched=False on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
 
-            expect_column_names ["X", "Y", "X_1", "Y_1"] (t1.zip t2 right_prefix="")
+            expect_column_names ["X", "Y", "Right_Y", "X_1", "Y_1"] (t1.zip t2 right_prefix="")
 
             t4 = table_builder [["X", [1]], ["Right_X", [5]]]
-            expect_column_names ["X", "Y", "Right_X_1", "Right_X"] (t1.zip t4)
-            expect_column_names ["X", "Right_X", "Right_X_1", "Y"] (t4.zip t1)
+            expect_column_names ["X", "Y", "Right_Y", "Right_X_1", "Right_X"] (t1.zip t4)
+            expect_column_names ["X", "Right_X", "Right_X_1", "Y", "Right_Y"] (t4.zip t1)
 
         Test.specify "should report both row count mismatch and duplicate column warnings at the same time" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]]]
+            t1 = table_builder [["X", [1, 2]], ["Right_X", [5, 6]]]
             t2 = table_builder [["X", ['a']], ["Z", ['d']]]
 
             t3 = t1.zip t2
-            expected_problems = [Row_Count_Mismatch.Error 2 1, Duplicate_Output_Column_Names.Error ["X"]]
+            expected_problems = [Row_Count_Mismatch.Error 2 1, Duplicate_Output_Column_Names.Error ["Right_X"]]
             Problems.get_attached_warnings t3 . should_contain_the_same_elements_as expected_problems
 
         Test.specify "should allow to zip the table with itself" <|

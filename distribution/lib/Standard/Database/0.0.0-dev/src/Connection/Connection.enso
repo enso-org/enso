@@ -33,7 +33,8 @@ type Connection
        - dialect: the dialect associated with the database we are connected to.
     Value jdbc_connection dialect
 
-    ## Closes the connection releasing the underlying database resources
+    ## PRIVATE
+       Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
        The connection is not usable afterwards.
@@ -41,18 +42,21 @@ type Connection
     close self = self.jdbc_connection.close
 
 
-    ## Returns the list of databases (or catalogs) for the connection.
+    ## PRIVATE
+       Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getCatalogs "TABLE_CAT"
 
-    ## Returns the name of the current database (or catalog).
+    ## PRIVATE
+       Returns the name of the current database (or catalog).
     database : Text
     database self =
         self.jdbc_connection.with_connection connection->connection.getCatalog
 
-    ## Returns a new Connection with the specified database set as default.
+    ## PRIVATE
+       Returns a new Connection with the specified database set as default.
 
        Arguments:
         - database: The name of the database to connect to.
@@ -61,18 +65,21 @@ type Connection
         if database == self.database then self else
             SQL_Error.throw_sql_error "Changing database is not supported."
 
-    ## Returns the list of schemas for the connection within the current database (or catalog).
+    ## PRIVATE
+       Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
     schemas self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getSchemas "TABLE_SCHEM"
 
-    ## Returns the name of the current schema.
+    ## PRIVATE
+       Returns the name of the current schema.
     schema : Text
     schema self =
         self.jdbc_connection.with_connection .getSchema
 
-    ## Returns a new Connection with the specified schema set as default.
+    ## PRIVATE
+       Returns a new Connection with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
@@ -81,13 +88,15 @@ type Connection
         if schema == self.schema then self else
             SQL_Error.throw_sql_error "Changing schema is not supported."
 
-    ## Gets a list of the table types
+    ## PRIVATE
+       Gets a list of the table types
     table_types : [Text]
     table_types self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## Returns a materialized Table of all the matching views and tables.
+    ## PRIVATE
+       Returns a materialized Table of all the matching views and tables.
 
        Arguments:
        - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
@@ -107,7 +116,8 @@ type Connection
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 
-    ## Set up a query returning a Table object, which can be used to work with
+    ## PRIVATE
+       Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
 
        Arguments:
@@ -150,7 +160,8 @@ type Connection
             result.catch SQL_Error sql_error->
                 Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
 
-    ## Execute the query and load the results into memory as a Table.
+    ## PRIVATE
+       Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: name of the table or sql statement to query.
@@ -171,14 +182,15 @@ type Connection
          to ensure that default `ResultSet` metadata is used for these columns.
        - last_row_only: If set true, only the last row of the query is fetched.
          Defaults to false.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Materialized_Table
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Materialized_Table
     read_statement self statement column_type_suggestions=Nothing last_row_only=False =
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         statement_setter = self.dialect.get_statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Executes a raw update query. If the query was inserting, updating or
        deleting rows, the number of affected rows is returned; otherwise it

@@ -41,6 +41,7 @@ use ast::Ast;
 
 pub mod alias_analysis;
 pub mod connection;
+pub mod context_switch;
 pub mod definition;
 pub mod graph;
 pub mod identifier;

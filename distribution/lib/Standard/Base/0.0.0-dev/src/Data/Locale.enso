@@ -38,8 +38,8 @@ type Locale
         java_locale = JavaLocale.new language country_text variant_text
         Locale.Value java_locale
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Convert a java locale to an Enso locale.
 
        Arguments:
@@ -410,13 +410,7 @@ type Locale
         disp = self.java_locale.getDisplayVariant
         if disp.is_empty then Nothing else disp
 
-    ## Converts the locale to text.
-
-       > Example
-         Convert the default locale to text.
-
-             import Standard.Base.Data.Locale.Locale
-
-             example_to_text = Locale.default.to_text
+    ## PRIVATE
+       Converts the locale to text.
     to_text : Text | Nothing
     to_text self = self.java_locale.toLanguageTag
