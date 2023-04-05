@@ -8,8 +8,8 @@ import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
 import org.enso.table.problems.WithProblems;
 
 /**
- * The type inferring parser tries to parse the given column using a set of provided parsers. It
- * returns the result of the first parser that succeeds without reporting any problems.
+ * The type inferring parser tries to parse the given column using a set of provided parsers. It returns the result of
+ * the first parser that succeeds without reporting any problems.
  *
  * <p>If all parsers from the set reported problems, the fallback parser is used and its result is
  * returned regardless of any problems.
@@ -40,10 +40,10 @@ public class TypeInferringParser extends DatatypeParser {
 
   @Override
   public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
-    // If there are now rows, the Auto parser would guess some random type (the first one that is
-    // checked). Instead,
-    // we just return the empty column unchanged.
-    if (sourceStorage.size() == 0) {
+    // If there are no values, the Auto parser would guess some random type (the first one that is
+    // checked). Instead, we just return the empty column unchanged.
+    boolean hasNoValues = (sourceStorage.size() == 0) || (sourceStorage.countMissing() == sourceStorage.size());
+    if (hasNoValues) {
       return fallbackParser.parseColumn(columnName, sourceStorage);
     }
 
