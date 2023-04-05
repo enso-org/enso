@@ -29,6 +29,7 @@ import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.ExecutionEnvironment;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.RuntimeServerInfo;
@@ -81,6 +82,8 @@ public class EnsoContext {
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private final ExecutionEnvironment executionEnvironment;
+
+  private ExecutionEnvironment executionEnvironment = ExecutionEnvironment.DESIGN;
 
   /**
    * Creates a new Enso context.
@@ -543,5 +546,14 @@ public class EnsoContext {
     } else {
       return options.get(key);
     }
+  }
+
+  public ExecutionEnvironment getExecutionEnvironment() {
+    return executionEnvironment;
+  }
+
+  /** Set the runtime execution environment of this context. */
+  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
+    this.executionEnvironment = executionEnvironment;
   }
 }

@@ -4216,4 +4216,72 @@ class RuntimeServerTest
     )
   }
 
+  it should "set execution environment" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idX      = metadata.addItem(46, 14)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = "Hello World!"
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idX, ConstantsGen.TEXT),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.DESIGN
+
+    // set execution environment
+    context.send(
+      Api.Request(
+        requestId,
+        Api.SetExecutionEnvironmentRequest(contextId, ExecutionEnvironment.LIVE)
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      TestMessages.update(contextId, idX, ConstantsGen.TEXT),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.LIVE
+  }
+
 }

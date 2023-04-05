@@ -10,7 +10,7 @@ import com.fasterxml.jackson.module.scala.{
 import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.pkg.{ComponentGroups, QualifiedName}
-import org.enso.polyglot.{ModuleExports, Suggestion}
+import org.enso.polyglot.{ExecutionEnvironment, ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model
@@ -280,6 +280,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.SerializeModule],
         name  = "serializeModule"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentRequest],
+        name  = "setExecutionEnvironmentRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentResponse],
+        name  = "setExecutionEnvironmentResponse"
       )
     )
   )
@@ -1688,6 +1696,18 @@ object Runtime {
       * @param module qualified module name
       */
     final case class SerializeModule(module: QualifiedName) extends ApiRequest
+
+    /** A request to set the execution environment. */
+    final case class SetExecutionEnvironmentRequest(
+      contextId: ContextId,
+      executionEnvironment: ExecutionEnvironment
+    ) extends ApiRequest
+
+    /** A response to the set execution environment request. */
+    final case class SetExecutionEnvironmentResponse(
+      contextId: ContextId,
+      executionEnvironment: ExecutionEnvironment
+    ) extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()
