@@ -64,9 +64,11 @@ pub trait IsReleaseExt: IsRelease + Sync {
 
         async move {
             ensure!(content_length > 0, "Release asset file cannot be empty.");
-            crate::io::web::execute(request).await?.json().await.with_context(|| {
-                format!("Failed to deserialize the response from the GitHub API to an asset.")
-            })
+            crate::io::web::execute(request)
+                .await?
+                .json()
+                .await
+                .context("Failed to deserialize the response from the GitHub API to an asset.")
         }
         .with_context(move || {
             format!(
