@@ -101,8 +101,7 @@ mod placeholder {
             let margin_left = default();
             let collapsing = default();
             let size_animation = Animation::<f32>::new(frp.network());
-            let viz = true.then(|| {
-                //DEBUG_ANIMATION_SLOWDOWN
+            let viz = DEBUG_ANIMATION_SLOWDOWN.then(|| {
                 let viz = RoundedRectangle(10.0).build(|t| {
                     t.set_size(Vector2::new(0.0, 20.0))
                         .allow_grow_x()
@@ -267,8 +266,7 @@ mod spot {
             mem::forget(margin_left);
             mem::forget(elem_offset);
 
-            let viz = true.then(|| {
-                // DEBUG_ANIMATION_SLOWDOWN
+            let viz = DEBUG_ANIMATION_SLOWDOWN.then(|| {
                 let viz = RoundedRectangle(10.0).build(|t| {
                     t.set_size(Vector2::new(0.0, 20.0))
                         .allow_grow_x()
@@ -346,12 +344,46 @@ impl<T> From<Placeholder> for Item<T> {
     }
 }
 
+pub type Index = usize;
+
+#[derive(Clone, Copy, Debug, Default, Deref, DerefMut)]
+pub struct Response<T> {
+    #[deref]
+    #[deref_mut]
+    pub payload:         T,
+    pub gui_interaction: bool,
+}
+
+impl<T> Response<T> {
+    pub fn new(payload: T, gui_interaction: bool) -> Self {
+        Self { payload, gui_interaction }
+    }
+
+    pub fn new_api_interaction(payload: T) -> Self {
+        Self::new(payload, false)
+    }
+
+    pub fn new_gui_interaction(payload: T) -> Self {
+        Self::new(payload, true)
+    }
+}
+
 ensogl_core::define_endpoints_2! { <T: (frp::node::Data)>
     Input {
-        push_item(Weak<T>),
+        /// Push a new element to the end of the list.
+        push(Weak<T>),
+
+        /// WARNING: not working yet, use `push` instead.
+        insert((Index, Weak<T>)),
     }
     Output {
-        on_item_add((usize, Weak<T>)),
+        /// Fires whenever a new element was added to the list.
+        on_new_item(Response<(Index, Weak<T>)>),
+
+        /// Request new item to be inserted at the provided index. In most cases, this happens after
+        /// clicking a "plus" icon to add new element to the list. As a response, you should use the
+        /// [`insert`] endpoint to provide the new item.
+        request_new_item(Response<Index>),
     }
 }
 
@@ -365,6 +397,7 @@ pub struct ListEditor<T: frp::node::Data> {
     layouted_elems: display::object::Instance,
     dragged_elems:  display::object::Instance,
     model:          Rc<RefCell<Model<T>>>,
+    add_elem_icon:  Rectangle,
 }
 
 #[derive(Debug, Derivative)]
@@ -432,7 +465,15 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         root.add_child(&dragged_elems);
         let model = default();
         layouted_elems.use_auto_layout(); //.set_gap((GAP, GAP));
-        Self { frp, root, layouted_elems, dragged_elems, model }.init(cursor)
+        let add_elem_icon = Rectangle().build(|t| {
+            t.set_size(Vector2::new(20.0, 20.0))
+                .set_color(color::Rgba::new(0.0, 1.0, 0.0, 1.0))
+                .set_inset_border(2.0)
+                .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
+        });
+        add_elem_icon.set_y(-30.0);
+        root.add_child(&add_elem_icon);
+        Self { frp, root, layouted_elems, dragged_elems, model, add_elem_icon }.init(cursor)
     }
 
     fn init(self, cursor: &Cursor) -> Self {
@@ -444,16 +485,22 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         let dragged_elems = &self.dragged_elems;
         let model = &self.model;
 
+        let add_elem_icon_down = self.add_elem_icon.on_event::<mouse::Down>();
         let on_down = self.layouted_elems.on_event_capturing::<mouse::Down>();
         let on_up = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
         frp::extend! { network
 
-            push_item_index <= frp.push_item.map(f!([model, layouted_elems] (item)
+            frp.private.output.request_new_item <+ add_elem_icon_down.map(f!([model] (_) {
+                let index = model.borrow_mut().items.len();
+                Response::new_gui_interaction(index)
+            }));
+
+            push_item_index <= frp.push.map(f!([model, layouted_elems] (item)
                 item.upgrade().map(|t| model.borrow_mut().push_item(&layouted_elems, (*t).clone()))
             ));
-            on_item_pushed <- frp.push_item.map2(&push_item_index, |item, ix| (*ix, item.clone()));
-            frp.private.output.on_item_add <+ on_item_pushed;
+            on_item_pushed <- frp.push.map2(&push_item_index, |item, ix| Response::new_api_interaction((*ix, item.clone())));
+            frp.private.output.on_new_item <+ on_item_pushed;
 
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
@@ -515,15 +562,6 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
     }
 }
 
-// impl<T: display::Object + frp::node::Data> ListEditor<T> {
-//     fn _push_item(&self, item: T) {
-//         self.layouted_elems.add_child(&item);
-//         let mut model = self.model.borrow_mut();
-//         model.items.push(Item::Regular(item));
-//         model.recompute_margins();
-//     }
-// }
-
 impl<T: display::Object + frp::node::Data> Model<T> {
     fn push_item(&mut self, layouted_elems: &display::object::Instance, item: T) -> usize {
         let index = self.items.len();
@@ -547,11 +585,6 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         let mut first_elem = true;
         for item in &self.items {
             match item {
-                // Item::Regular(item) => {
-                //     let gap = if first_elem { 0.0 } else { GAP };
-                //     item.set_margin_left(gap);
-                //     first_elem = false;
-                // }
                 Item::DropSpot(t) => {
                     let gap = if first_elem { 0.0 } else { GAP };
                     t.set_margin_left(gap);
@@ -613,13 +646,6 @@ impl<T: display::Object + frp::node::Data> Model<T> {
             .into_iter()
             .enumerate()
             .filter_map(|(i, item)| match item {
-                // Item::Regular(item) =>
-                //     if item.display_object() == target {
-                //         result = Some((i, item));
-                //         None
-                //     } else {
-                //         Some(Item::Regular(item))
-                //     },
                 Item::DropSpot(t) =>
                     if t.elem.display_object() == target {
                         result = Some((i, t));
@@ -923,11 +949,23 @@ pub fn main() {
         eval_ shape1_down ([] {
             warn!("Shape 1 down");
         });
+        new_item <- vector_editor.request_new_item.map(|_| {
+            let shape = RoundedRectangle(10.0).build(|t| {
+                t.set_size(Vector2::new(100.0, 100.0))
+                    .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
+                    .set_inset_border(2.0)
+                    .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
+            });
+            Rc::new(shape)
+        });
+        vector_editor.push <+ vector_editor.request_new_item.map2(&new_item, |index, item|
+            item.downgrade()
+        );
     }
 
-    vector_editor.push_item(Rc::new(shape1).downgrade());
-    vector_editor.push_item(Rc::new(shape2).downgrade());
-    vector_editor.push_item(Rc::new(shape3).downgrade());
+    vector_editor.push(Rc::new(shape1).downgrade());
+    vector_editor.push(Rc::new(shape2).downgrade());
+    vector_editor.push(Rc::new(shape3).downgrade());
 
     let root = display::object::Instance::new();
     root.set_size(Vector2::new(300.0, 100.0));
