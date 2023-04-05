@@ -87,7 +87,7 @@ type Value_Type
        Arguments:
        - precision: the total number of digits in the number.
        - scale: the number of digits after the decimal point.
-    Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=0
+    Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=Nothing
 
     ## Character string.
 
