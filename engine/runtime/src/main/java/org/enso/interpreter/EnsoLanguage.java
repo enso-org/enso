@@ -322,10 +322,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   @Option(
           name = "ExecutionEnvironment",
           category = OptionCategory.USER,
-          help = "The environment for program execution.")
+          help = "The environment for program execution. Defaults to `design`.")
   public static final OptionKey<ExecutionEnvironment> EXECUTION_ENVIRONMENT =
           new OptionKey<>(
-                  ExecutionEnvironment.LIVE, new OptionType<>("ExecutionEnvironment", ExecutionEnvironment::forName));
+                  ExecutionEnvironment.DESIGN, new OptionType<>("ExecutionEnvironment", ExecutionEnvironment::forName));
 
 
   private static final OptionDescriptors OPTIONS =

@@ -28,16 +28,16 @@ public class State {
     return new State(Container.create(context), context.getExecutionEnvironment());
   }
 
-  public State withContextEnabledIn(Atom context, String environemtnName) {
-    if (executionEnvironment.getName().equals(environemtnName)) {
+  public State withContextEnabledIn(Atom context, String environmentName) {
+    if (executionEnvironment.getName().equals(environmentName)) {
       return new State(container, executionEnvironment.withContextEnabled(context));
     } else {
       return this;
     }
   }
 
-  public State withContextDisabledIn(Atom context, String environemtnName) {
-    if (executionEnvironment.getName().equals(environemtnName)) {
+  public State withContextDisabledIn(Atom context, String environmentName) {
+    if (executionEnvironment.getName().equals(environmentName)) {
       return new State(container, executionEnvironment.withContextDisabled(context));
     } else {
       return this;

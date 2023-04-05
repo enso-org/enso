@@ -362,7 +362,7 @@ object Main {
       .numberOfArgs(1)
       .argName("name")
       .desc(
-        "Execution environment to use during execution (`live`/`design`). Defaults to: `live`."
+        "Execution environment to use during execution (`live`/`design`). Defaults to `design`."
       )
       .build()
 
@@ -542,6 +542,7 @@ object Main {
     * @param enableIrCaches are IR caches enabled
     * @param inspect        shall inspect option be enabled
     * @param dump           shall graphs be sent to the IGV
+    * @apram executionEnvironment optional name of the execution environment to use during execution
     */
   private def run(
     path: String,

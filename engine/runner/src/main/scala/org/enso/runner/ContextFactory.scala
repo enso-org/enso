@@ -27,6 +27,7 @@ class ContextFactory {
     * @param useGlobalIrCacheLocation whether or not to use the global IR cache
     *                                 location
     * @param options additional options for the Context
+    * @param executionEnvironment optional name of the execution environment to use during execution
     * @return configured Context instance
     */
   def create(
