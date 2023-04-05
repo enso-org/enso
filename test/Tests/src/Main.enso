@@ -50,9 +50,7 @@ import project.Data.Regression_Spec
 
 import project.Data.Text_Spec
 import project.Data.Text.Text_Sub_Range_Spec
-import project.Data.Text.Default_Regex_Engine_Spec
 import project.Data.Text.Encoding_Spec
-import project.Data.Text.Matching_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Span_Spec
 import project.Data.Text.Utils_Spec
@@ -126,10 +124,8 @@ main = Test_Suite.run_main <|
     Problems_Spec.spec
     Range_Spec.spec
     Ref_Spec.spec
-    Lazy_Spec.spec
-    Default_Regex_Engine_Spec.spec
     Regex_Spec.spec
-    Matching_Spec.spec
+    Lazy_Spec.spec
     Runtime_Spec.spec
     Self_Type_Spec.spec
     Span_Spec.spec

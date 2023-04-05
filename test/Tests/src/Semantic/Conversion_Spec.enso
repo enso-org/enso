@@ -3,8 +3,10 @@ from Standard.Base import all
 import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+
+polyglot java import java.lang.Object
 
 type Foo
     Value foo
@@ -70,6 +72,11 @@ spec =
             Not_Foo.from 4 . notfoo . should_equal "ANY!!!"
             Not_Foo.from (e -> e) . notfoo . should_equal "ANY!!!"
             Not_Foo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
+            Not_Foo.from [1,2,3] . notfoo . should_equal "ANY!!!"
+        Test.specify "apply Any conversion to foreign object" <|
+            Not_Foo.from Object.new . notfoo . should_equal "ANY!!!"
+        Test.specify "apply Any conversion to type" <|
+            Not_Foo.from Boolean . notfoo . should_equal "ANY!!!"
         Test.specify "should call intrinsic object conversions for unimported constructors" <|
             Vector.from Methods.get_foo . should_equal ["foo"]
         Test.specify "should call extension conversions" <|
@@ -104,3 +111,5 @@ spec =
 
             meta_from.rename "foo" 123 . should_equal "foo called"
             meta_from.rename "foo" . should_equal .foo
+
+main = Test_Suite.run_main spec

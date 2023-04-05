@@ -343,10 +343,18 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary methods,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
-    throw new PanicException(
-        EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(self, that, conversion),
-        this);
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    var ctx = EnsoContext.get(this);
+    var function =
+        conversionResolverNode.execute(
+            extractConstructor(self), ctx.getBuiltins().any(), conversion);
+    if (function == null) {
+      throw new PanicException(
+          ctx.getBuiltins().error().makeNoSuchConversion(self, that, conversion), this);
+    } else {
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    }
   }
 
   @Override

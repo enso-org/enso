@@ -11,6 +11,7 @@ export enum Channel {
     loadProfiles = 'load-profiles',
     profilesLoaded = 'profiles-loaded',
     saveProfile = 'save-profile',
+    openGpuDebugInfo = 'open-debug-info-api',
     quit = 'quit-ide',
     /** Channel for requesting that a URL be opened by the system browser. */
     openUrlInSystemBrowser = 'open-url-in-system-browser',

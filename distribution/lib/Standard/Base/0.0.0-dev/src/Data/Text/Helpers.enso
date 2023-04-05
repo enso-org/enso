@@ -3,14 +3,15 @@ from Standard.Base import all
 import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
-import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Common.Type_Error
+import project.Meta
 
 ## PRIVATE
-regex_assume_default_locale : Case_Sensitivity -> Any -> Any ! Illegal_Argument
-regex_assume_default_locale case_sensitivity ~action = case case_sensitivity of
-    Case_Sensitivity.Sensitive -> action
-    Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
-        True -> action
-        False ->
-            msg = "Custom locales are not supported for regexes."
-            Error.throw (Illegal_Argument.Error msg)
+
+   Assert that `text_maybe` is a Text, then call the action.
+expect_text : Any -> Any -> Any ! Type_Error
+expect_text text_maybe ~action = case text_maybe of
+    _ : Text -> action
+    _ ->
+        Error.throw (Type_Error.Error Text (Meta.type_of text_maybe) "text_maybe")
+
