@@ -50,7 +50,9 @@ type Column
         Illegal_Argument.handle_java_exception <|
             Column.Value (Java_Column.new name storage)
 
-    ## Creates a new column given a name and a vector of elements repeated over and over.
+    ## PRIVATE
+       ADVANCED
+       Creates a new column given a name and a vector of elements repeated over and over.
 
        Arguments:
        - name: The name of the column to create.
@@ -69,7 +71,9 @@ type Column
        - java_column: The internal representation of the column.
     Value java_column
 
-    ## Returns a text containing an ASCII-art table displaying this data.
+    ## PRIVATE
+       ADVANCED
+       Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
@@ -98,7 +102,9 @@ type Column
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
 
-    ## TEXT_ONLY
+    ## PRIVATE
+       ADVANCED
+       TEXT_ONLY
 
        Prints an ASCII-art table with this data to the standard output.
 
@@ -1319,9 +1325,7 @@ type Column
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
         Column.Value (self.java_column.slice offset limit)
 
-    ## UNSTABLE
-
-       Returns the first element in the column, if it exists.
+    ## Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
        containing an `Index_Out_Of_Bounds`.
@@ -1335,9 +1339,7 @@ type Column
     first : Any ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## UNSTABLE
-
-       Returns the last element in the column, if it exists.
+    ## Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
        containing an `Index_Out_Of_Bounds`.
@@ -1351,9 +1353,7 @@ type Column
     last : Any ! Index_Out_Of_Bounds
     last self = self.at (self.length - 1)
 
-    ## UNSTABLE
-
-       Returns a column containing the values of `self` column with their order
+    ## Returns a column containing the values of `self` column with their order
        reversed.
 
        > Example
@@ -1367,9 +1367,7 @@ type Column
         mask = OrderBuilder.buildReversedMask self.length
         Column.Value (self.java_column.applyMask mask)
 
-    ## UNSTABLE
-
-       Returns a column of numbers, in which every entry denotes how many times
+    ## Returns a column of numbers, in which every entry denotes how many times
        the value at the given position occured before.
 
        > Example
