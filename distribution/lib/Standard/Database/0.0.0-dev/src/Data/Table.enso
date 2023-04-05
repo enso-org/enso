@@ -1153,6 +1153,7 @@ type Table
             good_columns = merged_columns.filter r-> r.is_nothing.not
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
+                    cast_after_union = dialect.cast_after_union
                     queries = all_tables.map_with_index i-> t->
                         columns_to_select = good_columns.map description->
                             column_set = description.first
@@ -1171,13 +1172,12 @@ type Table
                                from there. This is just needed to create an
                                internal representation.
                             infer_return_type _ = SQL_Type_Reference.null
-                            dialect.make_cast input_column result_type infer_return_type
+                            if cast_after_union then input_column else
+                                dialect.make_cast input_column result_type infer_return_type
                         pairs = columns_to_select.map c->
                             [c.name, c.expression]
                         Query.Select pairs t.context
 
-                    # TODO
-                    needs_casting_at_output = False
                     union_alias = all_tables.map .name . join "_"
                     new_from = From_Spec.Union queries union_alias
                     new_ctx = Context.for_subquery new_from
@@ -1192,12 +1192,12 @@ type Table
                         result_type = description.second
                         name = column_set.name
                         expression = SQL_Expression.Column union_alias name
-                        basic_column = Internal_Column.Value name (infer_return_type expression) expression
-                        case needs_casting_at_output of
-                            False -> basic_column
+                        case cast_after_union of
                             True ->
-                                dialect.make_cast basic_column result_type infer_return_type
-
+                                input_column = Internal_Column.Value name SQL_Type_Reference.null expression
+                                dialect.make_cast input_column result_type infer_return_type
+                            False ->
+                                Internal_Column.Value name (infer_return_type expression) expression
 
                     Table.Value union_alias self.connection new_columns new_ctx
 

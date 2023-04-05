@@ -126,6 +126,10 @@ type Redshift_Dialect
     needs_execute_query_for_type_inference self = False
 
     ## PRIVATE
+    cast_after_union : Boolean
+    cast_after_union self = False
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Dialect.default_fetch_types_query self expression context

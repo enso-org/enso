@@ -145,6 +145,18 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies if the cast used to reconcile column types should be done after
+       performing the union. If `False`, the cast will be done before the union.
+
+       Most databases that care about column types will want to do the cast
+       before the union operation to ensure that types are aligned when merging.
+       For an SQLite workaround to work, it's better to do the cast after the
+       union operation.
+    cast_after_union : Boolean
+    cast_after_union self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Prepares a query that can be used to fetch the type of an expression in
        the provided context.
 
