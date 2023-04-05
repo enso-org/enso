@@ -138,9 +138,15 @@ type Postgres_Dialect
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
-        # TODO special handling for bool->numeric
-        sql_type_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
+        source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+        target_value_type = mapping.sql_type_to_value_type target_type
+        # Boolean to Numeric casts need special handling:
+        transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
+            True ->
+                SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+            False -> column.expression
+        target_type_sql_text = mapping.sql_type_to_text target_type
+        new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
