@@ -208,7 +208,7 @@ public abstract class SortVectorNode extends Node {
         resultVec.addAll(group.elems);
       }
       var sortedVector = Vector.fromArray(new Array(resultVec.toArray()));
-      // Attach gathered warnings and different comparators warning
+      // Attach gathered warnings along with different comparators warning
       return attachDifferentComparatorsWarning(
           attachWarnings(sortedVector, gatheredWarnings),
           groups

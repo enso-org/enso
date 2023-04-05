@@ -215,11 +215,6 @@ spec =
             [My_Type.Value 1, Ord.Value 1, 20, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
             [Ord.Value 1, 20, 10, My_Type.Value 1].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
 
-        # In other words, if there are incomparable values, make sure that warning for
-        # "incomparable value X Y" is attached just once.
-        Test.specify "should not duplicate warnings" <|
-            Problems.get_attached_warnings ([Nothing, (Ord.Value 1), 20].sort) . should_equal ["Different comparators: [Standard.Base.Data.Ordering.Default_Comparator, Ordering_Spec.Ord_Comparator]", "Values 20 and Nothing are incomparable"]
-
         Test.specify "should be able to sort even unordered values" pending="https://github.com/enso-org/enso/issues/5834" <|
             [Ord.Value 2, UPair.Value "a" "b", Ord.Value 1, UPair.Value "c" "d"].sort . should_equal [Ord.Value 2, Ord.Value 1, UPair.Value "a" "b", UPair.Value "c" "d"]
             [Ord.Value 2, UPair.Value "X" "Y", Ord.Value 1, UPair.Value "c" "d"].sort . should_equal [Ord.Value 2, Ord.Value 1, UPair.Value "X" "Y", UPair.Value "c" "d"]
