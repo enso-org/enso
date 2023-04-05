@@ -9,7 +9,6 @@ from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Text_Utils
 
-
 ## Enso's text type.
 
    Enso's text type is natively unicode aware, and will handle arbitrary
@@ -112,8 +111,6 @@ type Text
     not_empty self = self.is_empty.not
 
     ## PRIVATE
-       UNSTABLE
-
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self

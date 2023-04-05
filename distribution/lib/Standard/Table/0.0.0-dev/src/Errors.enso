@@ -83,6 +83,7 @@ type No_Output_Columns
 ## Indicates that one column has been matched by multiple selectors, resulting
    in ambiguous new names.
 type Ambiguous_Column_Rename
+    ## PRIVATE
     Error (column_name : Text) (new_names : Vector Text)
 
     ## PRIVATE
@@ -95,14 +96,21 @@ type Ambiguous_Column_Rename
 ## Indicates that no input columns were selected for the operation, so the
    operation will cause no effect.
 type No_Input_Columns_Selected
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "No input columns have been selected for the operation."
 
 ## Indicates that an aggregation calculation could not be completed.
 type Invalid_Aggregation
+    ## PRIVATE
     Error (column:Text) (rows:[Integer]) (message:Text)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The "+self.column+" could not be calculated at "+self.rows.short_display_text+": "+self.message
@@ -110,8 +118,12 @@ type Invalid_Aggregation
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.
 type Floating_Point_Equality
+    ## PRIVATE
     Error (location:Text)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "Relying on equality of floating-point numbers is not recommended (within "+self.location+")."
@@ -119,16 +131,24 @@ type Floating_Point_Equality
 ## Indicates that a text value with a delimiter was included in a concatenation
    without any quote character
 type Unquoted_Delimiter
+    ## PRIVATE
     Error (column:Text) (rows:[Integer])
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The "+self.column+" at rows "+self.rows.short_display_text+" contains the delimiter and there is no specified quote character."
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings
+    ## PRIVATE
     Error (count:Integer)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "There were "+self.count.to_text+" additional issues."
@@ -139,8 +159,12 @@ type Additional_Warnings
    Only the first 10 rows are reported, any additional ones are aggregated into
    a single instance of `Additional_Invalid_Rows`.
 type Invalid_Row
+    ## PRIVATE
     Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text]) (expected_columns : Integer)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         table_loc = case self.index of
@@ -154,8 +178,12 @@ type Invalid_Row
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
 type Additional_Invalid_Rows
+    ## PRIVATE
     Error (count : Integer)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "There were "+self.count.to_text+" additional invalid rows."
@@ -163,8 +191,12 @@ type Additional_Invalid_Rows
 ## Indicates that a quote inside of a delimited file cell has been opened but
    never closed.
 type Mismatched_Quote
+    ## PRIVATE
     Error (cell_text : Text)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         max_length = 50
@@ -173,27 +205,35 @@ type Mismatched_Quote
 
 ## Indicates an unexpected parser error.
 type Parser_Error
+    ## PRIVATE
     Error cause
 
 ## Indicates that quoting was disabled for a `Delimited` file, but some cells
    contained characters that do need quoting which may cause the output file to
    be corrupted.
 type Unquoted_Characters_In_Output
+    ## PRIVATE
     Warning (column : Text) (rows : [Integer])
 
+    ## PRIVATE
+       Pretty print the unquoted characters error.
     to_display_text : Text
     to_display_text self =
         altered_rows = self.rows.map ix->
             if ix == -1 then "the header" else ix
         "The "+self.column+" at rows "+altered_rows.short_display_text+" contains characters that need quoting, but quoting is disabled. The generated file may be corrupted."
 
+    ## PRIVATE
     to_text : Text
     to_text self = "Unquoted_Characters_In_Output.Warning "+self.column.pretty+" "+self.rows.to_text
 
 ## Indicates that a specified location was not valid.
 type Invalid_Location
+    ## PRIVATE
     Error (location:Text)
 
+    ## PRIVATE
+       Pretty print the invalid location error.
     to_display_text : Text
     to_display_text self =
         "The location '"+self.location+"' is not valid."
@@ -207,8 +247,11 @@ type Invalid_Location
    - cells: Contents of the cells that did not match the expected datatype
      format.
 type Invalid_Format
+    ## PRIVATE
     Error column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
+    ## PRIVATE
+       Pretty print the invalid format error.
     to_display_text : Text
     to_display_text self =
         self.cells.length+" cells in column "+self.column+" had invalid format for datatype "+self.datatype.to_text+"."
@@ -221,14 +264,18 @@ type Invalid_Format
    - datatype: The expected datatype.
    - cells: Contents of the cells that contained leading zeros.
 type Leading_Zeros
+    ## PRIVATE
     Error column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
+    ## PRIVATE
+       Pretty print the leading zeros error.
     to_display_text : Text
     to_display_text self = "Leading zeros in column "+self.column+" with datatype "+self.datatype.to_text+"."
 
 ## Indicates that an empty file was encountered, so no data could be loaded.
 type Empty_File_Error
-
+    ## PRIVATE
+       Pretty print the empty file error.
     to_display_text : Text
     to_display_text = "It is not allowed to create a Table with no columns, so an empty file could not have been loaded."
 
@@ -238,7 +285,8 @@ type Empty_File_Error
 
 ## Indicates that an empty sheet was encountered, so no data could be loaded.
 type Empty_Sheet_Error
-
+    ## PRIVATE
+       Pretty print the empty sheet error.
     to_display_text : Text
     to_display_text = "It is not allowed to create a Table with no columns, so an empty sheet could not have been loaded."
 
@@ -246,51 +294,60 @@ type Empty_Sheet_Error
     handle_java_exception =
         Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet_Error)
 
-## Indicates that multiple `Column_Type_Selector` match the same column.
-
-   If all matching selectors indicate the same type, the warning is reported but
-   a parse is attempted anyway. If mixed types are requested, the column is not
-   parsed due to ambiguity.
-type Duplicate_Type_Selector
-    Error column:Text ambiguous:Boolean
-
-    to_display_text : Text
-    to_display_text self = "Duplicate type selector for column " + self.column + "."
-
 ## Indicates that the column was already present in the table.
 type Existing_Column
+    ## PRIVATE
     Error column_name
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "The column '" + self.column_name + "' already exists, but `Set_Mode.Add` was selected."
 
 ## Indicates that the column was not present in the table.
 type Missing_Column
+    ## PRIVATE
     Error column_name
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "The column '" + self.column_name + "' was not found, but `Set_Mode.Update` was selected."
 
 ## Indicates that the target range contains existing data and the user did not
    specify to overwrite.
 type Existing_Data
+    ## PRIVATE
     Error message
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "Existing data found: " + self.message
 
 ## Indicates that the specified range is not large enough to fit the data.
 type Range_Exceeded
+    ## PRIVATE
     Error message
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "Range exceeded: " + self.message
 
 ## Indicates that the existing table has a different number of columns to the
    new table.
 type Column_Count_Mismatch
+    ## PRIVATE
     Error expected actual
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "Expected " + self.expected.to_text + " columns, got " + self.actual.to_text + "."
@@ -305,8 +362,12 @@ type Column_Count_Mismatch
 ## Indicates that the existing table has a different set of column names to the
    new table.
 type Column_Name_Mismatch
+    ## PRIVATE
     Error missing extras message
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = self.message
 
@@ -324,6 +385,7 @@ type Column_Name_Mismatch
    Arguments:
    - column_name: The name of the column that doesn't exist.
 type No_Such_Column
+    ## PRIVATE
     Error column_name
 
     ## PRIVATE
@@ -344,6 +406,7 @@ type No_Index_Set_Error
     to_display_text self = "The table does not have an index set."
 
 type Invalid_Value_Type
+    ## PRIVATE
     Error expected actual related_column=Nothing
 
     ## PRIVATE
@@ -363,6 +426,7 @@ type Invalid_Value_Type
 
    An error representing an invalid JSON format for conversion.
 type Invalid_JSON_Format
+    ## PRIVATE
     Error input message
 
     ## PRIVATE
@@ -373,8 +437,7 @@ type Invalid_JSON_Format
         "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."
 
 type Column_Type_Mismatch
-    ## UNSTABLE
-
+    ## PRIVATE
        An error indicating a mismatch of column types of merged columns.
     Error (column_name : Text) (expected_type : Text) (got_type : Text)
 
@@ -386,8 +449,7 @@ type Column_Type_Mismatch
         "The column ["+self.column_name+"] expects type "+self.expected_type+" but one of the provided tables had type "+self.got_type+" which is not compatible with it."
 
 type No_Common_Type
-    ## UNSTABLE
-
+    ## PRIVATE
        An error indicating that no common type could be found for the merged
        columns.
     Error (column_name : Text)
@@ -400,60 +462,86 @@ type No_Common_Type
         "No common type could have been found for the columns corresponding to ["+self.column_name+"]. If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
 
 type Unmatched_Columns
-    ## UNSTABLE
+    ## PRIVATE
 
        An error indicating that some columns were not present in all of the
        merged tables.
     Error (column_names : Vector Text)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + ". The missing values have been filled with `Nothing`."
 
 type Cross_Join_Row_Limit_Exceeded
-    ## Indicates that a `cross_join` has been attempted where the right table
+    ## PRIVATE
+       Indicates that a `cross_join` has been attempted where the right table
        has more rows than allowed by the limit.
     Error (limit : Integer) (existing_rows : Integer)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The cross join operation exceeded the maximum number of rows allowed. The limit is "+self.limit.to_text+" and the number of rows in the right table was "+self.existing_rows.to_text+". The limit may be turned off by setting the `right_row_limit` option to `Nothing`."
 
 type Row_Count_Mismatch
-    ## Indicates that the row counts of zipped tables do not match.
+    ## PRIVATE
+       Indicates that the row counts of zipped tables do not match.
     Error (left_rows : Integer) (right_rows : Integer)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The number of rows in the left table ("+self.left_rows.to_text+") does not match the number of rows in the right table ("+self.right_rows.to_text+")."
 
 type Invalid_Aggregate_Column
-    ## Indicates that a provided name is not found within available columns nor
+    ## PRIVATE
+       Indicates that a provided name is not found within available columns nor
        represents a valid expression.
     Error (name : Text) (expression_error : Expression_Error | No_Such_Column | Nothing)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The name ["+self.name+"] is not a valid column name nor expression."
 
 type Inexact_Type_Coercion
-    ## Indicates that the requested `Value_Type` is not available in the given
+    ## PRIVATE
+       Indicates that the requested `Value_Type` is not available in the given
        backend, so it was replaced by its closest available type.
     Warning (requested_type : Value_Type) (actual_type : Value_Type)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The requested type ["+self.requested_type.to_text+"] is not available in the given backend, so it was replaced by its closest available type ["+self.actual_type.to_text+"]."
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_text : Text
     to_text self =
         "Inexact_Type_Coercion.Warning (requested_type = " + self.requested_type.to_text + ") (actual_type = " + self.actual_type.to_text + ")"
 
 type Invalid_Value_For_Type
-    ## Indicates that a column construction/transformation failed because the
+    ## PRIVATE
+       Indicates that a column construction/transformation failed because the
        provided value is not valid for the requested column type.
     Error (value : Any) (value_type : Value_Type)
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The value ["+self.value.to_text+"] is not valid for the column type ["+self.value_type.to_text+"]."

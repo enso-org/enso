@@ -137,6 +137,7 @@ class TableVisualization extends Visualization {
                     filter: true,
                     resizable: true,
                     minWidth: 50,
+                    headerValueGetter: params => params.colDef.field,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
             }
@@ -152,11 +153,11 @@ class TableVisualization extends Visualization {
         if (parsedData.error !== undefined) {
             this.agGridOptions.api.setColumnDefs([
                 {
-                    field: 'error',
+                    field: 'Error',
                     cellStyle: { 'white-space': 'normal' },
                 },
             ])
-            this.agGridOptions.api.setRowData([{ error: parsedData.error }])
+            this.agGridOptions.api.setRowData([{ Error: parsedData.error }])
         } else if (parsedData.json != null && isMatrix(parsedData.json)) {
             columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
             rowData = parsedData.json
@@ -169,18 +170,15 @@ class TableVisualization extends Visualization {
             )
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && Array.isArray(parsedData.json)) {
-            columnDefs = [{ field: '#', headerName: 'Row#' }, { field: 'value' }]
-            rowData = parsedData.json.map((row, i) => ({ ['#']: i, value: toRender(row) }))
+            columnDefs = [{ field: '#' }, { field: 'Value' }]
+            rowData = parsedData.json.map((row, i) => ({ ['#']: i, Value: toRender(row) }))
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null) {
-            columnDefs = [{ field: 'value' }]
-            rowData = [{ value: toRender(parsedData.json) }]
+            columnDefs = [{ field: 'Value' }]
+            rowData = [{ Value: toRender(parsedData.json) }]
         } else {
             const indices_header = (parsedData.indices_header ? parsedData.indices_header : []).map(
-                h => {
-                    const headerName = h === '#' ? 'Row#' : h
-                    return { field: h, headerName: headerName }
-                }
+                h => ({ field: h })
             )
             columnDefs = [...indices_header, ...parsedData.header.map(h => ({ field: h }))]
 
