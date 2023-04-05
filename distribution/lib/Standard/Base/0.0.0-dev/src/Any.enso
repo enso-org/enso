@@ -49,7 +49,8 @@ type Any
     pretty : Text
     pretty self = @Builtin_Method "Any.pretty"
 
-    ## Generic conversion of an arbitrary Enso value to a corresponding short
+    ## PRIVATE
+       Generic conversion of an arbitrary Enso value to a corresponding short
        human-readable representation.
 
        > Example

@@ -116,7 +116,9 @@ type Table
        - java_table: The internal java representation of the table.
     Value java_table
 
-    ## Returns a text containing an ASCII-art table displaying this data.
+    ## PRIVATE
+       ADVANCED
+       Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
@@ -145,7 +147,9 @@ type Table
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
 
-    ## Prints an ASCII-art table with this data to the standard output.
+    ## PRIVATE
+       ADVANCED
+       Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
@@ -161,7 +165,8 @@ type Table
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## Converts this table into a JS_Object.
+    ## PRIVATE
+       Converts this table into a JS_Object.
 
        > Example
          Convert a table to a corresponding JavaScript JS_Object representation.
@@ -1706,9 +1711,7 @@ type Table
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
         Table.Value (self.java_table.slice offset limit)
 
-    ## UNSTABLE
-
-       Returns a table containing the rows of `self` table with their order
+    ## Returns a table containing the rows of `self` table with their order
        reversed.
 
        > Example

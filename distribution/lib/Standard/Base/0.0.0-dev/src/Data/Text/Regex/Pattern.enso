@@ -102,9 +102,7 @@ type Pattern
         Helpers.expect_text input <|
            self.match_all input . map match_to_group_maybe
 
-    ## ADVANCED
-
-       Splits the `input` text based on the pattern described by `self`.
+    ## Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
        - input: The text to split based on the pattern described by `self`.
@@ -148,9 +146,7 @@ type Pattern
             go it.next
             builder.to_vector
 
-    ## ADVANCED
-
-       Takes an input string and returns all the matches as a `Vector Text`.
+    ## Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned. Non-participating
        groups are omitted.
@@ -177,9 +173,7 @@ type Pattern
     tokenize self input =
         self.match_all input . map (build_tokenization_output_from_match self _)
 
-    ## ADVANCED
-
-       Replace all occurrences of the pattern described by `self` in the `input`
+    ## Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 
        Arguments:
@@ -320,8 +314,8 @@ type Pattern
     group_count self = self.internal_regex_object.groupCount
 
     ## Return a vector of all named group names.
-    group_names : Map Text Integer
-    group_names self =
+    named_groups : Vector Text
+    named_groups self =
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.keys
 
@@ -342,12 +336,15 @@ type Pattern
     the string, unmatched, as a single Last value. (Used for `replace` with
     `only_first=True`.)
 type Match_Iterator
+    ## PRIVATE
     new : Pattern -> Text -> Match_Iterator
     new pattern input = Match_Iterator.Value pattern input 0
 
+    ## PRIVATE
     Value (pattern : Pattern) (input : Text) (cursor : Integer)
 
-    ## Return the next match, or the last filler string if there is no
+    ## PRIVATE
+       Return the next match, or the last filler string if there is no
        additional match.
 
        Also returns the next iterator, if there was a match.
@@ -368,30 +365,21 @@ type Match_Iterator
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
 
-    ## Returns the remainder of the string, unmatched.
+    ## PRIVATE
+       Returns the remainder of the string, unmatched.
     early_exit : Match_Iterator_Value
     early_exit self =
         filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
         filler_span = Utf_16_Span.Value filler_range self.input
         Match_Iterator_Value.Last filler_span
 
-    to_text_debug : Vector Text
-    to_text_debug self =
-        vb = Vector.new_builder
-        go it = case it.next of
-            Match_Iterator_Value.Next filler match next_it ->
-                vb.append ('\"' + filler.text + '\"')
-                vb.append ("/" + (match.span 0).text + "/")
-                go next_it
-            Match_Iterator_Value.Last filler ->
-                vb.append ('\"' + filler.text + '\"')
-        go self
-        vb.to_vector
-
 ## PRIVATE
 type Match_Iterator_Value
-  Next (filler : Span) (match : Match) (next_iterator : Match_Iterator)
-  Last (filler : Span)
+    ## PRIVATE
+    Next (filler : Span) (match : Match) (next_iterator : Match_Iterator)
+
+    ## PRIVATE
+    Last (filler : Span)
 
 ## PRIVATE
    Convert the polyglot map to a Map.

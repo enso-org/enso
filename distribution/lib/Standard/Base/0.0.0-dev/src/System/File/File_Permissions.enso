@@ -14,10 +14,13 @@ type Permission
     Execute
 
 type File_Permissions
-    ## Access permissions for a file.
+    ## PRIVATE
+       Access permissions for a file.
     Value (owner : Vector Permission) (group : Vector Permission) (others : Vector Permission)
 
-    ## Converts the Enso atom to its Java enum counterpart.
+    ## PRIVATE
+       ADVANCED
+       Converts the Enso atom to its Java enum counterpart.
     to_java : Vector PosixFilePermission
     to_java self =
         result = Vector.new_builder
@@ -77,7 +80,9 @@ type File_Permissions
     others_execute : Boolean
     others_execute self = self.others.contains Permission.Execute
 
-    ## Converts a Java `Set` of Java `PosixFilePermission` to `File_Permissions`.
+    ## PRIVATE
+       ADVANCED
+       Converts a Java `Set` of Java `PosixFilePermission` to `File_Permissions`.
     from_java_set java_set =
         owner = Vector.new_builder
         group = Vector.new_builder
