@@ -45,6 +45,7 @@ pub trait IsReleaseExt: IsRelease + Sync {
         content_length: u64,
         body: impl Into<Body>,
     ) -> BoxFuture<'static, Result<Asset>> {
+        let asset_name = asset_name.as_ref().to_string();
         let upload_url = format!(
             "https://uploads.github.com/repos/{repo}/releases/{release_id}/assets",
             repo = self.repo(),
@@ -54,16 +55,25 @@ pub trait IsReleaseExt: IsRelease + Sync {
         let request = self
             .octocrab()
             .client
-            .post(upload_url)
-            .query(&[("name", asset_name.as_ref())])
+            .post(&upload_url)
+            .query(&[("name", &asset_name)])
             .header(reqwest::header::ACCEPT, "application/vnd.github.v3+json")
             .header(reqwest::header::CONTENT_TYPE, content_type.to_string())
             .header(reqwest::header::CONTENT_LENGTH, content_length)
             .body(body);
 
         async move {
-            crate::io::web::execute(request).await?.json().await.context("Failed to upload asset.")
+            ensure!(content_length > 0, "Release asset file cannot be empty.");
+            crate::io::web::execute(request).await?.json().await.with_context(|| {
+                format!("Failed to deserialize the response from the GitHub API to an asset.")
+            })
         }
+        .with_context(move || {
+            format!(
+                "Failed to upload an asset to the {upload_url}. Asset name: {asset_name}. \
+                Content type: {content_type}. Content length: {content_length}."
+            )
+        })
         .boxed()
     }
 
@@ -78,7 +88,9 @@ pub trait IsReleaseExt: IsRelease + Sync {
             let path = path.as_ref().to_path_buf();
             let asset_name = path.try_file_name()?;
             let content_type = new_mime_guess::from_path(&path).first_or_octet_stream();
-            let file_size = crate::fs::tokio::metadata(&path).await?.len();
+            let metadata = crate::fs::tokio::metadata(&path).await?;
+            trace!("File metadata: {metadata:#?}.");
+            let file_size = metadata.len();
             let file = crate::fs::tokio::open_stream(&path).await?;
             let body = Body::wrap_stream(file);
             self.upload_asset(asset_name.as_str(), content_type, file_size, body).await

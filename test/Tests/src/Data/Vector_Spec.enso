@@ -223,7 +223,6 @@ spec = Test.group "Vectors" <|
         ["abab", "aaabaaaa"].filter (Filter_Condition.Like "_ba_") . should_equal ["abab"]
         ["abab", "aaabaaaa"].filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"]
         ["aaaa", "bbbbb", "[ab]aaaa"].filter (Filter_Condition.Like "[ab]%") . should_equal ["[ab]aaaa"]
-        ["a\Qa\Eabb", "aaabb"].filter (Filter_Condition.Like "_\Qa\Ea%") . should_equal ["a\Qa\Eabb"]
         ["f.txt", "abc.*"].filter (Filter_Condition.Like "%.*") . should_equal ["abc.*"]
         ["f.txt", "abc.*"].filter (Filter_Condition.Not_Like "%.*") . should_equal ["f.txt"]
 

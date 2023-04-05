@@ -275,12 +275,12 @@ pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
 
     if Platform.is_unix then
         Test.specify "should only accept the .pgpass file if it has correct permissions" <|
-            Process.run "chmod" ["0777", pgpass_file.absolute.path] . should_equal Exit_Code.Success
+            Process.run "chmod" ["0777", pgpass_file.absolute.path] . exit_code . should_equal Exit_Code.Success
             Test_Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
                 Pgpass.verify pgpass_file . should_equal False
                 Pgpass.read "passwords should preserve leading space" "1" "some database name that is really : weird" . should_equal []
 
-            Process.run "chmod" ["0400", pgpass_file.absolute.path] . should_equal Exit_Code.Success
+            Process.run "chmod" ["0400", pgpass_file.absolute.path] . exit_code . should_equal Exit_Code.Success
             Test_Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
                 Pgpass.verify pgpass_file . should_equal True
                 Pgpass.read "passwords should preserve leading space" "1" "some database name that is really : weird" . should_equal (make_pair "*" "   pass")
