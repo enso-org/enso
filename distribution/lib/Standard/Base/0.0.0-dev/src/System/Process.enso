@@ -29,7 +29,9 @@ run : Text -> Vector Text -> Text -> Process_Result
 run command arguments=[] stdin="" =
     new_builder command arguments stdin . create
 
-## Create a new process builder.
+## PRIVATE
+   ADVANCED
+   Create a new process builder.
 
    Arguments:
    - command: The command to execute on the system.

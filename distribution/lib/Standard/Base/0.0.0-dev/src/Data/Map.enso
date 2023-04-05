@@ -349,7 +349,8 @@ type Map key value
     to_vector : Vector Any
     to_vector self = @Builtin_Method "Map.to_vector"
 
-    ## Returns a text representation of this Map.
+    ## PRIVATE
+       Returns a text representation of this Map.
     to_text : Text
     to_text self = @Builtin_Method "Map.to_text"
 
