@@ -42,7 +42,7 @@ public final class UnresolvedConversion implements TruffleObject {
    *
    * @return the resolved function definition, or null if not found
    */
-  public Function resolveFor(Type into, Type from) {
+  public Function resolveFor(EnsoContext ctx, Type into, Type from) {
     Type current = from;
     while (current != null) {
       Function candidate = scope.lookupConversionDefinition(current, into);
@@ -52,7 +52,7 @@ public final class UnresolvedConversion implements TruffleObject {
         current = current.getSupertype();
       }
     }
-    return null;
+    return scope.lookupConversionDefinition(ctx.getBuiltins().any(), into);
   }
 
   @Override

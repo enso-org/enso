@@ -20,7 +20,8 @@ const CHECKSUM_TYPE = 'sha256'
 /**
  * The `type` argument can be one of `md5`, `sha1`, or `sha256`.
  * @param {string} path - Path to the file.
- * @param {ChecksumType} type - The checksum algorithm to use. */
+ * @param {ChecksumType} type - The checksum algorithm to use.
+ * @returns {Promise<string>} A promise that resolves to the checksum. */
 function getChecksum(path, type) {
     return new Promise(
         // This JSDoc annotation is required for correct types that are also type-safe.
@@ -54,12 +55,8 @@ function changeExtension(file, extension) {
 async function writeFileChecksum(path, type) {
     let checksum = await getChecksum(path, type)
     let targetPath = changeExtension(path, type)
-    console.log(`Writing ${targetPath}.`)
-    fs.writeFile(targetPath, checksum, 'utf8', err => {
-        if (err) {
-            throw err
-        }
-    })
+    console.log(`Writing ${targetPath}. Checksum is ${checksum}.`)
+    await fs.promises.writeFile(targetPath, checksum, 'utf8')
 }
 
 // ================
