@@ -1038,7 +1038,7 @@ type Column
                 _ : Data_Formatter -> format
                 _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
 
-            parser = formatter.make_datatype_parser type
+            parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
             new_storage_and_problems = parser.parseColumn self.name storage
 

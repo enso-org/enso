@@ -820,7 +820,7 @@ type Table
             _ : Data_Formatter -> format
             _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
 
-        parser = formatter.make_datatype_parser type
+        parser = formatter.make_value_type_parser type
 
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
