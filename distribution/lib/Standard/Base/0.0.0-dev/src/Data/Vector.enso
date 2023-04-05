@@ -66,7 +66,8 @@ type Vector a
     new : Integer -> (Integer -> Any) -> Vector Any
     new length constructor = @Builtin_Method "Vector.new"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Converts an array into a vector by copying content of the array.
 
@@ -122,7 +123,8 @@ type Vector a
     new_builder : Integer -> Builder
     new_builder (capacity=10) = Builder.new capacity
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Converts a polyglot value representing an array into a vector.
 
@@ -136,7 +138,8 @@ type Vector a
     from_polyglot_array : Any -> Vector Any
     from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Copies content of a vector into an Array.
     to_array self = @Builtin_Method "Vector.to_array"
 
@@ -591,16 +594,14 @@ type Vector a
     reverse : Vector Any
     reverse self = Vector.new self.length (i -> self.at (self.length - (1 + i)))
 
-    ## Generates a human-readable text representation of the vector.
-
-       > Example
-         Convert a vector of numbers to text.
-
-             [1, 2, 3].to_text == "[1, 2, 3]"
+    ## PRIVATE
+       Generates a human-readable text representation of the vector.
     to_text : Text
     to_text self = self.map .to_text . join ", " "[" "]"
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
+
        Generates a human-readable text representation of the vector, keeping its
        length limited.
 
@@ -932,8 +933,8 @@ type Vector a
     to_list self =
         self.reverse.fold List.Nil acc-> elem-> List.Cons elem acc
 
+## PRIVATE
 type Builder
-
     ## PRIVATE
 
        A builder type for Enso vectors.
@@ -968,7 +969,8 @@ type Builder
          that `Ref` and then `to_vector` could propagate that error.
     Value java_builder
 
-    ## Creates a new builder.
+    ## PRIVATE
+       Creates a new builder.
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
@@ -1111,13 +1113,10 @@ type Builder
            changes to the builder will not affect the returned vector.
         Vector.from_polyglot_array self.java_builder.toArray
 
-## UNSTABLE
-
+## PRIVATE
    An error that indicates that the vector is empty.
 type Empty_Error
-
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The vector is empty."

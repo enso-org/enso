@@ -6,10 +6,11 @@ import project.Data.Column.Column
 polyglot java import java.sql.Types
 polyglot java import java.sql.ResultSetMetaData
 
-## Represents an internal SQL data-type.
+## PRIVATE
+   Represents an internal SQL data-type.
 type SQL_Type
-
-    ## Represents an internal SQL data-type.
+    ## PRIVATE
+       Represents an internal SQL data-type.
 
        Arguments:
        - typeid: a numerical type id, as defined in `java.sql.Types`.
@@ -24,7 +25,9 @@ type SQL_Type
          TODO: the precise meaning of this will be revised with #5872.
     Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Integer = 0) (nullable : Boolean | Nothing = Nothing)
 
-    ## The SQL type representing a null value.
+    ## PRIVATE
+       ADVANCED
+       The SQL type representing a null value.
     null : SQL_Type
     null = SQL_Type.Value Types.NULL "NULL"
 

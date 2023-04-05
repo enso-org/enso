@@ -16,7 +16,8 @@ import project.Nothing.Nothing
    abstractions, and is not expected to be used by end-users.
 @Builtin_Type
 type Managed_Resource
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Acquires a resource, performs an action on it, and destroys it safely,
        even in the presence of panics.
@@ -29,7 +30,8 @@ type Managed_Resource
     bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
     bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Registers a resource with the resource manager to be cleaned up using
        function once it is no longer in use.
@@ -40,14 +42,16 @@ type Managed_Resource
     register : Any -> (Any -> Nothing) -> Managed_Resource
     register resource function = @Builtin_Method "Managed_Resource.register"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Forces finalization of a managed resource using the registered finalizer,
        even if the resource is still reachable.
     finalize : Nothing
     finalize self = @Builtin_Method "Managed_Resource.finalize"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Executes the provided action on the resource managed by the managed
        resource object.
@@ -58,7 +62,8 @@ type Managed_Resource
     with : (Any -> Any) -> Any
     with self ~action = @Builtin_Method "Managed_Resource.with"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Takes the value held by the managed resource and unregisters the
        finalization step for this resource, effectively removing it from the

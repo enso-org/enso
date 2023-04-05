@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Boolean.Boolean
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Extensions
 import project.Data.Text.Regex
@@ -157,6 +158,7 @@ type Filter_Condition
     ## Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
        accepted by the filter.
+    to_predicate : (Any -> Boolean)
     to_predicate self = case self of
         Less value -> <value
         Equal_Or_Less value -> <=value

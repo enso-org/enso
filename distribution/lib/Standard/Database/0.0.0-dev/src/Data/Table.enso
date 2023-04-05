@@ -61,8 +61,8 @@ type Table
        - context: The context associated with this table.
     Value name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
 
-    ## UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
@@ -74,8 +74,8 @@ type Table
         all_rows_count = self.row_count
         display_dataframe df indices_count=0 all_rows_count format_terminal
 
-    ## UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
@@ -85,8 +85,7 @@ type Table
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Converts this column to JS_Object representation.
     to_js_object : JS_Object
     to_js_object self = case self.internal_columns.is_empty of
@@ -1390,7 +1389,7 @@ type Table
 
        The table lists all columns, counts of non-null items and storage types
        of each column.
-    info : Table
+    info : Materialized_Table
     info self =
         cols = self.internal_columns
         count_query =
@@ -1494,7 +1493,8 @@ type Table
             False -> Error.throw <| Illegal_State.Error "The update unexpectedly affected "+affected_rows.to_text+" rows."
             True -> Nothing
 
-    ## Provides a simplified text representation for display in the REPL and errors.
+    ## PRIVATE
+       Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
     to_text self = "(Database Table "+self.name.to_text+")"
 
