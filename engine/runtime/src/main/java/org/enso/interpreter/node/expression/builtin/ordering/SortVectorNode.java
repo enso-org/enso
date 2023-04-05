@@ -693,14 +693,7 @@ public abstract class SortVectorNode extends Node {
 
     private Function checkAndConvertFunction(Object funcObj, String errMsg, int minArgCount,
         int maxArgCount) {
-      var ctx = EnsoContext.get(SortVectorNode.this);
-      var err = DataflowError.withoutTrace(
-          ctx.getBuiltins().error().makeUnsupportedArgumentsError(
-              new Object[]{funcObj},
-              errMsg
-          ),
-          SortVectorNode.this
-      );
+      var err = new IllegalArgumentException(errMsg + ", got " + funcObj);
       if (funcObj instanceof Function func) {
         var argCount = func.getSchema().getArgumentsCount();
         if (minArgCount <= argCount && argCount <= maxArgCount) {
