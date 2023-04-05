@@ -374,6 +374,7 @@
 - [Added `Text.tokenize`][6150]
 - [Added support for Date/Time columns in the Postgres backend and added
   `year`/`month`/`day` operations to Table columns.][6153]
+- [`Text.split` can now take a vector of delimiters.][6156]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -566,6 +567,7 @@
 [6116]: https://github.com/enso-org/enso/pull/6116
 [6150]: https://github.com/enso-org/enso/pull/6150
 [6153]: https://github.com/enso-org/enso/pull/6153
+[6156]: https://github.com/enso-org/enso/pull/6156
 
 #### Enso Compiler
 
