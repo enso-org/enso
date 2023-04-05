@@ -907,7 +907,8 @@ type Column
         _ = [type, format, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
 
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
        Cast the column to a specific type.
 
        Arguments:

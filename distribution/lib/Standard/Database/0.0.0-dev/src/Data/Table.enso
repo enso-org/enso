@@ -1390,7 +1390,8 @@ type Table
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
        Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
