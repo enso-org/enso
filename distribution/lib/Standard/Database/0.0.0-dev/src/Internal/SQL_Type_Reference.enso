@@ -13,7 +13,7 @@ type SQL_Type_Reference
 
        Since fetching this type requires querying the database, it is computed
        lazily and cached.
-    Computed_By_Database ~lazy_ref
+    Computed_By_Database (~lazy_ref : SQL_Type)
 
     ## Refers to an SQL type that is overridden by the dialect's type system.
     Overridden (value : SQL_Type)
