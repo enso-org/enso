@@ -2521,7 +2521,7 @@ class RuntimeServerTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -2572,7 +2572,8 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All())
+          Some(Api.InvalidatedExpressions.All()),
+          None
         )
       )
     )
@@ -2638,7 +2639,8 @@ class RuntimeServerTest
           contextId,
           Some(
             Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
-          )
+          ),
+          None
         )
       )
     )
@@ -2648,6 +2650,73 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "recompute expressions changing an execution environment" in {
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // recompute
+    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.DESIGN
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All()),
+          Some(ExecutionEnvironment.LIVE)
+        )
+      )
+    )
+    context.receiveN(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.pending(
+        contextId,
+        context.Main.idMainX,
+        context.Main.idMainY,
+        context.Main.idMainZ,
+        context.Main.idFooY,
+        context.Main.idFooZ
+      ),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.DESIGN
   }
 
   it should "return error when module not found" in {
@@ -3604,7 +3673,7 @@ class RuntimeServerTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -3688,7 +3757,7 @@ class RuntimeServerTest
 
     // recompute existing stack
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -3701,7 +3770,8 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All())
+          Some(Api.InvalidatedExpressions.All()),
+          None
         )
       )
     )

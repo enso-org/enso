@@ -38,16 +38,17 @@ public class SetExecutionEnvironmentCommand extends Command {
 
   private void setExecutionEnvironment(
       ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
+    ctx.locking().acquireContextLock(contextId);
     ctx.locking().acquireWriteCompilationLock();
     try {
+      Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
       ctx.jobControlPlane().abortJobs(contextId);
       ctx.executionService().getContext().setExecutionEnvironment(executionEnvironment);
-      Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
       CacheInvalidation.invalidateAll(stack);
-      ctx.jobProcessor()
-          .run(new ExecuteJob(contextId, stack.toList()));
+      ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
     } finally {
       ctx.locking().releaseWriteCompilationLock();
+      ctx.locking().releaseContextLock(contextId);
     }
   }
 }

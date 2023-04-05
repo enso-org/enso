@@ -1193,10 +1193,12 @@ object Runtime {
       * @param contextId the context's id.
       * @param expressions the selector specifying which expressions should be
       * recomputed.
+      * @param executionEnvironment the environment used for execution
       */
     final case class RecomputeContextRequest(
       contextId: ContextId,
-      expressions: Option[InvalidatedExpressions]
+      expressions: Option[InvalidatedExpressions],
+      executionEnvironment: Option[ExecutionEnvironment]
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the
