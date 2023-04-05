@@ -9,9 +9,10 @@ import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File.Write_Extensions
 
+## PRIVATE
 type Response_Body
-
-    ## Response body
+    ## PRIVATE
+       Response body
 
        Arguments:
        - bytes: The body of the response as binary data.

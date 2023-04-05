@@ -153,32 +153,27 @@ type URI
     fragment : Text ! Nothing
     fragment self = handle_nothing self.internal_uri.getFragment
 
-    ## ADVANCED
-
+    ## PRIVATE
        Get the unescaped user info part of this URI.
     raw_user_info : Text ! Nothing
     raw_user_info self = handle_nothing self.internal_uri.getRawUserInfo
 
-    ## ADVANCED
-
+    ## PRIVATE
        Get the unescaped authority part of this URI.
     raw_authority : Text ! Nothing
     raw_authority self = handle_nothing self.internal_uri.getRawAuthority
 
-    ## ADVANCED
-
+    ## PRIVATE
        Get the unescaped path part of this URI.
     raw_path : Text ! Nothing
     raw_path self = handle_nothing self.internal_uri.getRawPath
 
-    ## ADVANCED
-
+    ## PRIVATE
        Get the unescaped query part of this URI.
     raw_query : Text ! Nothing
     raw_query self = handle_nothing self.internal_uri.getRawQuery
 
-    ## ADVANCED
-
+    ## PRIVATE
        Get the unescaped fragment part of this URI.
     raw_fragment : Text ! Nothing
     raw_fragment self = handle_nothing self.internal_uri.getRawFragment
