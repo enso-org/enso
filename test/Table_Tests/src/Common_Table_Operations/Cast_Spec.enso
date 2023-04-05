@@ -26,6 +26,12 @@ spec setup =
             c.value_type.is_integer . should_be_true
             c.to_vector . should_equal [1, 0, 1]
 
+        Test.specify "should allow to cast a boolean column to text" pending="TODO: sqlite has issue with this, figure out in #6112" <|
+            t = table_builder [["X", [True, False, True]]]
+            c = t.at "X" . cast Value_Type.Char
+            c.value_type.is_text . should_be_true
+            c.to_vector . should_equal ["true", "false", "true"]
+
         Test.specify "should work if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
 
@@ -50,7 +56,7 @@ spec setup =
             c4.value_type.is_integer . should_be_true
             c4.to_vector . should_equal [1001, 1000, 1001]
 
-        pending_sqlite_types = "TODO: perform SQLite type inference locally - #????"
+        pending_sqlite_types = if prefix.contains "SQLite" then "TODO: perform SQLite type inference locally - #????"
         Test.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" pending=pending_sqlite_types <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
             c1 = t.at "X" . cast Value_Type.Char
