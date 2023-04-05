@@ -25,7 +25,8 @@ type Redshift_Options
        - client_cert: The client certificate to use or `Nothing` if not needed.
     Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
-    ## Build the Connection resource.
+    ## PRIVATE
+       Build the Connection resource.
 
        Arguments:
        - options: Overrides for the connection properties.
@@ -41,7 +42,8 @@ type Redshift_Options
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
         Connection.Value jdbc_connection Dialect.redshift
 
-    ## Provides the jdbc url for the connection.
+    ## PRIVATE
+       Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
         prefix = case self.credentials of
@@ -49,7 +51,8 @@ type Redshift_Options
             _ -> 'jdbc:redshift://'
         prefix + self.host + ':' + self.port.to_text + (if self.schema == '' then '' else '/' + self.schema)
 
-    ## Provides the properties for the connection.
+    ## PRIVATE
+       Provides the properties for the connection.
     jdbc_properties : [Pair Text Text]
     jdbc_properties self =
         credentials = case self.credentials of

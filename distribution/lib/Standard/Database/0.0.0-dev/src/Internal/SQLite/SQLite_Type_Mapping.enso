@@ -136,7 +136,8 @@ type SQLite_Type_Mapping
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .get
 
-## The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
+## PRIVATE
+   The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
    SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,
    TIMESTAMP, CHAR, VARCHAR, BINARY, BLOB, CLOB.
 
@@ -155,6 +156,7 @@ simple_types_map = Map.from_vector <|
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
     ints + floats + numerics + strings + blobs + special_types
 
+## PRIVATE
 type SQLite_Types
     ## PRIVATE
     text = SQL_Type.Value Types.VARCHAR "TEXT"

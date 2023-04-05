@@ -8,7 +8,9 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 type SQL_Type_Mapping
-    ## Converts the given Value_Type to its corresponding SQL_Type.
+    ## PRIVATE
+       ADVANCED
+       Converts the given Value_Type to its corresponding SQL_Type.
 
        Some SQL dialects may not support all Value_Types (in fact most will
        have at least a few exceptions, and some like SQLite may have very
@@ -24,13 +26,17 @@ type SQL_Type_Mapping
         _ = [value_type, on_problems]
         Unimplemented.throw "This is an interface only."
 
-    ## Converts the given SQL_Type to its corresponding Value_Type.
+    ## PRIVATE
+       ADVANCED
+       Converts the given SQL_Type to its corresponding Value_Type.
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
         _ = sql_type
         Unimplemented.throw "This is an interface only."
 
-    ## Returns a `SQL_Type_Reference` that will resolve to the resulting type of
+    ## PRIVATE
+       ADVANCED
+       Returns a `SQL_Type_Reference` that will resolve to the resulting type of
        the given operation.
 
        In most cases this will just delegate to `infer_from_database_callback`

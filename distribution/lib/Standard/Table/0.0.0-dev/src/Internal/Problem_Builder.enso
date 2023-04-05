@@ -5,25 +5,32 @@ import project.Internal.Vector_Builder.Vector_Builder
 
 from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregate_Column
 
+## PRIVATE
 type Problem_Builder
+    ## PRIVATE
     Value types_to_always_throw oob_indices missing_input_columns other
 
+    ## PRIVATE
     report_oob_indices self indices =
         append_to_ref self.oob_indices indices
 
+    ## PRIVATE
     report_missing_input_columns self columns =
         append_to_ref self.missing_input_columns columns
 
+    ## PRIVATE
     report_unique_name_strategy self unique_name_strategy =
         if unique_name_strategy.invalid_names.not_empty then
             self.report_other_warning (Invalid_Output_Column_Names.Error unique_name_strategy.invalid_names)
         if unique_name_strategy.renames.not_empty then
             self.report_other_warning (Duplicate_Output_Column_Names.Error unique_name_strategy.renames)
 
+    ## PRIVATE
     report_other_warning self warning =
         self.other.append warning
 
-    ## Returns a vector containing all reported problems, aggregated.
+    ## PRIVATE
+       Returns a vector containing all reported problems, aggregated.
     build_problemset : Vector
     build_problemset self =
         problems = Vector.new_builder
@@ -38,7 +45,8 @@ type Problem_Builder
 
         problems.to_vector
 
-    ## Attaches gathered warnings to the result.
+    ## PRIVATE
+       Attaches gathered warnings to the result.
        Any errors from the `result` take precedence over the ones owned by this
        builder.
     attach_problems_after : Problem_Behavior -> Any -> Any
@@ -48,7 +56,8 @@ type Problem_Builder
                 problems ->
                     problem_behavior.attach_problems_after result problems
 
-    ## Attaches gathered warnings to the result of the provided computation.
+    ## PRIVATE
+       Attaches gathered warnings to the result of the provided computation.
        If in `Report_Error` mode and there are any problems gathered, the first
        one will be returned as error without even running the computation.
     attach_problems_before : Problem_Behavior -> Any -> Any

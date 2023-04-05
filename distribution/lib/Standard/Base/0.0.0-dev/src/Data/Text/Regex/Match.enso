@@ -261,9 +261,9 @@ type Match
             ## match.named_groups.keys.sort == ["empty", "letters"]
     named_groups : Any -> Map Text (Text | Any)
     named_groups self default=Nothing =
-        named_group_names = self.pattern.group_names
-        spans = named_group_names.map name-> self.text name default=default
-        Map.from_vector (named_group_names.zip spans)
+        pattern_named_groups = self.pattern.named_groups
+        Map.from_vector <|
+            pattern_named_groups.map name-> [name, self.text name default=default]
 
     ## Gets the grapheme span matched by the group with the provided index, or
        a default value if the group did not participate in the match.

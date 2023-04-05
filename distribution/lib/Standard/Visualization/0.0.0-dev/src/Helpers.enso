@@ -9,16 +9,12 @@ import project.Id.Id
 from project.Text import get_lazy_visualisation_text_window
 import project.Table as Table_Visualisation
 
-## UNSTABLE
-   ADVANCED
-
+## PRIVATE
    Specifies that the builtin JSON visualization should be used for any type,
    unless specified otherwise.
 Any.default_visualization self = Id.json
 
-## UNSTABLE
-   ADVANCED
-
+## PRIVATE
    Returns a Text used to display this value in the IDE.
 
    The particular representation is left unspecified and subject to change in
@@ -71,8 +67,7 @@ Any.map_valid self f = f self
 Any.catch_ : Any -> Any
 Any.catch_ self ~val = self.catch Any (_-> val)
 
-## UNSTABLE
-
+## PRIVATE
    Returns a display representation of the dataflow error on which it is called.
 
    > Example
@@ -127,15 +122,14 @@ recover_errors ~body =
     result.catch Any err->
         JS_Object.from_pairs [["error", err.to_display_text]] . to_text
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
    Guides the visualization system to display the most suitable graphical
    representation for this table.
 Vector.default_visualization : Id
 Vector.default_visualization self = Id.table
 
-## UNSTABLE
+## PRIVATE
 
    Transform the vector into text for displaying as part of its default
    visualization.
@@ -155,16 +149,14 @@ render_vector object depth=0 max_depth=5 max_length=100 =
         _ : JS_Object -> render object depth max_depth max_length
         _ -> object.to_default_visualization_data
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
    Guides the visualization system to display the most suitable graphical
    representation for this table.
 Array.default_visualization : Id
 Array.default_visualization self = Id.table
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
    Returns a Text used to display this value in the IDE.
 
@@ -193,8 +185,7 @@ Table.lookup_ignore_case self name =
     self.columns.find if_missing=(Error.throw Nothing) <| col->
         col.name.equals_ignore_case name
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
    Guides the visualization system to display the most suitable graphical
    representation for this table.
@@ -205,8 +196,7 @@ Table.default_visualization self =
         if cols.contains "x" && cols.contains "y" then Id.scatter_plot else
             Id.table
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
    Returns a Text used to display this table in the IDE by default.
 
@@ -222,8 +212,7 @@ Table.to_default_visualization_data self =
         JS_Object.from_pairs [['name', name], ['data', items]]
     JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
    Guides the visualization system to display the most suitable graphical
    representation for this Column.
@@ -246,8 +235,7 @@ make_lazy_visualisation_data text text_window_position text_window_size chunk_si
     if text.length < min_length_for_laziness then text else
         get_lazy_visualisation_text_window text text_window_position text_window_size chunk_size
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
    Returns the data requested to render a lazy view of the default visualisation.
 Any.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Integer -> Text
 Any.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
@@ -255,15 +243,13 @@ Any.to_lazy_visualization_data self text_window_position text_window_size chunk_
        https://www.pivotaltracker.com/story/show/184061302
     "" + make_lazy_visualisation_data self.to_default_visualization_data text_window_position text_window_size chunk_size
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
    Returns the data requested to render a lazy view of the default visualisation.
 Text.to_default_visualization_data : Text
 Text.to_default_visualization_data self =
     self.to_lazy_visualization_data [0,0] [10,10] 20
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
    Returns the data requested to render a lazy view of the default visualisation.
 Text.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Integer -> Text
 Text.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
@@ -273,9 +259,7 @@ Text.to_lazy_visualization_data self text_window_position text_window_size chunk
                https://www.pivotaltracker.com/story/show/184061302
         "" + get_lazy_visualisation_text_window self text_window_position text_window_size chunk_size
 
-## UNSTABLE
-   ADVANCED
-
+## PRIVATE
    Shows a JSON serialization of a truncated version of this column, for the
    benefit of visualization in the IDE.
 Column.to_default_visualization_data : Text
@@ -286,17 +270,13 @@ Column.to_default_visualization_data self =
     data = ['data', self.to_vector.take (First max_data)]
     JS_Object.from_pairs [size, name, data] . to_text
 
-## UNSTABLE
-   ADVANCED
-
+## PRIVATE
    Guides the visualization system to display the most suitable graphical
    representation for this Row.
 Row.default_visualization : Id
 Row.default_visualization self = Id.table
 
-## UNSTABLE
-   ADVANCED
-
+## PRIVATE
    Returns a Text used to display this table in the IDE by default.
 
    Returns a JSON object containing useful metadata and previews of column
@@ -305,8 +285,7 @@ Row.to_default_visualization_data : Text
 Row.to_default_visualization_data self =
     self.to_vector.to_default_visualization_data
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
    Returns the data requested to render a lazy view of the default visualisation.
 Table.to_lazy_visualization_data : Vector Integer ->  Vector Integer -> Vector Integer -> Integer -> Text
 Table.to_lazy_visualization_data self table_cell_position text_window_position text_window_size chunk_size =

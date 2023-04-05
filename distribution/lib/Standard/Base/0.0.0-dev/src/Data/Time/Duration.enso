@@ -244,28 +244,8 @@ type Duration
     total_hours : Decimal ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 
-    ## Convert this duration to a Vector of hours, minutes, seconds, milliseconds
-       and nanoseconds.
-
-       > Example
-         Convert a duration of one hour to a vector resulting in
-         `[1, 0, 30, 0, 0]`.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = (Duration.new hours=1 seconds=30).to_vector
-
-       > Example
-         Convert duration of 800 nanoseconds to a vector returning
-         `[0, 0, 0, 0, 0, 800]`
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = (Duration.new nanoseconds=800)).to_vector
-    to_vector : Vector Integer
-    to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
-
-    ## Convert to a JavaScript Object representing a Duration.
+    ## PRIVATE
+       Convert to a JavaScript Object representing a Duration.
 
        > Example
          Convert a duration of 10 seconds to a JS_Object.
@@ -282,14 +262,3 @@ type Duration
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
         JS_Object.from_pairs b.to_vector
-
-    ## Check if this duration represents an empty time-span.
-
-       > Example
-         Check if the duration of 10 seconds is empty.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_is_empty = Duration.zero.is_empty
-    is_empty : Boolean
-    is_empty self = self.to_vector . all (==0)
