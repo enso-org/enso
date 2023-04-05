@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+import project.Data.Column.Column
+import project.Data.Table.Table
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+
+## PRIVATE
+   Splits a column of text into a set of new columns.
+   See `Table.split_to_columns`.
+table_split_to_columns : Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
+table_split_to_columns self column delimiter="," column_count=Auto on_problems=Report_Error =
+    input_column = self.at column
+    new_column = map_column_to_multiple input_column (ignore_nothing (x-> x.split delimiter))
+
+map_column_to_multiple : Column -> (Any -> Vector Any) -> Vector Column
+map_column_to_multiple input_column function =
+    result_row_vectors = input_column.to_vector.map value-> function value
+    result_column_vectors = transpose_with_pad result_row_vectors
+    result_column_vectors.map_with_index i-> cv->
+        name = input_column.name + "_" + i
+        Column.from_vector name cv
+
+## PRIVATE
+   Swap rows and columns of a vector-of-vectors, padding each vector to be the
+   same length first.
+   Assumes both dimensions are non-zero.
+transpose_with_pad : Vector (Vector Any) -> Vector (Vector Any)
+transpose_with_pad vecs = transpose (pad_vectors default=Nothing)
+
+## PRIVATE
+   Swap rows and columns of a vector-of-vectors.
+   Assumes both dimensions are non-zero.
+transpose : Vector (Vector Any) -> Vector (Vector Any)
+transpose vecs =
+    num_output_rows = vecs[0].length
+    builders = vecs.map _-> Vector.new_builder
+    vecs.map vec->
+        vec.map_with_index i-> v->
+            builders.at i . append v
+    builders.map .to_vector
+
+## PRIVATE
+   Pad vectors so they have the same length.
+pad_vector : Vector (Vector Any) -> Any -> Vector (Vector Any)
+pad_vector vecs pad_value =
+  length = maximum <| vecs.map .length
+  vecs.map v-> v.pad length pad_value
+
+## PRIVATE
+   Return the maximum value of the vector.
+   Throws Empty_Error if the vector is empty.
+maximum : Vector Any -> Vector Any
+maximum vec = if vec.is_empty then Nothing else
+    vec.reduce (a-> b-> a.max b)
+
+## PRIVATE
+   Wrap a function so that it returns Nothing if passed Nothing
+ignore_nothing : (Any -> Any) -> (Any -> Any)
+ignore_nothing function = x-> case x of
+    _ : Nothing -> Nothing
+    _ -> function x
