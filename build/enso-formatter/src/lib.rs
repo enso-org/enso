@@ -413,7 +413,7 @@ pub fn discover_paths_internal(
     use ide_ci::fs;
     let path = path.as_ref();
     // Below we use `symlink_metadata` instead of `metadata` because the latter follows symlinks.
-    // We don't  want the formatter to fail if it encounters a symlink to a non-existing file.
+    // We don't want the formatter to fail if it encounters a symlink to a non-existing file.
     // All files to be formatted should be reachable from the repository root without following
     // any symlinks.
     let md = fs::symlink_metadata(path)?;
