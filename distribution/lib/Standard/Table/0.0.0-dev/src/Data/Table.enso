@@ -38,7 +38,6 @@ import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
@@ -813,7 +812,7 @@ type Table
 
                table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
     parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_parse_target type <|
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
             _ : Text ->
                 Data_Formatter.Value.with_format type format

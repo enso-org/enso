@@ -39,7 +39,7 @@ spec =
             t1_zeros = ["+00", "-00", "+01", "-01", "01", "000", "0010"]
             t3 = t1.parse type=Value_Type.Integer
             t3.at "ints" . to_vector . should_equal t1_parsed
-            Problems.get_attached_warnings t3 . should_equal [Leading_Zeros.Error "ints" Integer t1_zeros]
+            Problems.get_attached_warnings t3 . should_equal [Leading_Zeros.Error "ints" Value_Type.Integer t1_zeros]
 
             t4 = t1.parse type=Value_Type.Float
             t4.at "ints" . to_vector . should_equal t1_parsed
@@ -201,7 +201,7 @@ spec =
             t5 = t.parse columns="ints" type=Value_Type.Float
             t5.at "ints" . to_vector . should_equal [1.0, 2.0, -123.0, Nothing]
             # `ints` are requested to be parsed as decimals.
-            t5.at "ints" . to_vector . first . should_be_a Value_Type.Float
+            t5.at "ints" . to_vector . first . should_be_a Decimal
 
             t6 = t.parse columns=["floats", "text+ints"] type=Auto
             # `floats` are auto-detected as decimals.
