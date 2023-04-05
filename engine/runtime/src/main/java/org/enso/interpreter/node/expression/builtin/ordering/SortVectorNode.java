@@ -441,7 +441,7 @@ public abstract class SortVectorNode extends Node {
   private static abstract class SortComparator implements java.util.Comparator<Object> {
 
     private final Set<String> warnings = new HashSet<>();
-    private final AnyToTextNode toTextNode;
+    final AnyToTextNode toTextNode;
 
     protected SortComparator(AnyToTextNode toTextNode) {
       this.toTextNode = toTextNode;
@@ -561,12 +561,7 @@ public abstract class SortVectorNode extends Node {
 
     private String getQualifiedTypeName(Object object) {
       var typeObj = typeOfNode.execute(object);
-      if (typeObj instanceof Type type) {
-        return type.getQualifiedName().toString();
-      } else {
-        throw new IllegalStateException(
-            "Object " + object + " must be an Atom, therefore, it must have Type");
-      }
+      return toTextNode.execute(typeObj).toString();
     }
 
     private int getPrimitiveValueCost(Object object) {
