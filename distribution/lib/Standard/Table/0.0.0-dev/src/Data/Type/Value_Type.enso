@@ -41,7 +41,7 @@ type Bits_Comparator
     compare x y = Comparable.from x.to_bits . compare x.to_bits y.to_bits
 
     ## PRIVATE
-    hash : Bits -> Hash
+    hash : Bits -> Integer
     hash x = Comparable.from x.to_bits . hash x.to_bits
 
 Comparable.from (_:Bits) = Bits_Comparator
