@@ -28,6 +28,7 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -680,15 +681,19 @@ public abstract class SortVectorNode extends Node {
      * dataflow error otherwise.
      */
     private Function checkAndConvertOnFunc(Object onFuncObj) {
-      return checkAndConvertFunction(onFuncObj,
-          "Unsupported argument for `on`, expected a method with one argument", 1, 1);
+      return checkAndConvertFunction(
+          onFuncObj, "Unsupported argument for `on`, expected a method with one argument", 1, 1);
     }
 
-    private Function checkAndConvertFunction(Object funcObj, String errMsg, int minArgCount,
-        int maxArgCount) {
+    /**
+     * @param minArgCount Minimal count of arguments without a default value.
+     * @param maxArgCount Maximal count of argument without a default value.
+     */
+    private Function checkAndConvertFunction(
+        Object funcObj, String errMsg, int minArgCount, int maxArgCount) {
       var err = new IllegalArgumentException(errMsg + ", got " + funcObj);
       if (funcObj instanceof Function func) {
-        var argCount = func.getSchema().getArgumentsCount();
+        var argCount = getNumberOfNonDefaultArguments(func);
         if (minArgCount <= argCount && argCount <= maxArgCount) {
           return func;
         } else {
@@ -698,6 +703,13 @@ public abstract class SortVectorNode extends Node {
         throw err;
       }
     }
+  }
+
+  private static int getNumberOfNonDefaultArguments(Function function) {
+    return (int)
+        Arrays.stream(function.getSchema().getArgumentInfos())
+            .filter(argInfo -> !argInfo.hasDefaultValue())
+            .count();
   }
 
   private static final class CompareException extends RuntimeException {
