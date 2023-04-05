@@ -1,9 +1,13 @@
 import project.Any.Any
 
-## A mutable reference type.
+## PRIVATE
+   ADVANCED
+   A mutable reference type.
 @Builtin_Type
 type Ref
-    ## Creates a new reference containing the provided value.
+    ## PRIVATE
+       ADVANCED
+       Creates a new reference containing the provided value.
 
        Arguments:
        - value: The value to be contained in the ref.

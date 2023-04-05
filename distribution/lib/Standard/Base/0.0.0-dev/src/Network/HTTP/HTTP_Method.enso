@@ -31,7 +31,9 @@ type HTTP_Method
     ## Custom unsupported HTTP method.
     Custom verb:Text
 
-    ## Convert to a Text of the HTTP method name.
+    ## PRIVATE
+       ADVANCED
+       Convert to a Text of the HTTP method name.
     to_http_method_name : Text
     to_http_method_name self =  case self of
         HTTP_Method.Options -> "OPTIONS"

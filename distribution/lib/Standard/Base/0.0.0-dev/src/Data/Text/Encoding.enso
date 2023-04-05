@@ -11,7 +11,9 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Represents a character encoding.
 type Encoding
-    ## Get all available character sets from Java as Encodings.
+    ## PRIVATE
+       ADVANCED
+       Get all available character sets from Java as Encodings.
        Used to provide auto completion in the UI.
     all_character_sets : Vector Text
     all_character_sets =
@@ -30,7 +32,8 @@ type Encoding
             charset = Charset.forName name
             Encoding.Value charset.name
 
-    ## Create a new Encoding object.
+    ## PRIVATE
+       Create a new Encoding object.
 
        Arguments:
        - character_set: java.nio.charset name.
@@ -76,7 +79,6 @@ type Encoding
     windows_1251 = Encoding.Value "windows-1251"
 
     ## ALIAS ISO-8859-1
-
        Encoding for Western European (Windows).
     windows_1252 : Encoding
     windows_1252 = Encoding.Value "windows-1252"
@@ -86,7 +88,6 @@ type Encoding
     windows_1253 = Encoding.Value "windows-1253"
 
     ## ALIAS ISO-8859-9
-
        Encoding for Turkish (Windows).
     windows_1254 : Encoding
     windows_1254 = Encoding.Value "windows-1254"

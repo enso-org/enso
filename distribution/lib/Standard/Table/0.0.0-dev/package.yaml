@@ -14,6 +14,7 @@ component-groups:
         exports:
           - Standard.Table.Data.Table.Table.new
           - Standard.Table.Data.Table.Table.from_rows
+          - Standard.Table.Data.Table.Table.from_objects
           - Standard.Table.Data.Column.Column.from_vector
     - Standard.Base.Select:
         exports:

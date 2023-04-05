@@ -111,8 +111,6 @@ type Text
     not_empty self = self.is_empty.not
 
     ## PRIVATE
-       UNSTABLE
-
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
