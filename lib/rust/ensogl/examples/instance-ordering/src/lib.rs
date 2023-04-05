@@ -41,9 +41,9 @@ pub fn main() {
     let green = main.create_symbol_partition::<rectangle::Shape>("green");
     let blue = main.create_symbol_partition::<rectangle::Shape>("blue");
     let layers = vec![
-        (red.clone(), color::Rgba::new(1.0, 0.5, 0.5, 0.9), color::Rgba::new(1.0, 0.0, 0.0, 1.0)),
-        (green.clone(), color::Rgba::new(0.5, 1.0, 0.5, 0.9), color::Rgba::new(0.0, 1.0, 0.0, 1.0)),
-        (blue.clone(), color::Rgba::new(0.5, 0.5, 1.0, 0.9), color::Rgba::new(0.0, 0.0, 1.0, 1.0)),
+        (red, color::Rgba::new(1.0, 0.5, 0.5, 0.9), color::Rgba::new(1.0, 0.0, 0.0, 1.0)),
+        (green, color::Rgba::new(0.5, 1.0, 0.5, 0.9), color::Rgba::new(0.0, 1.0, 0.0, 1.0)),
+        (blue, color::Rgba::new(0.5, 0.5, 1.0, 0.9), color::Rgba::new(0.0, 0.0, 1.0, 1.0)),
     ];
     let mut shapes = vec![];
     shapes.resize(128, default());
