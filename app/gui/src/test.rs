@@ -184,8 +184,9 @@ pub mod mock {
             let path = self.module_path.clone();
             let metadata = self.metadata.clone();
             let repository = urm.repository.clone_ref();
-            let module = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
-            urm.module_opened(module.clone());
+            let module =
+                Rc::new(model::module::Plain::new(path, ast, metadata, repository, default()));
+            urm.module_opened(module.clone_ref());
             module
         }
 
@@ -384,7 +385,8 @@ pub mod mock {
             let path = self.data.module_path.clone();
             let ls = self.project.json_rpc();
             let repository = self.project.urm().repository.clone_ref();
-            let module_future = model::module::Synchronized::open(path, ls, parser, repository);
+            let module_future =
+                model::module::Synchronized::open(path, ls, parser, repository, default());
             // We can `expect_ready`, because in fact this is synchronous in test conditions.
             // (there's no real asynchronous connection beneath, just the `MockClient`)
             let module = module_future.boxed_local().expect_ready().unwrap();

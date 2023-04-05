@@ -165,6 +165,7 @@ impl Module {
         language_server: Rc<language_server::Connection>,
         parser: Parser,
         repository: Rc<model::undo_redo::Repository>,
+        read_only: Rc<Cell<bool>>,
     ) -> FallibleResult<Rc<Self>> {
         let file_path = path.file_path().clone();
         info!("Opening module {file_path}");
@@ -176,7 +177,8 @@ impl Module {
         let source = parser.parse_with_metadata(opened.content);
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
-        let model = model::module::Plain::new(path, source.ast, source.metadata, repository);
+        let model =
+            model::module::Plain::new(path, source.ast, source.metadata, repository, read_only);
         let this = Rc::new(Module { model, language_server });
         let content = this.model.serialized_content()?;
         let first_invalidation = this.full_invalidation(&summary, content);

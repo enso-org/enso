@@ -25,6 +25,10 @@ use parser::Parser;
 use std::collections::hash_map::Entry;
 
 
+#[derive(Debug, Clone, Fail)]
+#[fail(display = "Attempt to edit a read-only module.")]
+pub struct ReadOnlyError;
+
 
 // ==============
 // === Module ===
@@ -41,6 +45,7 @@ pub struct Module {
     content:       RefCell<Content>,
     notifications: notification::Publisher<Notification>,
     repository:    Rc<model::undo_redo::Repository>,
+    read_only:     Rc<Cell<bool>>,
 }
 
 impl Module {
@@ -50,12 +55,14 @@ impl Module {
         ast: ast::known::Module,
         metadata: Metadata,
         repository: Rc<model::undo_redo::Repository>,
+        read_only: Rc<Cell<bool>>,
     ) -> Self {
         Module {
             content: RefCell::new(ParsedSourceFile { ast, metadata }),
             notifications: default(),
             path,
             repository,
+            read_only,
         }
     }
 
@@ -69,6 +76,9 @@ impl Module {
         if new_content == *self.content.borrow() {
             debug!("Ignoring spurious update.");
             return Ok(());
+        }
+        if self.read_only.get() && kind != NotificationKind::MetadataChanged {
+            return Err(ReadOnlyError.into());
         }
         trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
         let transaction = self.repository.transaction("Setting module's content");

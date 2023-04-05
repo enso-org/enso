@@ -287,6 +287,7 @@ pub struct Project {
     pub parser:              Parser,
     pub notifications:       notification::Publisher<model::project::Notification>,
     pub urm:                 Rc<model::undo_redo::Manager>,
+    pub read_only:           Rc<Cell<bool>>,
 }
 
 impl Project {
@@ -331,6 +332,7 @@ impl Project {
             parser,
             notifications,
             urm,
+            read_only: default(),
         };
 
         let binary_handler = ret.binary_event_handler();
@@ -616,9 +618,11 @@ impl Project {
         let parser = self.parser.clone_ref();
         let urm = self.urm();
         let repository = urm.repository.clone_ref();
+        let read_only = self.read_only.clone_ref();
         async move {
             let module =
-                module::Synchronized::open(path, language_server, parser, repository).await?;
+                module::Synchronized::open(path, language_server, parser, repository, read_only)
+                    .await?;
             urm.module_opened(module.clone());
             Ok(module)
         }
@@ -716,6 +720,14 @@ impl model::project::API for Project {
 
     fn urm(&self) -> Rc<model::undo_redo::Manager> {
         self.urm.clone_ref()
+    }
+
+    fn read_only(&self) -> bool {
+        self.read_only.get()
+    }
+
+    fn set_read_only(&self, read_only: bool) {
+        self.read_only.set(read_only);
     }
 }
 
