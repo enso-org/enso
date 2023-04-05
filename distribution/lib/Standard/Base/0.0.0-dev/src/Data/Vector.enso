@@ -594,12 +594,8 @@ type Vector a
     reverse : Vector Any
     reverse self = Vector.new self.length (i -> self.at (self.length - (1 + i)))
 
-    ## Generates a human-readable text representation of the vector.
-
-       > Example
-         Convert a vector of numbers to text.
-
-             [1, 2, 3].to_text == "[1, 2, 3]"
+    ## PRIVATE
+       Generates a human-readable text representation of the vector.
     to_text : Text
     to_text self = self.map .to_text . join ", " "[" "]"
 

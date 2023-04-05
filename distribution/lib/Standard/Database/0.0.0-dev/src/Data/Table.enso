@@ -1493,7 +1493,8 @@ type Table
             False -> Error.throw <| Illegal_State.Error "The update unexpectedly affected "+affected_rows.to_text+" rows."
             True -> Nothing
 
-    ## Provides a simplified text representation for display in the REPL and errors.
+    ## PRIVATE
+       Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
     to_text self = "(Database Table "+self.name.to_text+")"
 

@@ -51,7 +51,8 @@ type Error
     get_stack_trace_text : Text
     get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
 
-    ## Converts an error to a corresponding textual representation.
+    ## PRIVATE
+       Converts an error to a corresponding textual representation.
 
        > Example
          Converting a thrown error to text.

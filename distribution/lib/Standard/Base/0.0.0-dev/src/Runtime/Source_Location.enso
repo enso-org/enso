@@ -12,7 +12,8 @@ type Source_Location
     ## PRIVATE
     Value prim_location
 
-    ## Pretty prints the location.
+    ## PRIVATE
+       Pretty prints the location.
     to_text : Text
     to_text self =
         '(Source_Location ' + self.formatted_coordinates + ')'

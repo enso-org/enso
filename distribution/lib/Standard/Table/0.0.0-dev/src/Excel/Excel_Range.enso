@@ -55,7 +55,8 @@ type Excel_Range
     address : Text
     address self = self.java_range.getAddress
 
-    ## Displays the Excel_Range.
+    ## PRIVATE
+       Displays the Excel_Range.
     to_text : Text
     to_text self = "Excel_Range " + self.address
 

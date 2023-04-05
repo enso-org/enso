@@ -29,12 +29,19 @@ type Bits
         64 -> Bits.Bits_64
         _ : Integer -> Error.throw (Illegal_Argument.Error "Invalid number of bits for a float or integer type.")
 
-    ## Provides the text representation of the bit-size.
+    ## PRIVATE
+       Provides the text representation of the bit-size.
     to_text : Text
     to_text self = self.to_bits.to_text + " bits"
 
+## PRIVATE
 type Bits_Comparator
+    ## PRIVATE
+    compare : Bits -> Bits -> Ordering
     compare x y = Comparable.from x.to_bits . compare x.to_bits y.to_bits
+
+    ## PRIVATE
+    hash : Bits -> Hash
     hash x = Comparable.from x.to_bits . hash x.to_bits
 
 Comparable.from (_:Bits) = Bits_Comparator
@@ -205,7 +212,8 @@ type Value_Type
         True -> action
         False -> Error.throw (Invalid_Value_Type.Error "Date or Date_Time" value_type related_column)
 
-    ## Provides a text representation of the `Value_Type` meant for
+    ## PRIVATE
+       Provides a text representation of the `Value_Type` meant for
        displaying to the user.
     to_display_text : Text
     to_display_text self = case self of

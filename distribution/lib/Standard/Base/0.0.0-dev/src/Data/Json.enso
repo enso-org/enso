@@ -167,7 +167,8 @@ type JS_Object
     to_js_object : JS_Object
     to_js_object self = self
 
-    ## Convert to a Text.
+    ## PRIVATE
+       Convert to a Text.
     to_text : Text
     to_text self = Json.stringify self
 

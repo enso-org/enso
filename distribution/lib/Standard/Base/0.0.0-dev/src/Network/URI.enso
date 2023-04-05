@@ -183,14 +183,8 @@ type URI
     raw_fragment : Text ! Nothing
     raw_fragment self = handle_nothing self.internal_uri.getRawFragment
 
-    ## Convert this URI to text.
-
-       > Example
-         Convert a URI to text.
-
-             import Standard.Examples
-
-             example_to_text = Examples.uri.to_text
+    ## PRIVATE
+       Convert this URI to text.
     to_text : Text
     to_text self = self.internal_uri.toString
 
