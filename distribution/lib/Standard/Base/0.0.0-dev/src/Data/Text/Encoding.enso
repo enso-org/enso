@@ -12,6 +12,7 @@ polyglot java import org.enso.base.Text_Utils
 ## Represents a character encoding.
 type Encoding
     ## PRIVATE
+       ADVANCED
        Get all available character sets from Java as Encodings.
        Used to provide auto completion in the UI.
     all_character_sets : Vector Text

@@ -5,7 +5,8 @@ import project.Panic.Caught_Panic
 import project.Panic.Panic
 import project.Runtime.Ref.Ref
 
-## Holds a value that is computed on first access.
+## PRIVATE
+   Holds a value that is computed on first access.
 type Lazy
     ## PRIVATE
     Lazy (cached_ref : Ref) (builder : Nothing -> Any)
@@ -13,14 +14,18 @@ type Lazy
     ## PRIVATE
     Eager (value : Any)
 
-    ## Creates a new lazy value.
+    ## PRIVATE
+       ADVANCED
+       Creates a new lazy value.
     new : Any -> Lazy
     new ~lazy_computation =
         builder _ = lazy_computation
         cached_ref = Ref.new Lazy_Not_Computed_Mark
         Lazy.Lazy cached_ref builder
 
-    ## Creates a pre-computed lazy value.
+    ## PRIVATE
+       ADVANCED
+       Creates a pre-computed lazy value.
        This can be useful if a value needs to admit the Lazy type API, but is
        known beforehand.
     new_eager value = Lazy.Eager value

@@ -604,7 +604,7 @@ type Vector a
     to_text self = self.map .to_text . join ", " "[" "]"
 
     ## PRIVATE
-       UNSTABLE
+       ADVANCED
 
        Generates a human-readable text representation of the vector, keeping its
        length limited.

@@ -15,6 +15,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 @Builtin_Type
 type Array_Proxy
     ## PRIVATE
+       ADVANCED
        Creates a new `Array_Proxy` from a length and a callback.
 
        Arguments:
@@ -39,6 +40,7 @@ type Array_Proxy
     new_builtin length at = @Builtin_Method "Array_Proxy.new_builtin"
 
     ## PRIVATE
+       ADVANCED
        Creates a new `Array_Proxy` from an object providing `length` and `at`
        methods.
     from_proxy_object : Any -> Array

@@ -32,6 +32,7 @@ type HTTP_Method
     Custom verb:Text
 
     ## PRIVATE
+       ADVANCED
        Convert to a Text of the HTTP method name.
     to_http_method_name : Text
     to_http_method_name self =  case self of
