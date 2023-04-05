@@ -24,7 +24,7 @@ type SQL_Type_Reference
        This may perform a database query on first access.
     get : SQL_Type
     get self = case self of
-        SQL_Type_Reference.Computed_By_Database lazy_ref -> lazy_ref.get
+        SQL_Type_Reference.Computed_By_Database lazy_ref -> lazy_ref
         SQL_Type_Reference.Overridden value -> value
 
     ## PRIVATE
