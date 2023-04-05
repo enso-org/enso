@@ -14,7 +14,6 @@ import org.enso.interpreter.runtime.state.State;
 /**
  * Getter node that reads a field value. If the value is a thunk the node
  * evaluates it and replaces the original lazy value with the new value.
- *
  */
 final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
   @Node.Child
