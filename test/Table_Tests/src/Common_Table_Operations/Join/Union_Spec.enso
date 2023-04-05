@@ -193,8 +193,18 @@ spec setup =
             check_same <| t1.union [] keep_unmatched_columns=True
             check_same <| t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=True
 
-        # TODO tests for merging varchar (currently not possible in in-memory, so Postgres only)
-        # TODO unit tests for `find_common_type` helper
+        Test.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            t1 = table_builder [["A", ["a", "b", "c"]]] . cast "A" (Value_Type.Char size=1 variable_length=False)
+            t2 = table_builder [["A", ["xyz", "abc", "def"]]] . cast "A" (Value_Type.Char size=3 variable_length=False)
+
+            t1.at "A" . value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+            t2.at "A" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+            t3 = t1.union t2
+            expect_column_names ["A"] t3
+            t3.at "A" . to_vector . should_equal ["a", "b", "c", "xyz", "abc", "def"]
+            t3.at "A" . value_type . is_text . should_be_true
+            t3.at "A" . value_type . variable_length . should_be_true
 
         Test.specify "should find a common type that will fit the merged columns" <|
             t1 = table_builder [["int+bool", [1, 2, 3]], ["int+float", [0, 1, 2]]]

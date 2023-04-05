@@ -77,7 +77,7 @@ spec setup =
             c4.to_vector . should_equal [Nothing, 1001, 1000, 1001]
 
     Test.group prefix+"Table.cast" pending=(if setup.is_database.not then "Cast is not implemented in the in-memory backend yet.") <|
-        Test.specify "should cast the columns in-place and not reorder them" <|
+        Test.specify 'should cast the columns "in-place" and not reorder them' <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [4, 5, 6]], ["Z", [7, 8, 9]], ["A", [True, False, True]]]
             t2 = t.cast ["Z", "Y"] Value_Type.Char
             t2.column_names . should_equal ["X", "Y", "Z", "A"]
