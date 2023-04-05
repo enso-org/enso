@@ -123,7 +123,7 @@ public final class AtomConstructor implements TruffleObject {
       cachedInstance = null;
     }
     if (Layout.isAritySupported(args.length)) {
-      boxedLayout = Layout.create(args.length, 0);
+      boxedLayout = Layout.create(args.length, 0, args);
     }
     this.constructorFunction =
         buildConstructorFunction(language, localScope, assignments, varReads, annotations, args);
