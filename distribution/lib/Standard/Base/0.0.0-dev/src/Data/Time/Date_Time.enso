@@ -96,8 +96,7 @@ parse_builtin text = @Builtin_Method "Date_Time.parse_builtin"
    the Europe/Paris timezone" can be stored as `Time`.
 @Builtin_Type
 type Date_Time
-    ## PRIVATE
-       Obtains the start of the epoch for Enso.
+    ## Obtains the start of the epoch for Enso.
 
         ? Start of the epoch
         For Enso, start of the epoch is equal to the start of the Gregorian calendar,

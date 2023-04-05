@@ -5,7 +5,6 @@ import project.Any.Any
 
 ## PRIVATE
    ADVANCED
-
    Executes an action with a handler for the executing thread being
    interrupted.
 

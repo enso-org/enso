@@ -314,7 +314,7 @@ type Pattern
     group_count self = self.internal_regex_object.groupCount
 
     ## Return a vector of all named group names.
-    named_groups : Map Text Integer
+    named_groups : Vector Text
     named_groups self =
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.keys
