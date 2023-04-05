@@ -12,7 +12,20 @@ import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
+// ===================
+// === Live reload ===
+// ===================
+
+if (IS_DEV_MODE) {
+    new EventSource('/esbuild').addEventListener('change', () => {
+        location.reload()
+    })
+}
+
+// =================
 // === Constants ===
+// =================
+
 /** One second in milliseconds. */
 const SECOND = 1000
 const FETCH_TIMEOUT = 300
