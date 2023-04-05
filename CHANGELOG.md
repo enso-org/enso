@@ -670,6 +670,7 @@
 - [Don't install Python component on Windows][5900]
 - [Detect potential name conflicts between exported types and FQNs][5966]
 - [Ensure calls involving warnings remain instrumented][6067]
+- [One can define lazy atom fields][6151]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -773,6 +774,7 @@
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
 [6067]: https://github.com/enso-org/enso/pull/6067
+[6151]: https://github.com/enso-org/enso/pull/6151
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
