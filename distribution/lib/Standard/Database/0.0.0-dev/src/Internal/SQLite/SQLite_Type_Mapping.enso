@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
+import Standard.Table.Data.Type.Value_Type_Helpers
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Data.Column.Column
@@ -118,7 +119,11 @@ type SQLite_Type_Mapping
                 Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
             inputs_types = arguments.drop 1 . map find_type
             if inputs_types.first == inputs_types.second then return inputs_types.first else
-                infer_default_type
+                case Value_Type_Helpers.reconcile_types inputs_types.first inputs_types.second of
+                    ## Inference failed, fall back to default type.
+                       Ideally, should never happen. To be handled in #6106.
+                    Value_Type.Mixed -> infer_default_type
+                    common -> return common
 
         always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
         always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]
