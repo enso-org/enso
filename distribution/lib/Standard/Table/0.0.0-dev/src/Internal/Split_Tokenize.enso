@@ -17,7 +17,53 @@ split_to_columns table column delimiter="," column_count=Auto on_problems=Report
     transform_table_column_to_columns table column (ignore_nothing (x-> x.split delimiter))
 
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
-split_to_rows = 1
+split_to_rows table column delimiter="," on_problems=Report_Error =
+    _ = on_problems
+    multiply_rows table column (x-> x.split delimiter)
+
+## Private
+   Transform a column by applying the given function to the values in the
+   column. The function produces multiple outputs, so each row is duplicated,
+   with each row getting a distinct output value in place of the original
+   input value. The other column values are just duplicated.
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+multiply_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
+multiply_rows table column function =
+    input_column = table.at column
+
+    # Transform each input value to an output set.
+    output_value_sets = input_column.to_vector.map function
+    output_value_set_sizes = output_value_sets.map .length
+    num_input_rows = table.row_count
+    num_output_rows = output_value_set_sizes.fold 0 (+)
+
+    ## Generate new columns for the output table. For the input_column, the
+       new column consists of the concatenation of the output value sets. For
+       each of the other columns, it consists of the elements of the input
+       column repeated a number times, with that number equal to the size of
+       the corresponding output value set.
+    new_columns = table.columns.map column->
+        builder = Vector.new_builder num_output_rows
+        case column.name == input_column.name of
+            True ->
+                # The transformed column: concatenate output value sets.
+                output_value_sets.map values->
+                    builder.append_vector_range values
+            False ->
+                # The other columns: repeat the input values.
+                column_vector = column.to_vector
+                0.up_to num_input_rows . map i->
+                    repetition_count = output_value_set_sizes.at i
+                    input_value = column_vector.at i
+                    0.up_to repetition_count . map _->
+                        builder.append input_value
+        Column.from_vector column.name (builder.to_vector)
+    Table.new new_columns
 
 ## PRIVATE
    Tokenize a column of text into a set of new columns.
@@ -36,7 +82,7 @@ tokenize_to_rows _ _ = 1
    vectors of output values are padded with Nothing to be the same length.
 
    Arguments:
-   - input_column: The column to transform
+   - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
 map_column_to_multiple : Column -> (Any -> Vector Any) -> Vector Column

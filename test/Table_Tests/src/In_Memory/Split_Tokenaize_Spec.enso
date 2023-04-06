@@ -24,14 +24,14 @@ spec =
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
             t2 = t.split_to_columns 'bar' 'b'
             tables_should_be_equal t2 expected
-        ##
-            Test.specify 'can do split_to_rows' <|
-                cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
-                t = Table.new cols
-                expected_rows = [[0, 'a'], [0, 'c'], [1, 'c'], [1, 'd'], [1, 'ef'], [2, 'gh'], [2, 'ij'], [2, 'u']]
-                expected = Table.from_rows ['foo', 'bar'] expected_rows
-                t2 = t.split_to_rows 'bar' 'b'
-                tables_should_be_equal t2 expected
+
+        Test.specify 'can do split_to_rows' <|
+            cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
+            t = Table.new cols
+            expected_rows = [[0, 'a'], [0, 'c'], [1, 'c'], [1, 'd'], [1, 'ef'], [2, 'gh'], [2, 'ij'], [2, 'u']]
+            expected = Table.from_rows ['foo', 'bar'] expected_rows
+            t2 = t.split_to_rows 'bar' 'b'
+            tables_should_be_equal t2 expected
 
     Test.group 'tokenize' <|
         Test.specify 'can do tokenize_to_columns' <|
