@@ -3,7 +3,6 @@ package org.enso.searcher
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExportsUpdate,
-  SuggestionArgumentAction,
   SuggestionUpdate,
   SuggestionsDatabaseAction
 }
@@ -23,19 +22,6 @@ trait SuggestionsRepo[F[_]] {
     * @return the current database version and the list of suggestions
     */
   def getAll: F[(Long, Seq[SuggestionEntry])]
-
-  /** Get suggestions by the method call info.
-    *
-    * @param calls the list of triples: module, self type and method name
-    * @return the list of found suggestion ids
-    */
-  def getAllMethods(calls: Seq[(String, String, String)]): F[Seq[Option[Long]]]
-
-  /** Get all available modules.
-    *
-    * @return the list of distinct module names.
-    */
-  def getAllModules: F[Seq[String]]
 
   /** Search suggestion by various parameters.
     *
@@ -65,19 +51,19 @@ trait SuggestionsRepo[F[_]] {
     */
   def select(id: Long): F[Option[Suggestion]]
 
-  /** Insert the suggestion
+  /** Insert the suggestion.
     *
     * @param suggestion the suggestion to insert
     * @return the id of an inserted suggestion
     */
   def insert(suggestion: Suggestion): F[Option[Long]]
 
-  /** Insert a list of suggestions
+  /** Insert a list of suggestions.
     *
     * @param suggestions the suggestions to insert
     * @return the current database version and a list of inserted suggestion ids
     */
-  def insertAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
+  def insertAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Long])]
 
   /** Apply suggestion updates.
     *
@@ -120,18 +106,10 @@ trait SuggestionsRepo[F[_]] {
     */
   def removeModules(modules: Seq[String]): F[(Long, Seq[Long])]
 
-  /** Remove a list of suggestions.
-    *
-    * @param suggestions the suggestions to remove
-    * @return the current database version and a list of removed suggestion ids
-    */
-  def removeAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
-
   /** Update the suggestion.
     *
     * @param suggestion the key suggestion
     * @param externalId the external id to update
-    * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
     * @param scope the scope to update
@@ -139,7 +117,6 @@ trait SuggestionsRepo[F[_]] {
   def update(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],

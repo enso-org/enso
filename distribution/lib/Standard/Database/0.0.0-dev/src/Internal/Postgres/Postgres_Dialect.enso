@@ -9,6 +9,7 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
+import project.Data.Dialect
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -20,14 +21,15 @@ import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
@@ -131,6 +133,35 @@ type Postgres_Dialect
     ## PRIVATE
     get_statement_setter : Statement_Setter
     get_statement_setter self = postgres_statement_setter
+
+    ## PRIVATE
+    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column target_type infer_result_type_from_database_callback =
+        mapping = self.get_type_mapping
+        source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+        target_value_type = mapping.sql_type_to_value_type target_type
+        # Boolean to Numeric casts need special handling:
+        transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
+            True ->
+                SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+            False -> column.expression
+        target_type_sql_text = mapping.sql_type_to_text target_type
+        new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
+        new_sql_type_reference = infer_result_type_from_database_callback new_expression
+        Internal_Column.Value column.name new_sql_type_reference new_expression
+
+    ## PRIVATE
+    needs_execute_query_for_type_inference : Boolean
+    needs_execute_query_for_type_inference self = False
+
+    ## PRIVATE
+    cast_after_union : Boolean
+    cast_after_union self = False
+
+    ## PRIVATE
+    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query self expression context =
+        Dialect.default_fetch_types_query self expression context
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation

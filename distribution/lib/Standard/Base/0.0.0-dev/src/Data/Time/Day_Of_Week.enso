@@ -56,11 +56,15 @@ type Day_Of_Week
 
 ## PRIVATE
 type Day_Of_Week_Comparator
+    ## PRIVATE
+    compare : Day_Of_Week -> Day_Of_Week -> Ordering
     compare x y =
         x_int = x.to_integer
         y_int = y.to_integer
         Comparable.from x_int . compare x_int y_int
 
+    ## PRIVATE
+    hash : Day_Of_Week -> Integer
     hash x = x.to_integer
 
 Comparable.from (_:Day_Of_Week) = Day_Of_Week_Comparator

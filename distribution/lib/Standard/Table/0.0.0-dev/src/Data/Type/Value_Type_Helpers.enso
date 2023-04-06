@@ -40,19 +40,25 @@ reconcile_types current new = case current of
     Value_Type.Char current_size current_variable -> case new of
         Value_Type.Char new_size new_variable ->
             result_variable = current_variable || new_variable || current_size != new_size
-            case result_variable of
-                True -> Value_Type.Char Nothing True
-                False -> Value_Type.Char current_size False
+            result_size = max_size current_size new_size
+            Value_Type.Char result_size result_variable
         _ -> Value_Type.Mixed
     Value_Type.Binary current_size current_variable -> case new of
         Value_Type.Binary new_size new_variable ->
             result_variable = current_variable || new_variable || current_size != new_size
-            case result_variable of
-                True -> Value_Type.Binary Nothing True
-                False -> Value_Type.Binary current_size False
+            result_size = max_size current_size new_size
+            Value_Type.Binary result_size result_variable
         _ -> Value_Type.Mixed
     _ ->
         if current == new then current else Value_Type.Mixed
+
+## PRIVATE
+   Reconciles two size parameters. If either of them is `Nothing` (meaning
+   unbounded), returns `Nothing`. If both are bounded, the larger one is
+   returned.
+max_size a b =
+    if a.is_nothing || b.is_nothing then Nothing else
+        Math.max a b
 
 ## PRIVATE
    Finds the most specific value type that will fit all the provided types.

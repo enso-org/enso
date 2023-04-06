@@ -419,20 +419,21 @@ spec setup =
             r1.at "Z" . to_vector . should_equal [20, 20]
 
         Test.specify "should rename columns of the right table to avoid duplicates" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]], ["Right_Y", [5, 6]]]
             t2 = table_builder [["X", [2, 1]], ["Y", [2, 2]]]
 
             t3 = t1.join t2 on=(Join_Condition.Equals "X" "Y") |> materialize |> _.order_by ["Right_X"]
-            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["X", "Y"]]
-            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t3
+            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["Right_Y"]]
+            expect_column_names ["X", "Y", "Right_Y", "Right_X", "Right_Y_1"] t3
             t3.at "X" . to_vector . should_equal [2, 2]
-            t3.at "Right_Y" . to_vector . should_equal [2, 2]
             t3.at "Y" . to_vector . should_equal [4, 4]
+            t3.at "Right_Y" . to_vector . should_equal [6, 6]
             t3.at "Right_X" . to_vector . should_equal [1, 2]
+            t3.at "Right_Y_1" . to_vector . should_equal [2, 2]
 
             err1 = t1.join t2 on=(Join_Condition.Equals "X" "Y") on_problems=Problem_Behavior.Report_Error
             err1.should_fail_with Duplicate_Output_Column_Names
-            err1.catch.column_names . should_equal ["X", "Y"]
+            err1.catch.column_names . should_equal ["Right_Y"]
 
             t4 = table_builder [["Right_X", [1, 1]], ["X", [1, 2]], ["Y", [3, 4]], ["Right_Y_2", [2, 2]]]
             t5 = table_builder [["Right_X", [2, 1]], ["X", [2, 2]], ["Y", [2, 2]], ["Right_Y", [2, 2]], ["Right_Y_1", [2, 2]], ["Right_Y_4", [2, 2]]]
@@ -441,12 +442,12 @@ spec setup =
             expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y_3", "Right_Y", "Right_Y_1", "Right_Y_4"] t6
 
             action = t1.join t2 right_prefix="" on_problems=_
-            tester = expect_column_names ["X", "Y", "Y_1"]
+            tester = expect_column_names ["X", "Y", "Right_Y", "Y_1"]
             problems = [Duplicate_Output_Column_Names.Error ["Y"]]
             Problems.test_problem_handling action problems tester
 
             t8 = t1.join t2 right_prefix="P"
-            expect_column_names ["X", "Y", "PY"] t8
+            expect_column_names ["X", "Y", "Right_Y", "PY"] t8
 
         Test.specify "should warn about renamed columns" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
@@ -455,14 +456,14 @@ spec setup =
             action1 = t1.join t2 on=(Join_Condition.Equals "X" "Y") on_problems=_
             tester1 table =
                 expect_column_names ["X", "Y", "Right_X", "Right_Y_1", "Right_Y"] table
-            problems1 = [Duplicate_Output_Column_Names.Error ["X", "Y"]]
+            problems1 = [Duplicate_Output_Column_Names.Error ["Right_Y"]]
             Problems.test_problem_handling action1 problems1 tester1
 
 
             action2 = t1.join t2 on=(Join_Condition.Equals "X" "X") on_problems=_
             tester2 table =
                 expect_column_names ["X", "Y", "Right_Y_1", "Right_Y"] table
-            problems2 = [Duplicate_Output_Column_Names.Error ["Y"]]
+            problems2 = [Duplicate_Output_Column_Names.Error ["Right_Y"]]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should pass dataflow errors through" <|

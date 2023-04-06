@@ -60,7 +60,7 @@
           "primary": false
         },
         "pixelReadPeriod": {
-          "value": "1",
+          "value": 1,
           "description": "Minimum number of frames from one pixel read pass to the next.",
           "primary": false
         }

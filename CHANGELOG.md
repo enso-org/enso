@@ -368,11 +368,14 @@
   `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
 - [Removed many regex compile flags from `replace`; added `only_first` and
   `use_regex` flag.][5959]
+- [Implemented proper support for Value Types in the Table library.][6073]
 - [Removed many regex compile flags from `split`; added `only_first` and
   `use_regex` flag.][6116]
-- [Implemented proper support for Value Types in the Table library.][6073]
+- [Added `Text.tokenize`][6150]
 - [Added support for Date/Time columns in the Postgres backend and added
   `year`/`month`/`day` operations to Table columns.][6153]
+- [`Text.split` can now take a vector of delimiters.][6156]
+- [Implemented `Table.union` for the Database backend.][6204]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -561,9 +564,12 @@
 [5917]: https://github.com/enso-org/enso/pull/5917
 [5705]: https://github.com/enso-org/enso/pull/5705
 [5959]: https://github.com/enso-org/enso/pull/5959
-[6116]: https://github.com/enso-org/enso/pull/6116
 [6073]: https://github.com/enso-org/enso/pull/6073
+[6116]: https://github.com/enso-org/enso/pull/6116
+[6150]: https://github.com/enso-org/enso/pull/6150
 [6153]: https://github.com/enso-org/enso/pull/6153
+[6156]: https://github.com/enso-org/enso/pull/6156
+[6204]: https://github.com/enso-org/enso/pull/6204
 
 #### Enso Compiler
 
@@ -666,6 +672,7 @@
 - [Don't install Python component on Windows][5900]
 - [Detect potential name conflicts between exported types and FQNs][5966]
 - [Ensure calls involving warnings remain instrumented][6067]
+- [One can define lazy atom fields][6151]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -769,6 +776,7 @@
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
 [6067]: https://github.com/enso-org/enso/pull/6067
+[6151]: https://github.com/enso-org/enso/pull/6151
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -942,10 +942,10 @@ type Integer
    A syntax error when parsing a double.
 @Builtin_Type
 type Number_Parse_Error
+    ## PRIVATE
     Error text
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty print the syntax error.
     to_display_text : Text
     to_display_text =

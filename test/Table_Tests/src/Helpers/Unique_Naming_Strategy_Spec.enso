@@ -74,7 +74,7 @@ spec =
             unique_second = strategy.combine_with_prefix first second "second_"
             unique_second . should_equal ["second_A_2", "second_B", "second_A_1", "C"]
             strategy.invalid_names . should_equal []
-            strategy.renames . should_equal ["A", "B"]
+            strategy.renames . should_equal ["second_A"]
 
         Test.specify "should work with no prefix" <|
             first = ["A", "B"]

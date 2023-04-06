@@ -60,6 +60,7 @@ public abstract class ConversionResolverNode extends Node {
   @Specialization(replaces = "resolveCached")
   @CompilerDirectives.TruffleBoundary
   Function resolveUncached(Type target, Type self, UnresolvedConversion conversion) {
-    return conversion.resolveFor(target, self);
+    var ctx = EnsoContext.get(this);
+    return conversion.resolveFor(ctx, target, self);
   }
 }

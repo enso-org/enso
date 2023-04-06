@@ -2,6 +2,8 @@
 //! about presenters in general.
 
 use crate::prelude::*;
+use double_representation::context_switch::Context;
+use double_representation::context_switch::ContextSwitch;
 use enso_web::traits::*;
 
 use crate::controller::graph::widget::Request as WidgetRequest;
@@ -9,6 +11,7 @@ use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
+use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
@@ -160,6 +163,54 @@ impl Model {
                 Some(graph.set_expression_span(ast_id, crumbs, expression, &self.controller))
             },
             "update expression input span",
+        );
+    }
+
+    /// TODO(#5930): Provide the state of the output context in the current environment.
+    fn output_context_enabled(&self) -> bool {
+        true
+    }
+
+    /// TODO(#5930): Provide the current execution environment of the project.
+    fn execution_environment(&self) -> &str {
+        "design"
+    }
+
+    /// Sets or clears a context switch expression for the specified node.
+    ///
+    /// A context switch expression allows enabling or disabling the execution of a particular node
+    /// in the Output context. This function adds or removes the context switch expression based on
+    /// the provided `active` flag (representing the state of the icon) and the current context
+    /// state.
+    ///
+    /// The behavior of this function can be summarized in the following table:
+    /// ```ignore
+    /// | Context Enabled | Active      | Action       |
+    /// |-----------------|-------------|--------------|
+    /// | Yes             | Yes         | Add Disable  |
+    /// | Yes             | No          | Clear        |
+    /// | No              | Yes         | Add Enable   |
+    /// | No              | No          | Clear        |
+    /// ```
+    /// TODO(#5929): Connect this function with buttons on nodes.
+    #[allow(dead_code)]
+    fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
+        let context = Context::Output;
+        let current_state = self.output_context_enabled();
+        let environment = self.execution_environment().into();
+        let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
+        let expr = if active {
+            Some(ContextSwitchExpression { switch, context, environment })
+        } else {
+            None
+        };
+        self.log_action(
+            || {
+                let ast_id =
+                    self.state.update_from_view().set_node_context_switch(id, expr.clone())?;
+                Some(self.controller.graph().set_node_context_switch(ast_id, expr))
+            },
+            "node context switch expression",
         );
     }
 
@@ -461,26 +512,45 @@ impl Model {
 
 /// Helper struct storing information about node's expression updates.
 /// Includes not only the updated expression, but also an information about `SKIP` and
-/// `FREEZE` macros updates.
+/// `FREEZE` macros updates, and also execution context updates.
 #[derive(Clone, Debug, Default)]
 struct ExpressionUpdate {
-    id:             ViewNodeId,
-    expression:     node_view::Expression,
-    skip_updated:   Option<bool>,
-    freeze_updated: Option<bool>,
+    id:                     ViewNodeId,
+    expression:             node_view::Expression,
+    skip_updated:           Option<bool>,
+    freeze_updated:         Option<bool>,
+    context_switch_updated: Option<Option<ContextSwitchExpression>>,
 }
 
 impl ExpressionUpdate {
+    /// The updated expression.
     fn expression(&self) -> (ViewNodeId, node_view::Expression) {
         (self.id, self.expression.clone())
     }
 
+    /// An updated status of `SKIP` macro. `None` if the status was not updated.
     fn skip(&self) -> Option<(ViewNodeId, bool)> {
         self.skip_updated.map(|skip| (self.id, skip))
     }
 
+    /// An updated status of `FREEZE` macro. `None` if the status was not updated.
     fn freeze(&self) -> Option<(ViewNodeId, bool)> {
         self.freeze_updated.map(|freeze| (self.id, freeze))
+    }
+
+    /// An updated status of output context switch (`true` if output context is explicitly enabled
+    /// for the node, `false` otherwise). `None` if the status was not updated.
+    fn output_context(&self) -> Option<(ViewNodeId, bool)> {
+        self.context_switch_updated.as_ref().map(|context_switch_expr| {
+            use Context::*;
+            use ContextSwitch::*;
+            let enabled = match context_switch_expr {
+                Some(ContextSwitchExpression { switch: Enable, context: Output, .. }) => true,
+                Some(ContextSwitchExpression { switch: Disable, context: Output, .. }) => false,
+                None => false,
+            };
+            (self.id, enabled)
+        })
     }
 }
 
@@ -536,7 +606,14 @@ impl ViewUpdate {
                 if let Some((id, expression)) = change.set_node_expression(node, trees) {
                     let skip_updated = change.set_node_skip(node);
                     let freeze_updated = change.set_node_freeze(node);
-                    Some(ExpressionUpdate { id, expression, skip_updated, freeze_updated })
+                    let context_switch_updated = change.set_node_context_switch(node);
+                    Some(ExpressionUpdate {
+                        id,
+                        expression,
+                        skip_updated,
+                        freeze_updated,
+                        context_switch_updated,
+                    })
                 } else {
                     None
                 }
@@ -650,6 +727,12 @@ impl Graph {
             update_node_expression <- expression_update.map(ExpressionUpdate::expression);
             set_node_skip <- expression_update.filter_map(ExpressionUpdate::skip);
             set_node_freeze <- expression_update.filter_map(ExpressionUpdate::freeze);
+            // TODO(#5930): Use project model to retrieve a current state of the output context.
+            output_context_enabled <- update_view.constant(true);
+            output_context_updated <- expression_update.filter_map(ExpressionUpdate::output_context);
+            _context_switch_highlighted <- output_context_updated.map2(&output_context_enabled,
+                |(node_id, enabled_for_node), enabled_globally| (*node_id, enabled_for_node != enabled_globally)
+            );
             set_node_position <= update_data.map(|update| update.set_node_positions());
             set_node_visualization <= update_data.map(|update| update.set_node_visualizations());
             enable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_some().as_some(*id));
@@ -658,6 +741,8 @@ impl Graph {
             view.set_node_expression <+ update_node_expression;
             view.set_node_skip <+ set_node_skip;
             view.set_node_freeze <+ set_node_freeze;
+            // TODO (#5929): Connect to the view when the API is ready.
+            // view.highlight_output_context_switch <+ context_switch_highlighted;
             view.set_node_position <+ set_node_position;
             view.set_visualization <+ set_node_visualization;
             view.enable_visualization <+ enable_vis;

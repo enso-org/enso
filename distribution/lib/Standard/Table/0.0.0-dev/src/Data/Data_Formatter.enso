@@ -61,7 +61,9 @@ type Data_Formatter
        - false_values: Values representing False.
     Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["ISO_LOCAL_DATE"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
 
-    ## Parse a Text into a value.
+    ## PRIVATE
+       ADVANCED
+       Parse a Text into a value.
 
        Arguments:
        - text: Text value to parse.
@@ -79,7 +81,9 @@ type Data_Formatter
         problems = Vector.from_polyglot_array result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
         on_problems.attach_problems_after result.value problems
 
-    ## Format a value into a Text.
+    ## PRIVATE
+       ADVANCED
+       Format a value into a Text.
 
        Arguments:
        - value: Value to format.
