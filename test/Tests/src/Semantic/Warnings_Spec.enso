@@ -164,7 +164,7 @@ spec = Test.group "Dataflow Warnings" <|
         cleared.should_equal 'foo'
         Warning.get_all cleared . map .value . should_equal []
 
-        clear_2 = warned.remove_warnings . first
+        clear_2 = warned.remove_warnings
         clear_2.should_equal 'foo'
         Warning.get_all clear_2 . map .value . should_equal []
 
@@ -207,6 +207,17 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all (detached_pair . first) . map .value . should_equal [2,4]
         detached_pair.second . map .value . should_equal [1,3]
 
+    Test.specify "should allow to checking for warnings, by type" <|
+        warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
+
+        warned.has_warnings.should_be_true
+        warned.has_warnings warning_type=Integer . should_be_true
+        warned.has_warnings warning_type=Number . should_be_true
+        warned.has_warnings warning_type=Decimal . should_be_false
+        warned.has_warnings warning_type=Text . should_be_true
+        warned.has_warnings warning_type=Nothing . should_be_true
+        warned.has_warnings warning_type=Unimplemented . should_be_true
+
     Test.specify "should allow to remove warnings, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
@@ -221,6 +232,14 @@ spec = Test.group "Dataflow Warnings" <|
 
         no_error = warned.remove_warnings Unimplemented
         Warning.get_all no_error . map .value . should_equal [1, "Alpha", Nothing]
+
+    Test.specify "should allow to throwing warnings, by type" <|
+        warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
+
+        warned.throw_on_warning . should_fail_with Integer
+        warned.throw_on_warning warning_type=Text . should_fail_with Text
+        warned.throw_on_warning warning_type=Nothing . should_fail_with Nothing
+        warned.throw_on_warning warning_type=Unimplemented . should_fail_with Unimplemented
 
     Test.specify "should allow to map the warnings, selectively" <|
         x = Warning.attach "foo" 1
