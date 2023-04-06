@@ -91,7 +91,8 @@ object ExecutionApi {
 
     case class Params(
       contextId: ContextId,
-      invalidatedExpressions: Option[InvalidatedExpressions]
+      invalidatedExpressions: Option[InvalidatedExpressions],
+      executionEnvironment: Option[ExecutionEnvironment]
     )
 
     implicit val hasParams = new HasParams[this.type] {

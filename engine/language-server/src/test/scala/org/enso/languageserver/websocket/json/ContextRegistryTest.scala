@@ -444,7 +444,8 @@ class ContextRegistryTest extends BaseServerTest {
                 requestId,
                 Api.RecomputeContextRequest(
                   `contextId`,
-                  Some(Api.InvalidatedExpressions.All())
+                  Some(Api.InvalidatedExpressions.All()),
+                  None
                 )
               ) =>
             requestId
@@ -521,7 +522,8 @@ class ContextRegistryTest extends BaseServerTest {
                     Api.InvalidatedExpressions.Expressions(
                       Vector(`expressionId`)
                     )
-                  )
+                  ),
+                  None
                 )
               ) =>
             requestId

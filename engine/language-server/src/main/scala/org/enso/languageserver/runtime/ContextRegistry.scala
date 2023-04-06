@@ -183,7 +183,12 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
-      case RecomputeContextRequest(client, contextId, expressions) =>
+      case RecomputeContextRequest(
+            client,
+            contextId,
+            expressions,
+            environment
+          ) =>
         if (store.hasContext(client.clientId, contextId)) {
           val handler =
             context.actorOf(
@@ -196,7 +201,11 @@ final class ContextRegistry(
           val invalidatedExpressions =
             expressions.map(toRuntimeInvalidatedExpressions)
           handler.forward(
-            Api.RecomputeContextRequest(contextId, invalidatedExpressions)
+            Api.RecomputeContextRequest(
+              contextId,
+              invalidatedExpressions,
+              environment.map(ExecutionEnvironment.toApi)
+            )
           )
         } else {
           sender() ! AccessDenied

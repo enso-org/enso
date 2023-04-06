@@ -305,6 +305,14 @@ interface ExecutionTime {
 }
 ```
 
+### `ExecutionEnvironment`
+
+The execution environment of Enso runtime.
+
+```typescript
+type ExecutionEnvironment = Design | Live;
+```
+
 ### `ExpressionUpdate`
 
 An update about the computed expression.
@@ -3618,8 +3626,14 @@ May include a list of expressions for which caches should be invalidated.
 
 ```typescript
 {
+  /** The execution context identifier. */
   contextId: ContextId;
+
+  /** The expressions that will be invalidated before the execution. */
   invalidatedExpressions?: "all" | [ExpressionId]
+
+  /** The execution environment that will be used in the execution. */
+  executionEnvironment?: ExecutionEnvironment
 }
 ```
 

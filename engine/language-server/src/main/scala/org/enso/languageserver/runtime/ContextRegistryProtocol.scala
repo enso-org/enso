@@ -98,11 +98,13 @@ object ContextRegistryProtocol {
     * @param rpcSession reference to the client
     * @param contextId execution context identifier
     * @param invalidatedExpressions the expressions that should be invalidated
+    * @param executionEnvironment the environment that should be used for execution
     */
   case class RecomputeContextRequest(
     rpcSession: JsonSession,
     contextId: ContextId,
-    invalidatedExpressions: Option[InvalidatedExpressions]
+    invalidatedExpressions: Option[InvalidatedExpressions],
+    executionEnvironment: Option[ExecutionEnvironment]
   )
 
   /** A response about recomputing the context.
