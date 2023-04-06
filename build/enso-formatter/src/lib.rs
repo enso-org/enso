@@ -367,8 +367,9 @@ pub struct RustSourcePath {
 /// uses non-documented API and is slow as well (8 seconds for the whole codebase). It should be
 /// possible to improve the latter solution to get good performance, but it seems way harder than it
 /// should be.
-pub async fn process_path(path: impl AsRef<Path>, action: Action) -> Result {
-    let paths = discover_paths(&path)?;
+#[context("Enso Formatter: failed to process root path '{}'.", path.as_ref().display())]
+pub async fn process_path(path: impl AsRef<Path> + Copy, action: Action) -> Result {
+    let paths = discover_paths(path)?;
     let total = paths.len();
     let mut hash_map = HashMap::<PathBuf, u64>::new();
     for (i, sub_path) in paths.iter().enumerate() {
@@ -396,12 +397,14 @@ pub async fn process_path(path: impl AsRef<Path>, action: Action) -> Result {
 }
 
 /// Discover all paths containing Rust sources, recursively.
+#[context("Discovering Rust paths failed for '{}' failed.", path.as_ref().display())]
 pub fn discover_paths(path: impl AsRef<Path>) -> Result<Vec<RustSourcePath>> {
     let mut vec = Vec::default();
-    discover_paths_internal(&mut vec, path, false)?;
+    discover_paths_internal(&mut vec, &path, false)?;
     Ok(vec)
 }
 
+#[context("Discovering paths failed for '{}' failed.", path.as_ref().display())]
 pub fn discover_paths_internal(
     vec: &mut Vec<RustSourcePath>,
     path: impl AsRef<Path>,
@@ -409,7 +412,11 @@ pub fn discover_paths_internal(
 ) -> Result {
     use ide_ci::fs;
     let path = path.as_ref();
-    let md = fs::metadata(path)?;
+    // Below we use `symlink_metadata` instead of `metadata` because the latter follows symlinks.
+    // We don't want the formatter to fail if it encounters a symlink to a non-existing file.
+    // All files to be formatted should be reachable from the repository root without following
+    // any symlinks.
+    let md = fs::symlink_metadata(path)?;
     if md.is_dir() && !path.file_name().contains(&"target") {
         let dir_name = path.file_name();
         // FIXME: This should cover 'tests' folder also, but only the files that contain actual

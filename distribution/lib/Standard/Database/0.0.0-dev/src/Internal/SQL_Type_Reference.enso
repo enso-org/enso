@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import Standard.Base.Runtime.Lazy.Lazy
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Type.SQL_Type
@@ -14,7 +13,7 @@ type SQL_Type_Reference
 
        Since fetching this type requires querying the database, it is computed
        lazily and cached.
-    Computed_By_Database (lazy_ref : Lazy)
+    Computed_By_Database (~lazy_ref : SQL_Type)
 
     ## Refers to an SQL type that is overridden by the dialect's type system.
     Overridden (value : SQL_Type)
@@ -25,7 +24,7 @@ type SQL_Type_Reference
        This may perform a database query on first access.
     get : SQL_Type
     get self = case self of
-        SQL_Type_Reference.Computed_By_Database lazy_ref -> lazy_ref.get
+        SQL_Type_Reference.Computed_By_Database lazy_ref -> lazy_ref
         SQL_Type_Reference.Overridden value -> value
 
     ## PRIVATE
@@ -51,7 +50,7 @@ type SQL_Type_Reference
             columns = connection.jdbc_connection.fetch_columns statement statement_setter
             only_column = columns.first
             only_column.second
-        SQL_Type_Reference.Computed_By_Database (Lazy.new do_fetch)
+        SQL_Type_Reference.Computed_By_Database do_fetch
 
     ## PRIVATE
        Creates a new `SQL_Type_Reference` that should never be used.
@@ -61,7 +60,7 @@ type SQL_Type_Reference
     null =
         getter =
             Error.throw (Illegal_State.Error "Getting the SQL_Type from SQL_Type_Reference.null is not allowed. This indicates a bug in the Database library.")
-        SQL_Type_Reference.Computed_By_Database (Lazy.new getter)
+        SQL_Type_Reference.Computed_By_Database getter
 
     ## PRIVATE
        Turns this reference into a type override.
