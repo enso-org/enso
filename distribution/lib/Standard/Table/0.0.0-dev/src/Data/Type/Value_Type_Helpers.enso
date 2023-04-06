@@ -75,11 +75,3 @@ find_common_type types strict =
         # Double check if Mixed was really allowed to come out.
         if types.contains Value_Type.Mixed then Value_Type.Mixed else
             Nothing
-
-## PRIVATE
-   Checks if the given type is a valid target type for parsing.
-
-   This will be replaced once we change parse to rely on `Value_Type` instead.
-ensure_valid_parse_target type ~action =
-    expected_types = [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean]
-    if expected_types.contains type . not then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else action
