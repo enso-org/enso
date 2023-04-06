@@ -280,6 +280,7 @@ impl model::execution_context::API for ExecutionContext {
     }
 
     fn set_mode(&self, mode: ExecutionEnvironment) -> BoxFuture<FallibleResult> {
+        info!("Setting execution mode to {mode:?}.");
         self.execution_environment.set(mode);
         futures::future::ready(Ok(())).boxed_local()
     }

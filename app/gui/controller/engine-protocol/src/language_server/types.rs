@@ -1175,12 +1175,20 @@ impl Default for ExecutionEnvironment {
 }
 
 impl ExecutionEnvironment {
+    /// List all available execution environments.
     pub fn list_all() -> Vec<Self> {
         vec![ExecutionEnvironment::Design, ExecutionEnvironment::Live]
     }
 
+    /// List all available execution environments as ImStrings. Useful for UI.
     pub fn list_all_as_imstrings() -> Vec<ImString> {
-        Self::list_all().iter().map(|env| ImString::new(env.to_string())).collect()
+        Self::list_all().iter().map(|env| (*env).into()).collect()
+    }
+}
+
+impl From<ExecutionEnvironment> for ImString {
+    fn from(env: ExecutionEnvironment) -> Self {
+        ImString::new(env.to_string())
     }
 }
 
@@ -1189,8 +1197,8 @@ impl TryFrom<&str> for ExecutionEnvironment {
 
     fn try_from(value: &str) -> core::result::Result<Self, Self::Error> {
         match value {
-            "design" => Ok(ExecutionEnvironment::Design),
-            "live" => Ok(ExecutionEnvironment::Live),
+            "design" | "Design" => Ok(ExecutionEnvironment::Design),
+            "live" | "Live" => Ok(ExecutionEnvironment::Live),
             _ => Err(()),
         }
     }

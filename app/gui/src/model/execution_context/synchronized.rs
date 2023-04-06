@@ -14,6 +14,7 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ExecutionEnvironment;
 
 
+
 // ====================
 // === Notification ===
 // ====================
@@ -316,6 +317,7 @@ impl model::execution_context::API for ExecutionContext {
     fn set_mode(&self, mode: ExecutionEnvironment) -> BoxFuture<FallibleResult> {
         self.model.execution_environment.set(mode);
         async move {
+            info!("Setting execution mode to {mode:?}.");
             self.language_server.client.set_mode(&self.id, &mode).await?;
             Ok(())
         }

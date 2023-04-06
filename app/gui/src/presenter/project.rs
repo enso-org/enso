@@ -2,12 +2,12 @@
 //! about presenters in general.
 
 use crate::prelude::*;
-use engine_protocol::language_server::ExecutionEnvironment;
 
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
 
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use ensogl::system::js;
 use ide_view as view;
@@ -281,7 +281,16 @@ impl Model {
     }
 
     fn execution_mode_changed(&self, mode: &ide_view::execution_mode_selector::ExecutionMode) {
-        error!("Execution mode changed: {mode}");
+        if let Ok(mode) = mode.as_str().try_into() {
+            let graph_controller = self.graph_controller.clone_ref();
+            executor::global::spawn(async move {
+                if let Err(err) = graph_controller.set_mode(mode).await {
+                    error!("Error setting execution mode: {err}");
+                }
+            });
+        } else {
+            error!("Invalid execution mode: {mode:?}");
+        }
     }
 }
 
@@ -381,6 +390,8 @@ impl Project {
             eval_ view.execution_context_restart(model.execution_context_restart());
 
             eval graph_view.execution_mode((mode) model.execution_mode_changed(mode));
+            eval graph_view.execution_mode([](mode) error!("project::execution_mode_changed {mode:?}"));
+
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
@@ -397,6 +408,9 @@ impl Project {
         let graph = &self.model.view.graph();
         let entries = Rc::new(ExecutionEnvironment::list_all_as_imstrings());
         graph.set_available_execution_modes(entries);
+        let default_mode = ExecutionEnvironment::default();
+        let default_mode: ImString = default_mode.into();
+        graph.set_execution_mode(default_mode);
         self
     }
 
