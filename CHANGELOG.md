@@ -773,9 +773,7 @@
 [5791]: https://github.com/enso-org/enso/pull/5791
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
-
 [6067]: https://github.com/enso-org/enso/pull/6067
-
 [5998]: https://github.com/enso-org/enso/pull/5998
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
