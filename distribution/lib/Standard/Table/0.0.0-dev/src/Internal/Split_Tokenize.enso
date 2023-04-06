@@ -14,7 +14,7 @@ from project.Data.Type.Value_Type import Auto
 split_to_columns : Table -> Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
 split_to_columns table column delimiter="," column_count=Auto on_problems=Report_Error =
     _ = [column_count, on_problems]
-    transform_table_column_to_columns table column (ignore_nothing (_.split delimiter))
+    fan_out_to_columns table column (ignore_nothing (_.split delimiter))
 
 ## PRIVATE
    Splits a column of text into a set of new rows.
@@ -22,7 +22,7 @@ split_to_columns table column delimiter="," column_count=Auto on_problems=Report
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
 split_to_rows table column delimiter="," on_problems=Report_Error =
     _ = on_problems
-    multiply_rows table column (ignore_nothing (_.split delimiter))
+    fan_out_to_rows table column (ignore_nothing (_.split delimiter))
 
 ## PRIVATE
    Tokenizes a column of text into a set of new columns using a regular
@@ -31,7 +31,7 @@ split_to_rows table column delimiter="," on_problems=Report_Error =
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
 tokenize_to_columns table column pattern case_sensitivity column_count on_problems =
     _ = [column_count, on_problems]
-    transform_table_column_to_columns table column (ignore_nothing (_.tokenize pattern case_sensitivity))
+    fan_out_to_columns table column (ignore_nothing (_.tokenize pattern case_sensitivity))
 
 ## PRIVATE
    Tokenizes a column of text into a set of new rows using a regular
@@ -40,7 +40,23 @@ tokenize_to_columns table column pattern case_sensitivity column_count on_proble
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
 tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
     _ = on_problems
-    multiply_rows table column (ignore_nothing (_.tokenize pattern case_sensitivity))
+    fan_out_to_rows table column (ignore_nothing (_.tokenize pattern case_sensitivity))
+
+## PRIVATE
+   Transform a table by transforming a column into a set of columns. Takes a
+   function that maps a single element of the input column to a vector of output
+   values. The original column is replaced by the new columns.
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Table
+fan_out_to_columns table column function =
+    input_column = table.at column
+    new_columns = map_column_to_multiple input_column function
+    replace_column_with_columns table column new_columns
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -53,8 +69,8 @@ tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sens
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-multiply_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
-multiply_rows table column function =
+fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
+fan_out_to_rows table column function =
     input_column = table.at column
 
     # Transform each input value to an output set.
@@ -85,22 +101,6 @@ multiply_rows table column function =
                         builder.append input_value
         Column.from_vector column.name (builder.to_vector)
     Table.new new_columns
-
-## PRIVATE
-   Transform a table by transforming a column into a set of columns. Takes a
-   function that maps a single element of the input column to a vector of output
-   values. The original column is replaced by the new columns.
-
-   Arguments:
-   - table: The table to transform.
-   - input_column: The column to transform.
-   - function: A function that transforms a single element of `input_column`
-     to multiple values.
-transform_table_column_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Table
-transform_table_column_to_columns table column function =
-    input_column = table.at column
-    new_columns = map_column_to_multiple input_column function
-    replace_column_with_columns table column new_columns
 
 ## PRIVATE
    Transform a column into a set of columns. Takes a function that maps a
