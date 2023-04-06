@@ -16,12 +16,33 @@ split_to_columns table column delimiter="," column_count=Auto on_problems=Report
     _ = [column_count, on_problems]
     transform_table_column_to_columns table column (ignore_nothing (_.split delimiter))
 
+## PRIVATE
+   Splits a column of text into a set of new rows.
+   See `Table.split_to_rows`.
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
 split_to_rows table column delimiter="," on_problems=Report_Error =
     _ = on_problems
     multiply_rows table column (ignore_nothing (_.split delimiter))
 
-## Private
+## PRIVATE
+   Tokenizes a column of text into a set of new columns using a regular
+   expression.
+   See `Table.tokenize_to_columns`.
+tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
+tokenize_to_columns table column pattern case_sensitivity column_count on_problems =
+    _ = [column_count, on_problems]
+    transform_table_column_to_columns table column (ignore_nothing (_.tokenize pattern case_sensitivity))
+
+## PRIVATE
+   Tokenizes a column of text into a set of new rows using a regular
+   expression.
+   See `Table.tokenize_to_rows`.
+tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
+tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
+    _ = on_problems
+    multiply_rows table column (ignore_nothing (_.tokenize pattern case_sensitivity))
+
+## PRIVATE
    Transform a column by applying the given function to the values in the
    column. The function produces multiple outputs, so each row is duplicated,
    with each row getting a distinct output value in place of the original
@@ -64,19 +85,6 @@ multiply_rows table column function =
                         builder.append input_value
         Column.from_vector column.name (builder.to_vector)
     Table.new new_columns
-
-## PRIVATE
-   Tokenize a column of text into a set of new columns.
-   See `Table.tokenize_to_columns`.
-tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
-tokenize_to_columns table column pattern case_sensitivity column_count on_problems =
-    _ = [column_count, on_problems]
-    transform_table_column_to_columns table column (ignore_nothing (_.tokenize pattern case_sensitivity))
-
-tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
-tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
-    _ = on_problems
-    multiply_rows table column (ignore_nothing (_.tokenize pattern case_sensitivity))
 
 ## PRIVATE
    Transform a column into a set of columns. Takes a function that maps a
