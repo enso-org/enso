@@ -264,7 +264,6 @@ concat_ops =
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
-
 ## PRIVATE
 agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
     case args.length == 1 of

@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -913,6 +914,69 @@ type Column
     like self pattern =
         run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State.Error "The `Like` operation should only be used on Text columns.")) pattern
 
+    ## This function removes the specified characters, by default any
+       whitespace, from the start, the end, or both ends of the input.
+
+       Arguments:
+       - where: The location of where to trim the input. By default, this
+         function trims both ends of the input.
+       - what: A `Text` containing characters that should be removed. By
+         default, all whitespace is removed.
+    trim : Location -> Column | Text -> Column
+    trim self where=Location.Both what='' =
+        Value_Type.expect_text self.value_type <|
+            new_name = Naming_Helpers.function_name "trim" [self]
+            trim_fn = if what.is_empty then t-> t.trim where else
+                t-> t.trim where what
+            self.map trim_fn . rename new_name
+
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       row. If `term` is empty, the function returns the table unchanged.
+
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
+
+       Arguments:
+       - term: The term to find.
+       - replacement: The text to replace matches with.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - only_first: If True, only replace the first match.
+       - use_regex: If true, the term is used as a regular expression.
+
+       > Example
+         Replace dashes with underscores.
+
+             column.replace "-" "_"
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.replace "^\s*(.*?)\s*$" "$1" use_regex=True
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+             table.replace '"(.*?)"' '($1)' use_regex=True
+    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
+        Value_Type.expect_text self.value_type <|
+            term_fn = wrap_text_argument term 'term'
+            new_text_fn = wrap_text_argument new_text 'new_text'
+
+            term_fn.if_not_error <| new_text_fn.if_not_error <|
+                new_name = Naming_Helpers.function_name "replace" [self, term, new_text]
+
+                do_replace index input =
+                    term = term_fn index
+                    if term.is_empty then input else
+                        replace = new_text_fn index
+                        input.replace term replace case_sensitivity only_first use_regex
+
+                self_vec = self.to_vector
+                mapped = self_vec.map_with_index do_replace
+                Column.from_vector new_name mapped
+
     ## Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -920,7 +984,6 @@ type Column
     year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self.value_type related_column=self.name <|
         simple_unary_op self "year"
-
 
     ## Gets the month as a number (1-12) from the date stored in the column.
 
@@ -1577,3 +1640,11 @@ run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_n
 simple_unary_op column op_name =
     new_name = Naming_Helpers.function_name op_name [column]
     run_vectorized_unary_op column op_name (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `"+op_name+"`. This is a bug in the Table library.")) new_name
+
+## PRIVATE
+wrap_text_argument val field = case val of
+    _ : Text -> (_-> val)
+    _ : Column -> Value_Type.expect_text val.value_type <|
+        storage = val.java_column.getStorage
+        storage.getItemBoxed
+    _ -> Error.throw (Illegal_State.Error "The `"+field+"` must be Text or a Text Column.")
