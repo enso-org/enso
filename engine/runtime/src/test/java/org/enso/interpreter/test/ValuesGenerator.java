@@ -721,6 +721,7 @@ class ValuesGenerator {
   public List<Value> allTypes() throws Exception {
     var collect = new ArrayList<Value>();
     for (var m : getClass().getMethods()) {
+
       if (m.getName().startsWith("type")) {
         if (m.getReturnType() == Value.class) {
           var r = (Value) m.invoke(this);
