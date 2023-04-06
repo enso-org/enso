@@ -258,6 +258,11 @@ class App {
                 fsSync.writeFileSync(profileOutPath, data)
             })
         }
+        electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, _event => {
+            if (this.window != null) {
+                this.window.loadURL('chrome://gpu')
+            }
+        })
         electron.ipcMain.on(ipc.Channel.quit, () => {
             electron.app.quit()
         })

@@ -5,6 +5,7 @@
 
 use crate::prelude::*;
 
+use std::fs::DirEntry;
 use std::fs::File;
 use std::fs::Metadata;
 
@@ -18,6 +19,12 @@ use std::fs::Metadata;
 #[context("Failed to obtain metadata for file: {}", path.as_ref().display())]
 pub fn metadata<P: AsRef<Path>>(path: P) -> Result<Metadata> {
     std::fs::metadata(&path).anyhow_err()
+}
+
+/// See [std::fs::symlink_metadata].
+#[context("Failed to obtain symlink metadata for file: {}", path.as_ref().display())]
+pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> Result<Metadata> {
+    std::fs::symlink_metadata(&path).anyhow_err()
 }
 
 /// See [std::fs::copy].
@@ -39,9 +46,15 @@ pub fn read(path: impl AsRef<Path>) -> Result<Vec<u8>> {
 }
 
 /// See [std::fs::read_dir].
-#[context("Failed to read the directory: {}", path.as_ref().display())]
-pub fn read_dir(path: impl AsRef<Path>) -> Result<std::fs::ReadDir> {
-    std::fs::read_dir(&path).anyhow_err()
+pub fn read_dir(path: impl AsRef<Path>) -> Result<impl Iterator<Item = Result<DirEntry>>> {
+    let path = path.as_ref().to_path_buf();
+    let read_dir = std::fs::read_dir(&path)
+        .map_err(|e| anyhow!("Failed to read the directory: '{}'. Error: {}", path.display(), e))?;
+    Ok(read_dir.into_iter().map(move |elem_result| {
+        elem_result.map_err(|e| {
+            anyhow!("Failed to read sub-item from the directory '{}'. Error: {}", path.display(), e)
+        })
+    }))
 }
 
 /// See [std::fs::read_to_string].

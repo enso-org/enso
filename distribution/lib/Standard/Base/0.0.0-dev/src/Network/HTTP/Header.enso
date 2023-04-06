@@ -1,3 +1,4 @@
+import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
 
@@ -32,8 +33,6 @@ type Header
              example_new = Header.new "My_Header" "my header's value"
     new : Text -> Text -> Header
     new name value = Header.Value name value
-
-    # Accept
 
     ## Create an "Accept" header.
 
@@ -92,7 +91,13 @@ type Header
     authorization_basic user pass =
         Header.authorization (Http_Utils.header_basic_auth user pass)
 
-    # Content-Type
+    ## Create bearer token auth header.
+
+       Arguments:
+       - token: The token.
+    authorization_bearer : Text -> Header
+    authorization_bearer token =
+        Header.authorization ("Bearer " + token)
 
     ## Create "Content-Type" header.
 
@@ -170,10 +175,14 @@ type Header
 
 ## PRIVATE
 type Header_Comparator
+    ## PRIVATE
+    compare : Header -> Header -> Ordering
     compare x y =
         if x.name.equals_ignore_case y.name && x.value == y.value then Ordering.Equal else
             Nothing
 
+    ## PRIVATE
+    hash : Header -> Integer
     hash x =
         key = x.name.to_case_insensitive_key + x.value
         Comparable.from key . hash key

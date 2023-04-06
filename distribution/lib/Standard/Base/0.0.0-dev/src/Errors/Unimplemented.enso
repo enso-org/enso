@@ -12,12 +12,12 @@ type Unimplemented
     Error message
 
     ## PRIVATE
-
        Converts the unimplemented error to a human-readable error message.
     to_display_text : Text
     to_display_text self = "An implementation is missing: " + self.message
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        A function that can be used to indicate that something hasn't been
        implemented yet.

@@ -169,7 +169,7 @@ base_dialect =
     fun = name -> [name, make_function name]
 
     arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"]]
-    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["TRUE", make_constant "TRUE"], ["FALSE", make_constant "FALSE"]]
+    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
     compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
@@ -179,7 +179,8 @@ base_dialect =
     text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
-    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
+    types = [simple_cast]
+    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
@@ -198,6 +199,10 @@ make_iif arguments = case arguments.length of
         (Builder.code "CASE WHEN " ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
+
+## PRIVATE
+simple_cast = Base_Generator.lift_binary_op "CAST" a-> b->
+    Builder.code "CAST(" ++ a ++ " AS " ++ b ++ ")"
 
 ## PRIVATE
 make_between : Vector Builder -> Builder
@@ -249,6 +254,7 @@ generate_expression dialect expr = case expr of
     SQL_Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     SQL_Expression.Constant value -> Builder.interpolation value
+    SQL_Expression.Literal value -> Builder.code value
     SQL_Expression.Operation kind arguments ->
         op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
@@ -287,6 +293,14 @@ generate_from_part dialect from_spec = case from_spec of
         right = generate_from_part dialect right_spec
         ons = Builder.join " AND " (on.map (generate_expression dialect)) . prefix_if_present " ON "
         left ++ (" " + kind.to_sql + " ") ++ right ++ ons
+    From_Spec.Union queries as_name ->
+        built_queries = queries.map query->
+            case query of
+                Query.Select _ _ -> Nothing
+                _ -> Panic.throw <| Illegal_State.Error "Only SELECT queries can be used in a UNION. This is a bug in the Database library."
+            generate_query dialect query
+        joined = Builder.join " UNION ALL " built_queries
+        joined.paren ++ alias dialect as_name
     From_Spec.Sub_Query columns context as_name ->
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name

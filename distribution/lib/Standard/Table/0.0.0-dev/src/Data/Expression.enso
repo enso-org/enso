@@ -5,7 +5,9 @@ polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
 
 type Expression
-    ## Evaluates an expression and returns the result
+    ## PRIVATE
+       ADVANCED
+       Evaluates an expression and returns the result
 
        Arguments:
        - expression: the expression to evaluate
@@ -29,15 +31,21 @@ type Expression
             ExpressionVisitorImpl.evaluate expression get_column make_constant module_name type_name var_args_functions.to_array
 
 type Expression_Error
-    ## The expression supplied could not be parsed due to a syntax error.
+    ## PRIVATE
+       The expression supplied could not be parsed due to a syntax error.
     Syntax_Error message:Text line:Integer column:Integer
 
-    ## Expression error when a function could not be found on the target type.
+    ## PRIVATE
+       Expression error when a function could not be found on the target type.
     Unsupported_Operation name:Text
 
-    ## Expression error when the number of arguments for a function is incorrect.
+    ## PRIVATE
+       Expression error when the number of arguments for a function is incorrect.
     Argument_Mismatch message:Text
 
+    ## PRIVATE
+
+       Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = case self of
         Expression_Error.Syntax_Error _ _ _ -> "Expression.Syntax_Error: " + self.message + " (line " + self.line.to_text + ", column " + self.column.to_text + ")."

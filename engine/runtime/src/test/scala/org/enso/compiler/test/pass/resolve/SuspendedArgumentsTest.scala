@@ -205,13 +205,12 @@ class SuspendedArgumentsTest extends CompilerTest {
   }
 
   "Suspended arguments resolution in expressions" should {
-    "correctly mark arguments as suspended in blocks" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "correctly mark arguments as suspended in blocks" in {
       implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
-          |f : a -> Suspended -> b
+          |f : A -> Suspended -> B
           |f a b = b
           |""".stripMargin.preprocessExpression.get.resolve
           .asInstanceOf[IR.Expression.Block]
@@ -224,8 +223,7 @@ class SuspendedArgumentsTest extends CompilerTest {
       assert(func.arguments(1).suspended, "b is not suspended")
     }
 
-    "correctly mark arguments as suspended using inline expressions" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "correctly mark arguments as suspended using inline expressions" in {
       implicit val ctx: InlineContext = mkInlineContext
 
       val ir =

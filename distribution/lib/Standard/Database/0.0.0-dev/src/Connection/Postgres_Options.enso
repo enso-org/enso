@@ -28,7 +28,8 @@ type Postgres_Options
        - client_cert: The client certificate to use or `Nothing` if not needed.
     Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
-    ## Build the Connection resource.
+    ## PRIVATE
+       Build the Connection resource.
 
        Arguments:
        - options: Overrides for the connection properties.
@@ -44,12 +45,14 @@ type Postgres_Options
 
         Postgres_Connection.create self.jdbc_url properties make_new
 
-    ## Provides the jdbc url for the connection.
+    ## PRIVATE
+       Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
         'jdbc:postgresql://' + self.host + ':' + self.port.to_text + (if self.database == '' then '' else '/' + self.database)
 
-    ## Provides the properties for the connection.
+    ## PRIVATE
+       Provides the properties for the connection.
     jdbc_properties : [Pair Text Text]
     jdbc_properties self =
         credentials = case self.credentials of
