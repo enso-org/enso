@@ -10,7 +10,11 @@ spec =
         same_headers = (t0.columns.map .name) == (t1.columns.map .name)
         same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
         same_headers && same_columns
-    tables_should_be_equal t0 t1 = tables_equal t0 t1 . should_equal True
+    tables_should_be_equal t0 t1 =
+        equal = tables_equal t0 t1
+        if equal.not then
+            msg = 'Tables differ:\n' + t0.display + '\n' + t1.display
+            Test.fail msg
 
     Test.group "split' <|
         Test.specify 'can do split_to_columns' <|
@@ -47,14 +51,15 @@ spec =
                 t2 = t.tokenize_to_rows 'bar' "\d+"
                 tables_should_be_equal t2 expected
 
-            Test.specify "can do tokenize_to_columns with groups" <|
-                cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
-                t = Table.new cols
-                expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
-                expected = Table.from_rows ['foo', 'bar'] expected_rows
-                t2 = t.tokenize_to_columns 'bar' "([a-z]).(\d+)"
-                tables_should_be_equal t2 expected
+        Test.specify "can do tokenize_to_columns with groups" <|
+            cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
+            t = Table.new cols
+            expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
+            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
+            t2 = t.tokenize_to_columns 'bar' "([a-z]).(\d+)"
+            tables_should_be_equal t2 expected
 
+        ##
             Test.specify "can do tokenize_to_rows with groups" <|
                 cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
                 t = Table.new cols

@@ -68,8 +68,9 @@ transpose_with_pad vecs = transpose (pad_vectors vecs Nothing)
    Assumes both dimensions are non-zero.
 transpose : Vector (Vector Any) -> Vector (Vector Any)
 transpose vecs =
-    num_output_rows = vecs.first.length
-    builders = vecs.map _-> Vector.new_builder num_output_rows
+    num_output_rows = vecs.length
+    num_output_cols = vecs.first.length
+    builders = (0.up_to num_output_cols).map _-> Vector.new_builder num_output_rows
     vecs.map vec->
         vec.map_with_index i-> v->
             builders.at i . append v
