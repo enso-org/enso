@@ -6,7 +6,6 @@ import Standard.Base.System.File.Output_Stream
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
-import project.Data.Storage.Storage
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
@@ -137,13 +136,12 @@ write_to_stream table format stream on_problems related_file=Nothing separator_o
 write_to_writer : Table -> Delimited_Format -> Writer -> Text | Nothing -> Boolean -> Nothing
 write_to_writer table format java_writer separator_override=Nothing needs_leading_newline=False =
     column_formatters = Panic.recover Illegal_Argument <| case format.value_formatter of
-        Nothing -> table.columns.map column-> case column.storage_type of
-            Storage.Text -> TextFormatter.new
-            _ ->
+        Nothing -> table.columns.map column->
+            if column.value_type.is_text then TextFormatter.new else
                 Panic.throw (Illegal_Argument.Error "If the expected file format does not specify a valid `Data_Formatter`, only Text columns are allowed.")
         value_formatter -> table.columns.map column->
-            storage_type = column.storage_type
-            value_formatter.make_formatter_for_column_type storage_type
+            value_type = column.value_type
+            value_formatter.make_formatter_for_column_type value_type
     quote_behavior = case format.quote_style of
         Quote_Style.No_Quotes -> WriteQuoteBehavior.NEVER
         Quote_Style.With_Quotes always _ _ ->

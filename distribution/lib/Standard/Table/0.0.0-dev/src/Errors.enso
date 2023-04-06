@@ -116,7 +116,8 @@ type Floating_Point_Equality
     to_display_text self =
         "Relying on equality of floating-point numbers is not recommended (within "+self.location+")."
 
-## Indicates that a text value with a delimiter was included in a concatenation without any quote character
+## Indicates that a text value with a delimiter was included in a concatenation
+   without any quote character
 type Unquoted_Delimiter
     Error (column:Text) (rows:[Integer])
 
@@ -353,7 +354,10 @@ type Invalid_Value_Type
         prefix = case self.related_column of
             Nothing -> "Expected "
             column_name -> "Expected " + column_name + " column to have "
-        prefix + self.expected.to_text + " type, but got " + self.actual.to_text + "."
+        expected_type = case self.expected of
+            msg : Text -> msg
+            other -> other.to_display_text
+        prefix + expected_type + " type, but got " + self.actual.to_display_text + "."
 
 ## UNSTABLE
 
@@ -431,3 +435,25 @@ type Invalid_Aggregate_Column
     to_display_text : Text
     to_display_text self =
         "The name ["+self.name+"] is not a valid column name nor expression."
+
+type Inexact_Type_Coercion
+    ## Indicates that the requested `Value_Type` is not available in the given
+       backend, so it was replaced by its closest available type.
+    Warning (requested_type : Value_Type) (actual_type : Value_Type)
+
+    to_display_text : Text
+    to_display_text self =
+        "The requested type ["+self.requested_type.to_text+"] is not available in the given backend, so it was replaced by its closest available type ["+self.actual_type.to_text+"]."
+
+    to_text : Text
+    to_text self =
+        "Inexact_Type_Coercion.Warning (requested_type = " + self.requested_type.to_text + ") (actual_type = " + self.actual_type.to_text + ")"
+
+type Invalid_Value_For_Type
+    ## Indicates that a column construction/transformation failed because the
+       provided value is not valid for the requested column type.
+    Error (value : Any) (value_type : Value_Type)
+
+    to_display_text : Text
+    to_display_text self =
+        "The value ["+self.value.to_text+"] is not valid for the column type ["+self.value_type.to_text+"]."

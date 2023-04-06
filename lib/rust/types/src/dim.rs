@@ -365,6 +365,8 @@ pub trait DimMut<D>: DimRef<D> {
 #[allow(missing_docs)]
 pub trait DimSetter<D>: Dim<D> {
     fn set_dim(&mut self, dim: D, value: Self::Dim1Type);
+    /// Set dimension value, returning `true` only if the value was changed.
+    fn set_dim_checked(&mut self, dim: D, value: Self::Dim1Type) -> bool;
     fn update_dim(&mut self, dim: D, f: impl FnOnce(Self::Dim1Type) -> Self::Dim1Type)
     where D: Copy {
         self.set_dim(dim, f(self.get_dim(dim)));
@@ -410,7 +412,16 @@ macro_rules! gen_dim_impl_for_vector {
 
             impl<T: Scalar + Copy> DimSetter<[<$dim:upper>]> for $vec<T> {
                 fn set_dim(&mut self, _dim: [<$dim:upper>], value: Self::Dim1Type) {
-                    self.[<set_ $dim>](value)
+                    self.[<set_ $dim>](value);
+                }
+
+                fn set_dim_checked(&mut self, _dim: [<$dim:upper>], value: Self::Dim1Type) -> bool {
+                    if self.$dim() == value {
+                        false
+                    } else {
+                        self.[<set_ $dim>](value);
+                        true
+                    }
                 }
             }
         )*}

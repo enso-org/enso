@@ -288,7 +288,7 @@ pub struct SpriteSystem {
 impl SpriteSystem {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(label: &'static str) -> Self {
+    pub fn new(label: &'static str, alignment: alignment::Dim2) -> Self {
         let (stats, symbol) = world::with_context(|t| (t.stats.clone_ref(), t.new(label)));
         let mesh = symbol.surface();
         let point_scope = mesh.point_scope();
@@ -296,7 +296,7 @@ impl SpriteSystem {
         let uv = point_scope.add_buffer("uv");
         let transform = instance_scope.add_buffer("transform");
         let size = instance_scope.add_buffer("size");
-        let alignment_value = Rc::new(Cell::new(alignment::Dim2::center()));
+        let alignment_value = Rc::new(Cell::new(alignment));
         let initial_alignment = alignment_value.get().normalized();
         let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
 
@@ -314,7 +314,6 @@ impl SpriteSystem {
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
         let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);
-        sprite.unsafe_set_forced_origin_alignment(self.alignment_value.get());
         self.add_child(&sprite);
         sprite
     }

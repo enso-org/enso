@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Type_Error
 
-import project.Data.Value_Type.Value_Type
+import project.Data.Type.Value_Type.Value_Type
 
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
