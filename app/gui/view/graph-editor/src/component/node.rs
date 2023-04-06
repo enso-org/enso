@@ -307,7 +307,9 @@ ensogl::define_endpoints_2! {
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
         set_freeze_macro      (bool),
-        set_context_switch    (bool),
+        /// Set whether the output context is explicitly enabled: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_context_switch    (Option<bool>),
         set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with

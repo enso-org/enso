@@ -540,12 +540,13 @@ impl ExpressionUpdate {
         self.freeze_updated.map(|freeze| (self.id, freeze))
     }
 
-    /// An updated status of output context switch (A `ContextSwitch` object if the output context
-    /// was explicitly enabled or disabled for the node, `None` otherwise). The outer `Option` is
+    /// An updated status of output context switch: `true` (or `false`) if the output context was
+    /// explicitly enabled (or disabled) for the node, `None` otherwise. The outer `Option` is
     /// `None` if the status was not updated.
-    fn output_context(&self) -> Option<(ViewNodeId, Option<ContextSwitch>)> {
+    fn output_context(&self) -> Option<(ViewNodeId, Option<bool>)> {
         self.context_switch_updated.as_ref().map(|context_switch_expr| {
-            let switch = context_switch_expr.as_ref().map(|expr| expr.switch);
+            let switch =
+                context_switch_expr.as_ref().map(|expr| expr.switch == ContextSwitch::Enable);
             (self.id, switch)
         })
     }
@@ -721,12 +722,8 @@ impl Graph {
 
             // FIXME[Procrat]: Delete me once we synchronise the execution environment with the
             // language server.
-            execution_environment <- view.toggle_execution_environment.map(
+            view.set_execution_environment <+ view.toggle_execution_environment.map(
                 f_!([model] model.toggle_execution_environment()));
-            output_context_enabled <- execution_environment.map(|environment|
-                environment.output_context_enabled()
-            );
-            view.set_execution_environment <+ execution_environment;
 
 
             // === Refreshing Nodes ===
@@ -736,17 +733,7 @@ impl Graph {
             update_node_expression <- expression_update.map(ExpressionUpdate::expression);
             set_node_skip <- expression_update.filter_map(ExpressionUpdate::skip);
             set_node_freeze <- expression_update.filter_map(ExpressionUpdate::freeze);
-            output_context_updated <- expression_update.filter_map(ExpressionUpdate::output_context);
-            set_node_context_switch <- all_with(&output_context_updated, &output_context_enabled,
-                |(node_id, node_switch), enabled_globally| {
-                    // Highlight the context switch button only when we have an explicit
-                    // enable/disable expression and it's different from the global context.
-                    let highlighted = node_switch.map_or(false, |node_switch| {
-                        *enabled_globally != (node_switch == ContextSwitch::Enable)
-                    });
-                    (*node_id, highlighted)
-                },
-            );
+            set_node_context_switch <- expression_update.filter_map(ExpressionUpdate::output_context);
             set_node_position <= update_data.map(|update| update.set_node_positions());
             set_node_visualization <= update_data.map(|update| update.set_node_visualizations());
             enable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_some().as_some(*id));

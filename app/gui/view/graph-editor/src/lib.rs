@@ -622,7 +622,9 @@ ensogl::define_endpoints_2! {
         edit_node_expression         ((NodeId, text::Range<text::Byte>, ImString)),
         set_node_skip                ((NodeId,bool)),
         set_node_freeze              ((NodeId,bool)),
-        set_node_context_switch      ((NodeId, bool)),
+        /// Set whether the output context is explicitly enabled for a node: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_node_context_switch      ((NodeId, Option<bool>)),
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
@@ -1699,7 +1701,7 @@ impl GraphEditorModelWithNetwork {
             node.set_profiling_max_global_duration(profiling_max_duration.value());
 
 
-            // === Pass through execution environment ===
+            // === Execution Environment ===
 
             node.set_execution_environment <+ self.model.frp.set_execution_environment;
         }
@@ -2015,7 +2017,7 @@ impl GraphEditorModel {
         }
     }
 
-    fn set_node_context_switch(&self, node_id: impl Into<NodeId>, context_switch: &bool) {
+    fn set_node_context_switch(&self, node_id: impl Into<NodeId>, context_switch: &Option<bool>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.set_context_switch(*context_switch);
@@ -3208,7 +3210,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
-    // === Set Node SKIP and FREEZE macros ===
+    // === Set Node SKIP/FREEZE macros and context switch expression ===
 
     frp::extend! { network
         eval inputs.set_node_skip(((id, skip)) model.set_node_skip(id, skip));

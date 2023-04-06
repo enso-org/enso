@@ -74,7 +74,9 @@ ensogl::define_endpoints! {
         set_action_visibility_state     (bool),
         set_action_skip_state           (bool),
         set_action_freeze_state         (bool),
-        set_action_context_switch_state (bool),
+        /// Set whether the output context is explicitly enabled: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_action_context_switch_state (Option<bool>),
         show_on_hover                   (bool),
         set_execution_environment       (ExecutionEnvironment),
     }
@@ -175,9 +177,14 @@ impl ContextSwitchButton {
         Self { globally_enabled, disable_button, enable_button, display_object }
     }
 
-    fn set_state(&self, active: bool) {
-        self.disable_button.set_state(active);
-        self.enable_button.set_state(active);
+    /// Set the button's on/off state based on whether the output context is explicitly enabled for
+    /// this node. `output_context_enabled` is `Some(true/false)` for enabled/disabled; `None` for
+    /// no context switch expression.
+    fn set_state(&self, output_context_enabled: Option<bool>) {
+        let disable_button_active = !output_context_enabled.unwrap_or(true);
+        self.disable_button.set_state(disable_button_active);
+        let enable_button_active = output_context_enabled.unwrap_or(false);
+        self.enable_button.set_state(enable_button_active);
     }
 
     /// Swap the buttons if the execution environment changed.
