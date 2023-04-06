@@ -65,6 +65,7 @@ pub mod background {
     ensogl_core::shape! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape, icon::any];
         pointer_events = false;
+        alignment = center;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
@@ -231,6 +232,7 @@ impl Data {
         display_object.add_child(&background);
         display_object.add_child(&icon);
         display_object.add_child(&label);
+        background.set_size((0.0, 0.0));
         icon.set_size((icon::SIZE, icon::SIZE));
         label.set_long_text_truncation_mode(true);
         if let Some(layer) = text_layer {
@@ -265,8 +267,9 @@ impl Data {
             _ => grid_style.column_width(),
         };
         let bg_height = entry_size.y + overlap;
-        // See comment in [`Self::update_shadow`] method.
-        let shadow_addition = self.background.computed_size().y - self.background.height.get();
+        // See comment in [`Self::update_shadow`] method
+        let background_y = self.background.size().y().as_pixels().expect("size set in pixels");
+        let shadow_addition = background_y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
         let bg_y = -gap_over_header + overlap / 2.0 + local_scope_offset;
         self.background.set_y(bg_y);
@@ -327,7 +330,7 @@ impl Data {
         entry_size: Vector2,
     ) {
         if header_position.position != Vector2::default() {
-            let bg_width = self.background.computed_size().x;
+            let bg_width = self.background.size().x().as_pixels().expect("size set in pixels");
             let bg_height = self.background.height.get();
             let distance_to_section_top =
                 header_position.y_range.end() - header_position.position.y;

@@ -29,7 +29,7 @@ pub const FREEZE_MACRO_IDENTIFIER: &str = "FREEZE";
 // ==================
 
 /// The information about macros attached to the expression.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct MacrosInfo {
     pub skip:   bool,

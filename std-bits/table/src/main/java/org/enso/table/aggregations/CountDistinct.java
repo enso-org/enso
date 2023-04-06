@@ -2,13 +2,13 @@ package org.enso.table.aggregations;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.util.ConstantList;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 
@@ -29,7 +29,7 @@ public class CountDistinct extends Aggregator {
    * @param ignoreAllNull if true ignore then all values are null
    */
   public CountDistinct(String name, Column[] columns, boolean ignoreAllNull) {
-    super(name, Storage.Type.LONG);
+    super(name, IntegerType.INT_64);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreAllNull = ignoreAllNull;
     textFoldingStrategy =

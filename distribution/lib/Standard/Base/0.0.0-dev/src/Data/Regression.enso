@@ -78,7 +78,8 @@ type Fitted_Model
     ## Fitted power series (y = a x ^ b).
     Power a:Number b:Number r_squared:Number=0.0
 
-    ## Display the fitted line.
+    ## PRIVATE
+       Display the fitted line.
     to_text : Text
     to_text self =
         equation = case self of

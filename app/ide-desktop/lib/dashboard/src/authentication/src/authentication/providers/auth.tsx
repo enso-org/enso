@@ -25,6 +25,7 @@ const MESSAGES = {
     setUsernameSuccess: 'Your username has been set!',
     signInWithPasswordSuccess: 'Successfully logged in!',
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
+    changePasswordSuccess: 'Successfully changed password!',
     resetPasswordSuccess: 'Successfully reset password!',
     signOutSuccess: 'Successfully logged out!',
     pleaseWait: 'Please wait...',
@@ -86,6 +87,7 @@ interface AuthContextType {
     signInWithGitHub: () => Promise<void>
     signInWithPassword: (email: string, password: string) => Promise<void>
     forgotPassword: (email: string) => Promise<void>
+    changePassword: (oldPassword: string, newPassword: string) => Promise<void>
     resetPassword: (email: string, code: string, password: string) => Promise<void>
     signOut: () => Promise<void>
     /** Session containing the currently authenticated user's authentication information.
@@ -272,7 +274,14 @@ export function AuthProvider(props: AuthProviderProps) {
                 toast.error(result.val.message)
             }
         })
-
+    const changePassword = async (oldPassword: string, newPassword: string) =>
+        cognito.changePassword(oldPassword, newPassword).then(result => {
+            if (result.ok) {
+                toast.success(MESSAGES.changePasswordSuccess)
+            } else {
+                toast.error(result.val.message)
+            }
+        })
     const signOut = () =>
         cognito.signOut().then(() => {
             toast.success(MESSAGES.signOutSuccess)
@@ -287,6 +296,7 @@ export function AuthProvider(props: AuthProviderProps) {
         signInWithPassword: withLoadingToast(signInWithPassword),
         forgotPassword: withLoadingToast(forgotPassword),
         resetPassword: withLoadingToast(resetPassword),
+        changePassword: withLoadingToast(changePassword),
         signOut,
         session: userSession,
     }

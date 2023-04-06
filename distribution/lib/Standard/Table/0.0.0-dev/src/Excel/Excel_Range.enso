@@ -16,7 +16,8 @@ excel_2007_column_limit = 16384
 excel_2007_row_limit = 1048576
 
 type Excel_Range
-    ## Specifies a range within an Excel Workbook.
+    ## PRIVATE
+       Specifies a range within an Excel Workbook.
     Value java_range:Java_Range
 
     ## Gets the name of the sheet.
@@ -55,11 +56,14 @@ type Excel_Range
     address : Text
     address self = self.java_range.getAddress
 
-    ## Displays the Excel_Range.
+    ## PRIVATE
+       Displays the Excel_Range.
     to_text : Text
     to_text self = "Excel_Range " + self.address
 
-    ## Validates if a column index (1-based) is within the valid range for
+    ## PRIVATE
+       ADVANCED
+       Validates if a column index (1-based) is within the valid range for
        Excel.
 
        Arguments:
@@ -68,7 +72,9 @@ type Excel_Range
     is_valid_column column =
         (column > 0) && (column <= excel_2007_column_limit)
 
-    ## Validates if a row index (1-based) is within the valid range for Excel.
+    ## PRIVATE
+       ADVANCED
+       Validates if a row index (1-based) is within the valid range for Excel.
 
        Arguments:
        - row: 1-based index to check.
@@ -76,7 +82,9 @@ type Excel_Range
     is_valid_row row =
         (row > 0) && (row <= excel_2007_row_limit)
 
-    ## Given a column name, parses to the index (1-based) or return index
+    ## PRIVATE
+       ADVANCED
+       Given a column name, parses to the index (1-based) or return index
        unchanged.
     column_index : (Text|Integer) -> Integer
     column_index column = case column of

@@ -7,6 +7,7 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
@@ -17,6 +18,7 @@ import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import Ide from './ide'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
+import TopBar from './topBar'
 
 // =============
 // === Types ===
@@ -201,6 +203,9 @@ function Dashboard(props: DashboardProps) {
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
 
+    // The input value of `TopBar`
+    const [searchVal, setSearchVal] = react.useState('')
+
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
@@ -224,6 +229,13 @@ function Dashboard(props: DashboardProps) {
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
+
+    // The purpose of this effect is to enable search action.
+    react.useEffect(() => {
+        return () => {
+            // TODO
+        }
+    }, [searchVal])
 
     /** React components for the name column. */
     const nameRenderers: {
@@ -310,9 +322,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div className="text-primary text-xs">
-            {/* These are placeholders. When implementing a feature,
-             * please replace the appropriate placeholder with the actual element.*/}
-            <div id="header" />
+            <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
             <div className={tab === Tab.dashboard ? '' : 'hidden'}>
                 <div id="templates" />
                 <div className="flex flex-row flex-nowrap">
@@ -472,6 +482,7 @@ function Dashboard(props: DashboardProps) {
             <div className={tab === Tab.ide ? '' : 'hidden'}>
                 {project ? <Ide backendService={backendService} project={project} /> : <></>}
             </div>
+            <div id="modal-root" />
         </div>
     )
 }

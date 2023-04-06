@@ -7,8 +7,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
 import Standard.Table.Main as Table_Module
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
-from Standard.Table.Data.Storage import Storage
-import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type
 
 import Standard.Visualization
@@ -99,17 +98,17 @@ spec =
             Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
 
         Test.specify "should correctly infer storage types" <|
-            varied_type_table.at "strs" . storage_type . should_equal Storage.Text
-            varied_type_table.at "ints" . storage_type . should_equal Storage.Integer
-            varied_type_table.at "doubles" . storage_type . should_equal Storage.Decimal
-            varied_type_table.at "doubles_and_ints" . storage_type . should_equal Storage.Decimal
-            varied_type_table.at "custom_objects" . storage_type . should_equal Storage.Any
-            varied_type_table.at "dates" . storage_type . should_equal Storage.Date
-            varied_type_table.at "times" . storage_type . should_equal Storage.Time_Of_Day
-            varied_type_table.at "datetimes" . storage_type . should_equal Storage.Date_Time
-            varied_type_table.at "mixed" . storage_type . should_equal Storage.Any
-            varied_type_table.at "mixed_dates" . storage_type . should_equal Storage.Any
-            varied_type_table.at "just_nulls" . storage_type . should_equal Storage.Any
+            varied_type_table.at "strs" . value_type . should_equal Value_Type.Char
+            varied_type_table.at "ints" . value_type . should_equal Value_Type.Integer
+            varied_type_table.at "doubles" . value_type . should_equal Value_Type.Float
+            varied_type_table.at "doubles_and_ints" . value_type . should_equal Value_Type.Float
+            varied_type_table.at "custom_objects" . value_type . should_equal Value_Type.Mixed
+            varied_type_table.at "dates" . value_type . should_equal Value_Type.Date
+            varied_type_table.at "times" . value_type . should_equal Value_Type.Time
+            varied_type_table.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+            varied_type_table.at "mixed" . value_type . should_equal Value_Type.Mixed
+            varied_type_table.at "mixed_dates" . value_type . should_equal Value_Type.Mixed
+            varied_type_table.at "just_nulls" . value_type . should_equal Value_Type.Mixed
 
         pending_python_missing = if Polyglot.is_language_installed "python" . not then
             "Can't run Python tests, Python is not installed."
@@ -119,7 +118,7 @@ spec =
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
             table = Table.new [enso_dates, py_dates, py_objects]
             table.info.at "Column" . to_vector . should_equal ["enso_dates", "py_dates", "py_objects"]
-            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Date, Storage.Any]
+            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date, Value_Type.Mixed]
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
@@ -129,12 +128,12 @@ spec =
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
             table = Table.new [enso_dates, js_dates, js_objects]
             table.info.at "Column" . to_vector . should_equal ["enso_dates", "js_dates", "js_objects"]
-            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Date_Time, Storage.Any]
+            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date_Time, Value_Type.Mixed]
 
             enso_date_times = table.at "enso_dates" . map .to_date_time
-            enso_date_times.storage_type . should_equal Storage.Date_Time
+            enso_date_times.value_type . should_equal Value_Type.Date_Time
             js_converted_dates = table.at "js_dates" . map .date
-            js_converted_dates.storage_type . should_equal Storage.Date
+            js_converted_dates.value_type . should_equal Value_Type.Date
             (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
             (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
 
@@ -142,7 +141,7 @@ spec =
             ## This tests verifies an issue with passing through a `List<String>` to the table.
             words = 'The\nquick\nbrown\nfox\njumps\nover\nthe\nlazy\ndog'.lines
             table = Table.new [["words", words]]
-            table.at "words" . storage_type . should_equal Storage.Text
+            table.at "words" . value_type . should_equal Value_Type.Char
             table.at "words" . to_vector . should_equal words
 
         Test.specify "should handle Unicode normalization when accessing table columns" <|
@@ -183,26 +182,26 @@ spec =
             c_int = Column.from_vector 'year' [2022, 2000, 1999]
             r = c_int . map Date_Time.new
             r.to_vector . should_equal [Date_Time.new 2022, Date_Time.new 2000, Date_Time.new 1999]
-            r.storage_type . should_equal Storage.Date_Time
+            r.value_type . should_equal Value_Type.Date_Time
 
         Test.specify "should allow zipping columns with a custom function" <|
             b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
             a = Column.from_vector 'z' ['foo', 'bar', 'baz', 'spam', 'eggs']
             c = a.zip b x-> y-> x + y.to_text
             c.to_vector.should_equal ['foo6.3', 'bar3.1', 'baz5.2', 'spam4.6', 'eggs8.0']
-            c.storage_type . should_equal Storage.Text
+            c.value_type . should_equal Value_Type.Char
 
             x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
             y = Column.from_vector 'b' [0, 0, 0, 0]
             r = x.zip y skip_missing=False x-> y-> if x == 1 then x else y
             r.to_vector.should_equal [1, 0, 0, 0]
-            r.storage_type . should_equal Storage.Integer
+            r.value_type . should_equal Value_Type.Integer
 
             u = Column.from_vector 'u' [12, 13, 0]
             v = Column.from_vector 'v' [0, 30, 45]
             r2 = u.zip v h-> m-> Time_Of_Day.new h m
             r2.to_vector . should_equal [Time_Of_Day.new 12 0, Time_Of_Day.new 13 30, Time_Of_Day.new 0 45]
-            r2.storage_type . should_equal Storage.Time_Of_Day
+            r2.value_type . should_equal Value_Type.Time
 
         Test.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
@@ -293,49 +292,49 @@ spec =
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
             strs_filled = strs.fill_nothing False
             strs_filled.to_vector . should_equal ["a", False, "b", False]
-            strs_filled.storage_type . should_equal Storage.Any
+            strs_filled.value_type . should_equal Value_Type.Mixed
 
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
             ints_filled = ints.fill_nothing "X"
             ints_filled.to_vector . should_equal [1, "X", 2, "X"]
-            ints_filled.storage_type . should_equal Storage.Any
+            ints_filled.value_type . should_equal Value_Type.Mixed
 
             bools = Column.from_vector 'x' [True, False, Nothing]
             bools_filled = bools.fill_nothing "X"
             bools_filled.to_vector . should_equal [True, False, "X"]
-            bools_filled.storage_type . should_equal Storage.Any
+            bools_filled.value_type . should_equal Value_Type.Mixed
 
         Test.specify "should coerce long and double types to double" <|
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
             ints_filled = ints.fill_nothing 0.5
             ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
-            ints_filled.storage_type . should_equal Storage.Decimal
+            ints_filled.value_type . should_equal Value_Type.Float
 
             decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
             decimals_filled = decimals.fill_nothing 42
             decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
-            decimals_filled.storage_type . should_equal Storage.Decimal
+            decimals_filled.value_type . should_equal Value_Type.Float
 
         Test.specify "should keep String, Boolean, Long and Double type" <|
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
             strs_filled = strs.fill_nothing "X"
             strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
-            strs_filled.storage_type . should_equal Storage.Text
+            strs_filled.value_type . should_equal Value_Type.Char
 
             bools = Column.from_vector 'x' [True, False, Nothing]
             bools_filled = bools.fill_nothing False
             bools_filled.to_vector . should_equal [True, False, False]
-            bools_filled.storage_type . should_equal Storage.Boolean
+            bools_filled.value_type . should_equal Value_Type.Boolean
 
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
             ints_filled = ints.fill_nothing 42
             ints_filled.to_vector . should_equal [1, 42, 2, 42]
-            ints_filled.storage_type . should_equal Storage.Integer
+            ints_filled.value_type . should_equal Value_Type.Integer
 
             decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
             decimals_filled = decimals.fill_nothing 1.0
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
-            decimals_filled.storage_type . should_equal Storage.Decimal
+            decimals_filled.value_type . should_equal Value_Type.Float
 
     Test.group "Counting Values" <|
         Test.specify "should count missing and non-missing values" <|
@@ -381,7 +380,7 @@ spec =
             i = r.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
-            i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
+            i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
 
     Test.group "Sorting Tables" <|
         Test.specify 'should respect defined comparison operations for custom types' <|
@@ -674,19 +673,19 @@ spec =
 
             t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
             t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
-            t1.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Text, Storage.Text, Storage.Any, Storage.Integer, Storage.Any]
+            t1.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Char, Value_Type.Mixed, Value_Type.Integer, Value_Type.Mixed]
 
             t2 = table.aggregate [Mode "dates", Count_Not_Nothing "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
             t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Not Nothing objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
-            t2.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Integer, Storage.Integer, Storage.Integer, Storage.Decimal]
+            t2.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Integer, Value_Type.Integer, Value_Type.Integer, Value_Type.Float]
 
             t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
             t3.info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
-            t3.info.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Decimal]
+            t3.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Float]
 
             t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
             t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
-            t4.info.at "Storage Type" . to_vector . should_equal [Storage.Any, Storage.Decimal, Storage.Decimal]
+            t4.info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
 
         Test.specify "should take Unicode normalization into account when grouping by Text" <|
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]

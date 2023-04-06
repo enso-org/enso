@@ -24,7 +24,6 @@ type Index_Out_Of_Bounds
     Error index length
 
     ## PRIVATE
-
        Pretty prints an index out of bounds error.
     to_display_text : Text
     to_display_text self =
@@ -152,8 +151,7 @@ type Incomparable_Values
        - right: The right value (second operand)
     Error left right
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the Incomparable_Values error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -161,7 +159,8 @@ type Incomparable_Values
             True -> "Incomparable_Values.Error"
             False -> "Cannot compare `" + self.left.to_text + "` with `" + self.right.to_text + "`"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Catches possible errors from comparing values and throws an
        `Incomparable_Values` if any occur.
     handle_errors ~function =

@@ -56,6 +56,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()
@@ -74,6 +75,7 @@ mod icon {
 
     ensogl::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
             let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
@@ -100,6 +102,7 @@ mod separator {
 
     ensogl::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
