@@ -87,6 +87,22 @@ multiply_rows table column function =
     Table.new new_columns
 
 ## PRIVATE
+   Transform a table by transforming a column into a set of columns. Takes a
+   function that maps a single element of the input column to a vector of output
+   values. The original column is replaced by the new columns.
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+transform_table_column_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Table
+transform_table_column_to_columns table column function =
+    input_column = table.at column
+    new_columns = map_column_to_multiple input_column function
+    replace_column_with_columns table column new_columns
+
+## PRIVATE
    Transform a column into a set of columns. Takes a function that maps a
    single element of the input column to a vector of output values. The
    vectors of output values are padded with Nothing to be the same length.
@@ -104,21 +120,7 @@ map_column_to_multiple input_column function =
         Column.from_vector name cv
 
 ## PRIVATE
-   Transform a table by transforming a column into a set of columns. Takes a
-   function that maps a single element of the input column to a vector of output
-   values. The original column is replaced by the new columns.
-
-   Arguments:
-   - table: The table to transform.
-   - input_column: The column to transform.
-   - function: A function that transforms a single element of `input_column`
-     to multiple values.
-transform_table_column_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Table
-transform_table_column_to_columns table column function =
-    input_column = table.at column
-    new_columns = map_column_to_multiple input_column function
-    replace_column_with_columns table column new_columns
-
+   Remove a column and add new columns.
 replace_column_with_columns : Table -> Column -> Vector Column -> Table
 replace_column_with_columns table old_column new_columns =
     with_column_removed = table.remove_columns old_column error_on_missing_columns=True
