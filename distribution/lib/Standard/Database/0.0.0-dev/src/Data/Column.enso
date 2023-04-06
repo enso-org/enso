@@ -811,26 +811,6 @@ type Column
         new_name = self.naming_helpers.binary_operation_name "like" self pattern
         self.make_binary_op "LIKE" pattern new_name
 
-    ## This function removes the specified characters, by default any
-       whitespace, from the start, the end, or both ends of the input.
-
-       Arguments:
-       - where: The location of where to trim the input. By default, this
-         function trims both ends of the input.
-       - what: A `Text` containing characters that should be removed. By
-         default, all whitespace is removed.
-    trim : Location -> Text -> Text
-    trim self where=Location.Both what='' =
-        Value_Type.expect_text self.value_type <|
-            new_name = self.naming_helpers.function_name "trim" [self]
-            case where of
-                Location.Both ->
-                    self.make_binary_op "TRIM" what new_name
-                Location.Start ->
-                    self.make_binary_op "LTRIM" what new_name
-                Location.End ->
-                    self.make_binary_op "RTRIM" what new_name
-
     ## Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.

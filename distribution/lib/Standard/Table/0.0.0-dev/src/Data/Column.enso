@@ -923,12 +923,19 @@ type Column
        - what: A `Text` containing characters that should be removed. By
          default, all whitespace is removed.
     trim : Location -> Column | Text -> Column
-    trim self where=Location.Both what='' =
-        Value_Type.expect_text self.value_type <|
-            new_name = Naming_Helpers.function_name "trim" [self]
-            trim_fn = if what.is_empty then t-> t.trim where else
-                t-> t.trim where what
-            self.map trim_fn . rename new_name
+    trim self where=Location.Both what='' = Value_Type.expect_text self.value_type <|
+        new_name = Naming_Helpers.function_name "trim" [self]
+
+        trim_get = wrap_text_argument what 'what'
+
+        trim_get.if_not_error <|
+            trim_fn t w = if w.is_empty then t.trim where else
+                t.trim where w
+
+            self_vec = self.to_vector
+            mapped = self_vec.map_with_index i->t-> trim_fn t (trim_get.get i)
+            Column.from_vector new_name mapped
+
 
     ## Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the table unchanged.
