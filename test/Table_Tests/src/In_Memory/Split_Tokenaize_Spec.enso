@@ -10,6 +10,7 @@ spec =
         same_headers = (t0.columns.map .name) == (t1.columns.map .name)
         same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
         same_headers && same_columns
+    tables_should_be_equal t0 t1 = tables_equal t0 t1 . should_equal True
 
     Test.group "split' <|
         Test.specify 'can do split_to_columns' <|
@@ -21,7 +22,8 @@ spec =
             IO.println '----'
             IO.println t2.display
             IO.println expected.display
-            (tables_equal t2 expected) . should_equal True
+            tables_should_be_equal t2 expected
+            #(tables_equal t2 expected) . should_equal True
             #t2.should_equal expected
             ##
                 t2.at 'bar_0' . to_vector . should_equal ['a', 'c', 'gh']
