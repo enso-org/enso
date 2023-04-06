@@ -25,6 +25,15 @@ tokenize_to_columns _ _ = 1
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
 tokenize_to_rows _ _ = 1
 
+## PRIVATE
+   Transform a column into a set of columns. Takes a function that maps a
+   single element of the input column to a vector of output values. The
+   vectors of output values are padded with Nothing to be the same length.
+
+   Arguments:
+   - input_column: The column to transform
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
 map_column_to_multiple : Column -> (Any -> Vector Any) -> Vector Column
 map_column_to_multiple input_column function =
     result_row_vectors = input_column.to_vector.map value-> function value
