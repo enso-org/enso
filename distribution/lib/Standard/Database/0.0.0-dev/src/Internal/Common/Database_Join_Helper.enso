@@ -94,12 +94,12 @@ prepare_subqueries left right needs_left_indicator needs_right_indicator =
         renamer = Unique_Name_Strategy.new
         renamer.mark_used (left.internal_columns.map .name)
         # This is an operation, not a constant to avoid adding unnecessary interpolations to the query.
-        [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type_Reference.null (SQL_Expression.Operation "TRUE" [])]
+        [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "TRUE")]
 
     right_indicators = if needs_right_indicator.not then [] else
         renamer = Unique_Name_Strategy.new
         renamer.mark_used (right.internal_columns.map .name)
-        [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type_Reference.null (SQL_Expression.Operation "TRUE" [])]
+        [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "TRUE")]
 
     # Create subqueries that encapsulate the original queries and provide needed columns.
     # The generated new sets of columns refer to the encapsulated expressions within the subquery and are

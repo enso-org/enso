@@ -5,10 +5,10 @@ import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Data.Dialect.Dialect
-import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Errors import Unsupported_Database_Operation
 
@@ -22,7 +22,7 @@ from project.Errors import Unsupported_Database_Operation
    - infer_return_type: A function that takes 3 arguments (name of the
      operation, list of input columns and a raw SQL IR Expression) and returns
      the inferred type for the aggregation.
-make_aggregate_column : Aggregate_Column -> Text -> Dialect -> SQL_Expression
+make_aggregate_column : Aggregate_Column -> Text -> Dialect -> (Any -> Any -> Any -> SQL_Type_Reference) -> SQL_Expression
 make_aggregate_column aggregate new_name dialect infer_return_type =
     is_non_empty_selector v = v.is_nothing.not && v.not_empty
     simple_aggregate op_kind columns =

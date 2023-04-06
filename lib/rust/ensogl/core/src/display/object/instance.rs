@@ -1106,6 +1106,7 @@ use crate::prelude::*;
 use crate::display::layout::alignment;
 use crate::display::object::event;
 use crate::display::object::transformation;
+use crate::display::scene::layer::AnySymbolPartition;
 use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
@@ -1574,13 +1575,23 @@ pub struct HierarchyFrp {
     /// removed from a visible parent or added to an invisible one.
     pub on_hide:            frp::Stream<Option<Scene>>,
     /// Fires during the first scene refresh if this object was moved between scene layers.
-    pub on_layer_change:    frp::Stream<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
+    pub on_layer_change: frp::Stream<(
+        Option<Scene>,
+        Option<WeakLayer>,
+        Option<WeakLayer>,
+        Option<AnySymbolPartition>,
+    )>,
     /// Fires during the first scene refresh if this object needed an update and the update was
     /// performed.
     pub on_updated:         frp::Stream<()>,
     on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     on_hide_source:         frp::Source<Option<Scene>>,
-    on_layer_change_source: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
+    on_layer_change_source: frp::Source<(
+        Option<Scene>,
+        Option<WeakLayer>,
+        Option<WeakLayer>,
+        Option<AnySymbolPartition>,
+    )>,
     on_updated_source:      frp::Source<()>,
 }
 
@@ -1625,9 +1636,9 @@ pub struct HierarchyModel {
     parent_bind:    SharedParentBind,
     children:       RefCell<OptVec<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer: RefCell<Option<WeakLayer>>,
+    assigned_layer: RefCell<Option<LayerAssignment>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:          RefCell<Option<WeakLayer>>,
+    layer:          RefCell<Option<LayerAssignment>>,
     dirty:          dirty::Flags,
 }
 
@@ -1657,13 +1668,27 @@ impl Model {
     /// Get the layer this object is displayed in. May be equal to layer explicitly set by the user
     /// or a layer inherited from the parent.
     fn display_layer(&self) -> Option<Layer> {
-        self.layer.borrow().as_ref().and_then(|t| t.upgrade())
+        self.layer.borrow().as_ref().and_then(|t| t.layer.upgrade())
     }
 
     /// Add this object to the provided scene layer. Do not use this method explicitly. Use layers'
     /// methods instead.
     pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
-        let layer = layer.downgrade();
+        self.set_display_layer(layer, default())
+    }
+
+    /// Add this object to the specified symbol partition of the provided scene layer. Do not use
+    /// this method explicitly. Use layers' methods instead.
+    pub(crate) fn add_to_display_layer_symbol_partition(
+        &self,
+        layer: &Layer,
+        symbol_partition: AnySymbolPartition,
+    ) {
+        self.set_display_layer(layer, Some(symbol_partition))
+    }
+
+    fn set_display_layer(&self, layer: &Layer, symbol_partition: Option<AnySymbolPartition>) {
+        let layer = LayerAssignment { layer: layer.downgrade(), symbol_partition };
         let mut assigned_layer = self.assigned_layer.borrow_mut();
         if assigned_layer.as_ref() != Some(&layer) {
             self.dirty.new_layer.set();
@@ -1675,10 +1700,10 @@ impl Model {
     /// layers' methods instead.
     pub(crate) fn remove_from_display_layer(&self, layer: &Layer) {
         let layer = layer.downgrade();
-        let mut assigned_layer = self.assigned_layer.borrow_mut();
-        if assigned_layer.as_ref() == Some(&layer) {
+        if self.assigned_layer.borrow().as_ref().map(|assignment| &assignment.layer) == Some(&layer)
+        {
             self.dirty.new_layer.set();
-            *assigned_layer = None;
+            *self.assigned_layer.borrow_mut() = None;
         }
     }
 }
@@ -1721,7 +1746,7 @@ impl Model {
             trace!("Showing.");
             self.visible.set(true);
             let assigned_layer_borrow = self.assigned_layer.borrow();
-            let assigned_layer = assigned_layer_borrow.as_ref();
+            let assigned_layer = assigned_layer_borrow.as_ref().map(|assignment| &assignment.layer);
             let new_layer = assigned_layer.or(parent_layer);
             self.on_show_source.emit((scene.cloned(), new_layer.cloned()));
             self.children
@@ -1818,7 +1843,7 @@ impl Model {
         parent_origin: Matrix4<f32>,
         parent_origin_changed: bool,
         parent_layers_changed: bool,
-        parent_layer: Option<&WeakLayer>,
+        parent_layer: Option<&LayerAssignment>,
     ) {
         // === Scene Layers Update ===
 
@@ -1853,8 +1878,9 @@ impl Model {
                 let old_layer = mem::replace(&mut *self.layer.borrow_mut(), new_layer.cloned());
                 self.on_layer_change_source.emit((
                     Some(scene.clone_ref()),
-                    old_layer,
-                    new_layer.cloned(),
+                    old_layer.map(|assignment| assignment.layer),
+                    new_layer.map(|assignment| assignment.layer.clone()),
+                    new_layer.and_then(|assignment| assignment.symbol_partition),
                 ));
             });
         }
@@ -1865,7 +1891,7 @@ impl Model {
 
         // === Origin & Visibility Update ===
 
-        self.update_visibility(scene, parent_layer);
+        self.update_visibility(scene, parent_layer.as_ref().map(|assignment| &assignment.layer));
         let is_origin_dirty = has_new_parent || parent_origin_changed || layer_changed;
         let new_parent_origin = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() { "new" } else { "old" };
@@ -2035,6 +2061,21 @@ impl InstanceDef {
             vec.push(parent);
         }
     }
+}
+
+
+
+// ========================
+// === Layer assignment ===
+// ========================
+
+/// Identifies an assigned layer, including symbol partition information, if any.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct LayerAssignment {
+    /// The layer.
+    pub layer:            WeakLayer,
+    /// The symbol partition, if any.
+    pub symbol_partition: Option<AnySymbolPartition>,
 }
 
 

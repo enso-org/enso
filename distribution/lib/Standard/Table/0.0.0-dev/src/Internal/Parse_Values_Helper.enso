@@ -9,10 +9,10 @@ polyglot java import org.enso.table.parsing.problems.LeadingZeros
 ## PRIVATE
    Translates a parse related problem additionally enriching it with expected
    datatype information that is not originally present on the Java side.
-translate_parsing_problem expected_datatype problem = case problem of
+translate_parsing_problem expected_value_type problem = case problem of
     java_problem : InvalidFormat ->
-        Invalid_Format.Error java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells)
+        Invalid_Format.Error java_problem.column expected_value_type (Vector.from_polyglot_array java_problem.cells)
     java_problem : LeadingZeros ->
-        Leading_Zeros.Error java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells)
+        Leading_Zeros.Error java_problem.column expected_value_type (Vector.from_polyglot_array java_problem.cells)
     _ ->
         Panic.throw (Illegal_State.Error "Reported an unknown problem type: "+problem.to_text)

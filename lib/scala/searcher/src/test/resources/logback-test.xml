@@ -8,10 +8,11 @@
     </encoder>
   </appender>
 
-  <logger name="slick" level="INFO"/>
-  <logger name="slick.compiler" level="INFO"/>
+  <logger name="slick" level="info"/>
+  <logger name="slick.compiler" level="${log.qcomp:-info}"/>
+  <logger name="slick.jdbc.JdbcBackend.statement" level="${log.jdbc.statement:-info}" />
 
-  <root level="ERROR">
+  <root level="error">
     <appender-ref ref="STDOUT"/>
   </root>
 </configuration>

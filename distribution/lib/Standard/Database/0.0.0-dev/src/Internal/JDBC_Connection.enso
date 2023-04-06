@@ -92,10 +92,11 @@ type JDBC_Connection
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the
        result set.
-    fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
-    fetch_columns self statement statement_setter =
+    raw_fetch_columns : Text | SQL_Statement -> Boolean -> Statement_Setter -> Any
+    raw_fetch_columns self statement execute_query statement_setter =
         self.with_prepared_statement statement statement_setter stmt->
-            metadata = stmt.executeQuery.getMetaData
+            metadata = if execute_query then stmt.executeQuery.getMetaData else
+                stmt.getMetaData
 
             resolve_column ix =
                 name = metadata.getColumnLabel ix+1

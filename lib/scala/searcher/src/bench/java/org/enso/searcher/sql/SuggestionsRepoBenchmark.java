@@ -34,8 +34,6 @@ public class SuggestionsRepoBenchmark {
   final Path dbfile = Path.of(System.getProperty("java.io.tmpdir"), "bench-suggestions.db");
   final Seq<Suggestion.Kind> kinds = SuggestionRandom.nextKinds();
   final Seq<scala.Tuple2<UUID, String>> updateInput = SuggestionRandom.nextUpdateAllInput();
-  final Seq<scala.Tuple3<String, String, String>> getAllMethodsInput =
-      SuggestionRandom.nextGetAllMethodsInput();
 
   SqlSuggestionsRepo repo;
 
@@ -64,7 +62,7 @@ public class SuggestionsRepoBenchmark {
   int insertBatch(int size) throws TimeoutException, InterruptedException {
     Suggestion[] stubs =
         Stream.generate(SuggestionRandom::nextSuggestion).limit(size).toArray(Suggestion[]::new);
-    return (int) Await.result(repo.insertBatch(stubs), TIMEOUT);
+    return (int) Await.result(repo.insertBatchJava(stubs), TIMEOUT);
   }
 
   static <T> scala.Option<T> none() {
@@ -140,11 +138,6 @@ public class SuggestionsRepoBenchmark {
             none(),
             scala.Some.apply(false)),
         TIMEOUT);
-  }
-
-  @Benchmark
-  public Object getAllMethods() throws TimeoutException, InterruptedException {
-    return Await.result(repo.getAllMethods(getAllMethodsInput), TIMEOUT);
   }
 
   @Benchmark

@@ -1,11 +1,15 @@
 from Standard.Base import all
 
 import Standard.Base.Runtime.Ref.Ref
-import Standard.Base.Runtime.Lazy.Lazy
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+
+type Lazy
+    Value ~get
+    new ~computation = Lazy.Value computation
+    new_eager computation = Lazy.Value computation
 
 spec = Test.group "Lazy" <|
     Test.specify "should compute the result only once" <|

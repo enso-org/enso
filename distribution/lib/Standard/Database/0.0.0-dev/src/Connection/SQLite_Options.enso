@@ -10,7 +10,8 @@ type SQLite_Options
        - location: Location of the SQLite database to connect to.
     SQLite (location:(In_Memory|File|Text))
 
-    ## Build the Connection resource.
+    ## PRIVATE
+       Build the Connection resource.
 
        Arguments:
        - options: Overrides for the connection properties.
@@ -19,13 +20,15 @@ type SQLite_Options
         properties = options.merge self.jdbc_properties
         SQLite_Connection.create self.jdbc_url properties
 
-    ## Provides the jdbc url for the connection.
+    ## PRIVATE
+       Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self = case self.location of
         In_Memory -> "jdbc:sqlite::memory:"
         _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
 
-    ## Provides the properties for the connection.
+    ## PRIVATE
+       Provides the properties for the connection.
     jdbc_properties : Vector
     jdbc_properties self = []
 

@@ -19,7 +19,9 @@ import project.Nothing.Nothing
 breakpoint : Nothing
 breakpoint = @Builtin_Method "Debug.breakpoint"
 
-## Evaluates the provided Enso code in the caller frame.
+## PRIVATE
+   ADVANCED
+   Evaluates the provided Enso code in the caller frame.
 
    Arguments:
    - expression: The enso code to evaluate.

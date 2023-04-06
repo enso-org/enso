@@ -11,7 +11,7 @@ import project.Data.Type.Value_Type.Bits
    for integers it will return 64-bit integers even if the value could fit in a
    smaller one; and for Text values variable-length text will be preferred over
    fixed-length.
-most_specific_value_type : Any -> Value_Type
+most_specific_value_type : Any -> Boolean -> Value_Type
 most_specific_value_type value use_smallest=False =
     ## TODO implement the `use_smallest` logic
     _ = use_smallest
