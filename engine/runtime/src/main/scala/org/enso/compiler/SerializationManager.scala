@@ -241,6 +241,7 @@ final class SerializationManager(
             SuggestionBuilder(module)
               .build(module.getName, module.getIr)
               .toVector
+              .filter(Suggestion.isGlobal)
           }
           .foreach(suggestions.add)
         val cachedSuggestions =

@@ -533,6 +533,12 @@ type Inexact_Type_Coercion
     to_text self =
         "Inexact_Type_Coercion.Warning (requested_type = " + self.requested_type.to_text + ") (actual_type = " + self.actual_type.to_text + ")"
 
+## TODO figure out this error in #6112
+type Lossy_Conversion
+    ## Indicates that some likely not-insignificant information was lost during
+       a conversion.
+    Error
+
 type Invalid_Value_For_Type
     ## PRIVATE
        Indicates that a column construction/transformation failed because the

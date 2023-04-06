@@ -146,7 +146,7 @@ type Connection
                         Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
             self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
-                columns = self.jdbc_connection.fetch_columns raw_sql Statement_Setter.null
+                columns = self.fetch_columns raw_sql Statement_Setter.null
                 name = if alias == "" then (UUID.randomUUID.to_text) else alias
                 ctx = Context.for_query raw_sql name
                 Database_Table_Module.make_table self name columns ctx
@@ -155,7 +155,7 @@ type Connection
                 ctx = Context.for_table name (if alias == "" then name else alias)
                 statement = self.dialect.generate_sql (Query.Select Nothing ctx)
                 statement_setter = self.dialect.get_statement_setter
-                columns = self.jdbc_connection.fetch_columns statement statement_setter
+                columns = self.fetch_columns statement statement_setter
                 Database_Table_Module.make_table self name columns ctx
             result.catch SQL_Error sql_error->
                 Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
@@ -188,6 +188,14 @@ type Connection
         statement_setter = self.dialect.get_statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
+
+    ## PRIVATE
+       Given a prepared statement, gets the column names and types for the
+       result set.
+    fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
+    fetch_columns self statement statement_setter =
+        needs_execute_query = self.dialect.needs_execute_query_for_type_inference
+        self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
 
     ## PRIVATE
        ADVANCED

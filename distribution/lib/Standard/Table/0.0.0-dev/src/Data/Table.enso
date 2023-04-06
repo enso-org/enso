@@ -1491,16 +1491,14 @@ type Table
          regardless of types of other columns. Mixing any other types will
          result in a `No_Common_Type` problem. If columns of incompatible types
          are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention.
+         retyped to the `Mixed` type to indicate that intention. Note that the
+         `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + v
             single_table -> [self, single_table]
-        ## `is_everything_ok` should actually never be False; it will either be
-           True or will contain a dataflow error propagating through the if.
-        is_everything_ok = all_tables.all (check_table "tables")
-        if is_everything_ok then
+        all_tables.all (check_table "tables") . if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
@@ -1543,8 +1541,8 @@ type Table
 
     ## Returns a Table describing this table's contents.
 
-       The table lists all columns, counts of non-null items and storage types
-       of each column.
+       The table lists all columns, counts of non-null items and value types of
+       each column.
 
        > Example
          Get information about a table.

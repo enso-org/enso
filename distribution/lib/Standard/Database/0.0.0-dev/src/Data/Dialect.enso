@@ -10,14 +10,17 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Redshift.Redshift_Dialect
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
@@ -114,6 +117,61 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Builds an SQL expression that casts the given expression to the given
+       target type.
+
+       Arguments:
+       - column: the input column to transform.
+       - target_type: the target type.
+       - infer_result_type_from_database_callback: A callback that can be used
+         to infer the type of the newly built expression from the Database. It
+         should be used by default, unless an override is chosen.
+    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column target_type infer_result_type_from_database_callback =
+        _ = [column, target_type, infer_result_type_from_database_callback]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Specifies if the `fetch_columns` operation needs to execute the query to
+       get the column types.
+
+       In most backends, the `getMetaData` may be called on a
+       `PreparedStatement` directly, to infer column types without actually
+       executing the query. In some however, like SQLite, this is insufficient
+       and will yield incorrect results, so the query needs to be executed (even
+       though the full results may not need to be streamed).
+    needs_execute_query_for_type_inference : Boolean
+    needs_execute_query_for_type_inference self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Specifies if the cast used to reconcile column types should be done after
+       performing the union. If `False`, the cast will be done before the union.
+
+       Most databases that care about column types will want to do the cast
+       before the union operation to ensure that types are aligned when merging.
+       For an SQLite workaround to work, it's better to do the cast after the
+       union operation.
+    cast_after_union : Boolean
+    cast_after_union self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Prepares a query that can be used to fetch the type of an expression in
+       the provided context.
+
+       This method may modify the context to optimize the query while preserving
+       the types. For example, in most databases, it is fine to add
+       `WHERE FALSE` to the query - ensuring that the engine will not do any
+       actual work, but the resulting type will still be the same. There are
+       exceptions though, like SQLite, where the best we can do is add
+       `LIMIT 1`.
+    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query self expression context =
+        _ = [expression, context]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Checks if the given aggregate is supported.
 
        Should raise an appropriate dataflow error if not, or just return `True`.
@@ -139,3 +197,8 @@ postgres = Postgres_Dialect.postgres
    The dialect of Redshift databases.
 redshift : Dialect
 redshift = Redshift_Dialect.redshift
+
+## PRIVATE
+default_fetch_types_query dialect expression context =
+    empty_context = context.add_where_filters [SQL_Expression.Literal "FALSE"]
+    dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
