@@ -200,7 +200,8 @@ impl Model {
         };
         self.log_action(
             || {
-                let ast_id = self.state.ast_node_id_of_view(id)?;
+                let ast_id =
+                    self.state.update_from_view().set_node_context_switch(id, expr.clone())?;
                 Some(self.controller.graph().set_node_context_switch(ast_id, expr))
             },
             "node context switch expression",

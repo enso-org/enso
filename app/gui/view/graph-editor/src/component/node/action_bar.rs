@@ -403,13 +403,29 @@ impl ActionBar {
 
             // === Icon Actions ===
 
-            frp.source.action_context_switch <+ model.icons.context_switch.disable_button.state
-                .sample(&model.icons.context_switch.disable_button.clicked);
-            frp.source.action_context_switch <+ model.icons.context_switch.enable_button.state
-                .sample(&model.icons.context_switch.enable_button.clicked);
-            frp.source.action_skip       <+ model.icons.skip.state;
-            frp.source.action_freeze     <+ model.icons.freeze.state;
             frp.source.action_visibility <+ model.icons.visibility.state;
+            frp.source.action_skip <+ model.icons.skip.state;
+            frp.source.action_freeze <+ model.icons.freeze.state;
+            output_context_disabled <- model.icons.context_switch.disable_button.state
+                .sample(&model.icons.context_switch.disable_button.clicked);
+            output_context_enabled <- model.icons.context_switch.enable_button.state
+                .sample(&model.icons.context_switch.enable_button.clicked);
+            frp.source.action_context_switch <+ any(&output_context_disabled, &output_context_enabled);
+            frp.set_action_context_switch_state <+ all_with(
+                &output_context_disabled,
+                &output_context_enabled,
+                |disabled, enabled| {
+                    match (disabled, enabled) {
+                        (false, false) => None,
+                        (true, false) => Some(false),
+                        (false, true) => Some(true),
+                        (true, true) => {
+                            error!("Context switch buttons were both on.");
+                            Some(false)
+                        },
+                    }
+                }
+            );
         }
 
         let color_scheme = toggle_button::ColorScheme {
