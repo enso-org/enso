@@ -19,7 +19,7 @@ split_to_columns table column delimiter="," column_count=Auto on_problems=Report
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
 split_to_rows table column delimiter="," on_problems=Report_Error =
     _ = on_problems
-    multiply_rows table column (x-> x.split delimiter)
+    multiply_rows table column (ignore_nothing (x-> x.split delimiter))
 
 ## Private
    Transform a column by applying the given function to the values in the
@@ -74,7 +74,9 @@ tokenize_to_columns table column pattern case_sensitivity column_count on_proble
     transform_table_column_to_columns table column (ignore_nothing (x-> x.tokenize pattern case_sensitivity))
 
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
-tokenize_to_rows _ _ = 1
+tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
+    _ = on_problems
+    multiply_rows table column (ignore_nothing (x-> x.tokenize pattern case_sensitivity))
 
 ## PRIVATE
    Transform a column into a set of columns. Takes a function that maps a
