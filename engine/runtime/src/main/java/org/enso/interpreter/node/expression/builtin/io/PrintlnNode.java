@@ -55,16 +55,11 @@ public abstract class PrintlnNode extends Node {
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
-      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
-      @Cached ExpectStringNode expectStringNode) {
-    var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
+      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
+    Object probablyStr = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     EnsoContext ctx = EnsoContext.get(this);
-    print(ctx.getOut(), expectStringNode.execute(str));
+    print(ctx.getOut(), probablyStr.toString());
     return ctx.getNothing();
-  }
-
-  boolean isText(Object o) {
-    return TypesGen.isText(o);
   }
 
   @CompilerDirectives.TruffleBoundary
