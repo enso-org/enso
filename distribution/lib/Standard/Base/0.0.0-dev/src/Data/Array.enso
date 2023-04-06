@@ -134,21 +134,6 @@ type Array
     length : Integer
     length self = @Builtin_Method "Array.length"
 
-    ## Sorts the Array.
-
-      Arguments:
-      - comparator: A comparison function that takes two elements and returns
-        an Ordering that describes how the first element is ordered with
-        respect to the second.
-
-      > Example
-        Getting a sorted array of numbers.
-
-            [3,2,1].to_array.sort
-    sort : (Any -> Any -> Ordering) -> Array
-    sort self comparator=(Ordering.compare _ _) =
-        self.sort_builtin comparator
-
     ## Identity.
 
        This method is implemented purely for completeness with the runtime's
