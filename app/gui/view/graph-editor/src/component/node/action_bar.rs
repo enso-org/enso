@@ -399,8 +399,10 @@ impl ActionBar {
 
             // === Icon Actions ===
 
-            frp.source.action_context_switch <+ model.icons.context_switch.disable_button.state;
-            frp.source.action_context_switch <+ model.icons.context_switch.enable_button.state;
+            frp.source.action_context_switch <+ model.icons.context_switch.disable_button.state
+                .sample(&model.icons.context_switch.disable_button.clicked);
+            frp.source.action_context_switch <+ model.icons.context_switch.enable_button.state
+                .sample(&model.icons.context_switch.enable_button.clicked);
             frp.source.action_skip       <+ model.icons.skip.state;
             frp.source.action_freeze     <+ model.icons.freeze.state;
             frp.source.action_visibility <+ model.icons.visibility.state;
