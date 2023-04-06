@@ -89,7 +89,7 @@ visualization_spec connection =
         Test.specify "should visualize value type info" <|
             Value_Type.Boolean.to_json . should_equal '{"type":"Value_Type","constructor":"Boolean","_display_text_":"Boolean"}'
             Value_Type.Float.to_json . should_equal '{"type":"Value_Type","constructor":"Float","_display_text_":"Float (64 bits)","bits":64}'
-            Value_Type.Decimal.to_json . should_equal '{"type":"Value_Type","constructor":"Decimal","_display_text_":"Decimal (precision=Nothing, scale=0)","precision":null,"scale":0}'
+            Value_Type.Decimal.to_json . should_equal '{"type":"Value_Type","constructor":"Decimal","_display_text_":"Decimal (precision=Nothing, scale=Nothing)","precision":null,"scale":null}'
             Value_Type.Char.to_json . should_equal '{"type":"Value_Type","constructor":"Char","_display_text_":"Char (max_size=Nothing, variable_length=True)","size":null,"variable_length":true}'
             Value_Type.Unsupported_Data_Type.to_json . should_equal '{"type":"Value_Type","constructor":"Unsupported_Data_Type","_display_text_":"Unsupported_Data_Type","type_name":null}'
 
