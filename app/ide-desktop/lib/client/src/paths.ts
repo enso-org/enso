@@ -5,7 +5,7 @@ import * as path from 'node:path'
 import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
-import * as paths from '../paths.js'
+import * as paths from '../paths'
 
 // =============
 // === Paths ===
@@ -38,26 +38,3 @@ export const PROJECT_MANAGER_PATH = path.join(
 
 /** Relative path of Enso Project PM metadata relative to project's root. */
 export const PROJECT_METADATA_RELATIVE = path.join('.enso', 'project.json')
-
-/** Get the arguments, excluding the initial program name and any electron dev mode arguments. */
-export const CLIENT_ARGUMENTS = getClientArguments()
-
-/** Decide what are client arguments, @see {@link CLIENT_ARGUMENTS}. */
-function getClientArguments(): string[] {
-    if (electronIsDev) {
-        // Client arguments are separated from the electron dev mode arguments by a '--' argument.
-        const separator = '--'
-        const separatorIndex = process.argv.indexOf(separator)
-        const notFoundIndexPlaceholder = -1
-        if (separatorIndex === notFoundIndexPlaceholder) {
-            // If there is no separator, client gets no arguments.
-            return []
-        } else {
-            // Drop everything before the separator.
-            return process.argv.slice(separatorIndex + 1)
-        }
-    } else {
-        // Drop the leading executable name.
-        return process.argv.slice(1)
-    }
-}

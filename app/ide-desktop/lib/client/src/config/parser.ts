@@ -9,8 +9,8 @@ import yargsModule from 'yargs'
 import * as contentConfig from 'enso-content-config'
 
 import * as config from 'config'
+import * as fileAssociations from 'file-associations'
 import * as naming from 'naming'
-import * as paths from '../paths'
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 const logger = contentConfig.logger
@@ -266,7 +266,7 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 // =====================
 
 /** Parses command line arguments. */
-export function parseArgs(clientArgs: string[] = paths.CLIENT_ARGUMENTS) {
+export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS) {
     const args = config.CONFIG
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
     const yargsOptions = args

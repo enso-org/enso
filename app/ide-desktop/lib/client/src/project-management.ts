@@ -23,9 +23,9 @@ import * as utils from '../../../utils'
 
 const logger = config.logger
 
-// =======================
+// ======================
 // === Project Import ===
-// =======================
+// ======================
 
 /** Open a project from the given path. Path can be either a source file under the project root, or the project
  * bundle. If needed, the project will be imported into the Project Manager-enabled location.

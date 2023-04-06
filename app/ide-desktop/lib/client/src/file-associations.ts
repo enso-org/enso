@@ -6,15 +6,16 @@
  * constants related to file associations and project handling. */
 
 import * as childProcess from 'node:child_process'
+import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import process from 'node:process'
 
 import * as electron from 'electron'
+import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
 import * as config from 'enso-content-config'
 import * as fileAssociations from '../file-associations'
-import * as paths from './paths'
 import * as project from './project-management'
 
 const logger = config.logger
@@ -27,6 +28,60 @@ export const BUNDLED_PROJECT_EXTENSION = fileAssociations.BUNDLED_PROJECT_EXTENS
 export const SOURCE_FILE_EXTENSION = fileAssociations.SOURCE_FILE_EXTENSION
 export const BUNDLED_PROJECT_SUFFIX = fileAssociations.BUNDLED_PROJECT_SUFFIX
 export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
+
+// ==========================
+// === Arguments Handling ===
+// ==========================
+
+/**
+ * Check if the given list of application startup arguments denotes an attempt to open a file.
+ *
+ * For example, this happens when the user double-clicks on a file in the file explorer and the
+ * application is launched with the file path as an argument.
+ *
+ * @param clientArgs - A list of arguments passed to the application, stripped from the initial
+ * executable name and any electron dev mode arguments.
+ * @returns The path to the file to open, or `null` if no file was specified.
+ */
+export function argsDenoteFileOpenAttempt(clientArgs: string[]): string | null {
+    const arg = clientArgs[0]
+    let result: string | null = null
+    // If the application is invoked with exactly one argument and this argument is a file, we
+    // assume that we have been launched with a file to open. In this case, we must translate this
+    // path to the actual argument that'd open the project containing this file.
+    if (clientArgs.length === 1 && typeof arg !== 'undefined') {
+        try {
+            fsSync.accessSync(arg, fsSync.constants.R_OK)
+            result = arg
+        } catch (e) {
+            logger.log(`The single argument '${arg}' does not denote a readable file: ${String(e)}`)
+        }
+    }
+    return result
+}
+
+/** Get the arguments, excluding the initial program name and any electron dev mode arguments. */
+export const CLIENT_ARGUMENTS = getClientArguments()
+
+/** Decide what are client arguments, @see {@link CLIENT_ARGUMENTS}. */
+function getClientArguments(): string[] {
+    if (electronIsDev) {
+        // Client arguments are separated from the electron dev mode arguments by a '--' argument.
+        const separator = '--'
+        const separatorIndex = process.argv.indexOf(separator)
+        const notFoundIndexPlaceholder = -1
+        if (separatorIndex === notFoundIndexPlaceholder) {
+            // If there is no separator, client gets no arguments.
+            return []
+        } else {
+            // Drop everything before the separator.
+            return process.argv.slice(separatorIndex + 1)
+        }
+    } else {
+        // Drop the leading executable name.
+        return process.argv.slice(1)
+    }
+}
 
 // =========================
 // === File Associations ===
@@ -52,7 +107,7 @@ export function onFileOpened(event: Event, path: string) {
         // If we are not ready, we can still decide to open a project rather than enter the welcome
         // screen. However, we still check for the presence of arguments, to prevent hijacking the
         // user-spawned IDE instance (OS-spawned will not have arguments set).
-        if (!electron.app.isReady() && paths.CLIENT_ARGUMENTS.length === 0) {
+        if (!electron.app.isReady() && CLIENT_ARGUMENTS.length === 0) {
             event.preventDefault()
             logger.log(`Opening file '${path}'.`)
             // eslint-disable-next-line no-restricted-syntax

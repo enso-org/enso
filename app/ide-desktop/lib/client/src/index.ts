@@ -31,35 +31,6 @@ import * as utils from '../../../utils'
 
 const logger = contentConfig.logger
 
-// =================
-// === Constants ===
-// =================
-
-/** Check if the given arguments show that we've been invoked with a file to open.
- *
- * For example, this happens when the user double-clicks on a file in the file explorer.
- *
- * @returns The path to the file to open, or `null` if no file was specified. */
-export function attemptingToOpenFile(clientArgs: string[]): string | null {
-    // If we are invoked with exactly one argument and this argument is a file, we assume that we have been
-    // invoked with a file to open. In this case, we must translate this path to the actual argument that'd open the
-    // project containing this file.
-    if (clientArgs.length === 1 && typeof clientArgs[0] !== 'undefined') {
-        try {
-            fsSync.accessSync(clientArgs[0])
-            // eslint-disable-next-line no-restricted-syntax
-            return clientArgs[0]
-        } catch (e) {
-            console.log(
-                `The single argument '${clientArgs[0]}' does not denote a readable file: ${String(
-                    e
-                )}`
-            )
-        }
-    }
-    return null
-}
-
 // ===========
 // === App ===
 // ===========
@@ -117,11 +88,13 @@ class App {
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
-        const fileToOpen = attemptingToOpenFile(paths.CLIENT_ARGUMENTS)
+        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(
+            fileAssociations.CLIENT_ARGUMENTS
+        )
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument), it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse = fileToOpen ? [] : paths.CLIENT_ARGUMENTS
+        const argsToParse = fileToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
         return { ...configParser.parseArgs(argsToParse), fileToOpen }
     }
 
