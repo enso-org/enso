@@ -3,12 +3,15 @@ import project.Data.Numbers.Integer
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Data.Vector.Empty_Error
 import project.Error.Error
+import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Meta
@@ -142,21 +145,6 @@ type Array
     length : Integer
     length self = @Builtin_Method "Array.length"
 
-    ## Sorts the Array.
-
-      Arguments:
-      - comparator: A comparison function that takes two elements and returns
-        an Ordering that describes how the first element is ordered with
-        respect to the second.
-
-      > Example
-        Getting a sorted array of numbers.
-
-            [3,2,1].to_array.sort
-    sort : (Any -> Any -> Ordering) -> Array
-    sort self comparator=(Ordering.compare _ _) =
-        self.sort_builtin comparator
-
     ## Identity.
        This method is implemented purely for completeness with the runtime's
        primitive array protocol.
@@ -166,6 +154,9 @@ type Array
     #
     # For compatibility with Vector
     #
+
+    sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (Ordering.compare _ _)) = Vector.sort self order on by
 
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = Vector.take self range
@@ -261,7 +252,7 @@ type Array
     to_text self = self.map .to_text . join ", " "[" "]"
 
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Vector.Empty_Error) = Vector.reduce self function if_empty
+    reduce self function ~if_empty=(Error.throw Empty_Error) = Vector.reduce self function if_empty
 
     any : (Any -> Boolean) -> Boolean
     any self predicate = Vector.any self predicate

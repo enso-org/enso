@@ -885,7 +885,7 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        new_vec_arr = self.to_array.sort compare
+        new_vec_arr = self.to_array.sort_builtin compare
         if new_vec_arr.is_error then Error.throw new_vec_arr else
             Vector.from_polyglot_array new_vec_arr
 

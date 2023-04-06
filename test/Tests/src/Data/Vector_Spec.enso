@@ -561,7 +561,7 @@ type_spec name alter = Test.group name <|
         alter [2, Date.new 1999] . sort . should_fail_with Incomparable_Values
         alter [Date_Time.new 1999 1 1 12 30, Date.new 1999] . sort . should_fail_with Incomparable_Values
         alter [Date_Time.new 1999 1 1 12 30, Time_Of_Day.new 12 30] . sort . should_fail_with Incomparable_Values
-        Test.expect_panic_with ([3,2,1].to_array.sort 42) Type_Error
+        Test.expect_panic_with ([3,2,1].to_array.sort_builtin 42) Type_Error
 
     Test.specify "should leave the original vector unchanged" <|
         non_empty_vec = alter [2, 4, 2, 3, 2, 3]
