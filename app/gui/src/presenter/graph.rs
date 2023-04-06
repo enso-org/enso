@@ -90,8 +90,7 @@ struct Model {
     _visualization:        Visualization,
     widget:                controller::Widget,
     _execution_stack:      CallStack,
-    // FIXME[Procrat]: Move me once we synchronise the execution environment with the language
-    // server.
+    // TODO(#5930): Move me once we synchronise the execution environment with the language server.
     execution_environment: Rc<Cell<ExecutionEnvironment>>,
 }
 
@@ -721,10 +720,10 @@ impl Graph {
 
             // === Execution Environment ===
 
-            // FIXME[Procrat]: Delete me once we synchronise the execution environment with the
+            // TODO(#5930): Delete me once we synchronise the execution environment with the
             // language server.
             view.set_execution_environment <+ view.toggle_execution_environment.map(
-                f_!([model] model.toggle_execution_environment()));
+                f_!(model.toggle_execution_environment()));
 
 
             // === Refreshing Nodes ===

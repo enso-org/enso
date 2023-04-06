@@ -579,6 +579,7 @@ ensogl::define_endpoints_2! {
         // === Execution Environment ===
 
         set_execution_environment(ExecutionEnvironment),
+        // TODO(#5930): Temporary shortcut for testing different execution environments
         toggle_execution_environment(),
 
 
@@ -2696,7 +2697,7 @@ impl application::View for GraphEditor {
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
-            // FIXME[Procrat]: Temporary shortcut for testing different execution environments
+            // TODO(#5930): Temporary shortcut for testing different execution environments
             (Press, "", "cmd shift c", "toggle_execution_environment"),
         ]
         .iter()
@@ -3909,7 +3910,7 @@ impl display::Object for GraphEditor {
 // === Execution Environment ===
 // =============================
 
-// FIXME[Procrat]: Move me once we synchronise the execution environment with the language server.
+// TODO(#5930): Move me once we synchronise the execution environment with the language server.
 /// The execution environment which controls the global execution of functions with side effects.
 ///
 /// For more information, see

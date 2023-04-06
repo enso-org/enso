@@ -160,8 +160,8 @@ fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> Toggl
 #[derive(Clone, CloneRef, Debug)]
 struct ContextSwitchButton {
     globally_enabled: Rc<Cell<bool>>,
-    disable_button:   ToggleButton<icon::disable_reevaluation::Shape>,
-    enable_button:    ToggleButton<icon::enable_reevaluation::Shape>,
+    disable_button:   ToggleButton<icon::disable_output_context::Shape>,
+    enable_button:    ToggleButton<icon::enable_output_context::Shape>,
     display_object:   display::object::Instance,
 }
 
@@ -189,17 +189,16 @@ impl ContextSwitchButton {
 
     /// Swap the buttons if the execution environment changed.
     fn set_execution_environment(&self, environment: &ExecutionEnvironment) {
-        if environment.output_context_enabled() == self.globally_enabled.get() {
-            return;
-        }
-        if environment.output_context_enabled() {
-            self.remove_child(&self.enable_button);
-            self.add_child(&self.disable_button);
-            self.globally_enabled.set(true);
-        } else {
-            self.remove_child(&self.disable_button);
-            self.add_child(&self.enable_button);
-            self.globally_enabled.set(false);
+        if environment.output_context_enabled() != self.globally_enabled.get() {
+            if environment.output_context_enabled() {
+                self.remove_child(&self.enable_button);
+                self.add_child(&self.disable_button);
+                self.globally_enabled.set(true);
+            } else {
+                self.remove_child(&self.disable_button);
+                self.add_child(&self.enable_button);
+                self.globally_enabled.set(false);
+            }
         }
     }
 
@@ -256,8 +255,8 @@ impl Model {
         ensogl::shapes_order_dependencies! {
             scene => {
                 hover_area -> icon::visibility;
-                hover_area -> icon::disable_reevaluation;
-                hover_area -> icon::enable_reevaluation;
+                hover_area -> icon::disable_output_context;
+                hover_area -> icon::enable_output_context;
                 hover_area -> icon::freeze;
                 hover_area -> icon::skip;
             }
