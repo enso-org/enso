@@ -49,6 +49,17 @@ spec =
             arr . should_equal [3, 1, 2]
             new_arr . should_equal [1, 2, 3]
 
+    Test.group "Compare functionality with Vector" <|
+        Test.specify "compare methods" <|
+            vector_methods = Meta.meta Vector . methods . sort
+            array_methods_all = Meta.meta Array . methods . sort
+
+            sort_builtin_index = array_methods_all.index_of "sort_builtin"
+            sort_builtin_index.is_nothing . should_be_false
+            array_methods = array_methods_all.remove sort_builtin_index
+
+            vector_methods . should_equal array_methods
+
     Test.group "ArrayOverBuffer" <|
         location_pending = case Platform.os of
             Platform.OS.Windows -> "This test is disabled on Windows."
