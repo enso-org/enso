@@ -29,6 +29,7 @@ import project.Internal.Join_Helpers
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
@@ -929,7 +930,7 @@ type Table
        - on_problems: Specifies the behavior when a problem occurs.
     split_to_columns : Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
     split_to_columns self column delimiter="," column_count=Auto on_problems=Report_Error =
-        table_split_to_columns self column delimiter column_count on_problems
+        Split_Tokenize.table_split_to_columns self column delimiter column_count on_problems
 
     ## Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
@@ -940,7 +941,7 @@ type Table
        - on_problems: Specifies the behavior when a problem occurs.
     split_to_rows : Text | Integer -> Text -> Problem_Behavior -> Table
     split_to_rows self column delimiter="," on_problems=Report_Error =
-        table_split_to_rows self column delimiter on_problems
+        Split_Tokenize.table_split_to_rows self column delimiter on_problems
 
     ## Splits a column of text into a set of new columns using a regular
        expression.
@@ -962,7 +963,7 @@ type Table
        - on_problems: Specifies the behavior when a problem occurs.
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Auto on_problems=Report_Error =
-        table_tokenize_to_columns self column pattern case_sensitivity column_count on_problems
+        Split_Tokenize.table_tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## Takes a regular expression pattern and returns all the matches as new
        rows.
@@ -978,7 +979,7 @@ type Table
        - on_problems: Specifies the behavior when a problem occurs.
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
     tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
-        table_tokenize_to_rows self column pattern case_sensitivity on_problems
+        Split_Tokenize.table_tokenize_to_rows self column pattern case_sensitivity on_problems
 
     ## ALIAS Filter Rows
 

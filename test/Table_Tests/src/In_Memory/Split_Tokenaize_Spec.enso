@@ -11,8 +11,8 @@ spec =
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
             t = Table.new cols
             expected_rows = [[0, 'a', 'c', Nothing], [1, 'c', 'd', 'ef'], [2, 'gh', 'ij', 'u']]
-            expected = Table.from_rows ['foo', 'bar'], expected_rows
-            t2 = t.split_to_columns 'bar', 'b'
+            expected = Table.from_rows ['foo', 'bar'] expected_rows
+            t2 = t.split_to_columns 'bar' 'b'
             t2.should_equal expected
             ##
                 t2.at 'bar_0' . to_vector . should_equal ['a', 'c', 'gh']
@@ -26,8 +26,8 @@ spec =
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
             t = Table.new cols
             expected_rows = [[0, 'a'], [0, 'c'], [1, 'c'], [1, 'd'], [1, 'ef'], [2, 'gh'], [2, 'ij'], [2, 'u']]
-            expected = Table.from_rows ['foo', 'bar'], expected_rows
-            t2 = t.split_to_rows 'bar', 'b'
+            expected = Table.from_rows ['foo', 'bar'] expected_rows
+            t2 = t.split_to_rows 'bar' 'b'
             t2.should_equal expected
 
     Test.group 'tokenize' <|
@@ -35,7 +35,7 @@ spec =
             cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
             t = Table.new cols
             expected_rows = [[0, '12', '34', '5'], [1, '23'], Nothing, Nothing, [2, '2', '4', '55']]
-            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2']
+            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
             t2 = t.tokenize_to_columns 'bar' "\d+"
             t2.should_equal expected
 
@@ -43,7 +43,7 @@ spec =
             cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
             t = Table.new cols
             expected_rows = [[0, '12'], [0, '34'], [0, '5'], [1, '23'], [2, '2'], [2, '4'], [2, '55']]
-            expected = Table.from_rows ['foo', 'bar'], expected_rows
+            expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.tokenize_to_rows 'bar' "\d+"
             t2.should_equal expected
 
@@ -51,7 +51,7 @@ spec =
             cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
             t = Table.new cols
             expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
-            expected = Table.from_rows ['foo', 'bar'], expected_rows
+            expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.tokenize_to_columns 'bar' "([a-z]).(\d+)"
             t2.should_equal expected
 
@@ -59,7 +59,7 @@ spec =
             cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
             t = Table.new cols
             expected_rows = [[0, 'a1'], [0, 'b12'], [0, 'd50'], [1, 'b10'], [1, 'c20']]
-            expected = Table.from_rows ['foo', 'bar'], expected_rows
+            expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.tokenize_to_rows 'bar' "([a-z]).(\d+)"
             t2.should_equal expected
 
