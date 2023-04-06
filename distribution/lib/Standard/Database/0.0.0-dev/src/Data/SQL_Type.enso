@@ -18,12 +18,12 @@ type SQL_Type
        - precision: For character types, specifies their length.
          See `ResultSetMetaData.getPrecision`.
        - scale: The scale for fixed precision numeric types. Not applicable for
-         other types, so it's value is undefined and will usually just be 0.
+         other types, so it's value is undefined.
          See `ResultSetMetaData.getScale`.
        - nullable: Specifies if the given column is nullable. May be `Nothing`
          if that is unknown / irrelevant for the type.
          TODO: the precise meaning of this will be revised with #5872.
-    Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Integer = 0) (nullable : Boolean | Nothing = Nothing)
+    Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Nothing | Integer = Nothing) (nullable : Boolean | Nothing = Nothing)
 
     ## PRIVATE
        ADVANCED
@@ -40,8 +40,9 @@ type SQL_Type
             0 -> Nothing
             p : Integer -> p
         scale = metadata.getScale ix
+        effective_scale = if precision.is_nothing && (scale == 0) then Nothing else scale
         nullable_id = metadata.isNullable ix
         nullable = if nullable_id == ResultSetMetaData.columnNoNulls then False else
             if nullable_id == ResultSetMetaData.columnNullable then True else
                 Nothing
-        SQL_Type.Value typeid typename precision scale nullable
+        SQL_Type.Value typeid typename precision effective_scale nullable

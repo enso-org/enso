@@ -5,12 +5,14 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
+import Standard.Table.Data.Type.Value_Type_Helpers
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Data.Column.Column
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 polyglot java import java.sql.Types
@@ -78,6 +80,10 @@ type SQLite_Type_Mapping
         simple_types_map.get sql_type.typeid on_not_found
 
     ## PRIVATE
+    sql_type_to_text : SQL_Type -> Text
+    sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
+
+    ## PRIVATE
        The SQLite type mapping takes special measures to keep boolean columns
        boolean even if the Database will say that they are numeric.
 
@@ -113,7 +119,11 @@ type SQLite_Type_Mapping
                 Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
             inputs_types = arguments.drop 1 . map find_type
             if inputs_types.first == inputs_types.second then return inputs_types.first else
-                infer_default_type
+                case Value_Type_Helpers.reconcile_types inputs_types.first inputs_types.second of
+                    ## Inference failed, fall back to default type.
+                       Ideally, should never happen. To be handled in #6106.
+                    Value_Type.Mixed -> infer_default_type
+                    common -> return common
 
         always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
         always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]

@@ -13,6 +13,7 @@ import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
+import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
@@ -1128,11 +1129,77 @@ type Table
          regardless of types of other columns. Mixing any other types will
          result in a `No_Common_Type` problem. If columns of incompatible types
          are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention.
+         retyped to the `Mixed` type to indicate that intention. Note that the
+         `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
-        _ = [tables, match_columns, keep_unmatched_columns, allow_type_widening, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.union is not implemented yet for the Database backends.")
+        all_tables = case tables of
+            v : Vector -> [self] + v
+            single_table -> [self, single_table]
+        all_tables.all (check_db_table "tables") . if_not_error <|
+            problem_builder = Problem_Builder.new
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
+            dialect = self.connection.dialect
+            type_mapping = dialect.get_type_mapping
+            merged_columns = matched_column_sets.map column_set->
+                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
+                    Nothing -> Nothing
+                    result_type : Value_Type ->
+                        sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
+                        sql_type.catch Inexact_Type_Coercion error->
+                            Panic.throw <|
+                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                        [column_set, sql_type]
+            good_columns = merged_columns.filter r-> r.is_nothing.not
+            if good_columns.is_empty then Error.throw No_Output_Columns else
+                problem_builder.attach_problems_before on_problems <|
+                    cast_after_union = dialect.cast_after_union
+                    queries = all_tables.map_with_index i-> t->
+                        columns_to_select = good_columns.map description->
+                            column_set = description.first
+                            result_type = description.second
+                            column_name = column_set.name
+                            input_column = case column_set.column_indices.at i of
+                                Nothing ->
+                                    typ = SQL_Type_Reference.from_constant SQL_Type.null
+                                    expr = SQL_Expression.Literal "NULL"
+                                    Internal_Column.Value column_name typ expr
+                                corresponding_column_index : Integer ->
+                                    t.at corresponding_column_index . as_internal . rename column_name
+                            ## We return `null` return type, as this type should
+                               never be queried - we will just put it into the
+                               union and the overall queried type will be taken
+                               from there. This is just needed to create an
+                               internal representation.
+                            infer_return_type _ = SQL_Type_Reference.null
+                            if cast_after_union then input_column else
+                                dialect.make_cast input_column result_type infer_return_type
+                        pairs = columns_to_select.map c->
+                            [c.name, c.expression]
+                        Query.Select pairs t.context
+
+                    union_alias = all_tables.map .name . join "_"
+                    new_from = From_Spec.Union queries union_alias
+                    new_ctx = Context.for_subquery new_from
+                    ## TODO [RW] The result type is currently fetched
+                       independently for each column, instead we should fetch it
+                       for all columns at once.
+                       See #6118.
+                    infer_return_type expression =
+                        SQL_Type_Reference.new self.connection new_ctx expression
+                    new_columns = good_columns.map description->
+                        column_set = description.first
+                        result_type = description.second
+                        name = column_set.name
+                        expression = SQL_Expression.Column union_alias name
+                        case cast_after_union of
+                            True ->
+                                input_column = Internal_Column.Value name SQL_Type_Reference.null expression
+                                dialect.make_cast input_column result_type infer_return_type
+                            False ->
+                                Internal_Column.Value name (infer_return_type expression) expression
+
+                    Table.Value union_alias self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -1323,6 +1390,63 @@ type Table
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
+    ## PRIVATE
+       UNSTABLE
+       Cast the selected columns to a specific type.
+
+       Returns a new table in which the selected columns are replaced with
+       columns having the new types.
+
+       Arguments:
+       - columns: The selection of columns to cast.
+       - value_type: The `Value_Type` to cast the column to.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       TODO [RW] this is a prototype needed for debugging, proper implementation
+       and testing will come with #6112.
+
+       In the Database backend, this will boil down to a CAST operation.
+       In the in-memory backend, a conversion will be performed according to
+       the following rules:
+       - Anything can be cast into the `Mixed` type.
+       - Converting to a `Char` type, the elements of the column will be
+         converted to text. If it is fixed length, the texts will be trimmed or
+         padded on the right with the space character to match the desired
+         length.
+       - Conversion between numeric types will replace values exceeding the
+         range of the target type with `Nothing`.
+       - Booleans may also be converted to numbers, with `True` being converted
+         to `1` and `False` to `0`. The reverse is not supported - use `iif`
+         instead.
+       - A `Date_Time` may be converted into a `Date` or `Time` type - the
+         resulting value will be truncated to the desired type.
+       - If a `Date` is to be converted to `Date_Time`, it will be set at
+         midnight of the default system timezone.
+
+       ? Conversion Precision
+
+         In the in-memory backend, if the conversion is lossy, a
+         `Lossy_Conversion` warning will be reported. The only exception is when
+         truncating a column which is already a text column - as then the
+         truncation seems like an intended behaviour, so it is not reported. If
+         truncating needs to occur when converting a non-text column, a warning
+         will still be reported.
+
+         Currently, the warning is not reported for Database backends.
+
+       ? Inexact Target Type
+
+         If the backend does not support the requested target type, the closest
+         supported type is chosen and a `Inexact_Type_Coercion` problem is
+         reported.
+    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
+    cast self columns=[0] value_type=Value_Type.Char on_problems=Problem_Behavior.Report_Warning =
+        selected = self.select_columns columns
+        selected.columns.fold self table-> column_to_cast->
+            new_column = column_to_cast.cast value_type on_problems
+            table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
+
     ## ALIAS dropna
        ALIAS drop_missing_rows
        Remove rows which are all blank or containing blank values.
@@ -1387,8 +1511,8 @@ type Table
 
     ## Returns a Table describing this table's contents.
 
-       The table lists all columns, counts of non-null items and storage types
-       of each column.
+       The table lists all columns, counts of non-null items and value types of
+       each column.
     info : Materialized_Table
     info self =
         cols = self.internal_columns
@@ -1651,3 +1775,16 @@ freshen_columns used_names columns =
 type Wrapped_Error
     ## PRIVATE
     Value value
+
+## PRIVATE
+   Checks if the argument is a proper table and comes from the current backend.
+   It returns True or throws a dataflow error explaining the issue.
+
+   TODO [RW]: this should check that the tables are on the same connection
+check_db_table arg_name table =
+    if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
+            same_backend = table.is_a Table
+            case same_backend of
+                False ->
+                    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+                True -> True
