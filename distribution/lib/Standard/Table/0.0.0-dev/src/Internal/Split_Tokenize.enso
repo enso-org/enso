@@ -14,17 +14,9 @@ from project.Data.Type.Value_Type import Auto
 table_split_to_columns : Table -> Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
 table_split_to_columns table column delimiter="," column_count=Auto on_problems=Report_Error =
     _ = [column_count, on_problems]
-    IO.println <| table.display
     input_column = table.at column
-    IO.println <| input_column.display
     new_columns = map_column_to_multiple input_column (ignore_nothing (x-> x.split delimiter))
-
-    with_old_removed = table.remove_columns column
-    IO.println <| with_old_removed.display
-    with_new_added = new_columns.fold with_old_removed (t-> c-> t.set c set_mode=Set_Mode.Add)
-    IO.println <| with_new_added.display
-    with_new_added
-    #new_columns.fold (table.remove_columns column) (t-> c-> t.set c set_mode=Set_Mode.Add)
+    new_columns.fold (table.remove_columns column) (t-> c-> t.set c set_mode=Set_Mode.Add)
 
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
 split_to_rows = 1

@@ -19,59 +19,47 @@ spec =
             expected_rows = [[0, 'a', 'c', Nothing], [1, 'c', 'd', 'ef'], [2, 'gh', 'ij', 'u']]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
             t2 = t.split_to_columns 'bar' 'b'
-            IO.println '----'
-            IO.println t2.display
-            IO.println expected.display
             tables_should_be_equal t2 expected
-            #(tables_equal t2 expected) . should_equal True
-            #t2.should_equal expected
-            ##
-                t2.at 'bar_0' . to_vector . should_equal ['a', 'c', 'gh']
-                t2.at 'bar_1' . to_vector . should_equal ['c', 'd', 'ij']
-                t2.at 'bar_2' . to_vector . should_equal [Nothing, 'ef', 'u']
-                t2.get 'bar_1' . should_equal Nothing
-                t2.at 'foo' . to_vector . should_equal cols . at 0 . at 1
-                t2.at 'foo'  . should_equal cols . at 0
+        ##
+            Test.specify 'can do split_to_rows' <|
+                cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
+                t = Table.new cols
+                expected_rows = [[0, 'a'], [0, 'c'], [1, 'c'], [1, 'd'], [1, 'ef'], [2, 'gh'], [2, 'ij'], [2, 'u']]
+                expected = Table.from_rows ['foo', 'bar'] expected_rows
+                t2 = t.split_to_rows 'bar' 'b'
+                t2.should_equal expected
+    ##
+        Test.group 'tokenize' <|
+            Test.specify 'can do tokenize_to_columns' <|
+                cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
+                t = Table.new cols
+                expected_rows = [[0, '12', '34', '5'], [1, '23'], Nothing, Nothing, [2, '2', '4', '55']]
+                expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
+                t2 = t.tokenize_to_columns 'bar' "\d+"
+                t2.should_equal expected
 
-        Test.specify 'can do split_to_rows' <|
-            cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
-            t = Table.new cols
-            expected_rows = [[0, 'a'], [0, 'c'], [1, 'c'], [1, 'd'], [1, 'ef'], [2, 'gh'], [2, 'ij'], [2, 'u']]
-            expected = Table.from_rows ['foo', 'bar'] expected_rows
-            t2 = t.split_to_rows 'bar' 'b'
-            t2.should_equal expected
+            Test.specify 'can do tokenize_to_rows' <|
+                cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
+                t = Table.new cols
+                expected_rows = [[0, '12'], [0, '34'], [0, '5'], [1, '23'], [2, '2'], [2, '4'], [2, '55']]
+                expected = Table.from_rows ['foo', 'bar'] expected_rows
+                t2 = t.tokenize_to_rows 'bar' "\d+"
+                t2.should_equal expected
 
-    Test.group 'tokenize' <|
-        Test.specify 'can do tokenize_to_columns' <|
-            cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
-            t = Table.new cols
-            expected_rows = [[0, '12', '34', '5'], [1, '23'], Nothing, Nothing, [2, '2', '4', '55']]
-            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
-            t2 = t.tokenize_to_columns 'bar' "\d+"
-            t2.should_equal expected
+            Test.specify "can do tokenize_to_columns with groups" <|
+                cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
+                t = Table.new cols
+                expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
+                expected = Table.from_rows ['foo', 'bar'] expected_rows
+                t2 = t.tokenize_to_columns 'bar' "([a-z]).(\d+)"
+                t2.should_equal expected
 
-        Test.specify 'can do tokenize_to_rows' <|
-            cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
-            t = Table.new cols
-            expected_rows = [[0, '12'], [0, '34'], [0, '5'], [1, '23'], [2, '2'], [2, '4'], [2, '55']]
-            expected = Table.from_rows ['foo', 'bar'] expected_rows
-            t2 = t.tokenize_to_rows 'bar' "\d+"
-            t2.should_equal expected
-
-        Test.specify "can do tokenize_to_columns with groups" <|
-            cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
-            t = Table.new cols
-            expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
-            expected = Table.from_rows ['foo', 'bar'] expected_rows
-            t2 = t.tokenize_to_columns 'bar' "([a-z]).(\d+)"
-            t2.should_equal expected
-
-        Test.specify "can do tokenize_to_rows with groups" <|
-            cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
-            t = Table.new cols
-            expected_rows = [[0, 'a1'], [0, 'b12'], [0, 'd50'], [1, 'b10'], [1, 'c20']]
-            expected = Table.from_rows ['foo', 'bar'] expected_rows
-            t2 = t.tokenize_to_rows 'bar' "([a-z]).(\d+)"
-            t2.should_equal expected
+            Test.specify "can do tokenize_to_rows with groups" <|
+                cols = [['foo', 0, 1], ['bar', 'r a-1, b-12,qd-50', 'ab-10:bc-20c']]
+                t = Table.new cols
+                expected_rows = [[0, 'a1'], [0, 'b12'], [0, 'd50'], [1, 'b10'], [1, 'c20']]
+                expected = Table.from_rows ['foo', 'bar'] expected_rows
+                t2 = t.tokenize_to_rows 'bar' "([a-z]).(\d+)"
+                t2.should_equal expected
 
 main = Test_Suite.run_main spec
