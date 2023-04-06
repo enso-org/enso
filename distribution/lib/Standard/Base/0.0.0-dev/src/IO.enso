@@ -24,13 +24,29 @@ print_err message = @Builtin_Method "IO.print_err"
    Arguments:
    - message: The message to print. It will have to_text called on it to
      generate a textual representation that is then printed.
+   - warnings: Whether to print any warnings that are attached to the value.
+     Defaults to `False`, meaning that warnings are discarded.
 
    > Example
      Print the message "Oh yes!" to standard output.
 
          IO.println "Oh yes!"
-println : Any -> Nothing
-println message = @Builtin_Method "IO.println"
+
+   > Example
+     Print the message "Hello! (1 warning attached)" to standard output.
+
+         x = Warning.attach "WARN" "Hello!"
+         IO.println warnings=True x
+println : Any -> Boolean -> Nothing
+println message warnings=False =
+    println_builtin message warnings
+
+## PRIVATE
+   The builtin for the `println` method.
+   Needed only because default arguments are not supported directly in builtins,
+   so we need a level of indirection. `println` should always be sued instead.
+println_builtin : Any -> Boolean -> Nothing
+println_builtin message warnings = @Builtin_Method "IO.println_builtin"
 
 ## PRIVATE
    ADVANCED

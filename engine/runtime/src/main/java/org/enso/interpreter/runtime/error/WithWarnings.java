@@ -112,6 +112,11 @@ public final class WithWarnings implements TruffleObject {
   }
 
   @ExportMessage
+  long countWarnings() {
+    return warnings.size();
+  }
+
+  @ExportMessage
   Warning[] getWarnings(
       Node location, @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
     if (location != null) {

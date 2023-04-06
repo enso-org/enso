@@ -42,6 +42,17 @@ public abstract class WarningsLibrary extends Library {
   }
 
   /**
+   * Returns how many warnings are attached to a value.
+   *
+   * @param receiver the receiver to check
+   * @return the count of attached warnings
+   */
+  @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
+  public long countWarnings(Object receiver) {
+    return 0L;
+  }
+
+  /**
    * Returns all warnings associated with the receiver.
    *
    * @param receiver the receiver to analyze
@@ -61,7 +72,7 @@ public abstract class WarningsLibrary extends Library {
    * @return the receiver with all warnings removed, if any
    */
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public Object removeWarnings(Object receiver) throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+  public Object removeWarnings(Object receiver) {
+    return receiver;
   }
 }
