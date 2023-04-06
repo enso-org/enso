@@ -16,7 +16,6 @@ import project.Internal.Widget_Helpers
 
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
@@ -1029,15 +1028,16 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
-    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
-        Value_Type.expect_text self.value_type related_column=self.name <| ensure_valid_parse_target type <|
+        Value_Type.expect_text self.value_type related_column=self.name <|
             formatter = case format of
                 _ : Text ->
                     Data_Formatter.Value.with_format type format
-                _ -> format
+                _ : Data_Formatter -> format
+                _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
 
-            parser = if type == Auto then formatter.make_auto_parser else formatter.make_datatype_parser type
+            parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
             new_storage_and_problems = parser.parseColumn self.name storage
 
