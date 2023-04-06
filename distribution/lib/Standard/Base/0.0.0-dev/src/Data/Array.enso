@@ -1,15 +1,22 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.List.List
 import project.Data.Ordering.Ordering
+import project.Data.Pair.Pair
 import project.Data.Range.Extensions
+import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.Not_Found
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, False
+from project.Data.Index_Sub_Range import Index_Sub_Range
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
@@ -155,3 +162,130 @@ type Array
        primitive array protocol.
     to_array : Array
     to_array self = @Builtin_Method "Array.to_array"
+
+    #
+    # For compatibility with Vector
+    #
+
+    take : (Index_Sub_Range | Range | Integer) -> Vector Any
+    take self range=(Index_Sub_Range.First 1) = Vector.take self range
+
+    drop : (Index_Sub_Range | Range | Integer) -> Vector Any
+    drop self range=(Index_Sub_Range.First 1) = Vector.drop self range
+
+    insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
+    insert self at=self.length item=Nothing = Vector.insert self at item
+
+    remove : Integer -> Array
+    remove self at=-1 = Vector.remove self at
+
+    first : Any ! Index_Out_Of_Bounds
+    first self = self.at 0
+
+    second : Any ! Index_Out_Of_Bounds
+    second self = self.at 1
+
+    last : Any ! Index_Out_Of_Bounds
+    last self = self.at -1
+
+    index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self element start=0 = Vector.index_of self element start
+
+    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self element start=-1 = Vector.last_index_of self element start
+
+    is_empty : Boolean
+    is_empty self = self.length == 0
+
+    to_list : List
+    to_list self = Vector.to_list self
+
+    distinct : (Any -> Any) -> Vector Any
+    distinct self (on = x->x) = Vector.distinct self on
+
+    map : (Any -> Any) -> Vector Any
+    map self function = Vector.map self function
+
+    flat_map : (Any -> Vector Any) -> Vector Any
+    flat_map self function = Vector.flat_map self function
+
+    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter self filter = Vector.filter self filter
+
+    flatten : Vector Any
+    flatten self = Vector.flatten self
+
+    short_display_text : Integer -> Text
+    short_display_text self max_entries=10 = Vector.short_display_text self max_entries
+
+    running_fold : Any -> (Any -> Any -> Any) -> Vector Any
+    running_fold self init function = Vector.running_fold self init function
+
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold self init function = Vector.fold self init function
+
+    fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
+    fold_with_index self init function = Vector.fold_with_index self init function
+
+    pad : Integer -> Any -> Vector Any
+    pad self n elem = Vector.pad self n elem
+
+    partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
+    partition self predicate = Vector.partition self predicate
+
+    partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
+    partition_with_index self predicate = Vector.partition_with_index self predicate
+
+    map_with_index : (Integer -> Any -> Any) -> Vector Any
+    map_with_index self function = Vector.map_with_index self function
+
+    slice : Integer -> Integer -> Vector Any
+    slice self start end = Vector.slice self start end
+
+    find : (Any -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=(Error.throw Not_Found) = Vector.find predicate start if_missing
+
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing = Vector.get self index if_missing
+
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
+
+    filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
+    filter_with_index self predicate = Vector.filter_with_index self predicate
+
+    join : Text -> Text -> Text -> Text
+    join self separator="" prefix="" suffix="" = Vector.join self separator prefix suffix
+
+    to_text : Text
+    to_text self = self.map .to_text . join ", " "[" "]"
+
+    reduce : (Any -> Any -> Any) -> Any -> Any
+    reduce self function ~if_empty=(Error.throw Vector.Empty_Error) = Vector.reduce self function if_empty
+
+    any : (Any -> Boolean) -> Boolean
+    any self predicate = Vector.any self predicate
+
+    all : (Any -> Boolean) -> Boolean
+    all self predicate = self . any (predicate >> .not) . not
+
+    contains : Any -> Boolean
+    contains self elem = self.any ix-> ix == elem
+
+    zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
+    zip self that function=[_,_] = Vector.zip self that function
+
+    to_vector : Vector
+    to_vector self = Vector.from_polyglot_array self
+
+    reverse : Vector Any
+    reverse self = Vector.reverse self
+
+    each : (Any -> Any) -> Nothing
+    each self f = Vector.each self f
+
+    each_with_index : (Integer -> Any -> Any) -> Nothing
+    each_with_index self f = Vector.each_with_index self f
+
+    + : Vector Any -> Vector Any
+    + self that = Vector.+ self that
