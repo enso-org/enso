@@ -240,7 +240,7 @@ type Array
     map_with_index self function = Vector.map_with_index self function
 
     slice : Integer -> Integer -> Vector Any
-    slice self start end = Vector.slice self start end
+    slice self start end = @Builtin_Method "Array.slice"
 
     find : (Any -> Boolean) -> Integer -> Any -> Any
     find self predicate start=0 ~if_missing=(Error.throw Not_Found) = Vector.find self predicate start if_missing

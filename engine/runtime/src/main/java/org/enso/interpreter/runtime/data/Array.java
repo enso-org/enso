@@ -133,6 +133,15 @@ public final class Array implements TruffleObject {
     return this;
   }
 
+  @Builtin.Method(name = "slice", description = "Returns a slice of this Array.")
+  @Builtin.Specialize
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
+  public final Object slice(long start, long end, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    Object slice = ArraySlice.create(this, start, length(), end);
+    return slice == null ? this : Vector.fromArray(slice);
+  }
+
   /**
    * Exposes the size of this collection through the polyglot API.
    *
