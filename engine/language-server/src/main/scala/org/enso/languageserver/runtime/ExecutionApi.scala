@@ -197,6 +197,22 @@ object ExecutionApi {
     }
   }
 
+  case object ExecutionContextSetExecutionEnvironment
+      extends Method("executionContext/setExecutionEnvironment") {
+
+    case class Params(
+      contextId: ContextId,
+      executionEnvironment: ExecutionEnvironment
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextSetExecutionEnvironment.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case object StackItemNotFoundError extends Error(2001, "Stack item not found")
 
   case object ContextNotFoundError extends Error(2002, "Context not found")

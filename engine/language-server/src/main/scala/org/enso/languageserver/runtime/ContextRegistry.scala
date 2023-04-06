@@ -211,6 +211,26 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
+      case SetExecutionEnvironmentRequest(client, contextId, environment) =>
+        if (store.hasContext(client.clientId, contextId)) {
+          val handler =
+            context.actorOf(
+              SetExecutionContextEnvironmentHandler.props(
+                runtimeFailureMapper,
+                timeout,
+                runtime
+              )
+            )
+          handler.forward(
+            Api.SetExecutionEnvironmentRequest(
+              contextId,
+              ExecutionEnvironment.toApi(environment)
+            )
+          )
+        } else {
+          sender() ! AccessDenied
+        }
+
       case InterruptContextRequest(client, contextId) =>
         if (store.hasContext(client.clientId, contextId)) {
           val handler =
@@ -384,14 +404,14 @@ object ContextRegistry {
         listeners = listeners - contextId
       )
 
-    def getContexts(client: ClientId): Set[ContextId] =
-      contexts.getOrElse(client, Set())
-
     def getListener(contextId: ContextId): Option[ActorRef] =
       listeners.get(contextId)
 
     def hasContext(client: ClientId, contextId: ContextId): Boolean =
       getContexts(client).contains(contextId)
+
+    private def getContexts(client: ClientId): Set[ContextId] =
+      contexts.getOrElse(client, Set())
   }
 
   private object Store {

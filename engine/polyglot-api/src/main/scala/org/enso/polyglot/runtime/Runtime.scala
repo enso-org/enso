@@ -1706,10 +1706,8 @@ object Runtime {
     ) extends ApiRequest
 
     /** A response to the set execution environment request. */
-    final case class SetExecutionEnvironmentResponse(
-      contextId: ContextId,
-      executionEnvironment: ExecutionEnvironment
-    ) extends ApiResponse
+    final case class SetExecutionEnvironmentResponse(contextId: ContextId)
+        extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

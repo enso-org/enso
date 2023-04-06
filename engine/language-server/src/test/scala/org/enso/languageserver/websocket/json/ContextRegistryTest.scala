@@ -8,6 +8,7 @@ import org.enso.languageserver.runtime.{
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
+import org.enso.polyglot
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -533,6 +534,79 @@ class ContextRegistryTest extends BaseServerTest {
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId3,
         Api.RecomputeContextResponse(contextId)
+      )
+      client.expectJson(json.ok(3))
+    }
+
+    "set execution environment" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // push stack item
+      val expressionId = UUID.randomUUID()
+      client.send(json.executionContextPushRequest(2, contextId, expressionId))
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.PushContextRequest(
+                  `contextId`,
+                  Api.StackItem.LocalCall(`expressionId`)
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.PushContextResponse(contextId)
+      )
+      client.expectJson(json.ok(2))
+
+      // recompute
+      client.send(
+        json"""
+              { "jsonrpc": "2.0",
+                "method": "executionContext/setExecutionEnvironment",
+                "id": 3,
+                "params": {
+                  "contextId": $contextId,
+                  "executionEnvironment": "Live"
+                }
+              }
+              """
+      )
+      val requestId3 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.SetExecutionEnvironmentRequest(
+                  `contextId`,
+                  polyglot.ExecutionEnvironment.LIVE
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId3,
+        Api.SetExecutionEnvironmentResponse(contextId)
       )
       client.expectJson(json.ok(3))
     }

@@ -6,6 +6,7 @@ import org.enso.interpreter.instrument.InstrumentFrame;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.ExecuteJob;
 import org.enso.polyglot.ExecutionEnvironment;
+import org.enso.polyglot.runtime.Runtime$Api$SetExecutionEnvironmentResponse;
 import scala.Option;
 import scala.collection.mutable.Stack;
 import scala.concurrent.ExecutionContext;
@@ -46,6 +47,7 @@ public class SetExecutionEnvironmentCommand extends Command {
       ctx.executionService().getContext().setExecutionEnvironment(executionEnvironment);
       CacheInvalidation.invalidateAll(stack);
       ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
+      reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
     } finally {
       ctx.locking().releaseWriteCompilationLock();
       ctx.locking().releaseContextLock(contextId);

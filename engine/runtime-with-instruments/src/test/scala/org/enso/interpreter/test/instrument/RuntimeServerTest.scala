@@ -4346,7 +4346,8 @@ class RuntimeServerTest
         Api.SetExecutionEnvironmentRequest(contextId, ExecutionEnvironment.LIVE)
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId)),
       TestMessages.update(contextId, idX, ConstantsGen.TEXT),
       context.executionComplete(contextId)
     )

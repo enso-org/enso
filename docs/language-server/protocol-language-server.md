@@ -134,6 +134,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/interrupt`](#executioncontextinterrupt)
+  - [`executionContext/setExecutionEnvironment`](#executioncontextsetexecutionenvironment)
   - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
@@ -3665,6 +3666,37 @@ provided execution context.
 ```typescript
 {
   contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+
+### `executionContext/setExecutionEnvironment`
+
+Sent from the client to the server to set the execution context environment.
+After setting the environment, the runtime interrupts the current execution,
+clears the caches, and schedules execution of the context.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+  executionEnvironment: ExecutionEnvironment;
 }
 ```
 

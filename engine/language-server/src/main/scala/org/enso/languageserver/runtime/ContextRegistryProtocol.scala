@@ -144,6 +144,24 @@ object ContextRegistryProtocol {
     componentGroups: Seq[LibraryComponentGroup]
   )
 
+  /** A request to the context registry set the execution context environment.
+    *
+    * @param rpcSession reference to the client
+    * @param contextId execution context identifier
+    * @param executionEnvironment the environment that should be used for execution
+    */
+  case class SetExecutionEnvironmentRequest(
+    rpcSession: JsonSession,
+    contextId: ContextId,
+    executionEnvironment: ExecutionEnvironment
+  )
+
+  /** A response to the set execution environment request.
+    *
+    * @param contextId execution context identifier
+    */
+  case class SetExecutionEnvironmentResponse(contextId: ContextId)
+
   /** A notification about updated expressions of execution context.
     *
     * @param contextId execution context identifier
