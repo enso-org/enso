@@ -16,7 +16,7 @@ table_split_to_columns table column delimiter="," column_count=Auto on_problems=
     _ = [column_count, on_problems]
     input_column = table.at column
     new_columns = map_column_to_multiple input_column (ignore_nothing (x-> x.split delimiter))
-    new_columns.fold (table.remove_columns column) (t-> c-> t.set c set_mode=Set_Mode.Add)
+    replace_column_with_columns table column new_columns
 
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
 split_to_rows = 1
@@ -41,6 +41,11 @@ map_column_to_multiple input_column function =
     result_column_vectors.map_with_index i-> cv->
         name = input_column.name + "_" + i.to_text
         Column.from_vector name cv
+
+replace_column_with_columns : Table -> Column -> Vector Column -> Table
+replace_column_with_columns table old_column new_columns =
+    with_column_removed = table.remove_columns old_column error_on_missing_columns=True
+    new_columns.fold with_column_removed (t-> c-> t.set c set_mode=Set_Mode.Add)
 
 ## PRIVATE
    Swap rows and columns of a vector-of-vectors, padding each vector to be the
