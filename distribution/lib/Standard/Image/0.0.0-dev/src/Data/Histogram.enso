@@ -1,10 +1,9 @@
 from Standard.Base import all
 
-## UNSTABLE
+## PRIVATE
 type Histogram
 
     ## PRIVATE
-
        The histogram of a single image channel.
 
        Arguments:
@@ -12,8 +11,7 @@ type Histogram
        - data: The histogram data.
     Value channel data
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert histogram data to a JS_Object.
 
        > Example

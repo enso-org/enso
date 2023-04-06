@@ -2,7 +2,9 @@ import project.Data.Numbers.Integer
 
 ## The exit codes that the process can return.
 type Exit_Code
-    ## Create exit code from a number.
+    ## PRIVATE
+       ADVANCED
+       Create exit code from a number.
 
        Arguments:
        - code: The exit code you want to create.

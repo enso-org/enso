@@ -102,7 +102,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector:
-            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))):has(:matches([finalizer=null], .finalizer :matches(ReturnStatement, ThrowStatement))))) > * > ReturnStatement',
+            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))):has(:matches([finalizer=null], .finalizer :matches(ReturnStatement, ThrowStatement))))) > * > :matches(ReturnStatement, ThrowStatement)',
         message: 'No early returns',
     },
     {
@@ -165,6 +165,10 @@ const RESTRICTED_SYNTAXES = [
         selector:
             'ImportDeclaration[source.value=/^(?:assert|async_hooks|buffer|child_process|cluster|console|constants|crypto|dgram|diagnostics_channel|dns|domain|events|fs|fs\\u002Fpromises|http|http2|https|inspector|module|net|os|path|perf_hooks|process|punycode|querystring|readline|repl|stream|string_decoder|timers|tls|trace_events|tty|url|util|v8|vm|wasi|worker_threads|zlib)$/]',
         message: 'Use `node:` prefix to import builtin node modules',
+    },
+    {
+        selector: 'TSEnumDeclaration:not(:has(TSEnumMember))',
+        message: 'Enums must not be empty',
     },
     {
         selector:
@@ -310,7 +314,7 @@ export default [
             ],
             'no-redeclare': 'off',
             // Important to warn on accidental duplicated `interface`s e.g. when writing API wrappers.
-            '@typescript-eslint/no-redeclare': 'error',
+            '@typescript-eslint/no-redeclare': ['error', { ignoreDeclarationMerge: false }],
             'no-shadow': 'off',
             '@typescript-eslint/no-shadow': 'warn',
             'no-unused-expressions': 'off',

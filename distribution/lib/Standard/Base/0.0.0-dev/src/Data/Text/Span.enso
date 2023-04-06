@@ -82,7 +82,8 @@ type Span
     text : Text
     text self = self.to_utf_16_span.text
 
-    ## Converts the span of extended grapheme clusters to a corresponding span
+    ## ADVANCED
+       Converts the span of extended grapheme clusters to a corresponding span
        of UTF-16 code units.
 
        > Example

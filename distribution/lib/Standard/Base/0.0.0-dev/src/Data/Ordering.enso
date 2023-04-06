@@ -132,9 +132,11 @@ type Comparable
         comp = Comparable.from atom
         (comp.is_a Default_Comparator).not
 
-## Default implementation of a _comparator_.
+## PRIVATE
+   Default implementation of a _comparator_.
 @Builtin_Type
 type Default_Comparator
+    ## PRIVATE
     compare : Any -> Any -> (Ordering|Nothing)
     compare x y =
         case Comparable.equals_builtin x y of
@@ -149,12 +151,11 @@ type Default_Comparator
                             True -> Ordering.Greater
                             False -> Nothing
 
+    ## PRIVATE
     hash : Number -> Integer
     hash x = Comparable.hash_builtin x
 
-
 Comparable.from (_:Any) = Default_Comparator
-
 
 ## Types representing the ordering of values.
 @Builtin_Type
@@ -191,7 +192,6 @@ type Ordering
         Ordering.Equal -> 0
 
     ## A lexicographical comparison.
-
     and_then : Ordering -> Ordering
     and_then self ~other = case self of
         Ordering.Less -> Ordering.Less
@@ -211,8 +211,12 @@ type Ordering
     from_sign sign = if sign == 0 then Ordering.Equal else
         if sign > 0 then Ordering.Greater else Ordering.Less
 
+## PRIVATE
 type Ordering_Comparator
+    ## PRIVATE
     compare x y = (Comparable.from x.to_sign).compare x.to_sign y.to_sign
+
+    ## PRIVATE
     hash x = x.to_sign
 
 Comparable.from (_:Ordering) = Ordering_Comparator

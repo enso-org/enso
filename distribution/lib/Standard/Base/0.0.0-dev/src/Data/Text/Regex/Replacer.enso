@@ -35,7 +35,8 @@ type Replacer
        all the strings together to form the full replacement string.
     Value (replacement : Vector Replacement)
 
-    ## Creates a new Replacer.
+    ## PRIVATE
+       Creates a new Replacer.
 
        Arguments
        - replacement_string: a string, possibly containing group references,
@@ -44,7 +45,8 @@ type Replacer
     new replacement_string pattern =
         Replacer.Value (build_replacement_vector_cached replacement_string pattern)
 
-    ## Build a replacement string from a match.
+    ## PRIVATE
+       Build a replacement string from a match.
 
        Arguments:
        - match: the match from the original string that is to be replaced.
@@ -136,9 +138,12 @@ parse_group_number pattern match = case match.text.take 2 of
         n = Integer.parse <| match.text 2
         Replacement.Substitution (pattern.lookup_group n)
 
+## PRIVATE
 type Replacement
-    ## A string literal to replace with.
+    ## PRIVATE
+       A string literal to replace with.
     Literal (text : Text)
 
-    ## Target group to insert.
+    ## PRIVATE
+       Target group to insert.
     Substitution (group_number : Integer)

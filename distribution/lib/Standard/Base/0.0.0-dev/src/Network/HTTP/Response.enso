@@ -54,7 +54,8 @@ type Response
     code : HTTP_Status_Code
     code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
 
-    ## Convert to a JavaScript Object representing this Response.
+    ## PRIVATE
+       Convert to a JavaScript Object representing this Response.
 
        > Example
          Convert a response to JS_Object.
