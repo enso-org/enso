@@ -127,7 +127,8 @@ type Statistic
        - predicted: the series to compute the r_squared with.
     R_Squared (predicted:Vector)
 
-    ## Gets the order needed to compute a statistic for a moment based statistic.
+    ## PRIVATE
+       Gets the order needed to compute a statistic for a moment based statistic.
     order : Integer | Nothing
     order self = case self of
         Statistic.Sum -> 1

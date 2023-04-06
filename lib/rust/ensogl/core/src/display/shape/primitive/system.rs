@@ -73,7 +73,7 @@ use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
 use crate::system::gpu::data::buffer::item::Storable;
-use crate::system::gpu::data::InstanceIndex;
+use crate::system::gpu::data::InstanceId;
 
 use super::def;
 
@@ -131,7 +131,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     }
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
-    fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceIndex) -> Self;
+    fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceId) -> Self;
     fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
     fn flavor(_data: &Self::ShapeData) -> ShapeSystemFlavor {
@@ -301,25 +301,13 @@ impl<S: Shape> ShapeSystem<S> {
         Self { data }.init_refresh_on_style_change()
     }
 
-    // FIXME: the following 2 fns look similar
     /// Constructor of a new shape instance.
     #[profile(Debug)]
-    pub fn new_instance(&self) -> ShapeInstance<S> {
-        let sprite = self.model.sprite_system.new_instance();
-        sprite.allow_grow();
-        let id = sprite.instance_id;
-        let shape = S::new_instance_params(&self.gpu_params, id);
-        let display_object = display::object::Instance::new_named("ShapeSystem");
-        display_object.add_child(&sprite);
-        // FIXME: workaround:
-        // display_object.use_auto_layout();
-        let sprite = RefCell::new(sprite);
-        ShapeInstance { sprite, shape, display_object }
-    }
-
-    #[profile(Debug)]
-    pub(crate) fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
-        let sprite = self.model.sprite_system.new_instance();
+    pub(crate) fn instantiate(
+        &self,
+        buffer_partition: attribute::BufferPartitionId,
+    ) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
+        let sprite = self.model.sprite_system.new_instance_at(buffer_partition);
         sprite.allow_grow();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
@@ -691,7 +679,7 @@ macro_rules! _shape_old {
             use $crate::display::shape::ShapeOps;
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
-            use $crate::system::gpu::data::InstanceIndex;
+            use $crate::system::gpu::data::InstanceId;
             use $crate::display::shape::system::*;
 
 
@@ -742,7 +730,7 @@ macro_rules! _shape_old {
 
                 fn new_instance_params(
                     gpu_params:&Self::GpuParams,
-                    id: InstanceIndex
+                    id: InstanceId
                 ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     let params = Self::InstanceParams { $($gpu_param),* };
@@ -852,7 +840,7 @@ macro_rules! _shape {
             use $crate::display::shape::ShapeOps;
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
-            use $crate::system::gpu::data::InstanceIndex;
+            use $crate::system::gpu::data::InstanceId;
             use $crate::display::shape::system::*;
 
 
@@ -903,7 +891,7 @@ macro_rules! _shape {
 
                 fn new_instance_params(
                     gpu_params: &Self::GpuParams,
-                    id: InstanceIndex
+                    id: InstanceId
                 ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     let params = Self::InstanceParams { $($gpu_param),* };

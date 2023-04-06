@@ -464,7 +464,8 @@ type List
             builder.append elem
         builder.to_vector
 
-    ## Generates a human-readable text representation of the list.
+    ## PRIVATE
+       Generates a human-readable text representation of the list.
     to_text : Text
     to_text self =
         go l t e = case l of

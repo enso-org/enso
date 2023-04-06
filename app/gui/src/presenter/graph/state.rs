@@ -454,14 +454,19 @@ impl<'a> ControllerChange<'a> {
         let new_displayed_expr = node_view::Expression {
             pattern:             node.info.pattern().map(|t| t.repr()),
             code:                node.info.expression().repr().into(),
-            whole_expression_id: node.info.expression().id,
+            whole_expression_id: Some(node.info.id()),
             input_span_tree:     trees.inputs,
             output_span_tree:    trees.outputs.unwrap_or_else(default),
         };
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
 
-        if displayed.expression != new_displayed_expr {
+        let displayed_updated = displayed.expression != new_displayed_expr;
+        let context_switch_updated = displayed.context_switch != node.info.ast_info.context_switch;
+        let skip_updated = displayed.is_skipped != node.info.macros_info().skip;
+        let freeze_updated = displayed.is_frozen != node.info.macros_info().freeze;
+
+        if displayed_updated || context_switch_updated || skip_updated || freeze_updated {
             debug!(
                 "Setting node expression from controller: {} -> {}",
                 displayed.expression, new_displayed_expr
@@ -501,6 +506,27 @@ impl<'a> ControllerChange<'a> {
         if displayed.is_frozen != freeze {
             displayed.is_frozen = freeze;
             Some(freeze)
+        } else {
+            None
+        }
+    }
+
+    /// Check if context switch expression is present in the expression and return it.
+    /// Returns a nested option:
+    /// - `None` if no changes to the state are needed.
+    /// - `Some(None)` if the expression was removed.
+    /// - `Some(Some(_))` if the expression was added.
+    pub fn set_node_context_switch(
+        &self,
+        node: &controller::graph::Node,
+    ) -> Option<Option<ContextSwitchExpression>> {
+        let ast_id = node.main_line.id();
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(ast_id);
+        let expr = node.info.ast_info.context_switch.clone();
+        if displayed.context_switch != expr {
+            displayed.context_switch = expr.clone();
+            Some(expr)
         } else {
             None
         }
@@ -1033,7 +1059,7 @@ mod tests {
         use ast::crumbs::InfixCrumb;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["2 + 3"]);
         let view = nodes[0].view;
-        let node_ast = nodes[0].node.main_line.expression();
+        let node_ast = nodes[0].node.expression();
         let left_operand = node_ast.get(&InfixCrumb::LeftOperand.into()).unwrap().id.unwrap();
         let right_operand = node_ast.get(&InfixCrumb::RightOperand.into()).unwrap().id.unwrap();
         let updater = state.update_from_controller();

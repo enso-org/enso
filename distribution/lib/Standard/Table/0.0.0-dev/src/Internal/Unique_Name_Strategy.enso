@@ -10,7 +10,9 @@ type Unique_Name_Strategy
        - deduplicator: Name deduplicator
     Value deduplicator
 
-    ## Creates a new Unique_Name_Strategy instance.
+    ## PRIVATE
+       ADVANCED
+       Creates a new Unique_Name_Strategy instance.
 
        This is a mutable data structure, that allows for creating a collection
        of columns names and making them unique. It will track any duplicates or
@@ -26,7 +28,9 @@ type Unique_Name_Strategy
     new : Unique_Name_Strategy
     new = Unique_Name_Strategy.Value NameDeduplicator.new
 
-    ## Changes names from the second list so that they do not clash with names
+    ## PRIVATE
+       ADVANCED
+       Changes names from the second list so that they do not clash with names
        from the first list and with each other.
 
        It returns a new list where each new name corresponds to a name from the
@@ -61,7 +65,9 @@ type Unique_Name_Strategy
         Vector.from_polyglot_array <|
             self.deduplicator.combineWithPrefix first second second_prefix
 
-    ## Vector of any duplicates renamed.
+    ## PRIVATE
+       ADVANCED
+       Vector of any duplicates renamed.
 
        Note that this vector will not contain renames where just the
        second_prefix was added.
@@ -69,12 +75,15 @@ type Unique_Name_Strategy
     renames self = Vector.from_polyglot_array self.deduplicator.getDuplicatedNames
 
 
-    ## Vector of any invalid names.
+    ## PRIVATE
+       ADVANCED
+       Vector of any invalid names.
     invalid_names : Vector
     invalid_names self = Vector.from_polyglot_array self.deduplicator.getInvalidNames
 
-
-    ## Takes a value and converts to a valid (but not necessarily unique) name.
+    ## PRIVATE
+       ADVANCED
+       Takes a value and converts to a valid (but not necessarily unique) name.
 
        Arguments:
        - name: The column name to make valid.
@@ -91,8 +100,9 @@ type Unique_Name_Strategy
             Nothing -> self.make_valid_name ""
             _ -> self.make_valid_name input.to_text
 
-
-    ## Takes a name and gets a unique version.
+    ## PRIVATE
+       ADVANCED
+       Takes a name and gets a unique version.
 
        Arguments:
        - name: The column name to make unique.
@@ -104,21 +114,27 @@ type Unique_Name_Strategy
     make_unique : Text -> Text
     make_unique self name = self.deduplicator.makeUnique name
 
-    ## Tells if the given name has not yet been encountered.
+    ## PRIVATE
+       ADVANCED
+       Tells if the given name has not yet been encountered.
 
        It does not use up the name - it needs to be marked with `mark_used` if
        needed.
     is_unique : Text -> Boolean
     is_unique self name = self.deduplicator.isUnique name
 
-    ## Takes a list of names and gets a list of unique versions.
+    ## PRIVATE
+       ADVANCED
+       Takes a list of names and gets a list of unique versions.
 
        Arguments:
        - names: The column names to make unique.
     make_all_unique : Vector Text -> Vector Text
     make_all_unique self names = names.map self.make_unique
 
-    ## Takes a list of names and marks them as used, so that any further names
+    ## PRIVATE
+       ADVANCED
+       Takes a list of names and marks them as used, so that any further names
        clashing with those will have a prefix added.
     mark_used : Vector Text -> Nothing
     mark_used self names = names.each (self.deduplicator.markUsed _)

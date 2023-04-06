@@ -156,7 +156,8 @@ type Time_Zone
     zone_id : Text
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
 
-    ## Convert to a JavaScript Object representing this Time_Zone.
+    ## PRIVATE
+       Convert to a JavaScript Object representing this Time_Zone.
 
        > Example
          Convert your system's current timezone to a JS_Object.

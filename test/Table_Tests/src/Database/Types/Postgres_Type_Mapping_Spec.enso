@@ -44,8 +44,8 @@ spec connection db_name =
             t3.at "b" . value_type . should_equal Value_Type.Decimal
             t3.at "c" . value_type . should_equal (Value_Type.Decimal precision=10 scale=2)
             t3.at "d" . value_type . should_equal (Value_Type.Decimal precision=20 scale=4)
-            t3.at "e" . value_type . should_equal (Value_Type.Decimal precision=10)
-            t3.at "f" . value_type . should_equal (Value_Type.Decimal precision=20)
+            t3.at "e" . value_type . should_equal (Value_Type.Decimal precision=10 scale=0)
+            t3.at "f" . value_type . should_equal (Value_Type.Decimal precision=20 scale=0)
 
         Test.specify "text" <|
             t = make_table "texts" [["a", "char(10)"], ["b", "varchar"], ["c", "varchar(20)"], ["d", "text"]]

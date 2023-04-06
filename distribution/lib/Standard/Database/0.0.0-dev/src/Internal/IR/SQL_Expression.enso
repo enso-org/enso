@@ -32,6 +32,12 @@ type SQL_Expression
 
     ## PRIVATE
 
+       The internal representation of an SQL literal that should be inserted
+       as-is into a query.
+    Literal (value : Text)
+
+    ## PRIVATE
+
        The internal representation of an SQL expression built from an operation
        and sub-expressions.
 
