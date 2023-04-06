@@ -2,6 +2,7 @@
 //! about presenters in general.
 
 use crate::prelude::*;
+use engine_protocol::language_server::ExecutionEnvironment;
 
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
@@ -394,7 +395,7 @@ impl Project {
     /// implementation of #5930.
     fn init_execution_modes(self) -> Self {
         let graph = &self.model.view.graph();
-        let entries = Rc::new(vec!["design".to_string(), "live".to_string()]);
+        let entries = Rc::new(ExecutionEnvironment::list_all_as_imstrings());
         graph.set_available_execution_modes(entries);
         self
     }

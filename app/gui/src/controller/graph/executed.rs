@@ -16,6 +16,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
 use double_representation::name::QualifiedName;
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
@@ -318,6 +319,11 @@ impl Handle {
     pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
         self.graph.borrow().disconnect(connection, self)
     }
+
+    /// Set the execution mode.
+    pub fn set_mode(&self, mode: ExecutionEnvironment) {
+        self.execution_ctx.set_mode(mode);
+    }
 }
 
 
@@ -453,5 +459,16 @@ pub mod tests {
         );
 
         notifications.expect_pending();
+    }
+
+    /// Test that the execution mode is properly set on the execution context.
+    #[wasm_bindgen_test]
+    fn execution_mode() {
+        use crate::test::mock::Fixture;
+        // Setup the controller.
+        let mut fixture = crate::test::mock::Unified::new().fixture();
+        let Fixture { executed_graph, execution, executor, .. } = &mut fixture;
+
+        executed_graph.set_mode(ExecutionEnvironment::Live);
     }
 }

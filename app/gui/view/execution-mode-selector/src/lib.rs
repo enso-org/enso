@@ -90,7 +90,7 @@ mod play_icon {
 // ===========
 
 /// An identifier of a execution mode.
-pub type ExecutionMode = String;
+pub type ExecutionMode = ImString;
 /// A list of execution modes.
 pub type ExecutionModes = Rc<Vec<ExecutionMode>>;
 

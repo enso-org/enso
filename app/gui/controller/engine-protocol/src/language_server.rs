@@ -157,7 +157,7 @@ trait API {
 
     /// Restart the program execution.
     #[MethodInput=RecomputeInput, rpc_name="executionContext/recompute"]
-    fn recompute(&self, context_id: ContextId, invalidated_expressions: InvalidatedExpressions) -> ();
+    fn recompute(&self, context_id: ContextId, invalidated_expressions: InvalidatedExpressions, mode: Option<ExecutionEnvironment>) -> ();
 
     /// Obtain the full suggestions database.
     #[MethodInput=GetSuggestionsDatabaseInput, rpc_name="search/getSuggestionsDatabase"]
@@ -205,6 +205,11 @@ trait API {
     /// VCS snapshot if no `commit_id` is provided.
     #[MethodInput=VcsRestoreInput, rpc_name="vcs/restore"]
     fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> response::RestoreVcs;
+
+    /// Set the execution mode of the context for future evaluations.
+    #[MethodInput=SetModeInput, rpc_name="executionContext/setMode"]
+    fn set_mode(&self, context_id: ContextId, mode: ExecutionEnvironment) -> ();
+
 }}
 
 

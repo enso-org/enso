@@ -1155,6 +1155,48 @@ pub struct LibraryComponentGroup {
 }
 
 
+
+// =============================
+// === Execution Environment ===
+// =============================
+
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub enum ExecutionEnvironment {
+    Design,
+    Live,
+}
+
+impl Default for ExecutionEnvironment {
+    fn default() -> Self {
+        ExecutionEnvironment::Design
+    }
+}
+
+impl ExecutionEnvironment {
+    pub fn list_all() -> Vec<Self> {
+        vec![ExecutionEnvironment::Design, ExecutionEnvironment::Live]
+    }
+
+    pub fn list_all_as_imstrings() -> Vec<ImString> {
+        Self::list_all().iter().map(|env| ImString::new(env.to_string())).collect()
+    }
+}
+
+impl TryFrom<&str> for ExecutionEnvironment {
+    type Error = ();
+
+    fn try_from(value: &str) -> core::result::Result<Self, Self::Error> {
+        match value {
+            "design" => Ok(ExecutionEnvironment::Design),
+            "live" => Ok(ExecutionEnvironment::Live),
+            _ => Err(()),
+        }
+    }
+}
+
+
 // ======================
 // === Test Utilities ===
 // ======================
