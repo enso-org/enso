@@ -38,7 +38,6 @@ import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
@@ -796,31 +795,31 @@ type Table
          > Example
            Parse the first and last columns containing Yes/No values as booleans.
 
-               table.parse_values columns=[0, -1] type=Boolean format="Yes|No"
+               table.parse columns=[0, -1] type=Boolean format="Yes|No"
 
          > Example
            Parse dates in a column in the format `yyyy-MM-dd` (the default format).
 
-               table.parse_values "birthday" Date
+               table.parse "birthday" Date
 
          > Example
            Parse dates in a column in the format `dd/MM/yyyy`.
 
-               table.parse_values "birthday" Date 'dd/MM/yyyy'
+               table.parse "birthday" Date 'dd/MM/yyyy'
 
          > Example
            Parse all columns inferring their types, using `,` as the decimal point for numbers.
 
-               table.parse_values format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
-    parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse_values self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_parse_target type <|
+               table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
             _ : Text ->
                 Data_Formatter.Value.with_format type format
-            _ -> format
+            _ : Data_Formatter -> format
+            _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
 
-        parser = if type == Auto then formatter.make_auto_parser else
-            formatter.make_datatype_parser type
+        parser = formatter.make_value_type_parser type
 
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
