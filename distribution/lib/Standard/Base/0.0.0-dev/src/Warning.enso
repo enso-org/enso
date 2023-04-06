@@ -32,9 +32,13 @@ type Warning
     has_warnings value warning_type=Any =
         Warning.get_all value . any (w-> w.value.is_a warning_type)
 
-    remove_warnings : Any -> (Pair Any Vector)
+    ## Remove the warnings (either all or of a specified type) attached to the value.
+
+       Arguments:
+       - warning_type: The type to remove if attached to the value. Defaults to all warnings.
+    remove_warnings : Any -> Any
     remove_warnings value warning_type=Any =
-        Warning.detach_selected_warnings value (w-> w.is_a warning_type)
+        Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
     ## Throws the first matching warning (either all or of a specified type) as a data flow error.
 
@@ -43,7 +47,7 @@ type Warning
     throw_on_warning : Any -> Any
     throw_on_warning self warning_type=Any =
         warnings = Warning.get_all self
-        first = warnings.find (w-> w.value.is_a warning_type) Nothing
+        first = warnings.find (w-> w.value.is_a warning_type) if_missing=Nothing
         if first.is_nothing then self else Error.throw first.value
 
     ## ADVANCED

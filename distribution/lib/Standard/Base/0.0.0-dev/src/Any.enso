@@ -457,21 +457,27 @@ type Any
        Arguments:
        - warning_type: The type to check if attached to the value. Defaults to any warning.
     has_warnings : Any -> Boolean
-    has_warnings self warning_type=Any = False
+    has_warnings self warning_type=Any =
+        _ = warning_type
+        False
 
     ## Remove the warnings (either all or of a specified type) attached to the value.
 
        Arguments:
        - warning_type: The type to remove if attached to the value. Defaults to all warnings.
-    remove_warnings : Any -> (Pair Any Vector)
-    remove_warnings self warning_type=Any = Pair.new self []
+    remove_warnings : Any -> Any
+    remove_warnings self warning_type=Any =
+        _ = warning_type
+        self
 
     ## Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
        - warning_type: The type to throw if attached to the value. Defaults to all warnings.
     throw_on_warning : Any -> Any
-    throw_on_warning self warning_type=Any = self
+    throw_on_warning self warning_type=Any =
+        _ = warning_type
+        self
 
 ## PRIVATE
    Checks if the comparators for the given objects are both of the same type. If so,
