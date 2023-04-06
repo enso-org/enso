@@ -119,7 +119,7 @@ export function bundlerOptions(args: Arguments) {
             {
                 name: 'copy-directories',
                 setup: build => {
-                    build.onResolve({ filter: /\/[^.]+$/ }, ({ path, kind }) =>
+                    build.onResolve({ filter: /[/\\][^./\\]+$/ }, ({ path, kind }) =>
                         kind === 'entry-point'
                             ? { path, namespace: 'copy-directories', watchDirs: [path] }
                             : null
