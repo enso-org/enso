@@ -676,6 +676,7 @@
 - [Detect potential name conflicts between exported types and FQNs][5966]
 - [Ensure calls involving warnings remain instrumented][6067]
 - [One can define lazy atom fields][6151]
+- [Replace IOContexts with Execution Environment and generic Context][6171]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -780,6 +781,7 @@
 [5966]: https://github.com/enso-org/enso/pull/5966
 [6067]: https://github.com/enso-org/enso/pull/6067
 [6151]: https://github.com/enso-org/enso/pull/6151
+[6171]: https://github.com/enso-org/enso/pull/6171
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
