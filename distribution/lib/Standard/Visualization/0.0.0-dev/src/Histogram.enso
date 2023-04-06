@@ -26,7 +26,6 @@ type Update
     Value values label
 
     ## PRIVATE
-
        Generate JSON that can be consumed by the visualization.
     to_js_object : JS_Object
     to_js_object self =

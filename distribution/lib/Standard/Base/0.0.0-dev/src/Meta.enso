@@ -18,7 +18,7 @@ import project.Error.Error as Base_Error
 from project.Data.Boolean import Boolean, True, False
 
 type Type
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        Type meta-representation.
@@ -27,16 +27,14 @@ type Type
        - value: The value of the type in the meta representation.
     Value value
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns a vector of `Meta.Constructor` for this type
     constructors : Vector
     constructors self =
         Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns a vector of `Meta.Constructor` for this type
     methods : Vector
@@ -44,7 +42,7 @@ type Type
         Vector.from_polyglot_array (get_type_methods self.value)
 
 type Atom
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        An Atom meta-representation.
@@ -53,15 +51,13 @@ type Atom
        - value: The value of the atom in the meta representation.
     Value value
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns a vector of field values of the given atom.
     fields : Vector
     fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns a constructor value of the given atom.
     constructor : Constructor
@@ -70,7 +66,7 @@ type Atom
         Meta.Constructor.Value java_constructor
 
 type Constructor
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        A constructor meta-representation.
@@ -79,8 +75,7 @@ type Constructor
        - value: The value of the constructor in the meta representation.
     Value value
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns a vector of field names defined by a constructor.
     fields : Vector
@@ -88,8 +83,7 @@ type Constructor
         c = self.value ...
         Vector.from_polyglot_array (get_constructor_fields c)
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns the name of a constructor.
     name : Text
@@ -97,8 +91,7 @@ type Constructor
         c = self.value ...
         get_constructor_name c
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Creates a new atom of the given constructor.
 
@@ -111,7 +104,7 @@ type Constructor
         new_atom ctor fields.to_array
 
 type Primitive
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        A primitive value meta-representation.
@@ -121,7 +114,7 @@ type Primitive
     Value value
 
 type Unresolved_Symbol
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        An unresolved symbol meta-representation.
@@ -130,7 +123,7 @@ type Unresolved_Symbol
        - value: The value of the unresolved symbol in the meta representation.
     Value value
 
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        Returns a new unresolved symbol with its name changed to the provided
@@ -142,22 +135,20 @@ type Unresolved_Symbol
     rename self new_name =
         create_unresolved_symbol new_name self.scope
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns the name of an unresolved symbol.
     name : Text
     name self = get_unresolved_symbol_name self.value
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns the definition scope of an unresolved symbol.
     scope : Any
     scope self = get_unresolved_symbol_scope self.value
 
 type Error
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        An error meta-representation, containing the payload of a dataflow error.
@@ -167,7 +158,7 @@ type Error
     Value value
 
 type Polyglot
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        A polyglot value meta-representation.
@@ -176,8 +167,7 @@ type Polyglot
        - value: The polyglot value contained in the meta representation.
     Value value
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        Returns the language with which a polyglot value is associated.
     get_language : Language
@@ -185,8 +175,7 @@ type Polyglot
         lang_str = get_polyglot_language self.value
         if lang_str == "java" then Language.Java else Language.Unknown
 
-## UNSTABLE
-   ADVANCED
+## ADVANCED
 
    Checks whether `self` represents the same underlying reference as `value`.
 
@@ -196,8 +185,7 @@ type Polyglot
 Any.is_same_object_as : Any -> Boolean
 Any.is_same_object_as self value = is_same_object self value
 
-## UNSTABLE
-   ADVANCED
+## ADVANCED
 
    Checks if `self` is an instance of `typ`.
 
@@ -206,8 +194,7 @@ Any.is_same_object_as self value = is_same_object self value
 Any.is_a : Any -> Boolean
 Any.is_a self typ = is_a self typ
 
-## UNSTABLE
-   ADVANCED
+## ADVANCED
 
    Checks if `self` is an instance of `typ`.
 
@@ -329,7 +316,7 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 atom_with_hole : (Any -> Atom) -> Any
 atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
 
-## UNSTABLE
+## PRIVATE
    ADVANCED
 
    Returns a meta-representation of a given runtime entity.
@@ -345,7 +332,7 @@ meta value = if is_atom value then Atom.Value value else
                     if is_type value then Type.Value value.catch else
                         Primitive.Value value
 
-## UNSTABLE
+## PRIVATE
    ADVANCED
 
    Checks whether two objects are represented by the same underlying reference.
@@ -356,7 +343,7 @@ meta value = if is_atom value then Atom.Value value else
 is_same_object : Any -> Any -> Boolean
 is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
 
-## UNSTABLE
+## PRIVATE
    ADVANCED
 
    Checks if `value` is an instance of `typ`.
@@ -373,7 +360,7 @@ java_instance_check value typ =
     typ_java = get_polyglot_language typ == "java"
     val_java && typ_java && Java.is_instance value typ
 
-## UNSTABLE
+## PRIVATE
    ADVANCED
 
    Returns the type of the given value.
@@ -383,7 +370,7 @@ java_instance_check value typ =
 type_of : Any -> Any
 type_of value = @Builtin_Method "Meta.type_of"
 
-## UNSTABLE
+## PRIVATE
    ADVANCED
 
    Given a type object, method name and a parameter name, return the associated annotation if it exists.
@@ -395,16 +382,16 @@ type_of value = @Builtin_Method "Meta.type_of"
 get_annotation : Any -> Text -> Text -> Any | Nothing
 get_annotation target method_name parameter_name = @Builtin_Method "Meta.get_annotation"
 
-## Represents a polyglot language.
+## PRIVATE
+   Represents a polyglot language.
 type Language
-
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        The Java language.
     Java
 
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        An unknown language.

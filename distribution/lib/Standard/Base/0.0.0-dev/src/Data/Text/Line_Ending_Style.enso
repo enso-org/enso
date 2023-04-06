@@ -13,7 +13,8 @@ type Line_Ending_Style
        The text equivalent is `'\r\n'`.
     Mac_Legacy
 
-    ## Returns the text equivalent of the line ending.
+    ## PRIVATE
+       Returns the text equivalent of the line ending.
     to_text : Text
     to_text self = case self of
         Line_Ending_Style.Unix -> '\n'
