@@ -10,9 +10,9 @@ use crate::model::module::NodeMetadata;
 
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
-use ast::macros::skip_and_freeze::MacrosInfo;
 use ast::macros::DocumentationCommentInfo;
 use double_representation::connection;
+use double_representation::context_switch::ContextSwitchExpression;
 use double_representation::definition;
 use double_representation::definition::DefinitionProvider;
 use double_representation::graph::GraphInfo;
@@ -20,6 +20,8 @@ use double_representation::identifier::generate_name;
 use double_representation::module;
 use double_representation::node;
 use double_representation::node::MainLine;
+use double_representation::node::NodeAst;
+use double_representation::node::NodeAstInfo;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
@@ -219,20 +221,20 @@ pub struct NodeTrees {
     /// Describes node outputs, i.e. its pattern. `None` if a node is not an assignment.
     pub outputs: Option<SpanTree>,
     /// Info about macros used in the node's expression.
-    macros_info: MacrosInfo,
+    ast_info:    NodeAstInfo,
 }
 
 impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
-        let macros_info = *node.main_line.macros_info();
+        let ast_info = node.main_line.ast_info.clone();
         let outputs = if let Some(pat) = node.pattern() {
             Some(SpanTree::new(pat, context).ok()?)
         } else {
             None
         };
-        Some(NodeTrees { inputs, outputs, macros_info })
+        Some(NodeTrees { inputs, outputs, ast_info })
     }
 
     /// Converts AST crumbs (as obtained from double rep's connection endpoint) into the
@@ -242,9 +244,10 @@ impl NodeTrees {
         ast_crumbs: &'b [ast::Crumb],
     ) -> Option<span_tree::node::NodeFoundByAstCrumbs<'a, 'b>> {
         use ast::crumbs::Crumb::Infix;
-        // If we have macros in the expression, we need to skip their crumbs, as [`SKIP`] and
-        // [`FREEZE`] macros are not displayed in the expression.
-        let skip_macros = self.macros_info.macros_count();
+        // We can display only a part of the expression to the user. We hide [`SKIP`] and [`FREEZE`]
+        // macros and context switch expressions. In this case, we skip an additional
+        // number of AST crumbs.
+        let expression_crumbs_to_skip = self.ast_info.ast_crumbs_to_skip();
         if let Some(outputs) = self.outputs.as_ref() {
             // Node in assignment form. First crumb decides which span tree to use.
             let first_crumb = ast_crumbs.get(0);
@@ -254,10 +257,10 @@ impl NodeTrees {
                 Some(Infix(InfixCrumb::RightOperand)) => Some(&self.inputs),
                 _ => None,
             };
-            let skip = if is_input { skip_macros + 1 } else { 1 };
+            let skip = if is_input { expression_crumbs_to_skip + 1 } else { 1 };
             tree.and_then(|tree| tree.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..]))
         } else {
-            let skip = skip_macros;
+            let skip = expression_crumbs_to_skip;
             // Expression node - there is only inputs span tree.
             self.inputs.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..])
         }
@@ -578,7 +581,7 @@ impl Handle {
     /// Analyzes the expression, e.g. result for "a+b" shall be named "sum".
     /// The caller should make sure that obtained name won't collide with any symbol usage before
     /// actually introducing it. See `variable_name_for`.
-    pub fn variable_name_base_for(node: &MainLine) -> String {
+    pub fn variable_name_base_for(node: &NodeAst) -> String {
         name_for_ast(&node.expression())
     }
 
@@ -592,8 +595,8 @@ impl Handle {
         let body = def.body();
         let usage = if matches!(body.shape(), ast::Shape::Block(_)) {
             alias_analysis::analyze_crumbable(body.item)
-        } else if let Some(node) = MainLine::from_ast(&body) {
-            alias_analysis::analyze_ast(node.ast())
+        } else if let Some(main_line) = MainLine::from_ast(&body) {
+            alias_analysis::analyze_ast(main_line.ast())
         } else {
             // Generally speaking - impossible. But if there is no node in the definition
             // body, then there is nothing that could use any symbols, so nothing is used.
@@ -961,6 +964,23 @@ impl Handle {
     pub fn set_node_action_freeze(&self, node_id: ast::Id, freeze: bool) -> FallibleResult {
         self.update_node(node_id, |mut node| {
             node.set_freeze(freeze);
+            node
+        })?;
+        Ok(())
+    }
+
+    /// Sets or clears the context switch expression for the specified node.
+    pub fn set_node_context_switch(
+        &self,
+        node_id: ast::Id,
+        expr: Option<ContextSwitchExpression>,
+    ) -> FallibleResult {
+        self.update_node(node_id, |mut node| {
+            if let Some(expr) = expr {
+                node.set_context_switch(expr);
+            } else {
+                node.clear_context_switch_expression();
+            }
             node
         })?;
         Ok(())
@@ -1693,8 +1713,8 @@ main =
 
         for (code, expected_name) in &cases {
             let ast = parser.parse_line_ast(*code).unwrap();
-            let node = MainLine::from_ast(&ast).unwrap();
-            let name = Handle::variable_name_base_for(&node);
+            let node_info = NodeInfo::from_main_line_ast(&ast).unwrap();
+            let name = Handle::variable_name_base_for(&node_info);
             assert_eq!(&name, expected_name);
         }
     }

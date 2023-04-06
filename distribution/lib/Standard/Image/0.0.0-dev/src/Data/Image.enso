@@ -108,7 +108,7 @@ type Image
         Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
             Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
 
-    ## UNSTABLE
+    ## PRIVATE
 
        The image data type.
 
@@ -120,9 +120,7 @@ type Image
        Pixel values are normalized in a range [0.0 .. 1.0].
     Value opencv_mat
 
-    ## UNSTABLE
-
-       Return the number of image rows.
+    ## Return the number of image rows.
 
        > Example
          Get the number of rows from an image.
@@ -133,9 +131,7 @@ type Image
     rows : Integer
     rows self = self.opencv_mat.rows
 
-    ## UNSTABLE
-
-       Return the number of image columns.
+    ## Return the number of image columns.
 
        > Example
          Get the number of columns from an image.
@@ -146,9 +142,7 @@ type Image
     columns : Integer
     columns self = self.opencv_mat.cols
 
-    ## UNSTABLE
-
-       Return the number of image channels.
+    ## Return the number of image channels.
 
        > Example
          Get the number of channels from an image.
@@ -159,9 +153,7 @@ type Image
     channels : Integer
     channels self = self.opencv_mat.channels
 
-    ## UNSTABLE
-
-       Get the pixel value indexed by row and column.
+    ## Get the pixel value indexed by row and column.
 
        Arguments:
        - row: the row index.
@@ -180,9 +172,7 @@ type Image
                 arr = Java_Image.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
-    ## UNSTABLE
-
-       Calculates the per-element sum of an image and a scalar or a matrix.
+    ## Calculates the per-element sum of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -231,9 +221,7 @@ type Image
     + : (Number | Vector | Matrix) -> Image ! Matrix_Error
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.add _ _ _)) . catch Any core_op_handler
 
-    ## UNSTABLE
-
-       Calculates the per-element difference between an image and a scalar or a matrix.
+    ## Calculates the per-element difference between an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -282,9 +270,7 @@ type Image
     - : (Number | Vector | Matrix) -> Image ! Matrix_Error
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.subtract _ _ _)) . catch Any core_op_handler
 
-    ## UNSTABLE
-
-       Calculates the per-element product of an image and a scalar or a matrix.
+    ## Calculates the per-element product of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -333,9 +319,7 @@ type Image
     * : (Number | Vector | Matrix) -> Image ! Matrix_Error
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.multiply _ _ _)) . catch Any core_op_handler
 
-    ## UNSTABLE
-
-       Performs per-element division of an image and a scalar or a matrix.
+    ## Performs per-element division of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -384,9 +368,7 @@ type Image
     / : (Number | Vector | Matrix) -> Image ! Matrix_Error
     / self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.divide _ _ _)) . catch Any core_op_handler
 
-    ## UNSTABLE
-
-       Convert the image to a vector.
+    ## Convert the image to a vector.
 
        > Example
          Convert an image to a vector.
@@ -399,8 +381,7 @@ type Image
         arr = Java_Image.to_vector self.opencv_mat
         Vector.from_polyglot_array arr
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the image to a JS_Object.
 
        > Example
@@ -414,9 +395,7 @@ type Image
         base64 = Java_Image.to_base64 self.opencv_mat
         JS_Object.from_pairs [["mediaType", "image/png"], ["base64", base64]]
 
-    ## UNSTABLE
-
-       Convert the image to a Matrix.
+    ## Convert the image to a Matrix.
 
        > Example
          Convert an image to a matrix.
@@ -427,9 +406,7 @@ type Image
     to_matrix : Matrix
     to_matrix self = Matrix.from_vector self.to_vector self.rows self.channels
 
-    ## UNSTABLE
-
-       Create a histogram for the specified channel of the image.
+    ## Create a histogram for the specified channel of the image.
 
        Arguments:
        - channel: the channel number.
@@ -480,10 +457,14 @@ core_op_handler error =
 
 ## PRIVATE
 type Image_Comparator
+    ## PRIVATE
+    compare : Image -> Image -> Ordering
     compare x y =
         if Java_Image.is_equals x.opencv_mat y.opencv_mat then Ordering.Equal else
             Nothing
 
+    ## PRIVATE
+    hash : Image -> Integer
     hash x = x.opencv_mat.hashCode
 
 Comparable.from (_:Image) = Image_Comparator

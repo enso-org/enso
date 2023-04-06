@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -9,6 +10,13 @@ use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
 use ensogl_component::drop_down::DropdownValue;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod vector_editor;
 
 
 
@@ -121,6 +129,7 @@ impl DropdownValue for Entry {
 pub struct NodeData {
     pub tag_values: Vec<span_tree::TagValue>,
     pub port_size:  Vector2,
+    pub tp:         Option<String>,
 }
 
 
@@ -133,7 +142,7 @@ pub struct NodeData {
 /// on demand after first interaction. Without samplers, when a widget view would be initialized
 /// after the endpoints were set, it would not receive previously set endpoint values.
 #[derive(Debug, Clone, CloneRef)]
-struct SampledFrp {
+pub struct SampledFrp {
     set_current_value:  frp::Sampler<Option<ImString>>,
     set_visible:        frp::Sampler<bool>,
     set_focused:        frp::Sampler<bool>,
@@ -221,10 +230,13 @@ impl Model {
 
     #[profile(Task)]
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
-        trace!("Setting widget data: {:?} {:?}", meta, node_data);
-
+        const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
+        let is_array_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
+        let is_array_type = node_data.tp.as_ref().map_or(false, |tp| tp.contains(VECTOR_TYPE));
         let has_tag_values = !node_data.tag_values.is_empty();
-        let kind_fallback = has_tag_values.then_some(Kind::SingleChoice);
+        let kind_fallback = (is_array_enabled && is_array_type)
+            .then_some(Kind::VectorEditor)
+            .or(has_tag_values.then_some(Kind::SingleChoice));
 
         let desired_kind = meta.as_ref().map(|m| m.kind).or(kind_fallback);
         let current_kind = self.kind_model.borrow().as_ref().map(|m| m.kind());
@@ -267,6 +279,9 @@ pub enum Kind {
     /// A widget for selecting a single value from a list of available options.
     #[serde(rename = "Single_Choice")]
     SingleChoice,
+    /// A widget for constructing and modifying vector of various types.
+    #[serde(rename = "Vector_Editor")]
+    VectorEditor,
 }
 
 /// A part of widget model that is dependant on the widget kind.
@@ -274,6 +289,8 @@ pub enum Kind {
 pub enum KindModel {
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoiceModel),
+    /// A widget for constructing and modifying vector of various types.
+    VectorEditor(vector_editor::Model),
 }
 
 impl KindModel {
@@ -288,6 +305,8 @@ impl KindModel {
         let this = match kind {
             Kind::SingleChoice =>
                 Self::SingleChoice(SingleChoiceModel::new(app, display_object, frp)),
+            Kind::VectorEditor =>
+                Self::VectorEditor(vector_editor::Model::new(app, display_object, frp)),
         };
 
         this.update(meta, node_data);
@@ -304,12 +323,17 @@ impl KindModel {
                 inner.set_port_size(node_data.port_size);
                 inner.set_entries(entries);
             }
+            KindModel::VectorEditor(inner) => {
+                warn!("VectorEditor updated with metadata {meta:#?} and node data {node_data:#?}.");
+                inner.set_port_size.emit(node_data.port_size);
+            }
         }
     }
 
     fn kind(&self) -> Kind {
         match self {
             Self::SingleChoice(_) => Kind::SingleChoice,
+            Self::VectorEditor(_) => Kind::VectorEditor,
         }
     }
 }

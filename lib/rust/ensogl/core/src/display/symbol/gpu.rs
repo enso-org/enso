@@ -339,8 +339,8 @@ impl Symbol {
     }
 
     /// Create a new instance of this symbol.
-    pub fn new_instance(&self) -> SymbolInstance {
-        SymbolInstance::new(self)
+    pub fn new_instance(&self, buffer_partition: attribute::BufferPartitionId) -> SymbolInstance {
+        SymbolInstance::new(self, buffer_partition)
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
@@ -598,7 +598,7 @@ impl SymbolData {
         frp::extend! { network
             eval_ self.display_object.on_hide(is_hidden.set(true));
             eval_ self.display_object.on_show(is_hidden.set(false));
-            eval self.display_object.on_layer_change([] ((_, old_layers, new_layers)) {
+            eval self.display_object.on_layer_change([] ((_, old_layers, new_layers, _)) {
                 for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
                     layer.remove_symbol(id)
                 }
@@ -791,7 +791,7 @@ impl RenderGroup {
 // ======================
 
 /// Instance of a [`Symbol`]. It does not define any custom parameters, however, it manages the
-/// [`InstanceIndex`] and [`GlobalInstanceId`] ones.
+/// [`InstanceId`] and [`GlobalInstanceId`] ones.
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct SymbolInstance {
     rc: Rc<SymbolInstanceData>,
@@ -802,15 +802,15 @@ pub struct SymbolInstance {
 #[allow(missing_docs)]
 pub struct SymbolInstanceData {
     pub symbol:             Symbol,
-    pub instance_id:        attribute::InstanceIndex,
+    pub instance_id:        attribute::InstanceId,
     pub global_instance_id: GlobalInstanceId,
 }
 
 impl SymbolInstance {
-    fn new(symbol: &Symbol) -> Self {
+    fn new(symbol: &Symbol, buffer_partition: attribute::BufferPartitionId) -> Self {
         let symbol = symbol.clone_ref();
         let global_instance_id = symbol.global_id_provider.reserve();
-        let instance_id = symbol.surface().instance_scope().add_instance();
+        let instance_id = symbol.surface().instance_scope().add_instance_at(buffer_partition);
 
         let global_instance_id_attr = symbol.global_instance_id.at(instance_id);
         global_instance_id_attr.set(*global_instance_id as i32);

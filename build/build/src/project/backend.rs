@@ -88,8 +88,8 @@ pub async fn bundled_engine_versions(
     let mut ret = vec![];
 
     let mut dir_reader = ide_ci::fs::tokio::read_dir(&project_manager_bundle.dist).await?;
-    while let Some(entry) = dir_reader.next_entry().await? {
-        if entry.metadata().await?.is_dir() {
+    while let Some(entry) = dir_reader.try_next().await? {
+        if ide_ci::fs::tokio::metadata(&entry.path()).await?.is_dir() {
             ret.push(Version::from_str(entry.file_name().as_str())?);
         }
     }

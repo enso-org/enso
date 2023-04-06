@@ -1,13 +1,11 @@
 package org.enso.searcher.sql
 
 import java.util.UUID
-
 import org.enso.polyglot.{ExportedSymbol, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExportsAction,
   ExportsUpdate,
   SuggestionAction,
-  SuggestionArgumentAction,
   SuggestionUpdate,
   SuggestionsDatabaseAction
 }
@@ -17,7 +15,7 @@ import slick.jdbc.SQLiteProfile.api._
 import slick.jdbc.meta.MTable
 import slick.relational.RelationalProfile
 
-import scala.collection.immutable.HashMap
+import scala.collection.immutable.{HashMap, ListMap}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -25,18 +23,6 @@ import scala.util.{Failure, Success}
 final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   ec: ExecutionContext
 ) extends SuggestionsRepo[Future] {
-
-  /** The query returning the arguments joined with the corresponding
-    * suggestions.
-    */
-  private val joined: Query[
-    (Rep[Option[ArgumentsTable]], SuggestionsTable),
-    (Option[ArgumentRow], SuggestionRow),
-    Seq
-  ] =
-    Arguments
-      .joinRight(Suggestions)
-      .on(_.suggestionId === _.id)
 
   /** Initialize the repo. */
   override def init: Future[Unit] =
@@ -49,15 +35,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   /** @inheritdoc */
   override def getAll: Future[(Long, Seq[SuggestionEntry])] =
     db.run(getAllQuery)
-
-  /** @inheritdoc */
-  override def getAllMethods(
-    calls: Seq[(String, String, String)]
-  ): Future[Seq[Option[Long]]] =
-    db.run(getAllMethodsQuery(calls))
-
-  override def getAllModules: Future[Seq[String]] =
-    db.run(getAllModulesQuery.transactionally)
 
   /** @inheritdoc */
   override def search(
@@ -81,8 +58,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   /** @inheritdoc */
   override def insertAll(
     suggestions: Seq[Suggestion]
-  ): Future[(Long, Seq[Option[Long]])] =
-    db.run(insertAllQuery(suggestions).transactionally)
+  ): Future[(Long, Seq[Long])] =
+    db.run(insertAllWithVersionQuery(suggestions).transactionally)
 
   /** @inheritdoc */
   override def applyTree(
@@ -111,16 +88,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     db.run(removeByModuleQuery(modules))
 
   /** @inheritdoc */
-  override def removeAll(
-    suggestions: Seq[Suggestion]
-  ): Future[(Long, Seq[Option[Long]])] =
-    db.run(removeAllQuery(suggestions).transactionally)
-
-  /** @inheritdoc */
   override def update(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],
@@ -130,7 +100,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       updateQuery(
         suggestion,
         externalId,
-        arguments,
         returnType,
         documentation,
         scope,
@@ -171,13 +140,11 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   def clearSchemaVersion: Future[Unit] =
     db.run(clearSchemaVersionQuery)
 
-  /** Insert suggestions in a batch.
-    *
-    * @param suggestions the list of suggestions to insert
-    * @return the current database size
-    */
-  private[sql] def insertBatch(suggestions: Array[Suggestion]): Future[Int] =
-    db.run(insertBatchQuery(suggestions).transactionally)
+  def insertBatchJava(suggestions: Array[Suggestion]): Future[Int] =
+    db.run(insertBatchJavaQuery(suggestions).transactionally)
+
+  def selectAllSuggestions: Future[Seq[SuggestionEntry]] =
+    db.run(selectAllSuggestionsQuery.transactionally)
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] = {
@@ -195,7 +162,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       } yield ()
 
     val tables: Seq[TableQuery[RelationalTable[_]]] =
-      Seq(Suggestions, Arguments, SuggestionsVersion, SchemaVersion)
+      Seq(Suggestions, SuggestionsVersion, SchemaVersion)
         .asInstanceOf[Seq[TableQuery[RelationalTable[_]]]]
     val initSchemas =
       for {
@@ -214,7 +181,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   private def cleanQuery: DBIO[Unit] = {
     for {
       _ <- Suggestions.delete
-      _ <- Arguments.delete
       _ <- SuggestionsVersion.delete
     } yield ()
   }
@@ -224,47 +190,10 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the current database version with the list of suggestion entries
     */
   private def getAllQuery: DBIO[(Long, Seq[SuggestionEntry])] = {
-    val query = for {
-      suggestions <- joined.result.map(joinedToSuggestionEntries)
-      version     <- currentVersionQuery
-    } yield (version, suggestions)
-    query
-  }
-
-  /** The query to get the suggestions by the method call info.
-    *
-    * @param calls the triples containing module name, self type, method name
-    * @return the list of found suggestion ids
-    */
-  def getAllMethodsQuery(
-    calls: Seq[(String, String, String)]
-  ): DBIO[Seq[Option[Long]]] =
-    if (calls.isEmpty) {
-      DBIO.successful(Seq())
-    } else {
-      val query = Suggestions
-        .filter { row =>
-          calls
-            .map { case (module, selfType, name) =>
-              row.module === module && row.selfType === selfType && row.name === name
-            }
-            .reduce(_ || _)
-        }
-        .map(row => (row.id, row.module, row.selfType, row.name))
-      query.result.map { tuples =>
-        val result = tuples.map { case (id, module, selfType, name) =>
-          (module, selfType, name) -> id
-        }.toMap
-        calls.map(result.get)
-      }
-    }
-
-  /** The query to get all module names.
-    *
-    * @return the list of distinct module names.
-    */
-  def getAllModulesQuery: DBIO[Seq[String]] = {
-    Suggestions.map(_.module).distinct.result
+    for {
+      rows    <- Suggestions.result
+      version <- currentVersionQuery
+    } yield (version, rows.map(toSuggestionEntry))
   }
 
   /** The query to search suggestion by various parameters.
@@ -330,11 +259,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return return the suggestion
     */
   private def selectQuery(id: Long): DBIO[Option[Suggestion]] = {
-    val query = for {
-      (argument, suggestion) <- joined
-      if suggestion.id === id
-    } yield (argument, suggestion)
-    query.result.map(coll => joinedToSuggestions(coll).headOption)
+    for {
+      rows <- Suggestions.filter(_.id === id).result
+    } yield rows.headOption.map(toSuggestion)
   }
 
   /** The query to insert the suggestion
@@ -343,33 +270,15 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the id of an inserted suggestion
     */
   private def insertQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
-    val (suggestionRow, args) = toSuggestionRow(suggestion)
+    val suggestionRow = toSuggestionRow(suggestion)
     val query = for {
       id <- Suggestions.returning(Suggestions.map(_.id)) += suggestionRow
-      _ <- Arguments ++= args.zipWithIndex.map { case (argument, ix) =>
-        toArgumentRow(id, ix, argument)
-      }
-      _ <- incrementVersionQuery
+      _  <- incrementVersionQuery
     } yield id
     query.asTry.map {
       case Failure(_)  => None
       case Success(id) => Some(id)
     }
-  }
-
-  /** The query to insert a list of suggestions
-    *
-    * @param suggestions the suggestions to insert
-    * @return the list of inserted suggestion ids
-    */
-  private def insertAllQuery(
-    suggestions: Seq[Suggestion]
-  ): DBIO[(Long, Seq[Option[Long]])] = {
-    val query = for {
-      ids     <- DBIO.sequence(suggestions.map(insertQuery))
-      version <- currentVersionQuery
-    } yield (version, ids)
-    query
   }
 
   /** The query to apply the suggestion updates.
@@ -395,15 +304,25 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
                 scope,
                 reexport
               ) =>
-            updateSuggestionQuery(
-              suggestion,
-              extId,
-              args,
-              returnType,
-              doc,
-              scope,
-              reexport
-            )
+            if (
+              extId.isDefined ||
+              args.isDefined ||
+              returnType.isDefined ||
+              doc.isDefined ||
+              scope.isDefined ||
+              reexport.isDefined
+            ) {
+              updateSuggestionQuery(
+                suggestion,
+                extId,
+                returnType,
+                doc,
+                scope,
+                reexport
+              )
+            } else {
+              DBIO.successful(None)
+            }
         }
         query.map(rs => QueryResult(rs.toSeq, update))
     }
@@ -516,7 +435,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the id of removed suggestion
     */
   private def removeQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
-    val (raw, _)    = toSuggestionRow(suggestion)
+    val raw         = toSuggestionRow(suggestion)
     val selectQuery = selectSuggestionQuery(raw)
     val deleteQuery = for {
       rows <- selectQuery.result
@@ -557,21 +476,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     } yield rows
   }
 
-  /** The query to remove a list of suggestions.
-    *
-    * @param suggestions the suggestions to remove
-    * @return the list of removed suggestion ids
-    */
-  private def removeAllQuery(
-    suggestions: Seq[Suggestion]
-  ): DBIO[(Long, Seq[Option[Long]])] = {
-    val query = for {
-      ids     <- DBIO.sequence(suggestions.map(removeQuery))
-      version <- currentVersionQuery
-    } yield (version, ids)
-    query
-  }
-
   /** The query to update a suggestion.
     *
     * @param externalId the external id of a suggestion
@@ -597,7 +501,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     *
     * @param suggestion the key suggestion
     * @param externalId the external id to update
-    * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
     * @param scope the scope to update
@@ -605,7 +508,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   private def updateQuery(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],
@@ -615,7 +517,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       idOpt <- updateSuggestionQuery(
         suggestion,
         externalId,
-        arguments,
         returnType,
         documentation,
         scope,
@@ -628,7 +529,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     *
     * @param suggestion the key suggestion
     * @param externalId the external id to update
-    * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
     * @param scope the scope to update
@@ -636,14 +536,13 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   private def updateSuggestionQuery(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): DBIO[Option[Long]] = {
-    val (raw, _) = toSuggestionRow(suggestion)
-    val query    = selectSuggestionQuery(raw)
+    val raw   = toSuggestionRow(suggestion)
+    val query = selectSuggestionQuery(raw)
 
     val updateQ = for {
       r1 <- DBIO.sequenceOption {
@@ -681,76 +580,16 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         }
       }
       r5 <- DBIO.sequenceOption {
-        arguments.map { args =>
-          def updateArgs(suggestionId: Long): DBIO[Seq[Int]] =
-            DBIO.sequence(
-              args.map(updateSuggestionArgumentQuery(suggestionId, _))
-            )
-          for {
-            idOpt <- query.map(_.id).result.headOption
-            r     <- DBIO.sequenceOption(idOpt.map(updateArgs))
-          } yield r.map(_.sum)
-        }
-      }
-      r6 <- DBIO.sequenceOption {
         reexport.map { reexportOpt =>
           query.map(_.reexport).update(reexportOpt)
         }
       }
-    } yield (r1 ++ r2 ++ r3 ++ r4 ++ r5.flatten ++ r6).sum
+    } yield (r1 ++ r2 ++ r3 ++ r4 ++ r5).sum
     for {
       id <- query.map(_.id).result.headOption
       n  <- updateQ
       _  <- if (n > 0) incrementVersionQuery else DBIO.successful(())
-    } yield if (n > 0) id else None
-  }
-
-  private def updateSuggestionArgumentQuery(
-    suggestionId: Long,
-    action: SuggestionArgumentAction
-  ): DBIO[Int] = {
-    val argsQuery = Arguments.filter(_.suggestionId === suggestionId)
-    action match {
-      case SuggestionArgumentAction.Add(index, argument) =>
-        for {
-          _ <- argsQuery.filter(_.index === index).delete
-          n <- Arguments += toArgumentRow(suggestionId, index, argument)
-        } yield n
-      case SuggestionArgumentAction.Remove(index) =>
-        for {
-          n <- argsQuery.filter(_.index === index).delete
-        } yield n
-      case SuggestionArgumentAction.Modify(
-            index,
-            nameOpt,
-            tpeOpt,
-            suspendedOpt,
-            defaultOpt,
-            valueOpt
-          ) =>
-        val argQuery = argsQuery.filter(_.index === index)
-        for {
-          r1 <- DBIO.sequenceOption {
-            nameOpt.map(name => argQuery.map(_.name).update(name))
-          }
-          r2 <- DBIO.sequenceOption {
-            tpeOpt.map(tpe => argQuery.map(_.tpe).update(tpe))
-          }
-          r3 <- DBIO.sequenceOption {
-            suspendedOpt.map(suspended =>
-              argQuery.map(_.isSuspended).update(suspended)
-            )
-          }
-          r4 <- DBIO.sequenceOption {
-            defaultOpt.map(default =>
-              argQuery.map(_.hasDefault).update(default)
-            )
-          }
-          r5 <- DBIO.sequenceOption {
-            valueOpt.map(value => argQuery.map(_.defaultValue).update(value))
-          }
-        } yield Seq(r1, r2, r3, r4, r5).flatten.sum
-    }
+    } yield id
   }
 
   /** The query to update a list of suggestions by external id.
@@ -781,13 +620,12 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** The query to increment the current version of the repo. */
   private def incrementVersionQuery: DBIO[Long] = {
-    val incrementQuery = for {
+    for {
       version <- SuggestionsVersion.returning(
         SuggestionsVersion.map(_.id)
       ) += SuggestionsVersionRow(None)
       _ <- SuggestionsVersion.filterNot(_.id === version).delete
     } yield version
-    incrementQuery
   }
 
   /** The query to get current version of the repo. */
@@ -826,15 +664,51 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param suggestions the list of suggestions to insert
     * @return the current size of the database
     */
-  private def insertBatchQuery(
-    suggestions: Array[Suggestion]
+  private def insertBatchJavaQuery(
+    suggestions: Iterable[Suggestion]
   ): DBIO[Int] = {
     val rows = suggestions.map(toSuggestionRow)
     for {
-      _    <- (Suggestions ++= rows.map(_._1)).asTry
+      _    <- (Suggestions ++= rows).asTry
       size <- Suggestions.length.result
     } yield size
   }
+
+  /** The query to insert suggestions in a batch.
+    *
+    * @param suggestions the list of suggestions to insert
+    * @return the current size of the database
+    */
+  private def insertAllQuery(
+    suggestions: Iterable[Suggestion]
+  ): DBIO[Seq[Long]] = {
+    val suggestionsMap =
+      suggestions.map(s => SuggestionRowUniqueIndex(s) -> s).to(ListMap)
+    val rows = suggestions.map(toSuggestionRow)
+    for {
+      _    <- Suggestions ++= rows
+      rows <- Suggestions.result
+    } yield {
+      val rowsMap = rows.map(r => SuggestionRowUniqueIndex(r) -> r.id.get).toMap
+      suggestionsMap.keys.map(rowsMap(_)).toSeq
+    }
+  }
+
+  private def insertAllWithVersionQuery(
+    suggestions: Iterable[Suggestion]
+  ): DBIO[(Long, Seq[Long])] = {
+    for {
+      ids     <- insertAllQuery(suggestions)
+      version <- incrementVersionQuery
+    } yield (version, ids)
+  }
+
+  private def selectAllSuggestionsQuery: DBIO[Seq[SuggestionEntry]] =
+    for {
+      rows <- Suggestions.result
+    } yield {
+      rows.map(row => SuggestionEntry(row.id.get, toSuggestion(row)))
+    }
 
   /** Create a search query by the provided parameters.
     *
@@ -882,41 +756,11 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       }
   }
 
-  /** Convert the rows of suggestions joined with arguments to a list of
-    * suggestions.
-    */
-  private def joinedToSuggestions(
-    coll: Seq[(Option[ArgumentRow], SuggestionRow)]
-  ): Seq[Suggestion] = {
-    coll
-      .groupBy(_._2)
-      .view
-      .mapValues(_.flatMap(_._1))
-      .map(Function.tupled(toSuggestion))
-      .toSeq
-  }
-
-  /** Convert the rows of suggestions joined with arguments to a list of
-    * suggestion entries.
-    */
-  private def joinedToSuggestionEntries(
-    coll: Seq[(Option[ArgumentRow], SuggestionRow)]
-  ): Seq[SuggestionEntry] = {
-    coll
-      .groupBy(_._2)
-      .view
-      .mapValues(_.flatMap(_._1))
-      .map(Function.tupled(toSuggestionEntry))
-      .toSeq
-  }
-
   /** Convert the suggestion to a row in the suggestions table. */
-  private def toSuggestionRow(
-    suggestion: Suggestion
-  ): (SuggestionRow, Seq[Suggestion.Argument]) =
+  private def toSuggestionRow(suggestion: Suggestion): SuggestionRow =
     suggestion match {
       case Suggestion.Module(module, doc, reexport) =>
-        val row = SuggestionRow(
+        SuggestionRow(
           id               = None,
           externalIdLeast  = None,
           externalIdMost   = None,
@@ -934,18 +778,17 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           documentation    = doc,
           reexport         = reexport
         )
-        row -> Seq()
       case Suggestion.Type(
             expr,
             module,
             name,
-            params,
+            _,
             returnType,
             parentType,
             doc,
             reexport
           ) =>
-        val row = SuggestionRow(
+        SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
@@ -963,17 +806,16 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY,
           reexport         = reexport
         )
-        row -> params
       case Suggestion.Constructor(
             expr,
             module,
             name,
-            args,
+            _,
             returnType,
             doc,
             reexport
           ) =>
-        val row = SuggestionRow(
+        SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
@@ -991,19 +833,18 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY,
           reexport         = reexport
         )
-        row -> args
       case Suggestion.Method(
             expr,
             module,
             name,
-            args,
+            _,
             selfType,
             returnType,
             isStatic,
             doc,
             reexport
           ) =>
-        val row = SuggestionRow(
+        SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
@@ -1021,31 +862,23 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY,
           reexport         = reexport
         )
-        row -> args
       case Suggestion.Conversion(
             expr,
             module,
-            args,
+            _,
             sourceType,
             returnType,
             doc,
             reexport
           ) =>
-        val firstArg = Suggestion.Argument(
-          Suggestion.Kind.Conversion.From,
-          sourceType,
-          false,
-          false,
-          None
-        )
-        val row = SuggestionRow(
+        SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
           kind             = SuggestionKind.CONVERSION,
           module           = module,
-          name             = toConversionMethodName(sourceType, returnType),
-          selfType         = SelfTypeColumn.EMPTY,
+          name             = NameColumn.conversionMethodName(sourceType, returnType),
+          selfType         = sourceType,
           returnType       = returnType,
           parentType       = None,
           isStatic         = false,
@@ -1056,17 +889,16 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY,
           reexport         = reexport
         )
-        row -> (firstArg +: args)
       case Suggestion.Function(
             expr,
             module,
             name,
-            args,
+            _,
             returnType,
             scope,
             doc
           ) =>
-        val row = SuggestionRow(
+        SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
@@ -1084,9 +916,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = scope.end.character,
           reexport         = None
         )
-        row -> args
       case Suggestion.Local(expr, module, name, returnType, scope, doc) =>
-        val row = SuggestionRow(
+        SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
@@ -1104,45 +935,14 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = scope.end.character,
           reexport         = None
         )
-        row -> Seq()
     }
 
-  /** Create the method name for conversion */
-  private def toConversionMethodName(
-    sourceType: String,
-    returnType: String
-  ): String =
-    s"${Suggestion.Kind.Conversion.From}_${sourceType}_${returnType}"
-
-  /** Convert the argument to a row in the arguments table. */
-  private def toArgumentRow(
-    suggestionId: Long,
-    index: Int,
-    argument: Suggestion.Argument
-  ): ArgumentRow =
-    ArgumentRow(
-      id           = None,
-      suggestionId = suggestionId,
-      index        = index,
-      name         = argument.name,
-      tpe          = argument.reprType,
-      isSuspended  = argument.isSuspended,
-      hasDefault   = argument.hasDefault,
-      defaultValue = argument.defaultValue
-    )
-
   /** Convert the database rows to a suggestion entry. */
-  private def toSuggestionEntry(
-    suggestion: SuggestionRow,
-    arguments: Seq[ArgumentRow]
-  ): SuggestionEntry =
-    SuggestionEntry(suggestion.id.get, toSuggestion(suggestion, arguments))
+  private def toSuggestionEntry(suggestion: SuggestionRow): SuggestionEntry =
+    SuggestionEntry(suggestion.id.get, toSuggestion(suggestion))
 
-  /** Convert the databaes rows to a suggestion. */
-  private def toSuggestion(
-    suggestion: SuggestionRow,
-    arguments: Seq[ArgumentRow]
-  ): Suggestion =
+  /** Convert the database rows to a suggestion. */
+  private def toSuggestion(suggestion: SuggestionRow): Suggestion =
     suggestion.kind match {
       case SuggestionKind.MODULE =>
         Suggestion.Module(
@@ -1156,7 +956,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           name          = suggestion.name,
-          params        = arguments.sortBy(_.index).map(toArgument),
+          params        = Seq(),
           returnType    = suggestion.returnType,
           parentType    = suggestion.parentType,
           documentation = suggestion.documentation,
@@ -1168,7 +968,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           name          = suggestion.name,
-          arguments     = arguments.sortBy(_.index).map(toArgument),
+          arguments     = Seq(),
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
           reexport      = suggestion.reexport
@@ -1179,7 +979,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           name          = suggestion.name,
-          arguments     = arguments.sortBy(_.index).map(toArgument),
+          arguments     = Seq(),
           selfType      = suggestion.selfType,
           returnType    = suggestion.returnType,
           isStatic      = suggestion.isStatic,
@@ -1191,8 +991,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
-          arguments     = arguments.sortBy(_.index).tail.map(toArgument),
-          sourceType    = arguments.minBy(_.index).tpe,
+          arguments     = Seq(),
+          sourceType    = suggestion.selfType,
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
           reexport      = suggestion.reexport
@@ -1203,7 +1003,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module     = suggestion.module,
           name       = suggestion.name,
-          arguments  = arguments.sortBy(_.index).map(toArgument),
+          arguments  = Seq(),
           returnType = suggestion.returnType,
           scope = Suggestion.Scope(
             Suggestion.Position(
@@ -1239,16 +1039,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")
     }
-
-  /** Convert the database row to the suggestion argument. */
-  private def toArgument(row: ArgumentRow): Suggestion.Argument =
-    Suggestion.Argument(
-      name         = row.name,
-      reprType     = row.tpe,
-      isSuspended  = row.isSuspended,
-      hasDefault   = row.hasDefault,
-      defaultValue = row.defaultValue
-    )
 
   /** Convert bits to the UUID.
     *

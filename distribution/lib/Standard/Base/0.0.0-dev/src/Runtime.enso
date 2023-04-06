@@ -17,8 +17,8 @@ from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 primitive_get_stack_trace : Array
 primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
 
-## ADVANCED
-   UNSTABLE
+## PRIVATE
+   ADVANCED
 
    Returns the execution stack trace of its call site. The ordering of the
    resulting vector is such that the top stack frame is the first element.
@@ -30,7 +30,8 @@ get_stack_trace =
     stack = stack_with_prims.drop (First 2)
     stack.map wrap_primitive_stack_trace_element
 
-## ADVANCED
+## PRIVATE
+   ADVANCED
 
    Suggests that the runtime perform garbage collection.
 
@@ -44,7 +45,8 @@ get_stack_trace =
 gc : Nothing
 gc = @Builtin_Method "Runtime.gc"
 
-## ADVANCED
+## PRIVATE
+   ADVANCED
 
    Executes the provided action without allowing it to inline.
 
@@ -62,8 +64,8 @@ gc = @Builtin_Method "Runtime.gc"
 no_inline : Any -> Any
 no_inline ~action = @Builtin_Method "Runtime.no_inline"
 
-## ADVANCED
-   UNSTABLE
+## PRIVATE
+   ADVANCED
 
    Applies the following function to the given argument, without allowing
    them to inline.
@@ -88,8 +90,8 @@ wrap_primitive_stack_trace_element el =
     name = Polyglot.get_executable_name el
     Stack_Trace_Element.Value name loc
 
-## ADVANCED
-   UNSTABLE
+## PRIVATE
+   ADVANCED
 
    Represents a single stack frame in an Enso stack trace.
 type Stack_Trace_Element
@@ -104,15 +106,20 @@ type Stack_Trace_Element
             loc -> loc.formatted_coordinates
         "at "+self.name+" ("+loc+")"
 
-## ADVANCED
+## PRIVATE
+   ADVANCED
 
     Types indicating allowed IO operations
 type IO_Permissions
+    ## PRIVATE
+       ADVANCED
     Input
+    ## PRIVATE
+       ADVANCED
     Output
 
-## ADVANCED
-   UNSTABLE
+## PRIVATE
+   ADVANCED
 
    Allows an action in the `Input` context to be performed in the given `env`,
    regardless of the Env configuration.
@@ -122,8 +129,8 @@ type IO_Permissions
 allow_input_in : Text -> Any -> Any
 allow_input_in env ~action = @Builtin_Method "Runtime.allow_input_in"
 
-## ADVANCED
-   UNSTABLE
+## PRIVATE
+   ADVANCED
 
    Allows an action in the `Output` context to be performed in the given `env`,
    regardless of the Env configuration.

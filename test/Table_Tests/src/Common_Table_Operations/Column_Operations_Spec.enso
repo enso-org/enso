@@ -19,7 +19,11 @@ spec setup =
             t = table_builder [["X", [True, False, Nothing, True]]]
             t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]
 
-        Test.specify "iif on Columns" pending="Not implemented yet." Nothing
+        Test.specify "iif on Columns" <|
+            t = table_builder [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.5, 3.5, 4.5]]]
+            c = t.at "X" . iif (t.at "Y") (t.at "Z")
+            c.value_type . is_floating_point . should_be_true
+            c.to_vector . should_equal [1, 2.5, Nothing, 4.5]
 
     t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2, 3, 5, Nothing]], ["b", [False, False, True, Nothing]]]
     x = t2.at "x"

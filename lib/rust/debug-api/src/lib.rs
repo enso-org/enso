@@ -93,6 +93,19 @@ pub fn load_profiles() -> Option<impl Future<Output = Vec<String>>> {
 
 
 
+// ======================
+// === GPU Debug Info ===
+// ======================
+
+/// Load a page displaying information used for debugging hardware-specific rendering issues.
+pub fn open_gpu_debug_info() {
+    if let Some(api) = hardware_info_api() {
+        api.open_gpu_debug_info();
+    }
+}
+
+
+
 // ===========
 // === FFI ===
 // ===========
@@ -131,6 +144,20 @@ pub mod js {
         }
     }
 
+    /// Enso Hardware Info API
+    pub mod hardware_info {
+        use wasm_bindgen::prelude::*;
+
+        #[wasm_bindgen]
+        extern "C" {
+            pub type HardwareInfo;
+
+            #[wasm_bindgen(method, js_name = openGpuDebugInfo)]
+            #[allow(unsafe_code)]
+            pub fn open_gpu_debug_info(this: &HardwareInfo);
+        }
+    }
+
     /// Enso Console API
     pub mod console {
         use wasm_bindgen::prelude::*;
@@ -165,3 +192,4 @@ macro_rules! window_prop_getter {
 window_prop_getter!("enso_console"; console -> js::console::Console);
 window_prop_getter!("enso_lifecycle"; lifecycle_controller -> js::lifecycle::Lifecycle);
 window_prop_getter!("enso_profiling_data"; profiling_data_api -> js::profiling_data::ProfilingData);
+window_prop_getter!("enso_hardware_info"; hardware_info_api -> js::hardware_info::HardwareInfo);
