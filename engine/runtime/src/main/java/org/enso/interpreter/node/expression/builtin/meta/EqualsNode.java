@@ -322,17 +322,13 @@ public abstract class EqualsNode extends Node {
                              @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
                              @Cached EqualsNode equalsNode
   ) {
-    try {
-      Object self =
+    Object self =
           selfWarnLib.hasWarnings(selfWithWarnings) ? selfWarnLib.removeWarnings(selfWithWarnings)
               : selfWithWarnings;
-      Object other =
+    Object other =
           otherWarnLib.hasWarnings(otherWithWarnings) ? otherWarnLib.removeWarnings(otherWithWarnings)
               : otherWithWarnings;
-      return equalsNode.execute(self, other);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
+    return equalsNode.execute(self, other);
   }
 
   /** Interop libraries **/

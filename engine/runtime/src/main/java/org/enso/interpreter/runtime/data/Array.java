@@ -198,6 +198,15 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
+  long countWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    long count = 0;
+    for (Object item : items) {
+      count += warnings.countWarnings(item);
+    }
+    return count;
+  }
+
+  @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     ArrayRope<Warning> ropeOfWarnings = new ArrayRope<>();
@@ -210,8 +219,7 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  Array removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
-      throws UnsupportedMessageException {
+  Array removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
     Object[] items = new Object[this.items.length];
     for (int i = 0; i < this.items.length; i++) {
       if (warnings.hasWarnings(this.items[i])) {

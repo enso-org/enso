@@ -145,17 +145,13 @@ public abstract class LessThanNode extends Node {
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
       @Cached LessThanNode lessThanNode
   ) {
-    try {
-      Object self =
+    Object self =
           selfWarnLib.hasWarnings(selfWithWarnings) ? selfWarnLib.removeWarnings(selfWithWarnings)
               : selfWithWarnings;
-      Object other =
+    Object other =
           otherWarnLib.hasWarnings(otherWithWarnings) ? otherWarnLib.removeWarnings(otherWithWarnings)
               : otherWithWarnings;
-      return lessThanNode.execute(self, other);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
+    return lessThanNode.execute(self, other);
   }
 
   @Specialization(limit = "3")

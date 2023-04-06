@@ -219,14 +219,18 @@ public final class Vector implements TruffleObject {
   }
 
   @ExportMessage
+  long countWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.countWarnings(this.storage);
+  }
+
+  @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
   }
 
   @ExportMessage
-  Vector removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
-      throws UnsupportedMessageException {
+  Vector removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
     return new Vector(warnings.removeWarnings(this.storage));
   }
 

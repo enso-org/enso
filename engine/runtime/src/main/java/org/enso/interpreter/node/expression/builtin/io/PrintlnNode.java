@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
+import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -31,7 +32,7 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
-  abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message);
+  abstract Object execute(VirtualFrame frame, State state, @AcceptsWarning @AcceptsError Object message, boolean warnings);
 
   @Specialization(guards = {"strings.isString(message)", "!hasWarningsToPrint(warningsLibrary, warnings, message)"})
   Object doPrintText(
@@ -105,7 +106,7 @@ public abstract class PrintlnNode extends Node {
     return ctx.getNothing();
   }
 
-  private static boolean hasWarningsToPrint(WarningsLibrary warningsLibrary, boolean shouldPrintWarnings, Object obj) {
+  static boolean hasWarningsToPrint(WarningsLibrary warningsLibrary, boolean shouldPrintWarnings, Object obj) {
     return shouldPrintWarnings && warningsLibrary.hasWarnings(obj);
   }
 

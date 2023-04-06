@@ -266,11 +266,7 @@ public abstract class HashCodeNode extends Node {
       Object selfWithWarning,
       @CachedLibrary("selfWithWarning") WarningsLibrary warnLib,
       @Cached HashCodeNode hashCodeNode) {
-    try {
-      return hashCodeNode.execute(warnLib.removeWarnings(selfWithWarning));
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
+    return hashCodeNode.execute(warnLib.removeWarnings(selfWithWarning));
   }
 
   /** Specializations for interop values * */

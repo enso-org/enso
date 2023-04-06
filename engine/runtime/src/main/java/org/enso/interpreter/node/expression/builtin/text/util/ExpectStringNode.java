@@ -36,11 +36,7 @@ public abstract class ExpectStringNode extends Node {
 
   @Specialization(guards = "warnings.hasWarnings(warning)")
   String doWarning(Object warning, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
-    try {
-      return execute(warnings.removeWarnings(warning));
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
+    return execute(warnings.removeWarnings(warning));
   }
 
   @Fallback

@@ -133,12 +133,17 @@ public final class ArraySlice implements TruffleObject {
   }
 
   @ExportMessage
+  long countWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.countWarnings(this.storage);
+  }
+
+  @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
   }
 
   @ExportMessage
-  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
     Object newStorage = warnings.removeWarnings(this.storage);
     return new ArraySlice(newStorage, start, end);
   }
