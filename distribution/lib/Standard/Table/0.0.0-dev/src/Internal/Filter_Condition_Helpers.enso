@@ -88,5 +88,5 @@ expect_column_or_value_as_text field_name column_or_value ~action = case column_
            `No_Such_Method` from the action itself. Instead we just return
            True there and if it went through successfully we can then execute
            the action. If it fails, we forward the dataflow error instead.
-        case result of
-            True -> action
+        result.if_not_error <|
+            action

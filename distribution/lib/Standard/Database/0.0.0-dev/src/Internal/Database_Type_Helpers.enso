@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Type.Value_Type_Helpers import Operation_Type_Helpers
+
+import project.Data.Column.Column
+
+## PRIVATE
+   Type helpers for database tables.
+type_helpers =
+    is_column value = value.is_a Column
+    Operation_Type_Helpers.Instance is_column

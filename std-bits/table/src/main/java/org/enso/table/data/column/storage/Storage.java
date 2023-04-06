@@ -103,7 +103,14 @@ public abstract class Storage<T> {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, argument, problemBuilder);
     }
+
     Builder builder = new InferredBuilder(size());
+
+    if (skipNulls && argument == null) {
+      builder.appendNulls(size());
+      return builder.seal();
+    }
+
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {

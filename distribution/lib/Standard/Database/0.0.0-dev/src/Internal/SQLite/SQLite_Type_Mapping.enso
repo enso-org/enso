@@ -42,8 +42,9 @@ polyglot java import java.sql.Types
    allows to store any data in a column, we restrict the data to only what can
    match the column's affinity to be aligned with our other backends.
 
-   We map the BLOB affinity to our Mixed type to allow for Mixed type columns.
-   One can still store binary data in such a column.
+   As the text storage is most universal as a single type, we coerce our `Mixed`
+   type to a `Char` type. Values of mixed types will be able to be stored in
+   such a column and they will be retrieved by their text representation.
 
    See `JDBC3ResultSet::getColumnType` method in the `org.xerial.sqlite-jdbc`
    module for the logic JDBC is using to map the SQLite types.
@@ -62,7 +63,7 @@ type SQLite_Type_Mapping
             Value_Type.Date -> SQLite_Types.blob
             Value_Type.Date_Time _ -> SQLite_Types.blob
             Value_Type.Binary _ _ -> SQLite_Types.blob
-            Value_Type.Mixed -> SQLite_Types.blob
+            Value_Type.Mixed -> SQLite_Types.text
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|
@@ -107,31 +108,32 @@ type SQLite_Type_Mapping
                 SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
             enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
 
-        handle_preserve_input_type _ =
+        reconcile_types types =
+            result = Value_Type_Helpers.find_common_type types strict=False
+            # We remap Mixed to Char, to be consistent with our main mapping.
+            if result == Value_Type.Mixed then default_text else result
+
+        ## We actually re-use the logic from the in-memory backend, since the
+           SQLite types are a small subset of that and the logic for SQLite
+           essentially forms a proper sub-algebra (in the universal algebra
+           terms).
+        find_a_common_type _ =
             inputs_types = arguments.map find_type
-            if inputs_types.is_empty then infer_default_type else
-                first_type = inputs_types.first
-                if inputs_types.all (== first_type) then return first_type else
-                    infer_default_type
+            return (reconcile_types inputs_types)
 
         handle_iif _ =
             if arguments.length != 3 then
                 Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
             inputs_types = arguments.drop 1 . map find_type
-            if inputs_types.first == inputs_types.second then return inputs_types.first else
-                case Value_Type_Helpers.reconcile_types inputs_types.first inputs_types.second of
-                    ## Inference failed, fall back to default type.
-                       Ideally, should never happen. To be handled in #6106.
-                    Value_Type.Mixed -> infer_default_type
-                    common -> return common
+            return (reconcile_types inputs_types)
 
         always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
         always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]
-        preserve_input_type_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL"]
+        merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL"]
         others = [["IIF", handle_iif]]
         mapping = Map.from_vector <|
             v1 = always_boolean_ops.map [_, const (return Value_Type.Boolean)]
-            v2 = preserve_input_type_ops.map [_, handle_preserve_input_type]
+            v2 = merge_input_types_ops.map [_, find_a_common_type]
             v3 = always_text_ops.map [_, const (return default_text)]
             v1 + v2 + v3 + others
         handler = mapping.get op_name (_ -> infer_default_type)
@@ -162,7 +164,7 @@ simple_types_map = Map.from_vector <|
     # We treat numeric as a float, since that is what really sits in SQLite under the hood.
     numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Float Bits.Bits_64]
     strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, default_text]
-    blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Mixed]
+    blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
     ints + floats + numerics + strings + blobs + special_types
 

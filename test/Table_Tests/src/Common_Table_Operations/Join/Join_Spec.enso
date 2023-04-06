@@ -304,7 +304,7 @@ spec setup =
 
             test result =
                 result.should_fail_with Invalid_Value_Type
-                result.catch.expected.should_equal Value_Type.Char
+                result.catch.expected.should_equal "Char"
 
             test <|
                 t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "W") on_problems=Problem_Behavior.Ignore

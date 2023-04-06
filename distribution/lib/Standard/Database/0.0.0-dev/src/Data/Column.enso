@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Type.Enso_Types
+import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -20,6 +21,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Data.Table import Table, freshen_columns
+from project.Internal.Database_Type_Helpers import type_helpers
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
@@ -228,9 +230,11 @@ type Column
        `other`.
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
-        Helpers.assume_default_locale locale <|
-            new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
-            self.make_binary_op "equals_ignore_case" other new_name
+        type_helpers.check_argument_type self Value_Type.expect_text <|
+            type_helpers.check_argument_type other Value_Type.expect_text <|
+                Helpers.assume_default_locale locale <|
+                    new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
+                    self.make_binary_op "equals_ignore_case" other new_name
 
     ## Element-wise non-equality comparison.
 
@@ -276,7 +280,8 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     >= : Column | Any -> Column
-    >= self other = self.make_binary_op ">=" other
+    >= self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+        self.make_binary_op ">=" other
 
     ## UNSTABLE
 
@@ -289,7 +294,8 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     <= : Column | Any -> Column
-    <= self other = self.make_binary_op "<=" other
+    <= self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+        self.make_binary_op "<=" other
 
     ## UNSTABLE
 
@@ -302,7 +308,8 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     > : Column | Any -> Column
-    > self other = self.make_binary_op ">" other
+    > self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+        self.make_binary_op ">" other
 
     ## UNSTABLE
 
@@ -315,7 +322,8 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     < : Column | Any -> Column
-    < self other = self.make_binary_op "<" other
+    < self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+        self.make_binary_op "<" other
 
     ## Element-wise inclusive bounds check.
 
@@ -331,8 +339,11 @@ type Column
        column fit between the lower and upper bounds (both ends inclusive).
     between : (Column | Any) -> (Column | Any) -> Column
     between self lower upper =
-        new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
-        self.make_op "BETWEEN" [lower, upper] new_name
+        self_type = self.value_type
+        Value_Type.expect_comparable self_type (type_helpers.find_argument_type lower) <|
+            Value_Type.expect_comparable self_type (type_helpers.find_argument_type upper) <|
+                new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
+                self.make_op "BETWEEN" [lower, upper] new_name
 
     ## UNSTABLE
 
@@ -346,14 +357,10 @@ type Column
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
     + self other =
-        self_type = self.value_type
-        other_type = find_argument_type other
-        op = if self_type.is_numeric && (other_type.is_nothing || other_type.is_numeric) then 'ADD_NUMBER' else
-            if self_type.is_text && (other_type.is_nothing || other_type.is_text) then 'ADD_TEXT' else
-                Error.throw <| Illegal_Argument.Error <|
-                    "Cannot perform addition on a pair of values of types " + self_type.to_text + " and " + other_type.to_text + ". Addition can only be performed if both columns are of some numeric type or are both text."
-        new_name = self.naming_helpers.binary_operation_name "+" self other
-        self.make_binary_op op other new_name
+        op = type_helpers.resolve_addition_kind self.value_type (type_helpers.find_argument_type other)
+        op.if_not_error <|
+            new_name = self.naming_helpers.binary_operation_name "+" self other
+            self.make_binary_op op other new_name
 
     ## UNSTABLE
 
@@ -366,7 +373,9 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
-    - self other = self.make_binary_op "-" other
+    - self other =
+        type_helpers.check_binary_numeric_op self other <|
+            self.make_binary_op "-" other
 
     ## UNSTABLE
 
@@ -379,7 +388,9 @@ type Column
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
     * : Column | Any -> Column
-    * self other = self.make_binary_op "*" other
+    * self other =
+        type_helpers.check_binary_numeric_op self other <|
+            self.make_binary_op "*" other
 
     ## ALIAS Divide Columns
 
@@ -413,7 +424,8 @@ type Column
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
     / self other =
-        self.make_binary_op "/" other
+        type_helpers.check_binary_numeric_op self other <|
+            self.make_binary_op "/" other
 
     ## Element-wise modulus.
 
@@ -445,10 +457,12 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        other_type = find_argument_type other
-        op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "mod"
-        new_name = self.naming_helpers.binary_operation_name "%" self other
-        self.make_binary_op op other new_name
+        type_helpers.check_binary_numeric_op self other <|
+            other_type = type_helpers.find_argument_type other
+            # Different implementation may be used for integer types.
+            op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "mod"
+            new_name = self.naming_helpers.binary_operation_name "%" self other
+            self.make_binary_op op other new_name
 
     ## ALIAS Power
 
@@ -477,7 +491,8 @@ type Column
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
     ^ self other =
-        self.make_binary_op '^' other
+        type_helpers.check_binary_numeric_op self other <|
+            self.make_binary_op '^' other
 
     ## UNSTABLE
 
@@ -492,8 +507,9 @@ type Column
        and `other`.
     && : Column | Any -> Column
     && self other =
-        new_name = self.naming_helpers.binary_operation_name "&&" self other
-        self.make_binary_op "AND" other new_name
+        type_helpers.check_binary_boolean_op self other <|
+            new_name = self.naming_helpers.binary_operation_name "&&" self other
+            self.make_binary_op "AND" other new_name
 
     ## UNSTABLE
 
@@ -508,16 +524,18 @@ type Column
        and `other`.
     || : Column | Any -> Column
     || self other =
-        new_name = self.naming_helpers.binary_operation_name "||" self other
-        self.make_binary_op "OR" other new_name
+        type_helpers.check_binary_boolean_op self other <|
+            new_name = self.naming_helpers.binary_operation_name "||" self other
+            self.make_binary_op "OR" other new_name
 
     ## UNSTABLE
 
        Boolean negation of each element in this column.
     not : Column
     not self =
-        new_name = "not " + self.naming_helpers.to_expression_text self
-        self.make_unary_op "NOT" new_name
+        type_helpers.check_argument_type self Value_Type.expect_boolean <|
+            new_name = "not " + self.naming_helpers.to_expression_text self
+            self.make_unary_op "NOT" new_name
 
     ## ALIAS IF
 
@@ -529,8 +547,9 @@ type Column
        - when_false: value or column when `self` is `False`.
     iif : Any -> Any -> Column
     iif self when_true when_false =
-        new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
-        self.make_op "IIF" [when_true, when_false] new_name
+        type_helpers.check_argument_type self Value_Type.expect_boolean <|
+            new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
+            self.make_op "IIF" [when_true, when_false] new_name
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -552,10 +571,11 @@ type Column
         _ : Array -> self.coalesce (Vector.from_polyglot_array values)
         _ -> self.coalesce [values]
 
-    ## Returns a column of minimum on each row of `self` and `values` list.
+    ## Returns a column of minimum on each row of `self` and `values`.
 
        Arguments:
-       - values: list of columns or values to minimum with `self`.
+       - values: list of columns or values to minimum with `self`, or a single
+         column or value.
 
        > Example
          Get the minimum value in two columns.
@@ -564,17 +584,17 @@ type Column
 
              example_min = Examples.decimal_column.min Examples.integer_column
     min : (Any | Vector Any) -> Column
-    min self values = case values of
-        _ : Vector ->
-            new_name = self.naming_helpers.function_name "min" [self]+values
-            self.make_op "ROW_MIN" values new_name
-        _ : Array -> self.min (Vector.from_polyglot_array values)
-        _ -> self.min [values]
+    min self values =
+        type_helpers.check_multi_argument_comparable_op self values <|
+            args = Vector.unify_vector_or_element values
+            new_name = self.naming_helpers.function_name "min" [self]+args
+            self.make_op "ROW_MIN" args new_name
 
-    ## Returns a column of maximum on each row of `self` and `values` list.
+    ## Returns a column of maximum on each row of `self` and `values`.
 
        Arguments:
-       - values: list of columns or values to maximum with `self`.
+       - values: list of columns or values to maximum with `self`, or a single
+         column or value.
 
        > Example
          Get the maximum value in two columns.
@@ -583,12 +603,11 @@ type Column
 
              example_max = Examples.decimal_column.max Examples.integer_column
     max : (Any | Vector Any) -> Column
-    max self values = case values of
-        _ : Vector ->
-            new_name = self.naming_helpers.function_name "max" [self]+values
-            self.make_op "ROW_MAX" values new_name
-        _ : Array -> self.max (Vector.from_polyglot_array values)
-        _ -> self.max [values]
+    max self values =
+        type_helpers.check_multi_argument_comparable_op self values <|
+            args = Vector.unify_vector_or_element values
+            new_name = self.naming_helpers.function_name "max" [self]+args
+            self.make_op "ROW_MAX" args new_name
 
     ## UNSTABLE
 
@@ -603,7 +622,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self =
+    is_nan self = type_helpers.check_argument_type self Value_Type.expect_floating_point <|
         new_name = self.naming_helpers.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
 
@@ -611,7 +630,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self =
+    is_empty self = type_helpers.check_argument_type self Value_Type.expect_text <|
         new_name = self.naming_helpers.to_expression_text self + " is empty"
         self.make_unary_op "IS_EMPTY" new_name
 
@@ -646,7 +665,7 @@ type Column
         is_blank = case self_type.is_text of
             True -> self.is_empty
             False -> self.is_nothing
-        result = case treat_nans_as_blank && self_type.is_floating_point of
+        result = case treat_nans_as_blank && self_type.is_floating_point && self.connection.dialect.supports_separate_nan of
             True -> is_blank || self.is_nan
             False -> is_blank
         result.rename new_name
@@ -671,9 +690,11 @@ type Column
          will be used.
     fill_empty : Column | Any -> Column
     fill_empty self default =
-        new_name = self.naming_helpers.function_name "fill_empty" [self, default]
-        result = self.is_empty.iif default self
-        result.rename new_name
+        type_helpers.check_argument_type self Value_Type.expect_text <|
+            type_helpers.check_argument_type default Value_Type.expect_text <|
+                new_name = self.naming_helpers.function_name "fill_empty" [self, default]
+                result = self.is_empty.iif default self
+                result.rename new_name
 
     ## Returns a new column, containing the same elements as `self`, but with
        the given name.
@@ -808,8 +829,10 @@ type Column
              example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
     like self pattern =
-        new_name = self.naming_helpers.binary_operation_name "like" self pattern
-        self.make_binary_op "LIKE" pattern new_name
+        type_helpers.check_argument_type self Value_Type.expect_text <|
+            type_helpers.check_argument_type pattern Value_Type.expect_text <|
+                new_name = self.naming_helpers.binary_operation_name "like" self pattern
+                self.make_binary_op "LIKE" pattern new_name
 
     ## This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
@@ -1086,29 +1109,13 @@ type Column
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
 ## PRIVATE
-   Finds the type of an argument to a column operation.
-
-   If the argument is a column, the type of that column is returned. If it is an
-   Enso value, the smallest `Value_Type` that can fit that value will be
-   returned (but the Database is free to widen it to the closest type that it
-   supports without warning).
-
-   Since there is no special type for `Nothing` and `Nothing` technically can
-   fit any nullable type, it usually needs to be handled specially. This method
-   returns `Nothing` if the value is `Nothing` - so the caller can try to treat
-   this value as fitting any type, or accordingly to specific semantics of each
-   method.
-find_argument_type : Any -> Value_Type | Nothing
-find_argument_type value = case value of
-    _ : Column -> value.value_type
-    _ : Internal_Column -> Panic.throw (Illegal_State.Error "This path is not implemented. If this is ever reached, that is a bug in the Database library.")
-    Nothing -> Nothing
-    _ -> Enso_Types.most_specific_value_type value use_smallest=True
-
-## PRIVATE
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
-    result = Value_Type.expect_text left.value_type <| case case_sensitivity of
+    with_checks ~action =
+        type_helpers.check_argument_type left Value_Type.expect_text <|
+            type_helpers.check_argument_type other Value_Type.expect_text <|
+                action
+    result = with_checks <| case case_sensitivity of
         Case_Sensitivity.Default -> left.make_binary_op op other
         Case_Sensitivity.Sensitive ->
             make_sensitive column =

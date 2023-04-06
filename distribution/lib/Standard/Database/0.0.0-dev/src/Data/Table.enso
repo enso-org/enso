@@ -41,9 +41,9 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Data.Column import find_argument_type
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
+from project.Internal.Database_Type_Helpers import type_helpers
 
 import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
@@ -662,7 +662,7 @@ type Table
         get_column name = self.at name
         type_mapping = self.connection.dialect.get_type_mapping
         make_constant value =
-            argument_value_type = find_argument_type value
+            argument_value_type = type_helpers.find_argument_type value
             sql_type = case argument_value_type of
                 Nothing -> SQL_Type.null
                 _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
@@ -1168,12 +1168,7 @@ type Table
                                     Internal_Column.Value column_name typ expr
                                 corresponding_column_index : Integer ->
                                     t.at corresponding_column_index . as_internal . rename column_name
-                            ## We return `null` return type, as this type should
-                               never be queried - we will just put it into the
-                               union and the overall queried type will be taken
-                               from there. This is just needed to create an
-                               internal representation.
-                            infer_return_type _ = SQL_Type_Reference.null
+
                             if cast_after_union then input_column else
                                 dialect.make_cast input_column result_type infer_return_type
                         pairs = columns_to_select.map c->

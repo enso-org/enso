@@ -72,7 +72,7 @@ public final class LongStorage extends NumericStorage<Long> {
 
   @Override
   public double getItemDouble(int idx) {
-    return getItem(idx);
+    return (double) getItem(idx);
   }
 
   @Override
@@ -338,7 +338,7 @@ public final class LongStorage extends NumericStorage<Long> {
 
               @Override
               protected boolean doDouble(long a, double b) {
-                return a > b;
+                return a < b;
               }
             })
         .add(

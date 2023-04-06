@@ -85,6 +85,9 @@ spec =
         Test.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1]], ["Y", [2], "Z"]] . should_fail_with Illegal_Argument
+            Table.new [["X"]] . should_fail_with Illegal_Argument
+            Table.new ["X", "Y", "Z"] . should_fail_with Illegal_Argument
             Table.new [] . should_fail_with Illegal_Argument
 
             Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument
@@ -350,6 +353,11 @@ spec =
             t1.at "X" . to_vector . should_equal [1, 4, 5]
             # Comparing text value because `Number.nan != Number.nan`.
             t1.at "Y" . to_vector . to_text . should_equal "[A, NaN, 0]"
+
+            c = t.at "Y" . is_blank treat_nans_as_blank=True
+            c.to_vector . should_equal [False, True, True, True, False]
+            c.value_type . should_equal Value_Type.Boolean
+
             t2 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
             t2.at "X" . to_vector . should_equal [1, 5]
             t2.at "Y" . to_vector . should_equal ['A', 0]
@@ -819,7 +827,10 @@ spec =
                                 False -> True
                                 Nothing -> Nothing
                             negated_column_vector = column_vector.map not
-                            t = Table.new [["X", column_vector]]
+                            ## A workaround to ensure that X has Boolean type.
+                               It can be removed with
+                            t0 = Table.new [["X", [True]+column_vector]]
+                            t = t0.drop 1
                             in_column = Column.from_vector "in" in_vector
 
                             expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)

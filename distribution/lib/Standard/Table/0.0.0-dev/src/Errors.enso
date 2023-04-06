@@ -392,7 +392,7 @@ type No_Index_Set_Error
 
 type Invalid_Value_Type
     ## PRIVATE
-    Error expected actual related_column=Nothing
+    Error (expected:Value_Type|Text) (actual:Value_Type) (related_column:Nothing|Text = Nothing)
 
     ## PRIVATE
 
@@ -401,7 +401,7 @@ type Invalid_Value_Type
     to_display_text self =
         prefix = case self.related_column of
             Nothing -> "Expected "
-            column_name -> "Expected " + column_name + " column to have "
+            column_name : Text -> "Expected " + column_name + " column to have "
         expected_type = case self.expected of
             msg : Text -> msg
             other -> other.to_display_text
