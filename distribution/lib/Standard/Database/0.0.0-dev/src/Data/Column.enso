@@ -902,7 +902,7 @@ type Column
 
     ## Parsing values is not supported in database columns.
     @type Widget_Helpers.parse_type_selector
-    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
         _ = [type, format, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
