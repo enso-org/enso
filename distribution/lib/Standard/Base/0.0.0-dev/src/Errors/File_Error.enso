@@ -43,8 +43,7 @@ type File_Error
        is not in the expected format.
     Corrupted_Format (file : File) (message : Text) (cause : Any | Nothing = Nothing)
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the File error to a human-readable format.
     to_display_text : Text
     to_display_text self = case self of

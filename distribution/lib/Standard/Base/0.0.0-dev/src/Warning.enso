@@ -17,28 +17,26 @@ from project.Data.Boolean import Boolean, True, False
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
 type Warning
-    ## UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Attaches a new warning to the value.
     attach : Any -> Any -> Any
     attach warning value =
         origin = Runtime.get_stack_trace
         attach_with_stacktrace value warning (origin.drop (Index_Sub_Range.First 1))
 
-    ## UNSTABLE
-
+    ## ADVANCED
        Are any warnings attached to the value?
     has_warnings : Any -> Boolean
     has_warnings value = has_warnings_builtin value
 
-    ## UNSTABLE
-
+    ## ADVANCED
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
     get_all : Any -> Vector Warning
     get_all value = Vector.from_polyglot_array (get_all_array value)
 
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        Sets a new list of warnings for the given value. Any warnings already present
@@ -50,8 +48,7 @@ type Warning
     set : Any -> Vector Warning -> Any
     set value warnings = set_array value warnings.to_array
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
        Returns the provided value with any warnings removed from it.
 
        Arguments:
@@ -59,7 +56,7 @@ type Warning
     clear : Any -> Any
     clear value = Warning.set value []
 
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
        Executes the provided function with the given argument with its warnings
        suspended.
@@ -93,8 +90,8 @@ type Warning
        case arg of
            _ -> function (Warning.clear arg)
 
-
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Maps warnings attached to a value.
 
        Arguments:
@@ -115,7 +112,8 @@ type Warning
     map_attached_warnings mapper value =
         map_attached_warnings_helper mapper value 1
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
        An utility function which applies the mapping function both to any attached
        warnings and dataflow errors.
 
@@ -143,7 +141,7 @@ type Warning
                    original dataflow error as-is, to preserve its stacktrace.
                 Nothing -> mapped_warnings_or_error
 
-    ## UNSTABLE
+    ## ADVANCED
        A helper function which selects warnings matching a predicate and returns a
        pair whose first element is the original value with the matched warnings
        removed and the second element is the list of matched warnings.
@@ -167,7 +165,8 @@ type Warning
         remaining = result.second
         Pair.new (Warning.set value remaining) matched
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
        A helper function which gathers warnings matching some predicate and passes
        them into a function which can aggregate them.
 
@@ -195,20 +194,17 @@ type Warning
             new_warnings.fold result.first acc-> warning->
                 Warning.attach warning acc
 
-    ## UNSTABLE
-
-       Returns the warning value – usually its explanation or other contents.
+    ## Returns the warning value – usually its explanation or other contents.
     value : Any
     value self = @Builtin_Method "Warning.value"
 
-    ## UNSTABLE
-       ADVANCED
+    ## ADVANCED
 
        A stack trace for the original warning creation.
     origin : Vector Stack_Trace_Element
     origin self = @Builtin_Method "Warning.origin"
 
-    ## UNSTABLE
+    ## PRIVATE
        ADVANCED
 
        A list of locations where the warning was reassigned in the order of

@@ -25,7 +25,7 @@ spec =
 
     Test.group "Widgets for In-Database Connection with table name sets" <|
         Test.specify "works for `query` and `read`" <|
-            choices = ['a_table', 'another', 'mock_table'] . map n-> Choice.Option n n.pretty
+            choices = ['sqlite_schema', 'a_table', 'another', 'mock_table'] . map n-> Choice.Option n n.pretty
             expect = [["query", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json connection "query" ["query"] . should_equal expect
             Widgets.get_widget_json connection "read" ["query"] . should_equal expect

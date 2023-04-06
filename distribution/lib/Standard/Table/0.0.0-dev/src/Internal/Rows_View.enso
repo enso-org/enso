@@ -3,6 +3,7 @@ from Standard.Base import all
 from project.Data.Table import Table
 from project.Data.Row import Row
 
+## PRIVATE
 type Rows_View
     ## PRIVATE
     Value (table:Table)

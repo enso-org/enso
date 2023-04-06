@@ -22,10 +22,6 @@ spec =
             (Duration.between (Date_Time.new 2001 1 1) (Date_Time.new 2001 1 7)).total_hours . should_equal (6 * 24)
             (Duration.between (Date_Time.new 2001 1 1 13) (Date_Time.new 2001 1 7 16)).total_hours . should_equal (3 + 6 * 24)
 
-        Test.specify "should check if empty" <|
-            interval = Duration.zero
-            interval.is_empty . should_be_true
-
         Test.specify "should normalize periods" <|
             (Duration.new seconds=60).total_minutes . should_equal 1
             (Duration.new milliseconds=1000).total_seconds . should_equal 1

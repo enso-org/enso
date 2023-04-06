@@ -1,5 +1,7 @@
 package org.enso.compiler;
 
+import org.enso.compiler.core.IR$Error$Syntax;
+import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Function$Binding;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
 import org.enso.compiler.core.IR$Module$Scope$Definition$SugaredType;
@@ -7,6 +9,7 @@ import org.enso.compiler.core.IR$Name$Annotation;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class AnnotationsCompilerTest extends CompilerTest {
 
@@ -88,10 +91,12 @@ public class AnnotationsCompilerTest extends CompilerTest {
     """);
 
     var typeDefinition = (IR$Module$Scope$Definition$SugaredType) ir.bindings().apply(0);
-    var method = (IR$Function$Binding) typeDefinition.body().apply(0);
+    var methodOrError = typeDefinition.body().apply(0);
 
-    assertEquals(method.name().name(), "bar");
-    // FIXME method body is null. Should be `IR.Error.Syntax.UnexpectedDeclarationInType`
-    assertEquals(method.body(), null);
+    if (methodOrError instanceof IR$Error$Syntax error) {
+        assertEquals(error.reason(), IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
+    } else {
+        fail("Expecting error instead of bar function: " + methodOrError);
+    }
   }
 }

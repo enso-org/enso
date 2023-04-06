@@ -9,22 +9,17 @@ import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File.Write_Extensions
 
+## PRIVATE
 type Response_Body
-
-    ## Response body
+    ## PRIVATE
+       Response body
 
        Arguments:
        - bytes: The body of the response as binary data.
     Value bytes
 
-    ## Convert response body to Text.
-
-       > Example
-         Convert a response to text. NOTE: This example makes a network request.
-
-             import Standard.Examples
-
-             example_to_text = Examples.get_geo_data.to_text
+    ## PRIVATE
+       Convert response body to Text.
     to_text : Text
     to_text self = Text.from_utf_8 self.bytes
 
