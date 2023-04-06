@@ -243,7 +243,7 @@ type Array
     slice self start end = Vector.slice self start end
 
     find : (Any -> Boolean) -> Integer -> Any -> Any
-    find self predicate start=0 ~if_missing=(Error.throw Not_Found) = Vector.find predicate start if_missing
+    find self predicate start=0 ~if_missing=(Error.throw Not_Found) = Vector.find self predicate start if_missing
 
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing = Vector.get self index if_missing
