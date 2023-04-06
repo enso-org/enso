@@ -128,6 +128,8 @@
   eliminating the need for fully qualified names.
 - [Added tooltips to icon buttons][6035] for improved usability. Users can now
   quickly understand each button's function.
+- [File associations are created on Windows and macOS][6077]. This allows
+  opening Enso files by double-clicking them in the file explorer.
 
 #### EnsoGL (rendering engine)
 
@@ -570,6 +572,7 @@
 [6153]: https://github.com/enso-org/enso/pull/6153
 [6156]: https://github.com/enso-org/enso/pull/6156
 [6204]: https://github.com/enso-org/enso/pull/6204
+[6077]: https://github.com/enso-org/enso/pull/6077
 
 #### Enso Compiler
 
