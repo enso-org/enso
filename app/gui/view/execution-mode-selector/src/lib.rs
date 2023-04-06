@@ -124,31 +124,35 @@ pub struct Model {
 }
 
 impl Model {
-    fn update_dropdown_style(&self, overall_width: f32, style: &Style) {
+    fn update_dropdown_style(&self, style: &Style) {
         self.dropdown.set_menu_offset_y(style.menu_offset);
-        self.dropdown.set_x(overall_width / 2.0 - style.divider_offset);
+        self.dropdown.set_x(style.overall_width() / 2.0 - style.divider_offset);
         self.dropdown.set_label_color(Rgba::white());
         self.dropdown.set_icon_size(Vector2::new(1.0, 1.0));
         self.dropdown.set_menu_alignment(ensogl_drop_down_menu::Alignment::Right);
         self.dropdown.set_label_alignment(ensogl_drop_down_menu::Alignment::Left);
     }
 
-    fn update_background_style(&self, max_width: f32, style: &Style) {
+    fn update_background_style(&self, style: &Style) {
+        let width = style.overall_width();
         let Style { height, background, .. } = *style;
-        let size = Vector2::new(max_width, height);
+        let size = Vector2::new(width, height);
         self.background.set_size(size);
         self.background.set_xy(-size / 2.0);
         self.background.set_corner_radius(height / 2.0);
         self.background.set_color(background);
 
         self.divider.set_size(Vector2::new(1.0, height));
-        self.divider.set_xy(Vector2::new(max_width / 2.0 - style.divider_offset, -height / 2.0));
+        self.divider.set_xy(Vector2::new(width / 2.0 - style.divider_offset, -height / 2.0));
         self.divider.set_color(style.divider);
     }
 
-    fn update_play_icon_style(&self, max_width: f32, style: &Style) {
-        self.play_icon.set_size(Vector2::new(style.play_button_size, style.play_button_size));
-        self.play_icon.set_x(max_width / 2.0 - style.play_button_offset);
+    fn update_play_icon_style(&self, style: &Style) {
+        let width = style.overall_width();
+        let size = Vector2::new(style.play_button_size, style.play_button_size);
+        self.play_icon.set_size(size);
+        self.play_icon.set_x(width / 2.0 - style.play_button_offset - size.x / 2.0);
+        self.play_icon.set_y(-size.y / 2.0);
     }
 
     fn update_position(&self, style: &Style, camera: &Camera2d) {
@@ -237,9 +241,9 @@ impl component::Frp<Model> for Frp {
             });
 
             eval style_update((style) {
-               model.update_dropdown_style(style.overall_width(), style);
-               model.update_background_style(style.overall_width(), style);
-               model.update_play_icon_style(style.overall_width(), style);
+               model.update_dropdown_style(style);
+               model.update_background_style(style);
+               model.update_play_icon_style(style);
             });
 
             // == Inputs ==
