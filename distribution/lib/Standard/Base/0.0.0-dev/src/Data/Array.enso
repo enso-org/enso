@@ -149,7 +149,7 @@ type Array
        This method is implemented purely for completeness with the runtime's
        primitive array protocol.
     to_array : Array
-    to_array self = @Builtin_Method "Array.to_array"
+    to_array self = self
 
     #
     # For compatibility with Vector
