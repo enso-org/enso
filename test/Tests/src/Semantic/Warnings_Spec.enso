@@ -164,7 +164,7 @@ spec = Test.group "Dataflow Warnings" <|
         cleared.should_equal 'foo'
         Warning.get_all cleared . map .value . should_equal []
 
-        clear_2 = warned.remove_warnings
+        clear_2 = warned.remove_warnings . first
         clear_2.should_equal 'foo'
         Warning.get_all clear_2 . map .value . should_equal []
 
@@ -210,7 +210,7 @@ spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to remove warnings, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
-        no_int = warned.remove_warnings Integer
+        no_int = warned.remove_warnings warning_type=Integer . first
         Warning.get_all no_int . map .value . should_equal ["Alpha", Nothing, (Unimplemented.Error "An Error Here")]
 
         no_text = warned.remove_warnings Text
