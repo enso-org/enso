@@ -122,6 +122,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         const checkProjectStatus = async () => {
             const response = await backendService.getProjectDetails(project.id)
 
+            setState(response.state.type)
+
             if (response.state.type === backend.ProjectState.opened) {
                 setCheckStatusInterval(null)
                 if (checkStatusInterval != null) {

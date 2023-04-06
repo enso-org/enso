@@ -7,7 +7,6 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
-import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
@@ -25,7 +24,7 @@ import TopBar from './topBar'
 // =============
 
 /** Main content of the screen. Only one should be visible at a time. */
-enum Tab {
+export enum Tab {
     dashboard = 'dashboard',
     ide = 'ide',
 }
@@ -322,7 +321,16 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div className="text-primary text-xs">
-            <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
+            <TopBar
+                projectName={project?.name ?? null}
+                toggleTab={() => {
+                    if (project) {
+                        setTab(tab === Tab.dashboard ? Tab.ide : Tab.dashboard)
+                    }
+                }}
+                searchVal={searchVal}
+                setSearchVal={setSearchVal}
+            />
             <div className={tab === Tab.dashboard ? '' : 'hidden'}>
                 <div id="templates" />
                 <div className="flex flex-row flex-nowrap">

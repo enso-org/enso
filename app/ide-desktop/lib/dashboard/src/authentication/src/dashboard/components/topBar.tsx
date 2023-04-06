@@ -1,7 +1,8 @@
 /** @file The top-bar of dashboard. */
 import * as react from 'react'
 
-import * as hooks from '../../hooks'
+import * as dashboard from './dashboard'
+
 import UserMenu from './userMenu'
 
 // ==============
@@ -55,11 +56,10 @@ const ICONS = {
         </svg>
     ),
 }
-/** The BAR icon shadow. */
-const BAR_BOX_SHADOW =
-    '0px 18px 80px rgba(0, 0, 0, 0.11), 0px 7.51997px 33.4221px rgba(0, 0, 0, 0.079074), 0px 4.02054px 17.869px rgba(0, 0, 0, 0.0655718), 0px 2.25388px 10.0172px rgba(0, 0, 0, 0.055), 0px 1.19702px 5.32008px rgba(0, 0, 0, 0.0444282), 0px 0.498106px 2.21381px rgba(0, 0, 0, 0.030926)'
 
 interface TopBarProps {
+    projectName: string | null
+    toggleTab: () => void
     searchVal: string
     setSearchVal: (searchVal: string) => void
 }
@@ -69,7 +69,7 @@ interface TopBarProps {
  * Because searchVal maybe change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { searchVal, setSearchVal } = props
+    const { projectName, toggleTab, searchVal, setSearchVal } = props
 
     const [isOpenMenu, setIsOpenMenu] = react.useState(false)
 
@@ -78,15 +78,15 @@ function TopBar(props: TopBarProps) {
             <div className="flex ml-[80px] text-[#3E515F]">
                 <div
                     className={`flex items-center bg-[#3E515F] bg-opacity-5 rounded-full pl-1 
-                                pr-2.5 mr-4 cursor-pointer`}
+                                pr-2.5 mr-4 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
                 >
                     <div
-                        className="bg-white px-1.5 py-1 rounded-full mr-2"
-                        style={{ boxShadow: BAR_BOX_SHADOW }}
+                        className="bg-white shadow-soft px-1.5 py-1 rounded-full mr-2"
+                        onClick={toggleTab}
                     >
                         {ICONS.bar}
                     </div>
-                    <span className="opacity-50">My current project</span>
+                    <span className="opacity-50">{projectName ?? 'No project open'}</span>
                 </div>
                 <div
                     className={`flex items-center bg-[#3E515F] bg-opacity-5 rounded-full px-3 
