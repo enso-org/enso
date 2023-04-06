@@ -176,11 +176,8 @@ impl ContextSwitchButton {
     }
 
     fn set_state(&self, active: bool) {
-        if self.globally_enabled.get() {
-            self.disable_button.set_state(active);
-        } else {
-            self.enable_button.set_state(active);
-        }
+        self.disable_button.set_state(active);
+        self.enable_button.set_state(active);
     }
 
     /// Swap the buttons if the execution environment changed.
