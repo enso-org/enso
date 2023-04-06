@@ -5,7 +5,10 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.{ContextRegistryProtocol, RuntimeFailureMapper}
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
+}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
 
@@ -81,6 +84,8 @@ object SetExecutionEnvironmentHandler {
     contextRegistry: ActorRef,
     rpcSession: JsonSession
   ): Props =
-    Props(new SetExecutionEnvironmentHandler(timeout, contextRegistry, rpcSession))
+    Props(
+      new SetExecutionEnvironmentHandler(timeout, contextRegistry, rpcSession)
+    )
 
 }
