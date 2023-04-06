@@ -5,28 +5,6 @@ import slick.jdbc.SQLiteProfile.api._
 
 import scala.annotation.nowarn
 
-/** A row in the arguments table.
-  *
-  * @param id the id of an argument
-  * @param suggestionId the id of the suggestion
-  * @param index the argument position in the arguments list
-  * @param name the argument name
-  * @param tpe the argument type
-  * @param isSuspended is the argument lazy
-  * @param hasDefault does the argument have the default value
-  * @param defaultValue optional default value
-  */
-case class ArgumentRow(
-  id: Option[Long],
-  suggestionId: Long,
-  index: Int,
-  name: String,
-  tpe: String,
-  isSuspended: Boolean,
-  hasDefault: Boolean,
-  defaultValue: Option[String]
-)
-
 /** A row in the suggestions table.
   *
   * @param id the id of a suggestion
@@ -109,6 +87,17 @@ object SuggestionKind {
       case Suggestion.Kind.Function    => FUNCTION
       case Suggestion.Kind.Local       => LOCAL
     }
+
+  def toSuggestion(kind: Byte): Suggestion.Kind =
+    kind match {
+      case MODULE      => Suggestion.Kind.Module
+      case TYPE        => Suggestion.Kind.Type
+      case CONSTRUCTOR => Suggestion.Kind.Constructor
+      case METHOD      => Suggestion.Kind.Method
+      case FUNCTION    => Suggestion.Kind.Function
+      case LOCAL       => Suggestion.Kind.Local
+      case CONVERSION  => Suggestion.Kind.Conversion
+    }
 }
 
 object ScopeColumn {
@@ -123,38 +112,15 @@ object SelfTypeColumn {
   val EMPTY: String = "\u0500"
 }
 
-/** The schema of the arguments table. */
-@nowarn("msg=multiarg infix syntax")
-final class ArgumentsTable(tag: Tag)
-    extends Table[ArgumentRow](tag, "arguments") {
+object NameColumn {
 
-  def id           = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def suggestionId = column[Long]("suggestion_id")
-  def index        = column[Int]("index")
-  def name         = column[String]("name")
-  def tpe          = column[String]("type")
-  def isSuspended  = column[Boolean]("is_suspended", O.Default(false))
-  def hasDefault   = column[Boolean]("has_default", O.Default(false))
-  def defaultValue = column[Option[String]]("default_value")
-  def * =
-    (
-      id.?,
-      suggestionId,
-      index,
-      name,
-      tpe,
-      isSuspended,
-      hasDefault,
-      defaultValue
-    ) <>
-    (ArgumentRow.tupled, ArgumentRow.unapply)
+  /** Create the method name for conversion */
+  def conversionMethodName(
+    sourceType: String,
+    returnType: String
+  ): String =
+    s"${Suggestion.Kind.Conversion.From}_${sourceType}_${returnType}"
 
-  def suggestion =
-    foreignKey("suggestion_fk", suggestionId, Suggestions)(
-      _.id,
-      onUpdate = ForeignKeyAction.Restrict,
-      onDelete = ForeignKeyAction.Cascade
-    )
 }
 
 /** The schema of the suggestions table. */
@@ -230,6 +196,75 @@ final class SuggestionsTable(tag: Tag)
     )
 }
 
+/** An element of unique suggestion index.
+  *
+  * @param kind the type of a suggestion
+  * @param module the module name
+  * @param name the suggestion name
+  * @param selfType the self type of a suggestion
+  * @param scopeStartLine the line of the start position of the scope
+  * @param scopeStartOffset the offset of the start position of the scope
+  * @param scopeEndLine the line of the end position of the scope
+  * @param scopeEndOffset the offset of the end position of the scope
+  */
+final case class SuggestionRowUniqueIndex(
+  kind: Suggestion.Kind,
+  module: String,
+  name: String,
+  selfType: String,
+  scopeStartLine: Int,
+  scopeStartOffset: Int,
+  scopeEndLine: Int,
+  scopeEndOffset: Int
+)
+
+object SuggestionRowUniqueIndex {
+
+  /** Create an index element from the provided suggestion.
+    *
+    * @param suggestion the suggestion
+    * @return an index element representing the provided suggestion
+    */
+  def apply(suggestion: Suggestion): SuggestionRowUniqueIndex = {
+    val scope = Suggestion.Scope(suggestion)
+    val suggestionName = suggestion match {
+      case conversion: Suggestion.Conversion =>
+        NameColumn.conversionMethodName(
+          conversion.sourceType,
+          conversion.returnType
+        )
+      case _ => suggestion.name
+    }
+    new SuggestionRowUniqueIndex(
+      Suggestion.Kind(suggestion),
+      suggestion.module,
+      suggestionName,
+      Suggestion.SelfType(suggestion).getOrElse(SelfTypeColumn.EMPTY),
+      scope.map(_.start.line).getOrElse(ScopeColumn.EMPTY),
+      scope.map(_.start.character).getOrElse(ScopeColumn.EMPTY),
+      scope.map(_.end.line).getOrElse(ScopeColumn.EMPTY),
+      scope.map(_.end.character).getOrElse(ScopeColumn.EMPTY)
+    )
+  }
+
+  /** Create an index element from the provided suggestion row.
+    *
+    * @param row the suggestion row
+    * @return an index element representing the provided suggestion row
+    */
+  def apply(row: SuggestionRow): SuggestionRowUniqueIndex =
+    new SuggestionRowUniqueIndex(
+      SuggestionKind.toSuggestion(row.kind),
+      row.module,
+      row.name,
+      row.selfType,
+      row.scopeStartLine,
+      row.scopeStartOffset,
+      row.scopeEndLine,
+      row.scopeEndOffset
+    )
+}
+
 /** The schema of the module_versions table. */
 @nowarn("msg=multiarg infix syntax")
 final class ModuleVersionsTable(tag: Tag)
@@ -261,8 +296,6 @@ final class SchemaVersionTable(tag: Tag)
 
   def * = id.? <> (SchemaVersionRow.apply, SchemaVersionRow.unapply)
 }
-
-object Arguments extends TableQuery(new ArgumentsTable(_))
 
 object Suggestions extends TableQuery(new SuggestionsTable(_))
 
