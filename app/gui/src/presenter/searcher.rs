@@ -24,6 +24,7 @@ use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
+use ide_view::graph_editor::component::node::Expression;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
 
@@ -363,7 +364,7 @@ impl Searcher {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
                 Notification::AISuggestionUpdated(expr) =>
-                    graph.set_node_expression((input_view, ide_view::Expression::new_plain(expr))),
+                    graph.set_node_expression((input_view, Expression::new_plain(expr))),
             };
             std::future::ready(())
         });
