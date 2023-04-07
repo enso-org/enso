@@ -221,7 +221,7 @@ public class PrintTest {
     checkPrint(code, "100");
   }
 
-  // This test documents the current, but undesirable behaviour. It may be removed if it is fixed.
+  // This test documents the current, but undesirable behaviour. It should be updated when it is fixed.
   @Test
   public void testPrintToTextStaticMethod() throws Exception {
     final String code = """
@@ -238,5 +238,7 @@ public class PrintTest {
     """;
 
     checkPrint(code, "My_Object.type.to_text[test:6-16]");
+    // We would want the following result:
+    //checkPrint(code, "My_Object");
   }
 }
