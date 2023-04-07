@@ -28,7 +28,7 @@ use ide_view_execution_mode_selector as execution_mode_selector;
 // ======================
 
 fn make_entries() -> execution_mode_selector::ExecutionModes {
-    Rc::new(vec!["development".to_string(), "production".to_string()])
+    Rc::new(vec!["design".to_string(), "live".to_string()])
 }
 
 fn init(app: &Application) {

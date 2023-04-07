@@ -18,6 +18,10 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+
+
+mod play_button;
+
 use enso_prelude::*;
 use ensogl::prelude::*;
 
@@ -39,51 +43,31 @@ use ensogl_hardcoded_theme::graph_editor::execution_mode_selector as theme;
 
 /// Theme specification for the execution mode selector.
 #[derive(Debug, Clone, Copy, Default, FromTheme)]
-#[base_path = "ensogl_hardcoded_theme::graph_editor::execution_mode_selector"]
+#[base_path = "theme"]
 pub struct Style {
-    play_button_size:    f32,
-    play_button_offset:  f32,
-    play_button_padding: f32,
-    divider_offset:      f32,
-    divider_padding:     f32,
-    dropdown_width:      f32,
-    height:              f32,
-    background:          Rgba,
-    divider:             Rgba,
-    menu_offset:         f32,
+    divider_offset:            f32,
+    divider_padding:           f32,
+    dropdown_width:            f32,
+    height:                    f32,
+    background:                Rgba,
+    divider:                   Rgba,
+    menu_offset:               f32,
+    #[theme_path = "theme::play_button::triangle_size"]
+    play_button_triangle_size: f32,
+    #[theme_path = "theme::play_button::padding_x"]
+    play_button_padding_x:     f32,
 }
 
 impl Style {
     fn overall_width(&self) -> f32 {
         self.dropdown_width
             + 2.0 * self.divider_padding
-            + self.play_button_size
-            + self.play_button_padding
+            + self.play_button_triangle_size
+            + 2.0 * self.play_button_padding_x
     }
 }
 
 
-// ==============
-// === Shapes ===
-// ==============
-
-mod play_icon {
-    use super::*;
-
-    use std::f32::consts::PI;
-    ensogl::shape! {
-        above = [display::shape::compound::rectangle::shape];
-        (style:Style) {
-            let triangle_size = style.get_number(theme::play_button_size);
-            let color = style.get_color(theme::triangle);
-            let triangle = Triangle(triangle_size, triangle_size).rotate((PI/2.0).radians());
-            let triangle = triangle.fill(color);
-            let bg_size = Var::canvas_size();
-            let bg = Rect(bg_size).fill(INVISIBLE_HOVER_COLOR);
-            (bg + triangle).into()
-        }
-    }
-}
 
 // ===========
 // === FRP ===
@@ -106,6 +90,7 @@ ensogl::define_endpoints_2! {
 }
 
 
+
 // =============
 // === Model ===
 // =============
@@ -120,7 +105,7 @@ pub struct Model {
     inner_root:     display::object::Instance,
     background:     display::shape::compound::rectangle::Rectangle,
     divider:        display::shape::compound::rectangle::Rectangle,
-    play_icon:      play_icon::View,
+    play_button:    play_button::PlayButton,
     dropdown:       ensogl_drop_down_menu::DropDownMenu,
 }
 
@@ -148,12 +133,11 @@ impl Model {
         self.divider.set_color(style.divider);
     }
 
-    fn update_play_icon_style(&self, style: &Style) {
+    fn update_play_button_style(&self, style: &Style) {
         let width = style.overall_width();
-        let size = Vector2::new(style.play_button_size + style.play_button_padding, style.height);
-        self.play_icon.set_size(size);
-        self.play_icon.set_x(width / 2.0 - style.play_button_offset - size.x / 2.0);
-        self.play_icon.set_y(-size.y / 2.0);
+        let Style { height, .. } = *style;
+        self.play_button.set_x(width / 2.0);
+        self.play_button.set_y(-height / 2.0);
     }
 
     fn update_position(&self, style: &Style, camera: &Camera2d) {
@@ -169,6 +153,16 @@ impl Model {
         self.dropdown.set_entries(provider);
         self.dropdown.set_selected(0);
     }
+
+    fn set_play_button_visibility(&self, visible: bool) {
+        if visible {
+            self.inner_root.add_child(&self.play_button);
+            self.inner_root.add_child(&self.divider);
+        } else {
+            self.inner_root.remove_child(&self.play_button);
+            self.inner_root.remove_child(&self.divider);
+        }
+    }
 }
 
 impl display::Object for Model {
@@ -176,6 +170,7 @@ impl display::Object for Model {
         &self.display_object
     }
 }
+
 
 
 // =============================
@@ -194,12 +189,12 @@ impl component::Model for Model {
         let inner_root = display::object::Instance::new();
         let background = default();
         let divider = default();
-        let play_icon = play_icon::View::new();
+        let play_button = play_button::PlayButton::new(app);
         let dropdown = ensogl_drop_down_menu::DropDownMenu::new(app);
 
         display_object.add_child(&inner_root);
         inner_root.add_child(&dropdown);
-        inner_root.add_child(&play_icon);
+        inner_root.add_child(&play_button);
         inner_root.add_child(&background);
         inner_root.add_child(&divider);
 
@@ -211,7 +206,7 @@ impl component::Model for Model {
         dropdown.restore_shape_constraints(app);
 
 
-        Self { display_object, background, play_icon, dropdown, inner_root, divider }
+        Self { display_object, background, play_button, dropdown, inner_root, divider }
     }
 }
 
@@ -226,7 +221,7 @@ impl component::Frp<Model> for Frp {
         let scene = &app.display.default_scene;
         let camera = scene.camera();
         let dropdown = &model.dropdown;
-        let play_icon = &model.play_icon;
+        let play_button = &model.play_button;
         let input = &frp.input;
         let output = &frp.output;
 
@@ -246,7 +241,7 @@ impl component::Frp<Model> for Frp {
             eval style_update((style) {
                model.update_dropdown_style(style);
                model.update_background_style(style);
-               model.update_play_icon_style(style);
+               model.update_play_button_style(style);
             });
 
             // == Inputs ==
@@ -258,9 +253,23 @@ impl component::Frp<Model> for Frp {
             selected_entry <- selection.map(|(entries, entry_id)| entries[*entry_id].clone());
             output.selected_execution_mode <+ selected_entry;
 
+            eval selected_entry ([model] (execution_mode) {
+                // TODO(#5930): Revisit when connecting with externally set execution mode
+                let play_button_visibility = match execution_mode.as_str() {
+                    "design" => true,
+                    "live" => false,
+                    _ => {
+                        error!("Play button: invalid execution mode");
+                        false
+                    }
+                };
+                model.set_play_button_visibility(play_button_visibility);
+            });
+            play_button.reset <+ selected_entry.constant(());
+
             // == Outputs ==
 
-            output.play_press <+ play_icon.events_deprecated.mouse_down.constant(());
+            output.play_press <+ play_button.pressed;
             output.size <+ style_update.map(|style| {
                 Vector2::new(style.overall_width(),style.height)
             }).on_change();
