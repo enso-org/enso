@@ -3,7 +3,7 @@ package org.enso.interpreter.instrument.job
 import java.util.UUID
 import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.polyglot.ExecutionEnvironment
+import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 
 /** A job responsible for executing a call stack for the provided context.
@@ -15,7 +15,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
-  val executionEnvironment: Option[ExecutionEnvironment]
+  val executionEnvironment: Option[Api.ExecutionEnvironment]
 ) extends Job[Unit](
       List(contextId),
       isCancellable = true,
@@ -32,7 +32,9 @@ class ExecuteJob(
     val originalExecutionEnvironment =
       executionEnvironment.map(_ => context.getExecutionEnvironment)
     try {
-      executionEnvironment.foreach(context.setExecutionEnvironment)
+      executionEnvironment.foreach(env =>
+        context.setExecutionEnvironment(ExecutionEnvironment.forName(env.name))
+      )
       val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
       outcome.foreach {
         case diagnostic: Api.ExecutionResult.Diagnostic =>

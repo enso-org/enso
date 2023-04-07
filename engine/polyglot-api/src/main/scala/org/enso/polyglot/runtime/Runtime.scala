@@ -10,7 +10,7 @@ import com.fasterxml.jackson.module.scala.{
 import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.pkg.{ComponentGroups, QualifiedName}
-import org.enso.polyglot.{ExecutionEnvironment, ModuleExports, Suggestion}
+import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model
@@ -1007,6 +1007,40 @@ object Runtime {
         * @param module the module name that exports the given module
         */
       case class Unqualified(module: String) extends Export
+    }
+
+    /** Base trait for runtime execution environment. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Live],
+          name  = "executionEnvironmentLive"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Design],
+          name  = "executionEnvironmentDesign"
+        )
+      )
+    )
+    sealed trait ExecutionEnvironment {
+
+      /** The environment name. */
+      def name: String
+    }
+    object ExecutionEnvironment {
+
+      final case class Live() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "live"
+      }
+
+      final case class Design() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "design"
+      }
     }
 
     /** The notification about the execution status.

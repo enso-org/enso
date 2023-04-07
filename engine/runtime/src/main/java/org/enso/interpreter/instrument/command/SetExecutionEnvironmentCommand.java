@@ -5,7 +5,9 @@ import org.enso.interpreter.instrument.CacheInvalidation;
 import org.enso.interpreter.instrument.InstrumentFrame;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.ExecuteJob;
-import org.enso.polyglot.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.polyglot.runtime.Runtime;
+import org.enso.polyglot.runtime.Runtime$Api$ExecutionEnvironment;
 import org.enso.polyglot.runtime.Runtime$Api$SetExecutionEnvironmentResponse;
 import scala.Option;
 import scala.collection.mutable.Stack;
@@ -17,13 +19,13 @@ import scala.runtime.BoxedUnit;
 public class SetExecutionEnvironmentCommand extends Command {
 
   private final UUID contextId;
-  private final ExecutionEnvironment executionEnvironment;
+  private final Runtime$Api$ExecutionEnvironment executionEnvironment;
 
   public SetExecutionEnvironmentCommand(
-      Option<UUID> maybeRequestId, UUID contextId, ExecutionEnvironment executionEnvironment) {
+      Option<UUID> maybeRequestId, UUID contextId, Object executionEnvironment) {
     super(maybeRequestId);
     this.contextId = contextId;
-    this.executionEnvironment = executionEnvironment;
+    this.executionEnvironment = (Runtime$Api$ExecutionEnvironment) executionEnvironment;
   }
 
   @Override
@@ -38,13 +40,15 @@ public class SetExecutionEnvironmentCommand extends Command {
   }
 
   private void setExecutionEnvironment(
-      ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
+      Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     ctx.locking().acquireContextLock(contextId);
     ctx.locking().acquireWriteCompilationLock();
     try {
       Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
       ctx.jobControlPlane().abortJobs(contextId);
-      ctx.executionService().getContext().setExecutionEnvironment(executionEnvironment);
+      ctx.executionService()
+          .getContext()
+          .setExecutionEnvironment(ExecutionEnvironment.forName(executionEnvironment.name()));
       CacheInvalidation.invalidateAll(stack);
       ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
       reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);

@@ -8,7 +8,6 @@ import org.enso.languageserver.runtime.{
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
-import org.enso.polyglot
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -597,7 +596,7 @@ class ContextRegistryTest extends BaseServerTest {
                 requestId,
                 Api.SetExecutionEnvironmentRequest(
                   `contextId`,
-                  polyglot.ExecutionEnvironment.LIVE
+                  Api.ExecutionEnvironment.Live()
                 )
               ) =>
             requestId

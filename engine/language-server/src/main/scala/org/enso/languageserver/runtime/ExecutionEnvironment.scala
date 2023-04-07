@@ -1,7 +1,7 @@
 package org.enso.languageserver.runtime
 
 import enumeratum._
-import org.enso.polyglot
+import org.enso.polyglot.runtime.Runtime.Api
 
 /** Base trait for the execution environment. */
 sealed trait ExecutionEnvironment extends EnumEntry
@@ -22,11 +22,11 @@ object ExecutionEnvironment
     * @return corresponding execution environment object
     */
   def apply(
-    executionEnvironment: polyglot.ExecutionEnvironment
+    executionEnvironment: Api.ExecutionEnvironment
   ): ExecutionEnvironment =
     executionEnvironment match {
-      case polyglot.ExecutionEnvironment.DESIGN => Design
-      case polyglot.ExecutionEnvironment.LIVE   => Live
+      case _: Api.ExecutionEnvironment.Design => Design
+      case _: Api.ExecutionEnvironment.Live   => Live
     }
 
   /** Convert the execution environment to the appropriate API type.
@@ -36,9 +36,9 @@ object ExecutionEnvironment
     */
   def toApi(
     executionEnvironment: ExecutionEnvironment
-  ): polyglot.ExecutionEnvironment =
+  ): Api.ExecutionEnvironment =
     executionEnvironment match {
-      case Design => polyglot.ExecutionEnvironment.DESIGN
-      case Live   => polyglot.ExecutionEnvironment.LIVE
+      case Design => Api.ExecutionEnvironment.Design()
+      case Live   => Api.ExecutionEnvironment.Live()
     }
 }

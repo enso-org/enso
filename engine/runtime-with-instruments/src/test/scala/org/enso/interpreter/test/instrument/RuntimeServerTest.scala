@@ -2690,14 +2690,16 @@ class RuntimeServerTest
     )
 
     // recompute
-    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.DESIGN
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
     context.send(
       Api.Request(
         requestId,
         Api.RecomputeContextRequest(
           contextId,
           Some(Api.InvalidatedExpressions.All()),
-          Some(ExecutionEnvironment.LIVE)
+          Some(Api.ExecutionEnvironment.Live())
         )
       )
     )
@@ -2716,7 +2718,9 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
-    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.DESIGN
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
   }
 
   it should "return error when module not found" in {
@@ -4337,13 +4341,18 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.DESIGN
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
 
     // set execution environment
     context.send(
       Api.Request(
         requestId,
-        Api.SetExecutionEnvironmentRequest(contextId, ExecutionEnvironment.LIVE)
+        Api.SetExecutionEnvironmentRequest(
+          contextId,
+          Api.ExecutionEnvironment.Live()
+        )
       )
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
@@ -4352,7 +4361,9 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getExecutionEnvironment shouldEqual ExecutionEnvironment.LIVE
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Live()
+      .name
   }
 
 }
