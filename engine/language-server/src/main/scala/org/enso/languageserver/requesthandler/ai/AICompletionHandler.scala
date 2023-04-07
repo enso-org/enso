@@ -34,7 +34,7 @@ class AICompletionHandler(cfg: AICompletionConfig)
     case Request(AICompletion, id, AICompletion.Params(prompt, stop)) =>
       val body = Json.fromFields(
         Seq(
-          ("model", Json.fromString("code-davinci-002")),
+          ("model", Json.fromString("text-davinci-003")),
           ("prompt", Json.fromString(prompt)),
           ("stop", Json.fromString(stop)),
           ("temperature", Json.fromDoubleOrNull(0)),

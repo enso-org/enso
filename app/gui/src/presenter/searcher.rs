@@ -363,7 +363,7 @@ impl Searcher {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
                 Notification::AISuggestionUpdated(expr) =>
-                    graph.set_node_expression((input_view, node_view::Expression::new_plain(expr))),
+                    graph.set_node_expression((input_view, ide_view::Expression::new_plain(expr))),
             };
             std::future::ready(())
         });

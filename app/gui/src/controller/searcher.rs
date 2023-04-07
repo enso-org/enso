@@ -564,6 +564,13 @@ impl Searcher {
     const AI_STOP_SEQUENCE: &'static str = "`";
     const AI_GOAL_PLACEHOLDER: &'static str = "__$$GOAL$$__";
 
+    /// Accepts the current AI query and exchanges it for actual expression.
+    /// To accomplish this, it performs the following steps:
+    /// 1. Attaches a visualization to `this`, calling `AI.build_ai_prompt`, to
+    ///    get a data-specific prompt for Open AI;
+    /// 2. Sends the prompt to the Open AI backend proxy, along with the user
+    ///    query.
+    /// 3. Replaces the query with the result of the Open AI call.
     async fn accept_ai_query(
         query: String,
         this: ThisNode,
@@ -586,6 +593,10 @@ impl Searcher {
         Ok(())
     }
 
+    /// Handles AI queries (i.e. searcher input starting with `"AI:"`). Doesn't
+    /// do anything if the query doesn't end with a specified "accept"
+    /// sequence. Otherwise, calls `Self::accept_ai_query` to perform the final
+    /// replacement.
     fn handle_ai_query(&self, query: String) -> FallibleResult {
         let query = query.trim_start_matches(Self::AI_QUERY_PREFIX);
         if !query.ends_with(Self::AI_QUERY_ACCEPT_TOKEN) {
