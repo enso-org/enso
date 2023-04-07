@@ -66,9 +66,26 @@ public abstract class PrintlnNode extends Node {
         throw CompilerDirectives.shouldNotReachHere(e);
       }
     }
+
+    String str;
+    if (strings.isString(probablyStr)) {
+      try {
+        str = strings.asString(probablyStr);
+      } catch (UnsupportedMessageException e) {
+        throw CompilerDirectives.shouldNotReachHere(e);
+      }
+    } else {
+      str = fallbackToString(probablyStr);
+    }
+
     EnsoContext ctx = EnsoContext.get(this);
-    print(ctx.getOut(), probablyStr.toString());
+    print(ctx.getOut(), str);
     return ctx.getNothing();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private String fallbackToString(Object obj) {
+    return obj.toString();
   }
 
   @CompilerDirectives.TruffleBoundary
