@@ -129,99 +129,58 @@ At least one section should be defined in every file.
 
 Here is a large-scale example of how sections should be used in source files.
 
-<!-- FIXME[sb] -->
-
-```rust
+```ts
 // =================
 // === AxisOrder ===
 // =================
 
-/// Defines the order in which particular axis coordinates are processed. Used
-/// for example to define the rotation order in `DisplayObject`.
-pub enum AxisOrder {XYZ,XZY,YXZ,YZX,ZXY,ZYX}
-
-impl Default for AxisOrder {
-    fn default() -> Self {Self::XYZ}
+/** Defines the order in which particular axis coordinates are processed. Used
+ * for example to define the rotation order in `DisplayObject`. */
+export enum AxisOrder {
+  XYZ,
+  XZY,
+  YXZ,
+  YZX,
+  ZXY,
+  ZYX,
 }
-
-
 
 // =================
 // === Transform ===
 // =================
 
-/// Defines the order in which transformations (scale, rotate, translate) are
-/// applied to a particular object.
-pub enum TransformOrder {
-    ScaleRotateTranslate,
-    ScaleTranslateRotate,
-    RotateScaleTranslate,
-    RotateTranslateScale,
-    TranslateRotateScale,
-    TranslateScaleRotate
+/** Defines the order in which transformations (scale, rotate, translate) are
+ * applied to a particular object. */
+export enum TransformOrder {
+  ScaleRotateTranslate,
+  ScaleTranslateRotate,
+  RotateScaleTranslate,
+  RotateTranslateScale,
+  TranslateRotateScale,
+  TranslateScaleRotate,
 }
-
-impl Default for TransformOrder {
-    fn default() -> Self { Self::ScaleRotateTranslate }
-}
-
-
 
 // =============================
 // === HierarchicalTransform ===
 // =============================
 
-pub struct HierarchicalTransform<OnChange> {
-    transform        : Transform,
-    transform_matrix : Matrix4<f32>,
-    origin           : Matrix4<f32>,
-    matrix           : Matrix4<f32>,
-    pub dirty        : dirty::SharedBool<OnChange>,
-    pub logger       : Logger,
-}
+export class HierarchicalTransform<OnChange> {
+  transform: Transform;
+  transformMatrix: Matrix4<f32>;
+  origin: Matrix4<f32>;
+  matrix: Matrix4<f32>;
+  dirty: dirty.SharedBool<OnChange>;
+  logger: Logger;
 
-impl<OnChange> HierarchicalTransform<OnChange> {
-    pub fn new(logger:Logger, on_change:OnChange) -> Self {
-        let logger_dirty     = logger.sub("dirty");
-        let transform        = default();
-        let transform_matrix = Matrix4::identity();
-        let origin           = Matrix4::identity();
-        let matrix           = Matrix4::identity();
-        let dirty            = dirty::SharedBool::new(logger_dirty,on_change);
-        Self {transform,transform_matrix,origin,matrix,dirty,logger}
-    }
-}
-
-
-// === Getters ===
-
-impl<OnChange> HierarchicalTransform<OnChange> {
-    pub fn position(&self) -> &Vector3<f32> {
-        &self.transform.position
-    }
-
-    pub fn rotation(&self) -> &Vector3<f32> {
-        &self.transform.rotation
-    }
-
-    ...
-}
-
-
-// === Setters ===
-
-impl<OnChange:Callback0> HierarchicalTransform<OnChange> {
-    pub fn position_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty.set();
-        &mut self.transform.position
-    }
-
-    pub fn rotation_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty.set();
-        &mut self.transform.rotation
-    }
-
-    ...
+  constructor(logger: Logger, onChange: OnChange) {
+    this.transform = Transform.default();
+    this.transformMatrix = Matrix4.identity();
+    this.origin = Matrix4.identity();
+    this.matrix = Matrix4.identity();
+    const dirtyLogger = logger.sub("dirty");
+    this.dirty = new dirty.SharedBool(dirtyLogger, onChange);
+    this.logger = logger;
+  }
 }
 ```
 
