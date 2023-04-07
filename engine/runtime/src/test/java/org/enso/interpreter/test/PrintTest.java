@@ -120,10 +120,59 @@ public class PrintTest {
     import Standard.Base.IO
     from Standard.Base.Warning import Warning
 
+    test =
+        a = Warning.attach "Warning" "FOOBAR"
+        IO.println a
+    """;
+
+    checkPrint(code, "FOOBAR");
+  }
+
+  @Test
+  public void testPrintToTextHasWarnings2() throws Exception {
+    final String code = """
+    import Standard.Base.IO
+    from Standard.Base.Warning import Warning
+
+    test =
+        a = Warning.attach "Warning" 42
+        IO.println a
+    """;
+
+    checkPrint(code, "42");
+  }
+
+  @Test
+  public void testPrintToTextHasWarnings3() throws Exception {
+    final String code = """
+    import Standard.Base.IO
+    from Standard.Base.Warning import Warning
+
     type My_Object
         Value x
         
         to_text self = "MyObj{" + self.x.to_text + "}"
+
+    test =
+        a = Warning.attach "Warning" (My_Object.Value 42)
+        IO.println a
+    """;
+
+    checkPrint(code, "MyObj{42}");
+  }
+
+  @Test
+  public void testPrintToTextHasWarnings4() throws Exception {
+    final String code = """
+    import Standard.Base.IO
+    from Standard.Base.Warning import Warning
+
+    type My_Object
+        Value x
+        
+        to_text self =
+            res = "MyObj{" + self.x.to_text + "}"
+            Warning.attach "Warning2" res
 
     test =
         a = Warning.attach "Warning" (My_Object.Value 42)
@@ -145,6 +194,27 @@ public class PrintTest {
 
     test =
         a = My_Object.Value 42
+        IO.println a
+    """;
+
+    checkPrint(code, "100");
+  }
+
+  @Test
+  public void testPrintToTextTypeErrorAndWarnings() throws Exception {
+    final String code = """
+    import Standard.Base.IO
+    from Standard.Base.Warning import Warning
+
+    type My_Object
+        Value x
+        
+        to_text self =
+            res = 100
+            Warning.attach "Warning2" res
+
+    test =
+        a = Warning.attach "Warning2" (My_Object.Value 42)
         IO.println a
     """;
 
