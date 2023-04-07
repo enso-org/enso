@@ -16,8 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class PrintTest {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -40,19 +39,33 @@ public class PrintTest {
     out.reset();
   }
 
+  private void checkPrint(String code, String expected) throws Exception {
+    Value result = evalCode(code, "test");
+    assertTrue("should return Nothing", result.isNull());
+    String log = out.toString(StandardCharsets.UTF_8).trim();
+    assertEquals(expected, log);
+  }
+
+  private Value evalCode(final String code, final String methodName) throws URISyntaxException {
+    final var testName = "test.enso";
+    final URI testUri = new URI("memory://" + testName);
+    final Source src = Source.newBuilder("enso", code, testName)
+        .uri(testUri)
+        .buildLiteral();
+    var module = ctx.eval(src);
+    return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, methodName);
+  }
+
   @Test
   public void testPrintText() throws Exception {
     final String code = """
     import Standard.Base.IO
 
-    test _ =
+    test =
         IO.println "Foobar"
     """;
 
-    var test = evalCode(code, "test");
-    test.execute(0);
-    String log = out.toString(StandardCharsets.UTF_8);
-    assertEquals("Foobar\n", log);
+    checkPrint(code, "Foobar");
   }
 
   @Test
@@ -64,10 +77,7 @@ public class PrintTest {
         IO.println 42
     """;
 
-    var test = evalCode(code, "test");
-    test.execute();
-    String log = out.toString(StandardCharsets.UTF_8);
-    assertEquals("42\n", log);
+    checkPrint(code, "42");
   }
 
   @Test
@@ -84,10 +94,7 @@ public class PrintTest {
         IO.println (My_Object.Value 42)
     """;
 
-    var test = evalCode(code, "test");
-    test.execute();
-    String log = out.toString(StandardCharsets.UTF_8);
-    assertEquals("MyObj{42}\n", log);
+    checkPrint(code, "MyObj{42}");
   }
 
   @Test
@@ -104,10 +111,7 @@ public class PrintTest {
         IO.println a
     """;
 
-    var test = evalCode(code, "test");
-    test.execute();
-    String log = out.toString(StandardCharsets.UTF_8);
-    assertEquals("(Error: My_Error.Error 1)\n", log);
+    checkPrint(code, "(Error: (My_Error.Error 1))");
   }
 
   @Test
@@ -126,10 +130,7 @@ public class PrintTest {
         IO.println a
     """;
 
-    var test = evalCode(code, "test");
-    test.execute();
-    String log = out.toString(StandardCharsets.UTF_8);
-    assertEquals("MyObj{42}\n", log);
+    checkPrint(code, "MyObj{42}");
   }
 
   @Test
@@ -147,10 +148,7 @@ public class PrintTest {
         IO.println a
     """;
 
-    var test = evalCode(code, "test");
-    test.execute();
-    String log = out.toString(StandardCharsets.UTF_8);
-    assertEquals("100\n", log);
+    checkPrint(code, "100");
   }
 
   // This test documents the current, but undesirable behaviour. It may be removed if it is fixed.
@@ -169,19 +167,6 @@ public class PrintTest {
         IO.println a
     """;
 
-    var test = evalCode(code, "test");
-    test.execute();
-    String log = out.toString(StandardCharsets.UTF_8);
-    assertEquals("???\n", log);
-  }
-
-  private Value evalCode(final String code, final String methodName) throws URISyntaxException {
-    final var testName = "test.enso";
-    final URI testUri = new URI("memory://" + testName);
-    final Source src = Source.newBuilder("enso", code, testName)
-        .uri(testUri)
-        .buildLiteral();
-    var module = ctx.eval(src);
-    return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, methodName);
+    checkPrint(code, "My_Object.type.to_text[test:6-16]");
   }
 }
