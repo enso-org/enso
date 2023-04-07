@@ -1,5 +1,5 @@
 {
-  "name": "enso-studio-content",
+  "name": "enso-content",
   "version": "1.0.0",
   "type": "module",
   "author": {
@@ -15,40 +15,44 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "scripts": {
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "ts-node bundle.ts",
-    "watch": "ts-node watch.ts",
-    "start": "ts-node start.ts"
+    "build": "tsx bundle.ts",
+    "watch": "tsx watch.ts",
+    "start": "tsx start.ts"
   },
   "dependencies": {
-    "@types/mixpanel-browser": "^2.38.0",
     "@types/semver": "^7.3.9",
-    "enso-content-config": "^1.0.0",
-    "enso-gui-server": "^1.0.0",
-    "html-loader": "^4.2.0",
-    "mixpanel-browser": "2.45.0"
+    "enso-content-config": "^1.0.0"
   },
   "devDependencies": {
-    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
-    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
-    "@typescript-eslint/eslint-plugin": "^5.52.0",
-    "@typescript-eslint/parser": "^5.52.0",
+    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "@eslint/js": "^8.36.0",
+    "@types/connect": "^3.4.35",
+    "@types/morgan": "^1.9.4",
+    "@types/serve-static": "^1.15.1",
+    "@types/sharp": "^0.31.1",
+    "@types/to-ico": "^1.1.1",
+    "@types/ws": "^8.5.4",
+    "@typescript-eslint/eslint-plugin": "^5.55.0",
+    "@typescript-eslint/parser": "^5.55.0",
+    "enso-authentication": "^1.0.0",
     "enso-copy-plugin": "^1.0.0",
-    "enso-gui-server": "^1.0.0",
-    "esbuild": "^0.15.14",
-    "esbuild-copy-static-files": "^0.1.0",
-    "esbuild-dev-server": "^0.3.0",
+    "esbuild": "^0.17.0",
     "esbuild-plugin-alias": "^0.2.1",
     "esbuild-plugin-time": "^1.0.0",
     "esbuild-plugin-yaml": "^0.0.1",
-    "eslint": "^8.30.0",
-    "eslint-plugin-jsdoc": "^40.0.0",
-    "glob": "^8.0.3",
-    "source-map-loader": "^4.0.1",
-    "ts-loader": "^9.3.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.9.3",
-    "yaml-loader": "^0.8.0"
+    "eslint": "^8.36.0",
+    "eslint-plugin-jsdoc": "^40.0.2",
+    "globals": "^13.20.0",
+    "portfinder": "^1.0.32",
+    "tsx": "^3.12.6",
+    "typescript": "^4.9.3"
+  },
+  "optionalDependencies": {
+    "@esbuild/darwin-x64": "^0.17.0",
+    "@esbuild/linux-x64": "^0.17.0",
+    "@esbuild/windows-x64": "^0.17.0"
   }
 }

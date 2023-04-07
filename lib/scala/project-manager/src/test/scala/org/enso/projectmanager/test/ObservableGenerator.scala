@@ -10,7 +10,7 @@ class ObservableGenerator[R] extends Generator[ZIO[R, +*, +*]] {
   private var buffer = Vector.empty[UUID]
 
   override def randomUUID(): IO[Nothing, UUID] =
-    IO.succeed {
+    ZIO.succeed {
       val uuid = UUID.randomUUID()
       this.synchronized {
         buffer = buffer :+ uuid

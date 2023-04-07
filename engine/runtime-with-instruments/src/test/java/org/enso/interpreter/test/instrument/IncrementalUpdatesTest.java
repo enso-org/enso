@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
 import org.enso.interpreter.test.instrument.RuntimeServerTest.TestContext;
+import org.enso.polyglot.runtime.Runtime$Api$BackgroundJobsStartedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
@@ -64,9 +65,7 @@ public class IncrementalUpdatesTest {
     sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "5", "5", LiteralNode.class);
     var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
     assertNotNull("Module found", m);
-    var numbers = m.getIr().preorder().filter((v1) -> {
-      return v1 instanceof IR$Literal$Number;
-    });
+    var numbers = m.getIr().preorder().filter((v1) -> v1 instanceof IR$Literal$Number);
     assertEquals("One number found: " + numbers, 1, numbers.size());
     if (numbers.head() instanceof IR$Literal$Number n) {
       assertEquals("updated to 5", "5", n.value());
@@ -216,11 +215,12 @@ public class IncrementalUpdatesTest {
       )
     );
 
-    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
+    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(5, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
       TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
-      context.executionComplete(contextId)
+      context.executionComplete(contextId),
+      Response(new Runtime$Api$BackgroundJobsStartedNotification())
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 

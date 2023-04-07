@@ -1,7 +1,7 @@
 from Standard.Base import all hiding First, Last
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Illegal_State.Illegal_State
-import Standard.Base.Error.Unimplemented.Unimplemented
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
@@ -9,23 +9,28 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
-import project.Data.SQL
+import project.Data.Dialect
+import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
-
-from project.Data.SQL import code
+import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
@@ -50,6 +55,9 @@ type Postgres_Dialect
     name self = "PostgreSQL"
 
     ## PRIVATE
+    to_text self = "Postgres_Dialect"
+
+    ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
@@ -57,28 +65,20 @@ type Postgres_Dialect
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
-       Deduces the result type for an aggregation operation.
-
-       The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
+
+       Arguments:
+       - internal_column: the column to order by.
+       - sort_direction: the direction of the ordering.
+       - text_ordering: If provided, specifies that the column should be treated
+         as text values according to the provided ordering. For non-text types,
+         it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         make_order_descriptor internal_column sort_direction text_ordering
-
-    ## PRIVATE
-       Prepares a join operation, returning a new table instance encapsulating a
-       proper query.
-    prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
-    prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
-        Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
 
     ## PRIVATE
        Prepares a distinct operation.
@@ -88,7 +88,10 @@ type Postgres_Dialect
         new_columns = setup.new_columns.first
         column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder)
+        type_mapping = self.get_type_mapping
+        distinct_expressions = new_key_columns.map column->
+            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
@@ -105,6 +108,60 @@ type Postgres_Dialect
     get_naming_helpers : Naming_Helpers
     get_naming_helpers self = Naming_Helpers
 
+    ## PRIVATE
+       Returns the mapping between SQL types of this dialect and Enso
+       `Value_Type`.
+    get_type_mapping : SQL_Type_Mapping
+    get_type_mapping self = Postgres_Type_Mapping
+
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
+    make_column_fetcher_for_type self sql_type =
+        type_mapping = self.get_type_mapping
+        value_type = type_mapping.sql_type_to_value_type sql_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
+    ## PRIVATE
+    get_statement_setter : Statement_Setter
+    get_statement_setter self = postgres_statement_setter
+
+    ## PRIVATE
+    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column target_type infer_result_type_from_database_callback =
+        mapping = self.get_type_mapping
+        source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+        target_value_type = mapping.sql_type_to_value_type target_type
+        # Boolean to Numeric casts need special handling:
+        transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
+            True ->
+                SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+            False -> column.expression
+        target_type_sql_text = mapping.sql_type_to_text target_type
+        new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
+        new_sql_type_reference = infer_result_type_from_database_callback new_expression
+        Internal_Column.Value column.name new_sql_type_reference new_expression
+
+    ## PRIVATE
+    needs_execute_query_for_type_inference : Boolean
+    needs_execute_query_for_type_inference self = False
+
+    ## PRIVATE
+    cast_after_union : Boolean
+    cast_after_union self = False
+
+    ## PRIVATE
+    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query self expression context =
+        Dialect.default_fetch_types_query self expression context
+
+    ## PRIVATE
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate =
+        _ = aggregate
+        True
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
@@ -116,78 +173,49 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool
+    date_ops = [make_extract_as_int "year" "YEAR", make_extract_as_int "month" "MONTH", make_extract_as_int "day" "DAY"]
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
-   The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_aggregate` first.
-resolve_target_sql_type aggregate = case aggregate of
-    Group_By c _ -> c.sql_type
-    Count _ -> SQL_Type.bigint
-    Count_Distinct _ _ _ -> SQL_Type.bigint
-    Count_Not_Nothing _ _ -> SQL_Type.bigint
-    Count_Nothing _ _ -> SQL_Type.bigint
-    Count_Not_Empty _ _ -> SQL_Type.bigint
-    Count_Empty _ _ -> SQL_Type.bigint
-    Percentile _ _ _ -> SQL_Type.double
-    Mode c _ -> c.sql_type
-    First c _ _ _ -> c.sql_type
-    Last c _ _ _ -> c.sql_type
-    Maximum c _ -> c.sql_type
-    Minimum c _ -> c.sql_type
-    Shortest c _ -> c.sql_type
-    Longest c _ -> c.sql_type
-    Standard_Deviation _ _ _ -> SQL_Type.double
-    Concatenate _ _ _ _ _ _ -> SQL_Type.text
-    Sum c _ ->
-        if (c.sql_type == SQL_Type.integer) || (c.sql_type == SQL_Type.smallint) then SQL_Type.bigint else
-            if c.sql_type == SQL_Type.bigint then SQL_Type.numeric else
-                c.sql_type
-    Average c _ ->
-        if c.sql_type.is_definitely_integer then SQL_Type.numeric else
-            if c.sql_type.is_definitely_double then SQL_Type.double else
-                c.sql_type
-    Median _ _ -> SQL_Type.double
-
-## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    code "COUNT(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 END)"
+    Builder.code "COUNT(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 END)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 END)"
+    Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 END)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 END)"
+    Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 END)"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
-    median = code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
+    median = Builder.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
     ## TODO Technically, this check may not be necessary if the input column has
        type INTEGER, because it is impossible to represent a NaN in that type.
        However, currently the column type inference is not tested well-enough to
        rely on this, so leaving an uniform approach regardless of type. This
        could be revisited when further work on column types takes place.
        See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = code "bool_or(" ++ arg ++ " = double precision 'NaN')"
-    code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ median ++ " END"
+    has_nan = Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ median ++ " END"
 
 ## PRIVATE
 agg_mode = Base_Generator.lift_unary_op "MODE" arg->
-    code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ ")"
+    Builder.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ ")"
 
+## PRIVATE
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
-    percentile = code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
+    percentile = Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
     ## TODO Technically, this check may not be necessary if the input column has
        type INTEGER, because it is impossible to represent a NaN in that type.
        However, currently the column type inference is not tested well-enough to
        rely on this, so leaving an uniform approach regardless of type. This
        could be revisited when further work on column types takes place.
        See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = code "bool_or(" ++ expr ++ " = double precision 'NaN')"
-    code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
+    has_nan = Builder.code "bool_or(" ++ expr ++ " = double precision 'NaN')"
+    Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
 
 ## PRIVATE
    These are written in a not most-efficient way, but a way that makes them
@@ -200,36 +228,39 @@ first_last_aggregators =
     last_not_null = make_first_aggregator reverse=True ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
+## PRIVATE
 make_first_aggregator reverse ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
         result_expr = args.first
         order_bys = args.drop 1
 
         filter_clause = if ignore_null.not then "" else
-            code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
+            Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
         order_clause =
-            code " ORDER BY " ++ SQL.join "," order_bys
+            Builder.code " ORDER BY " ++ Builder.join "," order_bys
         index_expr = case reverse of
             True -> if ignore_null.not then "COUNT(*)" else
-                code "COUNT(" ++ result_expr ++ ")"
+                Builder.code "COUNT(" ++ result_expr ++ ")"
             False -> "1"
 
-        code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
+        Builder.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
 
+## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
      order_clause =
-         code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
-     code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
+         Builder.code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
+     Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
 
+## PRIVATE
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      order_clause =
-         code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
-     code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
+         Builder.code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
+     Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        code "string_agg(" ++ expr ++ ", " ++ separator ++ ")"
+        Builder.code "string_agg(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
@@ -239,24 +270,24 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
     case args.length == 1 of
         True ->
             ## A single null value will be skipped.
-            code "COUNT(DISTINCT " ++ args.first ++ ")"
+            Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
         False ->
             ## A tuple of nulls is not a null, so it will not be skipped - but
                we want to ignore all-null columns. So we manually filter them
                out.
-            count = code "COUNT(DISTINCT (" ++ SQL.join ", " args ++ "))"
+            count = Builder.code "COUNT(DISTINCT (" ++ Builder.join ", " args ++ "))"
             are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-            all_nulls_filter = code " FILTER (WHERE NOT (" ++ SQL.join " AND " are_nulls ++ "))"
+            all_nulls_filter = Builder.code " FILTER (WHERE NOT (" ++ Builder.join " AND " are_nulls ++ "))"
             (count ++ all_nulls_filter).paren
 
 ## PRIVATE
 agg_count_distinct_include_null args =
     ## If we always count as tuples, then even null fields are counted.
-    code "COUNT(DISTINCT (" ++ SQL.join ", " args ++ ", 0))"
+    Builder.code "COUNT(DISTINCT (" ++ Builder.join ", " args ++ ", 0))"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = code "starts_with(" ++ str ++ "," ++ sub ++ ")"
+    res = Builder.code "starts_with(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
@@ -266,11 +297,11 @@ ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
-    code "((" ++ arg ++ ') COLLATE "ucs_basic")'
+    Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
 
 ## PRIVATE
 make_contains_expr expr substring =
-    code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
+    Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr
@@ -280,8 +311,10 @@ make_order_descriptor internal_column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
         Sort_Direction.Descending -> Nulls_Order.Last
-    case internal_column.sql_type.is_likely_text of
-        True ->
+    case text_ordering of
+        Nothing ->
+            Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+        _ ->
             ## In the future we can modify this error to suggest using a custom defined collation.
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
@@ -296,8 +329,6 @@ make_order_descriptor internal_column sort_direction text_ordering =
                             upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
-        False ->
-            Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
 
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
@@ -305,12 +336,21 @@ is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
-    code "bool_or(" ++ arg ++ ")"
+    Builder.code "bool_or(" ++ arg ++ ")"
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "/" x-> y->
-    code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
+    Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
+
+## PRIVATE
+make_extract_as_int enso_name sql_name =
+    Base_Generator.lift_unary_op enso_name arg->
+        extract = Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
+        Builder.code "CAST(" ++ extract ++ " AS integer)"
+
+## PRIVATE
+postgres_statement_setter = Statement_Setter.default

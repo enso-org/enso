@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Vector import Empty_Error
-import Standard.Base.Error.Common.Incomparable_Values
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -21,8 +21,13 @@ type No_Ord
     Value number
 
 type No_Ord_Comparator
-    compare x y = Nothing
-    hash x = 0
+    compare x y =
+        _ = [x, y]
+        Nothing
+
+    hash x =
+        _ = x
+        0
 
 Comparable.from (_:No_Ord) = No_Ord_Comparator
 

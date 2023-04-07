@@ -94,8 +94,8 @@ class IgnoredBindingsTest extends CompilerTest {
 
     val ir =
       """
-        |_ =
-        |    _ = f a b
+        |f =
+        |    g = h a b
         |    x = y
         |    10
         |""".stripMargin.preprocessExpression.get.resolve
@@ -108,8 +108,8 @@ class IgnoredBindingsTest extends CompilerTest {
       bindingName shouldBe an[IR.Name.Literal]
     }
 
-    "mark the binding as ignored if it was" in {
-      ir.getMetadata(IgnoredBindings) shouldEqual Some(State.Ignored)
+    "f is a regular definition of a function" in {
+      ir.getMetadata(IgnoredBindings) shouldEqual Some(State.NotIgnored)
     }
 
     "mark the binding as not ignored if it wasn't" in {

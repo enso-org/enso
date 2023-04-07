@@ -309,12 +309,12 @@ impl List {
     pub fn build(mut self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
-            group.content.update_sorting(components_order);
+            group.content.update_match_info_and_sorting(components_order);
             if let Some(flattened) = &group.flattened_content {
-                flattened.update_sorting(components_order);
+                flattened.update_match_info_and_sorting(components_order);
             }
         }
-        self.local_scope.update_sorting(components_order);
+        self.local_scope.update_match_info_and_sorting(components_order);
         let favorites = self.build_favorites_and_add_to_all_components();
         let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
         let section_list_builder = Sections::new(top_module_groups);
@@ -580,7 +580,7 @@ mod tests {
             components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
+        let snippet = component::hardcoded::Snippet { name: "test snippet".into(), ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         builder.insert_virtual_components_in_favorites_group(GROUP_NAME, project, snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
@@ -607,7 +607,7 @@ mod tests {
             components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
+        let snippet = component::hardcoded::Snippet { name: "test snippet".into(), ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         const GROUP_2_NAME: &str = "Group 2";
         builder.insert_virtual_components_in_favorites_group(GROUP_2_NAME, project, snippet_iter);

@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+import project.Any.Any
+import project.Data.Locale.Locale
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Errors.Common.Type_Error
+import project.Meta
+
+## PRIVATE
+
+   Assert that `text_maybe` is a Text, then call the action.
+expect_text : Any -> Any -> Any ! Type_Error
+expect_text text_maybe ~action = case text_maybe of
+    _ : Text -> action
+    _ ->
+        Error.throw (Type_Error.Error Text (Meta.type_of text_maybe) "text_maybe")
+

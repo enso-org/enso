@@ -56,6 +56,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()
@@ -74,6 +75,7 @@ mod icon {
 
     ensogl::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
             let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
@@ -100,6 +102,7 @@ mod separator {
 
     ensogl::shape! {
         pointer_events = false;
+        alignment = center;
         (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
@@ -489,15 +492,15 @@ impl Breadcrumb {
                 model.deselect(*old,*new);
             });
             not_selected <- frp.outputs.selected.map(|selected| !selected);
-            mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
-            mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
+            mouse_over_if_not_selected <- model.view.events_deprecated.mouse_over.gate(&not_selected);
+            mouse_out_if_not_selected  <- model.view.events_deprecated.mouse_out.gate(&not_selected);
             eval_ mouse_over_if_not_selected(
                 model.animations.color.set_target_value(hover_color.into())
             );
             eval_ mouse_out_if_not_selected(
                 model.animations.color.set_target_value(model.deselected_color().into())
             );
-            eval_ model.view.events.mouse_down_primary(frp.outputs.clicked.emit(()));
+            eval_ model.view.events_deprecated.mouse_down_primary(frp.outputs.clicked.emit(()));
         }
 
 

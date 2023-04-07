@@ -186,7 +186,7 @@ impl<T> Layer<T> for Layered<T> {
 /// to either of the implementation need to be applied to the other one as well.
 ///
 /// Each AST node is annotated with span and an optional ID.
-#[derive(CloneRef, Eq, PartialEq, Debug, Deref)]
+#[derive(CloneRef, Eq, PartialEq, Deref)]
 pub struct Ast {
     wrapped: Rc<WithID<WithLength<Shape<Ast>>>>,
 }
@@ -203,6 +203,17 @@ impl<'t> IntoIterator for &'t Ast {
     type IntoIter = <&'t Shape<Ast> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
         self.shape().into_iter()
+    }
+}
+
+/// Custom `Debug` implementation that flattens the `WithID` and `WithLength` wrappers.
+impl Debug for Ast {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Ast")
+            .field("id", &self.id)
+            .field("length", &self.length)
+            .field("shape", &self.shape())
+            .finish()
     }
 }
 
@@ -543,6 +554,26 @@ impl<T> Tree<T> {
         Tree::expression(span_info)
             .with_type_info(TreeType::ExpressionWithComment)
             .with_trailing_token(comment)
+    }
+}
+
+/// Helper getters.
+impl<T> Tree<T> {
+    /// Retrieves the string content of the Tree node, if any.
+    pub fn as_text(&self) -> Option<&str> {
+        if self.type_info == TreeType::Expression && self.descriptive_name == Some("text") {
+            self.leaf_info.as_deref().and_then(|s| {
+                if s.starts_with(repr::FMT_BLOCK_QUOTES) || s.starts_with(repr::RAW_BLOCK_QUOTES) {
+                    s.get(3..s.len() - 3)
+                } else if s.starts_with(repr::FMT_QUOTE) || s.starts_with(repr::RAW_QUOTE) {
+                    s.get(1..s.len() - 1)
+                } else {
+                    None
+                }
+            })
+        } else {
+            None
+        }
     }
 }
 

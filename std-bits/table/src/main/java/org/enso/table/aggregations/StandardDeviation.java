@@ -2,6 +2,7 @@ package org.enso.table.aggregations;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
@@ -25,7 +26,7 @@ public class StandardDeviation extends Aggregator {
   private final boolean population;
 
   public StandardDeviation(String name, Column column, boolean population) {
-    super(name, Storage.Type.DOUBLE);
+    super(name, FloatType.FLOAT_64);
     this.storage = column.getStorage();
     this.population = population;
   }

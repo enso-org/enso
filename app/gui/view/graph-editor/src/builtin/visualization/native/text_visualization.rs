@@ -165,8 +165,8 @@ impl<T: 'static> Model<T> {
         self.root.add_child(&self.scroll_bar_vertical);
         self.scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
 
-        self.app.display.default_scene.layers.above_nodes_text.add(&self.scroll_bar_horizontal);
-        self.app.display.default_scene.layers.above_nodes_text.add(&self.scroll_bar_vertical);
+        self.app.display.default_scene.layers.main.add(&self.scroll_bar_horizontal);
+        self.app.display.default_scene.layers.main.add(&self.scroll_bar_vertical);
     }
 
     fn set_size(&self, size: Vector2) {

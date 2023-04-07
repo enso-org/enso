@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Sort_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
@@ -53,6 +54,26 @@ spec prefix connection =
             m2.at "b" . to_vector . should_equal [5]
             m2.at "c" . should_fail_with No_Such_Column
 
+        Test.specify "should allow to access a Table by an SQL query" <|
+            t2 = connection.query (SQL_Query.Raw_SQL ('SELECT a, b FROM "' + name + '" WHERE a >= 3'))
+            m2 = t2.read
+            m2.column_names . should_equal ["a", "b"]
+            m2.at "a" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "c" . should_fail_with No_Such_Column
+
+            t3 = connection.query (SQL_Query.Raw_SQL ('SELECT 1+2'))
+            m3 = t3.read
+            m3.at 0 . to_vector . should_equal [3]
+
+        Test.specify "should use labels for column names" <|
+            t2 = connection.query (SQL_Query.Raw_SQL ('SELECT a AS c, b FROM "' + name + '" WHERE a >= 3'))
+            m2 = t2.read
+            m2.column_names . should_equal ["c", "b"]
+            m2.at "c" . to_vector . should_equal [4]
+            m2.at "b" . to_vector . should_equal [5]
+            m2.at "a" . should_fail_with No_Such_Column
+
         Test.specify "should allow a shorthand trying to deduce if the query is a table name or an SQL query" <|
             t2 = connection.query name
             t2.read . should_equal t1.read
@@ -84,6 +105,10 @@ spec prefix connection =
 
             r3 = connection.query (SQL_Query.Raw_SQL "MALFORMED-QUERY")
             r3.should_fail_with SQL_Error
+
+        Test.specify "should not allow interpolations in raw user-built queries" <|
+            r = connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
+            r.should_fail_with Illegal_Argument
 
         Test.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
             r2 = connection.query "NONEXISTENT-TABLE"

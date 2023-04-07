@@ -36,6 +36,11 @@ pub enum InvalidQualifiedName {
     TooManySegments,
 }
 
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "No qualified name found in AST")]
+pub struct QualifiedNameNotFoundInAst;
+
 
 
 // ================
@@ -221,6 +226,21 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
         QualifiedNameRef { project: self.project.clone_ref(), path: &self.path.as_ref()[range] }
     }
 
+    /// Split the qualified into two parts: the qualified name of a nth parent module and the
+    /// remaining access chain of requested length. Returns `None` if the requested access chain
+    /// length is too long to split off.
+    pub fn split_chain(&self, access_chain_length: usize) -> Option<(QualifiedNameRef, String)> {
+        let path = self.path.as_ref();
+        if access_chain_length >= path.len() {
+            return None;
+        }
+
+        let (path, chain) = path.split_at(path.len() - access_chain_length);
+        let parent_name = QualifiedNameRef { project: self.project.clone_ref(), path };
+        let chain = chain.iter().map(|s| s.as_str()).join(ACCESS);
+        Some((parent_name, chain))
+    }
+
     /// Return the [`QualifiedNameRef`] referring to the this name's parent.
     ///
     /// ```rust
@@ -311,6 +331,21 @@ impl QualifiedName {
     /// ```
     pub fn pop_segment(&mut self) -> Option<ImString> {
         self.path.pop()
+    }
+}
+
+
+// === Conversion from AST ===
+
+impl TryFrom<&Ast> for QualifiedName {
+    type Error = failure::Error;
+
+    fn try_from(ast: &Ast) -> Result<Self, Self::Error> {
+        let segments = ast::opr::Chain::try_new(ast)
+            .ok_or(QualifiedNameNotFoundInAst)?
+            .as_qualified_name_segments()
+            .ok_or(QualifiedNameNotFoundInAst)?;
+        Self::from_all_segments(segments)
     }
 }
 

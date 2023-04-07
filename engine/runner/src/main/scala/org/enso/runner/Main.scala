@@ -7,7 +7,11 @@ import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
-import org.enso.languageserver.boot.{LanguageServerConfig, ProfilingConfig}
+import org.enso.languageserver.boot.{
+  LanguageServerConfig,
+  ProfilingConfig,
+  StartupConfig
+}
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
@@ -69,6 +73,8 @@ object Main {
   private val HIDE_PROGRESS                  = "hide-progress"
   private val AUTH_TOKEN                     = "auth-token"
   private val AUTO_PARALLELISM_OPTION        = "with-auto-parallelism"
+  private val SKIP_GRAALVM_UPDATER           = "skip-graalvm-updater"
+  private val EXECUTION_ENVIRONMENT_OPTION   = "execution-environment"
 
   private lazy val logger = Logger[Main.type]
 
@@ -345,6 +351,21 @@ object Main {
       .desc("Enables auto parallelism in the Enso interpreter.")
       .build
 
+    val skipGraalVMUpdater = CliOption.builder
+      .longOpt(SKIP_GRAALVM_UPDATER)
+      .desc("Skips GraalVM and its components setup during bootstrapping.")
+      .build
+
+    val executionEnvironmentOption = CliOption.builder
+      .longOpt(EXECUTION_ENVIRONMENT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("name")
+      .desc(
+        "Execution environment to use during execution (`live`/`design`). Defaults to `design`."
+      )
+      .build()
+
     val options = new Options
     options
       .addOption(help)
@@ -385,6 +406,8 @@ object Main {
       .addOption(noGlobalCacheOption)
       .addOptionGroup(cacheOptionsGroup)
       .addOption(autoParallelism)
+      .addOption(skipGraalVMUpdater)
+      .addOption(executionEnvironmentOption)
 
     options
   }
@@ -491,13 +514,19 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches           = true,
+      strictErrors             = true,
       useGlobalIrCacheLocation = shouldUseGlobalCache
     )
     val topScope = context.getTopScope
-    topScope.compile(shouldCompileDependencies)
-
-    context.context.close()
-    exitSuccess()
+    try {
+      topScope.compile(shouldCompileDependencies)
+      exitSuccess()
+    } catch {
+      case _: Throwable =>
+        exitFail()
+    } finally {
+      context.context.close()
+    }
   }
 
   /** Handles the `--run` CLI option.
@@ -513,6 +542,7 @@ object Main {
     * @param enableIrCaches are IR caches enabled
     * @param inspect        shall inspect option be enabled
     * @param dump           shall graphs be sent to the IGV
+    * @apram executionEnvironment optional name of the execution environment to use during execution
     */
   private def run(
     path: String,
@@ -523,7 +553,8 @@ object Main {
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
     inspect: Boolean,
-    dump: Boolean
+    dump: Boolean,
+    executionEnvironment: Option[String]
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -563,6 +594,7 @@ object Main {
       enableIrCaches,
       strictErrors          = true,
       enableAutoParallelism = enableAutoParallelism,
+      executionEnvironment  = executionEnvironment,
       options               = options
     )
     if (projectMode) {
@@ -712,7 +744,7 @@ object Main {
       .reverse
     val msg: String = HostEnsoUtils.findExceptionMessage(exception)
     println(s"Execution finished with an error: ${msg}")
-    dropInitJava.foreach { frame =>
+    def printFrame(frame: PolyglotException#StackFrame): Unit = {
       val langId =
         if (frame.isHostFrame) "java" else frame.getLanguage.getId
       val fmtFrame = if (frame.getLanguage.getId == LanguageInfo.ID) {
@@ -752,6 +784,11 @@ object Main {
         frame.toString
       }
       println(s"        at <$langId> $fmtFrame")
+    }
+    if (dropInitJava.isEmpty) {
+      fullStack.foreach(printFrame)
+    } else {
+      dropInitJava.foreach(printFrame)
     }
   }
 
@@ -905,13 +942,16 @@ object Main {
       profilingEventsLogPath <- Either
         .catchNonFatal(profilingEventsLogPathStr.map(Paths.get(_)))
         .leftMap(_ => "Profiling events log path is invalid")
+      graalVMUpdater = Option(line.hasOption(SKIP_GRAALVM_UPDATER))
+        .getOrElse(false)
     } yield boot.LanguageServerConfig(
       interface,
       rpcPort,
       dataPort,
       rootId,
       rootPath,
-      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime)
+      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime),
+      StartupConfig(graalVMUpdater)
     )
 
   /** Prints the version of the Enso executable.
@@ -1067,7 +1107,8 @@ object Main {
         shouldEnableIrCaches(line),
         line.hasOption(AUTO_PARALLELISM_OPTION),
         line.hasOption(INSPECT_OPTION),
-        line.hasOption(DUMP_GRAPHS_OPTION)
+        line.hasOption(DUMP_GRAPHS_OPTION),
+        Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
       )
     }
     if (line.hasOption(REPL_OPTION)) {

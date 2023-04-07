@@ -108,9 +108,28 @@
 - [Fixed missing result preview when editing nodes.][5757]
 - [Application retries its initialization after failures][5802], allowing a
   reconnecting after connectivity problems.
+- [Improved Component Browser Filtering][4115]. The best match is always
+  selected first, and the groups are rearranged, so the best matches are on the
+  bottom.
 - [Named arguments syntax is now recognized in IDE][5774]. Connections to
   function arguments will now use named argument syntax instead of inserting
   wildcards on all preceding arguments.
+- [Added boilerplate React app for authorization via Cognito+AWS Amplify][5798].
+  This PR adds a React app that renders the dashboard (which has been ported
+  from the cloud. The dashboard displays a list of projects, and allows users to
+  open them in the IDE (which is not part of the React app, but can be switched
+  to from the dashboard). The PR also adds authentication+authorization (i.e.,
+  sign up and sign in for users), via either email/password or GitHub/Google.
+- [New Enso documentation parser][5917]. Smaller and faster; enables planned
+  improvements to internal documentation representation.
+- [Dropdown widgets now support custom labels][5705] and automatically generate
+  shortened labels for entries with long module paths. When an option is
+  selected from the dropdown, the necessary module imports are inserted,
+  eliminating the need for fully qualified names.
+- [Added tooltips to icon buttons][6035] for improved usability. Users can now
+  quickly understand each button's function.
+- [File associations are created on Windows and macOS][6077]. This allows
+  opening Enso files by double-clicking them in the file explorer.
 - [AI-powered code completions][5910]. It is now possible to get AI-powered
   completions when using node searcher with Tables.
 
@@ -159,11 +178,21 @@
   generated shaders differ per theme (only light theme is available, the dark
   theme has been disabled). We will support multiple themes in the future, but
   this is not on our priority list right now.
+- [Performance monitor was extended with the ability to print details of actions
+  performed in a given frame][5895]. In particular, you can now inspect names of
+  all symbols rendered in a given frame. You can also pause the performance
+  monitor and inspect results recorded in the past.
+- [ToggleButtons can now have tooltips][6035].
+- [Rendering of tooltips was improved.][6097] Their text is now more vertically
+  centered and the delay before showing them was extended.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
 [4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
+[5895]: https://github.com/enso-org/enso/pull/5895
+[6035]: https://github.com/enso-org/enso/pull/6035
+[6097]: https://github.com/enso-org/enso/pull/6097
 
 #### Enso Standard Library
 
@@ -335,11 +364,22 @@
   and renamed them to `match`, `find`, `find_all` (respectively).][5721]
 - [Updated `rename_columns` to new API. Added `first_row`, `second_row` and
   `last_row` to Table types][5719]
+- [Introducing `Meta.Type`.][5768]
 - [Remove many regex compile flags; separated `match` into `match` and
   `match_all`.][5785]
 - [Aligned names of columns created by column operations.][5850]
 - [Improved `cross_tab`. Renamed `fill_missing` and `is_missing` to
   `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
+- [Removed many regex compile flags from `replace`; added `only_first` and
+  `use_regex` flag.][5959]
+- [Implemented proper support for Value Types in the Table library.][6073]
+- [Removed many regex compile flags from `split`; added `only_first` and
+  `use_regex` flag.][6116]
+- [Added `Text.tokenize`][6150]
+- [Added support for Date/Time columns in the Postgres backend and added
+  `year`/`month`/`day` operations to Table columns.][6153]
+- [`Text.split` can now take a vector of delimiters.][6156]
+- [Implemented `Table.union` for the Database backend.][6204]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -503,6 +543,7 @@
 [4078]: https://github.com/enso-org/enso/pull/4078
 [4085]: https://github.com/enso-org/enso/pull/4085
 [4097]: https://github.com/enso-org/enso/pull/4097
+[4115]: https://github.com/enso-org/enso/pull/4115
 [4120]: https://github.com/enso-org/enso/pull/4120
 [4050]: https://github.com/enso-org/enso/pull/4050
 [4072]: https://github.com/enso-org/enso/pull/4072
@@ -516,12 +557,24 @@
 [5719]: https://github.com/enso-org/enso/pull/5719
 [5721]: https://github.com/enso-org/enso/pull/5721
 [5757]: https://github.com/enso-org/enso/pull/5757
+[5768]: https://github.com/enso-org/enso/pull/5768
 [5774]: https://github.com/enso-org/enso/pull/5774
 [5779]: https://github.com/enso-org/enso/pull/5779
 [5785]: https://github.com/enso-org/enso/pull/5785
+[5798]: https://github.com/enso-org/enso/pull/5798
 [5802]: https://github.com/enso-org/enso/pull/5802
 [5850]: https://github.com/enso-org/enso/pull/5850
 [5863]: https://github.com/enso-org/enso/pull/5863
+[5917]: https://github.com/enso-org/enso/pull/5917
+[5705]: https://github.com/enso-org/enso/pull/5705
+[5959]: https://github.com/enso-org/enso/pull/5959
+[6073]: https://github.com/enso-org/enso/pull/6073
+[6116]: https://github.com/enso-org/enso/pull/6116
+[6150]: https://github.com/enso-org/enso/pull/6150
+[6153]: https://github.com/enso-org/enso/pull/6153
+[6156]: https://github.com/enso-org/enso/pull/6156
+[6204]: https://github.com/enso-org/enso/pull/6204
+[6077]: https://github.com/enso-org/enso/pull/6077
 [5910]: https://github.com/enso-org/enso/pull/5910
 
 #### Enso Compiler
@@ -622,6 +675,11 @@
 - [Comparators support partial ordering][5778]
 - [Merge ordered and unordered comparators][5845]
 - [Use SHA-1 for calculating hashes of modules' IR and bindings][5791]
+- [Don't install Python component on Windows][5900]
+- [Detect potential name conflicts between exported types and FQNs][5966]
+- [Ensure calls involving warnings remain instrumented][6067]
+- [One can define lazy atom fields][6151]
+- [Replace IOContexts with Execution Environment and generic Context][6171]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -722,6 +780,11 @@
 [5778]: https://github.com/enso-org/enso/pull/5778
 [5845]: https://github.com/enso-org/enso/pull/5845
 [5791]: https://github.com/enso-org/enso/pull/5791
+[5900]: https://github.com/enso-org/enso/pull/5900
+[5966]: https://github.com/enso-org/enso/pull/5966
+[6067]: https://github.com/enso-org/enso/pull/6067
+[6151]: https://github.com/enso-org/enso/pull/6151
+[6171]: https://github.com/enso-org/enso/pull/6171
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

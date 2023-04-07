@@ -85,7 +85,11 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       compile(module)
         .map { _ =>
           invalidateCaches(module, changeset)
-          ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+          if (module.isIndexed) {
+            ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+          } else {
+            AnalyzeModuleJob.analyzeModule(module, changeset)
+          }
           runCompilationDiagnostics(module)
         }
         .getOrElse(CompilationStatus.Failure)
@@ -100,7 +104,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
     val notIndexedModulesInScope = modulesInScope.filter(!_.isIndexed)
-    val (modulesToAnalyze, compilationStatuses) =
+    val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
       notIndexedModulesInScope.foldLeft(
         (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
       ) { case ((modules, statuses), module) =>
@@ -123,10 +127,13 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
             )
         }
       }
-    ctx.jobProcessor.runBackground(
-      AnalyzeModuleInScopeJob(modulesToAnalyze.result())
-    )
-    compilationStatuses.result()
+    val modulesToAnalyze = modulesToAnalyzeBuilder.result()
+    if (modulesToAnalyze.nonEmpty) {
+      ctx.jobProcessor.runBackground(
+        AnalyzeModuleInScopeJob(modulesToAnalyze)
+      )
+    }
+    compilationStatusesBuilder.result()
   }
 
   /** Extract compilation diagnostics from the module and send the diagnostic

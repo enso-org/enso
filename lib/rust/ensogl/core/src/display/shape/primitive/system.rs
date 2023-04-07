@@ -73,7 +73,7 @@ use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
 use crate::system::gpu::data::buffer::item::Storable;
-use crate::system::gpu::data::InstanceIndex;
+use crate::system::gpu::data::InstanceId;
 
 use super::def;
 
@@ -124,9 +124,14 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type ShapeData: Debug;
     fn definition_path() -> &'static str;
     fn pointer_events() -> bool;
+    /// The alignment of the drawn shape's origin position. When set to `center`, the shape's
+    /// origin will be at the center of its bounding box. The default value is `left_bottom`.
+    fn default_alignment() -> alignment::Dim2 {
+        alignment::Dim2::left_bottom()
+    }
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
-    fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceIndex) -> Self;
+    fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceId) -> Self;
     fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
     fn flavor(_data: &Self::ShapeData) -> ShapeSystemFlavor {
@@ -286,7 +291,8 @@ impl<S: Shape> ShapeSystem<S> {
             display::world::with_context(|t| display::shape::StyleWatch::new(&t.style_sheet));
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
-        let model = display::shape::ShapeSystemModel::new(shape_def, events, S::definition_path());
+        let alignment = S::default_alignment();
+        let model = ShapeSystemModel::new(shape_def, alignment, events, S::definition_path());
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
         let user = CustomSystemData::<S>::new(&standard, shape_data);
@@ -295,25 +301,13 @@ impl<S: Shape> ShapeSystem<S> {
         Self { data }.init_refresh_on_style_change()
     }
 
-    // FIXME: the following 2 fns look similar
     /// Constructor of a new shape instance.
     #[profile(Debug)]
-    pub fn new_instance(&self) -> ShapeInstance<S> {
-        let sprite = self.model.sprite_system.new_instance();
-        sprite.allow_grow();
-        let id = sprite.instance_id;
-        let shape = S::new_instance_params(&self.gpu_params, id);
-        let display_object = display::object::Instance::new_named("ShapeSystem");
-        display_object.add_child(&sprite);
-        // FIXME: workaround:
-        // display_object.use_auto_layout();
-        let sprite = RefCell::new(sprite);
-        ShapeInstance { sprite, shape, display_object }
-    }
-
-    #[profile(Debug)]
-    pub(crate) fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
-        let sprite = self.model.sprite_system.new_instance();
+    pub(crate) fn instantiate(
+        &self,
+        buffer_partition: attribute::BufferPartitionId,
+    ) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
+        let sprite = self.model.sprite_system.new_instance_at(buffer_partition);
         sprite.allow_grow();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
@@ -366,8 +360,13 @@ pub struct ShapeSystemModel {
 impl ShapeSystemModel {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(shape: def::AnyShape, pointer_events: bool, definition_path: &'static str) -> Self {
-        let sprite_system = SpriteSystem::new();
+    pub fn new(
+        shape: def::AnyShape,
+        alignment: alignment::Dim2,
+        pointer_events: bool,
+        definition_path: &'static str,
+    ) -> Self {
+        let sprite_system = SpriteSystem::new(definition_path, alignment);
         let material = Rc::new(RefCell::new(Self::default_material()));
         let geometry_material = Rc::new(RefCell::new(Self::default_geometry_material()));
         let pointer_events = Immutable(pointer_events);
@@ -446,10 +445,12 @@ impl ShapeSystemModel {
                 vec2 uv_offset = padding / input_size;
                 input_uv = input_uv * uv_scale - uv_offset;
 
-                // We need to recompute the vertex position with the padding.
-                input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
-                gl_Position = model_view_projection * vec4(input_local,1.0);
-                input_local.z = gl_Position.z;
+                // Compute the vertex position with shape padding, apply alignment to the vertex
+                // position, but not to the local SDF coordinates. Shape definitions should always
+                // have their origin point in the center of the shape.
+                vec4 position = vec4((input_uv - input_alignment) * input_size, 0.0, 1.0);
+                gl_Position = model_view_projection * position;
+                input_local = vec3((input_uv - vec2(0.5)) * input_size, gl_Position.z);
             ",
         );
         material
@@ -603,12 +604,14 @@ macro_rules! shape {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(alignment = $alignment:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_shape! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
             $(flavor = [$flavor];)?
+            $(alignment = $alignment;)?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
@@ -676,7 +679,7 @@ macro_rules! _shape_old {
             use $crate::display::shape::ShapeOps;
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
-            use $crate::system::gpu::data::InstanceIndex;
+            use $crate::system::gpu::data::InstanceId;
             use $crate::display::shape::system::*;
 
 
@@ -711,6 +714,10 @@ macro_rules! _shape_old {
                     _out
                 }
 
+                fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
+                    $crate::display::layout::alignment::Dim2::center()
+                }
+
                 fn always_above() -> Vec<ShapeSystemId> {
                     vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]
                 }
@@ -723,7 +730,7 @@ macro_rules! _shape_old {
 
                 fn new_instance_params(
                     gpu_params:&Self::GpuParams,
-                    id: InstanceIndex
+                    id: InstanceId
                 ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     let params = Self::InstanceParams { $($gpu_param),* };
@@ -807,6 +814,7 @@ macro_rules! _shape {
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
         $(flavor = [$flavor:path];)?
+        $(alignment = $alignment:tt;)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -832,7 +840,7 @@ macro_rules! _shape {
             use $crate::display::shape::ShapeOps;
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
-            use $crate::system::gpu::data::InstanceIndex;
+            use $crate::system::gpu::data::InstanceId;
             use $crate::display::shape::system::*;
 
 
@@ -867,6 +875,10 @@ macro_rules! _shape {
                     _out
                 }
 
+                $(fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
+                    $crate::display::layout::alignment::Dim2::$alignment()
+                })?
+
                 fn always_above() -> Vec<ShapeSystemId> {
                     vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]
                 }
@@ -879,7 +891,7 @@ macro_rules! _shape {
 
                 fn new_instance_params(
                     gpu_params: &Self::GpuParams,
-                    id: InstanceIndex
+                    id: InstanceId
                 ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     let params = Self::InstanceParams { $($gpu_param),* };

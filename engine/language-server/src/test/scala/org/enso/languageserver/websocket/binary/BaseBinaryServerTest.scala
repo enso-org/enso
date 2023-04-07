@@ -6,7 +6,7 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data.{
   Config,
   ExecutionContextConfig,
@@ -15,7 +15,7 @@ import org.enso.languageserver.data.{
   ProjectDirectoriesConfig,
   VcsManagerConfig
 }
-import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.effect.{TestRuntime, ZioExec}
 import org.enso.languageserver.filemanager.{
   ContentRoot,
   ContentRootManager,
@@ -50,6 +50,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
     ExecutionContextConfig(requestTimeout = 3.seconds),
     ProjectDirectoriesConfig.initialize(testContentRoot.file),
     ProfilingConfig(),
+    StartupConfig(),
     None
   )
 
@@ -61,7 +62,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
   override def connectionControllerFactory: ConnectionControllerFactory = {
     (clientIp: RemoteAddress.IP) =>
       {
-        val zioExec = ZioExec(zio.Runtime.default)
+        val zioExec = ZioExec(new TestRuntime)
 
         val contentRootManagerActor =
           system.actorOf(ContentRootManagerActor.props(config))

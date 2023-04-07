@@ -262,7 +262,9 @@ class TypeSignaturesTest extends CompilerTest {
 
     "work recursively" in {
       val arg2Value = ir.asInstanceOf[IR.Application.Prefix].arguments(1).value
-      arg2Value shouldBe an[IR.Literal.Number]
+      arg2Value shouldBe an[IR.Application.Prefix]
+      val snd = arg2Value.asInstanceOf[IR.Application.Prefix]
+      snd.arguments(0).value shouldBe an[IR.Literal.Number]
     }
   }
 }

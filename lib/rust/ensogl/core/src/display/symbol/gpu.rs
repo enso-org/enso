@@ -323,6 +323,7 @@ impl Symbol {
     /// Constructor.
     pub fn new<OnMut: Fn() + Clone + 'static>(
         stats: &Stats,
+        label: &'static str,
         id: SymbolId,
         global_id_provider: &GlobalInstanceIdProvider,
         on_mut: OnMut,
@@ -332,14 +333,14 @@ impl Symbol {
             let shader_dirty = ShaderDirty::new(Box::new(on_mut));
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
             let shader = Shader::new(stats, shader_on_mut);
-            let data = Rc::new(SymbolData::new(stats, id, global_id_provider, on_mut2));
+            let data = Rc::new(SymbolData::new(stats, label, id, global_id_provider, on_mut2));
             Self { data, shader_dirty, shader }
         })
     }
 
     /// Create a new instance of this symbol.
-    pub fn new_instance(&self) -> SymbolInstance {
-        SymbolInstance::new(self)
+    pub fn new_instance(&self, buffer_partition: attribute::BufferPartitionId) -> SymbolInstance {
+        SymbolInstance::new(self, buffer_partition)
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
@@ -393,7 +394,7 @@ impl Symbol {
                     let count = self.surface.point_scope().size() as i32;
                     let instance_count = self.surface.instance_scope().size() as i32;
 
-                    self.stats.inc_draw_call_count();
+                    self.stats.register_draw_call(self.id);
                     if instance_count > 0 {
                         context.draw_arrays_instanced(*mode, first, count, instance_count);
                     } else {
@@ -536,6 +537,7 @@ impl WeakElement for WeakSymbol {
 #[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub struct SymbolData {
+    pub label:          &'static str,
     pub id:             SymbolId,
     global_id_provider: GlobalInstanceIdProvider,
     display_object:     display::object::Instance,
@@ -553,6 +555,7 @@ impl SymbolData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(
         stats: &Stats,
+        label: &'static str,
         id: SymbolId,
         global_id_provider: &GlobalInstanceIdProvider,
         on_mut: OnMut,
@@ -572,6 +575,7 @@ impl SymbolData {
         let global_instance_id = instance_scope.add_buffer("global_instance_id");
 
         Self {
+            label,
             id,
             global_id_provider,
             display_object,
@@ -594,7 +598,7 @@ impl SymbolData {
         frp::extend! { network
             eval_ self.display_object.on_hide(is_hidden.set(true));
             eval_ self.display_object.on_show(is_hidden.set(false));
-            eval self.display_object.on_layer_change([] ((_, old_layers, new_layers)) {
+            eval self.display_object.on_layer_change([] ((_, old_layers, new_layers, _)) {
                 for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
                     layer.remove_symbol(id)
                 }
@@ -787,7 +791,7 @@ impl RenderGroup {
 // ======================
 
 /// Instance of a [`Symbol`]. It does not define any custom parameters, however, it manages the
-/// [`InstanceIndex`] and [`GlobalInstanceId`] ones.
+/// [`InstanceId`] and [`GlobalInstanceId`] ones.
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct SymbolInstance {
     rc: Rc<SymbolInstanceData>,
@@ -798,15 +802,15 @@ pub struct SymbolInstance {
 #[allow(missing_docs)]
 pub struct SymbolInstanceData {
     pub symbol:             Symbol,
-    pub instance_id:        attribute::InstanceIndex,
+    pub instance_id:        attribute::InstanceId,
     pub global_instance_id: GlobalInstanceId,
 }
 
 impl SymbolInstance {
-    fn new(symbol: &Symbol) -> Self {
+    fn new(symbol: &Symbol, buffer_partition: attribute::BufferPartitionId) -> Self {
         let symbol = symbol.clone_ref();
         let global_instance_id = symbol.global_id_provider.reserve();
-        let instance_id = symbol.surface().instance_scope().add_instance();
+        let instance_id = symbol.surface().instance_scope().add_instance_at(buffer_partition);
 
         let global_instance_id_attr = symbol.global_instance_id.at(instance_id);
         global_instance_id_attr.set(*global_instance_id as i32);

@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::ArgumentInfo;
+use crate::TagValue;
 
 
 
@@ -169,6 +170,16 @@ impl Kind {
         }
     }
 
+    /// Get a reference to tag values of an argument represented by this node, if available. Returns
+    /// `None` if the node could not be attached with the argument information.
+    pub fn tag_values(&self) -> Option<&[TagValue]> {
+        match self {
+            Self::Argument(t) => Some(&t.tag_values),
+            Self::InsertionPoint(t) => Some(&t.tag_values),
+            _ => None,
+        }
+    }
+
     /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
@@ -212,6 +223,25 @@ impl Kind {
         match self {
             Self::Argument(t) => {
                 t.definition_index = Some(index);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Call ID setter. Returns bool indicating whether the operation was possible.
+    pub fn set_call_id(&mut self, call_id: Option<ast::Id>) -> bool {
+        match self {
+            Self::Chained(t) => {
+                t.call_id = call_id;
+                true
+            }
+            Self::Argument(t) => {
+                t.call_id = call_id;
+                true
+            }
+            Self::InsertionPoint(t) => {
+                t.call_id = call_id;
                 true
             }
             _ => false,
@@ -298,7 +328,7 @@ pub struct Argument {
     pub name:             Option<String>,
     pub tp:               Option<String>,
     pub call_id:          Option<ast::Id>,
-    pub tag_values:       Vec<String>,
+    pub tag_values:       Vec<TagValue>,
 }
 
 
@@ -361,7 +391,7 @@ pub struct InsertionPoint {
     pub name:       Option<String>,
     pub tp:         Option<String>,
     pub call_id:    Option<ast::Id>,
-    pub tag_values: Vec<String>,
+    pub tag_values: Vec<TagValue>,
 }
 
 // === Constructors ===

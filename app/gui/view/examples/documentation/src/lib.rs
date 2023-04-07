@@ -10,11 +10,11 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Mark;
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_suggestion_database::engine_protocol::language_server::DocSection;
-use enso_suggestion_database::engine_protocol::language_server::Mark;
 use enso_suggestion_database::entry::Argument;
 use enso_suggestion_database::mock;
 use enso_suggestion_database::mock_suggestion_database;
@@ -135,7 +135,7 @@ fn database() -> SuggestionDatabase {
     builder.add_function("bar", args, "Standard.Base.Boolean", scope.clone(), |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the bar function.".into() },
-            DocSection::Tag { name: "DEPRECATED".into(), body: default() },
+            DocSection::Tag { name: "DEPRECATED", body: default() },
             DocSection::Marked {
                 mark:   Mark::Example,
                 header: None,
@@ -147,7 +147,7 @@ fn database() -> SuggestionDatabase {
     builder.add_local("local1", "Standard.Base.Boolean", scope, |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the local1 variable.".into() },
-            DocSection::Tag { name: "SOMETAG".into(), body: default() },
+            DocSection::Tag { name: "SOMETAG", body: default() },
         ])
     });
 
@@ -166,6 +166,7 @@ const BUTTON_BACKGROUND_COLOR: color::Rgba = color::Rgba(0.87, 0.87, 0.87, 1.0);
 mod button {
     use super::*;
     shape! {
+        alignment = center;
         (style: Style) {
             let background = Rect((BUTTON_SIZE.px(), BUTTON_SIZE.px()));
             let background = background.corners_radius(10.0.px());
@@ -182,6 +183,7 @@ mod button {
 mod button_toggle_caption {
     use super::*;
     shape! {
+        alignment = center;
         (style: Style) {
             let background = Rect((BUTTON_SIZE.px(), BUTTON_SIZE.px()));
             let background = background.corners_radius(10.0.px());
@@ -253,9 +255,12 @@ pub fn main() {
             eval buttons_x((x) buttons.set_x(*x));
             eval buttons_y((y) buttons.set_y(*y));
 
-            eval_ next.events.mouse_down(wrapper.switch_to_next());
-            eval_ previous.events.mouse_down(wrapper.switch_to_previous());
-            button_pressed <- any(&next.events.mouse_down, &previous.events.mouse_down).constant(());
+            eval_ next.events_deprecated.mouse_down(wrapper.switch_to_next());
+            eval_ previous.events_deprecated.mouse_down(wrapper.switch_to_previous());
+            button_pressed <- any(
+                &next.events_deprecated.mouse_down,
+                &previous.events_deprecated.mouse_down
+            ).constant(());
             update_docs <- any(&button_pressed, &init);
             panel.frp.display_documentation <+ update_docs.map(f_!(wrapper.documentation()));
 
@@ -264,7 +269,7 @@ pub fn main() {
 
             caption_visible <- any(...);
             caption_visible <+ init.constant(false);
-            current_state <- caption_visible.sample(&toggle_caption.events.mouse_down);
+            current_state <- caption_visible.sample(&toggle_caption.events_deprecated.mouse_down);
             caption_visible <+ current_state.not();
             panel.frp.show_hovered_item_preview_caption <+ caption_visible.on_change();
 

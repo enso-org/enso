@@ -33,9 +33,7 @@ pub fn create_providers_from_controller(controller: &controller::Searcher) -> An
     match controller.actions() {
         Actions::Loading => as_any(Rc::new(list_view::entry::EmptyProvider)),
         Actions::Loaded { list } => {
-            let user_action = controller.current_user_action();
-            let intended_function = controller.intended_function_suggestion();
-            let provider = Action { actions: list, user_action, intended_function };
+            let provider = Action { actions: list };
             as_any(Rc::new(provider))
         }
         Actions::Error(err) => {
@@ -61,9 +59,7 @@ where P: list_view::entry::ModelProvider<view::searcher::Entry>
 /// An searcher actions provider, based on the action list retrieved from the searcher controller.
 #[derive(Clone, Debug)]
 pub struct Action {
-    actions:           Rc<controller::searcher::action::List>,
-    user_action:       controller::searcher::UserAction,
-    intended_function: Option<controller::searcher::action::Suggestion>,
+    actions: Rc<controller::searcher::action::List>,
 }
 
 impl Action {
@@ -126,11 +122,7 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for Action {
 
 impl ide_view::searcher::DocumentationProvider for Action {
     fn get(&self) -> Option<String> {
-        use controller::searcher::UserAction::*;
-        self.intended_function.as_ref().and_then(|function| match self.user_action {
-            StartingTypingArgument => function.documentation_html().map(ToOwned::to_owned),
-            _ => None,
-        })
+        None
     }
 
     fn get_for_entry(&self, id: usize) -> Option<String> {
@@ -209,30 +201,12 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
     }
 
     fn create_grid_content_info(&self) -> component_grid::content::Info {
-        use controller::searcher::TopModules;
-        let favorites = self.favorites();
-        let popular_section =
-            group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
-        let top_modules = self.top_modules();
-        let groups = match top_modules {
-            TopModules::All(modules) => {
-                let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
-                    group_list_to_grid_group_infos(
-                        component_grid::SectionId::Namespace(section),
-                        list,
-                    )
-                });
-                popular_section.chain(submodules).collect()
-            }
-            TopModules::Subset(list, section) => {
-                let submodules = group_list_to_grid_group_infos(
-                    component_grid::SectionId::Namespace(section),
-                    &list,
-                );
-                popular_section.chain(submodules).collect()
-            }
-        };
-        let local_scope_entry_count = self.local_scope().matched_items.get();
+        let local_scope = self.local_scope();
+        let mut groups = collect_all_groups_info(self.favorites(), self.top_modules());
+        if self.is_filtered() {
+            groups.sort_by_key(|group| ordered_float::OrderedFloat(-group.best_match_score));
+        }
+        let local_scope_entry_count = local_scope.matched_items.get();
         let namespace_section_count = self.namespace_section_count();
         component_list_panel::grid::content::Info {
             groups,
@@ -266,18 +240,28 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
 
 // === ControllerComponentsProviderExt Helper Functions ===
 
-fn controller_group_to_grid_group_info(
-    id: component_grid::GroupId,
-    group: &component::Group,
-) -> component_grid::content::Group {
-    if group.name == "Unnamed.Foo" {
-        warn!("GROUP {id:?}: {group:#?}");
-    }
-    component_grid::content::Group {
-        id,
-        height: group.matched_items.get(),
-        original_height: group.len(),
-        color: group.color,
+
+fn collect_all_groups_info(
+    favorites: component::group::List,
+    top_modules: controller::searcher::TopModules,
+) -> Vec<component_grid::content::Group> {
+    use controller::searcher::TopModules;
+    let popular_section =
+        group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
+    match top_modules {
+        TopModules::All(modules) => {
+            let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
+                group_list_to_grid_group_infos(component_grid::SectionId::Namespace(section), list)
+            });
+            popular_section.chain(submodules).collect()
+        }
+        TopModules::Subset(list, section) => {
+            let submodules = group_list_to_grid_group_infos(
+                component_grid::SectionId::Namespace(section),
+                &list,
+            );
+            popular_section.chain(submodules).collect()
+        }
     }
 }
 
@@ -289,6 +273,19 @@ fn group_list_to_grid_group_infos(
         let id = component_grid::GroupId { section, index };
         controller_group_to_grid_group_info(id, group)
     })
+}
+
+fn controller_group_to_grid_group_info(
+    id: component_grid::GroupId,
+    group: &component::Group,
+) -> component_grid::content::Group {
+    component_grid::content::Group {
+        id,
+        height: group.matched_items.get(),
+        original_height: group.len(),
+        color: group.color,
+        best_match_score: group.best_match_score.get(),
+    }
 }
 
 fn group_to_header_model(
@@ -396,11 +393,24 @@ impl Component {
             grid.model_for_entry <+ entry_model;
             grid.model_for_header <+ header_model;
         }
+        let local_scope = provider.local_scope();
+        let local_scope_score = local_scope.best_match_score.get();
         let content = provider.create_grid_content_info();
+        let first_group = content.groups.first();
+        let first_group_best_matching =
+            first_group.filter(|grp| grp.best_match_score > local_scope_score);
+        let (matching_section, matching_section_score) = first_group_best_matching
+            .map_or((component_grid::SectionId::LocalScope, local_scope_score), |grp| {
+                (grp.id.section, grp.best_match_score)
+            });
+
         grid.reset(content);
-        if provider.displaying_module() {
-            grid.switch_section_no_animation(component_grid::content::SectionId::LocalScope)
+        if matching_section_score > component::NOT_MATCHING_SCORE {
+            grid.switch_section_no_animation(matching_section);
+        } else if provider.displaying_module() {
+            grid.switch_section_no_animation(component_grid::SectionId::LocalScope);
         }
+
         Self { _network: network }
     }
 }

@@ -8,7 +8,6 @@ import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
@@ -222,10 +221,6 @@ ThisBuild / Test / testOptions ++=
       Tests.Argument(TestFrameworks.ScalaTest, "-u", junitDir)
     }
 
-val jsSettings = Seq(
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
-)
-
 Compile / console / scalacOptions ~= (_ filterNot (_ == "-Xfatal-warnings"))
 
 // ============================================================================
@@ -255,16 +250,13 @@ lazy val enso = (project in file("."))
     `json-rpc-server-test`,
     `json-rpc-server`,
     `language-server`,
-    `parser-service`,
-    `docs-generator`,
     `polyglot-api`,
     `project-manager`,
-    `syntax-definition`.jvm,
+    `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    flexer.jvm,
     graph,
-    logger.jvm,
+    logger,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -295,7 +287,7 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
-    syntax.jvm,
+    syntax,
     testkit,
     `std-base`,
     `std-database`,
@@ -452,8 +444,8 @@ val icuVersion = "71.1"
 
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.12"
-val zioInteropCatsVersion = "3.2.9.0"
+val zioVersion            = "2.0.10"
+val zioInteropCatsVersion = "23.0.0.2"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
@@ -479,12 +471,11 @@ val scalacheckVersion       = "1.16.0"
 val scalacticVersion        = "3.3.0-SNAP3"
 val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
-val scalatagsVersion        = "0.11.1"
 val scalatestVersion        = "3.3.0-SNAP3"
 val shapelessVersion        = "2.4.0-M1"
 val slf4jVersion            = "1.7.36"
-val slickVersion            = "3.3.3"
-val sqliteVersion           = "3.36.0.3"
+val slickVersion            = "3.4.1"
+val sqliteVersion           = "3.41.2.1"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
@@ -494,175 +485,43 @@ val netbeansApiVersion      = "RELEASE140"
 // === Internal Libraries =====================================================
 // ============================================================================
 
-lazy val logger = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("lib/scala/logger"))
+lazy val logger = (project in file("lib/scala/logger"))
   .settings(
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= scalaCompiler
   )
-  .jsSettings(jsSettings)
 
-lazy val flexer = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("lib/scala/flexer"))
-  .dependsOn(logger)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    resolvers ++= Resolver.sonatypeOssRepos("releases"),
-    libraryDependencies ++= scalaCompiler ++ Seq(
-      "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
-      "org.typelevel"  %%% "cats-core" % catsVersion,
-      "org.typelevel"  %%% "kittens"   % kittensVersion
+lazy val `syntax-definition` =
+  (project in file("lib/scala/syntax/definition"))
+    .dependsOn(logger)
+    .settings(
+      scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
+      libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
+        "org.typelevel" %% "cats-core" % catsVersion,
+        "org.typelevel" %% "kittens"   % kittensVersion
+      )
     )
-  )
-  .jsSettings(jsSettings)
 
-lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("lib/scala/syntax/definition"))
-  .dependsOn(logger, flexer)
-  .settings(
-    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-      "org.typelevel" %%% "cats-core"     % catsVersion,
-      "org.typelevel" %%% "kittens"       % kittensVersion,
-      "com.lihaoyi"   %%% "scalatags"     % scalatagsVersion,
-      "io.circe"      %%% "circe-core"    % circeVersion,
-      "io.circe"      %%% "circe-generic" % circeVersion,
-      "io.circe"      %%% "circe-parser"  % circeVersion
-    )
-  )
-  .jsSettings(jsSettings)
-
-lazy val syntax = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full)
-  .in(file("lib/scala/syntax/specialization"))
-  .dependsOn(logger, flexer, `syntax-definition`)
-  .configs(Test)
-  .configs(Benchmark)
+lazy val syntax = (project in file("lib/scala/syntax/specialization"))
+  .dependsOn(`syntax-definition`)
   .settings(
     commands += WithDebugCommand.withDebug,
-    Test / fork := true,
     testFrameworks := Nil,
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     Compile / run / mainClass := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest"     % scalatestVersion % Test,
-      "com.lihaoyi"   %%% "pprint"        % pprintVersion,
-      "io.circe"      %%% "circe-core"    % circeVersion,
-      "io.circe"      %%% "circe-generic" % circeVersion,
-      "io.circe"      %%% "circe-parser"  % circeVersion
+      "org.scalatest" %% "scalatest"     % scalatestVersion % Test,
+      "com.lihaoyi"   %% "pprint"        % pprintVersion,
+      "io.circe"      %% "circe-core"    % circeVersion,
+      "io.circe"      %% "circe-generic" % circeVersion,
+      "io.circe"      %% "circe-parser"  % circeVersion
     ),
     (Compile / compile) := (Compile / compile)
       .dependsOn(RecompileParser.run(`syntax-definition`))
-      .value,
-    (Test / compile) := (Test / compile)
-      .dependsOn(RecompileParser.run(`syntax-definition`))
-      .value,
-    (Benchmark / compile) := (Benchmark / compile)
-      .dependsOn(RecompileParser.run(`syntax-definition`))
       .value
-  )
-  .jvmSettings(
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / unmanagedSourceDirectories +=
-      baseDirectory.value.getParentFile / "shared/src/bench/scala",
-    libraryDependencies +=
-      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
-    testFrameworks := List(
-      new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
-    ),
-    bench := (Benchmark / test).tag(Exclusive).value
-  )
-  .jsSettings(
-    scalaJSUseMainModuleInitializer := false,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
-    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
-    Compile / fullOptJS / artifactPath := file("target/scala-parser.js"),
-    libraryDependencies +=
-      "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
-  )
-
-lazy val `lexer-bench` =
-  (project in file("lib/scala/syntax/specialization/lexer-bench"))
-    .settings(
-      commands += WithDebugCommand.withDebug,
-      inConfig(Compile)(truffleRunOptionsSettings),
-      inConfig(Benchmark)(Defaults.testSettings),
-      Test / parallelExecution := false,
-      Test / logBuffered := false,
-      Test / fork := true,
-      libraryDependencies ++= jmh
-    )
-    .configs(Test)
-    .configs(Benchmark)
-    .dependsOn(syntax.jvm)
-    .dependsOn(flexer.jvm)
-    .settings(
-      javaOptions ++= Seq(
-        "-Xms4096m",
-        "-Xmx4096m",
-        "-XX:+FlightRecorder"
-      ),
-      Benchmark / mainClass := Some("org.openjdk.jmh.Main"),
-      bench := Def.task {
-        (Benchmark / run).toTask("").value
-      },
-      benchOnly := Def.inputTaskDyn {
-        import complete.Parsers.spaceDelimited
-        val name = spaceDelimited("<name>").parsed match {
-          case List(name) => name
-          case _ =>
-            throw new IllegalArgumentException("Expected one argument.")
-        }
-        Def.task {
-          (Benchmark / testOnly).toTask(" -- -z " + name).value
-        }
-      }.evaluated,
-      Benchmark / parallelExecution := false
-    )
-
-lazy val `parser-service` = (project in file("lib/scala/parser-service"))
-  .dependsOn(syntax.jvm)
-  .settings(
-    libraryDependencies ++= akka ++ akkaTest,
-    mainClass := Some("org.enso.ParserServiceMain")
-  )
-
-lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
-  .dependsOn(syntax.jvm)
-  .dependsOn(cli)
-  .dependsOn(`version-output`)
-  .dependsOn(`polyglot-api`)
-  .configs(Benchmark)
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "commons-cli" % "commons-cli" % commonsCliVersion
-    ),
-    mainClass := Some("org.enso.docs.generator.Main"),
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / unmanagedSourceDirectories +=
-      baseDirectory.value.getParentFile / "bench" / "scala",
-    libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
-      "org.scalatest"     %% "scalatest"  % scalatestVersion  % Test
-    ),
-    testFrameworks := List(
-      new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
-    ),
-    bench := (Benchmark / test).tag(Exclusive).value
   )
 
 lazy val `text-buffer` = project
@@ -777,7 +636,7 @@ lazy val `syntax-rust-definition` = project
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
-  .dependsOn(logger.jvm)
+  .dependsOn(logger)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -871,8 +730,8 @@ lazy val `logging-service` = project
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaStream,
       akkaHttp,
-      "io.circe"              %%% "circe-core"      % circeVersion,
-      "io.circe"              %%% "circe-parser"    % circeVersion,
+      "io.circe"               %% "circe-core"      % circeVersion,
+      "io.circe"               %% "circe-parser"    % circeVersion,
       "junit"                   % "junit"           % junitVersion     % Test,
       "com.novocode"            % "junit-interface" % "0.11"           % Test exclude ("junit", "junit-dep"),
       "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
@@ -997,8 +856,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
-        staticOnLinux       = true,
-        initializeAtRuntime = Seq("scala.util.Random")
+        staticOnLinux = true,
+        initializeAtRuntime = Seq(
+          "scala.util.Random",
+          "zio.internal.ZScheduler$$anon$4",
+          "zio.Runtime$",
+          "zio.FiberRef$"
+        )
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(installNativeImage)
@@ -1253,7 +1117,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
-  .dependsOn(`docs-generator`)
   .dependsOn(`profiling-utils`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
@@ -1281,7 +1144,7 @@ val distributionEnvironmentOverrides = {
   )
 }
 
-val frgaalSourceLevel = "19"
+val frgaalSourceLevel = FrgaalJavaCompiler.sourceLevel
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 11
@@ -1517,9 +1380,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(pkg)
   .dependsOn(`edition-updater`)
   .dependsOn(`connected-lock-manager`)
-  .dependsOn(syntax.jvm)
+  .dependsOn(syntax)
   .dependsOn(`syntax-rust-definition`)
-  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
 lazy val `runtime-instrument-id-execution` =
@@ -1725,7 +1587,8 @@ lazy val `engine-runner` = project
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
           "io.methvin.watchservice.jna.CarbonAPI",
-          "org.enso.syntax2.Parser"
+          "org.enso.syntax2.Parser",
+          "zio.internal.ZScheduler$$anon$4"
         )
       )
       .dependsOn(installNativeImage)
@@ -2176,7 +2039,7 @@ lazy val `std-database` = project
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.xerial"          % "sqlite-jdbc"             % "3.36.0.3",
+      "org.xerial"          % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"      % "postgresql"              % "42.4.0",
       "com.amazon.redshift" % "redshift-jdbc42"         % "2.1.0.9",
       "com.amazonaws"       % "aws-java-sdk-core"       % "1.12.273",
@@ -2257,7 +2120,32 @@ buildEngineDistribution := {
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
     targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = true
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val buildEngineDistributionNoIndex =
+  taskKey[Unit]("Builds the engine distribution without generating indexes")
+buildEngineDistributionNoIndex := {
+  val _ = (`engine-runner` / assembly).value
+  updateLibraryManifests.value
+  val root         = engineDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    graalVersion        = graalVersion,
+    javaVersion         = javaVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = false
   )
   log.info(s"Engine package created at $root")
 }
@@ -2274,8 +2162,9 @@ runEngineDistribution := {
   )
 }
 
+val allStdBitsSuffix = List("All", "AllWithIndex")
 val stdBitsProjects =
-  List("Base", "Database", "Google_Api", "Image", "Table", "All")
+  List("Base", "Database", "Google_Api", "Image", "Table") ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
@@ -2305,10 +2194,12 @@ buildStdLib := Def.inputTaskDyn {
 
 lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
 pkgStdLibInternal := Def.inputTask {
-  val cmd             = allStdBits.parsed
-  val root            = engineDistributionRoot.value
-  val log: sbt.Logger = streams.value.log
-  val cacheFactory    = streams.value.cacheStoreFactory
+  val cmd               = allStdBits.parsed
+  val root              = engineDistributionRoot.value
+  val log: sbt.Logger   = streams.value.log
+  val cacheFactory      = streams.value.cacheStoreFactory
+  val standardNamespace = "Standard"
+  val buildAllCmd       = allStdBitsSuffix.contains(cmd)
   cmd match {
     case "Base" =>
       (`std-base` / Compile / packageBin).value
@@ -2322,7 +2213,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
-    case "All" =>
+    case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
@@ -2332,13 +2223,14 @@ pkgStdLibInternal := Def.inputTask {
     case _ =>
   }
   val libs =
-    if (cmd != "All") Seq(cmd)
+    if (!buildAllCmd) Seq(cmd)
     else {
-      val prefix = "Standard."
+      val prefix = s"$standardNamespace."
       Editions.standardLibraries
         .filter(_.startsWith(prefix))
         .map(_.stripPrefix(prefix))
     }
+  val generateIndex = cmd.endsWith("WithIndex")
   libs.foreach { lib =>
     StdBits.buildStdLibPackage(
       lib,
@@ -2347,6 +2239,18 @@ pkgStdLibInternal := Def.inputTask {
       log,
       defaultDevEnsoVersion
     )
+    if (generateIndex) {
+      val stdlibStandardRoot = root / "lib" / standardNamespace
+      DistributionPackage.indexStdLib(
+        libMajor       = stdlibStandardRoot,
+        libName        = stdlibStandardRoot / lib,
+        stdLibVersion  = defaultDevEnsoVersion,
+        ensoVersion    = defaultDevEnsoVersion,
+        ensoExecutable = root / "bin" / "enso",
+        cacheFactory   = cacheFactory.sub("stdlib"),
+        log            = log
+      )
+    }
   }
 }.evaluated
 

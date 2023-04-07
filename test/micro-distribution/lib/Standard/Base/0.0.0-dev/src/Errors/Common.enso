@@ -1,0 +1,27 @@
+@Builtin_Type
+type Syntax_Error
+    Error message
+
+@Builtin_Type
+type Arithmetic_Error
+    Error message
+
+@Builtin_Type
+type Type_Error
+    Error expected actual name
+
+@Builtin_Type
+type Compile_Error
+    Error message
+
+@Builtin_Type
+type Inexhaustive_Pattern_Match
+    Error scrutinee
+
+@Builtin_Type
+type Arity_Error
+    Error expected_min expected_max actual
+
+@Builtin_Type
+type Forbidden_Operation
+    Error operation

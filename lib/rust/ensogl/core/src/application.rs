@@ -89,7 +89,8 @@ impl Application {
         let scene = &display.default_scene;
         scene.display_in(dom);
         let commands = command::Registry::create();
-        let shortcuts = shortcut::Registry::new(&scene.mouse.frp, &scene.keyboard.frp, &commands);
+        let shortcuts =
+            shortcut::Registry::new(&scene.mouse.frp_deprecated, &scene.keyboard.frp, &commands);
         let views = view::Registry::create(&display, &commands, &shortcuts);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
@@ -105,13 +106,13 @@ impl Application {
         let data = &self.inner;
         let network = self.frp.network();
         enso_frp::extend! { network
+            eval self.display.default_scene.frp.focused ((t) data.show_system_cursor(!t));
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
             eval_ frp.private.input.show_system_cursor(data.show_system_cursor(true));
             eval_ frp.private.input.hide_system_cursor(data.show_system_cursor(false));
         }
         // We hide the system cursor to replace it with the EnsoGL-provided one.
         self.frp.hide_system_cursor();
-
         self
     }
 

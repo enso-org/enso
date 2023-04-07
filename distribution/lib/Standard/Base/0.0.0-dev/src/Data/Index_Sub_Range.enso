@@ -3,9 +3,9 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
-import project.Error.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Math
 import project.Panic.Panic
 import project.Random
@@ -115,6 +115,7 @@ invert_range_selection ranges length needs_sorting =
    merged.
 
    Empty subranges are discarded.
+sort_and_merge_ranges : Vector Range -> Vector Range
 sort_and_merge_ranges ranges =
     sorted = ranges.filter (range-> range.is_empty.not) . sort on=(.start)
     if sorted.is_empty then [] else

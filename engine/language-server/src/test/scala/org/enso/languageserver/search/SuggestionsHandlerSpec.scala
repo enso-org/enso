@@ -3,9 +3,7 @@ package org.enso.languageserver.search
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.docs.generator.DocsGenerator
-import org.enso.docs.sections.DocSectionsBuilder
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -13,8 +11,6 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
-import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.data.{Tree, TypeGraph}
@@ -58,7 +54,7 @@ class SuggestionsHandlerSpec
 
   "SuggestionsHandler" should {
 
-    "subscribe to notification updates" /*taggedAs Retry*/ in withDb {
+    "subscribe to notification updates" taggedAs Retry in withDb {
       (_, _, _, _, handler) =>
         val clientId = UUID.randomUUID()
 
@@ -344,7 +340,7 @@ class SuggestionsHandlerSpec
           DeliverToJsonController(
             clientId,
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              (updates1.size + updates2.size).toLong,
+              (updates1.size + updates2.size).toLong - 1,
               updates2
             )
           )
@@ -364,20 +360,16 @@ class SuggestionsHandlerSpec
 
         val moduleName = "Test.Foo"
         val fooAtom = Suggestion.Constructor(
-          externalId            = None,
-          module                = moduleName,
-          name                  = "Foo",
-          arguments             = Vector(),
-          returnType            = moduleName,
-          documentation         = None,
-          documentationHtml     = None,
-          documentationSections = None
+          externalId    = None,
+          module        = moduleName,
+          name          = "Foo",
+          arguments     = Vector(),
+          returnType    = moduleName,
+          documentation = None
         )
         val module = Suggestion.Module(
-          module                = moduleName,
-          documentation         = None,
-          documentationHtml     = None,
-          documentationSections = None
+          module        = moduleName,
+          documentation = None
         )
 
         val tree = Tree.Root(
@@ -723,16 +715,13 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(0, Seq()))
     }
 
-    "get suggestions database" taggedAs Retry in withDb {
+    "get suggestions database return empty result" taggedAs Retry in withDb {
       (_, repo, _, _, handler) =>
         Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(
-          SearchProtocol.GetSuggestionsDatabaseResult(
-            1,
-            Seq(SuggestionDatabaseEntry(1L, Suggestions.constructor))
-          )
+          SearchProtocol.GetSuggestionsDatabaseResult(1, Seq())
         )
     }
 
@@ -751,89 +740,6 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
     }
 
-    "rename module when renaming project" taggedAs Retry in withDb {
-      (_, repo, router, _, handler) =>
-        Await.ready(repo.insert(Suggestions.constructor), Timeout)
-        val clientId      = UUID.randomUUID()
-        val newModuleName = "Vest"
-
-        // acquire capability
-        handler ! AcquireCapability(
-          newJsonSession(clientId),
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
-        )
-        expectMsg(CapabilityAcquired)
-
-        handler ! ProjectNameChangedEvent("Test", newModuleName)
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              2,
-              Seq(
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id     = 1,
-                  module = Some(fieldUpdate("local.Vest.Main"))
-                )
-              )
-            )
-          )
-        )
-    }
-
-    "rename types when renaming project" taggedAs Retry in withDb {
-      (_, repo, router, _, handler) =>
-        val method = Suggestions.method.copy(
-          selfType = "local.Test.MyType",
-          arguments = Suggestions.method.arguments.map(arg =>
-            arg.copy(reprType = "local.Test.MyType")
-          )
-        )
-        Await.ready(repo.insert(method), Timeout)
-        val clientId      = UUID.randomUUID()
-        val newModuleName = "Vest"
-
-        // acquire capability
-        handler ! AcquireCapability(
-          newJsonSession(clientId),
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
-        )
-        expectMsg(CapabilityAcquired)
-
-        handler ! ProjectNameChangedEvent("Test", newModuleName)
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              2,
-              Seq(
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id     = 1,
-                  module = Some(fieldUpdate("local.Vest.Main"))
-                ),
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id       = 1,
-                  selfType = Some(fieldUpdate("local.Vest.MyType"))
-                ),
-                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
-                  id = 1,
-                  arguments = Some(
-                    method.arguments.zipWithIndex.map { case (_, index) =>
-                      SearchProtocol.SuggestionArgumentUpdate.Modify(
-                        index    = index,
-                        reprType = Some(fieldUpdate("local.Vest.MyType"))
-                      )
-                    }
-                  )
-                )
-              )
-            )
-          )
-        )
-    }
-
     "search entries by empty search query" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
         val (_, inserted) =
@@ -843,20 +749,21 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = None,
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            Suggestions.all.length.toLong,
+            1L,
             Seq(
-              inserted(0).get,
-              inserted(1).get,
-              inserted(2).get,
-              inserted(6).get,
-              inserted(7).get,
-              inserted(8).get,
-              inserted(3).get
+              inserted(0),
+              inserted(1),
+              inserted(2),
+              inserted(6),
+              inserted(7),
+              inserted(8),
+              inserted(3)
             )
           )
         )
@@ -871,13 +778,14 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("MyType"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            Suggestions.all.length.toLong,
-            Seq(methodId, methodOnAnyId).flatten
+            1L,
+            Seq(methodId, methodOnAnyId)
           )
         )
     }
@@ -895,13 +803,14 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("Integer"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            Suggestions.all.length.toLong,
-            Seq(integerMethodId, numberMethodId, anyMethodId).flatten
+            1L,
+            Seq(integerMethodId, numberMethodId, anyMethodId)
           )
         )
     }
@@ -916,13 +825,14 @@ class SuggestionsHandlerSpec
           position   = Position(0, 0),
           selfType   = Some("Any"),
           returnType = None,
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            Suggestions.all.length.toLong,
-            Seq(anyMethodId).flatten
+            1L,
+            Seq(anyMethodId)
           )
         )
     }
@@ -936,13 +846,14 @@ class SuggestionsHandlerSpec
           position   = Position(1, 10),
           selfType   = None,
           returnType = Some("IO"),
-          tags       = None
+          tags       = None,
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            Suggestions.all.length.toLong,
-            Seq(functionId).flatten
+            1L,
+            Seq(functionId)
           )
         )
     }
@@ -956,13 +867,47 @@ class SuggestionsHandlerSpec
           position   = Position(42, 0),
           selfType   = None,
           returnType = None,
-          tags       = Some(Seq(SearchProtocol.SuggestionKind.Local))
+          tags       = Some(Seq(SearchProtocol.SuggestionKind.Local)),
+          isStatic   = None
         )
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            Suggestions.all.length.toLong,
-            Seq(localId).flatten
+            1L,
+            Seq(localId)
+          )
+        )
+    }
+
+    "search entries by static attribute" taggedAs Retry in withDb {
+      (config, repo, _, _, handler) =>
+        val all = Seq(
+          Suggestions.module,
+          Suggestions.tpe,
+          Suggestions.constructor,
+          Suggestions.method.copy(isStatic = true),
+          Suggestions.function,
+          Suggestions.local,
+          Suggestions.methodOnAny,
+          Suggestions.methodOnNumber,
+          Suggestions.methodOnInteger
+        )
+
+        val (_, Seq(_, _, _, methodId, _, _, _, _, _)) =
+          Await.result(repo.insertAll(all), Timeout)
+        handler ! SearchProtocol.Completion(
+          file       = mkModulePath(config, "Main.enso"),
+          position   = Position(42, 0),
+          selfType   = None,
+          returnType = None,
+          tags       = None,
+          isStatic   = Some(true)
+        )
+
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            1L,
+            Seq(methodId)
           )
         )
     }
@@ -1059,6 +1004,7 @@ class SuggestionsHandlerSpec
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
       ProfilingConfig(),
+      StartupConfig(),
       None
     )
   }
@@ -1128,9 +1074,10 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    val router          = TestProbe("session-router")
-    val connector       = TestProbe("runtime-connector")
-    val sqlDatabase     = SqlDatabase.inmem("testdb")
+    val router      = TestProbe("session-router")
+    val connector   = TestProbe("runtime-connector")
+    val sqlDatabase = SqlDatabase.inmem("testdb")
+    sqlDatabase.open()
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
     val handler = newInitializedSuggestionsHandler(
@@ -1150,11 +1097,6 @@ class SuggestionsHandlerSpec
 
   object TestSuggestion {
 
-    val htmlDocsGenerator: DocsGenerator =
-      DocsGenerator
-    val docSectionsBuilder: DocSectionsBuilder =
-      DocSectionsBuilder()
-
     val atom: Suggestion.Constructor =
       Suggestion.Constructor(
         externalId = None,
@@ -1164,24 +1106,20 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType            = "Pair",
-        documentation         = Some("Awesome"),
-        documentationHtml     = Some(htmlDocsGenerator.generate("Awesome", "Pair")),
-        documentationSections = Some(docSectionsBuilder.build("Awesome"))
+        returnType    = "Pair",
+        documentation = Some("Awesome")
       )
 
     val method: Suggestion.Method =
       Suggestion.Method(
-        externalId            = Some(UUID.randomUUID()),
-        module                = "Test.Main",
-        name                  = "main",
-        arguments             = Seq(),
-        selfType              = "Test.Main",
-        returnType            = "IO",
-        isStatic              = true,
-        documentation         = None,
-        documentationHtml     = None,
-        documentationSections = None
+        externalId    = Some(UUID.randomUUID()),
+        module        = "Test.Main",
+        name          = "main",
+        arguments     = Seq(),
+        selfType      = "Test.Main",
+        returnType    = "IO",
+        isStatic      = true,
+        documentation = None
       )
   }
 

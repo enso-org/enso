@@ -8,6 +8,7 @@ use crate::system::web;
 use crate::types::unit2::Duration;
 
 use enso_callback as callback;
+use frp::microtasks::TickPhases;
 use web::Closure;
 
 
@@ -204,7 +205,7 @@ pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
 pub struct LoopRegistry {
     #[deref]
     frp:            Frp,
-    callbacks:      callback::registry::NoArgs,
+    callbacks:      callback::registry::Copy1<Duration>,
     animation_loop: JsLoop<OnFrameClosure>,
 }
 
@@ -222,49 +223,63 @@ impl LoopRegistry {
     }
 }
 
-fn create_callback_wrapper(mut callback: impl OnFrameCallback) -> impl FnMut() {
-    let js_performance = web::window.performance_or_panic();
-    let mut is_initialized = false;
-    let mut time_info = TimeInfo::default();
-    move || {
-        let current_time = (js_performance.now() as f32).ms();
-        let prev_time = time_info;
+fn create_callback_wrapper(mut callback: impl OnFrameCallback) -> impl FnMut(Duration) {
+    let mut time_info = InitializedTimeInfo::default();
+    move |current_time: Duration| callback(time_info.next_frame(current_time))
+}
+
+#[derive(Default)]
+struct InitializedTimeInfo {
+    is_initialized: bool,
+    time_info:      TimeInfo,
+}
+
+impl InitializedTimeInfo {
+    fn next_frame(&mut self, current_time: Duration) -> TimeInfo {
+        let prev_time = self.time_info;
         let prev_start = prev_time.animation_loop_start;
-        let animation_loop_start = if is_initialized { prev_start } else { current_time };
+        let animation_loop_start = if self.is_initialized { prev_start } else { current_time };
         let since_animation_loop_started = current_time - animation_loop_start;
         let previous_frame = since_animation_loop_started - prev_time.since_animation_loop_started;
         let time = TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
-        time_info = time;
-        is_initialized = true;
-        callback(time);
+        self.time_info = time;
+        self.is_initialized = true;
+        time
     }
 }
+
 
 /// Callback for an animation frame.
 pub type OnFrameClosure = impl FnMut(Duration);
-fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::NoArgs) -> OnFrameClosure {
-    let on_frame_start = frp.private.output.on_frame_start.clone_ref();
-    let frame_end = frp.private.output.frame_end.clone_ref();
-    let on_before_animations = frp.private.output.on_before_animations.clone_ref();
-    let on_after_animations = frp.private.output.on_after_animations.clone_ref();
-    let on_before_rendering = frp.private.output.on_before_rendering.clone_ref();
-    let mut frame_end_fn = create_callback_wrapper(move |t| frame_end.emit(t));
-    let mut before_animations_fn = create_callback_wrapper(move |t| on_before_animations.emit(t));
-    let mut after_animations_fn = create_callback_wrapper(move |t| on_after_animations.emit(t));
-    let mut before_rendering_fn = create_callback_wrapper(move |t| on_before_rendering.emit(t));
+fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::Copy1<Duration>) -> OnFrameClosure {
     let callbacks = callbacks.clone_ref();
-    move |t: Duration| {
+    let output = frp.private.output.clone_ref();
+
+    let mut time_info = InitializedTimeInfo::default();
+    let h_cell = Rc::new(Cell::new(callback::Handle::default()));
+    move |frame_time: Duration| {
+        let time_info = time_info.next_frame(frame_time);
+        let on_frame_start = output.on_frame_start.clone_ref();
+        let on_before_animations = output.on_before_animations.clone_ref();
+        let on_after_animations = output.on_after_animations.clone_ref();
+        let frame_end = output.frame_end.clone_ref();
+        let output = output.clone_ref();
+        let callbacks = callbacks.clone_ref();
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
-        on_frame_start.emit(t);
-        before_animations_fn();
-        callbacks.run_all();
-        after_animations_fn();
-        before_rendering_fn();
-        frame_end_fn();
+
+        TickPhases::new(&h_cell)
+            .then(move || on_frame_start.emit(frame_time))
+            .then(move || on_before_animations.emit(time_info))
+            .then(move || callbacks.run_all(frame_time))
+            .then(move || on_after_animations.emit(time_info))
+            .then(move || frame_end.emit(time_info))
+            .then(move || {
+                output.on_before_rendering.emit(time_info);
+                drop(_profiler);
+            })
+            .schedule();
     }
 }
-
-
 
 // =============================
 // === FixedFrameRateSampler ===

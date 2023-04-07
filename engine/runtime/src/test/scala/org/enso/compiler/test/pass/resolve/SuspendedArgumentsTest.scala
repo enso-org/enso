@@ -210,7 +210,7 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       val ir =
         """
-          |f : a -> Suspended -> b
+          |f : A -> Suspended -> B
           |f a b = b
           |""".stripMargin.preprocessExpression.get.resolve
           .asInstanceOf[IR.Expression.Block]

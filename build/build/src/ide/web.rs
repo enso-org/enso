@@ -138,8 +138,8 @@ pub enum Workspaces {
 impl AsRef<OsStr> for Workspaces {
     fn as_ref(&self) -> &OsStr {
         match self {
-            Workspaces::Icons => OsStr::new("enso-studio-icons"),
-            Workspaces::Content => OsStr::new("enso-studio-content"),
+            Workspaces::Icons => OsStr::new("enso-icons"),
+            Workspaces::Content => OsStr::new("enso-content"),
             Workspaces::Enso => OsStr::new("enso"),
         }
     }
@@ -393,7 +393,7 @@ impl IdeDesktop {
         let icons_build = self.build_icons(&icons_dist);
         let (icons, _content) = try_join(icons_build, client_build).await?;
 
-        let python_path = if TARGET_OS == OS::MacOS {
+        let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
             // On macOS electron-builder will fail during DMG creation if there is no python2
             // installed. It is looked for in `/usr/bin/python` which is not valid place on newer
             // MacOS versions.

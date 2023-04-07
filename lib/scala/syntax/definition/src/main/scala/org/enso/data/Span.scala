@@ -1,7 +1,5 @@
 package org.enso.data
 
-import org.enso.syntax.text.AST
-
 /** Strongly typed span in a container. */
 case class Span(index: Index, size: Size) extends Ordered[Span] {
 
@@ -14,10 +12,6 @@ case class Span(index: Index, size: Size) extends Ordered[Span] {
 }
 
 object Span {
-
-  def apply(pos: Index, ast: AST): Span =
-    Span(pos, Size(ast.span))
-
   def apply(text: String): Span =
     Span(Index.Start, Size(text))
 

@@ -3,7 +3,6 @@ package org.enso.compiler.test.core.ir
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.DiagnosticStorage
 import org.enso.compiler.test.CompilerTest
-import org.enso.syntax.text.AST
 
 class DiagnosticStorageTest extends CompilerTest {
 
@@ -80,8 +79,7 @@ class DiagnosticStorageTest extends CompilerTest {
     }
 
     "collecting across the diagnostics to produce a new sequence" in {
-      val err =
-        IR.Error.Syntax(AST.Blank(), IR.Error.Syntax.UnsupportedSyntax("aa"))
+      val err = IR.Error.Syntax(null, IR.Error.Syntax.UnsupportedSyntax("aa"))
 
       val diagnostics = new DiagnosticStorage(
         List(

@@ -1,20 +1,24 @@
 //! Definition of the `ActionBar` component for the `visualization::Container`.
 
-
-
-mod icon;
-
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use enso_config::ARGS;
 use enso_frp as frp;
+use ensogl::application::tooltip;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ColorableShape;
 use ensogl_component::toggle_button::ToggleButton;
 use ensogl_hardcoded_theme as theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod icon;
 
 
 
@@ -27,6 +31,9 @@ const BUTTON_OFFSET: f32 = 0.5;
 /// Grow the hover area in x direction by this amount. Used to close the gap between action
 /// icons and node.
 const HOVER_EXTENSION_X: f32 = 15.0;
+const FREEZE_TOOLTIP_LABEL: &str = "Freeze";
+const SKIP_TOOLTIP_LABEL: &str = "Skip";
+const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
 
 
 // ===============
@@ -38,6 +45,7 @@ mod hover_area {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style: Style, corner_radius: f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -89,11 +97,11 @@ struct Icons {
 }
 
 impl Icons {
-    fn new() -> Self {
+    fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
-        let freeze = ToggleButton::new();
-        let visibility = ToggleButton::new();
-        let skip = ToggleButton::new();
+        let freeze = labeled_button(app, FREEZE_TOOLTIP_LABEL);
+        let visibility = labeled_button(app, VISIBILITY_TOOLTIP_LABEL);
+        let skip = labeled_button(app, SKIP_TOOLTIP_LABEL);
         display_object.add_child(&visibility);
         if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             display_object.add_child(&freeze);
@@ -113,6 +121,11 @@ impl display::Object for Icons {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
+}
+
+fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> ToggleButton<Icon> {
+    let tooltip_style = tooltip::Style::set_label(label.to_owned());
+    ToggleButton::new(app, tooltip_style)
 }
 
 
@@ -136,7 +149,7 @@ impl Model {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let hover_area = hover_area::View::new();
-        let icons = Icons::new();
+        let icons = Icons::new(app);
         let shapes = compound::events::MouseEvents::default();
         let size = default();
         let styles = StyleWatch::new(&scene.style_sheet);
@@ -322,5 +335,41 @@ impl ActionBar {
 impl display::Object for ActionBar {
     fn display_object(&self) -> &display::object::Instance {
         self.model.display_object()
+    }
+}
+
+
+
+// ============
+// === Test ===
+// ============
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_tooltips() {
+        let app = Application::new("root");
+        let action_bar = ActionBar::new(&app);
+        let visibility_icon = &action_bar.model.icons.visibility;
+
+        // By default, the tooltip shouldn't be shown
+        assert_eq!(app.frp.tooltip.value().content(), None);
+
+        // Move the mouse over the visibility button
+        visibility_icon.view().events_deprecated.mouse_over.emit(());
+
+        // We expect the button to be hovered by the mouse
+        assert!(visibility_icon.frp.is_hovered.value());
+
+        // We expect the tooltip to be shown now
+        assert_eq!(app.frp.tooltip.value().content(), Some("Show preview"));
+
+        // Move the mouse away again
+        visibility_icon.view().events_deprecated.mouse_out.emit(());
+
+        // We expect the tooltip to be gone
+        assert_eq!(app.frp.tooltip.value().content(), None);
     }
 }

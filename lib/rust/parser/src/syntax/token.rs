@@ -334,7 +334,7 @@ pub struct OperatorProperties {
     is_compile_time_operation: bool,
     is_right_associative:      bool,
     // Unique operators
-    can_be_decimal_operator:   bool,
+    is_decimal:                bool,
     is_type_annotation:        bool,
     is_assignment:             bool,
     is_arrow:                  bool,
@@ -343,6 +343,7 @@ pub struct OperatorProperties {
     is_annotation:             bool,
     is_dot:                    bool,
     is_special:                bool,
+    is_token_joiner:           bool,
 }
 
 impl OperatorProperties {
@@ -377,6 +378,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as special.
     pub fn as_special(self) -> Self {
         Self { is_special: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the token-joiner operator.
+    pub fn as_token_joiner(self) -> Self {
+        Self { is_token_joiner: true, ..self }
     }
 
     /// Return a copy of this operator, modified to have the specified LHS operator-section/
@@ -421,9 +427,9 @@ impl OperatorProperties {
         Self { is_dot: true, ..self }
     }
 
-    /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
-    pub fn with_decimal_interpretation(self) -> Self {
-        Self { can_be_decimal_operator: true, ..self }
+    /// Return a copy of this operator, modified to be interpreted as a decimal point.
+    pub fn as_decimal(self) -> Self {
+        Self { is_decimal: true, ..self }
     }
 
     /// Return this operator's binary infix precedence, if it has one.
@@ -486,6 +492,11 @@ impl OperatorProperties {
         self.is_dot
     }
 
+    /// Return whether this operator is the token-joiner operator.
+    pub fn is_token_joiner(&self) -> bool {
+        self.is_token_joiner
+    }
+
     /// Return this operator's associativity.
     pub fn associativity(&self) -> Associativity {
         match self.is_right_associative {
@@ -494,9 +505,9 @@ impl OperatorProperties {
         }
     }
 
-    /// Return whether this operator can be interpreted as a decimal point.
-    pub fn can_be_decimal_operator(&self) -> bool {
-        self.can_be_decimal_operator
+    /// Return whether this operator is a decimal point.
+    pub fn is_decimal(&self) -> bool {
+        self.is_decimal
     }
 }
 
@@ -532,6 +543,11 @@ impl Precedence {
     /// Return the precedence of unary minus.
     pub fn unary_minus() -> Self {
         Precedence { value: 79 }
+    }
+
+    /// Return the precedence of unary minus when applied to a numeric literal.
+    pub fn unary_minus_numeric_literal() -> Self {
+        Precedence { value: 80 }
     }
 }
 

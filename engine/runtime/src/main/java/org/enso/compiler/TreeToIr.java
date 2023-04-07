@@ -112,10 +112,21 @@ final class TreeToIr {
         for (Line statement : b.getStatements()) {
           Tree exprTree = statement.getExpression();
           IR.Expression expr = switch (exprTree) {
+            case null -> null;
             case Tree.Export x -> null;
             case Tree.Import x -> null;
             case Tree.Invalid x -> null;
-            case null -> null;
+            case Tree.TypeSignature sig -> {
+              IR.Expression methodReference;
+              try {
+                methodReference = translateMethodReference(sig.getVariable(), true);
+              } catch (SyntaxException ex) {
+                methodReference = translateExpression(sig.getVariable());
+              }
+              var signature = translateType(sig.getType(), false);
+              var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+              yield ascription;
+            }
             default -> translateExpression(exprTree);
           };
           if (expr != null) {
@@ -125,37 +136,37 @@ final class TreeToIr {
             }
           }
         }
-        if (expressions.size() == 0) {
-          yield Option.empty();
-        } else if (expressions.size() == 1) {
-          yield Option.apply(expressions.apply(0));
-        } else {
-          Option<IdentifiedLocation> combinedLocation;
-          if (locations.isEmpty()) {
-            combinedLocation = Option.empty();
-          } else {
-            combinedLocation = Option.apply(
-                new IdentifiedLocation(
-                    new Location(
-                      locations.get(1).start(),
-                      locations.get(locations.size() - 1).end()
-                    ),
-                    Option.empty()
-                )
-            );
+        yield switch (expressions.size()) {
+          case 0 -> Option.empty();
+          case 1 -> Option.apply(expressions.head());
+          default -> {
+            Option<IdentifiedLocation> combinedLocation;
+            if (locations.isEmpty()) {
+              combinedLocation = Option.empty();
+            } else {
+              combinedLocation = Option.apply(
+                      new IdentifiedLocation(
+                              new Location(
+                                      locations.get(1).start(),
+                                      locations.get(locations.size() - 1).end()
+                              ),
+                              Option.empty()
+                      )
+              );
+            }
+            var returnValue = expressions.head();
+            @SuppressWarnings("unchecked")
+            var statements = ((List<IR.Expression>) expressions.tail()).reverse();
+            yield Option.apply(new IR$Expression$Block(
+              statements,
+              returnValue,
+              combinedLocation,
+              false,
+              meta(),
+              diag()
+            ));
           }
-
-          yield Option.apply(
-              new IR$Expression$Block(
-                  expressions,
-                  expressions.last(),
-                  combinedLocation,
-                  false,
-                  meta(),
-                  diag()
-              )
-          );
-        }
+        };
       }
       default -> {
         throw new IllegalStateException();
@@ -272,7 +283,7 @@ final class TreeToIr {
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body, body.getElements(), true);
+        var text = buildTextConstant(body, body.getElements());
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Module$Scope$Definition$Method$Binding(
                 methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
@@ -417,7 +428,7 @@ final class TreeToIr {
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body, body.getElements(), true);
+        var text = buildTextConstant(body, body.getElements());
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), true, meta(), diag());
         yield cons(binding, appendTo);
@@ -516,10 +527,16 @@ final class TreeToIr {
             block.copy$default$7()
           );
         }
+        if (body == null) {
+          body = translateSyntaxError(fun, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         return new IR$Expression$Binding(name, body,
           getIdentifiedLocation(fun), meta(), diag()
         );
       } else {
+        if (body == null) {
+          return translateSyntaxError(fun, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
+        }
         return new IR$Function$Binding(name, args, body,
           getIdentifiedLocation(fun), true, meta(), diag()
         );
@@ -746,8 +763,7 @@ final class TreeToIr {
             );
             var loc = getIdentifiedLocation(app);
             if (lhs == null && rhs == null) {
-              // AstToIr doesn't emit a location in this case.
-              yield new IR$Application$Operator$Section$Sides(name, Option.empty(), meta(), diag());
+              yield new IR$Application$Operator$Section$Sides(name, loc, meta(), diag());
             } else if (lhs == null) {
               yield new IR$Application$Operator$Section$Right(name, rhs, loc, meta(), diag());
             } else if (rhs == null) {
@@ -843,6 +859,9 @@ final class TreeToIr {
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
         var expr = translateExpression(assign.getExpr(), false);
+        if (expr == null) {
+          expr = translateSyntaxError(assign, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         yield new IR$Expression$Binding(name, expr, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.ArgumentBlockApplication body -> {
@@ -937,9 +956,7 @@ final class TreeToIr {
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
         switch (translateExpression(un.getRhs(), false)) {
-          // AstToIr doesn't construct negative floating-point literals.
-          // Match that behavior for testing during the transition.
-          case IR$Literal$Number n when !n.copy$default$2().contains(".") -> n.copy(
+          case IR$Literal$Number n -> n.copy(
             n.copy$default$1(),
             "-" + n.copy$default$2(),
             n.copy$default$3(),
@@ -1206,37 +1223,16 @@ final class TreeToIr {
   }
 
   IR.Literal translateLiteral(Tree.TextLiteral txt) throws SyntaxException {
-    var stripComments = txt.getOpen().codeRepr().length() > 1;
     // Splices are not yet supported in the IR.
-    var value = buildTextConstant(txt, txt.getElements(), stripComments);
+    var value = buildTextConstant(txt, txt.getElements());
     return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
-  String buildTextConstant(Tree at, Iterable<TextElement> elements, boolean stripComments) throws SyntaxException {
+  String buildTextConstant(Tree at, Iterable<TextElement> elements) throws SyntaxException {
     var sb = new StringBuilder();
     TextElement error = null;
     for (var t : elements) {
       switch (t) {
-        case TextElement.Section s -> {
-          var text = s.getText().codeRepr();
-          if (stripComments) {
-            // Reproduce an AstToIr bug for testing.
-            var quotedSegments = text.split("\"", -1);
-            for (int i = 0; i < quotedSegments.length; i++) {
-              var seg = quotedSegments[i];
-              if (i % 2 == 0) {
-                sb.append(seg.replaceAll("#[^\n\r]*", ""));
-              } else {
-                sb.append('"');
-                sb.append(seg);
-                if (i + 1 < quotedSegments.length) {
-                  sb.append('"');
-                }
-              }
-            }
-          } else {
-            sb.append(text);
-          }
-        }
+        case TextElement.Section s -> sb.append(s.getText().codeRepr());
         case TextElement.Escape e -> {
           var val = e.getToken().getValue();
           if (val == -1) {
@@ -1592,21 +1588,17 @@ final class TreeToIr {
     * @return the [[IR]] representation of `comment`
     */
   IR$Comment$Documentation translateComment(Tree where, DocComment doc) throws SyntaxException {
-    var text = buildTextConstant(where, doc.getElements(), true);
+    var text = buildTextConstant(where, doc.getElements());
     return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
   }
 
   IR$Error$Syntax translateSyntaxError(Tree where, IR$Error$Syntax$Reason reason) {
-    var at = getIdentifiedLocation(where);
-    if (at.isEmpty()) {
-      return new IR$Error$Syntax(where, reason, meta(), diag());
-    } else {
-      return new IR$Error$Syntax(at.get(), reason, meta(), diag()).setLocation(at);
-    }
+    var at = getIdentifiedLocation(where).get();
+    return new IR$Error$Syntax(at, reason, meta(), diag());
   }
 
   IR$Error$Syntax translateSyntaxError(IdentifiedLocation where, IR$Error$Syntax$Reason reason) {
-      return new IR$Error$Syntax(where, reason, meta(), diag());
+    return new IR$Error$Syntax(where, reason, meta(), diag());
   }
 
   SyntaxException translateEntity(Tree where, String msg) throws SyntaxException {

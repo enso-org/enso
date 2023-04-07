@@ -1603,6 +1603,7 @@ dependencies = [
 name = "debug-scene-documentation"
 version = "0.1.0"
 dependencies = [
+ "enso-doc-parser",
  "enso-suggestion-database",
  "ensogl",
  "ensogl-hardcoded-theme",
@@ -1620,6 +1621,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ide-view-component-list-panel-grid",
  "ide-view-component-list-panel-icons",
+ "ide-view-graph-editor",
  "wasm-bindgen",
 ]
 
@@ -2101,6 +2103,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-doc-parser"
+version = "0.1.0"
+dependencies = [
+ "enso-metamodel",
+ "enso-metamodel-lexpr",
+ "enso-parser",
+ "enso-prelude",
+ "enso-profiler",
+ "enso-reflect",
+ "lexpr",
+]
+
+[[package]]
 name = "enso-executor"
 version = "0.1.0"
 dependencies = [
@@ -2162,6 +2177,7 @@ dependencies = [
  "enso-data-structures",
  "enso-debug-api",
  "enso-debug-scene",
+ "enso-doc-parser",
  "enso-executor",
  "enso-frp",
  "enso-notification",
@@ -2188,8 +2204,8 @@ dependencies = [
  "json-rpc",
  "mockall",
  "nalgebra",
+ "ordered-float",
  "parser",
- "parser-scala",
  "regex",
  "semver 1.0.16",
  "serde",
@@ -2520,6 +2536,7 @@ dependencies = [
  "double-representation",
  "engine-protocol",
  "enso-data-structures",
+ "enso-doc-parser",
  "enso-executor",
  "enso-notification",
  "enso-prelude",
@@ -2529,7 +2546,6 @@ dependencies = [
  "flo_stream",
  "futures 0.3.26",
  "parser",
- "parser-scala",
  "span-tree",
  "wasm-bindgen-test",
 ]
@@ -2692,7 +2708,9 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-prelude",
+ "enso-types",
  "enso-web",
+ "ensogl-core",
  "js-sys",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -2726,6 +2744,15 @@ dependencies = [
 
 [[package]]
 name = "ensogl-example-auto-layout"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-built-in-shapes"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
@@ -2824,6 +2851,18 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "itertools",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-instance-ordering"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "getrandom 0.2.8",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rand_distr",
  "wasm-bindgen",
 ]
 
@@ -2953,11 +2992,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-vector-editor"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
  "ensogl-example-animation",
  "ensogl-example-auto-layout",
+ "ensogl-example-built-in-shapes",
  "ensogl-example-cached-shape",
  "ensogl-example-complex-shape-system",
  "ensogl-example-custom-shape-system",
@@ -2967,6 +3016,7 @@ dependencies = [
  "ensogl-example-easing-animator",
  "ensogl-example-focus-management",
  "ensogl-example-grid-view",
+ "ensogl-example-instance-ordering",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
  "ensogl-example-profiling-run-graph",
@@ -2976,6 +3026,7 @@ dependencies = [
  "ensogl-example-sprite-system",
  "ensogl-example-sprite-system-benchmark",
  "ensogl-example-text-area",
+ "ensogl-example-vector-editor",
 ]
 
 [[package]]
@@ -4186,6 +4237,7 @@ dependencies = [
  "tar",
  "tempfile",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "tracing",
  "tracing-subscriber",
@@ -4238,10 +4290,16 @@ dependencies = [
 name = "ide-view-component-browser"
 version = "0.1.0"
 dependencies = [
+ "enso-frp",
  "enso-prelude",
+ "ensogl",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
  "ide-view-component-list-panel",
  "ide-view-component-list-panel-breadcrumbs",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
 ]
 
 [[package]]
@@ -4308,8 +4366,10 @@ name = "ide-view-documentation"
 version = "0.1.0"
 dependencies = [
  "double-representation",
+ "enso-doc-parser",
  "enso-frp",
  "enso-prelude",
+ "enso-profiler",
  "enso-suggestion-database",
  "ensogl",
  "ensogl-component",
@@ -5360,29 +5420,6 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid 0.8.2",
-]
-
-[[package]]
-name = "parser-scala"
-version = "0.1.0"
-dependencies = [
- "ast",
- "bytes 1.1.0",
- "console_error_panic_hook",
- "enso-prelude",
- "enso-profiler",
- "failure",
- "futures 0.3.26",
- "ide-ci",
- "js-sys",
- "matches",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "wasm-bindgen",
- "wasm-bindgen-test",
- "websocket",
 ]
 
 [[package]]
@@ -7069,9 +7106,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d660770404473ccd7bc9f8b28494a811bc18542b915c0855c51e8f419d5223ce"
+checksum = "8fb52b74f05dbf495a8fba459fdc331812b96aa086d9eb78101fa0d4569c3313"
 dependencies = [
  "futures-core",
  "pin-project-lite",

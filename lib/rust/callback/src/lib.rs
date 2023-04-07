@@ -40,6 +40,7 @@ pub use callback_types::*;
 
 /// Handle to a callback. When the handle is dropped, the callback is removed.
 #[derive(Clone, CloneRef, Debug, Default)]
+#[must_use]
 pub struct Handle {
     rc: Rc<()>,
 }
@@ -132,6 +133,14 @@ impl<F: ?Sized> Registry<F> {
     where F: FnMut<Args> {
         self.model.run_impl(args)
     }
+
+    /// Fires all registered callbacks once and removes them. You are allowed to change the registry
+    /// while a callback is running. The callbacks registered during this run will be executed next
+    /// time `run_once_impl` is called.
+    fn run_once_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
+    where F: FnOnce<Args> {
+        self.model.run_once_impl(args)
+    }
 }
 
 impl<F: ?Sized> RegistryModel<F> {
@@ -172,6 +181,25 @@ impl<F: ?Sized> RegistryModel<F> {
         }
         self.is_running.set(false);
     }
+
+    fn run_once_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
+    where F: FnOnce<Args> {
+        if self.is_running.get() {
+            error!("Trying to run callback manager while it's already running, ignoring.");
+            return;
+        }
+        self.is_running.set(true);
+        for (guard, callback) in self.callback_list.borrow_mut().drain(..) {
+            if !guard.is_expired() {
+                callback.call_once(args);
+            }
+        }
+        let mut callback_list_during_run = self.callback_list_during_run.borrow_mut();
+        if !callback_list_during_run.is_empty() {
+            self.callback_list.borrow_mut().extend(mem::take(&mut *callback_list_during_run));
+        }
+        self.is_running.set(false);
+    }
 }
 
 
@@ -205,6 +233,7 @@ pub mod registry {
     use super::*;
 
     pub type NoArgs = Registry<dyn FnMut()>;
+    pub type NoArgsOnce = Registry<dyn FnOnce()>;
 
     pub type Copy1<T1> = Registry<dyn FnMut(T1)>;
     pub type Copy2<T1, T2> = Registry<dyn FnMut(T1, T2)>;
@@ -330,6 +359,13 @@ pub mod traits {
             self.run_impl(())
         }
     }
+
+    impl RegistryRunner0 for registry::NoArgsOnce {
+        fn run_all(&self) {
+            self.run_once_impl(())
+        }
+    }
+
 
     impl FnOnce<()> for registry::NoArgs {
         type Output = ();

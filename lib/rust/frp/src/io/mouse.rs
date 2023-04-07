@@ -182,55 +182,62 @@ impl From<&ButtonMask> for ButtonMask {
 // =============
 
 /// Mouse FRP bindings.
+///
+/// # Deprecated
+/// This API is deprecated. Instead, use the display object's event API. For example, to get an FRP
+/// endpoint for mouse event, you can use the [`crate::display::Object::on_event`] function.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
-pub struct Mouse {
-    pub network:           frp::Network,
-    pub up:                frp::Source<Button>,
-    pub down:              frp::Source<Button>,
-    pub wheel:             frp::Source,
-    pub up_0:              frp::Stream,
-    pub up_1:              frp::Stream,
-    pub up_2:              frp::Stream,
-    pub up_3:              frp::Stream,
-    pub up_4:              frp::Stream,
-    pub up_primary:        frp::Stream,
-    pub up_middle:         frp::Stream,
-    pub up_secondary:      frp::Stream,
-    pub down_0:            frp::Stream,
-    pub down_1:            frp::Stream,
-    pub down_2:            frp::Stream,
-    pub down_3:            frp::Stream,
-    pub down_4:            frp::Stream,
-    pub down_primary:      frp::Stream,
-    pub down_middle:       frp::Stream,
-    pub down_secondary:    frp::Stream,
-    pub is_up_0:           frp::Stream<bool>,
-    pub is_up_1:           frp::Stream<bool>,
-    pub is_up_2:           frp::Stream<bool>,
-    pub is_up_3:           frp::Stream<bool>,
-    pub is_up_4:           frp::Stream<bool>,
-    pub is_up_primary:     frp::Stream<bool>,
-    pub is_up_middle:      frp::Stream<bool>,
-    pub is_up_secondary:   frp::Stream<bool>,
-    pub is_down_0:         frp::Stream<bool>,
-    pub is_down_1:         frp::Stream<bool>,
-    pub is_down_2:         frp::Stream<bool>,
-    pub is_down_3:         frp::Stream<bool>,
-    pub is_down_4:         frp::Stream<bool>,
-    pub is_down_primary:   frp::Stream<bool>,
-    pub is_down_middle:    frp::Stream<bool>,
-    pub is_down_secondary: frp::Stream<bool>,
-    pub position:          frp::Source<Vector2<f32>>,
-    pub prev_position:     frp::Stream<Vector2<f32>>,
-    pub translation:       frp::Stream<Vector2<f32>>,
-    pub distance:          frp::Stream<f32>,
-    pub ever_moved:        frp::Stream<bool>,
-    pub button_mask:       frp::Stream<ButtonMask>,
-    pub prev_button_mask:  frp::Stream<ButtonMask>,
+#[allow(non_camel_case_types)]
+pub struct Mouse_DEPRECATED {
+    pub network:              frp::Network,
+    pub up:                   frp::Source<Button>,
+    pub down:                 frp::Source<Button>,
+    pub wheel:                frp::Source,
+    pub up_0:                 frp::Stream,
+    pub up_1:                 frp::Stream,
+    pub up_2:                 frp::Stream,
+    pub up_3:                 frp::Stream,
+    pub up_4:                 frp::Stream,
+    pub up_primary:           frp::Stream,
+    pub up_middle:            frp::Stream,
+    pub up_secondary:         frp::Stream,
+    pub down_0:               frp::Stream,
+    pub down_1:               frp::Stream,
+    pub down_2:               frp::Stream,
+    pub down_3:               frp::Stream,
+    pub down_4:               frp::Stream,
+    pub down_primary:         frp::Stream,
+    pub down_middle:          frp::Stream,
+    pub down_secondary:       frp::Stream,
+    pub is_up_0:              frp::Stream<bool>,
+    pub is_up_1:              frp::Stream<bool>,
+    pub is_up_2:              frp::Stream<bool>,
+    pub is_up_3:              frp::Stream<bool>,
+    pub is_up_4:              frp::Stream<bool>,
+    pub is_up_primary:        frp::Stream<bool>,
+    pub is_up_middle:         frp::Stream<bool>,
+    pub is_up_secondary:      frp::Stream<bool>,
+    pub is_down_0:            frp::Stream<bool>,
+    pub is_down_1:            frp::Stream<bool>,
+    pub is_down_2:            frp::Stream<bool>,
+    pub is_down_3:            frp::Stream<bool>,
+    pub is_down_4:            frp::Stream<bool>,
+    pub is_down_primary:      frp::Stream<bool>,
+    pub is_down_middle:       frp::Stream<bool>,
+    pub is_down_secondary:    frp::Stream<bool>,
+    pub position:             frp::Source<Vector2<f32>>,
+    pub position_top_left:    frp::Source<Vector2<f32>>,
+    pub position_bottom_left: frp::Source<Vector2<f32>>,
+    pub prev_position:        frp::Stream<Vector2<f32>>,
+    pub translation:          frp::Stream<Vector2<f32>>,
+    pub distance:             frp::Stream<f32>,
+    pub ever_moved:           frp::Stream<bool>,
+    pub button_mask:          frp::Stream<ButtonMask>,
+    pub prev_button_mask:     frp::Stream<ButtonMask>,
 }
 
-impl Mouse {
+impl Mouse_DEPRECATED {
     /// Smart accessor for `up_X` field.
     pub fn up(&self, button: Button) -> &frp::Stream {
         match button {
@@ -276,13 +283,15 @@ impl Mouse {
     }
 }
 
-impl Default for Mouse {
+impl Default for Mouse_DEPRECATED {
     fn default() -> Self {
         frp::new_network! { network
             up            <- source();
             down          <- source();
             wheel         <- source();
             position      <- source();
+            position_top_left <- source();
+            position_bottom_left <- source();
             prev_position <- position.previous();
             translation   <- position.map2(&prev_position,|t,s|t-s);
             distance      <- translation.map(|t:&Vector2<f32>|t.norm());
@@ -381,6 +390,8 @@ impl Default for Mouse {
             is_down_middle,
             is_down_secondary,
             position,
+            position_top_left,
+            position_bottom_left,
             prev_position,
             translation,
             distance,
@@ -391,7 +402,7 @@ impl Default for Mouse {
     }
 }
 
-impl Mouse {
+impl Mouse_DEPRECATED {
     /// Constructor.
     pub fn new() -> Self {
         default()

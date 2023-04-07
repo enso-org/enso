@@ -4,9 +4,9 @@ import Standard.Base.Network.HTTP.Response.Response
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
-import project.Delimited.Delimited_Reader
-import project.Delimited.Delimited_Writer
 import project.Delimited.Quote_Style.Quote_Style
+import project.Internal.Delimited_Reader
+import project.Internal.Delimited_Writer
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
@@ -51,7 +51,9 @@ type Delimited_Format
          defaults to `Nothing` which means that comments are disabled.
     Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
 
-    ## If the File_Format supports reading from the file, return a configured instance.
+    ## PRIVATE
+       ADVANCED
+       If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Delimited_Format | Nothing
     for_file file =
         case file.extension of
@@ -60,7 +62,9 @@ type Delimited_Format
             ".tsv" -> Delimited_Format.Delimited '\t'
             _ -> Nothing
 
-    ## If the File_Format supports reading from the web response, return a configured instance.
+    ## PRIVATE
+       ADVANCED
+       If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Delimited_Format | Nothing
     for_web content_type _ =
         parts = content_type.split ";" . map .trim
@@ -75,7 +79,9 @@ type Delimited_Format
             "text/tab-separated-values" -> Delimited_Format.Delimited '\t' encoding
             _ -> Nothing
 
-    ## Implements the `File.read` for this `File_Format`
+    ## PRIVATE
+       ADVANCED
+       Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         Delimited_Reader.read_file self file on_problems
@@ -87,7 +93,9 @@ type Delimited_Format
         text = Text.from_bytes response.body.bytes self.encoding
         Delimited_Reader.read_text text self Report_Warning
 
-    ## Implements the `Table.write` for this `File_Format`.
+    ## PRIVATE
+       ADVANCED
+       Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems =
         r = Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
@@ -96,7 +104,7 @@ type Delimited_Format
     ## PRIVATE
        Clone the instance with some properties overridden.
        Note: This function is internal until such time as Atom cloning with modification is built into Enso.
-    clone : Text -> Text -> (Boolean|Infer) -> Data_Formatter -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
+    clone : Quote_Style -> (Boolean|Infer) -> (Data_Formatter|Nothing) -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
     clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited_Format.Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 

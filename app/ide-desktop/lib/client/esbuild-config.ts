@@ -1,20 +1,9 @@
-import path from 'node:path'
-import esbuild from 'esbuild'
-import { require_env, require_env_resolved_path } from '../../utils.js'
-import { getBundledEngineVersion, getIdeDirectory, getProjectManagerInBundlePath } from './paths.js'
+/** @file Esbuild config file. */
+import * as path from 'node:path'
 
-// ===================================================
-// === Constants provided through the environment. ===
-// ===================================================
+import * as esbuild from 'esbuild'
 
-/** Output directory for bundled client files. */
-export const outdir = path.join(require_env_resolved_path('ENSO_BUILD_IDE'), 'client')
-
-/** Path to the project manager executable relative to the PM bundle root. */
-export const projectManagerInBundlePath = require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH')
-
-/** Version of the Engine (backend) that is bundled along with this client build. */
-export const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
+import * as paths from './paths'
 
 // ================
 // === Bundling ===
@@ -29,16 +18,16 @@ export const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_V
  * - `ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION` - version of the Engine (backend) that is bundled along with this client build.
  *
  * @see bundlerOptions
- **/
+ */
 export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
     return bundlerOptions(
-        path.join(getIdeDirectory(), 'client'),
-        getProjectManagerInBundlePath(),
-        getBundledEngineVersion()
+        path.join(paths.getIdeDirectory(), 'client'),
+        paths.getProjectManagerInBundlePath(),
+        paths.getBundledEngineVersion()
     )
 }
 
-/// Get options without relying on the environment
+/** Get options without relying on the environment. */
 export function bundlerOptions(
     outdir: string,
     projectManagerInBundlePath: string,
@@ -50,11 +39,16 @@ export function bundlerOptions(
         entryPoints: ['src/index.ts', 'src/preload.ts'],
         outbase: 'src',
         format: 'cjs',
+        // Disabling naming convnetion lints below
+        // because they are third-party configuration options.
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         outExtension: { '.js': '.cjs' },
         platform: 'node',
         define: {
+            /* eslint-disable @typescript-eslint/naming-convention */
             BUNDLED_ENGINE_VERSION: JSON.stringify(bundledEngineVersion),
             PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),
+            /* eslint-enable @typescript-eslint/naming-convention */
         },
         sourcemap: true,
         external: ['electron'],

@@ -541,8 +541,10 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         """(f _ _ b) b
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
-      val firstLam = ir.asInstanceOf[IR.Function.Lambda]
+      ir shouldBe an[IR.Application.Prefix]
+      val irFn = ir.asInstanceOf[IR.Application.Prefix].function
+      irFn shouldBe an[IR.Function.Lambda]
+      val firstLam = irFn.asInstanceOf[IR.Function.Lambda]
       firstLam.arguments.length shouldEqual 1
       val firstLamArgName = firstLam.arguments.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
@@ -554,7 +556,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .name
         .name
       val app = secondLam.body.asInstanceOf[IR.Application.Prefix]
-      app.arguments.length shouldEqual 4
+      app.arguments.length shouldEqual 3
       val appArg1Name = app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value

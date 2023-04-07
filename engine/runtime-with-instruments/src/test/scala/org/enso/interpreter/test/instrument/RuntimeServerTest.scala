@@ -368,7 +368,8 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -470,7 +471,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idFoo, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
@@ -524,7 +526,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -627,7 +630,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(9) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(10) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -720,7 +724,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -788,7 +793,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -847,7 +853,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -907,7 +914,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -969,7 +977,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1096,7 +1105,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
         .update(
@@ -1217,7 +1227,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1310,7 +1321,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1392,7 +1404,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idResult, ConstantsGen.INTEGER),
       TestMessages.update(contextId, idPrintln, ConstantsGen.NOTHING),
@@ -1485,7 +1498,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMainA, ConstantsGen.INTEGER),
       TestMessages.update(contextId, idMainP, ConstantsGen.NOTHING),
@@ -1726,7 +1740,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       TestMessages.update(
@@ -1934,9 +1949,10 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, xId, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, xId, ConstantsGen.FUNCTION),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -2032,7 +2048,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -2102,7 +2119,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -2182,7 +2200,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
@@ -2239,7 +2258,8 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2323,7 +2343,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -2418,7 +2439,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idText, ConstantsGen.TEXT),
       TestMessages.update(contextId, idRes, ConstantsGen.NOTHING),
@@ -2488,7 +2510,8 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2534,7 +2557,8 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2597,7 +2621,8 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2657,7 +2682,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
@@ -2705,7 +2731,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
@@ -2756,7 +2783,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
@@ -2810,7 +2838,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -2878,7 +2907,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -2954,7 +2984,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3032,7 +3063,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3110,7 +3142,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3203,7 +3236,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3262,7 +3296,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3385,7 +3420,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3557,7 +3593,8 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main2.Update.mainY(contextId),
       context.Main2.Update.mainZ(contextId),
@@ -3611,7 +3648,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -3624,9 +3662,29 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo"))
+    val renameProjectResponses = context.receiveN(6)
+    renameProjectResponses should contain allOf (
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      context.Main.Update.mainX(contextId),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+      ),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
     )
+    renameProjectResponses.collect {
+      case Api.Response(
+            _,
+            notification: Api.SuggestionsDatabaseModuleUpdateNotification
+          ) =>
+        notification.module shouldEqual moduleName
+        notification.actions should contain theSameElementsAs Vector(
+          Api.SuggestionsDatabaseAction.Clean(moduleName)
+        )
+    }
 
     // recompute existing stack
     context.send(
@@ -3666,6 +3724,111 @@ class RuntimeServerTest
       ),
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
+    )
+  }
+
+  it should "push and pop functions after renaming the project" in {
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // rename Test -> Foo
+    context.pkg.rename("Foo")
+    context.send(
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+    )
+    val renameProjectResponses = context.receiveN(6)
+    renameProjectResponses should contain allOf (
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      context.Main.Update.mainX(contextId),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+      ),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+    renameProjectResponses.collect {
+      case Api.Response(
+            _,
+            notification: Api.SuggestionsDatabaseModuleUpdateNotification
+          ) =>
+        notification.module shouldEqual moduleName
+        notification.actions should contain theSameElementsAs Vector(
+          Api.SuggestionsDatabaseAction.Clean(moduleName)
+        )
+    }
+
+    // push foo call
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // pop foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo"),
+        fromCache = true
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // pop main
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+
+    // pop empty stack
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.EmptyStackError(contextId))
     )
   }
 
@@ -3734,8 +3897,9 @@ class RuntimeServerTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
         .update(
@@ -3822,7 +3986,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
         .update(
@@ -3898,7 +4063,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
       context.executionComplete(contextId)
@@ -3955,7 +4121,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(7) should contain theSameElementsAs Seq(
+    context.receiveN(8) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, x, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(contextId, `y_inc`, Constants.UNRESOLVED_SYMBOL),

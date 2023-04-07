@@ -14,6 +14,8 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+
 import org.enso.compiler.PackageRepository;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -25,6 +27,7 @@ import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.RuntimeOptions;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
@@ -166,10 +169,19 @@ public final class TopLevelScope implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     private static Object compile(Object[] arguments, EnsoContext context)
         throws UnsupportedTypeException, ArityException {
+      boolean useGlobalCache =
+          context
+              .getEnvironment()
+              .getOptions()
+              .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
       boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
-      context.getCompiler().compile(shouldCompileDependencies);
-
-      return true;
+      try {
+        return context.getCompiler().compile(shouldCompileDependencies, useGlobalCache).get();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     @Specialization

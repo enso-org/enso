@@ -1,15 +1,27 @@
-import path from 'node:path'
-import fs from 'node:fs'
+/** @file Shared utility functions. */
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import process from 'node:process'
+
+// =================
+// === Constants ===
+// =================
+
+/** Indent size for outputting JSON. */
+export const INDENT_SIZE = 4
+
+// ===================
+// === Environment ===
+// ===================
 
 /**
  * Get the environment variable value.
  *
- * @param {string} name The name of the environment variable.
- * @returns {string} The value of the environment variable.
+ * @param name - The name of the environment variable.
+ * @returns The value of the environment variable.
  * @throws {Error} If the environment variable is not set.
  */
-export function require_env(name: string) {
+export function requireEnv(name: string) {
     return (
         process.env[name] ??
         (() => {
@@ -21,42 +33,39 @@ export function require_env(name: string) {
 /**
  * Read the path from environment variable and resolve it.
  *
- * @param {string} name The name of the environment variable.
- * @returns {string} The resolved path.
+ * @param name - The name of the environment variable.
+ * @returns The resolved path.
  * @throws {Error} If the environment variable is not set.
  */
-export function require_env_resolved_path(name: string) {
-    return path.resolve(require_env(name))
+export function requireEnvResolvedPath(name: string) {
+    return path.resolve(requireEnv(name))
 }
 
 /**
  * Read the path from environment variable and resolve it. Verify that it exists.
  *
- * @param {string} name The name of the environment variable.
- * @returns {string} The resolved path.
+ * @param name - The name of the environment variable.
+ * @returns The resolved path.
  * @throws {Error} If the environment variable is not set or path does not exist.
  */
-export function require_env_path_exist(name: string) {
-    const value = require_env(name)
-    if (fs.existsSync(value)) return value
-    else throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
-}
-
-/**
- * Function fulfills after the given path denotes an existing, readable file.
- */
-async function wait_until_readable(path: string) {
-    // This implementation (polling every 100ms) is crude but should be reliable.
-    // If such need arises, more refined implementation can be built using `fs.watch` api.
-    console.log(`Waiting for file ${path} to become readable.`)
-    while (true) {
-        try {
-            await fs.promises.access(path, fs.constants.R_OK)
-            return
-        } catch (err) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-        }
+export function requireEnvPathExist(name: string) {
+    const value = requireEnv(name)
+    if (fs.existsSync(value)) {
+        return value
+    } else {
+        throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
     }
 }
 
-export default { require_env, require_env_path_exist }
+// ======================
+// === String Helpers ===
+// ======================
+
+/** Get the common prefix of the two strings. */
+export function getCommonPrefix(a: string, b: string): string {
+    let i = 0
+    while (i < a.length && i < b.length && a[i] === b[i]) {
+        i++
+    }
+    return a.slice(0, i)
+}

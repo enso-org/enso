@@ -3,7 +3,7 @@ package org.enso.languageserver.runtime
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.{
   ContentRoot,
@@ -27,7 +27,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.nio.file.Files
 import java.util.UUID
-
 import scala.concurrent.duration._
 
 class ContextEventsListenerSpec
@@ -425,6 +424,7 @@ class ContextEventsListenerSpec
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
       ProfilingConfig(),
+      StartupConfig(),
       None
     )
   }

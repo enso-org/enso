@@ -7,10 +7,12 @@ use crate::prelude::*;
 use crate::model::suggestion_database;
 
 use controller::searcher::action::MatchKind;
+use controller::searcher::Filter;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
-use engine_protocol::language_server::DocSection;
+use enso_doc_parser::DocSection;
+use ordered_float::OrderedFloat;
 
 
 // ==============
@@ -28,6 +30,12 @@ pub use group::Group;
 // =================
 // === Constants ===
 // =================
+
+/// A "matching" score assigned to the entries which does not match the current pattern entirely.
+///
+/// **Note**: If some entries matches, but their score are equal or below this value, they will be
+/// filtered out as well!
+pub const NOT_MATCHING_SCORE: f32 = 0.0;
 
 /// A factor to multiply a component's alias match score by. It is intended to reduce the importance
 /// of alias matches compared to label matches.
@@ -138,7 +146,7 @@ impl Component {
     pub fn name(&self) -> &str {
         match &self.data {
             Data::FromDatabase { entry, .. } => entry.name.as_str(),
-            Data::Virtual { snippet } => snippet.name,
+            Data::Virtual { snippet } => snippet.name.as_str(),
         }
     }
 
@@ -167,13 +175,13 @@ impl Component {
     /// Update matching info.
     ///
     /// It should be called each time the filtering pattern changes.
-    pub fn update_matching_info(&self, pattern: impl Str) {
+    pub fn update_matching_info(&self, filter: Filter) {
         // Match the input pattern to the component label.
         let label = self.to_string();
-        let label_matches = fuzzly::matches(&label, pattern.as_ref());
+        let label_matches = fuzzly::matches(&label, filter.pattern.clone_ref());
         let label_subsequence = label_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(label, pattern.as_ref(), metric)
+            fuzzly::find_best_subsequence(label, filter.pattern.clone_ref(), metric)
         });
         let label_match_info = label_subsequence
             .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Label });
@@ -183,10 +191,10 @@ impl Component {
             Data::FromDatabase { entry, .. } => entry.code_to_insert(true).to_string(),
             Data::Virtual { snippet } => snippet.code.to_string(),
         };
-        let code_matches = fuzzly::matches(&code, pattern.as_ref());
+        let code_matches = fuzzly::matches(&code, filter.pattern.clone_ref());
         let code_subsequence = code_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(code, pattern.as_ref(), metric)
+            fuzzly::find_best_subsequence(code, filter.pattern.clone_ref(), metric)
         });
         let code_match_info = code_subsequence.map(|subsequence| {
             let subsequence = fuzzly::Subsequence { indices: Vec::new(), ..subsequence };
@@ -195,15 +203,16 @@ impl Component {
 
         // Match the input pattern to an entry's aliases and select the best alias match.
         let alias_matches = self.aliases().filter_map(|alias| {
-            if fuzzly::matches(alias, pattern.as_ref()) {
+            if fuzzly::matches(alias, filter.pattern.clone_ref()) {
                 let metric = fuzzly::metric::default();
-                let subsequence = fuzzly::find_best_subsequence(alias, pattern.as_ref(), metric);
+                let subsequence =
+                    fuzzly::find_best_subsequence(alias, filter.pattern.clone_ref(), metric);
                 subsequence.map(|subsequence| (subsequence, alias))
             } else {
                 None
             }
         });
-        let alias_match = alias_matches.max_by(|(lhs, _), (rhs, _)| lhs.compare_scores(rhs));
+        let alias_match = alias_matches.max_by_key(|(m, _)| OrderedFloat(m.score));
         let alias_match_info = alias_match.map(|(subsequence, alias)| {
             let subsequence = fuzzly::Subsequence {
                 score: subsequence.score * ALIAS_MATCH_ATTENUATION_FACTOR,
@@ -216,6 +225,18 @@ impl Component {
         let match_info_iter = [alias_match_info, code_match_info, label_match_info].into_iter();
         let best_match_info = match_info_iter.flatten().max_by(|lhs, rhs| lhs.cmp(rhs));
         *self.match_info.borrow_mut() = best_match_info.unwrap_or(MatchInfo::DoesNotMatch);
+
+        // Filter out components with FQN not matching the context.
+        if let Some(context) = filter.context {
+            if let Data::FromDatabase { entry, .. } = &self.data {
+                if !entry.qualified_name().to_string().contains(context.as_str()) {
+                    *self.match_info.borrow_mut() = MatchInfo::DoesNotMatch;
+                }
+            } else {
+                // Remove virtual entries if the context is present.
+                *self.match_info.borrow_mut() = MatchInfo::DoesNotMatch;
+            }
+        }
     }
 
     /// Check whether the component contains the "PRIVATE" tag.
@@ -223,7 +244,7 @@ impl Component {
         match &self.data {
             Data::FromDatabase { entry, .. } => entry.documentation.iter().any(|doc| match doc {
                 DocSection::Tag { name, .. } =>
-                    name == ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
+                    name == &ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
                 _ => false,
             }),
             _ => false,
@@ -237,7 +258,7 @@ impl Component {
             Data::FromDatabase { entry, .. } => {
                 let aliases = entry.documentation.iter().filter_map(|doc| match doc {
                     DocSection::Tag { name, body }
-                        if name == ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
+                        if name == &ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
                         Some(body.as_str().split(',').map(|s| s.trim())),
                     _ => None,
                 });
@@ -246,6 +267,13 @@ impl Component {
             _ => None,
         };
         aliases.into_iter().flatten()
+    }
+
+    pub(crate) fn score(&self) -> f32 {
+        match &*self.match_info.borrow() {
+            MatchInfo::DoesNotMatch => NOT_MATCHING_SCORE,
+            MatchInfo::Matches { subsequence, .. } => subsequence.score,
+        }
     }
 }
 
@@ -368,22 +396,22 @@ impl List {
     }
 
     /// Update matching info in all components according to the new filtering pattern.
-    pub fn update_filtering(&self, pattern: impl AsRef<str>) {
-        let pattern = pattern.as_ref();
+    pub fn update_filtering(&self, filter: Filter) {
+        let pattern = &filter.pattern;
         for component in &*self.all_components {
-            component.update_matching_info(pattern)
+            component.update_matching_info(filter.clone_ref())
         }
-        let pattern_not_empty = !pattern.is_empty();
+        let filtering_enabled = !pattern.is_empty() || filter.context.is_some();
         let submodules_order =
-            if pattern_not_empty { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
-        let favorites_order = if pattern_not_empty { Order::ByMatch } else { Order::Initial };
+            if filtering_enabled { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
+        let favorites_order = if filtering_enabled { Order::ByMatch } else { Order::Initial };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting(submodules_order);
+            group.update_match_info_and_sorting(submodules_order);
         }
         for group in self.favorites.iter() {
-            group.update_sorting(favorites_order);
+            group.update_match_info_and_sorting(favorites_order);
         }
-        self.filtered.set(pattern_not_empty);
+        self.filtered.set(filtering_enabled);
     }
 
     /// All groups from [`List`] without the groups found in [`List::favorites`].
@@ -406,6 +434,12 @@ impl List {
     /// Get the number of namespace sections.
     pub fn top_module_section_count(&self) -> usize {
         self.top_module_sections.len()
+    }
+
+    /// Check if the list is currently filtered (last [`update_filtering`](Self::update_filtering)
+    /// call was with non-empty pattern).
+    pub fn is_filtered(&self) -> bool {
+        self.filtered.get()
     }
 }
 
@@ -497,7 +531,7 @@ pub(crate) mod tests {
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..=4);
         let list = builder.build();
 
-        list.update_filtering("fu");
+        list.update_filtering(Filter { pattern: "fu".into(), context: None });
         let match_infos = list.top_modules().next().unwrap()[0]
             .entries
             .borrow()
@@ -509,22 +543,22 @@ pub(crate) mod tests {
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
-        list.update_filtering("x");
+        list.update_filtering(Filter { pattern: "x".into(), context: None });
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering("Sub");
+        list.update_filtering(Filter { pattern: "Sub".into(), context: None });
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering("y");
+        list.update_filtering(Filter { pattern: "y".into(), context: None });
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering("");
+        list.update_filtering(Filter { pattern: "".into(), context: None });
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
