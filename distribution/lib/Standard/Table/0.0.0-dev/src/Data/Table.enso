@@ -925,7 +925,7 @@ type Table
        - delimiter: The term or terms used to split the text.
        - column_count: The number of columns to split to.
          If `Auto` then columns will be added to fit all data.
-         If the data exceeds the number of columns, a `Column_Count_Exceeded` error
+         If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
          will follow the `on_problems` behavior.
        - on_problems: Specifies the behavior when a problem occurs.
     split_to_columns : Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
@@ -958,7 +958,7 @@ type Table
          sensitively.
        - column_count: The number of columns to split to.
          If `Auto` then columns will be added to fit all data.
-         If the data exceeds the number of columns, a `Column_Count_Exceeded` error
+         If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
          will follow the `on_problems` behavior.
        - on_problems: Specifies the behavior when a problem occurs.
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
