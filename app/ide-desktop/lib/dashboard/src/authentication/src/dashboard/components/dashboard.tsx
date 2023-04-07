@@ -391,7 +391,7 @@ function Dashboard(props: DashboardProps) {
                         permissions={PERMISSION[user.permission]}
                     >
                         <img
-                            className="rounded-full h-8"
+                            className="rounded-full h-6"
                             src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
                         />
                     </PermissionDisplay>

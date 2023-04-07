@@ -36,6 +36,9 @@ function CreateForm(props: CreateFormProps) {
                 style={{ left, top }}
                 className="absolute bg-white shadow-soft rounded-lg w-60"
                 onSubmit={onSubmit}
+                onClick={event => {
+                    event.stopPropagation()
+                }}
             >
                 <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}

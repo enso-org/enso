@@ -22,7 +22,12 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { unsetModal } = modalProvider.useSetModal()
     return (
         <Modal className="bg-opacity-90">
-            <form className="relative bg-white shadow-soft rounded-lg w-96 p-2">
+            <form
+                className="relative bg-white shadow-soft rounded-lg w-96 p-2"
+                onClick={event => {
+                    event.stopPropagation()
+                }}
+            >
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
                 </button>
