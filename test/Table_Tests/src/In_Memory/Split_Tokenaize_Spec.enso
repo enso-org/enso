@@ -1,9 +1,11 @@
 from Standard.Base import all
 
+import Standard.Test.Extensions
+
 from Standard.Table import Table, Column
 
 from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Table.Errors import Invalid_Value_Type
 
 spec =
     tables_equal t0 t1 =
@@ -16,7 +18,7 @@ spec =
             msg = 'Tables differ:\n' + t0.display + '\n' + t1.display
             Test.fail msg
 
-    Test.group "split' <|
+    Test.group 'split' <|
         Test.specify 'can do split_to_columns' <|
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
             t = Table.new cols
@@ -65,5 +67,14 @@ spec =
             expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.tokenize_to_rows 'bar' "([a-z]).(\d+)"
             tables_should_be_equal t2 expected
+
+    Test.group 'errors' <|
+        Test.specify "won't work on a non-text column" <|
+            cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
+            t = Table.new cols
+            t.split_to_columns 'foo' "x" . should_fail_with Invalid_Value_Type
+            t.split_to_rows 'foo' "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_columns 'foo' "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_rows 'foo' "x" . should_fail_with Invalid_Value_Type
 
 main = Test_Suite.run_main spec
