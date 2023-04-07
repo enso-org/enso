@@ -76,14 +76,14 @@ function TopBar(props: TopBarProps) {
 
     return (
         <div className="flex justify-between m-2 text-[11.5px] h-8">
-            <div className="flex ml-[80px] text-[#3E515F]">
+            <div className="flex ml-[80px] text-primary">
                 <div
-                    className={`flex items-center bg-[#3E515F] bg-opacity-5 rounded-full pl-1 
+                    className={`flex items-center bg-label rounded-full pl-1
                                 pr-2.5 mr-4 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
                     onClick={toggleTab}
                 >
                     <span
-                        className={`opacity-50 overflow-hidden transition-width ${
+                        className={`opacity-50 overflow-hidden transition-width nowrap ${
                             tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
                         }`}
                     >
@@ -91,17 +91,14 @@ function TopBar(props: TopBarProps) {
                     </span>
                     <div className="bg-white shadow-soft px-1.5 py-1 rounded-full">{ICONS.bar}</div>
                     <span
-                        className={`opacity-50 overflow-hidden transition-width ${
+                        className={`opacity-50 overflow-hidden transition-width nowrap ${
                             tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
                         }`}
                     >
                         {projectName ?? 'No project open'}
                     </span>
                 </div>
-                <div
-                    className={`flex items-center bg-[#3E515F] bg-opacity-5 rounded-full px-3 
-                                w-[33rem] max-w-2xl`}
-                >
+                <div className="flex items-center bg-label rounded-full px-3 w-[33rem] max-w-2xl">
                     <div className="mr-2">{ICONS.search}</div>
                     <input
                         className="flex-1 bg-transparent"

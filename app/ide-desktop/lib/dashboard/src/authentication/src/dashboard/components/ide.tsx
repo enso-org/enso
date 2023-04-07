@@ -70,9 +70,7 @@ function Ide({ project, backendService }: Props) {
             await loaded
             await window.enso.main({
                 loader: {
-                    // FIXME[sb]: Change `shadersUrl` to `assetsUrl` when backend gets updated.
-                    // assetsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/dynamic-assets`,
-                    shadersUrl: `${IDE_CDN_URL}/${projectIdeVersion}/shaders`,
+                    assetsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/dynamic-assets`,
                     wasmUrl: `${IDE_CDN_URL}/${projectIdeVersion}/pkg-opt.wasm`,
                     jsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/pkg.js.gz`,
                 },
