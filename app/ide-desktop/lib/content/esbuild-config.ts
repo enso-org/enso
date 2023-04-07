@@ -19,10 +19,11 @@ import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginAlias from 'esbuild-plugin-alias'
+import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as utils from '../../utils.js'
+import * as utils from '../../utils'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 export const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
@@ -107,7 +108,13 @@ export function bundlerOptions(args: Arguments) {
         outbase: 'src',
         plugins: [
             {
-                // This is a workaround that is needed because esbuild panics when using `loader: { '.js': 'copy' }`.
+                // This is a workaround that is needed
+                // because esbuild panics when using `loader: { '.js': 'copy' }`.
+                // See https://github.com/evanw/esbuild/issues/3041.
+                // Setting `loader: 'copy'` prevents this file from being converted to ESM
+                // because of the `"type": "module"` in the `package.json`.
+                // This file MUST be in CommonJS format because it is loaded using `Function()`
+                // in `ensogl/pack/js/src/runner/index.ts`
                 name: 'pkg-js-is-cjs',
                 setup: build => {
                     build.onLoad({ filter: /\/pkg.js$/ }, async ({ path }) => ({
@@ -116,33 +123,7 @@ export function bundlerOptions(args: Arguments) {
                     }))
                 },
             },
-            {
-                name: 'copy-directories',
-                setup: build => {
-                    build.onResolve({ filter: /[/\\][^./\\]+$/ }, ({ path, kind }) =>
-                        kind === 'entry-point'
-                            ? { path, namespace: 'copy-directories', watchDirs: [path] }
-                            : null
-                    )
-                    build.onLoad(
-                        { filter: /(?:)/, namespace: 'copy-directories' },
-                        async ({ path }) => {
-                            const destination = pathModule.join(
-                                outputPath,
-                                pathModule.basename(path)
-                            )
-                            console.log(`Copying directory '${path}' to '${destination}'.`)
-                            await fs.cp(path, destination, {
-                                recursive: true,
-                                force: true,
-                                dereference: true,
-                            })
-                            console.log(`Directory '${path}' copied to '${destination}'`)
-                            return { contents: '', watchDirs: [path] }
-                        }
-                    )
-                },
-            },
+            esbuildPluginCopyDirectories(),
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),

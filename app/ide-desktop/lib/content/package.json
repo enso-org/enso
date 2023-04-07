@@ -40,6 +40,7 @@
     "enso-authentication": "^1.0.0",
     "esbuild": "^0.17.15",
     "esbuild-plugin-alias": "^0.2.1",
+    "esbuild-plugin-copy-directories": "^1.0.0",
     "esbuild-plugin-time": "^1.0.0",
     "esbuild-plugin-yaml": "^0.0.1",
     "eslint": "^8.36.0",
