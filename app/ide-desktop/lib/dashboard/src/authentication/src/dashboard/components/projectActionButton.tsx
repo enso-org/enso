@@ -97,7 +97,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })()
     }, [])
 
-    const handleCloseProject = () => {
+    function closeProject() {
+        setState(backend.ProjectState.closed)
         void backendService.closeProject(project.id)
 
         reactDom.unstable_batchedUpdates(() => {
@@ -108,7 +109,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })
     }
 
-    const handleOpenProject = () => {
+    function openProject() {
+        setState(backend.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
         // the `initial` fraction to the `loading` fraction,
@@ -144,13 +146,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backend.ProjectState.created:
         case backend.ProjectState.new:
         case backend.ProjectState.closed:
-            return <button onClick={handleOpenProject}>{svg.PLAY_ICON}</button>
+            return <button onClick={openProject}>{svg.PLAY_ICON}</button>
         case backend.ProjectState.openInProgress:
-            return <button onClick={handleCloseProject}>{StopIcon(spinnerState)}</button>
+            return <button onClick={closeProject}>{StopIcon(spinnerState)}</button>
         case backend.ProjectState.opened:
             return (
                 <>
-                    <button onClick={handleCloseProject}>{StopIcon(spinnerState)}</button>
+                    <button onClick={closeProject}>{StopIcon(spinnerState)}</button>
                     <button onClick={openIde}>{svg.ARROW_UP_ICON}</button>
                 </>
             )

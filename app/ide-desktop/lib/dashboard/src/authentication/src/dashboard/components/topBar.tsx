@@ -59,6 +59,7 @@ const ICONS = {
 
 interface TopBarProps {
     projectName: string | null
+    tab: dashboard.Tab
     toggleTab: () => void
     searchVal: string
     setSearchVal: (searchVal: string) => void
@@ -69,7 +70,7 @@ interface TopBarProps {
  * Because searchVal maybe change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { projectName, toggleTab, searchVal, setSearchVal } = props
+    const { projectName, tab, toggleTab, searchVal, setSearchVal } = props
 
     const [isOpenMenu, setIsOpenMenu] = react.useState(false)
 
@@ -79,14 +80,23 @@ function TopBar(props: TopBarProps) {
                 <div
                     className={`flex items-center bg-[#3E515F] bg-opacity-5 rounded-full pl-1 
                                 pr-2.5 mr-4 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                    onClick={toggleTab}
                 >
-                    <div
-                        className="bg-white shadow-soft px-1.5 py-1 rounded-full mr-2"
-                        onClick={toggleTab}
+                    <span
+                        className={`opacity-50 overflow-hidden transition-width ${
+                            tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
+                        }`}
                     >
-                        {ICONS.bar}
-                    </div>
-                    <span className="opacity-50">{projectName ?? 'No project open'}</span>
+                        Dashboard
+                    </span>
+                    <div className="bg-white shadow-soft px-1.5 py-1 rounded-full">{ICONS.bar}</div>
+                    <span
+                        className={`opacity-50 overflow-hidden transition-width ${
+                            tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
+                        }`}
+                    >
+                        {projectName ?? 'No project open'}
+                    </span>
                 </div>
                 <div
                     className={`flex items-center bg-[#3E515F] bg-opacity-5 rounded-full px-3 

@@ -323,6 +323,7 @@ function Dashboard(props: DashboardProps) {
         <div className="text-primary text-xs">
             <TopBar
                 projectName={project?.name ?? null}
+                tab={tab}
                 toggleTab={() => {
                     if (project) {
                         setTab(tab === Tab.dashboard ? Tab.ide : Tab.dashboard)
