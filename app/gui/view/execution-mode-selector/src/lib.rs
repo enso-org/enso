@@ -74,12 +74,13 @@ mod play_icon {
     ensogl::shape! {
         above = [display::shape::compound::rectangle::shape];
         (style:Style) {
-           let size = Var::canvas_size();
-           let height = size.y();
-           let width = size.x();
-           let triangle = Triangle(width, height).rotate((PI/2.0).radians());
-           let color = style.get_color(theme::triangle);
-            triangle.fill(color).into()
+            let triangle_size = style.get_number(theme::play_button_size);
+            let color = style.get_color(theme::triangle);
+            let triangle = Triangle(triangle_size, triangle_size).rotate((PI/2.0).radians());
+            let triangle = triangle.fill(color);
+            let bg_size = Var::canvas_size();
+            let bg = Rect(bg_size).fill(INVISIBLE_HOVER_COLOR);
+            (bg + triangle).into()
         }
     }
 }
@@ -149,7 +150,7 @@ impl Model {
 
     fn update_play_icon_style(&self, style: &Style) {
         let width = style.overall_width();
-        let size = Vector2::new(style.play_button_size, style.play_button_size);
+        let size = Vector2::new(style.play_button_size + style.play_button_padding, style.height);
         self.play_icon.set_size(size);
         self.play_icon.set_x(width / 2.0 - style.play_button_offset - size.x / 2.0);
         self.play_icon.set_y(-size.y / 2.0);
