@@ -59,16 +59,16 @@ tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sens
 fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Text -> Auto | Integer -> Problem_Behavior -> Table
 fan_out_to_columns table column function function_name column_count=Auto on_problems=Report_Error =
     input_column = table.at column
-    new_columns_unrenamed = map_column_to_multiple input_column function
-    new_columns = rename_columns table function_name new_columns_unrenamed
-    num_columns = new_columns.length
+    new_column_vectors = map_column_vector_to_multiple input_column.to_vector function
+    new_columns = build_and_name_columns table column function_name new_column_vectors
+    num_new_columns = new_columns.length
     new_table = replace_column_with_columns table column new_columns
 
     problem_builder = Problem_Builder.new
 
-    case column_count != Auto && num_columns > column_count of
+    case column_count != Auto && num_new_columns > column_count of
         True->
-            problem = Column_Count_Exceeded.Error column_count num_columns
+            problem = Column_Count_Exceeded.Error column_count num_new_columns
             problem_builder.report_other_warning problem
         False ->
             Nothing
@@ -119,22 +119,19 @@ fan_out_to_rows table column function =
     Table.new new_columns
 
 ## PRIVATE
-   Transform a column into a set of columns. Takes a function that maps a
-   single element of the input column to a vector of output values. The
-   vectors of output values are padded with Nothing to be the same length.
-
-   The names of the resulting columns will be set to the same name as the input
-   column, and must be renamed before being added to a table.
+   Transform a column vector into a set of column vectors. Takes a function
+   that maps a single element of the input column vector to a vector of output
+   values. The vectors of output values are padded with Nothing to be the same
+   length.
 
    Arguments:
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-map_column_to_multiple : Column -> (Any -> Vector Any) -> Vector Column
-map_column_to_multiple input_column function =
-    result_row_vectors = input_column.to_vector.map value-> function value
-    result_column_vectors = transpose_with_pad result_row_vectors
-    result_column_vectors.map cv-> Column.from_vector input_column.name cv
+map_column_vector_to_multiple : Vector Any -> (Any -> Vector Any) -> Vector (Vector Any)
+map_column_vector_to_multiple input_vector function =
+    result_row_vectors = input_vector.map value-> function value
+    transpose_with_pad result_row_vectors
 
 ## PRIVATE
    Remove a column and add new columns.
@@ -171,14 +168,16 @@ pad_vectors vecs pad_value =
   vecs.map v-> v.pad length pad_value
 
 ## PRIVATE
-   Rename a set of columns to be unique if they were added to a table.
-rename_columns : Table -> Text -> Vector Column -> Vector Column
-rename_columns table function_name columns =
-    old_names = columns.map .name
+   Name a set of column vectors to be unique when added to a table. Base the
+   new names on the name of the original column from which they were derived.
+build_and_name_columns : Table -> Text -> Text -> Vector (Vector Any) -> Vector Column
+build_and_name_columns table original_column_name function_name vectors =
+    ## Start with copies of the original column name.
+    old_names = 0.up_to vectors.length . map _-> original_column_name
     table_column_names = table.columns . map .name
     unique = Unique_Name_Strategy.new
     new_names = unique.combine_with_prefix table_column_names old_names (function_name + "_")
-    columns.map_with_index i-> column-> column.rename (new_names.at i)
+    vectors.map_with_index i-> vector-> Column.from_vector (new_names.at i) vector
 
 ## PRIVATE
    Return the maximum value of the vector.
