@@ -7,6 +7,7 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 polyglot java import java.sql.Types
@@ -48,9 +49,7 @@ type Postgres_Type_Mapping
                 type_name = if with_timezone then "timestamptz" else "timestamp"
                 SQL_Type.Value Types.TIMESTAMP type_name
             Value_Type.Binary _ _ ->
-                # This is the maximum size that JDBC driver reports for Postgres.
-                max_int4 = 2147483647
-                SQL_Type.Value Types.BINARY "bytea" precision=max_int4
+                SQL_Type.Value Types.BINARY "bytea" precision=max_precision
             Value_Type.Mixed ->
                 Error.throw (Illegal_Argument.Error "Postgres tables do not support Mixed types.")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
@@ -75,6 +74,19 @@ type Postgres_Type_Mapping
                 builder -> builder sql_type
 
     ## PRIVATE
+    sql_type_to_text : SQL_Type -> Text
+    sql_type_to_text sql_type =
+        if sql_type.name == "bool" then "bool" else
+            variable_length_types = [Types.VARCHAR, Types.BINARY]
+            ## If the type is variable length and the maximum is provided, we treat
+               it as unbounded, otherwise too big max length may be not accepted by
+               Postgres.
+            skip_precision = (variable_length_types.contains sql_type.typeid) && (sql_type.precision == max_precision)
+            case skip_precision of
+                True -> sql_type.name
+                False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
+
+    ## PRIVATE
        The Postgres type mapping always relies on the return type determined by
        the database backend.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
@@ -95,7 +107,6 @@ type Postgres_Type_Mapping
 simple_types_map = Map.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
-    # TODO Bit1, Date_Time
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
     ints + floats + other
 
@@ -127,3 +138,8 @@ complex_types_map = Map.from_vector <|
 ## PRIVATE
 on_unknown_type sql_type =
     Value_Type.Unsupported_Data_Type sql_type.name sql_type
+
+## PRIVATE
+   This is the maximum size that JDBC driver reports for 'unbounded' types in
+   Postgres.
+max_precision = 2147483647

@@ -79,9 +79,9 @@ impl Image {
         const DIMENSIONS: usize = 2;
         let dimensions = lines.next().ok_or(Error::Truncated)?;
         let dimensions = std::str::from_utf8(dimensions).map_err(|_| Error::Invalid)?;
-        let (height, width) = dimensions.split_once(' ').ok_or(Error::Truncated)?;
-        let height = height.parse().map_err(|_| Error::Invalid)?;
+        let (width, height) = dimensions.split_once(' ').ok_or(Error::Truncated)?;
         let width = width.parse().map_err(|_| Error::Invalid)?;
+        let height = height.parse().map_err(|_| Error::Invalid)?;
         let num_shades = lines.next().ok_or(Error::Truncated)?;
         if num_shades != b"255" {
             return Err(Error::Invalid);

@@ -108,6 +108,7 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.Extensions
+import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
@@ -156,6 +157,7 @@ export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
 export project.Errors.Problem_Behavior.Problem_Behavior
 export project.Network.Extensions
+export project.Network.HTTP.Header.Header
 export project.Network.HTTP.HTTP
 export project.Network.HTTP.HTTP_Method.HTTP_Method
 export project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code

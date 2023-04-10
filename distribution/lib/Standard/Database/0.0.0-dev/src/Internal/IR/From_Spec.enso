@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Internal.IR.Context.Context
+import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 
@@ -45,6 +46,22 @@ type From_Spec
          are usually be equalities between expressions from the left and right
          sources.
     Join (kind : SQL_Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector SQL_Expression)
+
+    ## PRIVATE
+
+       A query source that performs a union operation on multiple sources.
+
+       This maps to the SQL operation `UNION ALL`, keeping any duplicate rows.
+
+       Arguments:
+       - queries: the list of queries to be unioned. Eachn query shold have the
+         same number of columns, as these will be merged by position. Ideally,
+         corresponding columns should have the same names too, as the outer
+         query will be referring to columns of the union by names of the columns
+         from the first query.
+       - alias: the name for the consolidated query, to be used by column
+         references, referring to columns of the union.
+    Union (queries : Vector Query) (alias : Text)
 
     ## PRIVATE
 

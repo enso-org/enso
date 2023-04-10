@@ -12,6 +12,7 @@ import * as authServiceModule from '../service'
 import * as backendService from '../../dashboard/service'
 import * as errorModule from '../../error'
 import * as loggerProvider from '../../providers/logger'
+import * as newtype from '../../newtype'
 import * as sessionProvider from './session'
 
 // =================
@@ -47,7 +48,7 @@ export interface FullUserSession {
     /** User's email address. */
     email: string
     /** User's organization information. */
-    organization: backendService.Organization
+    organization: backendService.UserOrOrganization
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -155,7 +156,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 const { accessToken, email } = session.val
 
                 const backend = backendService.createBackend(accessToken, logger)
-                const organization = await backend.getUser()
+                const organization = await backend.usersMe()
                 let newUserSession: UserSession
                 if (!organization) {
                     newUserSession = {
@@ -239,17 +240,15 @@ export function AuthProvider(props: AuthProviderProps) {
         })
 
     const setUsername = async (accessToken: string, username: string, email: string) => {
-        const body: backendService.SetUsernameRequestBody = {
-            userName: username,
-            userEmail: email,
-        }
-
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
          * The API client is reinitialised on every request. That is an inefficient way of usage.
          * Fix it by using React context and implementing it as a singleton. */
         const backend = backendService.createBackend(accessToken, logger)
 
-        await backend.setUsername(body)
+        await backend.createUser({
+            userName: username,
+            userEmail: newtype.asNewtype<backendService.EmailAddress>(email),
+        })
         navigate(app.DASHBOARD_PATH)
         toast.success(MESSAGES.setUsernameSuccess)
     }
