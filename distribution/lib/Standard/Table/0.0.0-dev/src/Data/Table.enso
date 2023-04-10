@@ -39,7 +39,6 @@ import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Data.Type.Value_Type_Helpers import ensure_valid_parse_target
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
@@ -117,7 +116,9 @@ type Table
        - java_table: The internal java representation of the table.
     Value java_table
 
-    ## Returns a text containing an ASCII-art table displaying this data.
+    ## PRIVATE
+       ADVANCED
+       Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
@@ -146,7 +147,9 @@ type Table
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
 
-    ## Prints an ASCII-art table with this data to the standard output.
+    ## PRIVATE
+       ADVANCED
+       Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
@@ -162,7 +165,8 @@ type Table
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## Converts this table into a JS_Object.
+    ## PRIVATE
+       Converts this table into a JS_Object.
 
        > Example
          Convert a table to a corresponding JavaScript JS_Object representation.
@@ -792,31 +796,31 @@ type Table
          > Example
            Parse the first and last columns containing Yes/No values as booleans.
 
-               table.parse_values columns=[0, -1] type=Boolean format="Yes|No"
+               table.parse columns=[0, -1] type=Boolean format="Yes|No"
 
          > Example
            Parse dates in a column in the format `yyyy-MM-dd` (the default format).
 
-               table.parse_values "birthday" Date
+               table.parse "birthday" Date
 
          > Example
            Parse dates in a column in the format `dd/MM/yyyy`.
 
-               table.parse_values "birthday" Date 'dd/MM/yyyy'
+               table.parse "birthday" Date 'dd/MM/yyyy'
 
          > Example
            Parse all columns inferring their types, using `,` as the decimal point for numbers.
 
-               table.parse_values format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
-    parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse_values self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning = ensure_valid_parse_target type <|
+               table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
             _ : Text ->
                 Data_Formatter.Value.with_format type format
-            _ -> format
+            _ : Data_Formatter -> format
+            _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
 
-        parser = if type == Auto then formatter.make_auto_parser else
-            formatter.make_datatype_parser type
+        parser = formatter.make_value_type_parser type
 
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
@@ -1553,16 +1557,14 @@ type Table
          regardless of types of other columns. Mixing any other types will
          result in a `No_Common_Type` problem. If columns of incompatible types
          are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention.
+         retyped to the `Mixed` type to indicate that intention. Note that the
+         `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + v
             single_table -> [self, single_table]
-        ## `is_everything_ok` should actually never be False; it will either be
-           True or will contain a dataflow error propagating through the if.
-        is_everything_ok = all_tables.all (check_table "tables")
-        if is_everything_ok then
+        all_tables.all (check_table "tables") . if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
@@ -1605,8 +1607,8 @@ type Table
 
     ## Returns a Table describing this table's contents.
 
-       The table lists all columns, counts of non-null items and storage types
-       of each column.
+       The table lists all columns, counts of non-null items and value types of
+       each column.
 
        > Example
          Get information about a table.
@@ -1773,9 +1775,7 @@ type Table
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
         Table.Value (self.java_table.slice offset limit)
 
-    ## UNSTABLE
-
-       Returns a table containing the rows of `self` table with their order
+    ## Returns a table containing the rows of `self` table with their order
        reversed.
 
        > Example

@@ -4,7 +4,6 @@ import project.System
 
 ## A representation of the various operating systems on which Enso can run.
 type OS
-
     ## The Linux operating system.
     Linux
 
@@ -33,7 +32,6 @@ is_unix : Boolean
 is_unix = @Builtin_Method "System.is_unix"
 
 ## PRIVATE
-
    Create an Os object from text.
 from_text : Text -> OS
 from_text os = case os of

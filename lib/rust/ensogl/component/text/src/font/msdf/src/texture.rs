@@ -84,7 +84,13 @@ impl Texture {
     /// Set the raw pixel data.
     #[profile(Debug)]
     pub fn set_data(&self, image: enso_bitmap::Image) {
-        debug_assert_eq!(image.width, Self::WIDTH);
+        if image.width != Self::WIDTH {
+            let expected = Self::WIDTH;
+            let actual = image.width;
+            error!(
+                "Corrupted MSDF texture data. Expected width: {expected}; actual width: {actual}."
+            );
+        }
         *self.data.borrow_mut() = image.data;
     }
 }

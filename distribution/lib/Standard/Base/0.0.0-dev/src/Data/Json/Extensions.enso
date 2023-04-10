@@ -28,7 +28,8 @@ Any.to_json self = Json.stringify self
 Error.to_json : Text
 Error.to_json self = self.to_js_object.to_text
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
@@ -37,7 +38,8 @@ Text.to_js_object self = case self of
     Text -> JS_Object.from_pairs [["type", "Text"]]
     _ -> self
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
@@ -53,7 +55,8 @@ Number.to_js_object self = case self of
             JS_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
     _ -> self
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
@@ -62,14 +65,16 @@ Boolean.to_js_object self = case self of
     Boolean -> JS_Object.from_pairs [["type", "Boolean"]]
     _ -> self
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
 Nothing.to_js_object : Nothing
 Nothing.to_js_object self = self
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
@@ -79,7 +84,8 @@ Array.to_js_object self =
     proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms, the object is converted to a JS_Object.
@@ -89,7 +95,8 @@ Vector.to_js_object self =
     proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms, the object is converted to a JS_Object.
@@ -115,7 +122,8 @@ Any.to_js_object self =
             JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
         _ -> Error.throw ("Cannot convert " + self.to_text + " to JSON")
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms, the object is converted to a JS_Object.
@@ -127,7 +135,8 @@ Error.to_js_object self =
     error_message = ["message", caught.to_display_text]
     JS_Object.from_pairs [error_type, error_content, error_message]
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    Custom serialization for Locale, serializes the language, country and variant.
 Locale.to_js_object : JS_Object
 Locale.to_js_object self =
@@ -139,7 +148,8 @@ Locale.to_js_object self =
     b.append ["variant", self.variant]
     JS_Object.from_pairs b.to_vector
 
-## Converts the given value to a JSON serializable object.
+## PRIVATE
+   Converts the given value to a JSON serializable object.
    For Map, this is serialized as a Vector of Key-Value pairs.
    
    Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.

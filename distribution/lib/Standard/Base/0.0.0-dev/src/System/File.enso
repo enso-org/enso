@@ -90,7 +90,9 @@ type File
     home : File
     home = @Builtin_Method "File.home"
 
-    ## Creates a new output stream for this file and runs the specified action
+    ## PRIVATE
+       ADVANCED
+       Creates a new output stream for this file and runs the specified action
        on it.
 
        Arguments:
@@ -117,8 +119,7 @@ type File
         Managed_Resource.bracket (self.new_output_stream open_options) (_.close) action
 
     ## PRIVATE
-
-    ## Creates a new output stream for this file. Recommended to use
+       Creates a new output stream for this file. Recommended to use
        `File.with_output_stream` instead, which does resource management.
 
        Arguments:
@@ -128,8 +129,7 @@ type File
     output_stream self options = @Builtin_Method "File.output_stream"
 
     ## PRIVATE
-
-    ## Creates a new input stream for this file. Recommended to use
+       Creates a new input stream for this file. Recommended to use
        `File.with_input_stream` instead, which does resource management.
 
        Arguments:
@@ -138,7 +138,9 @@ type File
     input_stream : Vector File_Access -> Input_Stream
     input_stream self options = @Builtin_Method "File.input_stream"
 
-    ## Creates a new input stream for this file and runs the specified action
+    ## PRIVATE
+       ADVANCED
+       Creates a new input stream for this file and runs the specified action
        on it.
 
        Arguments:
@@ -279,7 +281,8 @@ type File
     resolve : File
     resolve self = @Builtin_Method "File.resolve"
 
-    ## Convert the file descriptor to a JS_Object.
+    ## PRIVATE
+       Convert the file descriptor to a JS_Object.
 
        > Example
          Convert a file to a JS_Object.
@@ -532,8 +535,8 @@ type File
     delete_if_exists : Nothing ! File_Error
     delete_if_exists self = if self.exists then self.delete else Nothing
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Returns a new input stream for this file.
 
        Arguments:
@@ -550,8 +553,8 @@ type File
             resource = Managed_Resource.register stream close_stream
             Input_Stream.Value self resource
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Returns a new output stream for this file.
 
        Arguments:
@@ -580,7 +583,6 @@ type File
         Output_Stream.Value self resource
 
     ## PRIVATE
-
        Reads last `n` bytes from the file (or less if the file is too small) and
        returns a vector of bytes.
     read_last_bytes : Integer -> Vector ! File_Error
@@ -655,32 +657,27 @@ type File
                     matcher.matches (Path.of pathStr)
         filtered
 
-    ## UNSTABLE
-
-       Checks if `self` is a child path of `other`.
+    ## Checks if `self` is a child path of `other`.
     is_child_of : File -> Boolean
     is_child_of self other = self.starts_with other
 
-    ## UNSTABLE
-
-       Transforms `child` to a relative path with respect to `self`.
+    ## Transforms `child` to a relative path with respect to `self`.
     relativize : File -> Boolean
     relativize self child = @Builtin_Method "File.relativize"
 
 
     ## PRIVATE
-
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector File
     list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
 
     ## PRIVATE
-
        Return the absolute path of this File
     to_text : Text
     to_text self = self.absolute . path
 
-## An output stream, allowing for interactive writing of contents into an
+## PRIVATE
+   An output stream, allowing for interactive writing of contents into an
    open file.
 type Output_Stream
     ## PRIVATE
@@ -694,8 +691,8 @@ type Output_Stream
          stream.
     Value file stream_resource
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Writes a vector of bytes into the file at the current stream position.
 
        Arguments:
@@ -719,8 +716,8 @@ type Output_Stream
             java_stream.flush
             Nothing
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Closes this stream.
 
        Even though Streams are closed automatically upon garbage collection, it
@@ -741,7 +738,7 @@ type Output_Stream
     close self = self.stream_resource . finalize
 
     ## PRIVATE
-
+       ADVANCED
        Exposes operations on the underlying Java output stream.
 
        Arguments:
@@ -753,6 +750,7 @@ type Output_Stream
     with_java_stream self f = self.stream_resource . with f
 
     ## PRIVATE
+       ADVANCED
        Runs an action with a `ReportingStreamEncoder` encoding data to the
        output stream with the specified encoding.
     with_stream_encoder : Encoding -> Problem_Behavior -> (ReportingStreamEncoder -> Any) -> Any
@@ -769,7 +767,8 @@ type Output_Stream
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
         on_problems.attach_problems_after results.result problems
 
-## An input stream, allowing for interactive reading of contents from an open
+## PRIVATE
+   An input stream, allowing for interactive reading of contents from an open
    file.
 type Input_Stream
 
@@ -784,8 +783,8 @@ type Input_Stream
          stream.
     Value file stream_resource
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Reads all the bytes in this file into a vector of bytes.
 
        > Example
@@ -805,8 +804,8 @@ type Input_Stream
         File_Error.handle_java_exceptions self.file <|
             Vector.from_polyglot_array java_stream.readAllBytes
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Reads _up to_ the provided number of bytes from the stream.
 
        Arguments:
@@ -836,8 +835,8 @@ type Input_Stream
             bytes = java_stream.readNBytes n
             Vector.from_polyglot_array bytes
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Reads the next byte from the stream.
 
        The returned value is an integer in the range 0-255 representing the
@@ -860,8 +859,8 @@ type Input_Stream
         File_Error.handle_java_exceptions self.file <|
             java_stream.read
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Closes this stream.
 
        Even though Streams are closed automatically upon garbage collection, it

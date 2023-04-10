@@ -2,8 +2,6 @@
 //! about presenters in general.
 
 use crate::prelude::*;
-use double_representation::context_switch::Context;
-use double_representation::context_switch::ContextSwitch;
 use enso_web::traits::*;
 
 use crate::controller::graph::widget::Request as WidgetRequest;
@@ -11,6 +9,8 @@ use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
+use double_representation::context_switch::Context;
+use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;

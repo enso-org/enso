@@ -1,7 +1,7 @@
 /** @file Configuration definition for the Dashboard. */
 
 import * as auth from './authentication/config'
-import * as utils from './utils'
+import * as newtype from './newtype'
 
 // =================
 // === Constants ===
@@ -16,14 +16,14 @@ const CLOUD_REDIRECTS = {
      * The redirect URL must be known ahead of time because it is registered with the OAuth provider
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
-    development: utils.brand<auth.OAuthRedirect>('http://localhost:8081'),
-    production: utils.brand<auth.OAuthRedirect>('https://cloud.enso.org'),
+    development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8081'),
+    production: newtype.asNewtype<auth.OAuthRedirect>('https://cloud.enso.org'),
 }
 
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
-    pbuchu: utils.brand<ApiUrl>('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
-    production: utils.brand<ApiUrl>('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
+    pbuchu: newtype.asNewtype<ApiUrl>('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
+    production: newtype.asNewtype<ApiUrl>('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 
 /** All possible configuration options, sorted by environment. */
@@ -65,4 +65,4 @@ export type Environment = 'pbuchu' | 'production'
 // ===========
 
 /** Base URL for requests to our Cloud API backend. */
-type ApiUrl = utils.Brand<'ApiUrl'> & string
+type ApiUrl = newtype.Newtype<string, 'ApiUrl'>

@@ -2,9 +2,9 @@ from Standard.Base import all
 
 import project.Data.SQL.SQL_Fragment
 
+## PRIVATE
 type SQL_Statement
-
-    ## UNSTABLE
+    ## PRIVATE
 
        Represents a built SQL statement.
 
@@ -15,8 +15,8 @@ type SQL_Statement
        interpolated for these parameters.
     Value (internal_fragments:(Vector SQL_Fragment))
 
-    ## UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        A vector of code fragments.
 
        Consists of two types of values:
@@ -26,10 +26,9 @@ type SQL_Statement
     fragments : Vector SQL_Fragment
     fragments self = self.internal_fragments
 
-    ## UNSAFE
-       UNSTABLE
+    ## PRIVATE
        ADVANCED
-
+       UNSAFE
        This function returns a raw SQL string for the query, manually handling
        the interpolation that is normally handled by the database engine itself.
 
@@ -52,8 +51,8 @@ type SQL_Statement
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""
 
-    ## UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.
     prepare self =
@@ -67,8 +66,7 @@ type SQL_Statement
         substitutions = self.fragments.flat_map to_subst
         [sql, substitutions]
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Returns a JS_Object representation of the statement.
     to_js_object : JS_Object
     to_js_object self =

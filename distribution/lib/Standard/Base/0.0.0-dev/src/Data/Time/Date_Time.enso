@@ -584,18 +584,8 @@ type Date_Time
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
         ensure_in_epoch result result
 
-    ## Convert this time to text using the default formatter.
-
-       > Example
-         Convert the current time to text.
-
-             from Standard.Base import Date_Time
-
-             example_to_text = Date_Time.now.to_text
-    to_text : Text
-    to_text self = @Builtin_Method "Date_Time.to_text"
-
-    ## Convert to a JavaScript Object representing a Date_Time.
+    ## PRIVATE
+       Convert to a JavaScript Object representing a Date_Time.
 
        > Example
          Convert the current time to a JS_Object.

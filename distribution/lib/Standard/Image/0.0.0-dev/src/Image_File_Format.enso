@@ -12,19 +12,22 @@ type Image_File_Format
     ## File_Format to read Image files
     For_File
 
-    ## If the File_Format supports reading from the file, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Image_File_Format | Nothing
     for_file file =
         extension = file.extension
         if supported.contains extension then Image_File_Format.For_File else Nothing
 
-    ## If the File_Format supports reading from the web response, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Image_File_Format | Nothing
     for_web _ _ =
         ## Currently not loading Image files automatically. This should be supported later.
         Nothing
 
-    ## Implements the `File.read` for this `File_Format`
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         _ = [on_problems]
