@@ -76,11 +76,6 @@ function SecretCreateForm(props: SecretCreateFormProps) {
                     }}
                 />
             </div>
-            <input
-                type="submit"
-                className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2"
-                value="Create"
-            />
         </CreateForm>
     )
 }

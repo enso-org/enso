@@ -6,11 +6,16 @@ import * as dashboard from './dashboard'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import CreateForm, * as createForm from './createForm'
 
-export interface FileCreateFormProps extends dashboard.CreateFormProps {}
+export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {
+    backend: backendModule.Backend
+    directoryId: backendModule.DirectoryId
+    onSuccess: () => void
+}
 
 function FileCreateForm(props: FileCreateFormProps) {
-    const { backend, directoryId, onSuccess } = props
+    const { backend, directoryId, onSuccess, ...passThrough } = props
     const { unsetModal } = modalProvider.useSetModal()
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
@@ -42,11 +47,7 @@ function FileCreateForm(props: FileCreateFormProps) {
     }
 
     return (
-        <form className="bg-white shadow-soft rounded-lg w-60" onSubmit={onSubmit}>
-            <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
-                {svg.CLOSE_ICON}
-            </button>
-            <h2 className="inline-block font-semibold m-2">New File</h2>
+        <CreateForm title="New File" onSubmit={onSubmit} {...passThrough}>
             <div className="flex flex-row flex-nowrap m-1">
                 <label className="inline-block flex-1 grow m-1" htmlFor="file_name">
                     Name
@@ -83,12 +84,7 @@ function FileCreateForm(props: FileCreateFormProps) {
                     />
                 </div>
             </div>
-            <input
-                type="submit"
-                className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2"
-                value="Create"
-            />
-        </form>
+        </CreateForm>
     )
 }
 
