@@ -90,7 +90,7 @@ spec =
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
             t = Table.new cols
             action = t.tokenize_to_columns 'bar' "([a-z]).(\d+)" column_count=1 on_problems=_
-            tester = _-> True # _.should_be_a Table
+            tester = _.should_be_a Table
             problems = [Column_Count_Exceeded.Error 1 3]
             Problems.test_problem_handling action problems tester
 
@@ -109,15 +109,6 @@ spec =
             tester = _.should_equal Nothing
             problems = [Missing_Input_Columns.Error ['invalid_name']]
             Problems.test_problem_handling action problems tester
-
-        ##
-            Test.specify "???" <|
-                cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
-                t = Table.new cols
-                action = t.split_to_columns 'bar' '' on_problems=_
-                tester = _.True # _.should_be_a Table
-                problems = [Illegal_Argument.Error "The delimiter cannot be empty." Nothing]
-                Problems.test_problem_handling action problems tester
 
     Test.group "name conflicts" <|
         Test.specify 'will make column names unique' <|

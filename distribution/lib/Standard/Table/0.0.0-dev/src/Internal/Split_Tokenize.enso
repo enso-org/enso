@@ -46,21 +46,6 @@ tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sens
     expect_text_column table column on_problems <|
         fan_out_to_rows table column (ignore_nothing (_.tokenize pattern case_sensitivity))
 
-expect_text_column : Table -> Text | Integer -> Problem_Behavior -> Any -> Any
-expect_text_column table column_id on_problems ~action =
-    column = table.get column_id
-    case column of
-        Nothing ->
-            problem = Missing_Input_Columns.Error [column_id]
-            on_problems.attach_problem_after Nothing problem
-        _ : Column ->
-            case Value_Type.is_text column.value_type of
-                False ->
-                    problem = Invalid_Value_Type.Error Value_Type.Char column.value_type column_id
-                    on_problems.attach_problem_after Nothing problem
-                True ->
-                    action
-
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
    function that maps a single element of the input column to a vector of output
@@ -202,3 +187,20 @@ ignore_nothing : (Any -> Any) -> (Any -> Any)
 ignore_nothing function = x-> case x of
     _ : Nothing -> Nothing
     _ -> function x
+
+## PRIVATE
+   Asserts that a column exists in the table and is a text column.
+expect_text_column : Table -> Text | Integer -> Problem_Behavior -> Any -> Any
+expect_text_column table column_id on_problems ~action =
+    column = table.get column_id
+    case column of
+        Nothing ->
+            problem = Missing_Input_Columns.Error [column_id]
+            on_problems.attach_problem_after Nothing problem
+        _ : Column ->
+            case Value_Type.is_text column.value_type of
+                False ->
+                    problem = Invalid_Value_Type.Error Value_Type.Char column.value_type column_id
+                    on_problems.attach_problem_after Nothing problem
+                True ->
+                    action
