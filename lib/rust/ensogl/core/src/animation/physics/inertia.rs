@@ -264,17 +264,17 @@ impl<T: Value> SimulationData<T> {
             let snap_velocity = velocity < self.thresholds.speed;
             let snap_distance = distance < self.thresholds.distance;
             let should_snap = snap_velocity && snap_distance;
-            // if should_snap || distance.is_nan() {
-            //     self.offset_from_target = default();
-            //     self.velocity = default();
-            //     self.active = false;
-            // } else {
-            let force = self.spring_force() + self.drag_force();
-            let acceleration = force * (1.0 / self.mass.value);
-            let delta_seconds = delta_seconds.unchecked_raw();
-            self.velocity = self.velocity + acceleration * delta_seconds;
-            self.offset_from_target = self.offset_from_target + self.velocity * delta_seconds;
-            // }
+            if should_snap || distance.is_nan() {
+                self.offset_from_target = default();
+                self.velocity = default();
+                self.active = false;
+            } else {
+                let force = self.spring_force() + self.drag_force();
+                let acceleration = force * (1.0 / self.mass.value);
+                let delta_seconds = delta_seconds.unchecked_raw();
+                self.velocity = self.velocity + acceleration * delta_seconds;
+                self.offset_from_target = self.offset_from_target + self.velocity * delta_seconds;
+            }
         }
     }
 
@@ -578,7 +578,6 @@ pub trait Callback1<T> = 'static + Fn1<T>;
 #[derivative(Debug(bound = "T:Copy+Debug"))]
 pub struct SimulatorData<T, OnStep, OnStart, OnEnd> {
     simulation: SimulationDataCell<T>,
-    frame_rate: Cell<f32>,
     #[derivative(Debug = "ignore")]
     on_step:    OnStep,
     #[derivative(Debug = "ignore")]
@@ -598,8 +597,7 @@ impl<T: Value, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd> 
     /// Constructor.
     pub fn new(on_step: OnStep, on_start: OnStart, on_end: OnEnd) -> Self {
         let simulation = SimulationDataCell::new();
-        let frame_rate = Cell::new(60.0);
-        Self { simulation, frame_rate, on_step, on_start, on_end }
+        Self { simulation, on_step, on_start, on_end }
     }
 }
 
@@ -721,16 +719,12 @@ where
     /// Starts the simulation and attaches it to an animation loop.
     fn start(&self) {
         if !self.started.get() {
-            let frame_rate = self.frame_rate.get();
-            let step = step(self);
-            let on_too_many_frames_skipped = on_too_many_frames_skipped(self);
-            let animation_loop = animation::Loop::new_with_fixed_frame_rate(
-                frame_rate,
-                step,
-                on_too_many_frames_skipped,
-            );
-            self.animation_loop.set(Some(animation_loop));
             self.started.set(true);
+        }
+        if self.animation_loop.get().is_none() {
+            let step = step(self);
+            let animation_loop = animation::Loop::new_with_fixed_frame_rate(step);
+            self.animation_loop.set(Some(animation_loop));
             self.on_start.call();
         }
     }
@@ -854,7 +848,7 @@ impl WeakAnimationLoopSlot {
 
 /// Callback for an animation step.
 pub type Step<T: Value, OnStep: Callback1<T>, OnStart: Callback0, OnEnd: Callback1<EndStatus>> =
-    impl Fn(animation::TimeInfo);
+    impl Fn(Option<animation::TimeInfo>);
 
 fn step<T, OnStep, OnStart, OnEnd>(
     simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
@@ -865,37 +859,20 @@ where
     OnStart: Callback0,
     OnEnd: Callback1<EndStatus>, {
     let weak_simulator = simulator.downgrade();
-    move |time: animation::TimeInfo| {
+    move |time: Option<animation::TimeInfo>| {
         if let Some(simulator) = weak_simulator.upgrade() {
-            let delta_seconds = time.previous_frame / 1000.0;
-            if !simulator.step(delta_seconds) {
-                simulator.started.set(false);
-                simulator.animation_loop.set(None)
+            if let Some(time) = time {
+                // warn!("STEP");
+
+                let delta_seconds = time.previous_frame / 1000.0;
+                // warn!("delta seconds: {delta_seconds}");
+                if !simulator.step(delta_seconds) {
+                    simulator.started.set(false);
+                    // simulator.animation_loop.set(None)
+                }
+            } else {
+                simulator.skip()
             }
-        }
-    }
-}
-
-/// Callback for an animation step.
-pub type OnTooManyFramesSkipped<
-    T: Value,
-    OnStep: Callback1<T>,
-    OnStart: Callback0,
-    OnEnd: Callback1<EndStatus>,
-> = impl Fn();
-
-fn on_too_many_frames_skipped<T, OnStep, OnStart, OnEnd>(
-    simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
-) -> OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd>
-where
-    T: Value,
-    OnStep: Callback1<T>,
-    OnStart: Callback0,
-    OnEnd: Callback1<EndStatus>, {
-    let weak_simulator = simulator.downgrade();
-    move || {
-        if let Some(simulator) = weak_simulator.upgrade() {
-            simulator.skip()
         }
     }
 }

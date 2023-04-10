@@ -175,9 +175,16 @@ impl<F: ?Sized> RegistryModel<F> {
             }
             is_valid
         });
-        let mut callback_list_during_run = self.callback_list_during_run.borrow_mut();
-        if !callback_list_during_run.is_empty() {
-            self.callback_list.borrow_mut().extend(mem::take(&mut *callback_list_during_run));
+        while !self.callback_list_during_run.borrow().is_empty() {
+            let mut new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
+            new_callbacks.retain_mut(|(guard, callback)| {
+                let is_valid = !guard.is_expired();
+                if is_valid {
+                    callback.call_mut(args);
+                }
+                is_valid
+            });
+            self.callback_list.borrow_mut().extend(new_callbacks);
         }
         self.is_running.set(false);
     }

@@ -80,7 +80,9 @@ impl EventLoopExecutor {
     /// The executor will keep copy of this loop handle, so caller is not
     /// required to keep it alive.
     fn start_running(&mut self) {
-        self.event_loop = Some(MainLoop::new(Box::new(self.runner())));
+        // FIXME
+        panic!()
+        // self.event_loop = Some(MainLoop::new(Box::new(self.runner())));
     }
 
     /// Stops event loop (previously assigned by `run` method) from calling this

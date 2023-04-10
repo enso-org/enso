@@ -217,11 +217,18 @@ where
         Self { duration, start_value, target_value, value, active, tween_fn, callback, on_end }
     }
 
-    fn step(&self, time: Duration) {
-        let sample = (time / self.duration.get()).min(1.0);
-        let weight = (self.tween_fn)(sample);
-        let value = self.start_value.get() * (1.0 - weight) + self.target_value.get() * weight;
-        let finished = (sample - 1.0).abs() < std::f32::EPSILON;
+    fn step(&self, time: Option<Duration>) {
+        let (value, finished) = if let Some(time) = time {
+            let sample = (time / self.duration.get()).min(1.0);
+            let finished = (sample - 1.0).abs() < std::f32::EPSILON;
+            let weight = (self.tween_fn)(sample);
+            let weight = if finished { 1.0 } else { weight };
+            let value = self.start_value.get() * (1.0 - weight) + self.target_value.get() * weight;
+            (value, finished)
+        } else {
+            let value = self.target_value.get();
+            (value, true)
+        };
         self.callback.call(value);
         self.value.set(value);
         if finished {
@@ -410,7 +417,7 @@ pub type AnimationStep = animation::Loop;
 
 /// Callback for an animation step.
 pub type Step<T: Value, F: AnyFnEasing, OnStep: Callback<T>, OnEnd: Callback<EndStatus>> =
-    impl Fn(animation::TimeInfo);
+    impl Fn(Option<animation::TimeInfo>);
 
 fn step<T: Value, F, OnStep, OnEnd>(
     easing: &Animator<T, F, OnStep, OnEnd>,
@@ -421,9 +428,9 @@ where
     OnEnd: Callback<EndStatus>, {
     let data = easing.data.clone_ref();
     let animation_loop = easing.animation_loop.downgrade();
-    move |time: animation::TimeInfo| {
+    move |time: Option<animation::TimeInfo>| {
         if data.active.get() {
-            data.step(time.since_animation_loop_started)
+            data.step(time.map(|t| t.since_animation_loop_started))
         } else if let Some(animation_loop) = animation_loop.upgrade() {
             animation_loop.set(None);
         }
