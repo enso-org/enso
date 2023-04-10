@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
 import Standard.Test.Extensions
 
@@ -12,10 +13,10 @@ spec =
         same_headers = (t0.columns.map .name) == (t1.columns.map .name)
         same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
         same_headers && same_columns
-    tables_should_be_equal t0 t1 =
-        equal = tables_equal t0 t1
+    tables_should_be_equal actual expected =
+        equal = tables_equal actual expected
         if equal.not then
-            msg = 'Tables differ:\n' + t0.display + '\n' + t1.display
+            msg = 'Tables differ. Actual:\n' + actual.display + '\nExpected:\n' + expected.display
             Test.fail msg
 
     Test.group 'split' <|
@@ -23,7 +24,7 @@ spec =
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
             t = Table.new cols
             expected_rows = [[0, 'a', 'c', Nothing], [1, 'c', 'd', 'ef'], [2, 'gh', 'ij', 'u']]
-            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
+            expected = Table.from_rows ['foo', 'split_bar', 'split_bar_1', 'split_bar_2'] expected_rows
             t2 = t.split_to_columns 'bar' 'b'
             tables_should_be_equal t2 expected
 
@@ -40,7 +41,7 @@ spec =
             cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
             t = Table.new cols
             expected_rows = [[0, '12', '34', '5'], [1, '23', Nothing, Nothing], [2, '2', '4', '55']]
-            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
+            expected = Table.from_rows ['foo', 'tokenize_bar', 'tokenize_bar_1', 'tokenize_bar_2'] expected_rows
             t2 = t.tokenize_to_columns 'bar' "\d+"
             tables_should_be_equal t2 expected
 
@@ -56,7 +57,7 @@ spec =
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
             t = Table.new cols
             expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
-            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
+            expected = Table.from_rows ['foo', 'tokenize_bar', 'tokenize_bar_1', 'tokenize_bar_2'] expected_rows
             t2 = t.tokenize_to_columns 'bar' "([a-z]).(\d+)"
             tables_should_be_equal t2 expected
 
@@ -77,7 +78,7 @@ spec =
             t.tokenize_to_columns 'foo' "x" . should_fail_with Invalid_Value_Type
             t.tokenize_to_rows 'foo' "x" . should_fail_with Invalid_Value_Type
 
-        Test.specify "split should return warnings and errors when selected non-text column" <|
+        Test.specify "split should return problems when exceeding the column limit" <|
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
             t = Table.new cols
             action = t.split_to_columns 'bar' 'b' column_count=1 on_problems=_
@@ -85,12 +86,30 @@ spec =
             problems = [Column_Count_Exceeded.Error 1 3]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "tokenize should return warnings and errors when selected non-text column" <|
+        Test.specify "tokenize should return problems when exceeding the column limit" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
             t = Table.new cols
             action = t.tokenize_to_columns 'bar' "([a-z]).(\d+)" column_count=1 on_problems=_
             tester = _.should_be_a Table
             problems = [Column_Count_Exceeded.Error 1 3]
             Problems.test_problem_handling action problems tester
+
+        ##
+            Test.specify "???" <|
+                cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
+                t = Table.new cols
+                action = t.split_to_columns 'bar' '' on_problems=_
+                tester = _.True # _.should_be_a Table
+                problems = [Illegal_Argument.Error "The delimiter cannot be empty." Nothing]
+                Problems.test_problem_handling action problems tester
+
+    Test.group "name conflicts" <|
+        Test.specify 'will make column names unique' <|
+            cols = [['split_bar', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
+            t = Table.new cols
+            expected_rows = [[0, 'a', 'c', Nothing], [1, 'c', 'd', 'ef'], [2, 'gh', 'ij', 'u']]
+            expected = Table.from_rows ['split_bar', 'split_bar_1', 'split_bar_2', 'split_bar_3'] expected_rows
+            t2 = t.split_to_columns 'bar' 'b'
+            tables_should_be_equal t2 expected
 
 main = Test_Suite.run_main spec
