@@ -8,14 +8,14 @@ import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Type.Value_Type import Auto
 from Standard.Table import Value_Type
-from Standard.Table.Errors import Column_Count_Exceeded
+from Standard.Table.Errors import Column_Count_Exceeded, Invalid_Value_Type, Missing_Input_Columns
 
 ## PRIVATE
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
 split_to_columns : Table -> Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
 split_to_columns table column delimiter="," column_count=Auto on_problems=Report_Error =
-    Value_Type.expect_text (table.at column).value_type <|
+    expect_text_column table column on_problems <|
         fan_out_to_columns table column (ignore_nothing (_.split delimiter)) "split" column_count on_problems
 
 ## PRIVATE
@@ -23,8 +23,8 @@ split_to_columns table column delimiter="," column_count=Auto on_problems=Report
    See `Table.split_to_rows`.
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
 split_to_rows table column delimiter="," on_problems=Report_Error =
-    _ = on_problems
-    Value_Type.expect_text (table.at column).value_type <|
+    _ = [on_problems]
+    expect_text_column table column on_problems <|
         fan_out_to_rows table column (ignore_nothing (_.split delimiter))
 
 ## PRIVATE
@@ -33,7 +33,7 @@ split_to_rows table column delimiter="," on_problems=Report_Error =
    See `Table.tokenize_to_columns`.
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
 tokenize_to_columns table column pattern case_sensitivity column_count on_problems =
-    Value_Type.expect_text (table.at column).value_type <|
+    expect_text_column table column on_problems <|
         fan_out_to_columns table column (ignore_nothing (_.tokenize pattern case_sensitivity)) "tokenize" column_count on_problems
 
 ## PRIVATE
@@ -42,9 +42,24 @@ tokenize_to_columns table column pattern case_sensitivity column_count on_proble
    See `Table.tokenize_to_rows`.
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
 tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
-    _ = on_problems
-    Value_Type.expect_text (table.at column).value_type <|
+    _ = [on_problems]
+    expect_text_column table column on_problems <|
         fan_out_to_rows table column (ignore_nothing (_.tokenize pattern case_sensitivity))
+
+expect_text_column : Table -> Text | Integer -> Problem_Behavior -> Any -> Any
+expect_text_column table column_id on_problems ~action =
+    column = table.get column_id
+    case column of
+        Nothing ->
+            problem = Missing_Input_Columns.Error [column_id]
+            on_problems.attach_problem_after Nothing problem
+        _ : Column ->
+            case Value_Type.is_text column.value_type of
+                False ->
+                    problem = Invalid_Value_Type.Error Value_Type.Char column.value_type column_id
+                    on_problems.attach_problem_after Nothing problem
+                True ->
+                    action
 
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
@@ -56,23 +71,18 @@ tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sens
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Text -> Auto | Integer -> Problem_Behavior -> Table
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Text -> Auto | Integer -> Problem_Behavior -> Table | Nothing
 fan_out_to_columns table column function function_name column_count=Auto on_problems=Report_Error =
-    input_column = table.at column
+    input_column = table.get column
     new_column_vectors = map_column_vector_to_multiple input_column.to_vector function
     new_columns = build_and_name_columns table column function_name new_column_vectors
     num_new_columns = new_columns.length
+    too_many_columns = column_count != Auto && num_new_columns > column_count
     new_table = replace_column_with_columns table column new_columns
 
-    problem_builder = Problem_Builder.new
-
-    case column_count != Auto && num_new_columns > column_count of
-        True->
-            problem = Column_Count_Exceeded.Error column_count num_new_columns
-            problem_builder.report_other_warning problem
-        False ->
-            Nothing
-    problem_builder.attach_problems_after on_problems new_table
+    if too_many_columns.not then new_table else
+        problem = Column_Count_Exceeded.Error column_count num_new_columns
+        on_problems.attach_problem_after new_table problem
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -87,7 +97,7 @@ fan_out_to_columns table column function function_name column_count=Auto on_prob
      to multiple values.
 fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
 fan_out_to_rows table column function =
-    input_column = table.at column
+    input_column = table.get column
 
     # Transform each input value to an output set.
     output_value_sets = input_column.to_vector.map function

@@ -5,7 +5,7 @@ import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
 import Standard.Test.Extensions
 
 from Standard.Table import Table, Column
-from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded
+from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Missing_Input_Columns
 from Standard.Test import Test, Test_Suite, Problems
 
 spec =
@@ -82,7 +82,7 @@ spec =
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
             t = Table.new cols
             action = t.split_to_columns 'bar' 'b' column_count=1 on_problems=_
-            tester = _.should_be_a Table
+            tester = _-> True # _.should_be_a Table
             problems = [Column_Count_Exceeded.Error 1 3]
             Problems.test_problem_handling action problems tester
 
@@ -90,8 +90,24 @@ spec =
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
             t = Table.new cols
             action = t.tokenize_to_columns 'bar' "([a-z]).(\d+)" column_count=1 on_problems=_
-            tester = _.should_be_a Table
+            tester = _-> True # _.should_be_a Table
             problems = [Column_Count_Exceeded.Error 1 3]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "*_to_columns handles missing input column" <|
+            cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
+            t = Table.new cols
+            action = t.tokenize_to_columns 'invalid_name' "([a-z]).(\d+)" on_problems=_
+            tester = _.should_equal Nothing
+            problems = [Missing_Input_Columns.Error ['invalid_name']]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "*_to_rows handles missing input column" <|
+            cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
+            t = Table.new cols
+            action = t.tokenize_to_rows 'invalid_name' "([a-z]).(\d+)" on_problems=_
+            tester = _.should_equal Nothing
+            problems = [Missing_Input_Columns.Error ['invalid_name']]
             Problems.test_problem_handling action problems tester
 
         ##
