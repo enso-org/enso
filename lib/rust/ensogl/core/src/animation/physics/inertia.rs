@@ -19,8 +19,10 @@ use crate::types::unit2::Duration;
 /// (1-dimensional simulation), or `Vector3<f32>` (3-dimensional simulation).
 pub trait Value = 'static
     + Copy
+    + Debug
     + Default
     + PartialEq
+    + PartialOrd
     + Normalize
     + Magnitude<Output = f32>
     + Add<Output = Self>
@@ -165,7 +167,7 @@ macro_rules! define_property {
     };
 }
 
-define_property! { Drag   = 1500.0 }
+define_property! { Drag   = 5000.0 }
 define_property! { Spring = 20000.0 }
 define_property! { Mass   = 30.0 }
 
@@ -262,17 +264,17 @@ impl<T: Value> SimulationData<T> {
             let snap_velocity = velocity < self.thresholds.speed;
             let snap_distance = distance < self.thresholds.distance;
             let should_snap = snap_velocity && snap_distance;
-            if should_snap || distance.is_nan() {
-                self.offset_from_target = default();
-                self.velocity = default();
-                self.active = false;
-            } else {
-                let force = self.spring_force() + self.drag_force();
-                let acceleration = force * (1.0 / self.mass.value);
-                let delta_seconds = delta_seconds.unchecked_raw();
-                self.velocity = self.velocity + acceleration * delta_seconds;
-                self.offset_from_target = self.offset_from_target + self.velocity * delta_seconds;
-            }
+            // if should_snap || distance.is_nan() {
+            //     self.offset_from_target = default();
+            //     self.velocity = default();
+            //     self.active = false;
+            // } else {
+            let force = self.spring_force() + self.drag_force();
+            let acceleration = force * (1.0 / self.mass.value);
+            let delta_seconds = delta_seconds.unchecked_raw();
+            self.velocity = self.velocity + acceleration * delta_seconds;
+            self.offset_from_target = self.offset_from_target + self.velocity * delta_seconds;
+            // }
         }
     }
 
@@ -615,7 +617,7 @@ where
         } else {
             self.on_end.call(EndStatus::Normal);
         }
-        is_active
+        self.simulation.active()
     }
 }
 
@@ -636,6 +638,7 @@ pub type DynSimulator<T> = Simulator<T, Box<dyn Fn(T)>, (), Box<dyn Fn(EndStatus
 pub struct Simulator<T, OnStep, OnStart, OnEnd> {
     data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
     animation_loop: AnimationLoopSlot,
+    started:        Rc<Cell<bool>>,
 }
 
 impl<T, OnStep, OnStart, OnEnd> Deref for Simulator<T, OnStep, OnStart, OnEnd> {
@@ -656,7 +659,8 @@ where
     pub fn new(callback: OnStep, on_start: OnStart, on_end: OnEnd) -> Self {
         let data = Rc::new(SimulatorData::new(callback, on_start, on_end));
         let animation_loop = default();
-        Self { data, animation_loop }.init()
+        let started = default();
+        Self { data, animation_loop, started }.init()
     }
 }
 
@@ -716,7 +720,7 @@ where
 
     /// Starts the simulation and attaches it to an animation loop.
     fn start(&self) {
-        if self.animation_loop.get().is_none() {
+        if !self.started.get() {
             let frame_rate = self.frame_rate.get();
             let step = step(self);
             let on_too_many_frames_skipped = on_too_many_frames_skipped(self);
@@ -726,6 +730,7 @@ where
                 on_too_many_frames_skipped,
             );
             self.animation_loop.set(Some(animation_loop));
+            self.started.set(true);
             self.on_start.call();
         }
     }
@@ -739,7 +744,8 @@ where
 
     /// Stops the simulation and detaches it from animation loop.
     fn stop(&self) {
-        self.animation_loop.set(None);
+        // self.animation_loop.set(None);
+        self.started.set(false);
         self.on_end.call(EndStatus::Forced);
     }
 }
@@ -748,8 +754,9 @@ impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
     /// Downgrade to a weak reference.
     pub fn downgrade(&self) -> WeakSimulator<T, OnStep, OnStart, OnEnd> {
         let data = self.data.clone_ref();
+        let started = self.started.clone_ref();
         let animation_loop = self.animation_loop.downgrade();
-        WeakSimulator { data, animation_loop }
+        WeakSimulator { data, animation_loop, started }
     }
 }
 
@@ -764,13 +771,19 @@ impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
 pub struct WeakSimulator<T, OnStep, OnStart, OnEnd> {
     data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
     animation_loop: WeakAnimationLoopSlot,
+    started:        Rc<Cell<bool>>,
 }
 
 impl<T, OnStep, OnStart, OnEnd> WeakSimulator<T, OnStep, OnStart, OnEnd> {
     /// Try upgrading to a string reference.
     pub fn upgrade(&self) -> Option<Simulator<T, OnStep, OnStart, OnEnd>> {
         let data = self.data.clone_ref();
-        self.animation_loop.upgrade().map(|animation_loop| Simulator { data, animation_loop })
+        let started = self.started.clone_ref();
+        self.animation_loop.upgrade().map(|animation_loop| Simulator {
+            data,
+            animation_loop,
+            started,
+        })
     }
 }
 
@@ -856,6 +869,7 @@ where
         if let Some(simulator) = weak_simulator.upgrade() {
             let delta_seconds = time.previous_frame / 1000.0;
             if !simulator.step(delta_seconds) {
+                simulator.started.set(false);
                 simulator.animation_loop.set(None)
             }
         }

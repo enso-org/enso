@@ -3196,9 +3196,9 @@ impl Model {
     fn refresh_layout_internal<Dim>(&self, x: Dim, pass_cfg: PassConfig)
     where Dim: ResolutionDim {
         if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
-                self.refresh_grid_layout(x, layout);
+            self.refresh_grid_layout(x, layout);
         } else {
-                self.refresh_manual_layout(x, pass_cfg);
+            self.refresh_manual_layout(x, pass_cfg);
         }
     }
 

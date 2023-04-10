@@ -33,7 +33,7 @@ pub type AnimationSimulator<T> = inertia::DynSimulator<mix::Repr<T>>;
 ///            that work with pixels. The reason is that by default the simulator should
 ///            give nice results for animations in the range of 0 .. 1, while it should not
 ///            make too many steps when animating bigger values (like pixels).
-pub const DEFAULT_PRECISION: f32 = 0.001;
+pub const DEFAULT_PRECISION: f32 = 1.0;
 
 /// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
 /// is computed, it is emitted via the endpoint.
@@ -41,16 +41,17 @@ pub const DEFAULT_PRECISION: f32 = 0.001;
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct Animation<T: mix::Mixable + frp::Data> {
-    pub target:     frp::Any<T>,
-    pub precision:  frp::Any<f32>,
-    pub skip:       frp::Any,
-    pub set_spring: frp::Any<inertia::Spring>,
-    pub set_mass:   frp::Any<inertia::Mass>,
-    pub set_drag:   frp::Any<inertia::Drag>,
-    pub set_value:  frp::Any<T>,
-    pub value:      frp::Stream<T>,
-    pub on_end:     frp::Stream<()>,
-    pub simulator:  AnimationSimulator<T>,
+    pub target:       frp::Any<T>,
+    pub precision:    frp::Any<f32>,
+    pub skip:         frp::Any,
+    pub set_spring:   frp::Any<inertia::Spring>,
+    pub set_mass:     frp::Any<inertia::Mass>,
+    pub set_drag:     frp::Any<inertia::Drag>,
+    pub set_velocity: frp::Any<T>,
+    pub set_value:    frp::Any<T>,
+    pub value:        frp::Stream<T>,
+    pub on_end:       frp::Stream<()>,
+    pub simulator:    AnimationSimulator<T>,
 }
 
 #[allow(missing_docs)]
@@ -75,6 +76,7 @@ where mix::Repr<T>: inertia::Value
             set_spring <- any_mut::<inertia::Spring>();
             set_mass   <- any_mut::<inertia::Mass>();
             set_drag   <- any_mut::<inertia::Drag>();
+            set_velocity  <- any_mut::<T>();
             set_value  <- any_mut::<T>();
             eval target     ((t) simulator.set_target_value(mix::into_space(t.clone())));
             eval precision  ((t) simulator.set_precision(*t));
@@ -82,6 +84,7 @@ where mix::Repr<T>: inertia::Value
             eval set_spring ((s) simulator.set_spring(*s));
             eval set_mass   ((m) simulator.set_mass(*m));
             eval set_drag   ((d) simulator.set_drag(*d));
+            eval set_velocity   ((t) simulator.set_velocity(mix::into_space(t.clone())));
             eval set_value  ((t) simulator.set_value(mix::into_space(t.clone())));
         }
         let value = value_src.into();
@@ -94,6 +97,7 @@ where mix::Repr<T>: inertia::Value
             set_mass,
             set_drag,
             set_value,
+            set_velocity,
             value,
             on_end,
             simulator,
