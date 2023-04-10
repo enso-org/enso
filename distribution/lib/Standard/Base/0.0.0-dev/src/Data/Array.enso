@@ -77,19 +77,20 @@ type Array
     new_4 : Any -> Any -> Any -> Any -> Array
     new_4 item_1 item_2 item_3 item_4 = @Builtin_Method "Array.new_4"
 
-    ## Copies from the source array, beginning at the specified position, to the
+    ## PRIVATE
+       Copies from the source array, beginning at the specified position, to the
        specified position in the destination array.
 
        Arguments:
        - src: The source array.
        - source_index: The start position in the src array.
-       - dest: The desination array.
+       - dest: The destination array.
        - dest_index: The start position in the that array.
 
        A subsequence of array elements are copied from the src array to the
        dest array. The number of components copied is equal to count. The
        components at positions source_index through source_index + count - 1
-       in the strc array are copied into positions dest_index through
+       in the src array are copied into positions dest_index through
        dest_index + count - 1, respectively, of the destination array.
 
        If the src and dest arguments refer to the same array, then the copy
@@ -150,7 +151,6 @@ type Array
         self.sort_builtin comparator
 
     ## Identity.
-
        This method is implemented purely for completeness with the runtime's
        primitive array protocol.
     to_array : Array

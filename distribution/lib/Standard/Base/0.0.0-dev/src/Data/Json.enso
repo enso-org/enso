@@ -55,10 +55,10 @@ type Json
 
    Check the `message` field for detailed information on the specific failure.
 type Invalid_JSON
+    ## PRIVATE
     Error message
 
     ## PRIVATE
-
        Converts the error to a display representation.
     to_display_text : Text
     to_display_text self =
@@ -69,8 +69,7 @@ type Invalid_JSON
    A failure indicating the inability to marshall a `Json` object into the
    specified format.
 type Marshalling_Error
-
-    ## UNSTABLE
+    ## PRIVATE
 
        The `json` object could not be converted into `format`, due to a type
        mismatch.
@@ -82,8 +81,7 @@ type Marshalling_Error
        This can occur e.g. when trying to reinterpret a number as a `Text`, etc.
     Type_Mismatch json format
 
-    ## UNSTABLE
-
+    ## PRIVATE
        The `json` object could not be converted into `format`, due to a field
        missing in the `json` structure.
 
@@ -96,8 +94,7 @@ type Marshalling_Error
        when the JSON does not contain all the fields required by the atom.
     Missing_Field json field format
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the marshalling error into a human-readable format.
     to_display_text : Text
     to_display_text self = case self of
@@ -108,8 +105,10 @@ type Marshalling_Error
         Marshalling_Error.Missing_Field _ field _ ->
             "Missing field in Json: the field `" + field.to_text "` was missing in the json."
 
+## PRIVATE
 type JS_Object
-    ## Creates a JS_Object from a list of key-value pairs.
+    ## PRIVATE
+       Creates a JS_Object from a list of key-value pairs.
        Keys must be `Text` values.
        Values will be recursively converted to JSON serializable as needed.
     from_pairs : Vector -> JS_Object
@@ -163,11 +162,13 @@ type JS_Object
         proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
         Vector.from_polyglot_array proxy
 
-    ## Convert the object to a JS_Object.
+    ## PRIVATE
+       Convert the object to a JS_Object.
     to_js_object : JS_Object
     to_js_object self = self
 
-    ## Convert to a Text.
+    ## PRIVATE
+       Convert to a Text.
     to_text : Text
     to_text self = Json.stringify self
 
@@ -175,8 +176,7 @@ type JS_Object
     to_json : Text
     to_json self = self.to_text
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Transform the vector into text for displaying as part of its default
        visualization.
     to_default_visualization_data : Text
@@ -185,6 +185,7 @@ type JS_Object
 
 ## PRIVATE
 type JS_Object_Comparator
+    ## PRIVATE
     compare : JS_Object -> JS_Object -> (Ordering|Nothing)
     compare obj1 obj2 =
         obj1_keys = obj1.field_names
@@ -193,6 +194,7 @@ type JS_Object_Comparator
             (obj1.get key == obj2.at key).catch No_Such_Key _->False
         if same_values then Ordering.Equal else Nothing
 
+    ## PRIVATE
     hash : JS_Object -> Integer
     hash obj =
         values_hashes = obj.field_names.map field_name->
@@ -202,7 +204,6 @@ type JS_Object_Comparator
         values_hashes.fold 0 (+)
 
 Comparable.from (_:JS_Object) = JS_Object_Comparator
-
 
 ## PRIVATE
    Render the JS_Object to Text with truncated depth.

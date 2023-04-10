@@ -61,7 +61,6 @@ type HTTP
     new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = HTTP_Version.HTTP_1_1) =
         HTTP.Value timeout follow_redirects proxy version
 
-
     ## ALIAS Fetch Data
 
        Send the Get request and return the body.
@@ -335,7 +334,8 @@ type HTTP
         req = Request.delete uri headers
         self.request req
 
-    ## Create a request
+    ## ADVANCED
+       Create a request
 
        Arguments:
        - req: The HTTP request to send using `self` HTTP client.
@@ -466,7 +466,6 @@ type HTTP
             Response.Value (self.internal_http_client.send http_request body_handler)
 
     ## PRIVATE
-
        Build an HTTP client.
     internal_http_client : HttpClient
     internal_http_client self =
@@ -497,18 +496,17 @@ type HTTP
         # build http client
         builder.build
 
-## UNSTABLE
-
+## PRIVATE
    An error when sending an HTTP request.
 
    Arguments:
    - error_type: The type of the error.
    - message: The message for the error.
 type Request_Error
+    ## PRIVATE
     Error error_type message
 
     ## PRIVATE
-
        Convert a request error to a human-readable form.
     to_display_text : Text
     to_display_text self =
