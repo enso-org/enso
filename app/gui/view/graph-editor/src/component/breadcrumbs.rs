@@ -10,11 +10,10 @@ use crate::LocalCall;
 use engine_protocol::language_server::MethodPointer;
 use enso_frp as frp;
 use ensogl::application::Application;
+use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::style;
-use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use std::cmp::Ordering;
 
@@ -50,9 +49,6 @@ pub const HEIGHT: f32 = VERTICAL_MARGIN
     + breadcrumb::VERTICAL_MARGIN
     + VERTICAL_MARGIN;
 
-// This should be as large as the shadow around the background.
-const MAGIC_SHADOW_MARGIN: f32 = 40.0;
-
 
 
 // ========================
@@ -63,38 +59,6 @@ const MAGIC_SHADOW_MARGIN: f32 = 40.0;
 enum RelativePosition {
     Left,
     Right,
-}
-
-
-
-// ==================
-// === Background ===
-// ==================
-
-/// A background shape.
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style:Style) {
-            let theme             = ensogl_hardcoded_theme::graph_editor::breadcrumbs::background;
-            let theme             = style::Path::from(&theme);
-            let width             = Var::<Pixels>::from("input_size.x");
-            let height            = Var::<Pixels>::from("input_size.y");
-
-            let corner_radius     = style.get_number(theme.sub("corner_radius"));
-            let shape_width       = width  - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape_height      = height - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape             = Rect((&shape_width,&shape_height));
-            let shape             = shape.corners_radius(corner_radius.px());
-
-            let bg_color          = style.get_color(&theme);
-            let bg                = shape.fill(bg_color);
-
-            bg.into()
-        }
-    }
 }
 
 
@@ -172,7 +136,7 @@ ensogl::define_endpoints! {
 pub struct BreadcrumbsModel {
     /// The breadcrumbs panel display object.
     display_object:        display::object::Instance,
-    background:            background::View,
+    background:            Rectangle,
     project_name:          ProjectName,
     root:                  display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
@@ -204,10 +168,10 @@ impl BreadcrumbsModel {
         let frp_inputs = frp.input.clone_ref();
         let current_index = default();
         let camera = scene.camera().clone_ref();
-        let background = background::View::new();
+        let background = default();
         let gap_width = default();
 
-        scene.layers.panel.add(&background);
+        scene.layers.panel_background.add(&background);
 
         Self {
             display_object,
@@ -222,21 +186,14 @@ impl BreadcrumbsModel {
             camera,
             gap_width,
         }
-        .init(&scene)
+        .init()
     }
 
-    fn init(self, scene: &Scene) -> Self {
+    fn init(self) -> Self {
         self.add_child(&self.root);
         self.root.add_child(&self.project_name);
         self.root.add_child(&self.breadcrumbs_container);
         self.root.add_child(&self.background);
-
-        ensogl::shapes_order_dependencies! {
-            scene => {
-                background -> breadcrumb::background;
-                background -> project_name::background;
-            }
-        }
 
         self.update_layout();
 
@@ -272,11 +229,17 @@ impl BreadcrumbsModel {
         let background_width = width + 2.0 * BACKGROUND_PADDING;
         let background_height =
             crate::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT + BACKGROUND_PADDING * 2.0;
-        let width_with_shadow = background_width + MAGIC_SHADOW_MARGIN * 2.0;
-        let height_with_shadow = background_height + MAGIC_SHADOW_MARGIN * 2.0;
-        self.background.set_size(Vector2(width_with_shadow, height_with_shadow));
-        self.background.set_x(width / 2.0);
-        self.background.set_y(-HEIGHT / 2.0);
+        self.background.set_size(Vector2(background_width, background_height));
+        self.background.set_x(-BACKGROUND_PADDING);
+        self.background.set_y(-HEIGHT/2.0 - background_height/2.0);
+    }
+
+    fn set_background_color(&self, color: Rgba) {
+        self.background.set_color(color);
+    }
+
+    fn set_background_corner_radius(&self, radius: f32) {
+        self.background.set_corner_radius(radius);
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -461,6 +424,14 @@ impl Breadcrumbs {
         let frp = Frp::new();
         let model = Rc::new(BreadcrumbsModel::new(app, &frp));
         let network = &frp.network;
+
+        use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
+        let style = StyleWatchFrp::new(&scene.style_sheet);
+        let background_color = style.get_color(breadcrumbs::background).value();
+        let background_corner_radius =
+            style.get_number(breadcrumbs::background::corner_radius).value();
+        model.set_background_color(background_color);
+        model.set_background_corner_radius(background_corner_radius);
 
         // === Breadcrumb selection ===
 
