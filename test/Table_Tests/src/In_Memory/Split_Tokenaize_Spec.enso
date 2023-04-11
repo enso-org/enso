@@ -97,18 +97,12 @@ spec =
         Test.specify "*_to_columns handles missing input column" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
             t = Table.new cols
-            action = t.tokenize_to_columns 'invalid_name' "([a-z]).(\d+)" on_problems=_
-            tester = _.should_equal Nothing
-            problems = [Missing_Input_Columns.Error ['invalid_name']]
-            Problems.test_problem_handling action problems tester
+            t.tokenize_to_columns 'invalid_name' "([a-z]).(\d+)" . should_fail_with Missing_Input_Columns
 
         Test.specify "*_to_rows handles missing input column" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
             t = Table.new cols
-            action = t.tokenize_to_rows 'invalid_name' "([a-z]).(\d+)" on_problems=_
-            tester = _.should_equal Nothing
-            problems = [Missing_Input_Columns.Error ['invalid_name']]
-            Problems.test_problem_handling action problems tester
+            t.tokenize_to_rows 'invalid_name' "([a-z]).(\d+)" . should_fail_with Missing_Input_Columns
 
     Test.group "name conflicts" <|
         Test.specify 'will make column names unique' <|
