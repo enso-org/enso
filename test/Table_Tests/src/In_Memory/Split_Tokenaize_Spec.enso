@@ -98,6 +98,14 @@ spec =
             problems = [Column_Count_Exceeded.Error 2 3]
             Problems.test_problem_handling action problems tester
 
+        Test.specify 'should generate extra empty columns if column_count is set (reverse row order)' <|
+            cols = [['foo', [0, 1, 2]], ['bar', ['ghbijbu', 'cbdbef', 'abc']]]
+            t = Table.new cols
+            expected_rows = [[0, 'gh', 'ij', 'u', Nothing], [1, 'c', 'd', 'ef', Nothing], [2, 'a', 'c', Nothing, Nothing]]
+            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2', 'bar_3'] expected_rows
+            t2 = t.split_to_columns 'bar' 'b' column_count=4
+            tables_should_be_equal t2 expected
+
     Test.group 'errors' <|
         Test.specify "won't work on a non-text column" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
