@@ -636,7 +636,6 @@ pub type DynSimulator<T> = Simulator<T, Box<dyn Fn(T)>, (), Box<dyn Fn(EndStatus
 pub struct Simulator<T, OnStep, OnStart, OnEnd> {
     data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
     animation_loop: AnimationLoopSlot,
-    started:        Rc<Cell<bool>>,
 }
 
 impl<T, OnStep, OnStart, OnEnd> Deref for Simulator<T, OnStep, OnStart, OnEnd> {
@@ -657,8 +656,7 @@ where
     pub fn new(callback: OnStep, on_start: OnStart, on_end: OnEnd) -> Self {
         let data = Rc::new(SimulatorData::new(callback, on_start, on_end));
         let animation_loop = default();
-        let started = default();
-        Self { data, animation_loop, started }.init()
+        Self { data, animation_loop }.init()
     }
 }
 
@@ -718,9 +716,6 @@ where
 
     /// Starts the simulation and attaches it to an animation loop.
     fn start(&self) {
-        if !self.started.get() {
-            self.started.set(true);
-        }
         if self.animation_loop.get().is_none() {
             let step = step(self);
             let animation_loop = animation::Loop::new_with_fixed_frame_rate(step);
@@ -738,8 +733,7 @@ where
 
     /// Stops the simulation and detaches it from animation loop.
     fn stop(&self) {
-        // self.animation_loop.set(None);
-        self.started.set(false);
+        self.animation_loop.set(None);
         self.on_end.call(EndStatus::Forced);
     }
 }
@@ -748,9 +742,8 @@ impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
     /// Downgrade to a weak reference.
     pub fn downgrade(&self) -> WeakSimulator<T, OnStep, OnStart, OnEnd> {
         let data = self.data.clone_ref();
-        let started = self.started.clone_ref();
         let animation_loop = self.animation_loop.downgrade();
-        WeakSimulator { data, animation_loop, started }
+        WeakSimulator { data, animation_loop }
     }
 }
 
@@ -765,19 +758,13 @@ impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
 pub struct WeakSimulator<T, OnStep, OnStart, OnEnd> {
     data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
     animation_loop: WeakAnimationLoopSlot,
-    started:        Rc<Cell<bool>>,
 }
 
 impl<T, OnStep, OnStart, OnEnd> WeakSimulator<T, OnStep, OnStart, OnEnd> {
     /// Try upgrading to a string reference.
     pub fn upgrade(&self) -> Option<Simulator<T, OnStep, OnStart, OnEnd>> {
         let data = self.data.clone_ref();
-        let started = self.started.clone_ref();
-        self.animation_loop.upgrade().map(|animation_loop| Simulator {
-            data,
-            animation_loop,
-            started,
-        })
+        self.animation_loop.upgrade().map(|animation_loop| Simulator { data, animation_loop })
     }
 }
 
@@ -862,13 +849,9 @@ where
     move |time: Option<animation::TimeInfo>| {
         if let Some(simulator) = weak_simulator.upgrade() {
             if let Some(time) = time {
-                // warn!("STEP");
-
                 let delta_seconds = time.previous_frame / 1000.0;
-                // warn!("delta seconds: {delta_seconds}");
                 if !simulator.step(delta_seconds) {
-                    simulator.started.set(false);
-                    // simulator.animation_loop.set(None)
+                    simulator.animation_loop.set(None)
                 }
             } else {
                 simulator.skip()
