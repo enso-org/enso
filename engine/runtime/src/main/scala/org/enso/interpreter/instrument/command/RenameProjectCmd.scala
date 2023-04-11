@@ -47,8 +47,6 @@ class RenameProjectCmd(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(
               module = module.getName.toString,
-              version =
-                ctx.versioning.evalVersion(module.getSource.getCharacters),
               actions = Vector(
                 Api.SuggestionsDatabaseAction.Clean(module.getName.toString)
               ),

@@ -12,7 +12,6 @@ import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
-import org.enso.text.ContentVersion
 import org.enso.text.editing.model
 import org.enso.text.editing.model.{Range, TextEdit}
 
@@ -1545,14 +1544,12 @@ object Runtime {
     /** A notification about the changes in the suggestions database.
       *
       * @param module the module name
-      * @param version the version of the module
       * @param actions the list of actions to apply to the suggestions database
       * @param exports the list of re-exported symbols
       * @param updates the list of suggestions extracted from module
       */
     final case class SuggestionsDatabaseModuleUpdateNotification(
       module: String,
-      version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
       exports: Vector[ExportsUpdate],
       updates: Tree[SuggestionUpdate]
@@ -1563,7 +1560,6 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String =
         "SuggestionsDatabaseModuleUpdateNotification(" +
         s"module=$module," +
-        s"version=$version," +
         s"actions=$actions," +
         s"exports=$exports" +
         s"updates=${updates.map(_.toLogString(shouldMask))}" +
