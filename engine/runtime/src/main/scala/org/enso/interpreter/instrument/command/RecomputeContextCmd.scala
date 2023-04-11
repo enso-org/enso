@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
-import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
+import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
@@ -106,11 +106,16 @@ class RecomputeContextCmd(
     ec: ExecutionContext
   ): Future[Unit] = {
     if (isStackNonEmpty) {
-      val stack      = ctx.contextManager.getStack(request.contextId)
-      val executable = Executable(request.contextId, stack)
+      val stack = ctx.contextManager.getStack(request.contextId)
       for {
-        _ <- ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
-        _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
+        _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
+        _ <- ctx.jobProcessor.run(
+          new ExecuteJob(
+            request.contextId,
+            stack.toList,
+            request.executionEnvironment
+          )
+        )
       } yield ()
     } else {
       Future.successful(())

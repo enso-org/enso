@@ -203,13 +203,16 @@ class RuntimeAsyncCommandsTest
     )
 
     // wait for program to start
-    var isProgramStared = false
-    var iteration       = 0
-    while (!isProgramStared && iteration < 50) {
+    var isProgramStarted = false
+    var iteration        = 0
+    while (!isProgramStarted && iteration < 100) {
       val out = context.consumeOut
       Thread.sleep(200)
-      isProgramStared = out == List("started")
+      isProgramStarted = out == List("started")
       iteration += 1
+    }
+    if (!isProgramStarted) {
+      fail("Program start timed out")
     }
 
     // interrupt
