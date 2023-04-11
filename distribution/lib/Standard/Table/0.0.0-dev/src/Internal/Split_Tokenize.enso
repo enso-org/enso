@@ -67,11 +67,6 @@ fan_out_to_columns table column function column_count=Auto on_problems=Report_Er
     new_table = replace_column_with_columns table input_column new_columns
     problem_builder.attach_problems_after on_problems new_table
 
-    ##
-        if too_many_columns.not then new_table else
-            problem = Column_Count_Exceeded.Error column_count num_new_columns
-            on_problems.attach_problem_after new_table problem
-
 ## PRIVATE
    Transform a column by applying the given function to the values in the
    column. The function produces multiple outputs, so each row is duplicated,
@@ -158,7 +153,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
                         builders.append <| builder
 
                 ## Add `output_values` to builders; if there are more builders
-                   than `output_values`, pad with nulll.
+                   than `output_values`, pad with null.
                 0.up_to builders.length . map i->
                     builders.at i . appendNoGrow (output_values.get i Nothing)
 
@@ -191,26 +186,6 @@ map_columns_to_multiple input_column function column_count problem_builder =
         name = input_column.name + "_" + i.to_text
         Column.from_storage name storage
 
-    ##
-        IO.println "IS"
-        IO.println input_storage
-        0.up_to num_rows . map i->
-            input_value = input_storage.getItemBoxed i
-            IO.println "INP"
-            IO.println i
-            IO.println input_value
-        builder = make_string_builder num_rows
-        IO.println builder
-        IO.println builder.getCurrentSize
-        builder.appendNulls 2
-        builder.appendNoGrow "asdf"
-        st = builder.seal
-        c = Column.from_storage "nm" st
-        IO.println c
-        0.up_to num_rows . map i->
-            IO.println (c.at i)
-        Nothing
-
 ## PRIVATE
    Name a set of column vectors to be unique when added to a table.
 rename_new_columns : Table -> Vector Column -> Problem_Builder -> Vector Column
@@ -224,65 +199,10 @@ rename_new_columns table columns problem_builder =
     new_columns
 
 ## PRIVATE
-   Transform a column vector into a set of column vectors. Takes a function
-   that maps a single element of the input column vector to a vector of output
-   values. The vectors of output values are padded with Nothing to be the same
-   length.
-
-   Arguments:
-   - input_column: The column to transform.
-   - function: A function that transforms a single element of `input_column`
-     to multiple values.
-    map_column_vector_to_multiple : Vector Any -> (Any -> Vector Any) -> Vector (Vector Any)
-    map_column_vector_to_multiple input_vector function =
-        result_row_vectors = input_vector.map value-> function value
-        transpose_with_pad result_row_vectors
-
-## PRIVATE
    Replace a single column in a table with new columns.
 replace_column_with_columns : Table -> Column -> Vector Column -> Table
 replace_column_with_columns table old_column new_columns =
     Table.new ((table.columns.map (c-> if c.name == old_column.name then new_columns else [c])).flatten)
-
-##
-    ## PRIVATE
-       Swap rows and columns of a vector-of-vectors, padding each vector to be the
-       same length first.
-       Assumes both dimensions are non-zero.
-    transpose_with_pad : Vector (Vector Any) -> Vector (Vector Any)
-    transpose_with_pad vecs = transpose (pad_vectors vecs Nothing)
-
-    ## PRIVATE
-       Swap rows and columns of a vector-of-vectors.
-       Assumes both dimensions are non-zero.
-    transpose : Vector (Vector Any) -> Vector (Vector Any)
-    transpose vecs =
-        num_output_rows = vecs.length
-        num_output_cols = vecs.first.length
-        builders = (0.up_to num_output_cols).map _-> Vector.new_builder num_output_rows
-        vecs.map vec->
-            vec.map_with_index i-> v->
-                builders.at i . append v
-        builders.map .to_vector
-
-    ## PRIVATE
-       Pad vectors so they have the same length.
-    pad_vectors : Vector (Vector Any) -> Any -> Vector (Vector Any)
-    pad_vectors vecs pad_value =
-      length = maximum <| vecs.map .length
-      vecs.map v-> v.pad length pad_value
-
-    ## PRIVATE
-       Name a set of column vectors to be unique when added to a table. Base the
-       new names on the name of the original column from which they were derived.
-    build_and_name_columns : Table -> Text -> Text -> Vector (Vector Any) -> Vector Column
-    build_and_name_columns table original_column_name function_name vectors =
-        ## Start with copies of the original column name.
-        old_names = 0.up_to vectors.length . map _-> original_column_name
-        table_column_names = table.columns . map .name
-        unique = Unique_Name_Strategy.new
-        new_names = unique.combine_with_prefix table_column_names old_names (function_name + "_")
-        vectors.map_with_index i-> vector-> Column.from_vector (new_names.at i) vector
 
 ## PRIVATE
    Return the maximum value of the vector.
