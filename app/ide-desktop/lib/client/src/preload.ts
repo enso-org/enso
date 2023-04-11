@@ -105,5 +105,10 @@ const AUTHENTICATION_API = {
         electron.ipcRenderer.on(ipc.Channel.openDeepLink, (_event, url: string) => {
             callback(url)
         }),
+    setAccessTokenToFile: (accessToken: string) => {
+        console.log("dumping access token")
+        console.log(accessToken)
+        electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessToken)
+    }
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)

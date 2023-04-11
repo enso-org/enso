@@ -70,6 +70,7 @@ export type OAuthRedirect = newtype.Newtype<string, 'OAuthRedirect'>
  * we want to open OAuth URLs in the system browser. This is because the user can't be expected to
  * trust their credentials to an Electron app. */
 export type OAuthUrlOpener = (url: string, redirectUrl: string) => void
+export type AccessTokenSaver = (accessToken: string) => void
 /** Function used to register a callback. The callback will get called when a deep link is received
  * by the app. This is only used in the desktop app (i.e., not in the cloud). This is used when the
  * user is redirected back to the app from the system browser, after completing an OAuth flow. */
@@ -90,6 +91,7 @@ export interface AmplifyConfig {
     userPoolId: UserPoolId
     userPoolWebClientId: UserPoolWebClientId
     urlOpener: OAuthUrlOpener | null
+    accessTokenSaver: AccessTokenSaver | null
     domain: OAuthDomain
     scope: OAuthScope[]
     redirectSignIn: OAuthRedirect

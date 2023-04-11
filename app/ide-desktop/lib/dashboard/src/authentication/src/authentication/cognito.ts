@@ -36,6 +36,7 @@ import * as results from 'ts-results'
 import * as config from './config'
 import * as loggerProvider from '../providers/logger'
 import * as platformModule from '../platform'
+import {AccessTokenSaver} from "./config";
 
 // =================
 // === Constants ===
@@ -130,6 +131,8 @@ function isAuthError(error: unknown): error is AuthError {
  * This way, the methods don't throw all errors, but define exactly which errors they return.
  * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
+    private _saveAccessToken: AccessTokenSaver | null;
+
     constructor(
         private readonly logger: loggerProvider.Logger,
         private readonly platform: platformModule.Platform,
@@ -140,7 +143,15 @@ export class Cognito {
          * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
          * methods are called. */
         const nestedAmplifyConfig = config.toNestedAmplifyConfig(amplifyConfig)
+        this._saveAccessToken = amplifyConfig.accessTokenSaver
         amplify.Auth.configure(nestedAmplifyConfig)
+    }
+
+    saveAccessToken(accessToken: string) {
+        console.log(this._saveAccessToken)
+        if (this._saveAccessToken) {
+            return this._saveAccessToken(accessToken)
+        }
     }
 
     /** Returns the current {@link UserSession}, or `None` if the user is not logged in.

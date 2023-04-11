@@ -106,7 +106,7 @@ export interface AuthService {
     /** @see {@link cognito.Cognito}. */
     cognito: cognito.Cognito
     /** @see {@link listen.ListenFunction} */
-    registerAuthEventListener: listen.ListenFunction
+    registerAuthEventListener: listen.ListenFunction,
 }
 
 /** Creates an instance of the authentication service.
@@ -133,6 +133,7 @@ function loadAmplifyConfig(
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
     let urlOpener = null
+    let accessTokenSaver = null
     if (platform === platformModule.Platform.desktop) {
         /** If we're running on the desktop, we want to override the default URL opener for OAuth
          * flows.  This is because the default URL opener opens the URL in the desktop app itself,
@@ -143,6 +144,8 @@ function loadAmplifyConfig(
          * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
          * we avoid unnecessary reloads/refreshes caused by redirects. */
         urlOpener = openUrlWithExternalBrowser
+        logger.log(`setAccessToken ${setAccessTokenToFile}`)
+        accessTokenSaver = setAccessTokenToFile
 
         /** To handle redirects back to the application from the system browser, we also need to
          * register a custom URL handler. */
@@ -154,11 +157,16 @@ function loadAmplifyConfig(
         ...baseConfig,
         ...platformConfig,
         urlOpener,
+        accessTokenSaver,
     }
 }
 
 function openUrlWithExternalBrowser(url: string) {
     window.authenticationApi.openUrlInSystemBrowser(url)
+}
+
+function setAccessTokenToFile(accessToken: string) {
+    window.authenticationApi.setAccessTokenToFile(accessToken)
 }
 
 /** Set the callback that will be invoked when a deep link to the application is opened.

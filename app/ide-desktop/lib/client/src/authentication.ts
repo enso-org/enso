@@ -74,6 +74,7 @@
 
 import * as electron from 'electron'
 import opener from 'opener'
+import * as fs from "node:fs";
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -104,6 +105,7 @@ const OPEN_URL_EVENT = 'open-url'
 export function initModule(window: () => electron.BrowserWindow) {
     initIpc()
     initOpenUrlListener(window)
+    initSaveAccessTokenListener()
 }
 
 /** Registers an Inter-Process Communication (IPC) channel between the Electron application and the
@@ -137,5 +139,14 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
         } else {
             window().webContents.send(ipc.Channel.openDeepLink, url)
         }
+    })
+}
+
+function initSaveAccessTokenListener() {
+    electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken) => {
+        logger.log(`Dumping access token to file: ${accessToken}`)
+        console.log(`Dumping access token to file: ${accessToken}`)
+        fs.writeFileSync("/tmp/credentials", accessToken)
+        event.preventDefault();
     })
 }
