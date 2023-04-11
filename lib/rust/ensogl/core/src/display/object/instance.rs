@@ -1111,7 +1111,6 @@ use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
-use data::opt_vec_sorted::OptVecSorted;
 use enso_types::Dim;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
@@ -1410,7 +1409,7 @@ impl ParentBind {
 impl Drop for ParentBind {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
-            if let Some(weak_child) = parent.children.borrow_mut().remove(*self.child_index) {
+            if let Some(weak_child) = parent.children.borrow_mut().remove(&self.child_index) {
                 parent.dirty.modified_children.unset(&self.child_index);
                 if let Some(child) = weak_child.upgrade() {
                     child.dirty.new_parent.set();
@@ -1624,16 +1623,18 @@ impl HierarchyFrp {
 #[derive(Debug, Deref)]
 pub struct HierarchyModel {
     #[deref]
-    frp:            HierarchyFrp,
-    visible:        Cell<bool>,
-    transformation: RefCell<CachedTransformation>,
-    parent_bind:    SharedParentBind,
-    children:       RefCell<OptVecSorted<WeakInstance>>,
+    frp:              HierarchyFrp,
+    visible:          Cell<bool>,
+    transformation:   RefCell<CachedTransformation>,
+    parent_bind:      SharedParentBind,
+    next_child_index: Cell<ChildIndex>,
+    // We are using [`BTreeMap`] here in order to preserve the child insertion order.
+    children:         RefCell<BTreeMap<ChildIndex, WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer: RefCell<Option<WeakLayer>>,
+    assigned_layer:   RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:          RefCell<Option<WeakLayer>>,
-    dirty:          dirty::Flags,
+    layer:            RefCell<Option<WeakLayer>>,
+    dirty:            dirty::Flags,
 }
 
 impl HierarchyModel {
@@ -1642,11 +1643,22 @@ impl HierarchyModel {
         let visible = default();
         let transformation = default();
         let parent_bind = default();
+        let next_child_index = default();
         let children = default();
         let assigned_layer = default();
         let layer = default();
         let dirty = dirty::Flags::new(&parent_bind);
-        Self { frp, visible, transformation, parent_bind, children, assigned_layer, layer, dirty }
+        Self {
+            frp,
+            visible,
+            transformation,
+            parent_bind,
+            next_child_index,
+            children,
+            assigned_layer,
+            layer,
+            dirty,
+        }
     }
 }
 
@@ -1690,7 +1702,7 @@ impl Model {
 
 impl Model {
     fn children(&self) -> Vec<Instance> {
-        self.children.borrow().iter().filter_map(|t| t.upgrade()).collect()
+        self.children.borrow().values().filter_map(|t| t.upgrade()).collect()
     }
 
     /// Checks whether the object is visible.
@@ -1715,7 +1727,7 @@ impl Model {
             self.on_hide_source.emit(scene.cloned());
             self.children
                 .borrow()
-                .iter()
+                .values()
                 .filter_map(|t| t.upgrade())
                 .for_each(|t| t.set_vis_false(scene));
         }
@@ -1731,7 +1743,7 @@ impl Model {
             self.on_show_source.emit((scene.cloned(), new_layer.cloned()));
             self.children
                 .borrow()
-                .iter()
+                .values()
                 .filter_map(|t| t.upgrade())
                 .for_each(|t| t.set_vis_true(scene, new_layer));
         }
@@ -1790,7 +1802,7 @@ impl Model {
     /// Removes all children of this display object and returns them.
     pub fn remove_all_children(&self) -> Vec<Instance> {
         let children: Vec<Instance> =
-            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
+            self.children.borrow().values().filter_map(|weak| weak.upgrade()).collect();
         for child in &children {
             child.unset_parent();
         }
@@ -1888,7 +1900,7 @@ impl Model {
                 if !self.children.borrow().is_empty() {
                     debug_span!("Updating all children.").in_scope(|| {
                         let children = self.children.borrow().clone();
-                        children.iter().for_each(|weak_child| {
+                        children.values().for_each(|weak_child| {
                             weak_child.upgrade().for_each(|child| {
                                 child.update_with_origin(
                                     scene,
@@ -1912,11 +1924,8 @@ impl Model {
                 if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
-                            self.children
-                                .borrow()
-                                .safe_index(**ix)
-                                .and_then(|t| t.upgrade())
-                                .for_each(|child| {
+                            self.children.borrow().get(ix).and_then(|t| t.upgrade()).for_each(
+                                |child| {
                                     child.update_with_origin(
                                         scene,
                                         new_origin,
@@ -1924,7 +1933,8 @@ impl Model {
                                         layer_changed,
                                         new_layer,
                                     )
-                                })
+                                },
+                            )
                         });
                     })
                 }
@@ -2012,7 +2022,9 @@ impl InstanceDef {
     }
 
     fn register_child(&self, child: &InstanceDef) -> ChildIndex {
-        let index = ChildIndex(self.children.borrow_mut().insert(child.downgrade()));
+        let index = self.next_child_index.get();
+        self.next_child_index.set(ChildIndex(*index + 1));
+        self.children.borrow_mut().insert(index, child.downgrade());
         self.dirty.modified_children.set(index);
         index
     }

@@ -18,4 +18,3 @@ pub use enso_data_structures::hash_map_tree;
 pub use enso_data_structures::hash_map_tree::HashMapTree;
 pub use enso_data_structures::index::Index;
 pub use enso_data_structures::opt_vec::OptVec;
-pub use enso_data_structures::opt_vec_sorted::OptVecSorted;
