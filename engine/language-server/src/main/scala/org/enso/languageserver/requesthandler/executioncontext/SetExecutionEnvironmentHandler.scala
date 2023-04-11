@@ -14,13 +14,13 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `executionContext/recompute` commands.
+/** A request handler for `executionContext/setExecutionEnvironment` commands.
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
   * @param session an object representing a client connected to the language server
   */
-class RecomputeHandler(
+class SetExecutionEnvironmentHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef,
   session: JsonSession
@@ -35,14 +35,13 @@ class RecomputeHandler(
 
   private def requestStage: Receive = {
     case Request(
-          ExecutionContextRecompute,
+          ExecutionContextSetExecutionEnvironment,
           id,
-          params: ExecutionContextRecompute.Params
+          params: ExecutionContextSetExecutionEnvironment.Params
         ) =>
-      contextRegistry ! RecomputeContextRequest(
+      contextRegistry ! SetExecutionEnvironmentRequest(
         session,
         params.contextId,
-        params.invalidatedExpressions,
         params.executionEnvironment
       )
       val cancellable =
@@ -60,7 +59,7 @@ class RecomputeHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case RecomputeContextResponse(_) =>
+    case SetExecutionEnvironmentResponse(_) =>
       replyTo ! ResponseResult(ExecutionContextRecompute, id, Unused)
       cancellable.cancel()
       context.stop(self)
@@ -72,9 +71,9 @@ class RecomputeHandler(
   }
 }
 
-object RecomputeHandler {
+object SetExecutionEnvironmentHandler {
 
-  /** Creates configuration object used to create a [[RecomputeHandler]].
+  /** Creates configuration object used to create a [[SetExecutionEnvironmentHandler]].
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
@@ -85,6 +84,8 @@ object RecomputeHandler {
     contextRegistry: ActorRef,
     rpcSession: JsonSession
   ): Props =
-    Props(new RecomputeHandler(timeout, contextRegistry, rpcSession))
+    Props(
+      new SetExecutionEnvironmentHandler(timeout, contextRegistry, rpcSession)
+    )
 
 }
