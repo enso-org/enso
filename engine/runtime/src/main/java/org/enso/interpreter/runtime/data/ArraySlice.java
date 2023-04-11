@@ -40,18 +40,18 @@ public final class ArraySlice implements TruffleObject {
     }
   }
 
-  static Object create(Object storage, long start, long this_length, long end) {
+  static Vector createOrNull(Object storage, long start, long this_length, long end) {
     long slice_start = Math.max(0, start);
     long slice_end = Math.min(this_length, end);
     Object slice;
     if (slice_start >= slice_end) {
       slice = Array.allocate(0);
     } else if ((slice_start == 0) && (slice_end == this_length)) {
-      slice = null;
+      return null;
     } else {
       slice = new ArraySlice(storage, slice_start, slice_end);
     }
-    return slice;
+    return Vector.fromArray(slice);
   }
 
   /**

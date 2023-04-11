@@ -132,8 +132,8 @@ public final class Array implements TruffleObject {
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   public final Object slice(long start, long end, InteropLibrary interop)
       throws UnsupportedMessageException {
-    Object slice = ArraySlice.create(this, start, length(), end);
-    return slice == null ? this : Vector.fromArray(slice);
+    var slice = ArraySlice.createOrNull(this, start, length(), end);
+    return slice == null ? this : slice;
   }
 
   /**

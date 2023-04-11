@@ -69,8 +69,8 @@ public final class Vector implements TruffleObject {
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   public final Vector slice(long start, long end, InteropLibrary interop)
       throws UnsupportedMessageException {
-    Object slice = ArraySlice.create(storage, start, length(interop), end);
-    return slice == null ? this : new Vector(slice);
+    var slice = ArraySlice.createOrNull(storage, start, length(interop), end);
+    return slice == null ? this : slice;
   }
 
   @Builtin.Method(description = "Returns the length of this Vector.")
