@@ -89,7 +89,7 @@ class RenameProjectCmd(
           case (contextId, stack) =>
             for {
               _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
-              _ <- ctx.jobProcessor.run(new ExecuteJob(contextId, stack.toList))
+              _ <- ctx.jobProcessor.run(ExecuteJob(contextId, stack.toList))
             } yield ()
         }
       }
