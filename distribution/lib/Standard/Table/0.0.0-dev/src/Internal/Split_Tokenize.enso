@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import project.Data.Column.Column
-import project.Data.Set_Mode.Set_Mode
 import project.Data.Table.Table
 import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
