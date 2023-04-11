@@ -378,6 +378,7 @@
   `year`/`month`/`day` operations to Table columns.][6153]
 - [`Text.split` can now take a vector of delimiters.][6156]
 - [Implemented `Table.union` for the Database backend.][6204]
+- [Implemented `Table.split` and `Table.tokenize` for in-memory tables.][6233]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -573,6 +574,7 @@
 [6156]: https://github.com/enso-org/enso/pull/6156
 [6204]: https://github.com/enso-org/enso/pull/6204
 [6077]: https://github.com/enso-org/enso/pull/6077
+[6233]: https://github.com/enso-org/enso/pull/6233
 
 #### Enso Compiler
 
