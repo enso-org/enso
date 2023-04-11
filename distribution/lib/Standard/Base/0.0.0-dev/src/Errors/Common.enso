@@ -144,11 +144,11 @@ type Arithmetic_Error
 
 @Builtin_Type
 type Incomparable_Values
-    ## An error that indicates that the two values are not comparable
+    ## An error that indicates that the two values are not comparable.
 
        Arguments:
-       - left: The left value (first operand)
-       - right: The right value (second operand)
+       - left: The left value (first operand).
+       - right: The right value (second operand).
     Error left right
 
     ## PRIVATE
@@ -214,7 +214,7 @@ type Module_Does_Not_Exist
 @Builtin_Type
 type Invalid_Conversion_Target
     ## PRIVATE
-       An error that occurs when the specified value cannot be converted to a given type
+       An error that occurs when the specified value cannot be converted to a given type.
 
        Arguments:
        - target: the type trying to be converted to.
@@ -223,10 +223,19 @@ type Invalid_Conversion_Target
 @Builtin_Type
 type No_Such_Conversion
     ## PRIVATE
-       An error that occurs when the conversion from one type to another does not exist
+       An error that occurs when the conversion from one type to another does not exist.
 
        Arguments:
        - target: the type trying to be converted to.
        - that: the value to be converted.
        - conversion: the conversion that was attempted.
     Error target that conversion
+
+@Builtin_Type
+type Forbidden_Operation
+    ## PRIVATE
+       An error that occurs when the action is not allowed to perform the operation in the given context.
+
+       Arguments:
+       - operation: attempted context that is not allowed.
+    Error operation

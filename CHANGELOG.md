@@ -130,6 +130,8 @@
   project][6130].
 - [Added tooltips to icon buttons][6035] for improved usability. Users can now
   quickly understand each button's function.
+- [File associations are created on Windows and macOS][6077]. This allows
+  opening Enso files by double-clicking them in the file explorer.
 
 #### EnsoGL (rendering engine)
 
@@ -573,6 +575,7 @@
 [6153]: https://github.com/enso-org/enso/pull/6153
 [6156]: https://github.com/enso-org/enso/pull/6156
 [6204]: https://github.com/enso-org/enso/pull/6204
+[6077]: https://github.com/enso-org/enso/pull/6077
 
 #### Enso Compiler
 
@@ -676,6 +679,7 @@
 - [Detect potential name conflicts between exported types and FQNs][5966]
 - [Ensure calls involving warnings remain instrumented][6067]
 - [One can define lazy atom fields][6151]
+- [Replace IOContexts with Execution Environment and generic Context][6171]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -780,6 +784,7 @@
 [5966]: https://github.com/enso-org/enso/pull/5966
 [6067]: https://github.com/enso-org/enso/pull/6067
 [6151]: https://github.com/enso-org/enso/pull/6151
+[6171]: https://github.com/enso-org/enso/pull/6171
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

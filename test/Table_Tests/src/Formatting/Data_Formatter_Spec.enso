@@ -127,6 +127,27 @@ spec =
                 And newlines toO!
             formatter.parse complex_text . should_equal complex_text
 
+        Test.specify "should report Invalid_Format errors" <|
+            formatter = Data_Formatter.Value
+            expect_warning r =
+                r.should_equal Nothing
+                Problems.expect_only_warning Invalid_Format r
+
+            r1 = formatter.parse "Text" datatype=Decimal
+            w1 = expect_warning r1
+            w1.value_type . should_equal Decimal
+            w1.column . should_equal Nothing
+
+            expect_warning <| formatter.parse "Text" datatype=Integer
+            expect_warning <| formatter.parse "Text" datatype=Boolean
+            expect_warning <| formatter.parse "Text" datatype=Date
+            expect_warning <| formatter.parse "Text" datatype=Date_Time
+            expect_warning <| formatter.parse "Text" datatype=Time_Of_Day
+
+        Test.specify "should not allow unexpected types" <|
+            formatter = Data_Formatter.Value
+            formatter.parse "Text" datatype=List . should_fail_with Illegal_Argument
+
     Test.group "DataFormatter.format" <|
         Test.specify "should handle Nothing" <|
             Data_Formatter.Value.format Nothing . should_equal Nothing

@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Expression.Expression_Error
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
@@ -243,18 +244,18 @@ type Invalid_Location
    Arguments:
    - column: the column in which the problematic cells appeared, if applicable.
      It may be empty if the value is parsed outside of a context of a column.
-   - datatype: The expected datatype.
+   - value_type: The expected value type.
    - cells: Contents of the cells that did not match the expected datatype
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Time|Time_Of_Day|Boolean) (cells:[Text])
 
     ## PRIVATE
        Pretty print the invalid format error.
     to_display_text : Text
     to_display_text self =
-        self.cells.length+" cells in column "+self.column+" had invalid format for datatype "+self.datatype.to_text+"."
+        self.cells.length+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
 
 ## Indicates that some values contained leading zeros even though these were not allowed.
 
@@ -270,7 +271,7 @@ type Leading_Zeros
     ## PRIVATE
        Pretty print the leading zeros error.
     to_display_text : Text
-    to_display_text self = "Leading zeros in column "+self.column+" with datatype "+self.datatype.to_text+"."
+    to_display_text self = "Leading zeros in column "+self.column+" with datatype "+self.value_type.to_text+"."
 
 ## Indicates that an empty file was encountered, so no data could be loaded.
 type Empty_File_Error

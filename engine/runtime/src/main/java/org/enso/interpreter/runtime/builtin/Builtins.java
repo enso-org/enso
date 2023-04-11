@@ -33,6 +33,7 @@ import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
 import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
+import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -83,6 +84,8 @@ public class Builtins {
   private final ModuleScope scope;
   private final Number number;
   private final Boolean bool;
+
+  private final Context contexts;
   private final Ordering ordering;
   private final Comparable comparable;
   private final DefaultComparator defaultComparator;
@@ -137,6 +140,7 @@ public class Builtins {
     system = new System(this);
     number = new Number(this);
     bool = this.getBuiltinType(Boolean.class);
+    contexts = this.getBuiltinType(Context.class);
 
     any = builtins.get(Any.class);
     nothing = builtins.get(Nothing.class);
@@ -444,6 +448,12 @@ public class Builtins {
    */
   public Number number() {
     return number;
+  }
+
+
+  /** @return the builtin Context type */
+  public Context context() {
+    return contexts;
   }
 
   /** @return the container for boolean constructors. */

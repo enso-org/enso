@@ -952,7 +952,9 @@ type Table
                 Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
 
             problem_builder.attach_problems_before on_problems <|
-                self.connection.dialect.prepare_join self.connection sql_join_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
+                new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
+                new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
+                Table.Value new_table_name self.connection result_columns new_ctx
 
     ## ALIAS Cartesian Join
        Joins tables by pairing every row of the left table with every row of the
@@ -1382,8 +1384,8 @@ type Table
 
     ## Parsing values is not supported in database tables, the table has to be
        loaded into memory first with `read`.
-     parse_values : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse_values columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
+    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
+    parse columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [columns, type, format, error_on_missing_columns, on_problems]

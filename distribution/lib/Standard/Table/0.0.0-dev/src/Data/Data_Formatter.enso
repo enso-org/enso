@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Parse_Values_Helper
-from project.Data.Type.Value_Type import Value_Type, Auto
+from project.Data.Type.Value_Type import Value_Type, Auto, Bits
 
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
@@ -67,16 +67,15 @@ type Data_Formatter
 
        Arguments:
        - text: Text value to parse.
-       - datatype: Text value to parse.
+       - datatype: The expected Enso type to parse the value into. If set to
+         `Auto`, the type will be inferred automatically.
        - on_problems: Specifies the behavior when a problem occurs.
          By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
     parse : Text -> (Auto|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) -> Problem_Behavior -> Any
     parse self text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
-        parser = case datatype of
-            Auto -> self.make_auto_parser
-            _ -> self.make_datatype_parser datatype
+        parser = self.make_datatype_parser datatype
         result = parser.parseIndependentValue text
         problems = Vector.from_polyglot_array result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
         on_problems.attach_problems_after result.value problems
@@ -145,23 +144,25 @@ type Data_Formatter
        It is mostly a convenience function to easily specify a datatype format.
 
        Arguments:
-       - type: The datatype for which to change the format. The format can be
-         changed only for Date_Time, Date, Time_Of_Day and Boolean types.
+       - type: The value type for which to change the format. The format can be
+         changed only for `Date_Time`, `Date`, `Time` and `Boolean` value types.
        - format: The new format string to set. For dates, it is the usual date
          format notation, and for booleans it should be two values that
          represent true and false, separated by a `|`.
-    with_format : (Auto|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) -> Text -> Data_Formatter
+    with_format : Value_Type | Auto -> Text -> Data_Formatter
     with_format self type format = case type of
-        Auto -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
-        Integer -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Integer`.")
-        Decimal -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Decimal`.")
-        Date -> self.with_datetime_formats date_formats=[format]
-        Date_Time -> self.with_datetime_formats datetime_formats=[format]
-        Time_Of_Day -> self.with_datetime_formats time_formats=[format]
-        Boolean ->
+        Value_Type.Date -> self.with_datetime_formats date_formats=[format]
+        Value_Type.Time -> self.with_datetime_formats time_formats=[format]
+        Value_Type.Date_Time _ ->
+            self.with_datetime_formats datetime_formats=[format]
+        Value_Type.Boolean ->
             formats = format.split "|"
             if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'.") else
                 self.with_boolean_values true_values=[formats.at 0] false_values=[formats.at 1]
+        Auto ->
+            Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
+        _ : Value_Type ->
+            Error.throw (Illegal_Argument.Error "Cannot specify a `format` for type `"+type.to_text+"`.")
 
     ## PRIVATE
        Clone the instance with some properties overridden.
@@ -216,7 +217,26 @@ type Data_Formatter
         Date        -> self.make_date_parser
         Date_Time   -> self.make_date_time_parser
         Time_Of_Day -> self.make_time_of_day_parser
-        _           -> Error.throw (Illegal_Argument.Error "Unsupported datatype: "+datatype.to_text)
+        Auto        -> self.make_auto_parser
+        _ ->
+            type_name = case datatype.to_text of
+                text : Text -> text
+                _ -> Meta.meta datatype . to_text
+            Error.throw (Illegal_Argument.Error "Unsupported datatype: "+type_name)
+
+    ## PRIVATE
+    make_value_type_parser self value_type = case value_type of
+        # TODO once we implement #5159 we will need to add checks for bounds here and support 16/32-bit ints
+        Value_Type.Integer Bits.Bits_64 -> self.make_integer_parser
+        # TODO once we implement #6109 we can support 32-bit floats
+        Value_Type.Float Bits.Bits_64   -> self.make_decimal_parser
+        Value_Type.Boolean              -> self.make_boolean_parser
+        Value_Type.Date                 -> self.make_date_parser
+        Value_Type.Date_Time True       -> self.make_date_time_parser
+        Value_Type.Time                 -> self.make_time_of_day_parser
+        Auto -> self.make_auto_parser
+        _ ->
+            Error.throw (Illegal_Argument.Error "Unsupported value type: "+value_type.to_display_text)
 
     ## PRIVATE
     get_specific_type_parsers self =
