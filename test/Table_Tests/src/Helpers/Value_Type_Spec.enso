@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type_Helpers
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -14,7 +15,7 @@ spec =
 
             (Value_Type.Integer Bits.Bits_16).to_display_text . should_equal "Integer (16 bits)"
             Value_Type.Float.to_display_text . should_equal "Float (64 bits)"
-            Value_Type.Decimal.to_display_text . should_equal "Decimal (precision=Nothing, scale=0)"
+            Value_Type.Decimal.to_display_text . should_equal "Decimal (precision=Nothing, scale=Nothing)"
 
             Value_Type.Char.to_display_text . should_equal "Char (max_size=Nothing, variable_length=True)"
             (Value_Type.Binary 8 False).to_display_text . should_equal "Binary (max_size=8 bytes, variable_length=False)"
@@ -26,5 +27,39 @@ spec =
             Value_Type.Mixed.to_display_text . should_equal "Mixed"
             Value_Type.Unsupported_Data_Type.to_display_text . should_equal "Unsupported_Data_Type"
             (Value_Type.Unsupported_Data_Type "FOO-BAR").to_display_text . should_equal "Unsupported_Data_Type (FOO-BAR)"
+
+        Test.specify "should use correct in-memory logic to reconcile pairs of types for operations like union/iif" <|
+            Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Boolean . should_equal Value_Type.Boolean
+            Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Integer . should_equal Value_Type.Integer
+
+            Value_Type_Helpers.reconcile_types (Value_Type.Integer Bits.Bits_16) (Value_Type.Integer Bits.Bits_32) . should_equal (Value_Type.Integer Bits.Bits_32)
+            Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) (Value_Type.Float Bits.Bits_32) . should_equal (Value_Type.Float Bits.Bits_32)
+            Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) (Value_Type.Float Bits.Bits_64) . should_equal (Value_Type.Float Bits.Bits_64)
+
+            Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Byte . should_equal Value_Type.Byte
+            Value_Type_Helpers.reconcile_types (Value_Type.Integer Bits.Bits_16) Value_Type.Byte . should_equal (Value_Type.Integer Bits.Bits_16)
+            # 64-bit floats are always used when unifying with integers
+            Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Byte . should_equal Value_Type.Float
+            Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Boolean . should_equal Value_Type.Float
+
+            Value_Type_Helpers.reconcile_types (Value_Type.Char 10 False) (Value_Type.Char 10 False) . should_equal (Value_Type.Char 10 False)
+            Value_Type_Helpers.reconcile_types (Value_Type.Char 10 False) (Value_Type.Char 10 True) . should_equal (Value_Type.Char 10 True)
+            Value_Type_Helpers.reconcile_types (Value_Type.Char 100 False) (Value_Type.Char 10 True) . should_equal (Value_Type.Char 100 True)
+            Value_Type_Helpers.reconcile_types (Value_Type.Char 10 False) (Value_Type.Char 15 False) . should_equal (Value_Type.Char 15 True)
+
+            Value_Type_Helpers.reconcile_types Value_Type.Date Value_Type.Date . should_equal Value_Type.Date
+            Value_Type_Helpers.reconcile_types Value_Type.Time Value_Type.Time . should_equal Value_Type.Time
+            Value_Type_Helpers.reconcile_types Value_Type.Date_Time Value_Type.Date_Time . should_equal Value_Type.Date_Time
+            ## Mixing date and time leads to mixed, if the user wants to convert date to at-midnight timestamp or
+               date-time to just date, they need to do it explicitly.
+            Value_Type_Helpers.reconcile_types Value_Type.Date Value_Type.Date_Time . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types Value_Type.Time Value_Type.Date_Time . should_equal Value_Type.Mixed
+
+            Value_Type_Helpers.reconcile_types Value_Type.Float Value_Type.Integer . should_equal Value_Type.Float
+            Value_Type_Helpers.reconcile_types Value_Type.Char Value_Type.Integer . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types Value_Type.Float Value_Type.Char . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types Value_Type.Float Value_Type.Binary . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types Value_Type.Char Value_Type.Binary . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types Value_Type.Char Value_Type.Boolean . should_equal Value_Type.Mixed
 
 main = Test_Suite.run_main spec

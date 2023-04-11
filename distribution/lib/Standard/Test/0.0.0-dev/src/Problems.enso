@@ -97,11 +97,14 @@ expect_warning expected_warning result =
 ## UNSTABLE
    Checks if the provided value has a specific warning attached and if there are
    no other warnings.
+
+   As a utility, it also returns the found warning.
+
    Arguments:
    - expected_warning: The expected warning. It can either by a warning type or
      a concrete value.
    - result: The value to check.
-expect_only_warning : Any -> Any -> Nothing
+expect_only_warning : Any -> Any -> Any
 expect_only_warning expected_warning result =
     warnings = get_attached_warnings result
     is_expected x =
@@ -114,6 +117,7 @@ expect_only_warning expected_warning result =
     if invalid.not_empty then
         loc = Meta.get_source_location 3
         Test.fail "Expected the result to contain only the warning: "+found.to_text+", but it also contained: "+invalid.to_text+' (at '+loc+').'
+    found
 
 
 ## UNSTABLE

@@ -6,8 +6,8 @@ import project.System.System_Process_Result
 
 from project.Data.Boolean import Boolean, True, False
 
-## UNSTABLE
-
+## PRIVATE
+   ADVANCED
    The builder object that is used to create operating system processes.
 type Process_Builder
     ## PRIVATE
@@ -25,9 +25,7 @@ type Process_Builder
          set arguments and standard output. It results in much clearer code.
     Value command arguments stdin
 
-    ## UNSTABLE
-
-       Sets the arguments that should be passed to the created process.
+    ## Sets the arguments that should be passed to the created process.
 
        Arguments:
        - arguments: The arguments to pass to the process.
@@ -43,9 +41,7 @@ type Process_Builder
     set_arguments : Vector Text -> Process_Builder
     set_arguments self arguments = Process_Builder.Value self.command arguments self.stdin
 
-    ## UNSTABLE
-
-       Sets the text that will be used to feed standard input to the created
+    ## Sets the text that will be used to feed standard input to the created
        process.
 
        Arguments:
@@ -62,9 +58,7 @@ type Process_Builder
     set_stdin : Text -> Process_Builder
     set_stdin self stdin = Process_Builder.Value self.command self.arguments stdin
 
-    ## UNSTABLE
-
-       Create a process using a builder returning the result of execution.
+    ## Create a process using a builder returning the result of execution.
 
        > Example
          Execute the process contained in the builder.

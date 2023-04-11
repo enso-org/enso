@@ -3,15 +3,14 @@
 import chalk from 'chalk'
 import stringLength from 'string-length'
 
-import * as yargsHelpers from 'yargs/helpers'
 import yargs from 'yargs/yargs'
 import yargsModule from 'yargs'
 
 import * as contentConfig from 'enso-content-config'
 
 import * as config from 'config'
+import * as fileAssociations from 'file-associations'
 import * as naming from 'naming'
-
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 const logger = contentConfig.logger
@@ -267,11 +266,9 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 // =====================
 
 /** Parses command line arguments. */
-export function parseArgs() {
+export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS) {
     const args = config.CONFIG
-    const { argv, chromeOptions } = argvAndChromeOptions(
-        fixArgvNoPrefix(yargsHelpers.hideBin(process.argv))
-    )
+    const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
     const yargsOptions = args
         .optionsRecursive()
         .reduce((opts: Record<string, yargsModule.Options>, option) => {

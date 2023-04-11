@@ -74,6 +74,7 @@ object Main {
   private val AUTH_TOKEN                     = "auth-token"
   private val AUTO_PARALLELISM_OPTION        = "with-auto-parallelism"
   private val SKIP_GRAALVM_UPDATER           = "skip-graalvm-updater"
+  private val EXECUTION_ENVIRONMENT_OPTION   = "execution-environment"
 
   private lazy val logger = Logger[Main.type]
 
@@ -355,6 +356,16 @@ object Main {
       .desc("Skips GraalVM and its components setup during bootstrapping.")
       .build
 
+    val executionEnvironmentOption = CliOption.builder
+      .longOpt(EXECUTION_ENVIRONMENT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("name")
+      .desc(
+        "Execution environment to use during execution (`live`/`design`). Defaults to `design`."
+      )
+      .build()
+
     val options = new Options
     options
       .addOption(help)
@@ -396,6 +407,7 @@ object Main {
       .addOptionGroup(cacheOptionsGroup)
       .addOption(autoParallelism)
       .addOption(skipGraalVMUpdater)
+      .addOption(executionEnvironmentOption)
 
     options
   }
@@ -530,6 +542,7 @@ object Main {
     * @param enableIrCaches are IR caches enabled
     * @param inspect        shall inspect option be enabled
     * @param dump           shall graphs be sent to the IGV
+    * @apram executionEnvironment optional name of the execution environment to use during execution
     */
   private def run(
     path: String,
@@ -540,7 +553,8 @@ object Main {
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
     inspect: Boolean,
-    dump: Boolean
+    dump: Boolean,
+    executionEnvironment: Option[String]
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -580,6 +594,7 @@ object Main {
       enableIrCaches,
       strictErrors          = true,
       enableAutoParallelism = enableAutoParallelism,
+      executionEnvironment  = executionEnvironment,
       options               = options
     )
     if (projectMode) {
@@ -1092,7 +1107,8 @@ object Main {
         shouldEnableIrCaches(line),
         line.hasOption(AUTO_PARALLELISM_OPTION),
         line.hasOption(INSPECT_OPTION),
-        line.hasOption(DUMP_GRAPHS_OPTION)
+        line.hasOption(DUMP_GRAPHS_OPTION),
+        Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
       )
     }
     if (line.hasOption(REPL_OPTION)) {

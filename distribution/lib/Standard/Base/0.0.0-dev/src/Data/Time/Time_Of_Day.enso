@@ -284,7 +284,8 @@ type Time_Of_Day
             duration : Duration -> self.minus_builtin duration
             _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
 
-    ## Convert to a JavaScript Object representing this Time_Of_Day.
+    ## PRIVATE
+       Convert to a JavaScript Object representing this Time_Of_Day.
 
        > Example
          Convert the current time to a JS_Object.
