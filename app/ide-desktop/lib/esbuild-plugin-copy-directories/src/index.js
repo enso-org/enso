@@ -39,7 +39,7 @@ export default function esbuildPluginCopyDirectories(options) {
             /** @param {string} root - Path to the directory to watch. */
             function continuouslySync(root) {
                 // It's theoretically possible to use a single `chokidar` instance,
-                // however we need the root directory path to calculate the destination path.
+                // however the root directory path is needed for calculating the destination path.
                 const watcher = chokidar.watch(root, { cwd: root })
                 /** @param {string} path - Path to the file to be copied. */
                 function copy(path) {
