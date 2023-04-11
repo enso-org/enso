@@ -1,20 +1,19 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 
-import * as auth from '../../authentication/providers/auth'
-
 // =================
 // === Dashboard ===
 // =================
 
 function Dashboard() {
-    const { signOut } = auth.useAuth()
-    const { accessToken } = auth.useFullUserSession()
     return (
         <>
-            <h1>This is a placeholder page for the cloud dashboard.</h1>
-            <p>Access token: {accessToken}</p>
-            <button onClick={signOut}>Log out</button>
+            {/* These are placeholders. When implementing a feature,
+             * please replace the appropriate placeholder with the actual element.*/}
+            <div id="header" />
+            <div id="templates" />
+            <div id="drive-header" />
+            <div id="directory-listing" />
         </>
     )
 }
