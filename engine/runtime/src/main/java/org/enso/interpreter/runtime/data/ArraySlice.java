@@ -22,7 +22,7 @@ public final class ArraySlice implements TruffleObject {
   private final long start;
   private final long end;
 
-  ArraySlice(Object storage, long start, long end) {
+  private ArraySlice(Object storage, long start, long end) {
     if (storage instanceof ArraySlice slice) {
       this.storage = slice.storage;
       this.start = slice.start + start;
@@ -38,6 +38,20 @@ public final class ArraySlice implements TruffleObject {
       this.start = start;
       this.end = end;
     }
+  }
+
+  static Vector createOrNull(Object storage, long start, long this_length, long end) {
+    long slice_start = Math.max(0, start);
+    long slice_end = Math.min(this_length, end);
+    Object slice;
+    if (slice_start >= slice_end) {
+      slice = Array.allocate(0);
+    } else if ((slice_start == 0) && (slice_end == this_length)) {
+      return null;
+    } else {
+      slice = new ArraySlice(storage, slice_start, slice_end);
+    }
+    return Vector.fromArray(slice);
   }
 
   /**

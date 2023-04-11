@@ -41,6 +41,14 @@ type Type
     methods self =
         Vector.from_polyglot_array (get_type_methods self.value)
 
+    ## ADVANCED
+
+       Returns the fully qualified name of the type.
+    name : Text
+    name self =
+        c = self.value ...
+        get_constructor_name c
+
 type Atom
     ## PRIVATE
        ADVANCED
