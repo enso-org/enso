@@ -115,6 +115,14 @@ spec =
             t.tokenize_to_columns 'foo' "x" . should_fail_with Invalid_Value_Type
             t.tokenize_to_rows 'foo' "x" . should_fail_with Invalid_Value_Type
 
+        Test.specify "won't work on a mixed column" <|
+            cols = [['foo', [0, 1]], ['bar', [500, 'ab-10:bc-20c']]]
+            t = Table.new cols
+            t.split_to_columns 'bar' "x" . should_fail_with Invalid_Value_Type
+            t.split_to_rows 'bar' "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_columns 'bar' "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_rows 'bar' "x" . should_fail_with Invalid_Value_Type
+
         Test.specify "*_to_columns handles missing input column" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
             t = Table.new cols
