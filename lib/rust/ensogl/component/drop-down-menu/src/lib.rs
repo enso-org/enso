@@ -75,6 +75,7 @@ pub mod chooser_hover_area {
     use super::*;
 
     ensogl_core::shape! {
+        above = [arrow];
         alignment = center;
         (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
@@ -144,8 +145,8 @@ pub type Entry = list_view::entry::Label;
 struct Model {
     display_object: display::object::Instance,
 
-    icon:         arrow::View,
-    icon_overlay: chooser_hover_area::View,
+    icon:          arrow::View,
+    click_overlay: chooser_hover_area::View,
 
     label:          text::Text,
     selection_menu: list_view::ListView<Entry>,
@@ -158,17 +159,17 @@ impl Model {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let icon = arrow::View::new();
-        let icon_overlay = chooser_hover_area::View::new();
+        let click_overlay = chooser_hover_area::View::new();
         let selection_menu = list_view::ListView::new(app);
         let label = app.new_view::<text::Text>();
         let content = default();
 
-        Self { display_object, icon, icon_overlay, label, selection_menu, content }.init()
+        Self { display_object, icon, click_overlay, label, selection_menu, content }.init()
     }
 
     fn init(self) -> Self {
         self.add_child(&self.icon);
-        self.add_child(&self.icon_overlay);
+        self.add_child(&self.click_overlay);
         self.add_child(&self.label);
         // Clear default parent and hide again.
         self.show_selection_menu();
@@ -309,13 +310,17 @@ impl DropDownMenu {
                 model.label.set_y(0.5 * text_height);
             });
 
-            overlay_size <- all(model.label.frp.width,model.label.frp.height,frp.input.set_icon_size);
-            eval overlay_size ([model]((text_width,text_height,icon_size)) {
+            overlay_size <- all(
+                model.label.frp.width,
+                model.label.frp.height,
+                frp.input.set_icon_size,
+                frp.input.set_icon_padding);
+            eval overlay_size ([model]((text_width,text_height,icon_size,icon_padding)) {
                 let height = icon_size.y.max(*text_height);
-                let width = text_width + icon_size.x;
+                let width = text_width + icon_size.x + icon_padding.x;
                 let size = Vector2::new(width,height);
-                model.icon_overlay.set_size(size);
-                model.icon_overlay.set_x(-text_width/2.0);
+                model.click_overlay.set_size(size);
+                model.click_overlay.set_x(-width/2.0 + icon_size.x/2.0 - icon_padding.x);
             });
 
 
@@ -380,14 +385,14 @@ impl DropDownMenu {
             // === Menu Toggle Through Mouse Interaction ===
 
             icon_hovered <- source::<bool>();
-            eval_ model.icon_overlay.events_deprecated.mouse_over ( icon_hovered.emit(true) );
-            eval_ model.icon_overlay.events_deprecated.mouse_out ( icon_hovered.emit(false) );
+            eval_ model.click_overlay.events_deprecated.mouse_over ( icon_hovered.emit(true) );
+            eval_ model.click_overlay.events_deprecated.mouse_out ( icon_hovered.emit(false) );
 
-            frp.source.icon_mouse_over <+ model.icon_overlay.events_deprecated.mouse_over;
-            frp.source.icon_mouse_out  <+ model.icon_overlay.events_deprecated.mouse_out;
+            frp.source.icon_mouse_over <+ model.click_overlay.events_deprecated.mouse_over;
+            frp.source.icon_mouse_out  <+ model.click_overlay.events_deprecated.mouse_out;
 
 
-            let icon_mouse_down = model.icon_overlay.events_deprecated.mouse_down_primary.clone_ref();
+            let icon_mouse_down = model.click_overlay.events_deprecated.mouse_down_primary.clone_ref();
             visibility_on_mouse_down <- frp.source.menu_visible.sample(&icon_mouse_down) ;
 
             eval visibility_on_mouse_down ([show_menu,hide_menu](is_visible){
@@ -425,6 +430,15 @@ impl DropDownMenu {
     pub fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.model.selection_menu.set_label_layer(layer);
         self.model.label.add_to_scene_layer(layer);
+    }
+
+    pub fn restore_shape_constraints(&self, app: &Application) {
+        let scene = &app.display.default_scene;
+        shapes_order_dependencies! {
+            scene => {
+                 arrow -> chooser_hover_area;
+            }
+        }
     }
 }
 
