@@ -38,6 +38,8 @@ export default function esbuildPluginCopyDirectories(options) {
                 build.initialOptions.outdir ?? error('Output directory must be given.')
             /** @param {string} root - Path to the directory to watch. */
             function continuouslySync(root) {
+                // It's theoretically possible to use a single `chokidar` instance,
+                // however we need the root directory path to calculate the destination path.
                 const watcher = chokidar.watch(root, { cwd: root })
                 /** @param {string} path - Path to the file to be copied. */
                 function copy(path) {
@@ -63,7 +65,7 @@ export default function esbuildPluginCopyDirectories(options) {
                         }
                     })()
                 })
-                unwatchers.add(() => watcher.removeAllListeners())
+                unwatchers.add(() => void watcher.close())
             }
             build.onResolve({ filter: directoryFilter }, async ({ path, kind }) => {
                 if (kind === 'entry-point') {
@@ -86,12 +88,14 @@ export default function esbuildPluginCopyDirectories(options) {
             })
             build.onLoad({ filter: /(?:)/, namespace: NAMESPACE }, () => ({ contents: '' }))
             build.onDispose(() => {
+                log?.('Unregistering all watchers.')
                 const oldUnwatchers = unwatchers
                 watchingPath = {}
                 unwatchers = new Set()
                 for (const unwatch of oldUnwatchers) {
                     unwatch()
                 }
+                log?.('Unregistered all watchers.')
             })
         },
     }
