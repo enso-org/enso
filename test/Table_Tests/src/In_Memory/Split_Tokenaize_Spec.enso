@@ -69,6 +69,35 @@ spec =
             t2 = t.tokenize_to_rows 'bar' "([a-z]).(\d+)"
             tables_should_be_equal t2 expected
 
+    Test.group 'column count' <|
+        Test.specify 'should generate extra empty columns if column_count is set' <|
+            cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
+            t = Table.new cols
+            expected_rows = [[0, 'a', 'c', Nothing, Nothing], [1, 'c', 'd', 'ef', Nothing], [2, 'gh', 'ij', 'u', Nothing]]
+            expected = Table.from_rows ['foo', 'split_bar', 'split_bar_1', 'split_bar_2', 'split_bar_3'] expected_rows
+            t2 = t.split_to_columns 'bar' 'b' column_count=4
+            tables_should_be_equal t2 expected
+
+        Test.specify "split should limit columns and return problems when exceeding the column limit" <|
+            cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
+            t = Table.new cols
+            expected_rows = [[0, 'a', 'c'], [1, 'c', 'd'], [2, 'gh', 'ij']]
+            expected = Table.from_rows ['foo', 'split_bar', 'split_bar_1'] expected_rows
+            action = t.split_to_columns 'bar' 'b' column_count=2 on_problems=_
+            tester = _.should_equal expected
+            problems = [Column_Count_Exceeded.Error 1 3]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "tokenize should limit columns and return problems when exceeding the column limit" <|
+            cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
+            t = Table.new cols
+            expected_rows = [[0, 'a', 'c'], [1, 'c', 'd'], [2, 'gh', 'ij']]
+            expected = Table.from_rows ['foo', 'split_bar', 'split_bar_1'] expected_rows
+            action = t.tokenize_to_columns 'bar' "([a-z]).(\d+)" column_count=2 on_problems=_
+            tester = _.should_equal expected
+            problems = [Column_Count_Exceeded.Error 1 3]
+            Problems.test_problem_handling action problems tester
+
     Test.group 'errors' <|
         Test.specify "won't work on a non-text column" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
@@ -77,22 +106,6 @@ spec =
             t.split_to_rows 'foo' "x" . should_fail_with Invalid_Value_Type
             t.tokenize_to_columns 'foo' "x" . should_fail_with Invalid_Value_Type
             t.tokenize_to_rows 'foo' "x" . should_fail_with Invalid_Value_Type
-
-        Test.specify "split should return problems when exceeding the column limit" <|
-            cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
-            t = Table.new cols
-            action = t.split_to_columns 'bar' 'b' column_count=1 on_problems=_
-            tester = _-> True # _.should_be_a Table
-            problems = [Column_Count_Exceeded.Error 1 3]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "tokenize should return problems when exceeding the column limit" <|
-            cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
-            t = Table.new cols
-            action = t.tokenize_to_columns 'bar' "([a-z]).(\d+)" column_count=1 on_problems=_
-            tester = _.should_be_a Table
-            problems = [Column_Count_Exceeded.Error 1 3]
-            Problems.test_problem_handling action problems tester
 
         Test.specify "*_to_columns handles missing input column" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
