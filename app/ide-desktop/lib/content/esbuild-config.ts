@@ -117,7 +117,7 @@ export function bundlerOptions(args: Arguments) {
                 // in `ensogl/pack/js/src/runner/index.ts`
                 name: 'pkg-js-is-cjs',
                 setup: build => {
-                    build.onLoad({ filter: /\/pkg.js$/ }, async ({ path }) => ({
+                    build.onLoad({ filter: /[/\\]pkg.js$/ }, async ({ path }) => ({
                         contents: await fs.readFile(path),
                         loader: 'copy',
                     }))
