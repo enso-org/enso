@@ -1,12 +1,17 @@
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Boolean.Boolean
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Errors.Common.Forbidden_Operation
+import project.Function.Function
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
 
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
+from project.Runtime.Context import Input,Output
 
 ## Utilities for interacting with the runtime.
 
@@ -109,8 +114,10 @@ type Stack_Trace_Element
 ## PRIVATE
    ADVANCED
 
-    Types indicating allowed IO operations
-type IO_Permissions
+    Type indicating allowed execution context.
+
+@Builtin_Type
+type Context
     ## PRIVATE
        ADVANCED
     Input
@@ -118,24 +125,98 @@ type IO_Permissions
        ADVANCED
     Output
 
+    ## PRIVATE
+       ADVANCED
+
+       Returns the name of the context.
+
+    name : Text
+    name self =
+        case self of
+            Input  -> "Input"
+            Output -> "Output"
+
+    ## PRIVATE
+       ADVANCED
+
+       Checks whether the context is enabled. If it is, evaluates the provided
+       function and returns the result. If not, panics.
+
+       Arguments:
+       - environment: Name of the execution environment.
+       - context: The context to enable.
+       - action: Action to be performed with the context enabled.
+    if_enabled : Function -> Text -> Any
+    if_enabled self ~action environment=Runtime.current_execution_environment =
+        if self.is_enabled environment then action else Panic.throw (Forbidden_Operation.Error self.name)
+
+    ## PRIVATE
+       ADVANCED
+
+       Checks whether the permission is enabled in the given environment.
+
+       Arguments:
+       - environment: Name of the execution environment.
+       - context: The context to enable.
+    is_enabled : Text -> Boolean
+    is_enabled self environment=Runtime.current_execution_environment = @Builtin_Method "Context.is_enabled"
+
+
 ## PRIVATE
    ADVANCED
 
-   Allows an action in the `Input` context to be performed in the given `env`,
-   regardless of the Env configuration.
-
-   This can be used to enable certain nodes to run their actions in the
-   interactive mode, even if the configuration forbids it.
-allow_input_in : Text -> Any -> Any
-allow_input_in env ~action = @Builtin_Method "Runtime.allow_input_in"
+   Returns the name of the current execution environment.
+current_execution_environment : Text
+current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"
 
 ## PRIVATE
    ADVANCED
 
-   Allows an action in the `Output` context to be performed in the given `env`,
-   regardless of the Env configuration.
+   Enables a specific context in the provided runtime environment for the duration of the execution of the action.
 
-   This can be used to enable certain nodes to run their actions in the
-   interactive mode, even if the configuration forbids it.
-allow_output_in : Text -> Any -> Any
-allow_output_in env ~action = @Builtin_Method "Runtime.allow_output_in"
+   Arguments:
+   - environment: Name of the execution environment.
+   - context: The context to enable.
+   - action: Action to be performed with the context enabled.
+with_enabled_context : Context -> Function -> Text -> Any
+with_enabled_context context ~action environment=Runtime.current_execution_environment = with_enabled_context_builtin context action environment
+
+## PRIVATE
+   ADVANCED
+
+   Enables a specific context in the provided runtime environment for the duration of the execution of the action.
+
+   This method is internal, using `with_enabled_context` is preferred as it provides correct defaults.
+
+   Arguments:
+   - environment: Name of the execution environment.
+   - context: The context to enable.
+   - action: Action to be performed with the context enabled.
+with_enabled_context_builtin : Context -> Function -> Text -> Any
+with_enabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_enabled_context_builtin"
+
+## PRIVATE
+   ADVANCED
+
+   Disables a specific context in the provided runtime environment for the duration of the execution of the action.
+
+   Arguments:
+   - environment: Name of the execution environment.
+   - context: The context to disable.
+   - action: Action to be performed with the context disabled.
+with_disabled_context : Context -> Function -> Text -> Any
+with_disabled_context context ~action environment=Runtime.current_execution_environment = with_disabled_context_builtin context action environment
+
+## PRIVATE
+   ADVANCED
+
+   Disables a specific context in the provided runtime environment for the duration of the execution of the action.
+
+   This method is internal, using `with_disabled_context` is preferred as it provides correct defaults.
+
+   Arguments:
+   - environment: Name of the execution environment.
+   - context: The context to disable.
+   - action: Action to be performed with the context disabled.
+with_disabled_context_builtin : Context -> Function -> Text -> Any
+with_disabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_disabled_context_builtin"
