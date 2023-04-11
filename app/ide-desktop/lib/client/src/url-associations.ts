@@ -41,7 +41,7 @@ export function registerAssociations() {
 export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
     const arg = clientArgs[0]
     let result: URL | null = null
-    logger.log(`Checking if '${clientArgs}' denote a URL to open.`)
+    logger.log(`Checking if '${clientArgs.toString()}' denote a URL to open.`)
     // Check if the first argument parses as a URL using our deep link scheme.
     if (clientArgs.length === 1 && typeof arg !== 'undefined') {
         try {
@@ -92,7 +92,7 @@ export function registerUrlCallback(callback: (url: URL) => void) {
 
     // Second, register the callback for the `second-instance` event. This is used on Windows.
     electron.app.on('second-instance', (event, argv) => {
-        logger.log(`Got data from 'second-instance' event: '${argv}'.`)
+        logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
         urlCallbackCompleted()
         // Check if additional data is an object that contains the URL.
         const url = argsDenoteUrlOpenAttempt(argv.slice(argv.length - 1))
