@@ -410,18 +410,32 @@ impl ActionBar {
             output_context_enabled <- model.icons.context_switch.enable_button.state
                 .sample(&model.icons.context_switch.enable_button.clicked);
             frp.source.action_context_switch <+ any(&output_context_disabled, &output_context_enabled);
-            frp.set_action_context_switch_state <+ all_with(
-                &output_context_disabled,
-                &output_context_enabled,
+            // Setting the state of the context switch button is necessary because e.g. toggling
+            // the "enable" button when there's a "disable" expression should cause the "disable"
+            // button to change state as well.
+            frp.set_action_context_switch_state <+ output_context_disabled.map2(
+                &model.icons.context_switch.enable_button.state,
                 |disabled, enabled| {
                     match (disabled, enabled) {
+                        (true, _) => Some(false),
                         (false, false) => None,
-                        (true, false) => Some(false),
-                        (false, true) => Some(true),
-                        (true, true) => {
-                            error!("Context switch buttons were both on.");
+                        (false, true) => {
+                            error!("Shouldn't happen: context switch buttons were both on.");
+                            Some(true)
+                        }
+                    }
+                }
+            );
+            frp.set_action_context_switch_state <+ output_context_enabled.map2(
+                &model.icons.context_switch.disable_button.state,
+                |enabled, disabled| {
+                    match (enabled, disabled) {
+                        (true, _) => Some(true),
+                        (false, false) => None,
+                        (false, true) => {
+                            error!("Shouldn't happen: context switch buttons were both on.");
                             Some(false)
-                        },
+                        }
                     }
                 }
             );
