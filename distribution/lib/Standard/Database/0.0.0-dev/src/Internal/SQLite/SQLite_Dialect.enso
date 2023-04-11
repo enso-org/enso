@@ -91,22 +91,6 @@ type SQLite_Dialect
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
 
     ## PRIVATE
-       Prepares a join operation, returning a new table instance encapsulating a
-       proper query.
-    prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
-    prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select = case join_kind of
-        SQL_Join_Kind.Right ->
-            # We just do a left join with swapped order of sub-queries, while keeping the original order of columns.
-            Database_Join_Helper.default_prepare_join connection SQL_Join_Kind.Left new_table_name right_subquery left_subquery on_expressions where_expressions columns_to_select
-        SQL_Join_Kind.Full ->
-            ## TODO workaround for full joins by left outer + right-anti union
-               https://www.pivotaltracker.com/story/show/184090548
-            Error.throw (Unsupported_Database_Operation.Error "Full outer joins are not YET supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
-        _ ->
-            # Other kinds of joins just fall back to the default logic.
-            Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
-
-    ## PRIVATE
        Prepares a distinct operation.
     prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =

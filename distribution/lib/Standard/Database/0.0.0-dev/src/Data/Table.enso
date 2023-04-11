@@ -952,7 +952,9 @@ type Table
                 Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
 
             problem_builder.attach_problems_before on_problems <|
-                self.connection.dialect.prepare_join self.connection sql_join_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
+                new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
+                new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
+                Table.Value new_table_name self.connection result_columns new_ctx
 
     ## ALIAS Cartesian Join
        Joins tables by pairing every row of the left table with every row of the
