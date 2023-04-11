@@ -8,10 +8,10 @@ order: 3
 
 # TypeScript Style Guide
 
-Like many style guides, this TypeScript style guide exists for two primary
-reasons. The first is to provide guidelines that result in a consistent code
-style across all of the Enso codebases, while the second is to guide people
-towards a style that is expressive while still easy to read and understand.
+This TypeScript style guide exists for two primary reasons. The first is to
+provide guidelines that result in a consistent code style across all of the Enso
+codebases, while the second is to lead people towards a style that is expressive
+while still easy to read and understand.
 
 In general, it aims to create a set of 'zero-thought' rules in order to ease the
 programmer burden; there is usually only _one way_ to lay out code correctly.
@@ -49,27 +49,30 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 
 ## Code Formatting
 
-This section explains the rules for visually laying out your code. They provide
+Section explains the rules for visually laying out your code. The rules provide
 a robust set of guidelines for creating a consistent visual to the code.
 
-Code style is _far_ more than just the visual formatting of the code, especially
-as formatting can often be automated. According to the documentation of rustfmt,
+Code style is _far_ more than just the visual formatting of the code. Especially
+as it can often be automated. According to the documentation of rustfmt,
 "formatting code is a mostly mechanical task which takes both time and mental
-effort". While, in many cases, the programmer can be relieved of this burden
-through use of an automated formatter, it is sometimes the case that such a tool
-imposes _more_ cognitive load in programmers. With rustfmt, programmers tend to
-have to refactor long lines to use variables, and move code to specific modules
-or sections lest rustfmt produce code that is hard to read and write. Thus, it
-is very important to write code in such a way that we can be proud of its
-quality.
+effort." ([source]) While, in many cases, the programmer can be relieved of this
+burden through use of an automated formatter. It is sometimes the case that such
+a tool imposes _more_ cognitive load in programmers. With prettier, programmers
+tend to have to refactor long lines to use variables and move code to specific
+modules or sections. Otherwise, prettier produces code that is hard to read and
+write. Thus, it is very important to write code in such a way that we can be
+proud of its quality.
+
+[source]:
+  https://github.com/rust-lang/style-team/blob/02f3c00c06c6609e3e0add3f2f15f448e12b709a/guide/guide.md#motivation---why-use-a-formatting-tool
 
 ### Line Width
 
-Each line in the source file must be of a maximum of 100 characters of text.
-This includes comments.
+Each line in the source file must be of a maximum of 100 characters of text
+(including comments).
 
-The exception to this is TailWind class lists in `.tsx` files, which must be on
-a single line. If present, they must be placed after all other attributes.
+The exception is Tailwind class lists in `.tsx` files, which must be on a single
+line. If present, they must be placed after all other attributes.
 
 ### Imports
 
@@ -105,7 +108,7 @@ TypeScript source files should be divided into sections, with a header placed
 before the definition of each new concept in a file.
 
 By the term "concept," we are referring primarily to a structure with a set of
-related implementations. However if the related implementations rely on some
+related implementations. However, if the related implementations rely on some
 simple helper functions, these may also be defined in the same section. A
 section should have a header as follows.
 
@@ -383,8 +386,8 @@ syntax. Doc comments should contain:
    for a consumer of the API to know (that is not encoded in the types). This
    should be written in grammatically correct English.
 
-We are following the Rust convention of not documenting function or return
-parameters.
+We are following the Rust convention to not document function parameters and
+return types.
 
 An example of a valid set of comments for some TypeScript code is as follows:
 
