@@ -39,8 +39,10 @@ pub trait API: Debug {
     /// Project's qualified name
     fn qualified_name(&self) -> project::QualifiedName;
 
+    // TODO
     fn read_only(&self) -> bool;
 
+    // TODO
     fn set_read_only(&self, read_only: bool);
 
     /// Get Language Server JSON-RPC Connection for this project.

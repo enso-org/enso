@@ -44,6 +44,10 @@ pub struct NotEvaluatedYet(double_representation::node::Id);
 #[fail(display = "The node {} does not resolve to a method call.", _0)]
 pub struct NoResolvedMethod(double_representation::node::Id);
 
+#[allow(missing_docs)]
+#[derive(Debug, Fail, Clone, Copy)]
+#[fail(display = "Operation is not permitted in read only mode")]
+pub struct ReadOnly;
 
 
 // ====================
@@ -216,8 +220,13 @@ impl Handle {
     /// This will cause pushing a new stack frame to the execution context and changing the graph
     /// controller to point to a new definition.
     ///
-    /// Fails if method graph cannot be created (see `graph_for_method` documentation).
+    /// ### Errors
+    /// - Fails if method graph cannot be created (see `graph_for_method` documentation).
+    /// - Fails if the project is in read-only mode.
     pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
+        if self.project.read_only() {
+            return Err(ReadOnly.into());
+        }
         debug!("Entering node {}.", local_call.call);
         let method_ptr = &local_call.definition;
         let graph = controller::Graph::new_method(&self.project, method_ptr);
@@ -249,10 +258,16 @@ impl Handle {
     /// This will cause pushing a new stack frame to the execution context and changing the graph
     /// controller to point to a new definition.
     ///
-    /// Fails if there's no information about target method pointer (e.g. because node value hasn't
+    /// ### Errors
+    /// - Fails if there's no information about target method pointer (e.g. because node value
+    ///   hasn't
     /// been yet computed by the engine) or if method graph cannot be created (see
     /// `graph_for_method` documentation).
+    /// - Fails if the project is in read-only mode.
     pub async fn enter_node(&self, node: double_representation::node::Id) -> FallibleResult {
+        if self.project.read_only() {
+            return Err(ReadOnly.into());
+        }
         let computed_value = self.node_computed_value(node)?;
         let method_pointer = computed_value.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
         let definition = method_pointer.clone();
@@ -262,9 +277,14 @@ impl Handle {
 
     /// Leave the current node. Reverse of `enter_node`.
     ///
-    /// Fails if this execution context is already at the stack's root or if the parent graph
+    /// ### Errors
+    /// - Fails if this execution context is already at the stack's root or if the parent graph
     /// cannot be retrieved.
+    /// - Fails if the project is in read-only mode.
     pub async fn exit_node(&self) -> FallibleResult {
+        if self.project.read_only() {
+            return Err(ReadOnly.into());
+        }
         let frame = self.execution_ctx.pop().await?;
         let method = self.execution_ctx.current_method();
         let graph = controller::Graph::new_method(&self.project, &method).await?;
@@ -280,7 +300,13 @@ impl Handle {
     }
 
     /// Restart the program execution.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
     pub async fn restart(&self) -> FallibleResult {
+        if self.project.read_only() {
+            return Err(ReadOnly.into());
+        }
         self.execution_ctx.restart().await?;
         Ok(())
     }
@@ -324,14 +350,26 @@ impl Handle {
     }
 
     /// Create connection in graph.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
     pub fn connect(&self, connection: &Connection) -> FallibleResult {
+        if self.project.read_only() {
+            return Err(ReadOnly.into());
+        }
         self.graph.borrow().connect(connection, self)
     }
 
     /// Remove the connections from the graph. Returns an updated edge destination endpoint for
     /// disconnected edge, in case it is still used as destination-only edge. When `None` is
     /// returned, no update is necessary.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
     pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
+        if self.project.read_only() {
+            return Err(ReadOnly.into());
+        }
         self.graph.borrow().disconnect(connection, self)
     }
 }

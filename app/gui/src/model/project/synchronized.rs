@@ -216,6 +216,11 @@ async fn update_modules_on_file_change(
 #[fail(display = "Project Manager is unavailable.")]
 pub struct ProjectManagerUnavailable;
 
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "Project renaming is not available in read-only mode.")]
+pub struct RenameInReadOnly;
+
 /// A wrapper for an error with information that user tried to open project with unsupported
 /// engine's version (which is likely the cause of the problems).
 #[derive(Debug, Fail)]
@@ -698,6 +703,9 @@ impl model::project::API for Project {
     }
 
     fn rename_project(&self, name: String) -> BoxFuture<FallibleResult> {
+        if self.read_only() {
+            return std::future::ready(Err(RenameInReadOnly.into())).boxed_local();
+        }
         async move {
             let referent_name = name.as_str().try_into()?;
             let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
@@ -866,7 +874,7 @@ mod test {
         let write_capability = Some(write_capability);
         let open_response = response::OpenTextFile { content, current_version, write_capability };
         expect_call!(client.open_text_file(path=path.clone()) => Ok(open_response));
-        client.expect.apply_text_file_edit(|_| Ok(()));
+        client.expect.apply_text_file_edit(|_, _| Ok(()));
         expect_call!(client.close_text_file(path) => Ok(()));
     }
 

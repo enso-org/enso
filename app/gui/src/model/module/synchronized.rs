@@ -240,7 +240,7 @@ impl Module {
         self.content().replace(parsed_source);
         let summary = ContentSummary::new(&content);
         let change = TextEdit::from_prefix_postfix_differences(&content, &source.content);
-        self.notify_language_server(&summary, &source, vec![change]).await?;
+        self.notify_language_server(&summary, &source, vec![change], true).await?;
         let notification = Notification::new(source, NotificationKind::Reloaded);
         self.notify(notification);
         Ok(())
@@ -425,7 +425,8 @@ impl Module {
                     };
                     //id_map goes first, because code change may alter its position.
                     let edits = vec![id_map_change, code_change];
-                    let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
+                    let notify_ls =
+                        self.notify_language_server(&summary.summary, &new_file, edits, true);
                     profiler::await_!(notify_ls, _profiler)
                 }
                 NotificationKind::MetadataChanged => {
@@ -433,7 +434,8 @@ impl Module {
                         range: summary.metadata_engine_range().into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
-                    let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
+                    let notify_ls =
+                        self.notify_language_server(&summary.summary, &new_file, edits, false);
                     profiler::await_!(notify_ls, _profiler)
                 }
                 NotificationKind::Reloaded => Ok(ParsedContentSummary::from_source(&new_file)),
@@ -452,7 +454,7 @@ impl Module {
         debug!("Handling full invalidation: {ls_content:?}.");
         let range = Range::new(Location::default(), ls_content.end_of_file);
         let edits = vec![TextEdit { range: range.into(), text: new_file.content.clone() }];
-        self.notify_language_server(ls_content, &new_file, edits)
+        self.notify_language_server(ls_content, &new_file, edits, true)
     }
 
     fn edit_for_snipped(
@@ -520,7 +522,7 @@ impl Module {
         .into_iter()
         .flatten()
         .collect_vec();
-        self.notify_language_server(&ls_content.summary, &new_file, edits)
+        self.notify_language_server(&ls_content.summary, &new_file, edits, true)
     }
 
     /// This is a helper function with all common logic regarding sending the update to
@@ -531,6 +533,7 @@ impl Module {
         ls_content: &ContentSummary,
         new_file: &SourceFile,
         edits: Vec<TextEdit>,
+        execute: bool,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
         let summary = ParsedContentSummary::from_source(new_file);
         let edit = FileEdit {
@@ -540,7 +543,7 @@ impl Module {
             new_version: Sha3_224::new(new_file.content.as_bytes()),
         };
         debug!("Notifying LS with edit: {edit:#?}.");
-        let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit);
+        let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit, &execute);
         async move {
             ls_future_reply.await?;
             Ok(summary)
@@ -636,7 +639,7 @@ pub mod test {
             f: impl FnOnce(&FileEdit) -> json_rpc::Result<()> + 'static,
         ) {
             let this = self.clone();
-            client.expect.apply_text_file_edit(move |edits| {
+            client.expect.apply_text_file_edit(move |edits, _execute| {
                 let content_so_far = this.current_ls_content.get();
                 let result = f(edits);
                 let new_content = apply_edits(content_so_far, edits);
