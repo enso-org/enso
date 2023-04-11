@@ -20,16 +20,17 @@ import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.EnsoDuration;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -44,7 +45,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
@@ -52,6 +52,8 @@ import java.util.concurrent.locks.Lock;
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile warningsCustomDispatchProfile =
+      ConditionProfile.createCountingProfile();
   private @Child InvokeMethodNode childDispatch;
 
   private @Child InvokeFunctionNode warningFunctionNode;
@@ -145,50 +147,25 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Cached MethodResolverNode methodResolverNode,
+      @CachedLibrary(limit = "10") TypesLibrary dispatch,
       @CachedLibrary(limit = "10") WarningsLibrary warnings) {
-    Function function =
-        symbol
-            .getScope()
-            .lookupMethodDefinition(
-                EnsoContext.get(this).getBuiltins().warning().getEigentype(), symbol.getName());
-    if (function != null) {
-      // Warning's builtin type methods are static meaning that they have a synthetic `self`
-      // parameter. However, the constructed `InvokeFunctionNode`  is missing that
-      // information and the function, if called with `arguments` will not be fully applied.
-      // Hence, the synthetic construction of a new `InvokeFunctionNode` with the updated schema
-      // and call including an additional, dummy, argument.
-      Object[] arguments1;
-      if (!function.getSchema().isFullyApplied()) {
-        arguments1 = new Object[function.getSchema().getArgumentsCount()];
-        System.arraycopy(arguments, 0, arguments1, 1, arguments.length);
-        arguments1[0] = arguments[0];
-      } else {
-        arguments1 = arguments;
+    Object selfWithoutWarnings;
+    try {
+      selfWithoutWarnings = warnings.removeWarnings(self);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
+
+    Type typeOfSymbol = symbol.resolveTypeFor(dispatch.getType(selfWithoutWarnings));
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
+    if (typeOfSymbol == builtins.any()) {
+      Function warningFunction =
+          symbol
+              .getScope()
+              .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());
+      if (warningsCustomDispatchProfile.profile(warningFunction != null)) {
+        return customWarningDispatch(frame, state, warningFunction, arguments);
       }
-      if (warningFunctionNode == null) {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        Lock lock = getLock();
-        lock.lock();
-        try {
-          int length = invokeFunctionNode.getSchema().length;
-          CallArgumentInfo[] schema = new CallArgumentInfo[length + 1];
-          System.arraycopy(invokeFunctionNode.getSchema(), 0, schema, 1, length);
-          schema[0] = new CallArgumentInfo();
-          warningFunctionNode =
-              insert(
-                  InvokeFunctionNode.build(
-                      schema,
-                      invokeFunctionNode.getDefaultsExecutionMode(),
-                      invokeFunctionNode.getArgumentsExecutionMode()));
-          warningFunctionNode.setId(invokeFunctionNode.getId());
-          warningFunctionNode.setTailStatus(invokeFunctionNode.getTailStatus());
-          notifyInserted(warningFunctionNode);
-        } finally {
-          lock.unlock();
-        }
-      }
-      return warningFunctionNode.execute(function, frame, state, arguments1);
     }
 
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
@@ -214,10 +191,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
     }
 
-    Object selfWithoutWarnings;
     Warning[] arrOfWarnings;
     try {
-      selfWithoutWarnings = warnings.removeWarnings(self);
       arrOfWarnings = warnings.getWarnings(self, this);
     } catch (UnsupportedMessageException e) {
       // Not possible due to `hasWarnings` check
@@ -227,6 +202,46 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
     return WithWarnings.prependTo(result, arrOfWarnings);
+  }
+
+  private Object customWarningDispatch(
+      VirtualFrame frame, State state, Function function, Object[] arguments) {
+    // Warning's builtin type methods are static meaning that they have a synthetic `self`
+    // parameter. However, the constructed `InvokeFunctionNode`  is missing that
+    // information and the function, if called with `arguments` will not be fully applied.
+    // Hence, the synthetic construction of a new `InvokeFunctionNode` with the updated schema
+    // and call including an additional, dummy, argument.
+    Object[] arguments1;
+    if (!function.getSchema().isFullyApplied()) {
+      arguments1 = new Object[function.getSchema().getArgumentsCount()];
+      System.arraycopy(arguments, 0, arguments1, 1, arguments.length);
+      arguments1[0] = arguments[0];
+    } else {
+      arguments1 = arguments;
+    }
+    if (warningFunctionNode == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      Lock lock = getLock();
+      lock.lock();
+      try {
+        int length = invokeFunctionNode.getSchema().length;
+        CallArgumentInfo[] schema = new CallArgumentInfo[length + 1];
+        System.arraycopy(invokeFunctionNode.getSchema(), 0, schema, 1, length);
+        schema[0] = new CallArgumentInfo();
+        warningFunctionNode =
+            insert(
+                InvokeFunctionNode.build(
+                    schema,
+                    invokeFunctionNode.getDefaultsExecutionMode(),
+                    invokeFunctionNode.getArgumentsExecutionMode()));
+        warningFunctionNode.setId(invokeFunctionNode.getId());
+        warningFunctionNode.setTailStatus(invokeFunctionNode.getTailStatus());
+        notifyInserted(warningFunctionNode);
+      } finally {
+        lock.unlock();
+      }
+    }
+    return warningFunctionNode.execute(function, frame, state, arguments1);
   }
 
   @ExplodeLoop

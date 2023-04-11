@@ -18,6 +18,20 @@ My_Type.my_method self = self.a + self.b + self.c
 type Wrap
     Value foo
 
+type My_Fancy_Collection
+    Value (x:Integer)
+
+    get_all : Vector Integer
+    get_all self = [self.x]
+
+    has_warnings : Boolean
+    has_warnings self = False
+
+    remove_warnings : Any -> Integer
+    remove_warnings self warning_type=Any =
+      _ = warning_type
+      42
+
 rewrap w = case w of
     Wrap.Value a -> Wrap.Value a+1
 
@@ -344,5 +358,17 @@ spec = Test.group "Dataflow Warnings" <|
         r4 = CallbackHelper.runCallbackInt i x
         r4.should_equal Nothing
         Warning.get_all r4 . map .value . should_contain_the_same_elements_as ["i(1)", "x"]
+
+    Test.specify "should not affect method dispatch" <|
+        a = My_Fancy_Collection.Value 42
+        b = Warning.attach "WARN" <| My_Fancy_Collection.Value 23
+
+        a.get_all . should_equal [42]
+        b.get_all . should_equal [23]
+        a.has_warnings . should_equal False
+        b.has_warnings . should_equal False
+        a.remove_warnings . should_equal 42
+        b.remove_warnings . should_equal 42
+
 
 main = Test_Suite.run_main spec
