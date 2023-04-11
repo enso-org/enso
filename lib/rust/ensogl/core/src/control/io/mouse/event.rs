@@ -23,12 +23,6 @@ pub struct Event<EventType, JsEvent> {
     event_type: PhantomData<EventType>,
 }
 
-// impl<EventType: TypeDisplay, JsEvent> Debug for Event<EventType, JsEvent> {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "{}", type_display::<EventType>())
-//     }
-// }
-
 impl<EventType, JsEvent> Debug for Event<EventType, JsEvent>
 where
     EventType: TypeDisplay,
@@ -84,11 +78,17 @@ where JsEvent: AsRef<web::MouseEvent>
             - self.js_event.as_ref().map(|t| t.as_ref().client_y()).unwrap_or_default()
     }
 
-    // FIXME: change everything to be f32
-    pub fn client(&self) -> Vector2 {
-        Vector2(self.client_x() as f32, self.client_y() as f32)
+    /// The coordinate within the application's viewport at which the event occurred (as opposed to
+    /// the coordinate within the page).
+    ///
+    /// For example, clicking on the bottom edge of the viewport will always result in a mouse event
+    /// with a [`client`] value of (0,0), regardless of whether the page is scrolled horizontally.
+    pub fn client(&self) -> Vector2<i32> {
+        Vector2(self.client_x(), self.client_y())
     }
 
+    /// The coordinate within the application's viewport at which the event occurred (as opposed to
+    /// the coordinate within the page), measured from the center of the viewport.
     pub fn client_centered(&self) -> Vector2 {
         let x = self.client_x() as f32 - self.shape.width / 2.0;
         let y = self.client_y() as f32 - self.shape.height / 2.0;

@@ -230,11 +230,6 @@ impl LoopRegistry {
     }
 }
 
-// fn create_callback_wrapper(mut callback: impl OnFrameCallback) -> impl FnMut(Duration) {
-//     let mut time_info = InitializedTimeInfo::default();
-//     move |current_time: Duration| callback(time_info.next_frame(current_time))
-// }
-
 #[derive(Default)]
 struct InitializedTimeInfo {
     is_initialized: bool,

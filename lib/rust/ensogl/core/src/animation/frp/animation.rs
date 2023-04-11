@@ -28,11 +28,9 @@ pub type AnimationSimulator<T> = inertia::DynSimulator<mix::Repr<T>>;
 /// Default animation precision.
 ///
 /// This value defines the threshold of how close the current animation value should be to the
-/// target value so that the animation is considered finished.
-/// FIXME[WD]: The precision should should be increased in all simulators
-///            that work with pixels. The reason is that by default the simulator should
-///            give nice results for animations in the range of 0 .. 1, while it should not
-///            make too many steps when animating bigger values (like pixels).
+/// target value so that the animation is considered finished. The value is set to 1.0 because in
+/// most cases the animation is used for pixel values, where 1 pixel distance from target is small
+/// enough to be snapped.
 pub const DEFAULT_PRECISION: f32 = 1.0;
 
 /// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value

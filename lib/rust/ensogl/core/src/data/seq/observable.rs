@@ -33,6 +33,29 @@ impl<T: Default, OnMut, OnResize> Observable<T, OnMut, OnResize> {
     }
 }
 
+impl<T, OnMut, OnResize: FnMut0> Observable<Vec<T>, OnMut, OnResize> {
+    #[inline]
+    pub fn splice<R, I>(
+        &mut self,
+        range: R,
+        replace_with: I,
+    ) -> std::vec::Splice<'_, <I as IntoIterator>::IntoIter>
+    where
+        R: RangeBounds<usize>,
+        I: IntoIterator<Item = T>,
+    {
+        self.on_resize.call();
+        self.data.splice(range, replace_with)
+    }
+
+    #[inline]
+    pub fn retain<F>(&mut self, f: F)
+    where F: FnMut(&T) -> bool {
+        self.on_resize.call();
+        self.data.retain(f)
+    }
+}
+
 impl<T: Index<Ix>, OnMut, OnResize, Ix> Index<Ix> for Observable<T, OnMut, OnResize> {
     type Output = <T as Index<Ix>>::Output;
     #[inline]

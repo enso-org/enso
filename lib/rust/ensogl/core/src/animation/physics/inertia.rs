@@ -848,13 +848,14 @@ where
     let weak_simulator = simulator.downgrade();
     move |time: animation::FixedFrameRateStep<animation::TimeInfo>| {
         if let Some(simulator) = weak_simulator.upgrade() {
-            if let animation::FixedFrameRateStep::Normal(time) = time {
-                let delta_seconds = time.previous_frame / 1000.0;
-                if !simulator.step(delta_seconds) {
-                    simulator.animation_loop.set(None)
+            match time {
+                animation::FixedFrameRateStep::Normal(time) => {
+                    let delta_seconds = time.previous_frame / 1000.0;
+                    if !simulator.step(delta_seconds) {
+                        simulator.animation_loop.set(None)
+                    }
                 }
-            } else {
-                simulator.skip()
+                animation::FixedFrameRateStep::TooManyFramesSkipped => simulator.skip(),
             }
         }
     }
