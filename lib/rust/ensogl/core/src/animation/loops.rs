@@ -257,21 +257,11 @@ fn on_frame_closure(
 ) -> OnFrameClosure {
     let callbacks = callbacks.clone_ref();
     let output = frp.private.output.clone_ref();
-
     let mut time_info = InitializedTimeInfo::default();
     let h_cell = Rc::new(Cell::new(callback::Handle::default()));
+    let fixed_fps_sampler = Rc::new(RefCell::new(FixedFrameRateSampler::new()));
 
-    // FIXME
-    // let fps = 60.0;
-    // let max_skipped_frames = 5;
-    //
-    // let desired_frame_time = (1000.0 / fps).ms();
-    //
-    let mut fixed_frame_rate_sampler = Rc::new(RefCell::new(FixedFrameRateSampler::new()));
-
-    let mut time_buffer = Duration::default();
     move |frame_time: Duration| {
-        // warn!("\n\n\n=== ON FRAME ===");
         let time_info = time_info.next_frame(frame_time);
         let on_frame_start = output.on_frame_start.clone_ref();
         let on_before_animations = output.on_before_animations.clone_ref();
@@ -280,34 +270,17 @@ fn on_frame_closure(
         let output = output.clone_ref();
         let callbacks = callbacks.clone_ref();
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
-        let fixed_frame_rate_sampler = fixed_frame_rate_sampler.clone_ref();
-
+        let fixed_fps_sampler = fixed_fps_sampler.clone_ref();
 
         TickPhases::new(&h_cell)
+            .then(move || on_frame_start.emit(frame_time))
+            .then(move || on_before_animations.emit(time_info))
+            .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| callbacks.run_all(t)))
+            .then(move || on_after_animations.emit(time_info))
+            .then(move || frame_end.emit(time_info))
             .then(move || {
-                // warn!("\n-- on_frame_start");
-                on_frame_start.emit(frame_time)
-            })
-            .then(move || {
-                // warn!("\n-- on_before_animations");
-                on_before_animations.emit(time_info)
-            })
-            .then(move || {
-                fixed_frame_rate_sampler.borrow_mut().run(time_info, |t| callbacks.run_all(t))
-            })
-            .then(move || {
-                // warn!("\n-- on_after_animations");
-                on_after_animations.emit(time_info)
-            })
-            .then(move || {
-                // warn!("\n-- frame_end");
-                frame_end.emit(time_info)
-            })
-            .then(move || {
-                // warn!("\n-- on_before_rendering");
                 output.on_before_rendering.emit(time_info);
                 drop(_profiler);
-                // warn!("\n-- after on_before_rendering");
             })
             .schedule();
     }
@@ -369,23 +342,6 @@ impl FixedFrameRateSampler {
         }
     }
 }
-
-// impl<OnFrame: FnOnce<(Option<TimeInfo>,)>> FnOnce<(Option<TimeInfo>,)>
-//     for FixedFrameRateSampler<OnFrame>
-// {
-//     type Output = ();
-//     extern "rust-call" fn call_once(self, args: (Option<TimeInfo>,)) -> Self::Output {
-//         self.callback.call_once(args);
-//     }
-// }
-//
-// impl<OnFrame> FnMut<(Option<TimeInfo>,)> for FixedFrameRateSampler<OnFrame>
-// where OnFrame: FnMut(Option<TimeInfo>)
-// {
-//     extern "rust-call" fn call_mut(&mut self, args: (Option<TimeInfo>,)) -> Self::Output {
-//         self.callback.call_mut(args);
-//     }
-// }
 
 
 
