@@ -422,7 +422,7 @@ impl ActionBar {
                         (true, _) => Some(false),
                         (false, false) => None,
                         (false, true) => {
-                            error!("Shouldn't happen: context switch buttons were both on.");
+                            error!("Invalid node action bar button state: context switch buttons were both on.");
                             Some(true)
                         }
                     }
@@ -435,7 +435,7 @@ impl ActionBar {
                         (true, _) => Some(true),
                         (false, false) => None,
                         (false, true) => {
-                            error!("Shouldn't happen: context switch buttons were both on.");
+                            error!("Invalid node action bar button state: context switch buttons were both on.");
                             Some(false)
                         }
                     }
