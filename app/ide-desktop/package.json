@@ -22,7 +22,7 @@
     "lib/dashboard",
     "lib/dashboard/src/authentication",
     "lib/content-config",
-    "lib/copy-plugin",
+    "lib/esbuild-plugin-copy-directories",
     "lib/icons"
   ],
   "devDependencies": {
