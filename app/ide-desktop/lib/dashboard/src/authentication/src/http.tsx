@@ -3,18 +3,6 @@
  * Used to build authenticated clients for external APIs, like our Cloud backend API. */
 
 // ==================
-// === HttpStatus ===
-// ==================
-
-/** HTTP status codes returned in a HTTP response. */
-export enum HttpStatus {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    unauthorized = 401,
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    notFound = 404,
-}
-
-// ==================
 // === HttpMethod ===
 // ==================
 

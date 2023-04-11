@@ -46,16 +46,11 @@ spec setup =
 
         Test.specify "should allow Full join" <|
             t3 = t1.join t2 join_kind=Join_Kind.Full |> materialize |> _.order_by ["X", "W"]
-            case setup.test_selection.supports_full_join of
-                True ->
-                    expect_column_names ["X", "Y", "Z", "W"] t3
-                    t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
-                    t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
-                    t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
-                    t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
-                False ->
-                    t3.should_fail_with Unsupported_Database_Operation
-
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
+            t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
+            t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
+            t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
 
         Test.specify "should allow Left Outer join" <|
             t4 = t1.join t2 join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by ["X", "W"]
@@ -263,17 +258,14 @@ spec setup =
             t2.at "Right_A" . to_vector . should_equal ["B", "C", "C", "D"]
 
             t3 = t1.join t1 join_kind=Join_Kind.Full on=(Join_Condition.Equals left="X" right="Y") |> materialize |> _.order_by ["X", "Y", "Right_X"]
-            case setup.test_selection.supports_full_join of
-                True ->
-                    expect_column_names ["X", "Y", "A", "Right_X", "Right_Y", "Right_A"] t3
-                    t3.at "X" . to_vector . should_equal [Nothing, Nothing, 0, 1, 2, 2, 3]
-                    t3.at "Right_Y" . to_vector . should_equal [100, 4, Nothing, 1, 2, 2, 3]
+            expect_column_names ["X", "Y", "A", "Right_X", "Right_Y", "Right_A"] t3
+            t3.at "X" . to_vector . should_equal [Nothing, Nothing, 0, 1, 2, 2, 3]
+            t3.at "Right_Y" . to_vector . should_equal [100, 4, Nothing, 1, 2, 2, 3]
 
-                    t3.at "Y" . to_vector . should_equal [Nothing, Nothing, 1, 2, 3, 100, 4]
-                    t3.at "A" . to_vector . should_equal [Nothing, Nothing, "B", "C", "D", "X", "E"]
-                    t3.at "Right_X" . to_vector . should_equal [2, 3, Nothing, 0, 1, 1, 2]
-                    t3.at "Right_A" . to_vector . should_equal ["X", "E", Nothing, "B", "C", "C", "D"]
-                False -> Nothing
+            t3.at "Y" . to_vector . should_equal [Nothing, Nothing, 1, 2, 3, 100, 4]
+            t3.at "A" . to_vector . should_equal [Nothing, Nothing, "B", "C", "D", "X", "E"]
+            t3.at "Right_X" . to_vector . should_equal [2, 3, Nothing, 0, 1, 1, 2]
+            t3.at "Right_A" . to_vector . should_equal ["X", "E", Nothing, "B", "C", "C", "D"]
 
             t4 = table_builder [["X", [Nothing, "a", "B"]], ["Y", ["ą", "b", Nothing]], ["Z", [1, 2, 3]]]
             t5 = t4.join t4 on=(Join_Condition.Equals_Ignore_Case left="Y" right="X") |> materialize |> _.order_by ["Y"]
@@ -487,21 +479,17 @@ spec setup =
                 r3.at 4 . should_equal [2, 3, 2, 5]
 
             t4 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Full
-            case setup.test_selection.supports_full_join of
-                True ->
-                    expect_column_names ["A", "B", "C", "D"] t4
-                    r4 = materialize t4 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
-                    within_table t4 <|
-                        r4.length . should_equal 7
-                        r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                        r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
-                        r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
-                        r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
-                        r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
-                        r4.at 5 . should_equal [1, 7, Nothing, Nothing]
-                        r4.at 6 . should_equal [2, 3, 2, 5]
-                False ->
-                    (materialize t4) . should_fail_with Unsupported_Database_Operation
+            expect_column_names ["A", "B", "C", "D"] t4
+            r4 = materialize t4 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
+            within_table t4 <|
+                r4.length . should_equal 7
+                r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
+                r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
+                r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
+                r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
+                r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
+                r4.at 5 . should_equal [1, 7, Nothing, Nothing]
+                r4.at 6 . should_equal [2, 3, 2, 5]
 
             t4_2 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Outer
             expect_column_names ["A", "B", "C", "D"] t4_2
@@ -617,7 +605,7 @@ spec setup =
             r2.at 0 . should_equal [2, 20, 5, 5, 100]
             r2.at 1 . should_equal [3, 30, 7, 7, 200]
 
-        Test.specify "should allow full joins with more complex join conditions" pending=(if setup.test_selection.supports_full_join.not then "Full join workaround is not implemented for this backend yet.") <|
+        Test.specify "should allow full joins with more complex join conditions" <|
             t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["X", ["Ć", "A", "b"]], ["Z", [100, 200, 300]]]
 

@@ -40,9 +40,7 @@ compile self expression case_insensitive=Nothing =
 
         Pattern.Value internal_regex_object
 
-## ADVANCED
-
-   Escape the special characters in `expression` such that the result is a
+## Escape the special characters in `expression` such that the result is a
    valid literal pattern for the original string.
 
    Arguments:
@@ -63,10 +61,10 @@ escape self expression = Regex_Utils.regexQuote expression
    Arguments:
    - id: The identifier of the group that was asked for but does not exist.
 type No_Such_Group
+    ## PRIVATE
     Error (id : Text | Integer)
 
     ## PRIVATE
-
        Provides a human-readable representation of the `No_Such_Group`.
     to_display_text : Text
     to_display_text self = case self.id of

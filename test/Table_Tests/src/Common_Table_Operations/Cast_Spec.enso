@@ -1,0 +1,93 @@
+from Standard.Base import all
+
+from Standard.Table import Value_Type
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    # TODO this spec will be expanded in #6112
+    Test.group prefix+"Column.cast" pending=(if setup.is_database.not then "Cast is not implemented in the in-memory backend yet.") <|
+        Test.specify "should allow to cast an integer column to text" <|
+            t = table_builder [["X", [1, 2, 3000]]]
+            c = t.at "X" . cast Value_Type.Char
+            c.value_type.is_text . should_be_true
+            c.to_vector . should_equal ["1", "2", "3000"]
+
+        Test.specify "should allow to cast a boolean column to integer" <|
+            t = table_builder [["X", [True, False, True]]]
+            c = t.at "X" . cast Value_Type.Integer
+            c.value_type.is_integer . should_be_true
+            c.to_vector . should_equal [1, 0, 1]
+
+        Test.specify "should allow to cast a boolean column to text" pending="TODO: sqlite has issue with this, figure out in #6112" <|
+            t = table_builder [["X", [True, False, True]]]
+            c = t.at "X" . cast Value_Type.Char
+            c.value_type.is_text . should_be_true
+            c.to_vector . should_equal ["true", "false", "true"]
+
+        Test.specify "should allow to cast a text column to fixed-length" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
+            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+            c.to_vector . should_equal ["a  ", "DEF", "a s"]
+
+        Test.specify "should work if the first row is NULL" <|
+            t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
+
+            c1 = t.at "X" . cast Value_Type.Char
+            c1.value_type.is_text . should_be_true
+            c1.to_vector . should_equal [Nothing, "1", "2", "3000"]
+
+            c2 = t.at "Y" . cast Value_Type.Integer
+            c2.value_type.is_integer . should_be_true
+            c2.to_vector . should_equal [Nothing, 1, 0, 1]
+
+        Test.specify "should not lose the type after further operations were performed on the result" <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]]]
+            c1 = t.at "X" . cast Value_Type.Char
+            c2 = t.at "Y" . cast Value_Type.Integer
+
+            c3 = c1 + '_suffix'
+            c3.value_type.is_text . should_be_true
+            c3.to_vector . should_equal ["1_suffix", "2_suffix", "3000_suffix"]
+
+            c4 = c2 + 1000
+            c4.value_type.is_integer . should_be_true
+            c4.to_vector . should_equal [1001, 1000, 1001]
+
+        pending_sqlite_types = if prefix.contains "SQLite" then "TODO: perform SQLite type inference locally - #6208"
+        Test.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" pending=pending_sqlite_types <|
+            t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
+            c1 = t.at "X" . cast Value_Type.Char
+            c2 = t.at "Y" . cast Value_Type.Integer
+
+            c3 = c1 + '_suffix'
+            c3.value_type.is_text . should_be_true
+            c3.to_vector . should_equal [Nothing, "1_suffix", "2_suffix", "3000_suffix"]
+
+            c4 = c2 + 1000
+            c4.value_type.is_integer . should_be_true
+            c4.to_vector . should_equal [Nothing, 1001, 1000, 1001]
+
+    Test.group prefix+"Table.cast" pending=(if setup.is_database.not then "Cast is not implemented in the in-memory backend yet.") <|
+        Test.specify 'should cast the columns "in-place" and not reorder them' <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [4, 5, 6]], ["Z", [7, 8, 9]], ["A", [True, False, True]]]
+            t2 = t.cast ["Z", "Y"] Value_Type.Char
+            t2.column_names . should_equal ["X", "Y", "Z", "A"]
+
+            t2.at "X" . value_type . is_integer . should_be_true
+            t2.at "Y" . value_type . is_text . should_be_true
+            t2.at "Z" . value_type . is_text . should_be_true
+            t2.at "A" . value_type . is_boolean . should_be_true
+
+            t2.at "X" . to_vector . should_equal [1, 2, 3000]
+            t2.at "Y" . to_vector . should_equal ["4", "5", "6"]
+            t2.at "Z" . to_vector . should_equal ["7", "8", "9"]
+            t2.at "A" . to_vector . should_equal [True, False, True]

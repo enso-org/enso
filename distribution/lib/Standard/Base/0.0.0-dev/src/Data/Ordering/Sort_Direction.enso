@@ -19,7 +19,8 @@ type Sort_Direction
              Sort_Direction.Descending
     Descending
 
-    ## Convert into the sign of the direction
+    ## PRIVATE
+       Convert into the sign of the direction
     to_sign : Integer
     to_sign self = case self of
         Sort_Direction.Ascending -> 1

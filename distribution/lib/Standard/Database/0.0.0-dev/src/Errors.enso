@@ -5,25 +5,23 @@ polyglot java import java.sql.SQLException
 ## Indicates that a requested operation is not supported, for example because a
    particular database backend does not support it.
 type Unsupported_Database_Operation
+    ## PRIVATE
     Error message
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the SQL error to a textual representation.
     to_text : Text
     to_text self =
         "Unsupported database operation: " + self.message
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty print the error.
     to_display_text : Text
     to_display_text self =
         "Unsupported database operation: " + self.message
 
 type SQL_Error
-    ## UNSTABLE
-
+    ## PRIVATE
        Indicates an error with executing a query, update or connecting to the
        database.
 
@@ -33,29 +31,26 @@ type SQL_Error
          error is related to.
     Error java_exception related_query=Nothing
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the SQL error to a textual representation.
     to_text : Text
     to_text self =
         query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
         "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty print the SQL error.
     to_display_text : Text
     to_display_text self = self.to_text
 
     ## PRIVATE
-
        Throws an error as if a SQL Exception was thrown.
     throw_sql_error : Text -> SQL_Error
     throw_sql_error message =
         Error.throw (SQL_Error.Error (SQLException.new message))
 
 type SQL_Timeout
-    ## UNSTABLE
+    ## PRIVATE
 
        Indicates that an operation has timed out.
 
@@ -65,24 +60,20 @@ type SQL_Timeout
          error is related to.
     Error java_exception related_query=Nothing
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert the timeout error to a textual representation.
     to_text : Text
     to_text self =
         query = if self.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
         "The SQL connection timed out: " + self.java_exception.getMessage + "." + query
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty print the timeout error.
     to_display_text : Text
     to_display_text self = self.to_text
 
 
-## UNSTABLE
-
-   Signals that a name for a column or table is not supported.
+## Signals that a name for a column or table is not supported.
 
    Arguments:
    - text: The name that is not supported.
@@ -91,25 +82,23 @@ type SQL_Timeout
    underscore. This is a temporary limitation simplifying name handling. It will
    be removed in a future version.
 type Unsupported_Name
+    ## PRIVATE
     Error text
 
     ## PRIVATE
-
        Creates a human-readable representation of the unsupported name error.
     to_text : Text
     to_text self =
         "The name " + self.text + " is not currently supported by the Database library."
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty print the unsupported name error.
     to_display_text : Text
     to_display_text self = self.to_text
 
 
 type Integrity_Error
-    ## UNSTABLE
-
+    ## PRIVATE
        Signalizes that an operation tried using objects coming from different
        contexts.
 
@@ -122,14 +111,14 @@ type Integrity_Error
     to_text : Text
     to_text self = self.object_description + " comes from a different context."
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty print the integrity error.
     to_display_text : Text
     to_display_text self = self.to_text
 
 type Table_Not_Found
-    ## Indicates that a table was not found in the database.
+    ## PRIVATE
+       Indicates that a table was not found in the database.
 
        Arguments:
        - table_name: The name of the table that was not found.
@@ -139,6 +128,8 @@ type Table_Not_Found
          string.
     Error (name:Text) (related_query_error:SQL_Error) (treated_as_query:Boolean)
 
+    ## PRIVATE
+       Pretty print the table not found error.
     to_display_text : Text
     to_display_text self = case self.treated_as_query of
         True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."

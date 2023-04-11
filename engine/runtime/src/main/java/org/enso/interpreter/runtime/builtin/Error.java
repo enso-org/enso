@@ -40,6 +40,8 @@ public class Error {
   private final CaughtPanic caughtPanic;
   private final ForbiddenOperation forbiddenOperation;
 
+  private final Unimplemented unimplemented;
+
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorDivideByZero;
@@ -72,6 +74,7 @@ public class Error {
     panic = builtins.getBuiltinType(Panic.class);
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
     forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
+    unimplemented = builtins.getBuiltinType(Unimplemented.class);
   }
 
   public Atom makeSyntaxError(Object message) {
@@ -224,6 +227,10 @@ public class Error {
 
   public ForbiddenOperation getForbiddenOperation() {
     return forbiddenOperation;
+  }
+
+  public Atom makeUnimplemented(String operation) {
+    return unimplemented.newInstance(operation);
   }
 
   public Atom makeNumberParseError(String message) {

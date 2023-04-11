@@ -258,7 +258,7 @@ class BuiltinTypesTest
       4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idY, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, idY, ConstantsGen.FUNCTION),
       TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
@@ -319,7 +319,7 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, idMain, ConstantsGen.FUNCTION),
       context.executionComplete(contextId)
     )
   }
