@@ -155,7 +155,7 @@ fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> Toggl
 // =============================
 
 /// A button to enable/disable the output context for a particular node. It holds two buttons
-/// internally for each shape, but only once is every shown, based on the execution environment
+/// internally for each shape, but only one is shown at a time, based on the execution environment
 /// which sets the global permission for the output context.
 #[derive(Clone, CloneRef, Debug)]
 struct ContextSwitchButton {
@@ -405,10 +405,12 @@ impl ActionBar {
             frp.source.action_visibility <+ model.icons.visibility.state;
             frp.source.action_skip <+ model.icons.skip.state;
             frp.source.action_freeze <+ model.icons.freeze.state;
+            disable_context_button_clicked <- model.icons.context_switch.disable_button.is_pressed.on_true();
+            enable_context_button_clicked <- model.icons.context_switch.enable_button.is_pressed.on_true();
             output_context_disabled <- model.icons.context_switch.disable_button.state
-                .sample(&model.icons.context_switch.disable_button.clicked);
+                .sample(&disable_context_button_clicked);
             output_context_enabled <- model.icons.context_switch.enable_button.state
-                .sample(&model.icons.context_switch.enable_button.clicked);
+                .sample(&enable_context_button_clicked);
             frp.source.action_context_switch <+ any(&output_context_disabled, &output_context_enabled);
             // Setting the state of the context switch button is necessary because e.g. toggling
             // the "enable" button when there's a "disable" expression should cause the "disable"

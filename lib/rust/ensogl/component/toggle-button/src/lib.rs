@@ -66,7 +66,6 @@ ensogl_core::define_endpoints! {
         mouse_out  (),
         is_hovered (bool),
         is_pressed (bool),
-        clicked    (),
     }
 }
 
@@ -249,7 +248,6 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
             frp.source.mouse_out  <+ icon.mouse_out;
             frp.source.is_hovered <+ bool(&icon.mouse_out, &icon.mouse_over);
             frp.source.is_pressed <+ bool(&icon.mouse_up_primary, &icon.mouse_down_primary);
-            frp.source.clicked <+ icon.mouse_down_primary;
 
 
             // === Color ===
