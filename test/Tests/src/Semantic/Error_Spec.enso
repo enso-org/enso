@@ -287,7 +287,7 @@ spec =
                 Panic.catch Array handler=err->"JS array:"+err.payload.to_text <|
                     throw_js_arr
 
-            caught_js_arr_panic . should_equal "JS array:(3)[1, 2, 3]"
+            caught_js_arr_panic . should_equal "JS array:[1, 2, 3]"
 
 
 main = Test_Suite.run_main spec

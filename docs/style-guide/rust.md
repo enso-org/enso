@@ -502,7 +502,7 @@ below may provide more rules for use in specific cases.
 
 Enso follows the standard rust convention for structuring crates, as provided by
 `cargo new`. This is discussed more in depth
-[here](https://learning-rust.github.io/docs/a4.cargo,crates_and_basic_project_structure.html#Project-Structure).
+[here](https://learning-rust.github.io/docs/cargo-crates-and-basic-project-structure/).
 
 ### The Public API
 

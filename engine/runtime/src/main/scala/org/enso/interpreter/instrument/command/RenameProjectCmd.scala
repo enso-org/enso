@@ -47,8 +47,6 @@ class RenameProjectCmd(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(
               module = module.getName.toString,
-              version =
-                ctx.versioning.evalVersion(module.getSource.getCharacters),
               actions = Vector(
                 Api.SuggestionsDatabaseAction.Clean(module.getName.toString)
               ),
@@ -91,7 +89,7 @@ class RenameProjectCmd(
           case (contextId, stack) =>
             for {
               _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
-              _ <- ctx.jobProcessor.run(new ExecuteJob(contextId, stack.toList))
+              _ <- ctx.jobProcessor.run(ExecuteJob(contextId, stack.toList))
             } yield ()
         }
       }
