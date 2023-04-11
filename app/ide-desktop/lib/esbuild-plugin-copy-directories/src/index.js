@@ -27,6 +27,8 @@ function error(message) {
  * @returns {import('esbuild').Plugin} The esbuild plugin. */
 export default function esbuildPluginCopyDirectories(options) {
     const { directoryFilter = /[/\\][^./\\]+$/, log = console.log } = options ?? {}
+    /** @type {Set<() => void>} */
+    let unwatchers = new Set()
     return {
         name: NAME,
         setup: build => {
@@ -61,6 +63,7 @@ export default function esbuildPluginCopyDirectories(options) {
                         }
                     })()
                 })
+                unwatchers.add(() => watcher.removeAllListeners())
             }
             build.onResolve({ filter: directoryFilter }, async ({ path, kind }) => {
                 if (kind === 'entry-point') {
@@ -82,6 +85,13 @@ export default function esbuildPluginCopyDirectories(options) {
                 }
             })
             build.onLoad({ filter: /(?:)/, namespace: NAMESPACE }, () => ({ contents: '' }))
+            build.onDispose(() => {
+                const oldUnwatchers = unwatchers
+                unwatchers = new Set()
+                for (const unwatch of oldUnwatchers) {
+                    unwatch()
+                }
+            })
         },
     }
 }
