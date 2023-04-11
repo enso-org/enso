@@ -45,20 +45,26 @@ type Excel_Format
          `Excel_Section.Workbook`.
     Excel (section:Excel_Section=Excel_Section.Workbook) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer) (default_sheet:Text="EnsoSheet")
 
-    ## If the File_Format supports reading from the file, return a configured instance.
+    ## PRIVATE
+       ADVANCED
+       If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Excel_Format | Nothing
     for_file file =
         is_xls = should_treat_as_xls_format Infer file
         if is_xls.is_error then Nothing else
             Excel_Format.Excel xls_format=is_xls
 
-    ## If the File_Format supports reading from the web response, return a configured instance.
+    ## PRIVATE
+       ADVANCED
+       If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Excel_Format | Nothing
     for_web _ _ =
         ## Currently not loading Excel files automatically as these need to be loaded as a connection.
         Nothing
 
-    ## Implements the `File.read` for this `File_Format`
+    ## PRIVATE
+       ADVANCED
+       Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         format = should_treat_as_xls_format self.xls_format file
@@ -66,7 +72,9 @@ type Excel_Format
             Excel_Section.Workbook -> Excel_Workbook.new file format self.headers
             _ -> Excel_Reader.read_file file self.section self.headers on_problems format
 
-    ## Implements the `Table.write` for this `File_Format`.
+    ## PRIVATE
+       ADVANCED
+       Implements the `Table.write` for this `File_Format`.
 
        Depending on the `section` will control where to write.
        - If `Excel_Section.Workbook` (the default), the `table` will be written

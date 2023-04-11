@@ -24,8 +24,8 @@ type Problem_Behavior
        Report the problem as a dataflow error and abort the operation
     Report_Error
 
-    ## ADVANCED
-       UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Attaches a problem to the given value according to the expected problem
        behavior.
 
@@ -46,8 +46,8 @@ type Problem_Behavior
             if decorated_value.is_error then decorated_value else
                 Error.throw problem
 
-    ## ADVANCED
-       UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Attaches a problem to the given value according to the expected problem
        behavior.
 
@@ -65,8 +65,8 @@ type Problem_Behavior
         Report_Error ->
             Error.throw problem
 
-    ## ADVANCED
-       UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Attaches problems to the given value according to the expected problem
        behavior.
 
@@ -96,8 +96,8 @@ type Problem_Behavior
             if problems.is_empty then decorated_value else
                 Error.throw problems.first
 
-    ## ADVANCED
-       UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Attaches problems to the given value according to the expected problem
        behavior.
 
@@ -127,8 +127,8 @@ type Problem_Behavior
             if decorated_value.is_error || problems.is_empty then decorated_value else
                 Error.throw problems.first
 
-    ## ADVANCED
-       UNSTABLE
+    ## PRIVATE
+       ADVANCED
        A helper method that will handle any errors contained within the result
        according to the current problem behavior settings. If the `result` does
        not contain an error, it is returned as-is. Otherwise, if the problem
@@ -151,7 +151,8 @@ type Problem_Behavior
         values = ["Report_Error", "Report_Warning", "Ignore"]
         Single_Choice (values.map n-> Option n) display=Display.Expanded_Only
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Checks any warnings reported by the `action` and reports them according
        to this problem behavior - they may be kept as-is, ignored or escalated
        to errors.

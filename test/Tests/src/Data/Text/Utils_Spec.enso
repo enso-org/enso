@@ -89,4 +89,27 @@ spec =
             Text_Utils.take_suffix (kshi+kshi+'a'+kshi) 2 . should_equal 'a'+kshi
             Text_Utils.take_suffix (kshi+kshi+'a'+kshi) 1 . should_equal kshi
 
+    Test.group "to_display_text" <|
+        Test.specify "simple conversion" <|
+            "Hello".to_display_text . should_equal "Hello"
+
+        Test.specify "long text conversion" <|
+            long = "Hello World! ".repeat 1024
+            disp = long.to_display_text
+            disp.length . should_equal 80
+            disp.characters.take (First 5) . should_equal [ 'H', 'e', 'l', 'l', 'o' ]
+            disp.characters.take (Last 6) . should_equal ['l', 'd', '!', ' ', 'H', 'e']
+
+        Test.specify "grapheme 1 conversion" <|
+            txt = 'a\u0321\u0302'*100
+            txt.to_display_text . should_equal 'a\u0321\u0302'*80
+
+        Test.specify "grapheme 2 conversion" <|
+            txt = '\u0915\u094D\u0937\u093F'*100
+            txt.to_display_text . should_equal '\u0915\u094D\u0937\u093F'*80
+
+        Test.specify "grapheme 3 conversion" <|
+            txt = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*100
+            txt.to_display_text . should_equal '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*80
+
 main = Test_Suite.run_main spec

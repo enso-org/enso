@@ -21,8 +21,9 @@ polyglot java import java.lang.Throwable
      to be handled through non-linear control flow mechanisms.
 @Builtin_Type
 type Panic
-
-    ## Throws a new panic with the provided payload.
+    ## PRIVATE
+       ADVANCED
+       Throws a new panic with the provided payload.
 
        Arguments:
        - payload: The contents of the panic to be thrown. If the payload is a
@@ -54,7 +55,6 @@ type Panic
     primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
 
     ## ADVANCED
-       UNSTABLE
 
        Returns the attached stack trace of the given throwable. Can be used to get
        an Enso friendly stack trace from native Java exceptions.
@@ -70,7 +70,9 @@ type Panic
         stack_with_prims = Vector.from_polyglot_array prim_stack
         stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
 
-    ## Takes any value, and if it is a dataflow error, throws it as a Panic,
+    ## PRIVATE
+       ADVANCED
+       Takes any value, and if it is a dataflow error, throws it as a Panic,
        otherwise, returns the original value unchanged.
 
        Arguments:
@@ -160,7 +162,9 @@ type Panic
                 True -> caught_panic.convert_to_dataflow_error
                 False -> Panic.throw caught_panic
 
-    ## If a dataflow error had occurred, wrap it in a `Wrapped_Dataflow_Error` and promote to a Panic.
+    ## PRIVATE
+       ADVANCED
+       If a dataflow error had occurred, wrap it in a `Wrapped_Dataflow_Error` and promote to a Panic.
 
        Arguments:
        - value: value to return if not an error, or rethrow as a Panic.
@@ -168,7 +172,9 @@ type Panic
     throw_wrapped_if_error ~value =
         if value.is_error then Panic.throw (Wrapped_Dataflow_Error.Error value.catch) else value
 
-    ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
+    ## PRIVATE
+       ADVANCED
+       Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
 
        Arguments:
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
@@ -177,9 +183,11 @@ type Panic
         Panic.catch Wrapped_Dataflow_Error action caught_panic->
             Error.throw caught_panic.payload.payload
 
+## PRIVATE
 @Builtin_Type
 type Caught_Panic
-    ## A wrapper for a caught panic.
+    ## PRIVATE
+       A wrapper for a caught panic.
 
        Arguments:
        - payload: the payload carried by the error.
@@ -201,9 +209,9 @@ type Caught_Panic
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
    from other panics.
 type Wrapped_Dataflow_Error
+    ## PRIVATE
     Error payload
 
     ## PRIVATE
        Throws the original error.
     unwrap self = Error.throw self.payload
-

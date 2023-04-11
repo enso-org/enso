@@ -569,6 +569,45 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
         html_file.write(generated_html)
 
 
+def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir: str) -> None:
+    def perc_str(perc: float) -> str:
+        s = "+" if perc > 0 else ""
+        s += "{:.5f}".format(perc)
+        s += "%"
+        return s
+
+    def percent_change(old_val: float, new_val: float) -> float:
+        return ((new_val - old_val) / old_val) * 100
+
+    def commit_to_str(commit: Commit) -> str:
+        return f"{commit.timestamp} {commit.author.name}  '{commit.message.splitlines()[0]}'"
+
+    res_1 = _invoke_gh_api(f"/actions/runs/{bench_run_id_1}")
+    bench_run_1 = _parse_bench_run_from_json(res_1)
+    res_2 = _invoke_gh_api(f"/actions/runs/{bench_run_id_2}")
+    bench_run_2 = _parse_bench_run_from_json(res_2)
+    bench_report_1 = get_bench_report(bench_run_1, cache, tmp_dir)
+    bench_report_2 = get_bench_report(bench_run_2, cache, tmp_dir)
+    bench_labels: List[str] = list(bench_report_1.label_score_dict.keys())
+    df = pd.DataFrame(columns=["bench_label", "score-run-1", "score-run-2"])
+    for bench_label in bench_labels:
+        df = pd.concat([df, pd.DataFrame([{
+            "bench_label": bench_label,
+            "score-run-1": bench_report_1.label_score_dict[bench_label],
+            "score-run-2": bench_report_2.label_score_dict[bench_label],
+        }])], ignore_index=True)
+    df["score-diff"] = np.diff(df[["score-run-1", "score-run-2"]], axis=1)
+    df["score-diff-perc"] = df.apply(lambda row: perc_str(percent_change(row["score-run-1"], row["score-run-2"])),
+                                     axis=1)
+    print("================================")
+    print(df.to_string(index=False, header=True, justify="center", float_format="%.5f"))
+    print("================================")
+    print("Latest commit on bench-run-id-1: ")
+    print("    " + commit_to_str(bench_run_1.head_commit))
+    print("Latest commit on bench-run-id-2: ")
+    print("    " + commit_to_str(bench_run_2.head_commit))
+
+
 if __name__ == '__main__':
     default_since = datetime.now() - timedelta(days=14)
     default_until = datetime.now()
@@ -591,6 +630,13 @@ if __name__ == '__main__':
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
+    arg_parser.add_argument("--compare",
+                            nargs=2,
+                            default=[],
+                            metavar=("<Bench action ID 1>", "<Bench action ID 2>"),
+                            help="Compare two benchmark actions runs. Choose an action from https://github.com/enso-org/enso/actions/workflows/benchmark.yml, "
+                                 "and copy its ID from the URL. For example ID 4602465427 from URL https://github.com/enso-org/enso/actions/runs/4602465427. "
+                                 "This option excludes --since, --until, --output, and --create-csv options.")
     arg_parser.add_argument("-o", "--output",
                             default="Engine_Benchs/data/benchs.csv",
                             metavar="CSV_OUTPUT",
@@ -621,15 +667,8 @@ if __name__ == '__main__':
     else:
         log_level = logging.INFO
     logging.basicConfig(level=log_level, stream=sys.stdout)
-    if not args.since:
-        logging.error("--since option not specified")
-        arg_parser.print_help()
-        exit(1)
+
     since: datetime = args.since
-    if not args.until:
-        logging.error(f"--until option not specified")
-        arg_parser.print_help()
-        exit(1)
     until: datetime = args.until
     cache_dir: str = args.cache
     if not args.tmp_dir:
@@ -640,48 +679,50 @@ if __name__ == '__main__':
     assert cache_dir and temp_dir
     csv_fname: str = args.output
     create_csv: bool = args.create_csv
+    compare: List[str] = args.compare
     logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
                  f"temp_dir={temp_dir}, use_cache={use_cache}, output={csv_fname}, "
-                 f"create_csv={create_csv}")
+                 f"create_csv={create_csv}, compare={compare}")
 
     if use_cache:
         cache = populate_cache(cache_dir)
     else:
         cache = FakeCache()
 
-    bench_runs = get_bench_runs(since, until)
-    if len(bench_runs) == 0:
-        print(f"No successful benchmarks found within period since {since} until {until}")
-        exit(1)
-    job_reports: List[JobReport] = []
-    for bench_run in bench_runs:
-        job_report = get_bench_report(bench_run, cache, temp_dir)
-        if job_report:
-            job_reports.append(job_report)
-    logging.debug(f"Got {len(job_reports)} job reports")
-    if create_csv:
-        write_bench_reports_to_csv(job_reports, csv_fname)
-        logging.info(f"Benchmarks written to {csv_fname}")
-        print(f"The generated CSV is in {csv_fname}")
+    if len(compare) > 0:
+        compare_runs(compare[0], compare[1], cache, temp_dir)
+    else:
+        bench_runs = get_bench_runs(since, until)
+        if len(bench_runs) == 0:
+            print(f"No successful benchmarks found within period since {since} until {until}")
+            exit(1)
+        job_reports: List[JobReport] = []
+        for bench_run in bench_runs:
+            job_report = get_bench_report(bench_run, cache, temp_dir)
+            if job_report:
+                job_reports.append(job_report)
+        logging.debug(f"Got {len(job_reports)} job reports")
+        if create_csv:
+            write_bench_reports_to_csv(job_reports, csv_fname)
+            logging.info(f"Benchmarks written to {csv_fname}")
+            print(f"The generated CSV is in {csv_fname}")
 
-    # Create a separate datatable for each benchmark label
-    # with 'label' and 'commit_timestamp' as columns.
-    bench_labels: List[str] = list(job_reports[0].label_score_dict.keys())
-    template_bench_datas: List[TemplateBenchData] = []
-    for bench_label in bench_labels:
-        bench_data = create_data_for_benchmark(job_reports, bench_label)
-        template_bench_datas.append(create_template_data(bench_data))
-    jinja_data = JinjaData(
-        since=since,
-        until=until,
-        bench_datas=template_bench_datas
-    )
+        # Create a separate datatable for each benchmark label
+        # with 'label' and 'commit_timestamp' as columns.
+        bench_labels: List[str] = list(job_reports[0].label_score_dict.keys())
+        template_bench_datas: List[TemplateBenchData] = []
+        for bench_label in bench_labels:
+            bench_data = create_data_for_benchmark(job_reports, bench_label)
+            template_bench_datas.append(create_template_data(bench_data))
+        jinja_data = JinjaData(
+            since=since,
+            until=until,
+            bench_datas=template_bench_datas
+        )
 
-    # Render Jinja template with jinja_data
-    render_html(jinja_data, JINJA_TEMPLATE, "index.html")
-    index_html_path = os.path.join(os.getcwd(), "index.html")
+        # Render Jinja template with jinja_data
+        render_html(jinja_data, JINJA_TEMPLATE, "index.html")
+        index_html_path = os.path.join(os.getcwd(), "index.html")
 
-    print(f"The generated HTML is in {index_html_path}")
-    print(f"Open file://{index_html_path} in the browser")
-
-
+        print(f"The generated HTML is in {index_html_path}")
+        print(f"Open file://{index_html_path} in the browser")

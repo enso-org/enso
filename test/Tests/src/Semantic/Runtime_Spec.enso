@@ -1,16 +1,18 @@
 import Standard.Base.Runtime
 import Standard.Base.Data.Numbers.Integer
+import Standard.Base.Any.Any
+import Standard.Base.Panic.Panic
 
-from Standard.Base.Runtime.IO_Permissions import Input, Output
+from Standard.Base.Runtime.Context import Input, Output
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-in_fn : Integer -> Integer in Input
-in_fn a = a * 2
+in_fn : Integer -> Integer
+in_fn a = Input.if_enabled (a * 2)
 
-out_fn : Integer -> Integer in Output
-out_fn a = a + 1
+out_fn : Integer -> Integer
+out_fn a = Output.if_enabled (a + 1)
 
 spec =
     Test.group "Inlining Helpers" <|
@@ -20,9 +22,17 @@ spec =
         Test.specify "should allow to call a function" <|
             x = Runtime.no_inline_with_arg (x -> x + 4) 3
             x . should_equal 7
-    Test.group "IO Contexts" <|
+    Test.group "Contexts and Execution Environment" <|
+        Test.specify "should prevent execution in the default design environment" <|
+            res = Panic.catch Any (in_fn 1) p-> p.payload.to_text
+            res . should_equal "(Forbidden_Operation.Error 'Input')"
         Test.specify "should be configurable" <|
-            r = Runtime.allow_input_in "production" <|
-                Runtime.allow_output_in "production" <|
-                    in_fn (out_fn 10)
-            r.should_equal 22
+            r1 = Runtime.with_enabled_context Input <|
+                Runtime.with_enabled_context Output <|
+                  in_fn (out_fn 10)
+            r1.should_equal 22
+
+            r2 = Panic.catch Any (Runtime.with_enabled_context Output <| in_fn (out_fn 10)) p-> p.payload.to_text
+            r2 . should_equal "(Forbidden_Operation.Error 'Input')"
+
+main = Test_Suite.run_main spec

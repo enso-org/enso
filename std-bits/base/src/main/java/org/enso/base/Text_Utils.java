@@ -277,13 +277,7 @@ public class Text_Utils {
 
   /** Returns a prefix of the string not exceeding the provided grapheme length. */
   public static String take_prefix(String str, long grapheme_length) {
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(str);
-    if (iter.next(Math.toIntExact(grapheme_length)) == BreakIterator.DONE) {
-      return str;
-    } else {
-      return str.substring(0, iter.current());
-    }
+    return Core_Text_Utils.take_prefix(str, grapheme_length);
   }
 
   /** Returns a suffix of the string not exceeding the provided grapheme length. */

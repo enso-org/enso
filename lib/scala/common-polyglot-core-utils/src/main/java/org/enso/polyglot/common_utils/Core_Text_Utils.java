@@ -3,6 +3,9 @@ package org.enso.polyglot.common_utils;
 import com.ibm.icu.text.BreakIterator;
 
 public class Core_Text_Utils {
+  private Core_Text_Utils() {
+  }
+
   /** Computes the length of the string as the number of grapheme clusters it contains. */
   public static int computeGraphemeLength(String text) {
     BreakIterator iter = BreakIterator.getCharacterInstance();
@@ -12,6 +15,17 @@ public class Core_Text_Utils {
       len++;
     }
     return len;
+  }
+
+  /** Returns a prefix of the string not exceeding the provided grapheme length. */
+  public static String take_prefix(String str, long grapheme_length) {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(str);
+    if (iter.next(Math.toIntExact(grapheme_length)) == BreakIterator.DONE) {
+      return str;
+    } else {
+      return str.substring(0, iter.current());
+    }
   }
 
   /** Pretty prints the string, escaping special characters. */

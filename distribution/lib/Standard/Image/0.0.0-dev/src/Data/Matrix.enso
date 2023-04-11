@@ -11,7 +11,6 @@ polyglot java import org.opencv.core.Scalar
 
 ## UNSTABLE
 type Matrix
-
     ## PRIVATE
 
        The matrix data type.
@@ -99,9 +98,7 @@ type Matrix
     from_vector values rows=1 channels=1 =
         Matrix.Value (Java_Matrix.from_vector values.to_array channels rows)
 
-    ## UNSTABLE
-
-       Return the number of matrix rows.
+    ## Return the number of matrix rows.
 
        > Example
          Get the number of rows in this matrix.
@@ -112,9 +109,7 @@ type Matrix
     rows : Integer
     rows self = self.opencv_mat.rows
 
-    ## UNSTABLE
-
-       Return the number of matrix columns.
+    ## Return the number of matrix columns.
 
        > Example
          Get the number of columns in this matrix.
@@ -136,9 +131,7 @@ type Matrix
     channels : Integer
     channels self = self.opencv_mat.channels
 
-    ## UNSTABLE
-
-       Get the matrix value at the specified row and column.
+    ## Get the matrix value at the specified row and column.
 
        Arguments:
        - row: the row index.
@@ -157,9 +150,7 @@ type Matrix
                 arr = Java_Matrix.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
-    ## UNSTABLE
-
-       Reshape the matrix specifying new number of rows and channels.
+    ## Reshape the matrix specifying new number of rows and channels.
 
        Arguments:
        - rows: the new number of rows.
@@ -177,9 +168,7 @@ type Matrix
             Nothing -> Matrix.Value (self.opencv_mat.reshape self.channels rows)
             _ -> Matrix.Value (self.opencv_mat.reshape channels rows)
 
-    ## UNSTABLE
-
-       Calculates the per-element sum of two matrices or a matrix and a scalar.
+    ## Calculates the per-element sum of two matrices or a matrix and a scalar.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -215,9 +204,7 @@ type Matrix
     + : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch core_op_handler
 
-    ## UNSTABLE
-
-       Calculates the per-element difference of two matrices or of a matrix and
+    ## Calculates the per-element difference of two matrices or of a matrix and
        a scalar.
 
        Arguments:
@@ -254,9 +241,7 @@ type Matrix
     - : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch core_op_handler
 
-    ## UNSTABLE
-
-       Calculates the per-element product of two matrices or a matrix and a
+    ## Calculates the per-element product of two matrices or a matrix and a
        scalar.
 
        Arguments:
@@ -298,9 +283,7 @@ type Matrix
     * : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch core_op_handler
 
-    ## UNSTABLE
-
-       Performs per-element division of two matrices or a matrix and a scalar.
+    ## Performs per-element division of two matrices or a matrix and a scalar.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -336,9 +319,7 @@ type Matrix
     / : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     / self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.divide _ _ _)) . catch core_op_handler
 
-    ## UNSTABLE
-
-       Normalize the matrix into a range of [min_value .. max_value] so that the
+    ## Normalize the matrix into a range of [min_value .. max_value] so that the
        minimum value of the matrix becomes `min_value` and the maximum value of
        the matrix becomes `max_value`.
 
@@ -370,9 +351,7 @@ type Matrix
     normalize self min_value=0.0 max_value=1.0 =
         Matrix.Value (Java_Matrix.normalize self.opencv_mat min_value max_value)
 
-    ## UNSTABLE
-
-       Convert this matrix to an image.
+    ## Convert this matrix to an image.
 
        > Example
          Convert a matrix to an image.
@@ -383,9 +362,7 @@ type Matrix
     to_image : Image
     to_image self = Image (Image.from_vector self.normalize.to_vector self.rows self.channels)
 
-    ## UNSTABLE
-
-       Get the elements of this matrix as a vector.
+    ## Get the elements of this matrix as a vector.
 
        > Example
          Convert a matrix to a vector.
@@ -398,8 +375,7 @@ type Matrix
         arr = Java_Matrix.to_vector self.opencv_mat
         Vector.from_polyglot_array arr
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Convert this matrix to a JS_Object.
 
        > Example
@@ -412,7 +388,6 @@ type Matrix
     to_js_object self = self.opencv_mat.to_text
 
 ## PRIVATE
-
    Apply a core matrix operation.
 
    Arguments:
@@ -433,7 +408,6 @@ core_op mat value function =
     Matrix.Value result
 
 ## PRIVATE
-
    Handles errors in `core_op`.
 
    Arguments:
@@ -445,10 +419,14 @@ core_op_handler error =
 
 ## PRIVATE
 type Matrix_Comparator
+    ## PRIVATE
+    compare : Matrix -> Matrix -> Ordering
     compare x y =
         if Java_Matrix.is_equals x.opencv_mat y.opencv_mat then Ordering.Equal else
             Nothing
 
+    ## PRIVATE
+    hash : Matrix -> Number
     hash x = x.opencv_mat.hashCode
 
 Comparable.from (_:Matrix) = Matrix_Comparator
