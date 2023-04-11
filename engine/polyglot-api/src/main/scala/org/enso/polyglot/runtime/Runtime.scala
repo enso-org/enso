@@ -280,6 +280,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.SerializeModule],
         name  = "serializeModule"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentRequest],
+        name  = "setExecutionEnvironmentRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentResponse],
+        name  = "setExecutionEnvironmentResponse"
       )
     )
   )
@@ -1001,6 +1009,40 @@ object Runtime {
       case class Unqualified(module: String) extends Export
     }
 
+    /** Base trait for runtime execution environment. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Live],
+          name  = "executionEnvironmentLive"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Design],
+          name  = "executionEnvironmentDesign"
+        )
+      )
+    )
+    sealed trait ExecutionEnvironment {
+
+      /** The environment name. */
+      def name: String
+    }
+    object ExecutionEnvironment {
+
+      final case class Live() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "live"
+      }
+
+      final case class Design() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "design"
+      }
+    }
+
     /** The notification about the execution status.
       *
       * @param contextId the context's id
@@ -1185,10 +1227,12 @@ object Runtime {
       * @param contextId the context's id.
       * @param expressions the selector specifying which expressions should be
       * recomputed.
+      * @param executionEnvironment the environment used for execution
       */
     final case class RecomputeContextRequest(
       contextId: ContextId,
-      expressions: Option[InvalidatedExpressions]
+      expressions: Option[InvalidatedExpressions],
+      executionEnvironment: Option[ExecutionEnvironment]
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the
@@ -1688,6 +1732,16 @@ object Runtime {
       * @param module qualified module name
       */
     final case class SerializeModule(module: QualifiedName) extends ApiRequest
+
+    /** A request to set the execution environment. */
+    final case class SetExecutionEnvironmentRequest(
+      contextId: ContextId,
+      executionEnvironment: ExecutionEnvironment
+    ) extends ApiRequest
+
+    /** A response to the set execution environment request. */
+    final case class SetExecutionEnvironmentResponse(contextId: ContextId)
+        extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()
