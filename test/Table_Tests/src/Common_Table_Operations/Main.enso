@@ -81,9 +81,6 @@ type Test_Selection
        - is_nan_and_nothing_distinct: Specifies if the backend is able to
          distinguish between a decimal NaN value and a missing value (Enso's
          Nothing, or SQL's NULL). If `False`, NaN is treated as a NULL.
-       - supports_full_join: Specifies if the backend supports full joins.
-         SQLite doesn't so we need to disable them until we implement a proper
-         workaround.
        - distinct_returns_first_row_from_group_if_ordered: If `order_by` was
          applied before, the distinct operation will return the first row from
          each group. Guaranteed in the in-memory backend, but may not be
@@ -91,7 +88,7 @@ type Test_Selection
        - date_time: Specifies if the backend supports date/time operations.
        - fixed_length_text_columns: Specifies if the backend supports fixed
          length text columns.
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True supports_full_join=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False
 
 spec setup =
     Core_Spec.spec setup

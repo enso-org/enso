@@ -36,7 +36,7 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.state.IOPermissions;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -320,12 +320,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   }
 
   @Option(
-      name = "IOEnvironment",
-      category = OptionCategory.USER,
-      help = "The IO environment for program execution.")
-  public static final OptionKey<IOPermissions> IO_ENVIRONMENT =
-      new OptionKey<>(
-          IOPermissions.PRODUCTION, new OptionType<>("IOEnvironment", IOPermissions::forName));
+          name = "ExecutionEnvironment",
+          category = OptionCategory.USER,
+          help = "The environment for program execution. Defaults to `design`.")
+  public static final OptionKey<ExecutionEnvironment> EXECUTION_ENVIRONMENT =
+          new OptionKey<>(
+                  ExecutionEnvironment.DESIGN, new OptionType<>("ExecutionEnvironment", ExecutionEnvironment::forName));
+
 
   private static final OptionDescriptors OPTIONS =
       OptionDescriptors.createUnion(

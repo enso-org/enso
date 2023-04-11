@@ -333,6 +333,7 @@ function Dashboard(props: DashboardProps) {
                 <div className="flex flex-row flex-nowrap mx-4">
                     <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
                         {/* FIXME[sb]: Remove `|| true` when UI to create directory is implemented. */}
+                        {/* eslint-disable-next-line no-constant-condition, @typescript-eslint/no-unnecessary-condition */}
                         {directory || true ? (
                             <>
                                 <button
@@ -351,9 +352,7 @@ function Dashboard(props: DashboardProps) {
                                 </button>
                                 {svg.SMALL_RIGHT_ARROW_ICON}
                             </>
-                        ) : (
-                            <></>
-                        )}
+                        ) : null}
                         <span className="mx-2">{directory?.title ?? '~'}</span>
                     </div>
                     <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">

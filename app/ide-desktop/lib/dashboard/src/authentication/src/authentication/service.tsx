@@ -208,7 +208,7 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
                 navigate(app.LOGIN_PATH)
                 break
             /** If the user is being redirected from a password reset email, then we need to navigate to
-             * the password reset page, with the verification code and email passed in the URL so they can
+             * the password reset page, with the verification code and email passed in the URL s-o they can
              * be filled in automatically. */
             case app.RESET_PASSWORD_PATH: {
                 const resetPasswordRedirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`
