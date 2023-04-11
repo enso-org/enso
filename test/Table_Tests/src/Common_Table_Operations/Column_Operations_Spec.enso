@@ -205,6 +205,7 @@ spec setup =
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
         s1 = t3.at "s1"
         s2 = t3.at "s2"
+
         Test.specify "should handle basic Text operations" <|
             s1.starts_with s2 . to_vector . should_equal [True, False, False, False, Nothing]
             s1.starts_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, False, False, True, Nothing]
@@ -224,7 +225,22 @@ spec setup =
             s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
             s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]
 
-    Test.group prefix+"Colum Operations - Names" <|
+        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]]]
+        a = t4.at "A"
+        b = t4.at "B"
+        c = t4.at "C"
+
+        Test.specify "should allow simple replacing" <|
+            a.replace "a" "#" . to_vector . should_equal ["Alph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+            a.replace "o" "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Ech#", "F#xtr#t"]
+            a.replace "o" "#" only_first=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Ech#", "F#xtrot"]
+            a.replace "a" "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+
+        Test.specify "should allow simple regex based replacing" <|
+            a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+            a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+
+    Test.group prefix+"Column Operations - Names" <|
         t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
         Test.specify "arithmetic" <|
             ((t.at "a") + 42) . name . should_equal "[a] + 42"
