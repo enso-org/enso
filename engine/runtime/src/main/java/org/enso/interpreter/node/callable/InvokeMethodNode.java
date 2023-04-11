@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
@@ -88,6 +89,10 @@ public abstract class InvokeMethodNode extends BaseNode {
     this.thisArgumentPosition = thisArgumentPosition;
   }
 
+  InvokeFunctionNode getInvokeFunctionNode() {
+    return invokeFunctionNode;
+  }
+
   @Override
   public void setTailStatus(TailStatus tailStatus) {
     super.setTailStatus(tailStatus);
@@ -140,15 +145,26 @@ public abstract class InvokeMethodNode extends BaseNode {
     throw self;
   }
 
-  @Specialization(guards = "warnings.hasWarnings(self)")
-  Object doWarning(
-      VirtualFrame frame,
-      State state,
-      UnresolvedSymbol symbol,
-      Object self,
-      Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary dispatch,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+  /**
+   * Resolves symbol to a Warning method, if possible.
+   *
+   * <p>A regular method dispatch logic will extract/append warnings of `self` before invoking the
+   * actual method dispatch logic. This allows for ignoring complexity related to the presence of
+   * warnings but prevents us from manipulating warnings directly in the Enso code (they have just
+   * been removed). `resolveWarningFunction` will attempt to resolve the symbol in the Warning type
+   * scope, if possible. Additionally, we check if under the non-warning `self`, the symbol would
+   * resolve to `Any`. If not, it means that we should employ a regular method dispatch logic, due
+   * to a method name clash. E.g. if some collection type Foo defines a `has_warnings` method, we
+   * should dispatch the call to `Foo`'s `has_warning` rather than to a `Warning` or `Any`'s `one.
+   *
+   * @param self `self` argument that has some warnings
+   * @param symbol symbol to be resolved
+   * @param types TypesLibrary instance
+   * @param warnings WarningsLibrary instance
+   * @return resolved Warning method to be called
+   */
+  Function resolveWarningFunction(
+      Object self, UnresolvedSymbol symbol, TypesLibrary types, WarningsLibrary warnings) {
     Object selfWithoutWarnings;
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
@@ -156,16 +172,76 @@ public abstract class InvokeMethodNode extends BaseNode {
       throw new IllegalStateException(e);
     }
 
-    Type typeOfSymbol = symbol.resolveTypeFor(dispatch.getType(selfWithoutWarnings));
+    Type typeOfSymbol = symbol.resolveTypeFor(types.getType(selfWithoutWarnings));
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     if (typeOfSymbol == builtins.any()) {
-      Function warningFunction =
-          symbol
-              .getScope()
-              .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());
-      if (warningsCustomDispatchProfile.profile(warningFunction != null)) {
-        return customWarningDispatch(frame, state, warningFunction, arguments);
-      }
+      return symbol
+          .getScope()
+          .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());
+    }
+
+    return null;
+  }
+
+  Object[] argumentsWithExplicitSelf(FunctionSchema cachedSchema, Object[] arguments) {
+    Object[] arguments1;
+    if (!cachedSchema.isFullyApplied()) {
+      arguments1 = new Object[cachedSchema.getArgumentsCount()];
+      System.arraycopy(arguments, 0, arguments1, 1, arguments.length);
+      arguments1[0] = arguments[0];
+    } else {
+      arguments1 = arguments;
+    }
+    return arguments1;
+  }
+
+  CallArgumentInfo[] callArgumentsWithExplicitSelf() {
+    int length = invokeFunctionNode.getSchema().length;
+    CallArgumentInfo[] schema = new CallArgumentInfo[length + 1];
+    System.arraycopy(invokeFunctionNode.getSchema(), 0, schema, 1, length);
+    schema[0] = new CallArgumentInfo();
+    return schema;
+  }
+
+  @Specialization(
+      guards = {
+        "warnings.hasWarnings(self)",
+        "resolvedFunction != null",
+        "resolvedFunction.getSchema() == cachedSchema"
+      })
+  Object doWarningsCustom(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Cached("resolveWarningFunction(self, symbol, types, warnings)") Function resolvedFunction,
+      @Cached("resolvedFunction.getSchema()") FunctionSchema cachedSchema,
+      @Cached(value = "argumentsWithExplicitSelf(cachedSchema, arguments)", dimensions = 1)
+          Object[] cachedArguments,
+      @Cached(value = "callArgumentsWithExplicitSelf()", dimensions = 1)
+          CallArgumentInfo[] cachedCallArgumentSchema,
+      @Cached(
+              "build(cachedCallArgumentSchema, getInvokeFunctionNode().getDefaultsExecutionMode(), getInvokeFunctionNode().getArgumentsExecutionMode())")
+          InvokeFunctionNode warningFunctionNode) {
+    return warningFunctionNode.execute(resolvedFunction, frame, state, cachedArguments);
+  }
+
+  @Specialization(guards = "warnings.hasWarnings(self)")
+  Object doWarning(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+    Object selfWithoutWarnings;
+    try {
+      selfWithoutWarnings = warnings.removeWarnings(self);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
     }
 
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
@@ -202,46 +278,6 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
     return WithWarnings.prependTo(result, arrOfWarnings);
-  }
-
-  private Object customWarningDispatch(
-      VirtualFrame frame, State state, Function function, Object[] arguments) {
-    // Warning's builtin type methods are static meaning that they have a synthetic `self`
-    // parameter. However, the constructed `InvokeFunctionNode`  is missing that
-    // information and the function, if called with `arguments` will not be fully applied.
-    // Hence, the synthetic construction of a new `InvokeFunctionNode` with the updated schema
-    // and call including an additional, dummy, argument.
-    Object[] arguments1;
-    if (!function.getSchema().isFullyApplied()) {
-      arguments1 = new Object[function.getSchema().getArgumentsCount()];
-      System.arraycopy(arguments, 0, arguments1, 1, arguments.length);
-      arguments1[0] = arguments[0];
-    } else {
-      arguments1 = arguments;
-    }
-    if (warningFunctionNode == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      Lock lock = getLock();
-      lock.lock();
-      try {
-        int length = invokeFunctionNode.getSchema().length;
-        CallArgumentInfo[] schema = new CallArgumentInfo[length + 1];
-        System.arraycopy(invokeFunctionNode.getSchema(), 0, schema, 1, length);
-        schema[0] = new CallArgumentInfo();
-        warningFunctionNode =
-            insert(
-                InvokeFunctionNode.build(
-                    schema,
-                    invokeFunctionNode.getDefaultsExecutionMode(),
-                    invokeFunctionNode.getArgumentsExecutionMode()));
-        warningFunctionNode.setId(invokeFunctionNode.getId());
-        warningFunctionNode.setTailStatus(invokeFunctionNode.getTailStatus());
-        notifyInserted(warningFunctionNode);
-      } finally {
-        lock.unlock();
-      }
-    }
-    return warningFunctionNode.execute(function, frame, state, arguments1);
   }
 
   @ExplodeLoop
