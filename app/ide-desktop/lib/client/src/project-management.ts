@@ -50,6 +50,7 @@ export function importProjectFromPath(openedPath: string): string {
         // Otherwise, we need to install it first.
         if (rootPath == null) {
             const message = `File '${openedPath}' does not belong to the ${common.PRODUCT_NAME} project.`
+            // eslint-disable-next-line no-restricted-syntax
             throw new Error(message)
         }
         return importDirectory(rootPath)
@@ -98,6 +99,7 @@ export function importDirectory(rootPath: string): string {
         const targetDirectory = generateDirectoryName(rootPath)
         if (fsSync.existsSync(targetDirectory)) {
             const message = `Project directory already exists: ${targetDirectory}.`
+            // eslint-disable-next-line no-restricted-syntax
             throw new Error(message)
         }
 

@@ -19,6 +19,7 @@
   "dependencies": {
     "@types/mime-types": "^2.1.1",
     "@types/opener": "^1.4.0",
+    "bonjour-service": "^1.1.1",
     "chalk": "^5.2.0",
     "create-servers": "^3.2.0",
     "electron-is-dev": "^2.0.0",
