@@ -34,8 +34,8 @@ const BUTTON_OFFSET: f32 = 0.5;
 /// icons and node.
 const HOVER_EXTENSION_X: f32 = 15.0;
 const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
-const DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Disable output execution";
-const ENABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Enable output execution";
+const DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Don't write to files and databases";
+const ENABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Allow writing to files and databases";
 const FREEZE_TOOLTIP_LABEL: &str = "Freeze";
 const SKIP_TOOLTIP_LABEL: &str = "Skip";
 
