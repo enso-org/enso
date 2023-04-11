@@ -1,10 +1,5 @@
 {
   "options": {
-    "authentication": {
-      "value": false,
-      "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
-    },
-
     "dataCollection": {
       "value": true,
       "description": "Determines whether anonymous usage data is to be collected.",
@@ -12,6 +7,19 @@
     }
   },
   "groups": {
+    "cloud": {
+      "description": "",
+      "options": {
+        "authentication": {
+          "value": false,
+          "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
+        },
+        "dashboard": {
+          "value": false,
+          "description": "Determines whether the dashboard (containing the directory listing) is enabled. This option is disregarded if the application is executed in the cloud."
+        }
+      }
+    },
     "dataCollection": {
       "description": "Controls the collection of anonymous usage data.",
       "options": {
