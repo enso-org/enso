@@ -198,7 +198,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -269,7 +269,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -360,7 +360,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -459,7 +459,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -584,7 +584,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -742,7 +742,7 @@ class RuntimeSuggestionUpdatesTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module  = "Enso_Test.Foo.Main",
+          module = "Enso_Test.Foo.Main",
           actions =
             Vector(Api.SuggestionsDatabaseAction.Clean("Enso_Test.Foo.Main")),
           exports = Vector(),
@@ -975,8 +975,8 @@ class RuntimeSuggestionUpdatesTest
         |hello = "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
 
-    val mainFile    = context.writeMain(mainCode)
-    val aFile       = context.writeInSrcDir("A", aCode)
+    val mainFile = context.writeMain(mainCode)
+    val aFile    = context.writeInSrcDir("A", aCode)
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1015,7 +1015,7 @@ class RuntimeSuggestionUpdatesTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module  = "Enso_Test.Test.A",
+          module = "Enso_Test.Test.A",
           actions =
             Vector(Api.SuggestionsDatabaseAction.Clean("Enso_Test.Test.A")),
           exports = Vector(),
@@ -1209,7 +1209,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(
             Api.ExportsUpdate(
@@ -1248,7 +1248,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(
             Api.ExportsUpdate(

@@ -98,7 +98,7 @@ final class SuggestionsHandler(
     logger.info(
       "Starting suggestions handler from [{}, {}].",
       config,
-      suggestionsRepo,
+      suggestionsRepo
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])

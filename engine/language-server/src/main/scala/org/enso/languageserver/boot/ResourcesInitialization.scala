@@ -51,7 +51,7 @@ object ResourcesInitialization {
         directoriesConfig,
         eventStream,
         sqlDatabase,
-        suggestionsRepo,
+        suggestionsRepo
       ),
       new TruffleContextInitialization(eventStream, truffleContext)
     )

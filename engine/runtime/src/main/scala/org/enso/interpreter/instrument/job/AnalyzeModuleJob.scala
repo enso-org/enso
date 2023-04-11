@@ -80,7 +80,7 @@ object AnalyzeModuleJob {
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(moduleName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        module  = moduleName.toString,
+        module = moduleName.toString,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
         exports = ModuleExportsDiff.compute(prevExports, newExports),
