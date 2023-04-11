@@ -68,6 +68,13 @@ object CommandFactory {
       case payload: Api.SerializeModule =>
         new SerializeModuleCommand(request.requestId, payload.module)
 
+      case payload: Api.SetExecutionEnvironmentRequest =>
+        new SetExecutionEnvironmentCommand(
+          request.requestId,
+          payload.contextId,
+          payload.executionEnvironment
+        )
+
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"
