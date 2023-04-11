@@ -33,7 +33,7 @@ export default function esbuildPluginCopyDirectories(options) {
         name: NAME,
         setup: build => {
             /** @type {Record<string, true>} */
-            const watchingPath = {}
+            let watchingPath = {}
             const outputDir =
                 build.initialOptions.outdir ?? error('Output directory must be given.')
             /** @param {string} root - Path to the directory to watch. */
@@ -87,6 +87,7 @@ export default function esbuildPluginCopyDirectories(options) {
             build.onLoad({ filter: /(?:)/, namespace: NAMESPACE }, () => ({ contents: '' }))
             build.onDispose(() => {
                 const oldUnwatchers = unwatchers
+                watchingPath = {}
                 unwatchers = new Set()
                 for (const unwatch of oldUnwatchers) {
                     unwatch()
