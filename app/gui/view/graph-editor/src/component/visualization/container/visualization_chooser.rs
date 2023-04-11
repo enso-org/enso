@@ -63,6 +63,7 @@ impl Model {
         let selection_menu = drop_down_menu::DropDownMenu::new(app);
         selection_menu.set_label_alignment(drop_down_menu::Alignment::Right);
         app.display.default_scene.layers.above_nodes.add(&selection_menu);
+        selection_menu.set_label_layer(&app.display.default_scene.layers.above_nodes_text);
         Self { selection_menu, registry }
     }
 
