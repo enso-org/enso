@@ -21,3 +21,7 @@ type Inexhaustive_Pattern_Match
 @Builtin_Type
 type Arity_Error
     Error expected_min expected_max actual
+
+@Builtin_Type
+type Forbidden_Operation
+    Error operation

@@ -12,10 +12,28 @@ import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
+// =================
 // === Constants ===
+// =================
+
+/** Path to the SSE endpoint over which esbuild sends events. */
+const ESBUILD_PATH = '/esbuild'
+/** SSE event indicating a build has finished. */
+const ESBUILD_EVENT_NAME = 'change'
 /** One second in milliseconds. */
 const SECOND = 1000
+/** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
+
+// ===================
+// === Live reload ===
+// ===================
+
+if (IS_DEV_MODE) {
+    new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
+        location.reload()
+    })
+}
 
 // =============
 // === Fetch ===

@@ -21,7 +21,7 @@ import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
-import org.enso.interpreter.runtime.state.IOPermissions;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
@@ -80,7 +80,7 @@ public class EnsoContext {
   private final AtomicLong clock = new AtomicLong();
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
-  private final IOPermissions rootIOPermissions;
+  private final ExecutionEnvironment executionEnvironment;
 
   /**
    * Creates a new Enso context.
@@ -112,7 +112,7 @@ public class EnsoContext {
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
-    this.rootIOPermissions = getOption(EnsoLanguage.IO_ENVIRONMENT);
+    this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
 
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -508,8 +508,8 @@ public class EnsoContext {
     return clock.getAndIncrement();
   }
 
-  public IOPermissions getRootIOPermissions() {
-    return rootIOPermissions;
+  public ExecutionEnvironment getExecutionEnvironment() {
+    return executionEnvironment;
   }
 
   public Shape getRootStateShape() {

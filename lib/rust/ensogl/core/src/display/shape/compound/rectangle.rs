@@ -9,10 +9,9 @@ use crate::data::color;
 use crate::display;
 
 
-
-// ===============
-// === Exports ===
-// ===============
+// ==============
+// === Export ===
+// ==============
 
 pub use shape::Shape;
 
