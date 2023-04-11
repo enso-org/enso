@@ -950,7 +950,7 @@ type Table
     ## Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
-       together otherwise the whole match is returned.
+       together; otherwise the whole match is returned.
        The original column will be removed from the table.
        The new columns will be named with the name of the input with a
        incrementing number after.
@@ -972,7 +972,7 @@ type Table
     ## Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
-       together otherwise the whole match is returned.
+       together; otherwise the whole match is returned.
        The values of other columns are repeated for the new rows.
 
        Arguments:
