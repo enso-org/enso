@@ -278,9 +278,10 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     /** The `email` field is mandatory, so we assert that it exists and is a string. */
     if (typeof email !== 'string') {
         throw new Error('Payload does not have an email field.')
+    } else {
+        const accessToken = session.getAccessToken().getJwtToken()
+        return { email, accessToken }
     }
-    const accessToken = session.getAccessToken().getJwtToken()
-    return { email, accessToken }
 }
 
 const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
