@@ -145,6 +145,13 @@ impl Loop {
     }
 }
 
+impl Loop {
+    /// Constructor.
+    pub fn new_with_fixed_frame_rate<OnFrame: OnFrameCallback>(on_frame: OnFrame) -> Self {
+        Self::new(on_frame)
+    }
+}
+
 
 
 // ====================
@@ -154,7 +161,7 @@ impl Loop {
 // === Types ===
 
 /// Type of the function that will be called on every animation frame.
-pub trait OnFrameCallback = FnMut(Option<TimeInfo>) + 'static;
+pub trait OnFrameCallback = FnMut(FixedFrameRateStep<TimeInfo>) + 'static;
 
 
 crate::define_endpoints_2! {
@@ -205,7 +212,7 @@ pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
 pub struct LoopRegistry {
     #[deref]
     frp:            Frp,
-    callbacks:      callback::registry::Copy1<Option<TimeInfo>>,
+    callbacks:      callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
     animation_loop: JsLoop<OnFrameClosure>,
 }
 
@@ -253,7 +260,7 @@ impl InitializedTimeInfo {
 pub type OnFrameClosure = impl FnMut(Duration);
 fn on_frame_closure(
     frp: &Frp,
-    callbacks: &callback::registry::Copy1<Option<TimeInfo>>,
+    callbacks: &callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
 ) -> OnFrameClosure {
     let callbacks = callbacks.clone_ref();
     let output = frp.private.output.clone_ref();
@@ -286,14 +293,36 @@ fn on_frame_closure(
     }
 }
 
+
+
 // =============================
 // === FixedFrameRateSampler ===
 // =============================
 
-// /// An animation loop transformer. Calls the provided [`OnFrame`] callback on every animation
-// frame. /// If the real animation frames are too long, it will emit virtual frames in between. In
-// case the /// delay is too long (more than [`max_skipped_frames`]), the [`OnTooManyFramesSkipped`]
-// callback /// will be used instead.
+/// A single [`FixedFrameRateSampler`] step. Either a normal frame or an indicator that too many
+/// frames were skipped.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug)]
+pub enum FixedFrameRateStep<T> {
+    Normal(T),
+    TooManyFramesSkipped,
+}
+
+impl<T> FixedFrameRateStep<T> {
+    /// Map the value inside the step.
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> FixedFrameRateStep<U> {
+        match self {
+            Self::Normal(t) => FixedFrameRateStep::Normal(f(t)),
+            Self::TooManyFramesSkipped => FixedFrameRateStep::TooManyFramesSkipped,
+        }
+    }
+}
+
+/// A frame rate sampler that ensures the animations look the same no matter the frame rate. In case
+/// the frame rate is slower than expected, the sampler will call the provided function multiple
+/// times. In case the skipped frame count is too big, the provided function will be called with the
+/// [`FixedFrameRateStep::TooManyFramesSkipped`] argument indicating the animation engine to skip
+/// the animation completely.
 #[derive(Debug)]
 pub struct FixedFrameRateSampler {
     desired_fps:        f32,
@@ -312,7 +341,7 @@ impl FixedFrameRateSampler {
         Self { desired_fps, desired_frame_time, max_skipped_frames, time_buffer }
     }
 
-    fn run(&mut self, time_info: TimeInfo, f: impl Fn(Option<TimeInfo>)) {
+    fn run(&mut self, time_info: TimeInfo, f: impl Fn(FixedFrameRateStep<TimeInfo>)) {
         self.time_buffer += time_info.previous_frame;
         let desired_frame_time_2 = self.desired_frame_time * 0.5;
         let time_diff = (self.time_buffer.as_ms() - desired_frame_time_2.as_ms()).max(0.0);
@@ -328,34 +357,18 @@ impl FixedFrameRateSampler {
                 let since_animation_loop_started = local_time;
                 let time2 =
                     TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
-                f(Some(time2));
+                f(FixedFrameRateStep::Normal(time2));
             }
             let not_too_fast_refresh_rate = self.time_buffer >= -desired_frame_time_2;
             if not_too_fast_refresh_rate {
                 self.time_buffer -= self.desired_frame_time;
-                f(Some(time_info));
+                f(FixedFrameRateStep::Normal(time_info));
             }
         } else {
             debug!("Skipping animations because of {skipped_frames} frame delay.");
             self.time_buffer = 0.ms();
-            f(None);
+            f(FixedFrameRateStep::TooManyFramesSkipped);
         }
-    }
-}
-
-
-
-// ==========================
-// === FixedFrameRateLoop ===
-// ==========================
-
-// /// Callback used if too many frames were skipped.
-// pub trait OnTooManyFramesSkippedCallback = FnMut() + 'static;
-
-impl Loop {
-    /// Constructor.
-    pub fn new_with_fixed_frame_rate<OnFrame: OnFrameCallback>(on_frame: OnFrame) -> Self {
-        Self::new(on_frame)
     }
 }
 

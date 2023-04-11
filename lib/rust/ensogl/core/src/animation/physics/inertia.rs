@@ -835,7 +835,7 @@ impl WeakAnimationLoopSlot {
 
 /// Callback for an animation step.
 pub type Step<T: Value, OnStep: Callback1<T>, OnStart: Callback0, OnEnd: Callback1<EndStatus>> =
-    impl Fn(Option<animation::TimeInfo>);
+    impl Fn(animation::FixedFrameRateStep<animation::TimeInfo>);
 
 fn step<T, OnStep, OnStart, OnEnd>(
     simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
@@ -846,9 +846,9 @@ where
     OnStart: Callback0,
     OnEnd: Callback1<EndStatus>, {
     let weak_simulator = simulator.downgrade();
-    move |time: Option<animation::TimeInfo>| {
+    move |time: animation::FixedFrameRateStep<animation::TimeInfo>| {
         if let Some(simulator) = weak_simulator.upgrade() {
-            if let Some(time) = time {
+            if let animation::FixedFrameRateStep::Normal(time) = time {
                 let delta_seconds = time.previous_frame / 1000.0;
                 if !simulator.step(delta_seconds) {
                     simulator.animation_loop.set(None)

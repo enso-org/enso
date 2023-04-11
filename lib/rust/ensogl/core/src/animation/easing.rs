@@ -217,8 +217,8 @@ where
         Self { duration, start_value, target_value, value, active, tween_fn, callback, on_end }
     }
 
-    fn step(&self, time: Option<Duration>) {
-        let (value, finished) = if let Some(time) = time {
+    fn step(&self, time: animation::FixedFrameRateStep<Duration>) {
+        let (value, finished) = if let animation::FixedFrameRateStep::Normal(time) = time {
             let sample = (time / self.duration.get()).min(1.0);
             let finished = (sample - 1.0).abs() < std::f32::EPSILON;
             let weight = (self.tween_fn)(sample);
@@ -417,7 +417,7 @@ pub type AnimationStep = animation::Loop;
 
 /// Callback for an animation step.
 pub type Step<T: Value, F: AnyFnEasing, OnStep: Callback<T>, OnEnd: Callback<EndStatus>> =
-    impl Fn(Option<animation::TimeInfo>);
+    impl Fn(animation::FixedFrameRateStep<animation::TimeInfo>);
 
 fn step<T: Value, F, OnStep, OnEnd>(
     easing: &Animator<T, F, OnStep, OnEnd>,
@@ -428,7 +428,7 @@ where
     OnEnd: Callback<EndStatus>, {
     let data = easing.data.clone_ref();
     let animation_loop = easing.animation_loop.downgrade();
-    move |time: Option<animation::TimeInfo>| {
+    move |time: animation::FixedFrameRateStep<animation::TimeInfo>| {
         if data.active.get() {
             data.step(time.map(|t| t.since_animation_loop_started))
         } else if let Some(animation_loop) = animation_loop.upgrade() {
