@@ -10,7 +10,6 @@ use crate::LocalCall;
 use engine_protocol::language_server::MethodPointer;
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
@@ -168,8 +167,12 @@ impl BreadcrumbsModel {
         let frp_inputs = frp.input.clone_ref();
         let current_index = default();
         let camera = scene.camera().clone_ref();
-        let background = default();
+        let background: Rectangle = default();
         let gap_width = default();
+
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
+        background.set_style(breadcrumbs::background::HERE, &style);
 
         scene.layers.panel_background.add(&background);
 
@@ -231,15 +234,7 @@ impl BreadcrumbsModel {
             crate::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT + BACKGROUND_PADDING * 2.0;
         self.background.set_size(Vector2(background_width, background_height));
         self.background.set_x(-BACKGROUND_PADDING);
-        self.background.set_y(-HEIGHT/2.0 - background_height/2.0);
-    }
-
-    fn set_background_color(&self, color: Rgba) {
-        self.background.set_color(color);
-    }
-
-    fn set_background_corner_radius(&self, radius: f32) {
-        self.background.set_corner_radius(radius);
+        self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -424,14 +419,6 @@ impl Breadcrumbs {
         let frp = Frp::new();
         let model = Rc::new(BreadcrumbsModel::new(app, &frp));
         let network = &frp.network;
-
-        use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
-        let style = StyleWatchFrp::new(&scene.style_sheet);
-        let background_color = style.get_color(breadcrumbs::background).value();
-        let background_corner_radius =
-            style.get_number(breadcrumbs::background::corner_radius).value();
-        model.set_background_color(background_color);
-        model.set_background_corner_radius(background_corner_radius);
 
         // === Breadcrumb selection ===
 

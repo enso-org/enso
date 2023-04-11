@@ -7,6 +7,10 @@ use crate::prelude::*;
 
 use crate::data::color;
 use crate::display;
+use crate::display::shape::StyleWatchFrp;
+use crate::display::style::data::DataMatch;
+use crate::display::style::Path;
+
 
 
 // ==============
@@ -203,6 +207,22 @@ impl Rectangle {
     /// Keep only the top left quarter of the shape.
     pub fn keep_top_left_quarter(&self) -> &Self {
         self.set_clip(Vector2(-0.5, 0.5))
+    }
+
+    /// Set the style properties from the given [`StyleWatchFrp`].
+    pub fn set_style(&self, path: impl Into<Path>, style: &StyleWatchFrp) {
+        let path = path.into();
+        macro_rules! set_property {
+            ($name:ident: $ty:ident) => {{
+                let value = style.get(path.sub(stringify!($name))).value();
+                let value = value.and_then(|value| value.$ty());
+                if let Some(value) = value {
+                    self.view.$name.set(value.into());
+                }
+            }};
+        }
+        set_property!(corner_radius: number);
+        set_property!(color: color);
     }
 }
 
