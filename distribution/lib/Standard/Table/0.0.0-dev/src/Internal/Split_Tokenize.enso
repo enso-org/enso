@@ -3,12 +3,14 @@ from Standard.Base import all
 import project.Data.Column.Column
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Table.Table
+import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Type.Value_Type import Auto
 from Standard.Table import Value_Type
-from Standard.Table.Errors import Column_Count_Exceeded, Invalid_Value_Type, Missing_Input_Columns
+from Standard.Table.Errors import Column_Count_Exceeded, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
+from project.Internal.Java_Exports import make_string_builder
 
 ## PRIVATE
    Splits a column of text into a set of new columns.
@@ -16,7 +18,7 @@ from Standard.Table.Errors import Column_Count_Exceeded, Invalid_Value_Type, Mis
 split_to_columns : Table -> Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
 split_to_columns table column delimiter="," column_count=Auto on_problems=Report_Error =
     expect_text_column table column <|
-        fan_out_to_columns table column (ignore_nothing (_.split delimiter)) "split" column_count on_problems
+        fan_out_to_columns table column (ignore_nothing (_.split delimiter)) column_count on_problems
 
 ## PRIVATE
    Splits a column of text into a set of new rows.
@@ -34,7 +36,7 @@ split_to_rows table column delimiter="," on_problems=Report_Error =
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
 tokenize_to_columns table column pattern case_sensitivity column_count on_problems =
     expect_text_column table column <|
-        fan_out_to_columns table column (ignore_nothing (_.tokenize pattern case_sensitivity)) "tokenize" column_count on_problems
+        fan_out_to_columns table column (ignore_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
 
 ## PRIVATE
    Tokenizes a column of text into a set of new rows using a regular
@@ -56,18 +58,23 @@ tokenize_to_rows table column pattern="." case_sensitivity=Case_Sensitivity.Sens
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Text -> Auto | Integer -> Problem_Behavior -> Table | Nothing
-fan_out_to_columns table column function function_name column_count=Auto on_problems=Report_Error =
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Auto | Integer -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table column function column_count=Auto on_problems=Report_Error =
     input_column = table.get column
-    new_column_vectors = map_column_vector_to_multiple input_column.to_vector function
-    new_columns = build_and_name_columns table column function_name new_column_vectors
-    num_new_columns = new_columns.length
-    too_many_columns = column_count != Auto && num_new_columns > column_count
+    problem_builder = Problem_Builder.new
+    new_columns_unrenamed = map_columns_to_multiple input_column function column_count problem_builder
+    new_columns = rename_new_columns table new_columns_unrenamed problem_builder
+    #new_column_vectors = map_column_vector_to_multiple input_column.to_vector function
+    #new_columns = build_and_name_columns table column function_name new_column_vectors
+    #num_new_columns = new_columns.length
+    #too_many_columns = column_count != Auto && num_new_columns > column_count
     new_table = replace_column_with_columns table column new_columns
+    problem_builder.attach_problems_after on_problems new_table
 
-    if too_many_columns.not then new_table else
-        problem = Column_Count_Exceeded.Error column_count num_new_columns
-        on_problems.attach_problem_after new_table problem
+    ##
+        if too_many_columns.not then new_table else
+            problem = Column_Count_Exceeded.Error column_count num_new_columns
+            on_problems.attach_problem_after new_table problem
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -114,6 +121,113 @@ fan_out_to_rows table column function =
     Table.new new_columns
 
 ## PRIVATE
+
+   Map a multi-valued function over a column and return the results as set of
+   output columns.
+
+   Returns a Pair of a Vector of Columns and a Vector of problems.
+
+   Arguments:
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+   - column_count: The number of columns to split to.
+     If `Auto` then columns will be added to fit all data.
+     If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
+     will follow the `on_problems` behavior.
+   - on_problems: Specifies the behavior when a problem occurs.
+map_columns_to_multiple : Column -> (Any -> Vector Any) -> Auto | Integer -> Problem_Builder -> Vector Column
+map_columns_to_multiple input_column function column_count problem_builder =
+    num_rows = input_column.length
+    input_storage = input_column.java_column.getStorage
+
+    builders = case column_count of
+        Auto ->
+            builders = Vector.new_builder
+
+            0.up_to num_rows . map i->
+                input_value = input_storage.getItemBoxed i
+                output_values = function input_value
+
+                # Add more builders if necessary to accommodate `output_values`.
+                if output_values.length > builders.length then
+                    num_builders_needed = output_values.length - builders.length
+                    0.up_to num_builders_needed . map _->
+                        builder = make_string_builder num_rows
+
+                        # Pad the new builder with nulls
+                        num_nulls_needed = i
+                        builder.appendNulls num_nulls_needed
+
+                        builders.append <| builder
+
+                ## Add `output_values` to builders; if there are more builders
+                   than `output_values`, pad with nulll.
+                0.up_to builders.length . map i->
+                    builders.at i . appendNoGrow (output_values.get i Nothing)
+
+            builders.to_vector
+
+        _ : Integer ->
+            builders = Vector.new column_count (_-> make_string_builder num_rows)
+
+            output_lengths = 0.up_to num_rows . map i->
+                input_value = input_storage.getItemBoxed i
+                output_values = function input_value
+
+                ## Add `output_values` to builders; if there are more builders
+                   than `output_values`, pad with null.
+                0.up_to builders.length . map i->
+                    builders.at i . appendNoGrow (output_values.get i Nothing)
+
+                output_values.length
+
+            max_output_length = output_lengths.fold 0 .max
+
+            if max_output_length > column_count then
+                problem = Column_Count_Exceeded.Error column_count max_output_length
+                problem_builder.report_other_warning problem
+
+            builders
+
+    # Build Columns.
+    builders.map .seal . map_with_index i->storage->
+        name = input_column.name + "_" + i.to_text
+        Column.from_storage name storage
+
+    ##
+        IO.println "IS"
+        IO.println input_storage
+        0.up_to num_rows . map i->
+            input_value = input_storage.getItemBoxed i
+            IO.println "INP"
+            IO.println i
+            IO.println input_value
+        builder = make_string_builder num_rows
+        IO.println builder
+        IO.println builder.getCurrentSize
+        builder.appendNulls 2
+        builder.appendNoGrow "asdf"
+        st = builder.seal
+        c = Column.from_storage "nm" st
+        IO.println c
+        0.up_to num_rows . map i->
+            IO.println (c.at i)
+        Nothing
+
+## PRIVATE
+   Name a set of column vectors to be unique when added to a table.
+rename_new_columns : Table -> Vector Column -> Problem_Builder -> Vector Column
+rename_new_columns table columns problem_builder =
+    unique = Unique_Name_Strategy.new
+    unique.mark_used <| table.columns.map .name
+    new_columns = columns.map column->
+        new_name = unique.make_unique column.name
+        column.rename new_name
+    problem_builder.report_unique_name_strategy unique
+    new_columns
+
+## PRIVATE
    Transform a column vector into a set of column vectors. Takes a function
    that maps a single element of the input column vector to a vector of output
    values. The vectors of output values are padded with Nothing to be the same
@@ -123,10 +237,10 @@ fan_out_to_rows table column function =
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-map_column_vector_to_multiple : Vector Any -> (Any -> Vector Any) -> Vector (Vector Any)
-map_column_vector_to_multiple input_vector function =
-    result_row_vectors = input_vector.map value-> function value
-    transpose_with_pad result_row_vectors
+    map_column_vector_to_multiple : Vector Any -> (Any -> Vector Any) -> Vector (Vector Any)
+    map_column_vector_to_multiple input_vector function =
+        result_row_vectors = input_vector.map value-> function value
+        transpose_with_pad result_row_vectors
 
 ## PRIVATE
    Remove a column and add new columns.
@@ -135,44 +249,45 @@ replace_column_with_columns table old_column new_columns =
     with_column_removed = table.remove_columns old_column error_on_missing_columns=True
     new_columns.fold with_column_removed (t-> c-> t.set c set_mode=Set_Mode.Add)
 
-## PRIVATE
-   Swap rows and columns of a vector-of-vectors, padding each vector to be the
-   same length first.
-   Assumes both dimensions are non-zero.
-transpose_with_pad : Vector (Vector Any) -> Vector (Vector Any)
-transpose_with_pad vecs = transpose (pad_vectors vecs Nothing)
+##
+    ## PRIVATE
+       Swap rows and columns of a vector-of-vectors, padding each vector to be the
+       same length first.
+       Assumes both dimensions are non-zero.
+    transpose_with_pad : Vector (Vector Any) -> Vector (Vector Any)
+    transpose_with_pad vecs = transpose (pad_vectors vecs Nothing)
 
-## PRIVATE
-   Swap rows and columns of a vector-of-vectors.
-   Assumes both dimensions are non-zero.
-transpose : Vector (Vector Any) -> Vector (Vector Any)
-transpose vecs =
-    num_output_rows = vecs.length
-    num_output_cols = vecs.first.length
-    builders = (0.up_to num_output_cols).map _-> Vector.new_builder num_output_rows
-    vecs.map vec->
-        vec.map_with_index i-> v->
-            builders.at i . append v
-    builders.map .to_vector
+    ## PRIVATE
+       Swap rows and columns of a vector-of-vectors.
+       Assumes both dimensions are non-zero.
+    transpose : Vector (Vector Any) -> Vector (Vector Any)
+    transpose vecs =
+        num_output_rows = vecs.length
+        num_output_cols = vecs.first.length
+        builders = (0.up_to num_output_cols).map _-> Vector.new_builder num_output_rows
+        vecs.map vec->
+            vec.map_with_index i-> v->
+                builders.at i . append v
+        builders.map .to_vector
 
-## PRIVATE
-   Pad vectors so they have the same length.
-pad_vectors : Vector (Vector Any) -> Any -> Vector (Vector Any)
-pad_vectors vecs pad_value =
-  length = maximum <| vecs.map .length
-  vecs.map v-> v.pad length pad_value
+    ## PRIVATE
+       Pad vectors so they have the same length.
+    pad_vectors : Vector (Vector Any) -> Any -> Vector (Vector Any)
+    pad_vectors vecs pad_value =
+      length = maximum <| vecs.map .length
+      vecs.map v-> v.pad length pad_value
 
-## PRIVATE
-   Name a set of column vectors to be unique when added to a table. Base the
-   new names on the name of the original column from which they were derived.
-build_and_name_columns : Table -> Text -> Text -> Vector (Vector Any) -> Vector Column
-build_and_name_columns table original_column_name function_name vectors =
-    ## Start with copies of the original column name.
-    old_names = 0.up_to vectors.length . map _-> original_column_name
-    table_column_names = table.columns . map .name
-    unique = Unique_Name_Strategy.new
-    new_names = unique.combine_with_prefix table_column_names old_names (function_name + "_")
-    vectors.map_with_index i-> vector-> Column.from_vector (new_names.at i) vector
+    ## PRIVATE
+       Name a set of column vectors to be unique when added to a table. Base the
+       new names on the name of the original column from which they were derived.
+    build_and_name_columns : Table -> Text -> Text -> Vector (Vector Any) -> Vector Column
+    build_and_name_columns table original_column_name function_name vectors =
+        ## Start with copies of the original column name.
+        old_names = 0.up_to vectors.length . map _-> original_column_name
+        table_column_names = table.columns . map .name
+        unique = Unique_Name_Strategy.new
+        new_names = unique.combine_with_prefix table_column_names old_names (function_name + "_")
+        vectors.map_with_index i-> vector-> Column.from_vector (new_names.at i) vector
 
 ## PRIVATE
    Return the maximum value of the vector.
