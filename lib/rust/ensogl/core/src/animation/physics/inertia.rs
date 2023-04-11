@@ -167,7 +167,7 @@ macro_rules! define_property {
     };
 }
 
-define_property! { Drag   = 5000.0 }
+define_property! { Drag   = 1500.0 }
 define_property! { Spring = 20000.0 }
 define_property! { Mass   = 30.0 }
 

@@ -262,10 +262,12 @@ fn on_frame_closure(
     let h_cell = Rc::new(Cell::new(callback::Handle::default()));
 
     // FIXME
-    let fps = 60.0;
-    let max_skipped_frames = 5;
-
-    let desired_frame_time = (1000.0 / fps).ms();
+    // let fps = 60.0;
+    // let max_skipped_frames = 5;
+    //
+    // let desired_frame_time = (1000.0 / fps).ms();
+    //
+    let mut fixed_frame_rate_sampler = Rc::new(RefCell::new(FixedFrameRateSampler::new()));
 
     let mut time_buffer = Duration::default();
     move |frame_time: Duration| {
@@ -278,6 +280,7 @@ fn on_frame_closure(
         let output = output.clone_ref();
         let callbacks = callbacks.clone_ref();
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
+        let fixed_frame_rate_sampler = fixed_frame_rate_sampler.clone_ref();
 
 
         TickPhases::new(&h_cell)
@@ -290,40 +293,7 @@ fn on_frame_closure(
                 on_before_animations.emit(time_info)
             })
             .then(move || {
-                time_buffer += time_info.previous_frame;
-                let desired_frame_time_2 = desired_frame_time * 0.5;
-                let time_diff = (time_buffer.as_ms() - desired_frame_time_2.as_ms()).max(0.0);
-                let skipped_frames = (time_diff / desired_frame_time.as_ms()) as usize;
-                let too_many_frames_skipped = skipped_frames > max_skipped_frames;
-                if !too_many_frames_skipped {
-                    let mut local_time = time_info.since_animation_loop_started - time_buffer;
-                    for _ in 0..skipped_frames {
-                        local_time += desired_frame_time;
-                        time_buffer -= desired_frame_time;
-                        let animation_loop_start = time_info.animation_loop_start;
-                        let previous_frame = desired_frame_time;
-                        let since_animation_loop_started = local_time;
-                        let time2 = TimeInfo {
-                            animation_loop_start,
-                            previous_frame,
-                            since_animation_loop_started,
-                        };
-                        callbacks.run_all(Some(time2));
-                    }
-                    let not_too_fast_refresh_rate = time_buffer >= -desired_frame_time_2;
-                    if not_too_fast_refresh_rate {
-                        time_buffer -= desired_frame_time;
-                        callbacks.run_all(Some(time_info));
-                    }
-                } else {
-                    debug!("Animations running slow. Skipping {} frames.", skipped_frames);
-                    time_buffer -= desired_frame_time * skipped_frames as f32;
-                    callbacks.run_all(None);
-                }
-
-                // warn!("\n>>> callbacks");
-                // callbacks.run_all(time_info);
-                // warn!("<<< callbacks");
+                fixed_frame_rate_sampler.borrow_mut().run(time_info, |t| callbacks.run_all(t))
             })
             .then(move || {
                 // warn!("\n-- on_after_animations");
@@ -351,21 +321,55 @@ fn on_frame_closure(
 // frame. /// If the real animation frames are too long, it will emit virtual frames in between. In
 // case the /// delay is too long (more than [`max_skipped_frames`]), the [`OnTooManyFramesSkipped`]
 // callback /// will be used instead.
-// #[derive(Derivative)]
-// #[derivative(Debug(bound = ""))]
-// #[allow(missing_docs)]
-// pub struct FixedFrameRateSampler<OnFrame> {
-//     #[derivative(Debug = "ignore")]
-//     callback: OnFrame,
-// }
-//
-// impl<OnFrame> FixedFrameRateSampler<OnFrame> {
-//     /// Constructor.
-//     pub fn new(callback: OnFrame) -> Self {
-//         Self { callback }
-//     }
-// }
-//
+#[derive(Debug)]
+pub struct FixedFrameRateSampler {
+    desired_fps:        f32,
+    max_skipped_frames: usize,
+    desired_frame_time: Duration,
+    time_buffer:        Duration,
+}
+
+impl FixedFrameRateSampler {
+    /// Constructor.
+    pub fn new() -> Self {
+        let desired_fps = 60.0;
+        let max_skipped_frames = 5;
+        let desired_frame_time = (1000.0 / desired_fps).ms();
+        let time_buffer = default();
+        Self { desired_fps, desired_frame_time, max_skipped_frames, time_buffer }
+    }
+
+    fn run(&mut self, time_info: TimeInfo, f: impl Fn(Option<TimeInfo>)) {
+        self.time_buffer += time_info.previous_frame;
+        let desired_frame_time_2 = self.desired_frame_time * 0.5;
+        let time_diff = (self.time_buffer.as_ms() - desired_frame_time_2.as_ms()).max(0.0);
+        let skipped_frames = (time_diff / self.desired_frame_time.as_ms()) as usize;
+        let too_many_frames_skipped = skipped_frames > self.max_skipped_frames;
+        if !too_many_frames_skipped {
+            let mut local_time = time_info.since_animation_loop_started - self.time_buffer;
+            for _ in 0..skipped_frames {
+                local_time += self.desired_frame_time;
+                self.time_buffer -= self.desired_frame_time;
+                let animation_loop_start = time_info.animation_loop_start;
+                let previous_frame = self.desired_frame_time;
+                let since_animation_loop_started = local_time;
+                let time2 =
+                    TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
+                f(Some(time2));
+            }
+            let not_too_fast_refresh_rate = self.time_buffer >= -desired_frame_time_2;
+            if not_too_fast_refresh_rate {
+                self.time_buffer -= self.desired_frame_time;
+                f(Some(time_info));
+            }
+        } else {
+            debug!("Skipping animations because of {skipped_frames} frame delay.");
+            self.time_buffer = 0.ms();
+            f(None);
+        }
+    }
+}
+
 // impl<OnFrame: FnOnce<(Option<TimeInfo>,)>> FnOnce<(Option<TimeInfo>,)>
 //     for FixedFrameRateSampler<OnFrame>
 // {
