@@ -64,11 +64,7 @@ fan_out_to_columns table column function column_count=Auto on_problems=Report_Er
     problem_builder = Problem_Builder.new
     new_columns_unrenamed = map_columns_to_multiple input_column function column_count problem_builder
     new_columns = rename_new_columns table new_columns_unrenamed problem_builder
-    #new_column_vectors = map_column_vector_to_multiple input_column.to_vector function
-    #new_columns = build_and_name_columns table column function_name new_column_vectors
-    #num_new_columns = new_columns.length
-    #too_many_columns = column_count != Auto && num_new_columns > column_count
-    new_table = replace_column_with_columns table column new_columns
+    new_table = replace_column_with_columns table input_column new_columns
     problem_builder.attach_problems_after on_problems new_table
 
     ##
@@ -243,11 +239,10 @@ rename_new_columns table columns problem_builder =
         transpose_with_pad result_row_vectors
 
 ## PRIVATE
-   Remove a column and add new columns.
+   Replace a single column in a table with new columns.
 replace_column_with_columns : Table -> Column -> Vector Column -> Table
 replace_column_with_columns table old_column new_columns =
-    with_column_removed = table.remove_columns old_column error_on_missing_columns=True
-    new_columns.fold with_column_removed (t-> c-> t.set c set_mode=Set_Mode.Add)
+    Table.new ((table.columns.map (c-> if c.name == old_column.name then new_columns else [c])).flatten)
 
 ##
     ## PRIVATE

@@ -121,11 +121,20 @@ spec =
         Test.specify 'will make column names unique' <|
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']], ['bar_1', ['a', 'b', 'c']]]
             t = Table.new cols
-            expected_rows = [[0, 'a', 'a', 'c', Nothing], [1, 'b', 'c', 'd', 'ef'], [2, 'c', 'gh', 'ij', 'u']]
-            expected = Table.from_rows ['foo', 'bar_1', 'bar_0', 'bar_1_1', 'bar_2'] expected_rows
+            expected_rows = [[0, 'a', 'c', Nothing, 'a'], [1, 'c', 'd', 'ef', 'b'], [2, 'gh', 'ij', 'u', 'c']]
+            expected = Table.from_rows ['foo', 'bar_0', 'bar_1_1', 'bar_2', 'bar_1'] expected_rows
             action = t.split_to_columns 'bar' 'b' on_problems=_
             tester = t-> tables_should_be_equal t expected
             problems = [Duplicate_Output_Column_Names.Error ['bar_1']]
             Problems.test_problem_handling action problems tester
+
+    Test.group "column order" <|
+        Test.specify 'preserves column order' <|
+            cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']], ['baz', [1, 2, 3]]]
+            t = Table.new cols
+            expected_rows = [[0, 'a', 'c', Nothing, 1], [1, 'c', 'd', 'ef', 2], [2, 'gh', 'ij', 'u', 3]]
+            expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2', 'baz'] expected_rows
+            t2 = t.split_to_columns 'bar' 'b'
+            tables_should_be_equal t2 expected
 
 main = Test_Suite.run_main spec
