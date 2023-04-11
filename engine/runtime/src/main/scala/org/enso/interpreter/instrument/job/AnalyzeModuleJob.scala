@@ -51,7 +51,6 @@ object AnalyzeModuleJob {
     changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Unit = {
     val moduleName = module.getName
-    val version    = ctx.versioning.evalVersion(module.getSource.getCharacters)
     if (module.isIndexed) {
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing indexed module $moduleName")
@@ -67,7 +66,6 @@ object AnalyzeModuleJob {
       val exportsDiff = ModuleExportsDiff.compute(prevExports, newExports)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         module  = moduleName.toString,
-        version = version,
         actions = Vector(),
         exports = exportsDiff,
         updates = diff
@@ -83,7 +81,6 @@ object AnalyzeModuleJob {
       val newExports  = exportsBuilder.build(moduleName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         module  = moduleName.toString,
-        version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
         exports = ModuleExportsDiff.compute(prevExports, newExports),
