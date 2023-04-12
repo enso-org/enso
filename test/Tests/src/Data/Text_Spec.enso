@@ -119,7 +119,7 @@ spec =
             (accent_1 != Nothing) . should_be_true
             Ordering.compare accent_1 Nothing . should_fail_with Incomparable_Values
             (accent_1 > Nothing) . should_fail_with Incomparable_Values
-            accent_1 . compare_to_ignore_case Nothing . should_fail_with Incomparable_Values
+            accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error
 
             earlier_suffix = "aooooz"
             later_suffix = "bo"
