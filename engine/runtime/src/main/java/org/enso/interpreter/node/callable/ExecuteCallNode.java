@@ -8,6 +8,7 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -52,9 +53,18 @@ public abstract class ExecuteCallNode extends Node {
       Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
-      @Cached("create(cachedTarget)") DirectCallNode callNode) {
+      @Cached("createWithPossibleClone(cachedTarget)") DirectCallNode callNode) {
     return callNode.call(
         Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
+  }
+
+  static DirectCallNode createWithPossibleClone(RootCallTarget t) {
+    if (t.getRootNode() instanceof BuiltinRootNode n) {
+      if (n.getName().contains("if_then")) {
+        t = n.cloneBuiltin().getCallTarget();
+      }
+    }
+    return DirectCallNode.create(t);
   }
 
   /**
