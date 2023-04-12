@@ -21,10 +21,6 @@ pub struct Widget {
     display_object: super::debug::InstanceWithBg,
 }
 
-/// Width of a single space glyph
-// TODO: avoid using hardcoded value. See https://www.pivotaltracker.com/story/show/183567623.
-pub const SPACE_GLYPH_WIDTH: f32 = 7.224_609_4;
-
 impl super::SpanWidget for Widget {
     type Config = Config;
 
@@ -40,9 +36,6 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
-        let offset = ctx.span_tree_node.sibling_offset.as_usize() as f32;
-        self.display_object.inner.set_padding_left(offset * SPACE_GLYPH_WIDTH);
-
         let preserve_depth =
             ctx.span_tree_node.is_chained() || ctx.span_tree_node.is_named_argument();
         let next_depth = if preserve_depth { ctx.depth } else { ctx.depth + 1 };

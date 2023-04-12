@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use super::debug::InstanceWithBg;
 use crate::component::node::input::area::TEXT_SIZE;
 use crate::component::node::input::widget::Entry;
 use enso_frp as frp;
@@ -81,7 +82,7 @@ ensogl::define_endpoints_2! {
 #[allow(dead_code)]
 pub struct Widget {
     config_frp:       Frp,
-    display_object:   display::object::Instance,
+    display_object:   InstanceWithBg,
     content_wrapper:  display::object::Instance,
     dropdown_wrapper: display::object::Instance,
     label_wrapper:    display::object::Instance,
@@ -95,7 +96,7 @@ impl super::SpanWidget for Widget {
     type Config = Config;
 
     fn root_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &self.display_object.outer
     }
 
     fn new(_: &Config, app: &Application, widgets_frp: &super::WidgetsFrp) -> Self {
@@ -119,7 +120,6 @@ impl super::SpanWidget for Widget {
         let label = text::Text::new(app);
         layers.above_nodes_text.add(&label);
         label.set_property_default(text::Size(TEXT_SIZE));
-        label.set_property_default(text::Weight::Bold);
         label.set_y(TEXT_SIZE);
 
         let dropdown = app.new_view::<Dropdown<Entry>>();
@@ -128,17 +128,18 @@ impl super::SpanWidget for Widget {
         dropdown.set_max_open_size(Vector2(300.0, 500.0));
         dropdown.allow_deselect_all(true);
 
-        let display_object = display::object::Instance::new();
-        let content_wrapper = display_object.new_child();
+        let display_object = InstanceWithBg::magenta();
+        let content_wrapper = display_object.inner.new_child();
         content_wrapper.add_child(&activation_shape);
         let label_wrapper = content_wrapper.new_child();
         label_wrapper.add_child(&label);
         let args_wrapper = content_wrapper.new_child();
-        let dropdown_wrapper = display_object.new_child();
+        let dropdown_wrapper = display_object.inner.new_child();
         dropdown_wrapper.add_child(&dropdown);
 
 
         display_object
+            .inner
             .use_auto_layout()
             .set_column_flow()
             .set_children_alignment_left_center()
@@ -163,14 +164,14 @@ impl super::SpanWidget for Widget {
         let network = &config_frp.network;
         let input = &config_frp.private.input;
 
-        let focus_receiver = display_object.clone_ref();
+        let focus_receiver = display_object.inner.clone_ref();
 
         frp::extend! { network
+            init <- source::<()>();
+
             let focus_in = focus_receiver.on_event::<event::FocusIn>();
             let focus_out = focus_receiver.on_event::<event::FocusOut>();
             is_open <- bool(&focus_out, &focus_in);
-        }
-        frp::extend! { network
 
             let dot_mouse_down = activation_shape.on_event::<mouse::Down>();
             dot_clicked <- dot_mouse_down.filter(mouse::is_primary);
@@ -179,8 +180,6 @@ impl super::SpanWidget for Widget {
                 true => focus_receiver.focus(),
                 false => focus_receiver.blur(),
             });
-        }
-        frp::extend! { network
 
             // Close the dropdown after a short delay after selection. Because the dropdown
             // value application triggers operations that can introduce a few dropped frames,
@@ -189,19 +188,15 @@ impl super::SpanWidget for Widget {
             let close_after_selection_timer = frp::io::timer::Timeout::new(&network);
             close_after_selection_timer.restart <+ dropdown.user_select_action.constant(1);
             eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
-        }
-        frp::extend! { network
+
             current_value     <- input.current_value.on_change();
             entries           <- input.set_entries.on_change();
             entries_and_value <- all(&entries, &current_value);
             entries_and_value <- entries_and_value.debounce();
             entries_and_value <- entries_and_value.buffered_gate(&is_open);
-        }
-        frp::extend! { network
+
             dropdown.set_all_entries <+ entries_and_value.map(|(rc, _)| rc.deref().clone());
             dropdown.set_open <+ is_open.on_change();
-        }
-        frp::extend! { network
 
             selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
             dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
@@ -215,7 +210,11 @@ impl super::SpanWidget for Widget {
             dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
 
             label.set_content <+ input.content.on_change();
-            has_value <- entries_and_value.map(|(_, v)| v.is_some()).on_change();
+            label_width <- label.width.on_change();
+            eval label_width((w) { label_wrapper.set_size_x(*w); });
+
+            has_value <- current_value.map(|v| v.is_some());
+            has_value <- all(&has_value, &init)._0();
             eval has_value([label] (&has_value) {
                 let color = if has_value {
                     color::Lcha::new(0.0, 0.0, 0.0, 1.0)
@@ -226,8 +225,6 @@ impl super::SpanWidget for Widget {
                 label.set_property_default(color);
                 label.set_property_default(weight);
             });
-        }
-        frp::extend! { network
 
             widgets_frp.request_import <+ dropdown_out_import.unwrap();
             widgets_frp.value_changed <+ dropdown_out_value.map2(&input.current_crumbs,
@@ -235,6 +232,7 @@ impl super::SpanWidget for Widget {
             );
         };
 
+        init.emit(());
 
         Self {
             config_frp,
@@ -251,11 +249,6 @@ impl super::SpanWidget for Widget {
 
     fn configure(&mut self, config: &Config, ctx: super::ConfigContext) {
         let input = &self.config_frp.public.input;
-
-        let is_placeholder = ctx.span_tree_node.is_expected_argument();
-        let min_offset = if is_placeholder { 1.0f32 } else { 0.0 };
-        let offset = min_offset.max(ctx.span_tree_node.sibling_offset.as_usize() as f32);
-        self.display_object.set_margin_left(offset * super::hierarchy::SPACE_GLYPH_WIDTH);
 
         let has_value = !ctx.span_tree_node.is_insertion_point();
         let current_value: Option<ImString> =

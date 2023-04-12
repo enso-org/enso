@@ -54,6 +54,8 @@ impl super::SpanWidget for Widget {
         let frp = Frp::new();
         let network = &frp.network;
 
+        let inner = root.inner.clone_ref();
+
         frp::extend! { network
             color_change <- frp.text_color.on_change();
             eval color_change((color) label.set_property_default(color));
@@ -61,6 +63,9 @@ impl super::SpanWidget for Widget {
             eval content_change([label] (content) {
                 label.set_content(content);
             });
+
+            width <- label.width.on_change();
+            eval width((w) { inner.set_size_x(*w); });
         }
 
         Self { frp, root, label }
@@ -68,10 +73,6 @@ impl super::SpanWidget for Widget {
 
     fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
         let is_placeholder = ctx.span_tree_node.is_expected_argument();
-        let min_offset = if is_placeholder { 1.0f32 } else { 0.0 };
-        let offset = min_offset.max(ctx.span_tree_node.sibling_offset.as_usize() as f32);
-
-        self.label.set_x(offset * super::hierarchy::SPACE_GLYPH_WIDTH);
 
         let content = if is_placeholder {
             ctx.span_tree_node.kind.argument_name().unwrap_or_default()

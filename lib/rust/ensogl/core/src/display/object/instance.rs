@@ -2827,10 +2827,11 @@ pub trait LayoutOps: Object {
         right: impl Into<Unit>,
         bottom: impl Into<Unit>,
         left: impl Into<Unit>,
-    ) {
+    ) -> &Self {
         let horizontal = SideSpacing::new(left.into(), right.into());
         let vertical = SideSpacing::new(bottom.into(), top.into());
         self.display_object().layout.margin.set(Vector2(horizontal, vertical));
+        self
     }
 
     /// Set padding of all sides of the object. Padding is the free space inside the object.
@@ -3402,7 +3403,9 @@ impl Model {
                 } else {
                     let child_pos = child.position().get_dim(x);
                     let child_size = child.computed_size().get_dim(x);
-                    max_x = max_x.max(child_pos + child_size);
+                    let child_margin =
+                        child.layout.margin.get_dim(x).end.resolve_pixels_or_default();
+                    max_x = max_x.max(child_pos + child_size + child_margin);
                 }
             } else {
                 has_grow_children = true;
@@ -3420,10 +3423,11 @@ impl Model {
                 let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 if let Some(alignment) = *child.layout.alignment.get().get_dim(x) && !to_grow {
                     let child_size = child.computed_size().get_dim(x);
-                    let remaining_size = base_size - child_size;
-                    let aligned_position = remaining_size * alignment.normalized();
-                    child.set_position_dim(x, aligned_position);
-                    max_x = max_x.max(aligned_position + child_size);
+                    let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
+                    let remaining_size = base_size - child_size - child_margin.total();
+                    let aligned_x = remaining_size * alignment.normalized() + child_margin.start;
+                    child.set_position_dim(x, aligned_x);
+                    max_x = max_x.max(aligned_x + child_size + child_margin.end);
                 }
             }
             if hug_children {
@@ -3438,16 +3442,20 @@ impl Model {
             for child in &children {
                 let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 if to_grow {
-                    let current_child_size = child.computed_size().get_dim(x);
-                    if self_size != current_child_size || child.should_refresh_layout() {
-                        child.layout.computed_size.set_dim(x, self_size);
+                    let child_size = child.computed_size().get_dim(x);
+                    let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
+                    let desired_child_size = self_size - child_margin.total();
+
+                    if desired_child_size != child_size || child.should_refresh_layout() {
+                        child.layout.computed_size.set_dim(x, desired_child_size);
                         child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
                     }
 
                     if child.layout.alignment.get().get_dim(x).is_some() {
                         // If child is set to grow, there will never be any leftover space to align
-                        // it. It should always be positioned at 0.0 relative to its parent.
-                        child.set_position_dim(x, 0.0);
+                        // it. It should always be positioned at 0.0 relative to its parent, plus
+                        // taking the margin into account.
+                        child.set_position_dim(x, child_margin.start);
                     }
                 }
             }
@@ -5969,6 +5977,32 @@ mod layout_tests {
                 .assert_node1_computed_size(5.0, 5.0)
                 .assert_root_position(0.0, 0.0)
                 .assert_node1_position(2.5, 2.5);
+        });
+    }
+
+    #[test]
+    fn test_manual_layout_margin_alignment() {
+        let test = TestFlatChildren3::new();
+        test.root.set_size((10.0, 10.0));
+        test.node1.allow_grow().set_margin_trbl(1.0, 2.0, 3.0, 4.0).set_alignment_left_bottom();
+        test.node2
+            .set_size((3.0, 3.0))
+            .set_margin_trbl(1.0, 2.0, 3.0, 4.0)
+            .set_alignment_left_center();
+        test.node3
+            .set_size((3.0, 3.0))
+            .set_margin_trbl(1.0, 2.0, 3.0, 4.0)
+            .set_alignment_right_bottom();
+
+        test.run(|| {
+            test.assert_root_computed_size(10.0, 10.0)
+                .assert_node1_computed_size(4.0, 6.0)
+                .assert_node2_computed_size(3.0, 3.0)
+                .assert_node3_computed_size(3.0, 3.0)
+                .assert_root_position(0.0, 0.0)
+                .assert_node1_position(4.0, 3.0)
+                .assert_node2_position(4.0, 4.5)
+                .assert_node3_position(5.0, 3.0);
         });
     }
 

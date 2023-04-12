@@ -18,6 +18,22 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use text::index::Byte;
 
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The horizontal padding of ports. It affects how the port hover should extend the target text
+/// boundary on both sides.
+pub const PORT_PADDING_X: f32 = 4.0;
+
+/// Width of a single space glyph. Used to calculate padding based on the text offset between nodes.
+// TODO: avoid using hardcoded value. See https://www.pivotaltracker.com/story/show/183567623.
+pub const SPACE_GLYPH_WIDTH: f32 = 7.224_609_4;
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -59,6 +75,10 @@ pub struct MetadataPointer {
 pub trait SpanWidget {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
+    /// Spacing between this widget and previous sibling.
+    fn sibling_offset(&self, config: &Self::Config, ctx: ConfigContext) -> usize {
+        ctx.span_tree_node.sibling_offset.as_usize()
+    }
     /// Root display object of a widget. It is returned to the parent widget for positioning.
     fn root_object(&self) -> &display::object::Instance;
     /// Create a new widget with given configuration.
@@ -139,6 +159,8 @@ macro_rules! define_widget_modules(
 define_widget_modules! {
     /// Default widget that only displays text.
     Label label,
+    /// Empty widget that does not display anything, used for empty insertion points.
+    InsertionPoint insertion_point,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice single_choice,
     /// A widget for managing a list of values - adding, removing or reordering them.
@@ -199,6 +221,8 @@ impl Metadata {
                 },
             Kind::Root | Kind::NamedArgument | Kind::Chained(_) if has_children =>
                 Self::always(hierarchy::Config),
+            Kind::InsertionPoint(inner) if inner.name.is_none() =>
+                Self::always(insertion_point::Config),
             _ => Self::always(label::Config::default()),
         }
     }
@@ -631,16 +655,16 @@ impl<'a> WidgetTreeBuilder<'a> {
 
             match old_widget {
                 Some(mut port) => {
-                    port.widget.configure(&meta.config, ctx);
-                    port.update_root();
+                    port.configure(&meta.config, ctx);
                     port
                 }
                 None => {
                     let app = ctx.app();
                     let frp = ctx.frp();
-                    let mut widget = DynWidget::new(&meta.config, app, frp);
-                    widget.configure(&meta.config, ctx);
-                    Port::new(widget)
+                    let widget = DynWidget::new(&meta.config, app, frp);
+                    let mut port = Port::new(widget);
+                    port.configure(&meta.config, ctx);
+                    port
                 }
             }
         };
@@ -657,14 +681,6 @@ impl<'a> WidgetTreeBuilder<'a> {
 }
 
 
-// =================
-// === Constants ===
-// =================
-
-/// The horizontal padding of ports. It affects how the port hover should extend the target text
-/// boundary on both sides.
-pub const PADDING_X: f32 = 4.0;
-
 
 // ============
 // === Port ===
@@ -674,53 +690,83 @@ pub const PADDING_X: f32 = 4.0;
 pub mod port {
     use super::*;
     ensogl::shape! {
+        pointer_events = false;
         (style:Style, color:Vector4) {
             let size = Var::canvas_size();
             let transparent = Var::<color::Rgba>::from("srgba(1.0,1.0,1.0,0.00001)");
             let shape_color = Var::<color::Rgba>::from(color);
-            let hover_shape  = Rect(&size).fill(transparent);
+            // let hover_shape  = Rect(&size).fill(transparent);
             let visual_shape  = Rect(&size).corners_radius(size.y() / 2.0).fill(shape_color);
-            hover_shape.union(visual_shape).into()
+            visual_shape.into()
+            // hover_shape.union(visual_shape).into()
         }
     }
 }
 
 #[derive(Debug)]
 pub(super) struct Port {
-    shape:  port::View,
-    widget: DynWidget,
-    inner:  display::object::Instance,
+    last_offset: usize,
+    port_root:   display::object::Instance,
+    widget_root: display::object::Instance,
+    widget:      DynWidget,
+    port_shape:  port::View,
 }
 
 impl Port {
     fn new(widget: DynWidget) -> Self {
-        let shape = port::View::new();
-        shape.color.set(color::Rgba::transparent().into());
-        let inner = widget.root_object().clone_ref();
-        shape.add_child(&inner);
-        Self { shape, widget, inner }
+        let port_root = display::object::Instance::new();
+        let widget_root = widget.root_object().clone_ref();
+        let port_shape = port::View::new();
+        port_shape.color.set(color::Rgba::transparent().into());
+
+        port_root.add_child(&widget_root);
+        port_root.add_child(&port_shape);
+        port_root.set_alignment_left();
+        port_shape
+            .allow_grow()
+            .set_margin_left(-PORT_PADDING_X)
+            .set_margin_right(-PORT_PADDING_X)
+            .set_alignment_left();
+
+        Self { port_shape, widget, widget_root, last_offset: 0, port_root }
+    }
+
+    fn configure(&mut self, config: &Config, ctx: ConfigContext) {
+        let is_placeholder = ctx.span_tree_node.is_expected_argument();
+        let min_offset = if is_placeholder { 1 } else { 0 };
+        let offset = min_offset.max(ctx.span_tree_node.sibling_offset.as_usize());
+        self.widget.configure(config, ctx);
+        self.update_root();
+        self.set_offset(offset);
     }
 
     fn update_root(&mut self) {
         let new_root = self.widget.root_object();
-        if new_root != &self.inner {
-            self.shape.remove_child(&self.inner);
-            self.shape.add_child(new_root);
-            self.inner = new_root.clone_ref();
+        if new_root != &self.widget_root {
+            self.port_root.remove_child(&self.widget_root);
+            self.port_root.add_child(new_root);
+            self.widget_root = new_root.clone_ref();
+        }
+    }
+
+    fn set_offset(&mut self, offset: usize) {
+        if self.last_offset != offset {
+            self.last_offset = offset;
+            self.port_root.set_margin_left(offset as f32 * SPACE_GLYPH_WIDTH);
         }
     }
 
     fn set_connected(&self, status: ConnectionStatus) {
         match status {
             ConnectionStatus::Connected { color } =>
-                self.shape.color.set(color::Rgba::from(color).into()),
-            ConnectionStatus::Disconnected => self.shape.color.modify(|c| c.xyz().push(0.0)),
+                self.port_shape.color.set(color::Rgba::from(color).into()),
+            ConnectionStatus::Disconnected => self.port_shape.color.modify(|c| c.xyz().push(0.0)),
         };
     }
 }
 
 impl display::Object for Port {
     fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
+        self.port_root.display_object()
     }
 }
