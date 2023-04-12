@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.error.displaytext;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
@@ -18,6 +19,7 @@ public abstract class ForbiddenOperationToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   Text doAtom(Atom self, @CachedLibrary(limit = "3") StructsLibrary structs) {
     return Text.create("Forbidden operation: ")
         .add(String.valueOf(structs.getField(self, 0)))
