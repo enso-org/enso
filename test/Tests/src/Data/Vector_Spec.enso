@@ -559,7 +559,6 @@ spec = Test.group "Vectors" <|
 
         ["aa", 2].sort . should_equal [2, "aa"]
         [2, Date.new 1999].sort . should_equal [2, Date.new 1999]
-        Test.expect_panic_with ([3,2,1].to_array.sort 42) Type_Error
 
     Test.specify "should leave the original vector unchanged" <|
         non_empty_vec = [2, 4, 2, 3, 2, 3]

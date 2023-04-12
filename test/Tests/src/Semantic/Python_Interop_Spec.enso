@@ -92,9 +92,9 @@ spec =
             vec = Vector.from_polyglot_array make_array
             vec.map .x . should_equal [30, 10, 20]
 
-            arr = vec.map .x . to_array
-            sorted = arr.sort
-            arr . should_equal [30, 10, 20]
+            mapped_vec = vec.map .x
+            sorted = mapped_vec.sort
+            mapped_vec . should_equal [30, 10, 20]
             sorted . should_equal [10, 20, 30]
 
             arr_2 = make_num_array
