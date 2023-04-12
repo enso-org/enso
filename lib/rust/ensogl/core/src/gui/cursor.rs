@@ -384,7 +384,7 @@ impl Cursor {
 
                 match &new_style.trash {
                     None => trash.target.emit(0.0),
-                    Some(t) => trash.target.emit(1.0),
+                    Some(_) => trash.target.emit(1.0),
                 }
 
                 *model.style.borrow_mut() = new_style.clone();

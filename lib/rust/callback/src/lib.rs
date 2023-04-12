@@ -178,7 +178,7 @@ impl<F: ?Sized> RegistryModel<F> {
             });
         };
         self.is_running.set(true);
-        run_callbacks(&mut *self.callback_list.borrow_mut());
+        run_callbacks(&mut self.callback_list.borrow_mut());
         while !self.callback_list_during_run.borrow().is_empty() {
             let mut new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
             run_callbacks(&mut new_callbacks);

@@ -3171,7 +3171,6 @@ impl Model {
             self.refresh_layout_internal(Y, PassConfig::Default);
             let new_size = self.layout.computed_size.get();
             if old_size != new_size {
-                self.on_resized_source.emit(new_size);
                 self.dirty.computed_size.set();
             }
         }
@@ -3200,17 +3199,24 @@ where
 
 trait ResolutionDimImpl {
     fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool;
+    fn last_pass(self) -> bool;
 }
 
 impl ResolutionDimImpl for X {
     fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool {
         matches! { flow, AutoLayoutFlow::Row }
     }
+    fn last_pass(self) -> bool {
+        false
+    }
 }
 
 impl ResolutionDimImpl for Y {
     fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool {
         matches! { flow, AutoLayoutFlow::Column }
+    }
+    fn last_pass(self) -> bool {
+        true
     }
 }
 
@@ -3247,10 +3253,17 @@ impl Model {
     /// The main entry point from the recursive auto-layout algorithm.
     fn refresh_layout_internal<Dim>(&self, x: Dim, pass_cfg: PassConfig)
     where Dim: ResolutionDim {
+        let old_size = self.layout.computed_size.get();
         if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
             self.refresh_grid_layout(x, layout);
         } else {
             self.refresh_manual_layout(x, pass_cfg);
+        }
+        if x.last_pass() {
+            let new_size = self.layout.computed_size.get();
+            if old_size != new_size {
+                self.on_resized_source.emit(new_size);
+            }
         }
     }
 

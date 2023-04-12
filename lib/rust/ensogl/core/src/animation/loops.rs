@@ -318,7 +318,7 @@ impl<T> FixedFrameRateStep<T> {
 /// times. In case the skipped frame count is too big, the provided function will be called with the
 /// [`FixedFrameRateStep::TooManyFramesSkipped`] argument indicating the animation engine to skip
 /// the animation completely.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct FixedFrameRateSampler {
     desired_fps:        f32,
     max_skipped_frames: usize,
@@ -364,6 +364,12 @@ impl FixedFrameRateSampler {
             self.time_buffer = 0.ms();
             f(FixedFrameRateStep::TooManyFramesSkipped);
         }
+    }
+}
+
+impl Default for FixedFrameRateSampler {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

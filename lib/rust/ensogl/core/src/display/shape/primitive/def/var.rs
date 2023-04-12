@@ -6,7 +6,6 @@ use std::ops::*;
 
 use crate::data::color;
 use crate::data::mix::mix;
-use crate::data::mix::Mixable;
 use crate::display::shape::primitive::def::unit::PixelDistance;
 use crate::system::gpu::shader::glsl::Glsl;
 

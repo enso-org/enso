@@ -108,6 +108,7 @@ impl<T: Debug> Debug for Event<T> {
 }
 
 /// Internal representation of [`Event`].
+#[allow(missing_docs)]
 #[derive(Deref, Derivative)]
 #[derivative(Default(bound = "T: Default"))]
 pub struct EventData<T> {

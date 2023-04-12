@@ -231,7 +231,6 @@ mod placeholder {
 }
 
 use placeholder::Placeholder;
-use placeholder::WeakPlaceholder;
 
 
 // ===========
