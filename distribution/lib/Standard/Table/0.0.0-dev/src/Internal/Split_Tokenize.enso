@@ -96,7 +96,7 @@ fan_out_to_rows table input_column_name function =
         # Append each value.
         output_values.map v-> output_column_builder.append v
         # Append n copies of the input row position, n = # of output values.
-        0.up_to output_values.length . map _-> order_mask_positions.append i
+        repeat output_values.length <| order_mask_positions.append i
 
     # Build the output column
     output_storage = output_column_builder.seal
@@ -151,7 +151,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
                 # Add more builders if necessary to accommodate `output_values`.
                 if output_values.length > builders.length then
                     num_builders_needed = output_values.length - builders.length
-                    0.up_to num_builders_needed . map _->
+                    repeat num_builders_needed <|
                         builder = make_string_builder num_rows
 
                         # Pad the new builder with nulls
@@ -240,3 +240,7 @@ expect_text_column table column_id ~action =
                     Error.throw <| Invalid_Value_Type.Error Value_Type.Char column.value_type column_id
                 True ->
                     action
+
+## PRIVATE
+   Repeat a computation n times.
+repeat n ~action = 0.up_to n . map _-> action
