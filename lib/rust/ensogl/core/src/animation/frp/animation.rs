@@ -68,22 +68,22 @@ where mix::Repr<T>: inertia::Value
         let simulator = AnimationSimulator::<T>::new(on_step, (), on_end);
         simulator.set_precision(DEFAULT_PRECISION);
         frp::extend! { network
-            target     <- any_mut::<T>();
-            precision  <- any_mut::<f32>();
-            skip       <- any_mut::<()>();
+            target <- any_mut::<T>();
+            precision <- any_mut::<f32>();
+            skip <- any_mut::<()>();
             set_spring <- any_mut::<inertia::Spring>();
-            set_mass   <- any_mut::<inertia::Mass>();
-            set_drag   <- any_mut::<inertia::Drag>();
-            set_velocity  <- any_mut::<T>();
-            set_value  <- any_mut::<T>();
-            eval target     ((t) simulator.set_target_value(mix::into_space(t.clone())));
-            eval precision  ((t) simulator.set_precision(*t));
-            eval_ skip      (simulator.skip());
+            set_mass <- any_mut::<inertia::Mass>();
+            set_drag <- any_mut::<inertia::Drag>();
+            set_velocity <- any_mut::<T>();
+            set_value <- any_mut::<T>();
+            eval target ((t) simulator.set_target_value(mix::into_space(t.clone())));
+            eval precision ((t) simulator.set_precision(*t));
+            eval_ skip (simulator.skip());
             eval set_spring ((s) simulator.set_spring(*s));
-            eval set_mass   ((m) simulator.set_mass(*m));
-            eval set_drag   ((d) simulator.set_drag(*d));
-            eval set_velocity   ((t) simulator.set_velocity(mix::into_space(t.clone())));
-            eval set_value  ((t) simulator.set_value(mix::into_space(t.clone())));
+            eval set_mass ((m) simulator.set_mass(*m));
+            eval set_drag ((d) simulator.set_drag(*d));
+            eval set_velocity ((t) simulator.set_velocity(mix::into_space(t.clone())));
+            eval set_value ((t) simulator.set_value(mix::into_space(t.clone())));
         }
         let value = value_src.into();
         let on_end = on_end_src.into();

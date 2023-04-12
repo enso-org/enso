@@ -830,7 +830,6 @@ impl LayerModel {
         layer
     }
 
-
     /// Create a new sublayer to this layer. It will inherit this layer's camera, but will not be
     /// rendered as a part of standard layer stack. Instead, it will only be rendered as a mask for
     /// other layers. See [`Layer::set_mask`] for more information. Note that this will not set up
@@ -1032,6 +1031,7 @@ impl<S: Shape> From<&'_ LayerSymbolPartition<S>> for AnySymbolPartition {
         Self { shape, id }
     }
 }
+
 
 
 // =========================

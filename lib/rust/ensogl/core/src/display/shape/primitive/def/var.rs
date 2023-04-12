@@ -745,6 +745,8 @@ impl Var<color::Rgba> {
         }
     }
 
+    /// Mix two values based on the given factor, according to the formula:
+    /// `first_value * (1 - factor) + second_value * factor`.
     pub fn mix(self, other: &Var<color::Rgba>, amount: &Var<f32>) -> Self {
         match (self, other, amount) {
             (Var::Static(this), Var::Static(that), Var::Static(amount)) => {

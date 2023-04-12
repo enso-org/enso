@@ -179,7 +179,7 @@ impl<T:Storable> {
 
     /// Set data value at the given id.
     pub fn set_at(&mut self, id: attribute::InstanceId, value:T) {
-         let index: usize = self.indexes.borrow()[id.raw].into();
+        let index: usize = self.indexes.borrow()[id.raw].into();
         *self.buffer.index_mut(index) = value;
     }
 

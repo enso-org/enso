@@ -99,6 +99,7 @@ impl Style {
         Self { size, color, ..default() }
     }
 
+    /// Set the cursor to a trash icon, a red circle with "x" inside of it.
     pub fn trash() -> Self {
         let trash = Some(StyleValue::new(1.0));
         Self { trash, ..default() }

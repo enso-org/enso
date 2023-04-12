@@ -876,7 +876,6 @@
 //! node2.set_size((2.0, 3.0));
 //! node3.set_size((3.0, 4.0));
 //! root.use_auto_layout().justify_content_space_evenly_x();
-//! // FIXME: wrong code
 //! ```
 //!
 //! ## Future Grid layout extensions.
