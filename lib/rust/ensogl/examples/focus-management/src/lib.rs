@@ -30,6 +30,7 @@ const RECT_DIFF: f32 = 40.0;
 mod rectangle {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style: Style, color: Vector4<f32>, border_size: f32, border_color: Vector4<f32>) {
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
@@ -45,6 +46,7 @@ mod rectangle {
 mod rectangle2 {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style: Style) {
             let rect = Rect((10.px(), 10.px()));
             let shape = rect.fill(color::Rgba::new(0.0, 1.0, 0.0, 1.0));

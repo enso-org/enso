@@ -76,6 +76,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let theme             = ensogl_hardcoded_theme::graph_editor::breadcrumbs::background;
             let theme             = style::Path::from(&theme);

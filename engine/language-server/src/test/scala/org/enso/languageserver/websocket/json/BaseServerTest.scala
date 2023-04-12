@@ -34,9 +34,9 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpcProtocolFactory
 }
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
+import org.enso.languageserver.search.SuggestionsHandler.ProjectNameUpdated
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.vcsmanager.{Git, VcsManager}
@@ -51,7 +51,7 @@ import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
 }
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
@@ -135,7 +135,6 @@ class BaseServerTest
   val zioExec         = ZioExec(new TestRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
 
   val initializationComponent = SequentialResourcesInitialization(
     new DirectoriesInitialization(config.directories),
@@ -143,8 +142,7 @@ class BaseServerTest
       config.directories,
       system.eventStream,
       sqlDatabase,
-      suggestionsRepo,
-      versionsRepo
+      suggestionsRepo
     )
   )
 
@@ -230,7 +228,6 @@ class BaseServerTest
           config,
           contentRootManagerWrapper,
           suggestionsRepo,
-          versionsRepo,
           sessionRouter,
           runtimeConnectorProbe.ref
         ),
@@ -255,7 +252,7 @@ class BaseServerTest
       Api.GetTypeGraphResponse(typeGraph)
     )
     Await.ready(initializationComponent.init(), timeout)
-    system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
+    suggestionsHandler ! ProjectNameUpdated("Test")
 
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)

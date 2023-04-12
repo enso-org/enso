@@ -2,6 +2,8 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
@@ -64,7 +66,7 @@ public class BoolBuilder extends TypedBuilder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (storage.getType() == getType()) {
+    if (storage.getType().equals(getType())) {
       if (storage instanceof BoolStorage boolStorage) {
         BitSets.copy(boolStorage.getValues(), vals, size, boolStorage.size());
         BitSets.copy(boolStorage.getIsMissing(), isNa, size, boolStorage.size());
@@ -99,17 +101,17 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public boolean canRetypeTo(long type) {
+  public boolean canRetypeTo(StorageType type) {
     return false;
   }
 
   @Override
-  public TypedBuilder retypeTo(long type) {
+  public TypedBuilder retypeTo(StorageType type) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public int getType() {
-    return Storage.Type.BOOL;
+  public StorageType getType() {
+    return BooleanType.INSTANCE;
   }
 }

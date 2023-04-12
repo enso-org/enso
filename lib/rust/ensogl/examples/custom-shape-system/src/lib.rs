@@ -23,6 +23,7 @@ use ensogl_core::display::object::ObjectOps;
 mod shape {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let circle1    = Circle(50.px());
             let circle_bg  = circle1.translate_x(-(50.0.px()));

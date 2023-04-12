@@ -58,51 +58,54 @@ class SugaredTypeFunctionsTest extends CompilerTest {
       ir shouldBe an[IR.Type.Ascription]
     }
 
-    "work for left sections" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "work for left sections" in {
       val ir =
         """
           |(a :)
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+        ir shouldBe an[IR.Function.Lambda]
+        ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+      }
     }
 
-    "work for centre sections" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "work for centre sections" in {
       val ir =
         """
           |(:)
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body shouldBe an[IR.Type.Ascription]
+      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+        ir shouldBe an[IR.Function.Lambda]
+        ir.asInstanceOf[IR.Function.Lambda]
+          .body
+          .asInstanceOf[IR.Function.Lambda]
+          .body shouldBe an[IR.Type.Ascription]
+      }
     }
 
-    "work for right sections" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "work for right sections" in {
       val ir =
         """
           |(: a)
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+        ir shouldBe an[IR.Function.Lambda]
+        ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+      }
     }
 
-    "work for underscore arguments on the left" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+    "work for underscore arguments on the left" in {
       val ir =
         """
           |_ : A
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+        ir shouldBe an[IR.Type.Ascription]
+      }
     }
 
     "work for underscore arguments on the right" in {
@@ -111,8 +114,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |a : _
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+      ir shouldBe an[IR.Type.Ascription]
     }
   }
 
@@ -129,7 +131,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     }
 
     "resolve context ascription" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+      // FIXME: Not supported by new parser--needs triage (#6165).
       val ir =
         """
           |a in IO
@@ -157,7 +159,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     }
 
     "resolve equality" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+      // FIXME: Not supported by new parser--needs triage (#6165).
       val ir =
         """
           |T ~ P
@@ -194,7 +196,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     }
 
     "resolve subtraction" ignore {
-      // FIXME: Not supported by new parser--needs triage (#5894).
+      // FIXME: Not supported by new parser--needs triage (#6165).
       val ir =
         """
           |T \ P

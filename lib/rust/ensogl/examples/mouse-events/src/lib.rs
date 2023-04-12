@@ -44,6 +44,7 @@ mod shape {
     use super::*;
 
     shape! {
+        alignment = center;
         (style: Style) {
             Circle(100.px()).fill(color::Rgb(1.0,0.0,0.0)).into()
         }

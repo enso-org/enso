@@ -128,6 +128,8 @@
   eliminating the need for fully qualified names.
 - [Added tooltips to icon buttons][6035] for improved usability. Users can now
   quickly understand each button's function.
+- [File associations are created on Windows and macOS][6077]. This allows
+  opening Enso files by double-clicking them in the file explorer.
 
 #### EnsoGL (rendering engine)
 
@@ -179,6 +181,8 @@
   all symbols rendered in a given frame. You can also pause the performance
   monitor and inspect results recorded in the past.
 - [ToggleButtons can now have tooltips][6035].
+- [Rendering of tooltips was improved.][6097] Their text is now more vertically
+  centered and the delay before showing them was extended.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -186,6 +190,7 @@
 [4003]: https://github.com/enso-org/enso/pull/4003
 [5895]: https://github.com/enso-org/enso/pull/5895
 [6035]: https://github.com/enso-org/enso/pull/6035
+[6097]: https://github.com/enso-org/enso/pull/6097
 
 #### Enso Standard Library
 
@@ -363,8 +368,17 @@
 - [Aligned names of columns created by column operations.][5850]
 - [Improved `cross_tab`. Renamed `fill_missing` and `is_missing` to
   `fill_nothing` and `is_nothing`. Added `fill_empty`.][5863]
-- [Removed many regex compile flags from `replace`; added `only_first`
-  flag.][5959]
+- [Removed many regex compile flags from `replace`; added `only_first` and
+  `use_regex` flag.][5959]
+- [Implemented proper support for Value Types in the Table library.][6073]
+- [Removed many regex compile flags from `split`; added `only_first` and
+  `use_regex` flag.][6116]
+- [Added `Text.tokenize`][6150]
+- [Added support for Date/Time columns in the Postgres backend and added
+  `year`/`month`/`day` operations to Table columns.][6153]
+- [`Text.split` can now take a vector of delimiters.][6156]
+- [Implemented `Table.union` for the Database backend.][6204]
+- [Array & Vector have the same methods & behavior][6218]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -553,6 +567,14 @@
 [5917]: https://github.com/enso-org/enso/pull/5917
 [5705]: https://github.com/enso-org/enso/pull/5705
 [5959]: https://github.com/enso-org/enso/pull/5959
+[6073]: https://github.com/enso-org/enso/pull/6073
+[6116]: https://github.com/enso-org/enso/pull/6116
+[6150]: https://github.com/enso-org/enso/pull/6150
+[6153]: https://github.com/enso-org/enso/pull/6153
+[6156]: https://github.com/enso-org/enso/pull/6156
+[6204]: https://github.com/enso-org/enso/pull/6204
+[6077]: https://github.com/enso-org/enso/pull/6077
+[6218]: https://github.com/enso-org/enso/pull/6218
 
 #### Enso Compiler
 
@@ -655,6 +677,8 @@
 - [Don't install Python component on Windows][5900]
 - [Detect potential name conflicts between exported types and FQNs][5966]
 - [Ensure calls involving warnings remain instrumented][6067]
+- [One can define lazy atom fields][6151]
+- [Replace IOContexts with Execution Environment and generic Context][6171]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -758,6 +782,8 @@
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
 [6067]: https://github.com/enso-org/enso/pull/6067
+[6151]: https://github.com/enso-org/enso/pull/6151
+[6171]: https://github.com/enso-org/enso/pull/6171
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

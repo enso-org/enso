@@ -26,6 +26,7 @@ pub const HOVER_PADDING: f32 = 5.0;
 pub mod arrow {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             let height : Var<Pixels> = "input_size.y".into();
             let zoom                 = Var::<f32>::from("1.0/zoom()");

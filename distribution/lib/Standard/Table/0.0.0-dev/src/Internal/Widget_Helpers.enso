@@ -16,8 +16,10 @@ make_column_name_selector table display=Display.Always =
    Selector for type argument on `Column.parse`.
 parse_type_selector : Single_Choice
 parse_type_selector =
-    choice = ['Auto', 'Integer', 'Decimal', 'Date', 'Date_Time', 'Time_Of_Day', 'Boolean']
-    Single_Choice display=Display.Always values=(choice.map n->(Option n))
+    choice = ['Auto', 'Value_Type.Integer', 'Value_Type.Float', 'Value_Type.Date', 'Value_Type.Date_Time', 'Value_Type.Time', 'Value_Type.Boolean']
+    names = ['Auto', 'Integer', 'Float', 'Date', 'Date_Time', 'Time', 'Boolean']
+    options = names.zip choice . map pair-> Option pair.first pair.second
+    Single_Choice display=Display.Always values=options
 
 ## PRIVATE
    Selector for type argument on `Column.parse`.

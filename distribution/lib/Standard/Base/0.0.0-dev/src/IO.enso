@@ -2,7 +2,9 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Nothing.Nothing
 
-## Prints the provided message to standard error.
+## PRIVATE
+   ADVANCED
+   Prints the provided message to standard error.
 
    Arguments:
    - message: The message to print. It will have to_text called on it to
@@ -15,7 +17,9 @@ import project.Nothing.Nothing
 print_err : Any -> Nothing
 print_err message = @Builtin_Method "IO.print_err"
 
-## Prints the provided message to standard output.
+## PRIVATE
+   ADVANCED
+   Prints the provided message to standard output.
 
    Arguments:
    - message: The message to print. It will have to_text called on it to
@@ -28,7 +32,9 @@ print_err message = @Builtin_Method "IO.print_err"
 println : Any -> Nothing
 println message = @Builtin_Method "IO.println"
 
-## Reads a line from standard input.
+## PRIVATE
+   ADVANCED
+   Reads a line from standard input.
 
    > Example
      Read a line from standard input.
