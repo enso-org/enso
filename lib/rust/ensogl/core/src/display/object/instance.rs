@@ -1404,6 +1404,20 @@ impl ParentBind {
     fn parent(&self) -> Option<Instance> {
         self.parent.upgrade()
     }
+
+    /// Drop this parent bind without removing the child from the parent's children list, assuming
+    /// it has been already done. Does not mark `modified_children` dirty flag, as the `child_index`
+    /// is already outdated.
+    fn drop_manually_removed_from_child_list(self, weak_child: WeakInstance) {
+        if let Some(parent) = self.parent() {
+            if let Some(child) = weak_child.upgrade() {
+                child.dirty.new_parent.set();
+            }
+            parent.dirty.removed_children.set(weak_child);
+        }
+        // do not perform usual drop
+        mem::forget(self);
+    }
 }
 
 impl Drop for ParentBind {
@@ -1413,8 +1427,8 @@ impl Drop for ParentBind {
                 parent.dirty.modified_children.unset(&self.child_index);
                 if let Some(child) = weak_child.upgrade() {
                     child.dirty.new_parent.set();
-                    parent.dirty.removed_children.set(weak_child);
                 }
+                parent.dirty.removed_children.set(weak_child);
             }
         }
     }
@@ -1455,6 +1469,13 @@ impl SharedParentBind {
 
     fn parent_and_child_index(&self) -> Option<(Instance, ChildIndex)> {
         self.data.borrow().as_ref().and_then(|t| t.parent().map(|s| (s, t.child_index)))
+    }
+
+    fn matches(&self, parent: &WeakInstance, child_index: ChildIndex) -> bool {
+        self.data
+            .borrow()
+            .as_ref()
+            .map_or(false, |t| t.child_index == child_index && &t.parent == parent)
     }
 
     fn child_index(&self) -> Option<ChildIndex> {
@@ -1937,7 +1958,7 @@ impl Model {
                 if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
-                            self.children.borrow().get(&ix).and_then(|t| t.upgrade()).for_each(
+                            self.children.borrow().get(ix).and_then(|t| t.upgrade()).for_each(
                                 |child| {
                                     child.update_with_origin(
                                         scene,
@@ -2037,9 +2058,92 @@ impl InstanceDef {
         children.into_iter().for_each(|child| self.add_child(child.display_object()));
     }
 
-    fn replace_children<T: Object>(&self, children: impl IntoIterator<Item = T>) {
-        self.remove_all_children();
-        self.add_children(children);
+    /// Replace children with object from the provided list. Objects that are already children of
+    /// this instance will be moved to the new position. Objects that are not children of this
+    /// instance will change their parent and will be inserted in the right position.
+    ///
+    /// This method avoids unnecessary dirty flag updates and is more efficient than removing all
+    /// children and adding them again. Children that only swapped their position will be marked
+    /// as modified, but not as having a new parent. Children that are already under the right index
+    /// will not be marked as modified.
+    ///
+    /// Has no effect if the provided list matches the current children list, as long as the
+    /// internal child indices were already sequential starting from 0. If that's not the case,
+    /// the children will be marked as updated.
+    ///
+    /// NOTE: If the list contain duplicated objects (instances that are clones of the same ref),
+    /// the behavior is undefined. It will however not cause any memory unsafety and all objects
+    /// will remain in some valid state.
+    fn replace_children<T: Object>(&self, new_children: &[T]) {
+        let this_weak = self.downgrade();
+
+        for (index, child) in new_children.iter().enumerate() {
+            let child = child.display_object();
+            let child_index = ChildIndex(index);
+
+            let mut bind_borrow = child.parent_bind.data.borrow_mut();
+            if let Some(bind) = bind_borrow.as_mut().filter(|bind| bind.parent == this_weak) {
+                // The child is already a child of this instance. Set the new index.
+                if bind.child_index != child_index {
+                    self.dirty.modified_children.unset(&bind.child_index);
+                    self.dirty.modified_children.set(child_index);
+                    bind.child_index = child_index;
+                }
+            } else {
+                // This was not a child of this instance. Set the new parent.
+                drop(bind_borrow);
+                child.take_parent_bind();
+                let new_parent_bind = ParentBind { parent: this_weak.clone(), child_index };
+                child.set_parent_bind(new_parent_bind);
+                self.dirty.modified_children.set(child_index);
+            }
+        }
+
+        let mut borrow = self.children.borrow_mut();
+        // Drop all children that are not in the new list.
+        {
+            for (child_index, weak_instance) in borrow.iter() {
+                let index = child_index.0;
+                if let Some(instance) = weak_instance.upgrade() {
+                    let bind_index = instance.parent_bind.child_index();
+                    if bind_index != Some(*child_index) {
+                        // Bind index updated in the loop above. This means that the child has to
+                        // be preserved.
+                        continue;
+                    }
+                    let child = new_children.get(index);
+                    let matching = child.map_or(false, |c| c.display_object() == &instance);
+
+                    if matching {
+                        // The child under this index is the same as the one in the new list. We
+                        // want to preserve it.
+                        continue;
+                    }
+
+                    // For all other children, we want to drop them, but making sure to not mark
+                    // any newly inserted children as removed. This can happen, if existing element
+                    // has ben moved to an index occupied by an element we are about to remove.
+                    if let Some(bind) = instance.take_parent_bind() {
+                        if bind.child_index.0 >= new_children.len() {
+                            self.dirty.modified_children.unset(&bind.child_index);
+                        }
+                        bind.drop_manually_removed_from_child_list(weak_instance.clone());
+                    }
+                }
+            }
+        }
+
+        // Fill in the child list.
+        borrow.clear();
+        for (index, child) in new_children.iter().enumerate() {
+            let child = child.display_object();
+            let child_index = ChildIndex(index);
+            // Check again if the parent bind is is still in expected state. If the children list
+            // contained any duplicates, we don't want to insert them twice.
+            if child.parent_bind.matches(&this_weak, child_index) {
+                borrow.insert(ChildIndex(index), child.downgrade());
+            }
+        }
     }
 
     fn register_child(&self, child: &InstanceDef) -> ChildIndex {
@@ -3949,7 +4053,7 @@ pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
         self.display_object().def.add_children(children);
     }
 
-    fn replace_children<T: Object>(&self, children: impl IntoIterator<Item = T>) {
+    fn replace_children<T: Object>(&self, children: &[T]) {
         self.display_object().def.replace_children(children);
     }
 

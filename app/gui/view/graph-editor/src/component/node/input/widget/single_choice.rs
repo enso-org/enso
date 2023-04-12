@@ -166,8 +166,6 @@ impl super::SpanWidget for Widget {
         let focus_receiver = display_object.clone_ref();
 
         frp::extend! { network
-            label.set_content <+ input.content.on_change();
-
             let focus_in = focus_receiver.on_event::<event::FocusIn>();
             let focus_out = focus_receiver.on_event::<event::FocusOut>();
             is_open <- bool(&focus_out, &focus_in);
@@ -193,7 +191,9 @@ impl super::SpanWidget for Widget {
             eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
         }
         frp::extend! { network
-            entries_and_value <- all(&input.set_entries, &input.current_value);
+            current_value     <- input.current_value.on_change();
+            entries           <- input.set_entries.on_change();
+            entries_and_value <- all(&entries, &current_value);
             entries_and_value <- entries_and_value.debounce();
             entries_and_value <- entries_and_value.buffered_gate(&is_open);
         }
@@ -213,6 +213,19 @@ impl super::SpanWidget for Widget {
             submitted_entry <- dropdown_entry.sample(&dropdown.user_select_action);
             dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Entry::value));
             dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
+
+            label.set_content <+ input.content.on_change();
+            has_value <- entries_and_value.map(|(_, v)| v.is_some()).on_change();
+            eval has_value([label] (&has_value) {
+                let color = if has_value {
+                    color::Lcha::new(0.0, 0.0, 0.0, 1.0)
+                } else {
+                    color::Lcha::new(0.5, 0.0, 0.0, 1.0)
+                };
+                let weight = if has_value { text::Weight::Bold } else { text::Weight::Normal };
+                label.set_property_default(color);
+                label.set_property_default(weight);
+            });
         }
         frp::extend! { network
 

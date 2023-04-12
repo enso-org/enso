@@ -440,14 +440,33 @@ impl RootModel {
         tree_node: &span_tree::node::Ref,
     ) -> Option<WidgetTreePointer> {
         if let Some(id) = tree_node.node.ast_id {
-            Some(WidgetTreePointer {
-                id:         Some(id),
-                crumbs:     default(),
-                nested_key: None,
-            })
+            // This span represents an AST node, return a pointer directly to it.
+            Some(WidgetTreePointer { id: Some(id), crumbs: default() })
         } else {
-            // TODO
-            None
+            let root = tree_node.span_tree.root_ref();
+            let root_ast_data = root.ast_id.map(|id| (id, 0));
+
+            // When the node does not represent an AST node, its widget will be identified by the
+            // closest parent AST node, if it exists. We have to find the closest parent node with
+            // AST ID, and then calculate the relative crumbs from it to the current node.
+            let (_, ast_parent_data) = tree_node.crumbs.into_iter().enumerate().fold(
+                (root, root_ast_data),
+                |(node, last_seen), (index, crumb)| {
+                    let ast_data = node.node.ast_id.map(|id| (id, index + 1)).or(last_seen);
+                    (node.child(*crumb).expect("Node ref must be valid"), ast_data)
+                },
+            );
+
+            match ast_parent_data {
+                // Parent AST node found, return a pointer relative to it.
+                Some((ast_id, ast_parent_index)) => {
+                    let crumb_slice = &tree_node.crumbs[ast_parent_index..];
+                    let crumbs = span_tree::Crumbs::new(crumb_slice.to_vec());
+                    Some(WidgetTreePointer { id: Some(ast_id), crumbs })
+                }
+                // No parent AST node found. Return a pointer from root.
+                None => Some(WidgetTreePointer { id: None, crumbs: tree_node.crumbs.clone() }),
+            }
         }
     }
 
@@ -494,12 +513,9 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct WidgetTreePointer {
     /// The latest set ast::Id in the span tree.
-    id:         Option<ast::Id>,
+    id:     Option<ast::Id>,
     /// Remaining crumbs to the widget, starting from the node with the latest set ast::Id.
-    crumbs:     span_tree::Crumbs,
-    /// The optional additional identifier of the widget that is attached to the same node as its
-    /// parent. Used to distinguish between multiple widgets attached to the same node.
-    nested_key: Option<usize>,
+    crumbs: span_tree::Crumbs,
 }
 
 #[derive(Debug)]
@@ -540,7 +556,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
     ) -> display::object::Instance {
-        self.create_child_widget(span_tree_node, depth, None, None)
+        self.create_child_widget(span_tree_node, depth, None)
     }
 
     #[must_use]
@@ -549,9 +565,8 @@ impl<'a> WidgetTreeBuilder<'a> {
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
         meta: Metadata,
-        key: usize,
     ) -> display::object::Instance {
-        self.create_child_widget(span_tree_node, depth, Some(meta), Some(key))
+        self.create_child_widget(span_tree_node, depth, Some(meta))
     }
 
 
@@ -560,7 +575,6 @@ impl<'a> WidgetTreeBuilder<'a> {
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
         set_metadata: Option<Metadata>,
-        nested_key: Option<usize>,
     ) -> display::object::Instance {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
@@ -575,7 +589,7 @@ impl<'a> WidgetTreeBuilder<'a> {
                 let prev_crumbs =
                     std::mem::replace(&mut self.last_ast_id_crumbs, span_tree_node.crumbs.clone());
                 ast_data_to_restore = Some((prev_ast_id, prev_crumbs));
-                WidgetTreePointer { id: Some(ast_id), crumbs: default(), nested_key }
+                WidgetTreePointer { id: Some(ast_id), crumbs: default() }
             }
             None => {
                 let this_crumbs = &span_tree_node.crumbs;
@@ -585,7 +599,7 @@ impl<'a> WidgetTreeBuilder<'a> {
                 let id = self.last_ast_id;
                 let crumbs_since_id = &this_crumbs[self.last_ast_id_crumbs.len()..];
                 let crumbs = span_tree::Crumbs::new(crumbs_since_id.to_vec());
-                WidgetTreePointer { id, crumbs, nested_key }
+                WidgetTreePointer { id, crumbs }
             }
         };
 
