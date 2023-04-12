@@ -90,11 +90,9 @@ mod placeholder {
         pub frp:        placeholder::Frp,
         root:           display::object::Instance,
         self_ref:       Rc<RefCell<Option<Rc<SpacerModel>>>>,
-        margin_left:    Cell<f32>,
         collapsing:     Rc<Cell<bool>>,
         size_animation: Animation<f32>,
-        viz:            Option<Rectangle>,
-        debug:          Rc<Cell<bool>>,
+        _viz:           Option<Rectangle>,
     }
 
     impl SpacerModel {
@@ -102,10 +100,9 @@ mod placeholder {
             let frp = placeholder::Frp::new();
             let root = display::object::Instance::new();
             let self_ref = default();
-            let margin_left = default();
             let collapsing = default();
             let size_animation = Animation::<f32>::new(frp.network());
-            let viz = DEBUG_PLACEHOLDERS_VIZ.then(|| {
+            let _viz = DEBUG_PLACEHOLDERS_VIZ.then(|| {
                 let viz = RoundedRectangle(10.0).build(|t| {
                     t.set_size(Vector2::new(0.0, 20.0))
                         .allow_grow_x()
@@ -116,8 +113,7 @@ mod placeholder {
                 root.add_child(&viz);
                 viz
             });
-            let debug = default();
-            Self { frp, root, self_ref, margin_left, collapsing, size_animation, viz, debug }
+            Self { frp, root, self_ref, collapsing, size_animation, _viz }
         }
     }
 
@@ -129,42 +125,25 @@ mod placeholder {
             let collapsing = &model.collapsing;
             let self_ref = &model.self_ref;
 
-            let debug = model.debug.clone_ref();
             let network = &model.frp.network();
             let size_animation = &model.size_animation;
             size_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             frp::extend! { network
-                eval size_animation.target ([debug] (t) {
-                    if debug.get() {
-                        warn!("size_animation target = {}", t);
-                    }
-                });
                 size_animation.target <+ model.frp.private.input.set_target_size_no_animation;
                 size_animation.skip <+ model.frp.private.input.set_target_size_no_animation.constant(());
                 size_animation.set_value <+ model.frp.private.input.set_current_size;
                 size_animation.skip <+ model.frp.private.input.skip_animation;
 
                 tg <- model.frp.private.input.set_target_size.on_change();
-                size_animation.set_velocity <+ tg.constant(0.0);
                 size_animation.target <+ tg;
-                // trace tg;
-                eval size_animation.value ([debug, root](t) {
-                    if debug.get() {
-                        warn!("size_animation value = {}", t);
+                eval size_animation.value ((t) { root.set_size_x(*t); });
+                eval_ size_animation.on_end ([collapsing, self_ref] {
+                    if collapsing.get() {
+                        self_ref.borrow_mut().take();
                     }
-                    root.set_size_x(*t);
                 });
-                // eval_ size_animation.on_end ([collapsing, self_ref] {
-                //     if collapsing.get() {
-                //         self_ref.borrow_mut().take();
-                //     }
-                // });
             }
             Self { model }
-        }
-
-        pub fn set_debug(&self, debug: bool) {
-            self.model.debug.set(debug);
         }
 
         pub fn new_with_size(size: f32) -> Self {
@@ -183,11 +162,6 @@ mod placeholder {
             self.collapsing.set(true);
         }
 
-        pub fn collapse2(&self) {
-            *self.self_ref.borrow_mut() = Some(self.model.clone());
-            self.collapsing.set(true);
-        }
-
         pub fn drop_self_ref(&self) {
             *self.self_ref.borrow_mut() = None;
         }
@@ -200,16 +174,12 @@ mod placeholder {
         pub fn add_to_size(&self, delta: f32) {
             self.size_animation.simulator.update_value(|v| v + delta);
         }
+    }
 
-        // pub fn set_margin_left(&self, margin: f32) {
-        //     let current_margin = self.margin_left.get();
-        //     let margin_diff = margin - current_margin;
-        //     self.margin_left.set(margin);
-        //     self.size_animation.simulator.update_value(|v| v + margin_diff);
-        //     if !self.collapsing.get() {
-        //         self.size_animation.simulator.update_target_value(|v| v + margin_diff);
-        //     }
-        // }
+    impl Default for Placeholder {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl display::Object for Placeholder {
@@ -231,6 +201,7 @@ mod placeholder {
 }
 
 use placeholder::Placeholder;
+use placeholder::WeakPlaceholder;
 
 
 // ===========
@@ -271,8 +242,8 @@ mod spot {
             placeholder.add_child(&elem);
             let network = frp.network();
             let elem_display_object = elem.display_object();
-            let margin_left = Animation::<f32>::new_with_init(&network, 0.0);
-            let elem_offset = Animation::<Vector2>::new_with_init(&network, elem.position().xy());
+            let margin_left = Animation::<f32>::new_with_init(network, 0.0);
+            let elem_offset = Animation::<Vector2>::new_with_init(network, elem.position().xy());
             margin_left.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             elem_offset.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             let debug = Rc::new(Cell::new(false));
@@ -283,7 +254,7 @@ mod spot {
                 elem_size <- elem_display_object.on_transformed.map(f!((_)
                     elem_display_object.computed_size().x
                 ));
-                target_size <= all_with(&elem_size, &margin_left.target, f!([debug](w, m) {
+                target_size <= all_with(&elem_size, &margin_left.value, f!([debug](w, m) {
                     let out = w + m;
                     let out = if *w > 0.0 {
                         Some(out)
@@ -296,7 +267,7 @@ mod spot {
                     out
                 }));
                 placeholder.frp.set_target_size <+ target_size;
-                eval_ <- all_with(&margin_left.value, &elem_offset.value, f!((m, o) {
+                _eval <- all_with(&margin_left.value, &elem_offset.value, f!((m, o) {
                     elem_display_object.set_xy(*o + Vector2(*m, 0.0));
                 }));
 
@@ -318,11 +289,6 @@ mod spot {
         pub fn set_margin_left(&self, margin: f32) {
             self.frp.set_margin_left.emit(margin)
         }
-
-        pub fn set_debug(&self, debug: bool) {
-            self.placeholder.set_debug(debug);
-            self.debug.set(debug);
-        }
     }
 
     impl<T> display::Object for DropSpot<T> {
@@ -336,7 +302,7 @@ use spot::DropSpot;
 #[derive(Debug)]
 pub enum Item<T> {
     Placeholder(Placeholder),
-    // WeakPlaceholder(WeakPlaceholder),
+    WeakPlaceholder(WeakPlaceholder),
     DropSpot(DropSpot<T>),
 }
 
@@ -345,14 +311,14 @@ impl<T: display::Object> Item<T> {
         matches!(self, Self::Placeholder(_))
     }
 
-    // pub fn is_weak_placeholder(&self) -> bool {
-    //     matches!(self, Self::WeakPlaceholder(_))
-    // }
+    pub fn is_weak_placeholder(&self) -> bool {
+        matches!(self, Self::WeakPlaceholder(_))
+    }
 
     pub fn display_object(&self) -> Option<display::object::Instance> {
         match self {
             Item::Placeholder(t) => Some(t.display_object().clone_ref()),
-            // Item::WeakPlaceholder(t) => t.upgrade().map(|t| t.display_object().clone_ref()),
+            Item::WeakPlaceholder(t) => t.upgrade().map(|t| t.display_object().clone_ref()),
             Item::DropSpot(t) => Some(t.display_object().clone_ref()),
         }
     }
@@ -365,14 +331,13 @@ impl<T: display::Object> Item<T> {
         match self {
             Item::Placeholder(_) => true,
             Item::DropSpot(_) => true,
-            // Item::WeakPlaceholder(t) => t.upgrade().is_some(),
+            Item::WeakPlaceholder(t) => t.upgrade().is_some(),
         }
     }
 
     pub fn upgraded_weak_placeholder(&self) -> Option<Placeholder> {
         match self {
-            Item::Placeholder(placeholder) => Some(placeholder.clone()),
-            // Item::WeakPlaceholder(t) => t.upgrade(),
+            Item::WeakPlaceholder(t) => t.upgrade(),
             _ => None,
         }
     }
@@ -489,26 +454,7 @@ impl<T> Items<T> {
         for item in self {
             if let Item::Placeholder(placeholder) = item {
                 placeholder.collapse();
-                // *item = Item::WeakPlaceholder(placeholder.downgrade());
-            }
-        }
-    }
-
-    fn collapse_all_placeholders_but(&mut self, index: usize) {
-        for (i, item) in self.iter_mut().enumerate() {
-            if i != index {
-                if let Item::Placeholder(placeholder) = item {
-                    placeholder.collapse();
-                }
-            }
-        }
-    }
-
-    fn collapse_all_placeholders2(&mut self) {
-        for item in self {
-            if let Item::Placeholder(placeholder) = item {
-                placeholder.collapse2();
-                // *item = Item::WeakPlaceholder(placeholder.downgrade());
+                *item = Item::WeakPlaceholder(placeholder.downgrade());
             }
         }
     }
@@ -573,17 +519,17 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             on_move_pressed <- on_move.gate(&pressed);
             glob_pos_on_move <- on_move_pressed.map(|event| event.client_centered());
             pos_on_move <- glob_pos_on_move.map(f!([root, model] (p) model.borrow().screen_to_object_space(&root, *p)));
-            glob_pos_offset_on_move <- map2(&pos_on_move, &pos_on_down, |a, b| a - b);
+            pos_offset_on_move <- map2(&pos_on_move, &pos_on_down, |a, b| a - b);
 
             // Discover whether the elements are dragged. They need to be moved vertically by at
             // least the [`DRAG_THRESHOLD`].
-            threshold_gate <- glob_pos_offset_on_move.map(|t| t.y.abs() >= DRAG_THRESHOLD);
-            trigger <- on_move_pressed.gate(&threshold_gate);
-            status <- bool(&on_up, &trigger).on_change();
+            drag_gate <- pos_offset_on_move.map(|t| t.y.abs() >= DRAG_THRESHOLD);
+            pos_offset_on_drag <- pos_offset_on_move.gate(&drag_gate);
+            status <- bool(&on_up, &pos_offset_on_drag).on_change();
             start <- status.on_true();
             target_on_start <- target.sample(&start);
 
-            trashing <- glob_pos_offset_on_move.map(|t| t.y.abs() >= 100.0).on_change();
+            trashing <- pos_offset_on_drag.map(|t| t.y.abs() >= 100.0).on_change();
             on_trashing <- trashing.on_true();
             on_trash <- on_up.gate(&trashing);
             eval trashing ((t) cursor.frp.set_style(if *t { cursor::Style::trash() } else { cursor::Style::default() }));
@@ -596,7 +542,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             // trace center_points;
 
             // Move the dragged element.
-            target_new_pos <- map2(&glob_pos_offset_on_move, &target_pos_on_down, |a, b| a + b);
+            target_new_pos <- map2(&pos_offset_on_drag, &target_pos_on_down, |a, b| a + b);
             _eval <- target_new_pos.map2(&target, |pos, t| t.set_xy(*pos));
 
             pos_non_trash <- pos_on_move.gate_not(&trashing);
@@ -641,28 +587,28 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     fn recompute_margins(&self) {
-        // let mut first_elem = true;
-        // for item in &self.items {
-        //     match item {
-        //         Item::DropSpot(t) => {
-        //             let gap = if first_elem { 0.0 } else { GAP };
-        //             t.set_margin_left(gap);
-        //             first_elem = false;
-        //         }
-        //         Item::Placeholder(_) => {
-        //             first_elem = false;
-        //         }
-        //         _ => {}
-        //     }
-        // }
+        warn!("recompute margins!");
+        let mut first_elem = true;
+        for item in &self.items {
+            match item {
+                Item::DropSpot(t) => {
+                    let gap = if first_elem { 0.0 } else { GAP };
+                    t.set_margin_left(gap);
+                    first_elem = false;
+                }
+                Item::Placeholder(_) => {
+                    first_elem = false;
+                }
+                _ => {}
+            }
+        }
     }
 
-    fn first_non_weak_placeholder_index(&self) -> Option<usize> {
+    fn first_non_placeholder_index(&self) -> Option<usize> {
         let mut index = 0;
         for item in &self.items {
             match item {
-                Item::DropSpot(t) => return Some(index),
-                Item::Placeholder(_) => return Some(index),
+                Item::DropSpot(_) => return Some(index),
                 _ => index += 1,
             }
         }
@@ -804,28 +750,36 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn potential_insertion_point(&mut self, index: usize) {
         warn!("Potential insertion point: {}.", index);
         if let Some(item) = self.dragged_item.as_ref() {
-            self.items.collapse_all_placeholders2();
+            self.items.collapse_all_placeholders();
 
-            let gap = self.first_non_weak_placeholder_index().map_or(0.0, |i| {
-                if index <= i {
-                    0.0
-                } else {
-                    GAP
-                }
-            });
-            let gap = 0.0;
+            let gap =
+                self.first_non_placeholder_index().map_or(
+                    0.0,
+                    |i| {
+                        if index <= i {
+                            0.0
+                        } else {
+                            GAP
+                        }
+                    },
+                );
+            warn!(
+                "first_non_placeholder_index: {:?}, gap: {}",
+                self.first_non_placeholder_index(),
+                gap
+            );
             let size = item.computed_size().x + gap;
             let prev_index = index.checked_sub(1);
             let old_placeholder = self
                 .get_upgraded_weak_placeholder(index)
                 .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
             if let Some((index, placeholder)) = old_placeholder {
-                self.items.collapse_all_placeholders_but(index);
+                // self.items.collapse_all_placeholders_but(index);
                 placeholder.reuse();
                 placeholder.set_target_size(size);
                 self.items[index] = placeholder.into();
             } else {
-                self.items.collapse_all_placeholders_but(999);
+                // self.items.collapse_all_placeholders_but(999);
                 warn!("NEW PLACEHOLDER!");
                 let placeholder = Placeholder::new_with_size(0.0);
                 placeholder.set_target_size(size);
@@ -847,7 +801,6 @@ impl<T: display::Object + frp::node::Data> Model<T> {
             let placeholder = self
                 .get_upgraded_weak_placeholder(index)
                 .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
-            let size = item.computed_size().x + GAP;
             if let Some((index, placeholder)) = placeholder {
                 placeholder.reuse();
                 // TODO: describe
@@ -856,10 +809,8 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 let item_position = item.global_position().xy();
                 item.set_xy(item_position - placeholder_position);
                 let spot = DropSpot::new_from_placeholder(item, placeholder);
-                // spot.set_debug(true);
                 let spot_frp = spot.frp.clone_ref();
                 self.items[index] = Item::DropSpot(spot);
-                // self.items.collapse_all_placeholders();
                 self.recompute_margins();
                 spot_frp.skip_margin_anim();
             } else {
@@ -934,18 +885,17 @@ mod trash {
 
     #[derive(Debug)]
     pub struct TrashModel<T> {
-        frp:      Frp,
-        elem:     T,
-        self_ref: Rc<RefCell<Option<Rc<TrashModel<T>>>>>,
+        _frp: Frp,
+        elem: T,
     }
 
     impl<T: display::Object + 'static> Trash<T> {
         pub fn new(elem: T) -> Self {
             let self_ref = Rc::new(RefCell::new(None));
-            let frp = Frp::new();
+            let _frp = Frp::new();
             let display_object = elem.display_object();
-            let network = &frp.network;
-            let scale_animation = Animation::<f32>::new_with_init(&network, 1.0);
+            let network = &_frp.network;
+            let scale_animation = Animation::<f32>::new_with_init(network, 1.0);
             scale_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             frp::extend! { network
                 eval scale_animation.value ((t) display_object.set_scale_xy(Vector2(*t,*t)));
@@ -953,7 +903,7 @@ mod trash {
             }
             scale_animation.target.emit(0.0);
 
-            let model = TrashModel { frp, elem, self_ref: self_ref.clone() };
+            let model = TrashModel { _frp, elem };
             let model = Rc::new(model);
             *self_ref.borrow_mut() = Some(model.clone());
             Self { model }
@@ -1025,7 +975,7 @@ pub fn main() {
             });
             Rc::new(shape)
         });
-        vector_editor.push <+ vector_editor.request_new_item.map2(&new_item, |index, item|
+        vector_editor.push <+ vector_editor.request_new_item.map2(&new_item, |_, item|
             item.downgrade()
         );
     }
