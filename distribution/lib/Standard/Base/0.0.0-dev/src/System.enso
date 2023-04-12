@@ -26,7 +26,9 @@ polyglot java import java.lang.System as Java_System
 create_process : Text -> Array -> Text -> Boolean -> Boolean -> Boolean -> System_Process_Result
 create_process command arguments input redirect_in redirect_out redirect_err = @Builtin_Method "System.create_process"
 
-## Exits the Enso program, returning the provided code to the parent
+## PRIVATE
+   ADVANCED
+   Exits the Enso program, returning the provided code to the parent
    process.
 
    Arguments:
@@ -39,7 +41,9 @@ create_process command arguments input redirect_in redirect_out redirect_err = @
 exit : Integer -> Nothing
 exit code = @Builtin_Method "System.exit"
 
-## Gets the nanosecond resolution system time at the moment of the call.
+## PRIVATE
+   ADVANCED
+   Gets the nanosecond resolution system time at the moment of the call.
 
    > Example
      Getting the current value of the nanosecond timer.

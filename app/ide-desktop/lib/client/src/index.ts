@@ -12,27 +12,24 @@ import process from 'node:process'
 
 import * as electron from 'electron'
 
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
 import * as debug from 'debug'
+// eslint-disable-next-line no-restricted-syntax
+import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
 import * as naming from 'naming'
 import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import * as utils from '../../../utils'
 
 const logger = contentConfig.logger
-
-// =================
-// === Constants ===
-// =================
-
-/** Indent size for outputting JSON. */
-const INDENT_SIZE = 4
 
 // ===========
 // === App ===
@@ -47,16 +44,30 @@ class App {
     isQuitting = false
 
     async run() {
-        const { args, windowSize, chromeOptions } = configParser.parseArgs()
-        this.args = args
+        // Register file associations for macOS.
+        electron.app.on('open-file', fileAssociations.onFileOpened)
+
+        const { windowSize, chromeOptions, fileToOpen } = this.processArguments()
+        if (fileToOpen != null) {
+            try {
+                // This makes the IDE open the relevant project. Also, this prevents us from using this
+                // method after IDE has been fully set up, as the initializing code would have already
+                // read the value of this argument.
+                this.args.groups.startup.options.project.value =
+                    fileAssociations.handleOpenFile(fileToOpen)
+            } catch (e) {
+                // If we failed to open the file, we should enter the usual welcome screen.
+                // The `handleOpenFile` function will have already displayed an error message.
+            }
+        }
         if (this.args.options.version.value) {
             await this.printVersion()
-            process.exit()
+            electron.app.quit()
         } else if (this.args.groups.debug.options.info.value) {
             await electron.app.whenReady().then(async () => {
                 await debug.printInfo()
+                electron.app.quit()
             })
-            process.exit()
         } else {
             this.setChromeOptions(chromeOptions)
             security.enableAll()
@@ -72,6 +83,19 @@ class App {
             })
             this.registerShortcuts()
         }
+    }
+
+    processArguments() {
+        // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
+        // Electron-Proper distinction.
+        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(
+            fileAssociations.CLIENT_ARGUMENTS
+        )
+        // If we are opening a file (i.e. we were spawned with just a path of the file to open as
+        // the argument), it means that effectively we don't have any non-standard arguments.
+        // We just need to let caller know that we are opening a file.
+        const argsToParse = fileToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
+        return { ...configParser.parseArgs(argsToParse), fileToOpen }
     }
 
     /** Set Chrome options based on the app configuration. For comprehensive list of available
@@ -292,7 +316,7 @@ class App {
     }
 
     printVersion(): Promise<void> {
-        const indent = ' '.repeat(INDENT_SIZE)
+        const indent = ' '.repeat(utils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)
@@ -354,6 +378,12 @@ class App {
 // ===================
 // === App startup ===
 // ===================
+
+process.on('uncaughtException', (err, origin) => {
+    console.error(`Uncaught exception: ${String(err)}\nException origin: ${origin}`)
+    electron.dialog.showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString())
+    electron.app.exit(1)
+})
 
 const APP = new App()
 void APP.run()

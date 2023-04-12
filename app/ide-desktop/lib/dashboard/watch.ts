@@ -19,8 +19,7 @@ const HTTP_STATUS_OK = 200
 // `outputPath` does not have to be a real directory because `write` is `false`,
 // meaning that files will not be written to the filesystem.
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
-// The path must also not be `/` otherwise SSEs are not sent on rebuilds.
-const ARGS: bundler.Arguments = { outputPath: '/tmp/', devMode: true }
+const ARGS: bundler.Arguments = { outputPath: '/', devMode: true }
 const OPTS = bundler.bundlerOptions(ARGS)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
@@ -28,6 +27,8 @@ OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.write = false
+// eslint-disable-next-line @typescript-eslint/naming-convention
+OPTS.loader = { '.html': 'copy' }
 
 // ===============
 // === Watcher ===

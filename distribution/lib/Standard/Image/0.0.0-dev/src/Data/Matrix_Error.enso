@@ -1,10 +1,8 @@
 from Standard.Base import all
 
-## UNSTABLE
+## PRIVATE
 type Matrix_Error
-
-    ## UNSTABLE
-
+    ## PRIVATE
        Indicates that a matrix has been accessed with an illegal index.
 
        Arguments:
@@ -13,14 +11,12 @@ type Matrix_Error
        - index: The requested index in the matrix.
     Index_Out_Of_Bounds rows columns index
 
-    ## UNSTABLE
-
+    ## PRIVATE
        An error indicating that an operation has failed due to a mismatch of
        matrix dimensions.
     Dimensions_Not_Equal
 
-    ## UNSTABLE
-
+    ## PRIVATE
        Pretty-prints a matrix error to be readable by the users.
     to_display_text : Text
     to_display_text self = case self of

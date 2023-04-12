@@ -576,6 +576,13 @@ ensogl::define_endpoints_2! {
         toggle_profiling_mode(),
 
 
+        // === Execution Environment ===
+
+        set_execution_environment(ExecutionEnvironment),
+        // TODO(#5930): Temporary shortcut for testing different execution environments
+        toggle_execution_environment(),
+
+
         // === Debug ===
 
         /// Enable or disable debug-only features.
@@ -616,6 +623,9 @@ ensogl::define_endpoints_2! {
         edit_node_expression         ((NodeId, text::Range<text::Byte>, ImString)),
         set_node_skip                ((NodeId,bool)),
         set_node_freeze              ((NodeId,bool)),
+        /// Set whether the output context is explicitly enabled for a node: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_node_context_switch      ((NodeId, Option<bool>)),
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
@@ -690,26 +700,27 @@ ensogl::define_endpoints_2! {
         // === Other ===
         // FIXME: To be refactored
 
-        node_added                (NodeId, Option<NodeSource>, bool),
-        node_removed              (NodeId),
-        nodes_collapsed           ((Vec<NodeId>, NodeId)),
-        node_hovered              (Option<Switch<NodeId>>),
-        node_selected             (NodeId),
-        node_deselected           (NodeId),
-        node_position_set         ((NodeId,Vector2)),
-        node_position_set_batched ((NodeId,Vector2)),
-        node_expression_set       ((NodeId,ImString)),
-        node_expression_span_set  ((NodeId, span_tree::Crumbs, ImString)),
-        node_expression_edited    ((NodeId,ImString,Vec<Selection<text::Byte>>)),
-        node_comment_set          ((NodeId,String)),
-        node_entered              (NodeId),
-        node_exited               (),
-        node_editing_started      (NodeId),
-        node_editing_finished     (NodeId),
-        node_action_freeze        ((NodeId, bool)),
-        node_action_skip          ((NodeId, bool)),
-        node_edit_mode            (bool),
-        nodes_labels_visible      (bool),
+        node_added                 (NodeId, Option<NodeSource>, bool),
+        node_removed               (NodeId),
+        nodes_collapsed            ((Vec<NodeId>, NodeId)),
+        node_hovered               (Option<Switch<NodeId>>),
+        node_selected              (NodeId),
+        node_deselected            (NodeId),
+        node_position_set          ((NodeId,Vector2)),
+        node_position_set_batched  ((NodeId,Vector2)),
+        node_expression_set        ((NodeId,ImString)),
+        node_expression_span_set   ((NodeId, span_tree::Crumbs, ImString)),
+        node_expression_edited     ((NodeId,ImString,Vec<Selection<text::Byte>>)),
+        node_comment_set           ((NodeId,String)),
+        node_entered               (NodeId),
+        node_exited                (),
+        node_editing_started       (NodeId),
+        node_editing_finished      (NodeId),
+        node_action_context_switch ((NodeId, bool)),
+        node_action_freeze         ((NodeId, bool)),
+        node_action_skip           ((NodeId, bool)),
+        node_edit_mode             (bool),
+        nodes_labels_visible       (bool),
 
 
         /// `None` value as a visualization path denotes a disabled visualization.
@@ -1621,6 +1632,10 @@ impl GraphEditorModelWithNetwork {
 
             // === Actions ===
 
+            model.frp.private.output.node_action_context_switch <+ node.view.context_switch.map(
+                f!([] (active) (node_id, *active))
+            );
+
             eval node.view.freeze ((is_frozen) {
                 model.frp.private.output.node_action_freeze.emit((node_id,*is_frozen));
             });
@@ -1685,6 +1700,11 @@ impl GraphEditorModelWithNetwork {
             let profiling_max_duration              = &self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration <+ self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration(profiling_max_duration.value());
+
+
+            // === Execution Environment ===
+
+            node.set_execution_environment <+ self.model.frp.set_execution_environment;
         }
 
 
@@ -1995,6 +2015,13 @@ impl GraphEditorModel {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.set_freeze_macro(*freeze);
+        }
+    }
+
+    fn set_node_context_switch(&self, node_id: impl Into<NodeId>, context_switch: &Option<bool>) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_context_switch(*context_switch);
         }
     }
 
@@ -2670,6 +2697,8 @@ impl application::View for GraphEditor {
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
+            // TODO(#5930): Temporary shortcut for testing different execution environments
+            (Press, "", "cmd shift c", "toggle_execution_environment"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
@@ -3182,11 +3211,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
-    // === Set Node SKIP and FREEZE macros ===
+    // === Set Node SKIP/FREEZE macros and context switch expression ===
 
     frp::extend! { network
         eval inputs.set_node_skip(((id, skip)) model.set_node_skip(id, skip));
         eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(id, freeze));
+        eval inputs.set_node_context_switch(((id, context_switch))
+            model.set_node_context_switch(id, context_switch)
+        );
     }
 
 
@@ -3869,6 +3901,47 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 impl display::Object for GraphEditor {
     fn display_object(&self) -> &display::object::Instance {
         self.model.display_object()
+    }
+}
+
+
+
+// =============================
+// === Execution Environment ===
+// =============================
+
+// TODO(#5930): Move me once we synchronise the execution environment with the language server.
+/// The execution environment which controls the global execution of functions with side effects.
+///
+/// For more information, see
+/// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
+#[derive(Debug, Clone, CloneRef, Copy, Default)]
+pub enum ExecutionEnvironment {
+    /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
+    /// changes.
+    #[default]
+    Design,
+    /// Unrestricted, live editing of data.
+    Live,
+}
+
+impl ExecutionEnvironment {
+    /// Returns whether the output context is enabled for this execution environment.
+    pub fn output_context_enabled(&self) -> bool {
+        match self {
+            Self::Design => false,
+            Self::Live => true,
+        }
+    }
+}
+
+impl Display for ExecutionEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match self {
+            Self::Design => "design",
+            Self::Live => "live",
+        };
+        write!(f, "{name}")
     }
 }
 

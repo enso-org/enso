@@ -6,7 +6,9 @@ import project.Any.Any
 
 from project.Errors.Common import Uninitialized_State
 
-## Executes a stateful computation in a local state environment.
+## PRIVATE
+   ADVANCED
+   Executes a stateful computation in a local state environment.
 
    Arguments:
    - key: The key to associate your local_state with in the environment.
@@ -23,7 +25,9 @@ from project.Errors.Common import Uninitialized_State
 run : Any -> Any -> Any -> Any
 run key local_state ~computation = @Builtin_Method "State.run"
 
-## Returns the current value for the provided key contained in the monadic
+## PRIVATE
+   ADVANCED
+   Returns the current value for the provided key contained in the monadic
    state.
 
    Arguments:
@@ -40,7 +44,9 @@ run key local_state ~computation = @Builtin_Method "State.run"
 get : Any -> Any ! Uninitialized_State
 get key = @Builtin_Method "State.get"
 
-## Associates a new_state with the provided key in the runtime's monadic
+## PRIVATE
+   ADVANCED
+   Associates a new_state with the provided key in the runtime's monadic
    state, returning the provided state.
 
    Arguments:

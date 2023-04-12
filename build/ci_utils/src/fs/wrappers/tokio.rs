@@ -11,6 +11,16 @@ pub fn metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::M
     tokio::fs::metadata(path).anyhow_err().boxed()
 }
 
+/// See [tokio::fs::symlink_metadata].
+pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::Metadata>> {
+    let path = path.as_ref().to_owned();
+    tokio::fs::symlink_metadata(path.clone())
+        .with_context(move || {
+            format!("Failed to obtain symlink metadata for file: {}", path.display())
+        })
+        .boxed()
+}
+
 #[context("Failed to open path for reading: {}", path.as_ref().display())]
 pub async fn open(path: impl AsRef<Path>) -> Result<File> {
     File::open(&path).await.anyhow_err()
@@ -38,9 +48,20 @@ pub async fn create_dir_all(path: impl AsRef<Path>) -> Result {
     tokio::fs::create_dir_all(&path).await.anyhow_err()
 }
 
-#[context("Failed to read the directory: {}", path.as_ref().display())]
-pub async fn read_dir(path: impl AsRef<Path>) -> Result<tokio::fs::ReadDir> {
-    tokio::fs::read_dir(&path).await.anyhow_err()
+pub async fn read_dir(
+    path: impl AsRef<Path>,
+) -> Result<impl Stream<Item = Result<tokio::fs::DirEntry>>> {
+    let path = path.as_ref().to_path_buf();
+    let read_dir = tokio::fs::read_dir(&path)
+        .await
+        .with_context(|| format!("Failed to read the directory: {}", path.display()))?;
+
+    let stream = tokio_stream::wrappers::ReadDirStream::new(read_dir);
+    Ok(stream.map(move |entry| {
+        entry.with_context(|| {
+            format!("Failed to get entry when reading the directory: {}", path.display())
+        })
+    }))
 }
 
 #[context("Failed to remove directory with the subtree: {}", path.as_ref().display())]

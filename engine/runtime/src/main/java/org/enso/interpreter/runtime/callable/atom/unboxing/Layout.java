@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /**
@@ -54,6 +55,7 @@ public class Layout {
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldGetterNode[]
       uncachedFieldGetters;
 
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) ArgumentDefinition[] args;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<
           ? extends UnboxingAtom.FieldSetterNode>[]
       fieldSetterFactories;
@@ -69,21 +71,28 @@ public class Layout {
       int[] fieldToStorage,
       NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories,
       NodeFactory<? extends UnboxingAtom.FieldSetterNode>[] fieldSetterFactories,
-      NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory) {
+      NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory,
+      ArgumentDefinition[] args) {
+    this.args = args;
     this.inputFlags = inputFlags;
     this.fieldToStorage = fieldToStorage;
     this.instantiatorFactory = instantiatorFactory;
     this.fieldGetterFactories = fieldGetterFactories;
     this.uncachedFieldGetters = new UnboxingAtom.FieldGetterNode[fieldGetterFactories.length];
-    for (int i = 0; i < fieldGetterFactories.length; i++) {
-      this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
-      assert this.uncachedFieldGetters[i] != null;
-    }
     this.fieldSetterFactories = fieldSetterFactories;
     this.uncachedFieldSetters = new UnboxingAtom.FieldSetterNode[fieldSetterFactories.length];
     for (int i = 0; i < fieldSetterFactories.length; i++) {
       if (fieldSetterFactories[i] != null) {
         this.uncachedFieldSetters[i] = fieldSetterFactories[i].getUncachedInstance();
+      }
+    }
+    for (int i = 0; i < fieldGetterFactories.length; i++) {
+      this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
+      assert this.uncachedFieldGetters[i] != null;
+      if (args[i].isSuspended()) {
+        this.uncachedFieldGetters[i] =
+            SuspendedFieldGetterNode.build(
+                this.uncachedFieldGetters[i], this.uncachedFieldSetters[i]);
       }
     }
   }
@@ -98,7 +107,7 @@ public class Layout {
    * factories for getters, setters and instantiators.
    */
   @SuppressWarnings("unchecked")
-  public static Layout create(int arity, long typeFlags) {
+  public static Layout create(int arity, long typeFlags, ArgumentDefinition[] args) {
     if (arity > 32) {
       throw new IllegalArgumentException("Too many fields in unboxed atom");
     }
@@ -137,7 +146,7 @@ public class Layout {
     var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
 
     return new Layout(
-        typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory);
+        typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory, args);
   }
 
   public UnboxingAtom.FieldGetterNode[] getUncachedFieldGetters() {
@@ -148,6 +157,10 @@ public class Layout {
     var getters = new UnboxingAtom.FieldGetterNode[fieldGetterFactories.length];
     for (int i = 0; i < fieldGetterFactories.length; i++) {
       getters[i] = fieldGetterFactories[i].createNode();
+      if (args[i].isSuspended()) {
+        var setterOrNull = buildSetter(i);
+        getters[i] = SuspendedFieldGetterNode.build(getters[i], setterOrNull);
+      }
     }
     return getters;
   }
@@ -157,7 +170,11 @@ public class Layout {
   }
 
   public UnboxingAtom.FieldGetterNode buildGetter(int index) {
-    return fieldGetterFactories[index].createNode();
+    var node = fieldGetterFactories[index].createNode();
+    if (args[index].isSuspended()) {
+      node = SuspendedFieldGetterNode.build(node, buildSetter(index));
+    }
+    return node;
   }
 
   public UnboxingAtom.FieldSetterNode getUncachedFieldSetter(int index) {
@@ -165,7 +182,8 @@ public class Layout {
   }
 
   public UnboxingAtom.FieldSetterNode buildSetter(int index) {
-    return fieldSetterFactories[index].createNode();
+    var fieldSetterFactory = fieldSetterFactories[index];
+    return fieldSetterFactory == null ? null : fieldSetterFactory.createNode();
   }
 
   public boolean isDoubleAt(int fieldIndex) {
@@ -233,7 +251,7 @@ public class Layout {
         if (layouts.length == this.unboxedLayouts.length) {
           // Layouts stored in this node are probably up-to-date; create a new one and try to
           // register it.
-          var newLayout = Layout.create(arity, flags);
+          var newLayout = Layout.create(arity, flags, boxedLayout.layout.args);
           constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
         }
         updateFromConstructor();
