@@ -933,7 +933,7 @@ type Column
                 t.trim where w
 
             self_vec = self.to_vector
-            mapped = self_vec.map_with_index i->t-> trim_fn t (trim_get.get i)
+            mapped = self_vec.map_with_index i->t-> trim_fn t (trim_get i)
             Column.from_vector new_name mapped
 
 
@@ -964,7 +964,7 @@ type Column
        > Example
          Replace texts in quotes with parentheses.
 
-             table.replace '"(.*?)"' '($1)' use_regex=True
+             column.replace '"(.*?)"' '($1)' use_regex=True
     replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
         Value_Type.expect_text self.value_type <|
@@ -976,7 +976,7 @@ type Column
 
                 do_replace index input =
                     term = term_fn index
-                    if term.is_empty then input else
+                    if term.is_nothing || term.is_empty then input else
                         replace = new_text_fn index
                         input.replace term replace case_sensitivity only_first use_regex
 
@@ -1654,4 +1654,4 @@ wrap_text_argument val field = case val of
     _ : Column -> Value_Type.expect_text val.value_type <|
         storage = val.java_column.getStorage
         i-> storage.getItemBoxed i
-    _ -> Error.throw (Illegal_State.Error "The `"+field+"` must be Text or a Text Column.")
+    _ -> Error.throw (Illegal_Argument.Error "The `"+field+"` must be Text or a Text Column.")
