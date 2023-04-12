@@ -109,7 +109,7 @@ const AUTHENTICATION_API = {
      *
      * Enso backend doesn't have access to Electron localStorage so we need to save access token to a file.
      * Then the token will be used to sign cloud API requests. */
-    setAccessTokenToFile: (accessToken: string) => {
+    saveAccessToken: (accessToken: string) => {
         electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessToken)
     },
 }

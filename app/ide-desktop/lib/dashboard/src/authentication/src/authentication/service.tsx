@@ -144,8 +144,10 @@ function loadAmplifyConfig(
          * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
          * we avoid unnecessary reloads/refreshes caused by redirects. */
         urlOpener = openUrlWithExternalBrowser
-        logger.log(`setAccessToken ${setAccessTokenToFile}`)
-        accessTokenSaver = setAccessTokenToFile
+
+        /** When running on destop we want to have option to save access token to a file,
+         * so it can be later reuse when issuing requests to Cloud API. */
+        accessTokenSaver = saveAccessToken
 
         /** To handle redirects back to the application from the system browser, we also need to
          * register a custom URL handler. */
@@ -165,8 +167,8 @@ function openUrlWithExternalBrowser(url: string) {
     window.authenticationApi.openUrlInSystemBrowser(url)
 }
 
-function setAccessTokenToFile(accessToken: string) {
-    window.authenticationApi.setAccessTokenToFile(accessToken)
+function saveAccessToken(accessToken: string) {
+    window.authenticationApi.saveAccessToken(accessToken)
 }
 
 /** Set the callback that will be invoked when a deep link to the application is opened.
