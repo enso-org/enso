@@ -1,10 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
 import Standard.Test.Extensions
 
-from Standard.Table import Table, Column
+from Standard.Table import Table
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
 from Standard.Test import Test, Test_Suite, Problems
 
