@@ -4,8 +4,8 @@ body {
   margin: 0;
 }
 
-/* These styles MUST still be copied as `#dashboard body` and `#dashboard html` make no sense. */
-.dashboard {
+/* These styles MUST still be copied as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
+.enso-dashboard {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -15,7 +15,7 @@ body {
   font-feature-settings: normal;
 }
 
-.dashboard {
+.enso-dashboard {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;

@@ -79,6 +79,8 @@ export const SET_USERNAME_PATH = '/set-username'
 interface BaseAppProps {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
+    /** Whether the dashboard should be rendered. */
+    enableDashboard: boolean
     onAuthenticated: () => void
 }
 
@@ -127,7 +129,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, onAuthenticated } = props
+    const { logger, enableDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
@@ -156,12 +158,15 @@ function AppRouter(props: AppProps) {
                             </router.Route>
                             {/* Protected pages are visible to authenticated users. */}
                             <router.Route element={<authProvider.ProtectedLayout />}>
-                                <router.Route
-                                    path={DASHBOARD_PATH}
-                                    element={<Dashboard {...props} />}
-                                />
+                                {enableDashboard && (
+                                    <router.Route
+                                        path={DASHBOARD_PATH}
+                                        element={<Dashboard {...props} />}
+                                    />
+                                )}
                                 <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                             </router.Route>
+                            )
                             {/* Other pages are visible to unauthenticated and authenticated users. */}
                             <router.Route
                                 path={CONFIRM_REGISTRATION_PATH}

@@ -184,16 +184,17 @@ class Main {
                     const onAuthenticated = () => {
                         if (!contentConfig.OPTIONS.groups.cloud.options.dashboard.value) {
                             hideAuth()
-                        }
-                        if (!appInstanceRan) {
-                            appInstanceRan = true
-                            void appInstance.run()
+                            if (!appInstanceRan) {
+                                appInstanceRan = true
+                                void appInstance.run()
+                            }
                         }
                     }
                     authentication.run({
                         logger,
                         platform,
                         projectManager: projectManager.ProjectManager.default(),
+                        enableDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
                         onAuthenticated,
                     })
                 } else {
