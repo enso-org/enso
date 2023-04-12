@@ -218,16 +218,20 @@ where
     }
 
     fn step(&self, time: animation::FixedFrameRateStep<Duration>) {
-        let (value, finished) = if let animation::FixedFrameRateStep::Normal(time) = time {
-            let sample = (time / self.duration.get()).min(1.0);
-            let finished = (sample - 1.0).abs() < std::f32::EPSILON;
-            let weight = (self.tween_fn)(sample);
-            let weight = if finished { 1.0 } else { weight };
-            let value = self.start_value.get() * (1.0 - weight) + self.target_value.get() * weight;
-            (value, finished)
-        } else {
-            let value = self.target_value.get();
-            (value, true)
+        let (value, finished) = match time {
+            animation::FixedFrameRateStep::Normal(time) => {
+                let sample = (time / self.duration.get()).min(1.0);
+                let finished = (sample - 1.0).abs() < std::f32::EPSILON;
+                let weight = (self.tween_fn)(sample);
+                let weight = if finished { 1.0 } else { weight };
+                let start_value = self.start_value.get();
+                let value = start_value * (1.0 - weight) + self.target_value.get() * weight;
+                (value, finished)
+            }
+            animation::FixedFrameRateStep::TooManyFramesSkipped => {
+                let value = self.target_value.get();
+                (value, true)
+            }
         };
         self.callback.call(value);
         self.value.set(value);

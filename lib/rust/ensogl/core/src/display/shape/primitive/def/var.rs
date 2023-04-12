@@ -756,7 +756,6 @@ impl Var<color::Rgba> {
                 let that = that.glsl();
                 let amount = amount.glsl();
                 let var = format!("mix({this}, {that}, {amount})");
-                // let var = format!("srgba(mix({this}.raw,{that}.raw,{amount}))");
                 Var::Dynamic(var.into())
             }
         }

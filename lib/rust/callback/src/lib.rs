@@ -136,7 +136,8 @@ impl<F: ?Sized> Registry<F> {
     }
 
     /// Fires all registered callbacks once and removes them. If new callbacks are registered during
-    /// running of existing callbacks, they will be run after all existing callbacks are fired.
+    /// running of existing callbacks, they will be run after all existing callbacks are fired and
+    /// will also be removed.
     fn run_once_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
     where F: FnOnce<Args> {
         self.model.run_once_impl(args)
