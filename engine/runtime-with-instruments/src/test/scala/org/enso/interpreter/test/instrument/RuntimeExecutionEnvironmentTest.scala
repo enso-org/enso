@@ -3,6 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.EnsoContext
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -29,6 +30,8 @@ class RuntimeExecutionEnvironmentTest
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with OsSpec {
+
+  import RuntimeExecutionEnvironmentTest.IF_ENABLED_METH_PTR
 
   override val timeLimit = 5.minutes
 
@@ -128,8 +131,6 @@ class RuntimeExecutionEnvironmentTest
 
   it should "panic when output context is not enabled" in {
 
-    pending
-
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -180,7 +181,10 @@ class RuntimeExecutionEnvironmentTest
       TestMessages.panic(
         contextId,
         idRes,
-        Api.ExpressionUpdate.Payload.Panic("Forbidden_Operation.Error", Seq())
+        IF_ENABLED_METH_PTR,
+        Api.ExpressionUpdate.Payload
+          .Panic("Forbidden operation: Output.", Seq(idRes)),
+        false
       ),
       context.executionComplete(contextId)
     )
@@ -199,8 +203,24 @@ class RuntimeExecutionEnvironmentTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId)),
+      Api.Response(
+        None,
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              idRes,
+              Some(ConstantsGen.NOTHING),
+              Some(IF_ENABLED_METH_PTR),
+              Vector(Api.ProfilingInfo.ExecutionTime(0)),
+              false,
+              Api.ExpressionUpdate.Payload.Value()
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -210,9 +230,6 @@ class RuntimeExecutionEnvironmentTest
   }
 
   it should "panic when input is not enabled" in {
-
-    pending
-
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -263,7 +280,10 @@ class RuntimeExecutionEnvironmentTest
       TestMessages.panic(
         contextId,
         idRes,
-        Api.ExpressionUpdate.Payload.Panic("Forbidden_Operation.Error", Seq())
+        IF_ENABLED_METH_PTR,
+        Api.ExpressionUpdate.Payload
+          .Panic("Forbidden operation: Input.", Seq(idRes)),
+        false
       ),
       context.executionComplete(contextId)
     )
@@ -282,8 +302,24 @@ class RuntimeExecutionEnvironmentTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId)),
+      Api.Response(
+        None,
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              idRes,
+              Some(ConstantsGen.INTEGER),
+              Some(IF_ENABLED_METH_PTR),
+              Vector(Api.ProfilingInfo.ExecutionTime(0)),
+              false,
+              Api.ExpressionUpdate.Payload.Value()
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
@@ -291,4 +327,12 @@ class RuntimeExecutionEnvironmentTest
       .name
   }
 
+}
+
+object RuntimeExecutionEnvironmentTest {
+  val IF_ENABLED_METH_PTR = Api.MethodPointer(
+    "Standard.Base.Runtime",
+    "Standard.Base.Runtime.Context",
+    "if_enabled"
+  )
 }
