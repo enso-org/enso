@@ -30,7 +30,7 @@ function TopBar(props: TopBarProps) {
             <div className="flex text-primary">
                 <div
                     className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mr-4 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
                     onClick={toggleTab}
                 >
                     <span
@@ -52,15 +52,15 @@ function TopBar(props: TopBarProps) {
                     </span>
                 </div>
                 <div className="flex items-center bg-label rounded-full px-2 w-140 max-w-2xl">
-                    <div className="mr-2">{svg.MAGNIFYING_GLASS_ICON}</div>
+                    <div>{svg.MAGNIFYING_GLASS_ICON}</div>
                     <input
-                        className="flex-1 bg-transparent"
                         type="text"
                         placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
                         value={searchVal}
                         onChange={event => {
                             setSearchVal(event.target.value)
                         }}
+                        className="flex-1 mx-2 bg-transparent"
                     />
                 </div>
             </div>

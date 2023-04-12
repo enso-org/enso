@@ -331,20 +331,22 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div className="text-primary text-xs" onClick={unsetModal}>
-            {/* These are placeholders. When implementing a feature,
-             * please replace the appropriate placeholder with the actual element.*/}
-            <TopBar
-                projectName={project?.name ?? null}
-                tab={tab}
-                toggleTab={() => {
-                    if (project) {
-                        setTab(tab === Tab.dashboard ? Tab.ide : Tab.dashboard)
-                    }
-                }}
-                searchVal={searchVal}
-                setSearchVal={setSearchVal}
-            />
             <div className={tab === Tab.dashboard ? '' : 'hidden'}>
+                <TopBar
+                    projectName={project?.name ?? null}
+                    tab={tab}
+                    toggleTab={() => {
+                        if (project && tab === Tab.dashboard) {
+                            setTab(Tab.ide)
+                        } else {
+                            setTab(Tab.dashboard)
+                        }
+                    }}
+                    searchVal={searchVal}
+                    setSearchVal={setSearchVal}
+                />
+                {/* This is a placeholder. When implementing a feature,
+                 * please replace it with the actual element.*/}
                 <div id="templates" />
                 <div className="flex flex-row flex-nowrap">
                     <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
