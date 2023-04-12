@@ -151,24 +151,29 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
  * Credentials file is placed in users home directory in `.enso` subdirectory in `credentials` file. */
 function initSaveAccessTokenListener() {
     electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string) => {
+        /** Enso home directory for credentials file.  */
         const ensoCredentialsDirectoryName = '.enso'
+        /** Enso credentials file. */
         const ensoCredentialsFileName = 'credentials'
+        /** System agnostic credentials directory home path. */
         const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
+
         fs.mkdir(ensoCredentialsHomePath, { recursive: true }, err => {
             if (err) {
                 logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
+            } else {
+                fs.writeFile(
+                    path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
+                    accessToken,
+                    err => {
+                        if (err) {
+                            logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
+                        }
+                    }
+                )
             }
         })
 
-        fs.writeFile(
-            path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
-            accessToken,
-            err => {
-                if (err) {
-                    logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
-                }
-            }
-        )
         event.preventDefault()
     })
 }
