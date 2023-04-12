@@ -488,6 +488,8 @@ class JsonConnectionController(
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextRecompute -> executioncontext.RecomputeHandler
         .props(requestTimeout, contextRegistry, rpcSession),
+      ExecutionContextSetExecutionEnvironment -> executioncontext.SetExecutionEnvironmentHandler
+        .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextInterrupt -> executioncontext.InterruptHandler
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextGetComponentGroups -> executioncontext.GetComponentGroupsHandler

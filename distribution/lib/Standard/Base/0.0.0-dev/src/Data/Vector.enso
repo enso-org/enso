@@ -225,7 +225,7 @@ type Vector a
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with the next element of the vector. After each step the
-       value is stored resulting in a new Vector of the same size as self.
+       value is stored resulting in a new vector of the same size as self.
 
        Arguments:
        - init: The initial value for the fold.
@@ -430,11 +430,11 @@ type Vector a
             if predicate ix elem then builder.append elem else builder
         builder.to_vector
 
-    ## Partitions the vector into vectors of elements which satisfy a given
+    ## Partitions the vector into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
 
-       Returns a `Pair` whose `first` element is the vector of elements
-       satisfying the predicate and the `second` element is a vector of elements
+       Returns a `Pair` whose `first` element is the `Vector` of elements
+       satisfying the predicate and the `second` element is a `Vector` of elements
        which did not satisfy it.
 
        The relative order of elements kept in each returned list is the same as
@@ -458,11 +458,11 @@ type Vector a
                     Pair.new acc.first (acc.second.append elem)
         pair.map .to_vector
 
-    ## Partitions the vector into vectors of elements which satisfy a given
+    ## Partitions the vector into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
 
-       Returns a `Pair` whose `first` element is the vector of elements
-       satisfying the predicate and the `second` element is a vector of elements
+       Returns a `Pair` whose `first` element is the `Vector` of elements
+       satisfying the predicate and the `second` element is a `Vector` of elements
        which did not satisfy it.
 
        The relative order of elements kept in each returned list is the same as
@@ -484,7 +484,7 @@ type Vector a
                 False -> Pair.new acc.first (acc.second.append elem)
         pair.map .to_vector
 
-    ## Applies a function to each element of the vector, returning the vector of
+    ## Applies a function to each element of the vector, returning the `Vector` of
        results.
 
        Arguments:
@@ -499,12 +499,12 @@ type Vector a
     map self function =
         Vector.new self.length i-> function (self.at i)
 
-    ## Applies a function to each element of the vector, returning the vector
+    ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
 
        Arguments:
        - function: A function that takes an element in the vector, transforms
-         it, and returns a vector.
+         it, and returns a `Vector`.
 
        > Example
          Replace each number `n` in the vector with itself repeated n times.
@@ -514,7 +514,7 @@ type Vector a
     flat_map self function =
         self.map function . flatten
 
-    ## Transforms a vector of vectors into a vector of inner elements - removes
+    ## Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
 
        > Example
@@ -530,7 +530,7 @@ type Vector a
             i + vec.length
         Vector.from_polyglot_array arr
 
-    ## Applies a function to each element of the vector, returning the vector
+    ## Applies a function to each element of the vector, returning the `Vector`
        of results.
 
        Arguments:
@@ -584,7 +584,7 @@ type Vector a
         0.up_to self.length . each ix->
             f ix (self.at ix)
 
-    ## Reverses the vector, returning a vector with the same elements, but in
+    ## Reverses the vector, returning a `Vector` with the same elements, but in
        the opposite order.
 
        > Example
@@ -624,7 +624,7 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## Concatenates two vectors, resulting in a new vector, containing all the
+    ## Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
        Arguments:
@@ -651,12 +651,12 @@ type Vector a
        Arguments:
        - at: The index at which to insert the item before.
          If the index is less than 0, the index will be counted back from the
-         end. If the index is equal to the length of the Vector, the item will
-         be appended to the end of the Vector.
+         end. If the index is equal to the length of the vector, the item will
+         be appended to the end of the vector.
        - item: The item to insert into the vector.
 
        > Example
-         Insert 'X' into ['a', 'b', 'c'] at different locations:
+         Insert 'X' into a vector at different locations:
 
             ['a', 'b', 'c'].insert 1 'X' == ['a', 'X', 'b', 'c']
             ['a', 'b', 'c'].insert -1 'X' == ['a', 'b', 'X', 'c']
@@ -723,11 +723,11 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = @Builtin_Method "Vector.slice"
 
-    ## Creates a new vector with only the specified range of elements from the
+    ## Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
        Arguments:
-       - range: The section of the this Vector to return.
+       - range: The section of the this vector to return.
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
@@ -743,10 +743,10 @@ type Vector a
         _ ->
             take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## Creates a new vector, removing any elements from the specified range.
+    ## Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
-       - range: The section of the this Vector to return.
+       - range: The section of the this vector to return.
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
@@ -762,7 +762,7 @@ type Vector a
        - function: The function used to combine pairwise elements of `self` and
          `that`.
 
-       The result of this function is a vector of length being the shorter of
+       The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
 
        > Example
@@ -791,14 +791,14 @@ type Vector a
        returned.
 
        > Example
-         Extending vector to the length of 5 returns `[1, 2, 3, 0, 0]`
+         Extending vector to the length of 5
 
-             [1, 2, 3].pad 5 0
+             [1, 2, 3].pad 5 0 == [1, 2, 3, 0, 0]
 
        > Example
-         Extending vector to the length of 5 returns `[1, 2, 3, 4, 5]`
+         Extending vector to the length of 5
 
-             [1, 2, 3, 4, 5].pad 5 0
+             [1, 2, 3, 4, 5].pad 5 0 == [1, 2, 3, 4, 5]
     pad : Integer -> Any -> Vector Any
     pad self n elem =
         if self.length >= n then self else
@@ -836,7 +836,7 @@ type Vector a
     second : Any ! Index_Out_Of_Bounds
     second self = self.at 1
 
-    ## Sort the Vector.
+    ## Sort the vector.
 
        Arguments:
        - order: The order in which the vector elements are sorted.
@@ -885,12 +885,12 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        new_vec_arr = self.to_array.sort compare
+        new_vec_arr = self.to_array.sort_builtin compare
         if new_vec_arr.is_error then Error.throw new_vec_arr else
             Vector.from_polyglot_array new_vec_arr
 
     ## UNSTABLE
-       Keeps only unique elements within the Vector, removing any duplicates.
+       Keeps only unique elements within the vector, removing any duplicates.
 
        Arguments:
        - on: A projection from the element type to the value of that element
@@ -923,7 +923,7 @@ type Vector a
         if result.is_error then result else builder.to_vector
 
     ## UNSTABLE
-       Returns the Vector as a Vector.
+       Returns the vector as a `Vector`.
     to_vector : Vector
     to_vector self = self
 
