@@ -1,6 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -10,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -42,7 +46,7 @@ public class IfVsCaseBenchmarks extends TestBase {
   private OutputStream out = new ByteArrayOutputStream();
 
   @Setup
-  public void initializeBench(BenchmarkParams params) {
+  public void initializeBench(BenchmarkParams params) throws IOException {
     ctx = Context.newBuilder("enso")
         .allowAllAccess(true)
         .logHandler(out)
@@ -60,7 +64,7 @@ public class IfVsCaseBenchmarks extends TestBase {
 
     var code = """
         from Standard.Base import all
-        
+
         type My_Type
             Value f1 f2 f3 f4 f5 f6
 
@@ -110,13 +114,19 @@ public class IfVsCaseBenchmarks extends TestBase {
                                     True -> case curr.f6 of
                                         False -> acc
                                         True -> acc + 1
-        
+
         create_vec polyglot_vec =
             Vector.from_polyglot_array polyglot_vec . map elem->
                 My_Type.Value (elem.at 0) (elem.at 1) (elem.at 2) (elem.at 3) (elem.at 4) (elem.at 5)
-        
+
         """;
-    Value module = ctx.eval("enso", code);
+
+    var file = File.createTempFile("if_case", ".enso");
+    try (var w = new FileWriter(file)) {
+      w.write(code);
+    }
+    var src = Source.newBuilder("enso", file).build();
+    Value module = ctx.eval(src);
     ifBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_3"));
     caseBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_3"));
     ifBench6 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_6"));
