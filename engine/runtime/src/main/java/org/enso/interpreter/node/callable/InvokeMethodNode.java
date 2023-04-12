@@ -169,7 +169,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw CompilerDirectives.shouldNotReachHere(
+          "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
+          e);
     }
 
     Type typeOfSymbol = symbol.resolveDeclaringType(types.getType(selfWithoutWarnings));
@@ -245,7 +247,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw CompilerDirectives.shouldNotReachHere(
+          "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
+          e);
     }
 
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
@@ -276,7 +280,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       arrOfWarnings = warnings.getWarnings(self, this);
     } catch (UnsupportedMessageException e) {
       // Not possible due to `hasWarnings` check
-      throw new IllegalStateException(e);
+      throw CompilerDirectives.shouldNotReachHere(
+          "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
+          e);
     }
     arguments[thisArgumentPosition] = selfWithoutWarnings;
 
