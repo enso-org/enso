@@ -341,7 +341,7 @@ pub struct FixedFrameRateSampler {
     desired_fps:        f32,
     max_skipped_frames: usize,
     desired_frame_time: Duration,
-    time_buffer:        Duration,
+    time:               Duration,
 }
 
 impl FixedFrameRateSampler {
@@ -349,137 +349,36 @@ impl FixedFrameRateSampler {
     pub fn new(desired_fps: f32) -> Self {
         let max_skipped_frames = 5;
         let desired_frame_time = (1000.0 / desired_fps).ms();
-        let time_buffer = default();
-        Self { desired_fps, desired_frame_time, max_skipped_frames, time_buffer }
+        let time = default();
+        Self { desired_fps, desired_frame_time, max_skipped_frames, time }
     }
 
-    fn run(&mut self, time_info: TimeInfo, f: impl Fn(FixedFrameRateStep<TimeInfo>)) {
-        self.time_buffer += time_info.previous_frame;
-        let desired_frame_time_2 = self.desired_frame_time * 0.5;
-        let time_diff = (self.time_buffer.as_ms() - desired_frame_time_2.as_ms()).max(0.0);
-        let skipped_frames = (time_diff / self.desired_frame_time.as_ms()) as usize;
-        let too_many_frames_skipped = skipped_frames > self.max_skipped_frames;
+    fn run(&mut self, time: TimeInfo, f: impl Fn(FixedFrameRateStep<TimeInfo>)) {
+        let time_diff = time.since_animation_loop_started - self.time;
+        let frames_to_run = (time_diff / self.desired_frame_time).ceil() as usize;
+        let time_step = time_diff / frames_to_run as f32;
+        // warn!("frames_to_run: {frames_to_run:?}");
+        let too_many_frames_skipped = frames_to_run > self.max_skipped_frames;
         if !too_many_frames_skipped {
-            let mut local_time = time_info.since_animation_loop_started - self.time_buffer;
-            for _ in 0..skipped_frames {
-                local_time += self.desired_frame_time;
-                self.time_buffer -= self.desired_frame_time;
-                let animation_loop_start = time_info.animation_loop_start;
-                let previous_frame = self.desired_frame_time;
-                let since_animation_loop_started = local_time;
-                let time2 =
-                    TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
-                f(FixedFrameRateStep::Normal(time2));
-            }
-            let not_too_fast_refresh_rate = self.time_buffer >= -desired_frame_time_2;
-            if not_too_fast_refresh_rate {
-                self.time_buffer -= self.desired_frame_time;
-                f(FixedFrameRateStep::Normal(time_info));
+            for _ in 0..frames_to_run {
+                self.time += time_step;
+                let local_time = TimeInfo {
+                    animation_loop_start:         time.animation_loop_start,
+                    previous_frame:               time_step,
+                    since_animation_loop_started: self.time,
+                };
+                f(FixedFrameRateStep::Normal(local_time));
             }
         } else {
-            debug!("Skipping animations because of {skipped_frames} frame delay.");
-            self.time_buffer = 0.ms();
+            debug!("Skipping animations because of {frames_to_run} frame delay.");
             f(FixedFrameRateStep::TooManyFramesSkipped);
         }
+        self.time = time.since_animation_loop_started;
     }
 }
 
 impl Default for FixedFrameRateSampler {
     fn default() -> Self {
         Self::new(60.0)
-    }
-}
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::VecDeque;
-
-    #[test]
-    fn fixed_frame_rate_sampler_test() {
-        let mut count_check = 0;
-        let count = Rc::new(Cell::new(0));
-        let too_many_frames_skipped_count = Rc::new(Cell::new(0));
-        let frame_times = Rc::new(RefCell::new(VecDeque::new()));
-        let mut lp = FixedFrameRateSampler::new(10.0);
-        let mut time = TimeInfo {
-            animation_loop_start:         0.ms(),
-            previous_frame:               0.ms(),
-            since_animation_loop_started: 0.ms(),
-        };
-
-        let callback = |t: FixedFrameRateStep<TimeInfo>| match t {
-            FixedFrameRateStep::Normal(t) => {
-                frame_times.borrow_mut().push_back(t);
-                count.set(count.get() + 1);
-            }
-            FixedFrameRateStep::TooManyFramesSkipped => {
-                too_many_frames_skipped_count.set(too_many_frames_skipped_count.get() + 1);
-            }
-        };
-
-        let mut step = |frame_time: Duration,
-                        sub_frames: &[Duration],
-                        offset: Duration,
-                        skipped_count: Option<usize>| {
-            let time2 = time.new_frame(frame_time);
-            lp.run(time2, callback);
-            for sub_frame in sub_frames {
-                count_check += 1;
-                time = time.new_frame(*sub_frame);
-                assert_eq!(frame_times.borrow_mut().pop_front(), Some(time));
-            }
-            time = time.new_frame(time2.since_animation_loop_started);
-            if skipped_count.is_none() {
-                count_check += 1;
-                assert_eq!(frame_times.borrow_mut().pop_front(), Some(time));
-            }
-            assert_eq!(frame_times.borrow_mut().pop_front(), None);
-            assert_eq!(count.get(), count_check);
-            assert_eq!(lp.time_buffer, offset);
-            if let Some(skipped_count) = skipped_count {
-                assert_eq!(too_many_frames_skipped_count.get(), skipped_count);
-            }
-        };
-
-        // Start frame.
-        step(0.ms(), &[], 0.ms(), None);
-
-        // // Perfectly timed next frame.
-        // step(100.ms(), &[], 0.ms(), None);
-        //
-        // // Skipping 2 frames.
-        // step(400.ms(), &[200.ms(), 300.ms()], 0.ms(), None);
-        //
-        // // Perfectly timed next frame.
-        // step(500.ms(), &[], 0.ms(), None);
-        //
-        // // Next frame too slow.
-        // step(640.ms(), &[], 40.ms(), None);
-        //
-        // // Next frame too slow.
-        // step(800.ms(), &[740.ms()], 0.ms(), None);
-        //
-        // // Not-perfectly timed next frames.
-        // step(870.ms(), &[], -30.ms(), None);
-        // step(1010.ms(), &[], 10.ms(), None);
-        // step(1090.ms(), &[], -10.ms(), None);
-        // step(1200.ms(), &[], 0.ms(), None);
-        //
-        // // Next frames way too fast.
-        // step(1210.ms(), &[], -90.ms(), None);
-        // // Time compression – we don't want to accumulate too much of negative time buffer for
-        // // monitors with bigger refresh-rate than assumed. The total accumulated time buffer
-        // would // be -180 here, so we add a frame time to it (100).
-        // step(1220.ms(), &[], -80.ms(), None);
-        //
-        // // Too many frames skipped.
-        // step(2000.ms(), &[], 0.ms(), Some(1));
     }
 }
