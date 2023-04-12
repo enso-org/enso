@@ -11,6 +11,8 @@ from Standard.Table import Value_Type
 from Standard.Table.Errors import Column_Count_Exceeded, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
 from project.Internal.Java_Exports import make_string_builder
 
+polyglot java import org.enso.table.data.mask.OrderMask
+
 ## PRIVATE
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
@@ -78,36 +80,43 @@ fan_out_to_columns table column function column_count=Auto on_problems=Report_Er
    - function: A function that transforms a single element of `input_column`
      to multiple values.
 fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
-fan_out_to_rows table column function =
-    input_column = table.get column
+fan_out_to_rows table input_column_name function =
+    input_column = table.at input_column_name
+    input_storage = input_column.java_column.getStorage
+    num_input_rows = input_storage.size
 
-    # Transform each input value to an output set.
-    output_value_sets = input_column.to_vector.map function
-    output_value_set_sizes = output_value_sets.map .length
-    num_input_rows = table.row_count
-    num_output_rows = output_value_set_sizes.fold 0 (+)
+    # Accumulates the output of the output column values.
+    output_column_builder = make_string_builder 0
+    # Accumulates repeated position indices for the order mask.
+    order_mask_positions = Vector.new_builder 0
 
-    ## Generate new columns for the output table. For the input_column, the
-       new column consists of the concatenation of the output value sets. For
-       each of the other columns, it consists of the elements of the input
-       column repeated a number times, with that number equal to the size of
-       the corresponding output value set.
+    0.up_to num_input_rows . map i->
+        input_value = input_storage.getItemBoxed i
+        output_values = function input_value
+        # Append each value.
+        output_values.map v-> output_column_builder.append v
+        # Append n copies of the input row position, n = # of output values.
+        0.up_to output_values.length . map _-> order_mask_positions.append i
+
+    # Build the output column
+    output_storage = output_column_builder.seal
+    output_column = Column.from_storage input_column_name output_storage
+
+    # Build the order mask.
+    order_mask = OrderMask.new (order_mask_positions.to_vector)
+
+    # Build the other columns, and include the output_column while doing it.
     new_columns = table.columns.map column->
-        builder = Vector.new_builder num_output_rows
-        case column.name == input_column.name of
+        case column.name == input_column_name of
             True ->
-                # The transformed column: concatenate output value sets.
-                output_value_sets.map values->
-                    builder.append_vector_range values
+                # Replace the input column with the output column.
+                output_column
             False ->
-                # The other columns: repeat the input values.
-                column_vector = column.to_vector
-                0.up_to num_input_rows . map i->
-                    repetition_count = output_value_set_sizes.at i
-                    input_value = column_vector.at i
-                    0.up_to repetition_count . map _->
-                        builder.append input_value
-        Column.from_vector column.name (builder.to_vector)
+                # Build a new column from the old one with the mask
+                old_storage = column.java_column.getStorage
+                new_storage = old_storage.applyMask order_mask
+                Column.from_storage column.name new_storage
+
     Table.new new_columns
 
 ## PRIVATE
