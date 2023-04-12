@@ -2,13 +2,14 @@
 //!
 //! TODO[WD]: This is work in progress and will be changed in the upcoming PRs.
 
+#![recursion_limit = "256"]
+// === Features ===
+#![feature(let_chains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-#![recursion_limit = "256"]
-#![feature(let_chains)]
 
 use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
@@ -23,6 +24,8 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::Animation;
+
+
 
 const DRAG_THRESHOLD: f32 = 4.0;
 
@@ -565,6 +568,10 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         }
         self
     }
+
+    pub fn push(&self, item: T) {
+        self.frp.push(Rc::new(item).downgrade());
+    }
 }
 
 impl<T: display::Object + frp::node::Data> Model<T> {
@@ -980,9 +987,9 @@ pub fn main() {
         );
     }
 
-    vector_editor.push(Rc::new(shape1).downgrade());
-    vector_editor.push(Rc::new(shape2).downgrade());
-    vector_editor.push(Rc::new(shape3).downgrade());
+    vector_editor.push(shape1);
+    vector_editor.push(shape2);
+    vector_editor.push(shape3);
 
     let root = display::object::Instance::new();
     root.set_size(Vector2::new(300.0, 100.0));

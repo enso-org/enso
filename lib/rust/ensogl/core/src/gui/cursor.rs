@@ -13,7 +13,9 @@ use crate::frp;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
 use crate::Easing;
+
 use std::f32::consts::PI;
+
 
 
 // =================
@@ -384,7 +386,7 @@ impl Cursor {
 
                 match &new_style.trash {
                     None => trash.target.emit(0.0),
-                    Some(_) => trash.target.emit(1.0),
+                    Some(t) => trash.target.emit(t.value.unwrap_or(0.0)),
                 }
 
                 *model.style.borrow_mut() = new_style.clone();
