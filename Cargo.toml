@@ -51,7 +51,7 @@ lto = "thin"
 codegen-units = 16
 incremental = true
 debug = false
-debug-assertions = true
+debug-assertions = false
 
 [profile.bench]
 opt-level = 3
