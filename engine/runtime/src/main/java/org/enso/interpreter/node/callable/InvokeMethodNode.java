@@ -245,9 +245,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       selfWithoutWarnings = warnings.removeWarnings(self);
       arrOfWarnings = warnings.getWarnings(self, this);
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(
-          "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
-          e);
+      // Can't throw `CompilerDirectives.shouldNotReachHere` as it crashes native-image build
+      throw new IllegalStateException(e);
     }
 
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
