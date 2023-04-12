@@ -2,6 +2,8 @@
 import * as react from 'react'
 
 import * as auth from '../../authentication/providers/auth'
+import * as modalProvider from '../../providers/modal'
+
 import ChangePasswordModal from './changePasswordModal'
 
 // ================
@@ -34,44 +36,40 @@ function UserMenu() {
     const { signOut } = auth.useAuth()
     const { organization } = auth.useFullUserSession()
 
-    const [visibleChangePassword, setVisibleChangePassword] = react.useState(false)
+    const { setModal } = modalProvider.useSetModal()
 
     const goToProfile = () => {
         // TODO: Implement this when the backend endpoints are implemented.
     }
 
-    const showChangePasswordModal = () => {
-        setVisibleChangePassword(true)
-    }
-    const hideChangePasswordModal = () => {
-        setVisibleChangePassword(false)
-    }
-
     return (
-        <>
-            <div className="absolute right-0 top-9 flex flex-col rounded-md bg-white py-1 border">
-                {organization ? (
-                    <>
-                        <UserMenuItem>
-                            Signed in as <span className="font-bold">{organization.name}</span>
-                        </UserMenuItem>
-                        <UserMenuItem onClick={goToProfile}>Your profile</UserMenuItem>
-                        <UserMenuItem onClick={showChangePasswordModal}>
-                            Change your password
-                        </UserMenuItem>
-                        <UserMenuItem onClick={signOut}>Sign out</UserMenuItem>
-                    </>
-                ) : (
-                    <>
-                        <UserMenuItem>Not logged in currently.</UserMenuItem>
-                    </>
-                )}
-            </div>
-            <ChangePasswordModal
-                visible={visibleChangePassword}
-                handleCancel={hideChangePasswordModal}
-            />
-        </>
+        <div
+            className="absolute right-2 top-11 z-10 flex flex-col rounded-md bg-white py-1 border"
+            onClick={event => {
+                event.stopPropagation()
+            }}
+        >
+            {/* FIXME[sb]: Figure out whether this conditional is *actually* needed. */}
+            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+            {organization ? (
+                <>
+                    <UserMenuItem>
+                        Signed in as <span className="font-bold">{organization.name}</span>
+                    </UserMenuItem>
+                    <UserMenuItem onClick={goToProfile}>Your profile</UserMenuItem>
+                    <UserMenuItem
+                        onClick={() => {
+                            setModal(() => <ChangePasswordModal />)
+                        }}
+                    >
+                        Change your password
+                    </UserMenuItem>
+                    <UserMenuItem onClick={signOut}>Sign out</UserMenuItem>
+                </>
+            ) : (
+                <UserMenuItem>Not logged in currently.</UserMenuItem>
+            )}
+        </div>
     )
 }
 

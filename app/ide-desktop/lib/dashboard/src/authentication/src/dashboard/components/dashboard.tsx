@@ -8,6 +8,7 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
 import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
@@ -196,6 +197,9 @@ function Dashboard(props: DashboardProps) {
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
 
+    const { modal } = modalProvider.useModal()
+    const { unsetModal } = modalProvider.useSetModal()
+
     const [searchVal, setSearchVal] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
@@ -333,7 +337,7 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId])
 
     return (
-        <div className="text-primary text-xs">
+        <div className="text-primary text-xs" onClick={unsetModal}>
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
             <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
@@ -494,6 +498,7 @@ function Dashboard(props: DashboardProps) {
                     }))}
                 />
             </table>
+            {modal && <>{modal}</>}
         </div>
     )
 }

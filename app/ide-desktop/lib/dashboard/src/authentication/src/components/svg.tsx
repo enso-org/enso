@@ -23,7 +23,7 @@ export const PATHS = {
         'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z',
     /** Path data for the "go back" icon SVG. */
     goBack: 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1',
-}
+} as const
 
 // ===================================
 // === SVGs with custom formatting ===
@@ -160,6 +160,36 @@ export const ARROW_UP_ICON = (
             d="M8.943 12a1 1 0 0 1-.814-1.581l3.057-4.28a1 1 0 0 1 1.628 0l3.056 4.28A1 1 0 0 1 15.057 12H8.943Z"
             fill="currentColor"
         />
+    </svg>
+)
+
+/** Icon with three bars. */
+export const BARS_ICON = (
+    <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x={2} y={1} width={12} height={3} fill="#767676" />
+        <rect x={2} y={6} width={12} height={3} fill="#767676" />
+        <rect x={2} y={11} width={12} height={3} fill="#767676" />
+    </svg>
+)
+
+/** Icon indicating a search input. */
+export const MAGNIFYING_GLASS_ICON = (
+    <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g opacity={0.5}>
+            <path
+                d="M11.4142 10L15.6569 14.2426L14.2426 15.6569L10 11.4142L11.4142 10Z"
+                fill="currentColor"
+            />
+            <circle cx={7} cy={7} r={5} stroke="currentColor" stroke-width={2} />
+        </g>
+    </svg>
+)
+
+/** Icon indicating a chat dialog. */
+export const SPEECH_BUBBLE_ICON = (
+    <svg width={16} height={17} viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx={8} cy={8} rx={8} ry={7.5} fill="white" />
+        <path d="M4.17269e-05 16.5L2 10.5L5.50006 14L4.17269e-05 16.5Z" fill="white" />
     </svg>
 )
 
