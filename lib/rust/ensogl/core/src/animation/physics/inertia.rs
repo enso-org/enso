@@ -718,7 +718,7 @@ where
     fn start(&self) {
         if self.animation_loop.get().is_none() {
             let step = step(self);
-            let animation_loop = animation::Loop::new_with_fixed_frame_rate(step);
+            let animation_loop = animation::Loop::new_animation(step);
             self.animation_loop.set(Some(animation_loop));
             self.on_start.call();
         }

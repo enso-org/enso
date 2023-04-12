@@ -139,16 +139,15 @@ pub struct Loop {
 
 impl Loop {
     /// Constructor.
-    pub fn new(callback: impl OnFrameCallback) -> Self {
-        let handle = LOOP_REGISTRY.with(|registry| registry.add(callback));
+    pub fn new_before_animations(f: impl BeforeAnimationCallback) -> Self {
+        let handle = LOOP_REGISTRY.with(|registry| registry.add_before_animation_callback(f));
         Self { handle }
     }
-}
 
-impl Loop {
     /// Constructor.
-    pub fn new_with_fixed_frame_rate<OnFrame: OnFrameCallback>(on_frame: OnFrame) -> Self {
-        Self::new(on_frame)
+    pub fn new_animation(f: impl AnimationCallback) -> Self {
+        let handle = LOOP_REGISTRY.with(|registry| registry.add_animation_callback(f));
+        Self { handle }
     }
 }
 
@@ -161,7 +160,9 @@ impl Loop {
 // === Types ===
 
 /// Type of the function that will be called on every animation frame.
-pub trait OnFrameCallback = FnMut(FixedFrameRateStep<TimeInfo>) + 'static;
+pub trait AnimationCallback = FnMut(FixedFrameRateStep<TimeInfo>) + 'static;
+
+pub trait BeforeAnimationCallback = FnMut(TimeInfo) + 'static;
 
 
 crate::define_endpoints_2! {
@@ -211,8 +212,9 @@ pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
 #[derivative(Debug(bound = ""))]
 pub struct LoopRegistry {
     #[deref]
-    frp:            Frp,
-    callbacks:      callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
+    frp: Frp,
+    before_animations_callbacks: callback::registry::Copy1<TimeInfo>,
+    animations_callbacks: callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
     animation_loop: JsLoop<OnFrameClosure>,
 }
 
@@ -220,13 +222,25 @@ impl LoopRegistry {
     /// Constructor.
     fn new() -> Self {
         let frp = default();
-        let callbacks = default();
-        let animation_loop = JsLoop::new(on_frame_closure(&frp, &callbacks));
-        Self { frp, callbacks, animation_loop }
+        let before_animations_callbacks = default();
+        let animations_callbacks = default();
+        let animation_loop = JsLoop::new(on_frame_closure(
+            &frp,
+            &before_animations_callbacks,
+            &animations_callbacks,
+        ));
+        Self { frp, before_animations_callbacks, animations_callbacks, animation_loop }
     }
 
-    fn add(&self, callback: impl OnFrameCallback) -> callback::Handle {
-        self.callbacks.add(callback)
+    fn add_before_animation_callback(
+        &self,
+        callback: impl BeforeAnimationCallback,
+    ) -> callback::Handle {
+        self.before_animations_callbacks.add(callback)
+    }
+
+    fn add_animation_callback(&self, callback: impl AnimationCallback) -> callback::Handle {
+        self.animations_callbacks.add(callback)
     }
 }
 
@@ -255,9 +269,11 @@ impl InitializedTimeInfo {
 pub type OnFrameClosure = impl FnMut(Duration);
 fn on_frame_closure(
     frp: &Frp,
-    callbacks: &callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
+    before_animations: &callback::registry::Copy1<TimeInfo>,
+    animations: &callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
 ) -> OnFrameClosure {
-    let callbacks = callbacks.clone_ref();
+    let before_animations = before_animations.clone_ref();
+    let animations = animations.clone_ref();
     let output = frp.private.output.clone_ref();
     let mut time_info = InitializedTimeInfo::default();
     let h_cell = Rc::new(Cell::new(callback::Handle::default()));
@@ -270,14 +286,16 @@ fn on_frame_closure(
         let on_after_animations = output.on_after_animations.clone_ref();
         let frame_end = output.frame_end.clone_ref();
         let output = output.clone_ref();
-        let callbacks = callbacks.clone_ref();
+        let before_animations = before_animations.clone_ref();
+        let animations = animations.clone_ref();
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let fixed_fps_sampler = fixed_fps_sampler.clone_ref();
 
         TickPhases::new(&h_cell)
             .then(move || on_frame_start.emit(frame_time))
             .then(move || on_before_animations.emit(time_info))
-            .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| callbacks.run_all(t)))
+            .then(move || before_animations.run_all(time_info))
+            .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| animations.run_all(t)))
             .then(move || on_after_animations.emit(time_info))
             .then(move || frame_end.emit(time_info))
             .then(move || {
