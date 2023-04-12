@@ -20,7 +20,7 @@ import App, * as app from './components/app'
 // =================
 
 /** The `id` attribute of the root element that the app will be rendered into. */
-const ROOT_ELEMENT_ID = 'dashboard'
+const ROOT_ELEMENT_ID = 'enso-dashboard'
 /** The `id` attribute of the element that the IDE will be rendered into. */
 const IDE_ELEMENT_ID = 'root'
 

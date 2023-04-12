@@ -4,9 +4,11 @@ use crate::prelude::*;
 
 use crate::constants;
 
+use engine_protocol::project_manager::ProjectMetadata;
 use engine_protocol::project_manager::ProjectName;
 use enso_config::Args;
 use enso_config::ARGS;
+use failure::ResultExt;
 
 
 
@@ -110,26 +112,27 @@ impl BackendService {
 #[derive(Clone, Debug, Default)]
 pub struct Startup {
     /// The configuration of connection to the backend service.
-    pub backend:       BackendService,
+    pub backend:         BackendService,
     /// The project name we want to open on startup.
-    pub project_name:  Option<ProjectName>,
+    pub project_to_open: Option<ProjectToOpen>,
     /// Whether to open directly to the project view, skipping the welcome screen.
-    pub initial_view:  InitialView,
+    pub initial_view:    InitialView,
     /// Identifies the element to create the IDE's DOM nodes as children of.
-    pub dom_parent_id: Option<String>,
+    pub dom_parent_id:   Option<String>,
 }
 
 impl Startup {
     /// Read configuration from the web arguments. See also [`web::Arguments`] documentation.
     pub fn from_web_arguments() -> FallibleResult<Startup> {
         let backend = BackendService::from_web_arguments(&ARGS)?;
-        let project_name = ARGS.groups.startup.options.project.value.as_str();
-        let no_project_name = project_name.is_empty();
+        let project = ARGS.groups.startup.options.project.value.as_str();
+        let no_project: bool = project.is_empty();
         let initial_view =
-            if no_project_name { InitialView::WelcomeScreen } else { InitialView::Project };
-        let project_name = (!no_project_name).as_some_from(|| project_name.to_owned().into());
+            if no_project { InitialView::WelcomeScreen } else { InitialView::Project };
+        let project_to_open =
+            (!no_project).as_some_from(|| ProjectToOpen::from_str(project)).transpose()?;
         let dom_parent_id = None;
-        Ok(Startup { backend, project_name, initial_view, dom_parent_id })
+        Ok(Startup { backend, project_to_open, initial_view, dom_parent_id })
     }
 
     /// Identifies the element to create the IDE's DOM nodes as children of.
@@ -154,4 +157,57 @@ pub enum InitialView {
     WelcomeScreen,
     /// Start to the Project View.
     Project,
+}
+
+
+// === ProjectToOpen ===
+
+/// The project to open on startup.
+///
+/// We both support opening a project by name and by ID. This is because:
+/// * names are more human-readable, but they are not guaranteed to be unique;
+/// * IDs are guaranteed to be unique, but they are not human-readable.
+#[derive(Clone, Debug)]
+pub enum ProjectToOpen {
+    /// Open the project with the given name.
+    Name(ProjectName),
+    /// Open the project with the given ID.
+    Id(Uuid),
+}
+
+impl ProjectToOpen {
+    /// Check if provided project metadata matches the requested project.
+    pub fn matches(&self, project_metadata: &ProjectMetadata) -> bool {
+        match self {
+            ProjectToOpen::Name(name) => name == &project_metadata.name,
+            ProjectToOpen::Id(id) => id == &project_metadata.id,
+        }
+    }
+}
+
+impl FromStr for ProjectToOpen {
+    type Err = failure::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // While in theory it is possible that Uuid string representation is a valid project name,
+        // in practice it is very unlikely. Additionally, Uuid representation used by us is
+        // hyphenated, which will never be the case for project name. This, we can use this as a
+        // heuristic to determine whether the provided string is a project name or a project ID.
+        if s.contains('-') {
+            let id = Uuid::from_str(s)
+                .context(format!("Failed to parse project ID from string: '{s}'."))?;
+            Ok(ProjectToOpen::Id(id))
+        } else {
+            Ok(ProjectToOpen::Name(ProjectName::new_unchecked(s)))
+        }
+    }
+}
+
+impl Display for ProjectToOpen {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProjectToOpen::Name(name) => write!(f, "{name}"),
+            ProjectToOpen::Id(id) => write!(f, "{id}"),
+        }
+    }
 }

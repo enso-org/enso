@@ -8,7 +8,7 @@ import * as newtype from './newtype'
 // =================
 
 /** The current environment that we're running in. */
-export const ENVIRONMENT: Environment = 'production'
+export const ENVIRONMENT: Environment = 'pbuchu'
 
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {

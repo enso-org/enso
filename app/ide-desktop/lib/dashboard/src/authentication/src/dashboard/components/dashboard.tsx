@@ -8,6 +8,7 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
 import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
@@ -199,12 +200,14 @@ export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
 
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
+
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
 
-    // The input value of `TopBar`
-    const [searchVal, setSearchVal] = react.useState('')
+    const { modal } = modalProvider.useModal()
+    const { unsetModal } = modalProvider.useSetModal()
 
+    const [searchVal, setSearchVal] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
@@ -283,6 +286,13 @@ function Dashboard(props: DashboardProps) {
             : COLUMN_RENDERER[column]
     }
 
+    // The purpose of this effect is to enable search action.
+    react.useEffect(() => {
+        return () => {
+            // TODO
+        }
+    }, [searchVal])
+
     react.useEffect(() => {
         void (async (): Promise<void> => {
             let assets: backend.Asset[]
@@ -320,7 +330,9 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId])
 
     return (
-        <div className="text-primary text-xs">
+        <div className="text-primary text-xs" onClick={unsetModal}>
+            {/* These are placeholders. When implementing a feature,
+             * please replace the appropriate placeholder with the actual element.*/}
             <TopBar
                 projectName={project?.name ?? null}
                 tab={tab}
@@ -335,10 +347,12 @@ function Dashboard(props: DashboardProps) {
             <div className={tab === Tab.dashboard ? '' : 'hidden'}>
                 <div id="templates" />
                 <div className="flex flex-row flex-nowrap">
-                    <h1 className="text-xl font-bold mx-6 self-center">Drive</h1>
-                    <div className="flex flex-row flex-nowrap mx-2">
+                    <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
+                    <div className="flex flex-row flex-nowrap mx-4">
                         <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                            {directory ? (
+                            {/* FIXME[sb]: Remove `|| true` when UI to create directory is implemented. */}
+                            {/* eslint-disable-next-line no-constant-condition, @typescript-eslint/no-unnecessary-condition */}
+                            {directory || true ? (
                                 <>
                                     <button
                                         className="mx-2"
@@ -357,83 +371,90 @@ function Dashboard(props: DashboardProps) {
                                     </button>
                                     {svg.SMALL_RIGHT_ARROW_ICON}
                                 </>
-                            ) : (
-                                <></>
-                            )}
+                            ) : null}
                             <span className="mx-2">{directory?.title ?? '~'}</span>
                         </div>
                         <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                            <span className="mx-2">Shared with</span>
+                            <div className="m-2">Shared with</div>
+                            <div className="-m-1">
+                                <PermissionDisplay
+                                    permissions={{ type: permissionDisplay.Permission.admin }}
+                                >
+                                    marketing
+                                </PermissionDisplay>
+                            </div>
                         </div>
-                    </div>
-                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1 mx-4">
-                        <button
-                            className="mx-1"
-                            onClick={() => {
-                                /* TODO */
-                            }}
-                        >
-                            {svg.UPLOAD_ICON}
-                        </button>
-                        <button
-                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                            disabled={selectedAssets.length === 0}
-                            onClick={() => {
-                                /* TODO */
-                            }}
-                        >
-                            {svg.DOWNLOAD_ICON}
-                        </button>
-                    </div>
-                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.all
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.all)
-                            }}
-                        >
-                            All
-                        </button>
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.compact
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.compact)
-                            }}
-                        >
-                            Compact
-                        </button>
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.docs
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.docs)
-                            }}
-                        >
-                            Docs
-                        </button>
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.settings
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.settings)
-                            }}
-                        >
-                            Settings
-                        </button>
+                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1 mx-4">
+                            <button
+                                className="mx-1"
+                                onClick={() => {
+                                    /* TODO */
+                                }}
+                            >
+                                {svg.UPLOAD_ICON}
+                            </button>
+                            <button
+                                className={`mx-1 ${
+                                    selectedAssets.length === 0 ? 'opacity-50' : ''
+                                }`}
+                                disabled={selectedAssets.length === 0}
+                                onClick={() => {
+                                    /* TODO */
+                                }}
+                            >
+                                {svg.DOWNLOAD_ICON}
+                            </button>
+                        </div>
+                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.all
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.all)
+                                }}
+                            >
+                                All
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.compact
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.compact)
+                                }}
+                            >
+                                Compact
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.docs
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.docs)
+                                }}
+                            >
+                                Docs
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.settings
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.settings)
+                                }}
+                            >
+                                Settings
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <table className="items-center w-full bg-transparent border-collapse">
@@ -491,7 +512,7 @@ function Dashboard(props: DashboardProps) {
             <div className={tab === Tab.ide ? '' : 'hidden'}>
                 {project ? <Ide backendService={backendService} project={project} /> : <></>}
             </div>
-            <div id="modal-root" />
+            {modal && <>{modal}</>}
         </div>
     )
 }

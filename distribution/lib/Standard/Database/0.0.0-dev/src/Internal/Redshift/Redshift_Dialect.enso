@@ -74,13 +74,6 @@ type Redshift_Dialect
         Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
 
     ## PRIVATE
-       Prepares a join operation, returning a new table instance encapsulating a
-       proper query.
-    prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
-    prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
-        Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
-
-    ## PRIVATE
        A heuristic used by `Connection.query` to determine if a given text looks
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean

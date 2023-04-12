@@ -3,6 +3,8 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
+use crate::ExecutionEnvironment;
+
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::tooltip;
@@ -31,9 +33,11 @@ const BUTTON_OFFSET: f32 = 0.5;
 /// Grow the hover area in x direction by this amount. Used to close the gap between action
 /// icons and node.
 const HOVER_EXTENSION_X: f32 = 15.0;
+const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
+const DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Don't write to files and databases";
+const ENABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Allow writing to files and databases";
 const FREEZE_TOOLTIP_LABEL: &str = "Freeze";
 const SKIP_TOOLTIP_LABEL: &str = "Skip";
-const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
 
 
 // ===============
@@ -65,20 +69,25 @@ mod hover_area {
 
 ensogl::define_endpoints! {
     Input {
-        set_size                    (Vector2),
-        set_visibility              (bool),
-        set_action_visibility_state (bool),
-        set_action_skip_state       (bool),
-        set_action_freeze_state     (bool),
-        show_on_hover               (bool),
+        set_size                        (Vector2),
+        set_visibility                  (bool),
+        set_action_visibility_state     (bool),
+        set_action_skip_state           (bool),
+        set_action_freeze_state         (bool),
+        /// Set whether the output context is explicitly enabled: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_action_context_switch_state (Option<bool>),
+        show_on_hover                   (bool),
+        set_execution_environment       (ExecutionEnvironment),
     }
 
     Output {
-        mouse_over        (),
-        mouse_out         (),
-        action_visibility (bool),
-        action_freeze     (bool),
-        action_skip       (bool),
+        mouse_over            (),
+        mouse_out             (),
+        action_visibility     (bool),
+        action_context_switch (bool),
+        action_freeze         (bool),
+        action_skip           (bool),
     }
 }
 
@@ -91,29 +100,40 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 struct Icons {
     display_object: display::object::Instance,
-    freeze:         ToggleButton<icon::freeze::Shape>,
     visibility:     ToggleButton<icon::visibility::Shape>,
+    context_switch: ContextSwitchButton,
+    freeze:         ToggleButton<icon::freeze::Shape>,
     skip:           ToggleButton<icon::skip::Shape>,
 }
 
 impl Icons {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
-        let freeze = labeled_button(app, FREEZE_TOOLTIP_LABEL);
         let visibility = labeled_button(app, VISIBILITY_TOOLTIP_LABEL);
+        let context_switch = ContextSwitchButton::enable(app);
+        let freeze = labeled_button(app, FREEZE_TOOLTIP_LABEL);
         let skip = labeled_button(app, SKIP_TOOLTIP_LABEL);
         display_object.add_child(&visibility);
+        display_object.add_child(&context_switch);
         if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             display_object.add_child(&freeze);
             display_object.add_child(&skip);
         }
-        Self { display_object, freeze, visibility, skip }
+        Self { display_object, visibility, context_switch, freeze, skip }
     }
 
     fn set_visibility(&self, visible: bool) {
+        self.visibility.frp.set_visibility(visible);
+        self.context_switch.set_visibility(visible);
         self.freeze.frp.set_visibility(visible);
         self.skip.frp.set_visibility(visible);
-        self.visibility.frp.set_visibility(visible);
+    }
+
+    fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
+        self.visibility.frp.set_color_scheme(color_scheme);
+        self.context_switch.set_color_scheme(color_scheme);
+        self.freeze.frp.set_color_scheme(color_scheme);
+        self.skip.frp.set_color_scheme(color_scheme);
     }
 }
 
@@ -126,6 +146,77 @@ impl display::Object for Icons {
 fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> ToggleButton<Icon> {
     let tooltip_style = tooltip::Style::set_label(label.to_owned());
     ToggleButton::new(app, tooltip_style)
+}
+
+
+
+// =============================
+// === Context Switch Button ===
+// =============================
+
+/// A button to enable/disable the output context for a particular node. It holds two buttons
+/// internally for each shape, but only one is shown at a time, based on the execution environment
+/// which sets the global permission for the output context.
+#[derive(Clone, CloneRef, Debug)]
+struct ContextSwitchButton {
+    globally_enabled: Rc<Cell<bool>>,
+    disable_button:   ToggleButton<icon::disable_output_context::Shape>,
+    enable_button:    ToggleButton<icon::enable_output_context::Shape>,
+    display_object:   display::object::Instance,
+}
+
+impl ContextSwitchButton {
+    fn enable(app: &Application) -> Self {
+        let display_object = display::object::Instance::new();
+        let disable_button = labeled_button(app, DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL);
+        let enable_button = labeled_button(app, ENABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL);
+        disable_button.set_size((100.pc(), 100.pc()));
+        enable_button.set_size((100.pc(), 100.pc()));
+        display_object.add_child(&enable_button);
+        let globally_enabled = Rc::new(Cell::new(false));
+        Self { globally_enabled, disable_button, enable_button, display_object }
+    }
+
+    /// Set the button's on/off state based on whether the output context is explicitly enabled for
+    /// this node. `output_context_enabled` is `Some(true/false)` for enabled/disabled; `None` for
+    /// no context switch expression.
+    fn set_state(&self, output_context_enabled: Option<bool>) {
+        let disable_button_active = !output_context_enabled.unwrap_or(true);
+        self.disable_button.set_state(disable_button_active);
+        let enable_button_active = output_context_enabled.unwrap_or(false);
+        self.enable_button.set_state(enable_button_active);
+    }
+
+    /// Swap the buttons if the execution environment changed.
+    fn set_execution_environment(&self, environment: &ExecutionEnvironment) {
+        if environment.output_context_enabled() != self.globally_enabled.get() {
+            if environment.output_context_enabled() {
+                self.remove_child(&self.enable_button);
+                self.add_child(&self.disable_button);
+                self.globally_enabled.set(true);
+            } else {
+                self.remove_child(&self.disable_button);
+                self.add_child(&self.enable_button);
+                self.globally_enabled.set(false);
+            }
+        }
+    }
+
+    fn set_visibility(&self, visible: bool) {
+        self.disable_button.set_visibility(visible);
+        self.enable_button.set_visibility(visible);
+    }
+
+    fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
+        self.disable_button.set_color_scheme(color_scheme);
+        self.enable_button.set_color_scheme(color_scheme);
+    }
+}
+
+impl display::Object for ContextSwitchButton {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
 }
 
 
@@ -155,14 +246,18 @@ impl Model {
         let styles = StyleWatch::new(&scene.style_sheet);
 
         shapes.add_sub_shape(&hover_area);
-        shapes.add_sub_shape(&icons.freeze.view());
         shapes.add_sub_shape(&icons.visibility.view());
+        shapes.add_sub_shape(&icons.context_switch.disable_button.view());
+        shapes.add_sub_shape(&icons.context_switch.enable_button.view());
+        shapes.add_sub_shape(&icons.freeze.view());
         shapes.add_sub_shape(&icons.skip.view());
 
         ensogl::shapes_order_dependencies! {
             scene => {
-                hover_area -> icon::freeze;
                 hover_area -> icon::visibility;
+                hover_area -> icon::disable_output_context;
+                hover_area -> icon::enable_output_context;
+                hover_area -> icon::freeze;
                 hover_area -> icon::skip;
             }
         }
@@ -176,13 +271,13 @@ impl Model {
         self
     }
 
-    fn place_button_in_slot<T: ColorableShape>(&self, button: &ToggleButton<T>, index: usize) {
+    fn place_button_in_slot(&self, button: &dyn display::Object, index: usize) {
         let icon_size = self.icon_size();
         let index = index as f32;
         let padding = BUTTON_PADDING;
         let offset = BUTTON_OFFSET;
         button.set_x(((1.0 + padding) * index + offset) * icon_size.x);
-        button.frp.set_size(icon_size);
+        button.set_size(icon_size);
     }
 
     fn icon_size(&self) -> Vector2 {
@@ -211,17 +306,18 @@ impl Model {
         self.icons.set_x(-size.x / 2.0);
 
         self.place_button_in_slot(&self.icons.visibility, 0);
+        self.place_button_in_slot(&self.icons.context_switch, 1);
         if ARGS.groups.feature_preview.options.skip_and_freeze.value {
-            self.place_button_in_slot(&self.icons.skip, 1);
-            self.place_button_in_slot(&self.icons.freeze, 2);
+            self.place_button_in_slot(&self.icons.skip, 2);
+            self.place_button_in_slot(&self.icons.freeze, 3);
         }
 
         let buttons_count = if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             // Toggle visualization, skip and freeze buttons.
-            3
+            4
         } else {
             // Toggle visualization button only.
-            1
+            2
         };
         self.layout_hover_area_to_cover_buttons(buttons_count);
 
@@ -287,6 +383,12 @@ impl ActionBar {
             eval frp.set_action_visibility_state ((state) model.icons.visibility.set_state(state));
             eval frp.set_action_skip_state ((state) model.icons.skip.set_state(state));
             eval frp.set_action_freeze_state ((state) model.icons.freeze.set_state(state));
+            eval frp.set_action_context_switch_state ((state)
+                model.icons.context_switch.set_state(*state)
+            );
+            eval frp.set_execution_environment ((environment)
+                model.icons.context_switch.set_execution_environment(environment)
+            );
 
 
             // === Mouse Interactions ===
@@ -300,9 +402,45 @@ impl ActionBar {
 
             // === Icon Actions ===
 
-            frp.source.action_skip       <+ model.icons.skip.state;
-            frp.source.action_freeze     <+ model.icons.freeze.state;
             frp.source.action_visibility <+ model.icons.visibility.state;
+            frp.source.action_skip <+ model.icons.skip.state;
+            frp.source.action_freeze <+ model.icons.freeze.state;
+            disable_context_button_clicked <- model.icons.context_switch.disable_button.is_pressed.on_true();
+            enable_context_button_clicked <- model.icons.context_switch.enable_button.is_pressed.on_true();
+            output_context_disabled <- model.icons.context_switch.disable_button.state
+                .sample(&disable_context_button_clicked);
+            output_context_enabled <- model.icons.context_switch.enable_button.state
+                .sample(&enable_context_button_clicked);
+            frp.source.action_context_switch <+ any(&output_context_disabled, &output_context_enabled);
+            // Setting the state of the context switch button is necessary because e.g. toggling
+            // the "enable" button when there's a "disable" expression should cause the "disable"
+            // button to change state as well.
+            frp.set_action_context_switch_state <+ output_context_disabled.map2(
+                &model.icons.context_switch.enable_button.state,
+                |disabled, enabled| {
+                    match (disabled, enabled) {
+                        (true, _) => Some(false),
+                        (false, false) => None,
+                        (false, true) => {
+                            error!("Invalid node action bar button state: context switch buttons were both on.");
+                            Some(true)
+                        }
+                    }
+                }
+            );
+            frp.set_action_context_switch_state <+ output_context_enabled.map2(
+                &model.icons.context_switch.disable_button.state,
+                |enabled, disabled| {
+                    match (enabled, disabled) {
+                        (true, _) => Some(true),
+                        (false, false) => None,
+                        (false, true) => {
+                            error!("Invalid node action bar button state: context switch buttons were both on.");
+                            Some(false)
+                        }
+                    }
+                }
+            );
         }
 
         let color_scheme = toggle_button::ColorScheme {
@@ -320,10 +458,7 @@ impl ActionBar {
             ),
             ..default()
         };
-
-        model.icons.freeze.frp.set_color_scheme(&color_scheme);
-        model.icons.skip.frp.set_color_scheme(&color_scheme);
-        model.icons.visibility.frp.set_color_scheme(&color_scheme);
+        model.icons.set_color_scheme(&color_scheme);
 
         frp.show_on_hover.emit(true);
         visibility_init.emit(false);
