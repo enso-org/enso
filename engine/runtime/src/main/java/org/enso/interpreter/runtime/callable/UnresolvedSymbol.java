@@ -69,12 +69,12 @@ public final class UnresolvedSymbol implements TruffleObject {
   }
 
   /**
-   * Resolves the type where the symbol is defined.
+   * Resolves the type where the symbol is declared.
    *
    * @param type the type for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
-  public Type resolveTypeFor(Type type) {
+  public Type resolveDeclaringType(Type type) {
     Type current = type;
     while (current != null) {
       Function candidate = scope.lookupMethodDefinition(current, name);

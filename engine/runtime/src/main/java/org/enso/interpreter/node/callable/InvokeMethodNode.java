@@ -172,7 +172,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       throw new IllegalStateException(e);
     }
 
-    Type typeOfSymbol = symbol.resolveTypeFor(types.getType(selfWithoutWarnings));
+    Type typeOfSymbol = symbol.resolveDeclaringType(types.getType(selfWithoutWarnings));
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     if (typeOfSymbol == builtins.any()) {
       return symbol
@@ -219,14 +219,18 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("resolveWarningFunction(self, symbol, types, warnings)") Function resolvedFunction,
       @Cached("resolvedFunction.getSchema()") FunctionSchema cachedSchema,
-      @Cached(value = "argumentsWithExplicitSelf(cachedSchema, arguments)", dimensions = 1)
-          Object[] cachedArguments,
       @Cached(value = "callArgumentsWithExplicitSelf()", dimensions = 1)
           CallArgumentInfo[] cachedCallArgumentSchema,
       @Cached(
               "build(cachedCallArgumentSchema, getInvokeFunctionNode().getDefaultsExecutionMode(), getInvokeFunctionNode().getArgumentsExecutionMode())")
           InvokeFunctionNode warningFunctionNode) {
-    return warningFunctionNode.execute(resolvedFunction, frame, state, cachedArguments);
+    // Warning's builtin type methods are static meaning that they have a synthetic `self`
+    // parameter. However, the constructed `InvokeFunctionNode` is missing that
+    // information and the function, if called with `arguments`, will not be fully applied.
+    // Hence, the synthetic construction of a new `InvokeFunctionNode` with the updated schema
+    // and call including an additional, dummy, argument.
+    Object[] arguments1 = argumentsWithExplicitSelf(cachedSchema, arguments);
+    return warningFunctionNode.execute(resolvedFunction, frame, state, arguments1);
   }
 
   @Specialization(guards = "warnings.hasWarnings(self)")
