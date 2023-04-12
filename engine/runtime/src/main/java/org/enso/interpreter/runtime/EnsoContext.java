@@ -80,7 +80,7 @@ public class EnsoContext {
   private final AtomicLong clock = new AtomicLong();
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
-  private final ExecutionEnvironment executionEnvironment;
+  private ExecutionEnvironment executionEnvironment;
 
   /**
    * Creates a new Enso context.
@@ -510,6 +510,11 @@ public class EnsoContext {
 
   public ExecutionEnvironment getExecutionEnvironment() {
     return executionEnvironment;
+  }
+
+  /** Set the runtime execution environment of this context. */
+  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
+    this.executionEnvironment = executionEnvironment;
   }
 
   public Shape getRootStateShape() {
