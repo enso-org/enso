@@ -690,7 +690,8 @@ impl application::View for View {
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd shift t", "execution_context_interrupt"),
             (Press, "", "cmd shift r", "execution_context_restart"),
-            (Press, "", "cmd shift b", "toggle_read_only"),
+            // TODO(#6179): Remove this temporary shortcut when Play button is ready.
+            (Press, "", "ctrl alt b", "toggle_read_only"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

@@ -25,9 +25,16 @@ use parser::Parser;
 use std::collections::hash_map::Entry;
 
 
-#[derive(Debug, Clone, Fail)]
-#[fail(display = "Attempt to edit a read-only module.")]
-pub struct ReadOnlyError;
+
+// ==============
+// === Errors ===
+// ==============
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Fail)]
+#[fail(display = "Attempt to edit a read-only module")]
+pub struct EditInReadOnly;
+
 
 
 // ==============
@@ -68,9 +75,11 @@ impl Module {
 
     /// Replace the module's content with the new value and emit notification of given kind.
     ///
-    /// Fails if the `new_content` is so broken that it cannot be serialized to text. In such case
+    /// ### Errors
+    /// - Fails if the `new_content` is so broken that it cannot be serialized to text. In such case
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
+    /// - Fails if the module is read-only. Metadata-only changes are allowed in read-only mode.
     #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
@@ -78,7 +87,7 @@ impl Module {
             return Ok(());
         }
         if self.read_only.get() && kind != NotificationKind::MetadataChanged {
-            return Err(ReadOnlyError.into());
+            return Err(EditInReadOnly.into());
         }
         trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
         let transaction = self.repository.transaction("Setting module's content");

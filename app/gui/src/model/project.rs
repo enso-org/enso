@@ -39,10 +39,13 @@ pub trait API: Debug {
     /// Project's qualified name
     fn qualified_name(&self) -> project::QualifiedName;
 
-    // TODO
+    /// Whether the read-only mode is enabled for the project.
+    ///
+    /// Read-only mode forbids certain operations, like renaming the project or editing the code
+    /// through the IDE.
     fn read_only(&self) -> bool;
 
-    // TODO
+    /// Set the read-only mode for the project.
     fn set_read_only(&self, read_only: bool);
 
     /// Get Language Server JSON-RPC Connection for this project.
