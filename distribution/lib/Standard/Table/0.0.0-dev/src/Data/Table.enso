@@ -14,6 +14,8 @@ import project.Data.Column.Column
 import project.Data.Column as Column_Module
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Expression.Expression
+import project.Data.Expression.Expression_Error
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
@@ -23,6 +25,8 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
+import project.Data.Table_Conversions
+import project.Delimited.Delimited_Format.Delimited_Format
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -34,9 +38,6 @@ import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Internal.Widget_Helpers
-import project.Data.Expression.Expression
-import project.Data.Expression.Expression_Error
-import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Internal.Rows_View import Rows_View
@@ -1720,26 +1721,6 @@ type Table
     reverse self =
         mask = OrderBuilder.buildReversedMask self.row_count
         Table.Value <| self.java_table.applyMask mask
-
-    ## ALIAS Write JSON
-       UNSTABLE
-
-       Writes this table to a specified file, serialized into JSON. The JSON
-       serialization is such that the result is an array, in which every entry
-       is an object representing a single row, with column names as keys.
-
-       Arguments:
-       - file: the file to write data to. If the file exists, it will be
-         overwritten.
-
-       > Example
-         Write a table to a JSON file.
-
-             import Standard.Examples
-
-             example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
-    write_json : File -> Nothing
-    write_json self file = self.to_json.write file
 
     ## This function writes a table from memory into a file.
 
