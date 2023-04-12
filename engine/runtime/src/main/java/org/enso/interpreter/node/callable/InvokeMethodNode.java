@@ -53,11 +53,8 @@ import java.util.concurrent.locks.Lock;
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile warningsCustomDispatchProfile =
-      ConditionProfile.createCountingProfile();
   private @Child InvokeMethodNode childDispatch;
 
-  private @Child InvokeFunctionNode warningFunctionNode;
   private final int argumentCount;
   private final int thisArgumentPosition;
 
@@ -197,12 +194,15 @@ public abstract class InvokeMethodNode extends BaseNode {
     return arguments1;
   }
 
-  CallArgumentInfo[] callArgumentsWithExplicitSelf() {
+  public InvokeFunctionNode buildInvokeFunctionWithSelf() {
     int length = invokeFunctionNode.getSchema().length;
     CallArgumentInfo[] schema = new CallArgumentInfo[length + 1];
     System.arraycopy(invokeFunctionNode.getSchema(), 0, schema, 1, length);
     schema[0] = new CallArgumentInfo();
-    return schema;
+    return InvokeFunctionNode.build(
+        schema,
+        invokeFunctionNode.getDefaultsExecutionMode(),
+        invokeFunctionNode.getArgumentsExecutionMode());
   }
 
   @Specialization(
@@ -221,11 +221,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("resolveWarningFunction(self, symbol, types, warnings)") Function resolvedFunction,
       @Cached("resolvedFunction.getSchema()") FunctionSchema cachedSchema,
-      @Cached(value = "callArgumentsWithExplicitSelf()", dimensions = 1)
-          CallArgumentInfo[] cachedCallArgumentSchema,
-      @Cached(
-              "build(cachedCallArgumentSchema, getInvokeFunctionNode().getDefaultsExecutionMode(), getInvokeFunctionNode().getArgumentsExecutionMode())")
-          InvokeFunctionNode warningFunctionNode) {
+      @Cached("buildInvokeFunctionWithSelf()") InvokeFunctionNode warningFunctionNode) {
     // Warning's builtin type methods are static meaning that they have a synthetic `self`
     // parameter. However, the constructed `InvokeFunctionNode` is missing that
     // information and the function, if called with `arguments`, will not be fully applied.
@@ -244,8 +240,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") WarningsLibrary warnings) {
     Object selfWithoutWarnings;
+    Warning[] arrOfWarnings;
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
+      arrOfWarnings = warnings.getWarnings(self, this);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(
           "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
@@ -275,15 +273,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
     }
 
-    Warning[] arrOfWarnings;
-    try {
-      arrOfWarnings = warnings.getWarnings(self, this);
-    } catch (UnsupportedMessageException e) {
-      // Not possible due to `hasWarnings` check
-      throw CompilerDirectives.shouldNotReachHere(
-          "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
-          e);
-    }
     arguments[thisArgumentPosition] = selfWithoutWarnings;
 
     Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
