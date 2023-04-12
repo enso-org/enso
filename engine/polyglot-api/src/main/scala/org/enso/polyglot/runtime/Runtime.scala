@@ -9,10 +9,9 @@ import com.fasterxml.jackson.module.scala.{
 }
 import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
-import org.enso.pkg.ComponentGroups
+import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
-import org.enso.text.ContentVersion
 import org.enso.text.editing.model
 import org.enso.text.editing.model.{Range, TextEdit}
 
@@ -206,6 +205,10 @@ object Runtime {
         name  = "suggestionsDatabaseModuleUpdateNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.SuggestionsDatabaseSuggestionsLoadedNotification],
+        name  = "suggestionsDatabaseSuggestionsLoadedNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.AnalyzeModuleInScopeJobFinished],
         name  = "analyzeModuleInScopeJobFinished"
       ),
@@ -216,14 +219,6 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexResponse],
         name  = "invalidateModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexRequest],
-        name  = "verifyModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.VerifyModulesIndexResponse],
-        name  = "verifyModulesIndexResponse"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.GetTypeGraphRequest],
@@ -268,6 +263,30 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.LockReleaseFailed],
         name  = "lockReleaseFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.DeserializeLibrarySuggestions],
+        name  = "deserializeLibrarySuggestions"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.StartBackgroundProcessing],
+        name  = "startBackgroundProcessing"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.BackgroundJobsStartedNotification],
+        name  = "backgroundJobsStartedNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SerializeModule],
+        name  = "serializeModule"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentRequest],
+        name  = "setExecutionEnvironmentRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentResponse],
+        name  = "setExecutionEnvironmentResponse"
       )
     )
   )
@@ -989,6 +1008,40 @@ object Runtime {
       case class Unqualified(module: String) extends Export
     }
 
+    /** Base trait for runtime execution environment. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Live],
+          name  = "executionEnvironmentLive"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Design],
+          name  = "executionEnvironmentDesign"
+        )
+      )
+    )
+    sealed trait ExecutionEnvironment {
+
+      /** The environment name. */
+      def name: String
+    }
+    object ExecutionEnvironment {
+
+      final case class Live() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "live"
+      }
+
+      final case class Design() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "design"
+      }
+    }
+
     /** The notification about the execution status.
       *
       * @param contextId the context's id
@@ -1173,10 +1226,12 @@ object Runtime {
       * @param contextId the context's id.
       * @param expressions the selector specifying which expressions should be
       * recomputed.
+      * @param executionEnvironment the environment used for execution
       */
     final case class RecomputeContextRequest(
       contextId: ContextId,
-      expressions: Option[InvalidatedExpressions]
+      expressions: Option[InvalidatedExpressions],
+      executionEnvironment: Option[ExecutionEnvironment]
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the
@@ -1489,14 +1544,12 @@ object Runtime {
     /** A notification about the changes in the suggestions database.
       *
       * @param module the module name
-      * @param version the version of the module
       * @param actions the list of actions to apply to the suggestions database
       * @param exports the list of re-exported symbols
       * @param updates the list of suggestions extracted from module
       */
     final case class SuggestionsDatabaseModuleUpdateNotification(
       module: String,
-      version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
       exports: Vector[ExportsUpdate],
       updates: Tree[SuggestionUpdate]
@@ -1507,10 +1560,28 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String =
         "SuggestionsDatabaseModuleUpdateNotification(" +
         s"module=$module," +
-        s"version=$version," +
         s"actions=$actions," +
         s"exports=$exports" +
         s"updates=${updates.map(_.toLogString(shouldMask))}" +
+        ")"
+    }
+
+    /** A notification about the suggestions of the loaded library.
+      *
+      * @param libraryName the name of the loaded library
+      * @param suggestions the loaded suggestions
+      */
+    final case class SuggestionsDatabaseSuggestionsLoadedNotification(
+      libraryName: LibraryName,
+      suggestions: Vector[Suggestion]
+    ) extends ApiNotification
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "SuggestionsDatabaseSuggestionsLoadedNotification(" +
+        s"libraryName=$libraryName," +
+        s"suggestions=${suggestions.map(_.toLogString(shouldMask))}" +
         ")"
     }
 
@@ -1522,20 +1593,6 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     final case class InvalidateModulesIndexResponse() extends ApiResponse
-
-    /** A request to verify the modules in the suggestions database.
-      *
-      * @param modules the list of modules
-      */
-    final case class VerifyModulesIndexRequest(modules: Seq[String])
-        extends ApiRequest
-
-    /** A response to the module verification request.
-      *
-      * @param remove the list of modules to remove from suggestions database.
-      */
-    final case class VerifyModulesIndexResponse(remove: Seq[String])
-        extends ApiResponse
 
     /** A request for the type hierarchy graph. */
     final case class GetTypeGraphRequest() extends ApiRequest
@@ -1649,6 +1706,38 @@ object Runtime {
       *                     this failure
       */
     final case class LockReleaseFailed(errorMessage: String) extends ApiResponse
+
+    /** A request to deserialize the library suggestions.
+      *
+      * Does not have a companion response message. The response will be
+      * delivered asynchronously as a notification.
+      *
+      * @param libraryName the name of the loaded library.
+      */
+    final case class DeserializeLibrarySuggestions(libraryName: LibraryName)
+        extends ApiRequest
+
+    /** A request to start the background jobs processing. */
+    final case class StartBackgroundProcessing() extends ApiRequest
+
+    /** A notification about started background jobs. */
+    final case class BackgroundJobsStartedNotification() extends ApiNotification
+
+    /** A request to serialize the module.
+      *
+      * @param module qualified module name
+      */
+    final case class SerializeModule(module: QualifiedName) extends ApiRequest
+
+    /** A request to set the execution environment. */
+    final case class SetExecutionEnvironmentRequest(
+      contextId: ContextId,
+      executionEnvironment: ExecutionEnvironment
+    ) extends ApiRequest
+
+    /** A response to the set execution environment request. */
+    final case class SetExecutionEnvironmentResponse(contextId: ContextId)
+        extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

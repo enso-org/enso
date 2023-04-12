@@ -1,12 +1,12 @@
 package org.enso.compiler.phase
 
+import org.enso.compiler.EnsoCompiler
 import org.enso.compiler.Passes
-import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.data.CompilerConfig
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.Module.CompilationStage
-import org.enso.syntax.text.Parser
+import scala.util.Using
 
 /** A phase responsible for initializing the builtins' IR from the provided
   * source.
@@ -38,8 +38,9 @@ object BuiltinsIrBuilder {
       freshNameSupply = Some(freshNameSupply),
       compilerConfig  = CompilerConfig(warningsEnabled = false)
     )
-    val parsedAst = Parser().runWithIds(module.getSource.getCharacters.toString)
-    val initialIr = AstToIr.translate(parsedAst)
+    val initialIr = Using(new EnsoCompiler) { compiler =>
+      compiler.compile(module.getSource.getCharacters)
+    }.get
     val irAfterModDiscovery = passManager.runPassesOnModule(
       initialIr,
       moduleContext,

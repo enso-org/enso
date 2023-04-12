@@ -26,7 +26,7 @@ prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
             dataframe = x.take (First max_rows)
             all_rows_count = x.row_count
             included_rows = dataframe.row_count
-            index = Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
+            index = Dataframe_Column.from_vector "#" (Vector.new included_rows i->i)
 
             make_json dataframe [index] all_rows_count
 
@@ -49,6 +49,14 @@ prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
             JS_Object.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
         _ : Array ->
             prepare_visualization (Vector.from_polyglot_array x) max_rows
+
+        # Serialize Maps
+        _ : Map ->
+            map_vector = Warning.clear (x.to_vector.take max_rows)
+            header = ["header", ["key", "value"]]
+            data = ["data", [map_vector.map .first, map_vector.map .second]]
+            all_rows = ["all_rows_count", x.size]
+            JS_Object.from_pairs [header, data, all_rows] . to_text
 
         # Anything else will be visualized with the JSON or matrix visualization
         _ ->

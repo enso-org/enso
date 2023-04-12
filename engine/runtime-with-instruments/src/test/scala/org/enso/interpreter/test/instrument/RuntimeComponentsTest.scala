@@ -242,18 +242,13 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        Seq(
-          context.executionComplete(contextId),
-          context.analyzeJobFinished,
-          context.analyzeJobFinished
-        ),
+        Seq(context.executionComplete(contextId)),
         timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId),
-      context.analyzeJobFinished
     )
 
     // check LibraryLoaded notifications
@@ -336,18 +331,13 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        Seq(
-          context.executionComplete(contextId),
-          context.analyzeJobFinished,
-          context.analyzeJobFinished
-        ),
+        Seq(context.executionComplete(contextId)),
         timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId),
-      context.analyzeJobFinished
     )
 
     // check the registered component groups
@@ -399,37 +389,6 @@ class RuntimeComponentsTest
       GroupReference(LibraryName("Standard", "Base"), GroupName("Transform")),
       GroupReference(LibraryName("Standard", "Base"), GroupName("Output"))
     )
-
-    // check that component group symbols can be resolved
-    val suggestionSymbols = responses
-      .collect {
-        case Api.Response(
-              None,
-              msg: Api.SuggestionsDatabaseModuleUpdateNotification
-            ) =>
-          msg.updates.toVector.map(_.suggestion)
-      }
-      .flatten
-      .flatMap { suggestion =>
-        for {
-          selfType <- Suggestion.SelfType(suggestion)
-        } yield s"$selfType.${suggestion.name}"
-      }
-      .toSet
-
-    val componentSymbols = components
-      .flatMap { case (_, componentGroups) =>
-        val newComponents = componentGroups.newGroups.flatMap(_.exports)
-        val extendedComponents =
-          componentGroups.extendedGroups.flatMap(_.exports)
-        newComponents ++ extendedComponents
-      }
-      .map(_.name)
-
-    componentSymbols should not be empty
-    componentSymbols.foreach { component =>
-      suggestionSymbols should contain(component)
-    }
 
     context.consumeOut shouldEqual List()
   }

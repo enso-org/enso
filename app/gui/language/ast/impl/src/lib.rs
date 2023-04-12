@@ -83,6 +83,9 @@ pub mod constants {
 
     /// The tag name of documentation sections marked as "PRIVATE"
     pub const PRIVATE_DOC_SECTION_TAG_NAME: &str = "PRIVATE";
+
+    /// The tag name of a documentation section with a method alias.
+    pub const ALIAS_DOC_SECTION_TAG_NAME: &str = "ALIAS";
 }
 
 pub use crumbs::Crumb;
@@ -183,7 +186,7 @@ impl<T> Layer<T> for Layered<T> {
 /// to either of the implementation need to be applied to the other one as well.
 ///
 /// Each AST node is annotated with span and an optional ID.
-#[derive(CloneRef, Eq, PartialEq, Debug, Deref)]
+#[derive(CloneRef, Eq, PartialEq, Deref)]
 pub struct Ast {
     wrapped: Rc<WithID<WithLength<Shape<Ast>>>>,
 }
@@ -200,6 +203,17 @@ impl<'t> IntoIterator for &'t Ast {
     type IntoIter = <&'t Shape<Ast> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
         self.shape().into_iter()
+    }
+}
+
+/// Custom `Debug` implementation that flattens the `WithID` and `WithLength` wrappers.
+impl Debug for Ast {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Ast")
+            .field("id", &self.id)
+            .field("length", &self.length)
+            .field("shape", &self.shape())
+            .finish()
     }
 }
 
@@ -451,6 +465,21 @@ macro_rules! with_shape_variants {
     };
 }
 
+/// Define variant name getter for all shapes.
+macro_rules! generate_variant_name {
+    ( $([$name:ident $($rest:tt)* ])* ) => {
+        impl<T> Shape<T> {
+            pub fn variant_name(&self) -> &'static str {
+                match self {
+                    $(Shape::$name { .. } => stringify!($name),)*
+                }
+            }
+        }
+    };
+}
+
+with_shape_variants!(generate_variant_name);
+
 
 // === [`Tree`] data ===
 
@@ -525,6 +554,26 @@ impl<T> Tree<T> {
         Tree::expression(span_info)
             .with_type_info(TreeType::ExpressionWithComment)
             .with_trailing_token(comment)
+    }
+}
+
+/// Helper getters.
+impl<T> Tree<T> {
+    /// Retrieves the string content of the Tree node, if any.
+    pub fn as_text(&self) -> Option<&str> {
+        if self.type_info == TreeType::Expression && self.descriptive_name == Some("text") {
+            self.leaf_info.as_deref().and_then(|s| {
+                if s.starts_with(repr::FMT_BLOCK_QUOTES) || s.starts_with(repr::RAW_BLOCK_QUOTES) {
+                    s.get(3..s.len() - 3)
+                } else if s.starts_with(repr::FMT_QUOTE) || s.starts_with(repr::RAW_QUOTE) {
+                    s.get(1..s.len() - 1)
+                } else {
+                    None
+                }
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -1215,6 +1264,17 @@ impl Ast {
     /// Creates an AST node with `Infix` shape, where both its operands are Vars.
     pub fn infix_var(larg: impl Str, opr: impl Str, rarg: impl Str) -> Ast {
         let infix = Infix::from_vars(larg, opr, rarg);
+        Ast::from(infix)
+    }
+
+    /// Creates an AST node with `Infix` assignment to a `Var` with given name and no spacing.
+    pub fn named_argument(name: impl Str, expression: impl Into<Ast>) -> Ast {
+        let larg = Ast::var(name);
+        let loff = 0;
+        let opr = Ast::opr(opr::predefined::ASSIGNMENT);
+        let roff = 0;
+        let rarg = expression.into();
+        let infix = Infix { larg, loff, opr, roff, rarg };
         Ast::from(infix)
     }
 

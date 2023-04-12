@@ -1,6 +1,6 @@
 import project.Data.Text.Text
 import project.Network.URI.URI
-import project.Error.Common.Syntax_Error
+import project.Errors.Common.Syntax_Error
 
 ## Convert Text to a URI.
 

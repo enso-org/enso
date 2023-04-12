@@ -9,10 +9,13 @@ import com.ibm.icu.text.StringSearch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
 import org.enso.base.text.Utf16Span;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
@@ -268,25 +271,13 @@ public class Text_Utils {
    * @param str the string to measure
    * @return length of the string
    */
-  private static long grapheme_length(String str) {
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(str);
-    long len = 0;
-    while (iter.next() != BreakIterator.DONE) {
-      len++;
-    }
-    return len;
+  public static long grapheme_length(String str) {
+    return Core_Text_Utils.computeGraphemeLength(str);
   }
 
   /** Returns a prefix of the string not exceeding the provided grapheme length. */
   public static String take_prefix(String str, long grapheme_length) {
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(str);
-    if (iter.next(Math.toIntExact(grapheme_length)) == BreakIterator.DONE) {
-      return str;
-    } else {
-      return str.substring(0, iter.current());
-    }
+    return Core_Text_Utils.take_prefix(str, grapheme_length);
   }
 
   /** Returns a suffix of the string not exceeding the provided grapheme length. */
@@ -348,7 +339,7 @@ public class Text_Utils {
   public static List<Utf16Span> span_of_all(String haystack, String needle) {
     if (needle.isEmpty())
       throw new IllegalArgumentException(
-          "The operation `index_of_all` does not support searching for an empty term.");
+              "The operation `span_of_all` does not support searching for an empty term.");
     if (haystack.isEmpty()) return List.of();
 
     StringSearch search = new StringSearch(needle, haystack);
@@ -357,6 +348,48 @@ public class Text_Utils {
     while ((ix = search.next()) != StringSearch.DONE) {
       occurrences.add(new Utf16Span(ix, ix + search.getMatchLength()));
     }
+    return occurrences;
+  }
+
+  /**
+   * Find spans of all occurrences of a set of needles within the haystack.
+   *
+   * @param haystack the string to search
+   * @param needles the substrings that are searched for
+   * @return a list of UTF-16 code unit spans at which the needle occurs in the haystack
+   */
+  public static List<Utf16Span> span_of_all_multiple(String haystack, List<String> needles) {
+    if (needles.isEmpty() || needles.stream().anyMatch(String::isEmpty))
+      throw new IllegalArgumentException(
+              "The operation `span_of_all_multiple` does not support searching for an empty term.");
+    if (haystack.isEmpty()) return List.of();
+
+    StringSearch stringSearches[] = IntStream.range(0, needles.size())
+            .mapToObj(i -> new StringSearch(needles.get(i), haystack))
+            .toArray(StringSearch[]::new);
+    List<Utf16Span> occurrences = new ArrayList<>();
+
+    int ix = 0;
+    while (ix != StringSearch.DONE) {
+      int earliestIndex = -1;
+      int earliestStart = -1;
+      for (int i = 0; i < stringSearches.length; ++i) {
+        StringSearch stringSearch = stringSearches[i];
+        int start = stringSearch.following(ix);
+        if (start != StringSearch.DONE && (earliestStart == -1 || start < earliestStart)) {
+          earliestIndex = i;
+          earliestStart = start;
+        }
+      }
+      if (earliestIndex == -1) {
+        // No more matches.
+        break;
+      }
+      int matchLength = stringSearches[earliestIndex].getMatchLength();
+      occurrences.add(new Utf16Span(earliestStart, earliestStart + matchLength));
+      ix = earliestStart + matchLength;
+    }
+
     return occurrences;
   }
 
@@ -454,18 +487,18 @@ public class Text_Utils {
   }
 
   /**
-   * Find all occurrences of needle in the haystack
+   * Find all occurrences of needle in the haystack, case-insensitively.
    *
    * @param haystack the string to search
-   * @param needle the substring that is searched for
+   * @param needles the substrings that are searched for
    * @param locale the locale used for case-insensitive comparisons
    * @return a list of extended-grapheme-cluster spans at which the needle occurs in the haystack
    */
   public static List<GraphemeSpan> span_of_all_case_insensitive(
-      String haystack, String needle, Locale locale) {
+          String haystack, String needle, Locale locale) {
     if (needle.isEmpty())
       throw new IllegalArgumentException(
-          "The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
+              "The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
     if (haystack.isEmpty()) return List.of();
 
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
@@ -480,6 +513,29 @@ public class Text_Utils {
     }
 
     return result;
+  }
+
+  /**
+   * Find spans of all occurrences of a set of needles within the haystack,
+   * case-insensitively.
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @param locale the locale used for case-insensitive comparisons
+   * @return a list of extended-grapheme-cluster spans at which the needle occurs in the haystack
+   */
+  public static List<GraphemeSpan> span_of_all_case_insensitive_multiple(
+          String haystack, List<String> needles, Locale locale) {
+    CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
+    List<String> foldedNeedles = IntStream.range(0, needles.size())
+            .mapToObj(i -> CaseFoldedString.simpleFold(needles.get(i), locale))
+            .collect(Collectors.toList());
+    var foldedSpans = span_of_all_multiple(foldedHaystack.getFoldedString(), foldedNeedles);
+    List<GraphemeSpan> occurrences =
+            foldedSpans.stream()
+                    .map(span -> findExtendedSpan(foldedHaystack, span.codeunit_start, span.codeunit_end-span.codeunit_start))
+                    .collect(Collectors.toList());
+    return occurrences;
   }
 
   /**
@@ -565,5 +621,10 @@ public class Text_Utils {
     // Add the remaining part of the string (if any).
     sb.append(str, current_ix, str.length());
     return sb.toString();
+  }
+
+  /** Pretty prints the string, escaping special characters. */
+  public static String pretty_print(String str) {
+    return Core_Text_Utils.prettyPrint(str);
   }
 }

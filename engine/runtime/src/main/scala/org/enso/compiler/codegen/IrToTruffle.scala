@@ -42,7 +42,6 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.controlflow.permission.PermissionGuardNode
 import org.enso.interpreter.node.expression.atom.{
   ConstantNode,
   QualifiedAccessorNode
@@ -818,6 +817,10 @@ class IrToTruffle(
               val fun = actualModule.getScope.getMethods
                 .get(actualModule.getScope.getAssociatedType)
                 .get(method.name)
+              assert(
+                fun != null,
+                s"exported symbol `${method.name}` needs to be registered first in the module "
+              )
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
                 name,
@@ -1653,12 +1656,7 @@ class IrToTruffle(
           case _ =>
             ExpressionProcessor.this.run(body, false, subjectToInstrumentation)
         }
-        val block = BlockNode.build(argExpressions.toArray, bodyExpr)
-        effectContext match {
-          case Some("Input")  => new PermissionGuardNode(block, true, false);
-          case Some("Output") => new PermissionGuardNode(block, false, true);
-          case _              => block
-        }
+        BlockNode.build(argExpressions.toArray, bodyExpr)
       }
 
       private def computeSlots(): (

@@ -104,7 +104,16 @@ fn define_enabled_profiler(profiler: &Profiler) -> proc_macro::TokenStream {
                 let profiler: profiler::internal::Started<profiler::#ident> =
                     $parent.start_child(label);
                 profiler
-            }}
+            }};
+            ($label: expr) => {{
+                let label = profiler::internal::Label(
+                    concat!($label, " (", file!(), ":", line!(), ")"));
+                let parent = profiler::internal::EventId::implicit();
+                let now = Some(profiler::internal::Timestamp::now());
+                let started = profiler::internal::StartState::Active;
+                let profiler = profiler::#ident::start(parent, label, now, started);
+                profiler::internal::Started(profiler)
+            }};
         }
 
         #[doc = #doc_create]
@@ -160,7 +169,10 @@ fn define_disabled_profiler(profiler: &Profiler) -> proc_macro::TokenStream {
             ($parent: expr, $label: expr) => {{
                 let _unused_at_this_profiling_level = $parent;
                 profiler::internal::Started(profiler::#ident(()))
-            }}
+            }};
+            ($label: expr) => {{
+                profiler::internal::Started(profiler::#ident(()))
+            }};
         }
 
         #[doc = #doc_create]

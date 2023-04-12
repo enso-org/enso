@@ -111,7 +111,7 @@ impl From<i32> for Unit {
 #[derive(Clone, Copy, Debug, Default, PartialEq, From)]
 pub enum Size {
     /// In this mode, the display object size will be set to the size of its content. In case of
-    /// siplay object with no children, their size will be set to 0.
+    /// display object with no children, their size will be set to 0.
     #[default]
     Hug,
     /// In this mode, the display object size is provided explicitly.
@@ -127,6 +127,11 @@ impl Size {
     /// Checks whether the resizing mode is [`Size::Fixed`].
     pub fn is_fixed(self) -> bool {
         matches!(self, Size::Fixed(_))
+    }
+
+    /// Checks whether the resizing mode is directly dependant on computed parent size.
+    pub fn depends_on_parent_size(self) -> bool {
+        matches!(self, Size::Fixed(Unit::Percent(_)))
     }
 
     /// Matcher for the [`Pixels`] variant.

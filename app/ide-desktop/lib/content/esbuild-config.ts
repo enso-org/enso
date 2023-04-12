@@ -1,49 +1,60 @@
 /**
- * Configuration for the esbuild bundler and build/watch commands.
+ * @file Configuration for the esbuild bundler and build/watch commands.
  *
  * The bundler processes each entry point into a single file, each with no external dependencies and
  * minified. This primarily involves resolving all imports, along with some other transformations
  * (like TypeScript compilation).
  *
  * See the bundlers documentation for more information:
- * https://esbuild.github.io/getting-started/#bundling-for-node
+ * https://esbuild.github.io/getting-started/#bundling-for-node.
  */
 
-import fs from 'node:fs'
-import path, { dirname } from 'node:path'
-import child_process from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs/promises'
+import * as fsSync from 'node:fs'
+import * as pathModule from 'node:path'
+import * as url from 'node:url'
 
-import esbuild from 'esbuild'
-import plugin_yaml from 'esbuild-plugin-yaml'
-import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
-import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
-import aliasPlugin from 'esbuild-plugin-alias'
-// @ts-ignore
-import timePlugin from 'esbuild-plugin-time'
-// @ts-ignore
-import * as copy_plugin from 'enso-copy-plugin'
+import * as esbuild from 'esbuild'
+import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
+import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import esbuildPluginAlias from 'esbuild-plugin-alias'
+import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
+import esbuildPluginTime from 'esbuild-plugin-time'
+import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import { require_env } from '../../utils.js'
-import * as BUILD_INFO from '../../build.json' assert { type: 'json' }
+import * as utils from '../../utils'
+import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
-export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+export const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
 
 // =============================
 // === Environment variables ===
 // =============================
 
-/** List of files to be copied from WASM artifacts. */
-export const wasm_artifacts = require_env('ENSO_BUILD_GUI_WASM_ARTIFACTS')
+export interface Arguments {
+    /** List of files to be copied from WASM artifacts. */
+    wasmArtifacts: string
+    /** Directory with assets. Its contents are to be copied. */
+    assetsPath: string
+    /** Path where bundled files are output. */
+    outputPath: string
+    /** The main JS bundle to load WASM and JS wasm-pack bundles. */
+    ensoglAppPath: string
+    /** `true` if in development mode (live-reload), `false` if in production mode. */
+    devMode: boolean
+}
 
-/** Directory with assets. Its contents are to be copied. */
-export const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
-
-/** Path where bundled files are output. */
-export const output_path = path.resolve(require_env('ENSO_BUILD_GUI'), 'assets')
-
-/** The main JS bundle to load WASM and JS wasm-pack bundles. */
-export const ensogl_app_path = require_env('ENSO_BUILD_GUI_ENSOGL_APP')
+/**
+ * Get arguments from the environment.
+ */
+export function argumentsFromEnv(): Arguments {
+    const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
+    const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
+    const outputPath = pathModule.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+    const ensoglAppPath = utils.requireEnv('ENSO_BUILD_GUI_ENSOGL_APP')
+    return { wasmArtifacts, assetsPath, outputPath, ensoglAppPath, devMode: false }
+}
 
 // ===================
 // === Git process ===
@@ -51,114 +62,114 @@ export const ensogl_app_path = require_env('ENSO_BUILD_GUI_ENSOGL_APP')
 
 /**
  * Get output of a git command.
- * @param command Command line following the `git` program.
+ * @param command - Command line following the `git` program.
  * @returns Output of the command.
  */
 function git(command: string): string {
     // TODO [mwu] Eventually this should be removed, data should be provided by the build script through `BUILD_INFO`.
     //            The bundler configuration should not invoke git, it is not its responsibility.
-    return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
-}
-
-// ==============================
-// === Files to manually copy ===
-// ==============================
-
-/**
- * Static set of files that are always copied to the output directory.
- */
-const always_copied_files = [
-    path.resolve(thisPath, 'src', 'index.html'),
-    path.resolve(thisPath, 'src', 'run.js'),
-    path.resolve(thisPath, 'src', 'style.css'),
-    path.resolve(thisPath, 'src', 'docsStyle.css'),
-    ...wasm_artifacts.split(path.delimiter),
-]
-
-/**
- * Generator that yields all files that should be copied to the output directory.
- */
-async function* files_to_copy_provider() {
-    console.log('Preparing a new generator for files to copy.')
-    yield* always_copied_files
-    for (const file of await fs.promises.readdir(assets_path)) {
-        yield path.resolve(assets_path, file)
-    }
-    console.log('Generator for files to copy finished.')
+    return childProcess.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
 // ================
 // === Bundling ===
 // ================
 
-const config: esbuild.BuildOptions = {
-    bundle: true,
-    entryPoints: ['src/index.ts'],
-    outdir: output_path,
-    outbase: 'src',
-    plugins: [
-        plugin_yaml.yamlPlugin({}),
-        NodeModulesPolyfillPlugin(),
-        NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
-        aliasPlugin({ ensogl_app: ensogl_app_path }),
-        timePlugin(),
-        copy_plugin.create(files_to_copy_provider),
-    ],
-    define: {
-        GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
-        GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
-        BUILD_INFO: JSON.stringify(BUILD_INFO),
-    },
-    sourcemap: true,
-    minify: true,
-    metafile: true,
-    format: 'esm',
-    publicPath: '/assets',
-    platform: 'browser',
-    incremental: true,
-    color: true,
-    logOverride: {
-        // Happens in ScalaJS-generated parser (scala-parser.js):
-        //    6 │   "fileLevelThis": this
-        'this-is-undefined-in-esm': 'silent',
-        // Happens in ScalaJS-generated parser (scala-parser.js):
-        // 1553 │   } else if ((a === (-0))) {
-        'equals-negative-zero': 'silent',
-        // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
-        //    1 │ ...typeof module!=="undefined"){module["exports"]=Module}process["o...
-        'commonjs-variable-in-esm': 'silent',
-        // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
-        //    1 │ ...y{table.grow(1)}catch(err){if(!err instanceof RangeError){throw ...
-        'suspicious-boolean-not': 'silent',
-    },
-}
-
 /**
- * Spawn the esbuild watch process. It continuously runs, rebuilding the package.
+ * Generate the builder options.
  */
-export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
-    return esbuild.build({
-        ...config,
-        inject: [...(config.inject ?? []), ...(inject ?? [])],
-        watch: {
-            onRebuild(error, result) {
-                if (error) console.error('watch build failed:', error)
-                else onRebuild?.()
-            },
+export function bundlerOptions(args: Arguments) {
+    const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath, devMode } = args
+    const buildOptions = {
+        // Disabling naming convention because these are third-party options.
+        /* eslint-disable @typescript-eslint/naming-convention */
+        absWorkingDir: THIS_PATH,
+        bundle: true,
+        loader: {
+            '.html': 'copy',
+            '.css': 'copy',
+            '.wasm': 'copy',
+            '.svg': 'copy',
+            '.png': 'copy',
+            '.ttf': 'copy',
         },
-    })
+        entryPoints: [
+            pathModule.resolve(THIS_PATH, 'src', 'index.ts'),
+            pathModule.resolve(THIS_PATH, 'src', 'index.html'),
+            pathModule.resolve(THIS_PATH, 'src', 'run.js'),
+            pathModule.resolve(THIS_PATH, 'src', 'style.css'),
+            pathModule.resolve(THIS_PATH, 'src', 'docsStyle.css'),
+            ...wasmArtifacts.split(pathModule.delimiter),
+            ...fsSync
+                .readdirSync(assetsPath)
+                .map(fileName => pathModule.resolve(assetsPath, fileName)),
+        ].map(path => ({ in: path, out: pathModule.basename(path, pathModule.extname(path)) })),
+        outdir: outputPath,
+        outbase: 'src',
+        plugins: [
+            {
+                // This is a workaround that is needed
+                // because esbuild panics when using `loader: { '.js': 'copy' }`.
+                // See https://github.com/evanw/esbuild/issues/3041.
+                // Setting `loader: 'copy'` prevents this file from being converted to ESM
+                // because of the `"type": "module"` in the `package.json`.
+                // This file MUST be in CommonJS format because it is loaded using `Function()`
+                // in `ensogl/pack/js/src/runner/index.ts`
+                name: 'pkg-js-is-cjs',
+                setup: build => {
+                    build.onLoad({ filter: /[/\\]pkg.js$/ }, async ({ path }) => ({
+                        contents: await fs.readFile(path),
+                        loader: 'copy',
+                    }))
+                },
+            },
+            esbuildPluginCopyDirectories(),
+            esbuildPluginYaml.yamlPlugin({}),
+            esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
+            esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
+            esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
+            esbuildPluginTime(),
+        ],
+        define: {
+            GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
+            GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
+            BUILD_INFO: JSON.stringify(BUILD_INFO),
+            IS_DEV_MODE: JSON.stringify(devMode),
+        },
+        sourcemap: true,
+        minify: true,
+        metafile: true,
+        format: 'esm',
+        platform: 'browser',
+        color: true,
+        logOverride: {
+            // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
+            //    1 │ ...typeof module!=="undefined"){module["exports"]=Module}process["o...
+            'commonjs-variable-in-esm': 'silent',
+            // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
+            //    1 │ ...y{table.grow(1)}catch(err){if(!err instanceof RangeError){throw ...
+            'suspicious-boolean-not': 'silent',
+        },
+        /* eslint-enable @typescript-eslint/naming-convention */
+    } satisfies esbuild.BuildOptions
+    // The narrower type is required to avoid non-null assertions elsewhere.
+    // The intersection with `esbuild.BuildOptions` is required to allow mutation.
+    const correctlyTypedBuildOptions: esbuild.BuildOptions & typeof buildOptions = buildOptions
+    return correctlyTypedBuildOptions
 }
 
-/**
- * Bundles the package.
+/** The basic, common settings for the bundler, based on the environment variables.
+ *
+ * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
  */
-export async function bundle() {
-    try {
-        return esbuild.build({ ...config, watch: false, incremental: false })
-    } catch (error) {
-        console.error(error)
-        throw error
-    }
+export function bundlerOptionsFromEnv() {
+    return bundlerOptions(argumentsFromEnv())
 }
 
-export default { watch, bundle, output_path }
+/** ESBuild options for bundling (one-off build) the package.
+ *
+ * Relies on the environment variables to be set.
+ */
+export function bundleOptions() {
+    return bundlerOptionsFromEnv()
+}

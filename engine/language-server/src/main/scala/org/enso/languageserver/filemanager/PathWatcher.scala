@@ -65,13 +65,13 @@ final class PathWatcher(
 
     val result: BlockingIO[FileSystemFailure, Unit] =
       for {
-        pathToWatch <- IO
+        pathToWatch <- ZIO
           .fromFuture { _ => pathToWatchResult }
           .mapError { _ => ContentRootNotFound }
           .absolve
         _       <- validatePath(pathToWatch)
-        watcher <- IO.fromEither(buildWatcher(pathToWatch))
-        _       <- IO.fromEither(startWatcher(watcher))
+        watcher <- ZIO.fromEither(buildWatcher(pathToWatch))
+        _       <- ZIO.fromEither(startWatcher(watcher))
       } yield ()
 
     exec
@@ -116,14 +116,14 @@ final class PathWatcher(
       stopWatcher()
       restartCounter.inc()
       if (restartCounter.canRestart) {
-        logger.error(s"Restart on error#${restartCounter.count}", e)
+        logger.error("Restart #{} on error.", restartCounter.count, e)
         context.system.scheduler.scheduleOnce(
           config.restartTimeout,
           self,
           WatchPath(base, clients)
         )
       } else {
-        logger.error("Hit maximum number of restarts", e)
+        logger.error("Hit maximum number of restarts.", e)
         clients.foreach { client =>
           client ! CapabilityForceReleased(
             CapabilityRegistration(ReceivesTreeUpdates(base))
@@ -148,7 +148,7 @@ final class PathWatcher(
   private def validatePath(path: File): BlockingIO[FileSystemFailure, Unit] =
     for {
       pathExists <- fs.exists(path)
-      _          <- ZIO.when(!pathExists)(IO.fail(FileNotFound))
+      _          <- ZIO.when(!pathExists)(ZIO.fail(FileNotFound))
     } yield ()
 
   private def buildWatcher(

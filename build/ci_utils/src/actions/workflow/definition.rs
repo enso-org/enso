@@ -97,12 +97,7 @@ pub fn shell_os(os: OS, command_line: impl Into<String>) -> Step {
 }
 
 pub fn shell(command_line: impl Into<String>) -> Step {
-    Step {
-        run: Some(command_line.into()),
-        env: once(github_token_env()).collect(),
-        timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES),
-        ..default()
-    }
+    Step { run: Some(command_line.into()), env: once(github_token_env()).collect(), ..default() }
 }
 
 /// Invoke our entry point to the build scripts, i.e. the `./run` script.

@@ -9,7 +9,6 @@ import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
-import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -90,9 +89,6 @@ class RuntimeSuggestionUpdatesTest
       Api.Response(Api.ExecutionComplete(contextId))
   }
 
-  def contentsVersion(content: String): ContentVersion =
-    Sha3_224VersionCalculator.evalVersion(content)
-
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
@@ -108,7 +104,6 @@ class RuntimeSuggestionUpdatesTest
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
-    val version  = contentsVersion(code)
     val mainFile = context.writeMain(code)
 
     // create context
@@ -138,13 +133,13 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
-          version = version,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           exports = Vector(),
           updates = Tree.Root(
@@ -153,8 +148,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -171,8 +164,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -207,15 +198,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
-          version = contentsVersion(
-            """from Standard.Base import all
-              |
-              |main =
-              |    x = 42
-              |    IO.println x
-              |""".stripMargin.linesIterator.mkString("\n")
-          ),
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -230,8 +213,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -288,16 +269,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
-          version = contentsVersion(
-            """from Standard.Base import all
-              |
-              |main =
-              |    x = 42
-              |    y = 9
-              |    IO.println x+y
-              |""".stripMargin.linesIterator.mkString("\n")
-          ),
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -312,8 +284,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -390,17 +360,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
-          version = contentsVersion(
-            """from Standard.Base import all
-              |
-              |main =
-              |    x = 42
-              |    y : Number
-              |    y = 9
-              |    IO.println x+y
-              |""".stripMargin.linesIterator.mkString("\n")
-          ),
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -415,8 +375,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -501,19 +459,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
-          version = contentsVersion(
-            """from Standard.Base import all
-              |
-              |foo x = x * 10
-              |
-              |main =
-              |    x = 42
-              |    y : Number
-              |    y = 9
-              |    IO.println x+y
-              |""".stripMargin.linesIterator.mkString("\n")
-          ),
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -528,8 +474,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -606,8 +550,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -642,19 +584,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
-          version = contentsVersion(
-            """from Standard.Base import all
-              |
-              |foo a b = a * b
-              |
-              |main =
-              |    x = 42
-              |    y : Number
-              |    y = 9
-              |    IO.println x+y
-              |""".stripMargin.linesIterator.mkString("\n")
-          ),
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(),
           updates = Tree.Root(
@@ -680,8 +610,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify(
@@ -713,6 +641,148 @@ class RuntimeSuggestionUpdatesTest
     context.consumeOut shouldEqual List("51")
   }
 
+  it should "send suggestion updates after renaming the project" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main = IO.println "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, code))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module  = moduleName,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          exports = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Module(
+                    moduleName,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(),
+                    "Enso_Test.Test.Main",
+                    ConstantsGen.ANY,
+                    true,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+
+    // rename Test -> Foo
+    context.pkg.rename("Foo")
+    context.send(
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+    )
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module  = moduleName,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          exports = Vector(),
+          updates = Tree.empty
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module = "Enso_Test.Foo.Main",
+          actions =
+            Vector(Api.SuggestionsDatabaseAction.Clean("Enso_Test.Foo.Main")),
+          exports = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Module(
+                    "Enso_Test.Foo.Main",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Enso_Test.Foo.Main",
+                    "main",
+                    List(),
+                    "Enso_Test.Foo.Main",
+                    ConstantsGen.ANY,
+                    true,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+  }
+
   it should "index overloaded functions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -735,7 +805,6 @@ class RuntimeSuggestionUpdatesTest
         |Text.Text.overloaded self arg = arg + 1
         |Number.overloaded self arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -765,13 +834,13 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
-          version = version,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           exports = Vector(),
           updates = Tree.Root(
@@ -780,8 +849,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -798,8 +865,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -844,8 +909,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.TEXT,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -872,8 +935,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.NUMBER,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -894,7 +955,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val mainCode =
-      """import Standard.Base.IO
+      """from Standard.Base import all
         |
         |import Enso_Test.Test.A
         |from Enso_Test.Test.A export all
@@ -904,7 +965,7 @@ class RuntimeSuggestionUpdatesTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val aCode =
-      """from Standard.Base.Data.Numbers import Integer
+      """from Standard.Base import all
         |
         |type MyType
         |    MkA a
@@ -914,10 +975,8 @@ class RuntimeSuggestionUpdatesTest
         |hello = "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
 
-    val mainVersion = contentsVersion(mainCode)
-    val mainFile    = context.writeMain(mainCode)
-    val aVersion    = contentsVersion(aCode)
-    val aFile       = context.writeInSrcDir("A", aCode)
+    val mainFile = context.writeMain(mainCode)
+    val aFile    = context.writeInSrcDir("A", aCode)
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -950,13 +1009,13 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module  = "Enso_Test.Test.A",
-          version = aVersion,
+          module = "Enso_Test.Test.A",
           actions =
             Vector(Api.SuggestionsDatabaseAction.Clean("Enso_Test.Test.A")),
           exports = Vector(),
@@ -964,7 +1023,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Module("Enso_Test.Test.A", None, None, None),
+                  Suggestion.Module("Enso_Test.Test.A", None),
                   Api.SuggestionAction.Add()
                 ),
                 Vector()
@@ -978,8 +1037,6 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.A.MyType",
                     Some(ConstantsGen.ANY),
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -997,8 +1054,6 @@ class RuntimeSuggestionUpdatesTest
                         .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MyType",
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1024,8 +1079,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1050,8 +1103,6 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.INTEGER,
                     ConstantsGen.ANY,
                     false,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1076,8 +1127,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1091,7 +1140,6 @@ class RuntimeSuggestionUpdatesTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
-          version = mainVersion,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           exports = Vector(
             Api.ExportsUpdate(
@@ -1111,8 +1159,6 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1129,8 +1175,6 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None,
-                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1161,22 +1205,11 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
-          version = contentsVersion(
-            """import Standard.Base.IO
-              |
-              |import Enso_Test.Test.A
-              |from Enso_Test.Test.A export all hiding hello
-              |import Enso_Test.Test.A.MyType
-              |from Enso_Test.Test.A.MyType export all
-              |
-              |main = IO.println "Hello World!"
-              |""".stripMargin.linesIterator.mkString("\n")
-          ),
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(
             Api.ExportsUpdate(
@@ -1190,6 +1223,7 @@ class RuntimeSuggestionUpdatesTest
           updates = Tree.Root(Vector())
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1214,13 +1248,7 @@ class RuntimeSuggestionUpdatesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          module = moduleName,
-          version = contentsVersion(
-            """import Standard.Base.IO
-              |
-              |main = IO.println "Hello World!"
-              |""".stripMargin.linesIterator.mkString("\n")
-          ),
+          module  = moduleName,
           actions = Vector(),
           exports = Vector(
             Api.ExportsUpdate(

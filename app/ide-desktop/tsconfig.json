@@ -1,23 +1,25 @@
 {
   "compilerOptions": {
+    "lib": ["DOM"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "node",
-    "noImplicitOverride": true,
-    "noUncheckedIndexedAccess": true,
+    "checkJs": true,
+    "strict": true,
     "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
     "removeComments": true,
     "resolveJsonModule": true,
     "sourceMap": true,
     "skipLibCheck": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "target": "ES2019"
-  },
-  "ts-node": {
-    "esm": true
+    "target": "ES2019",
+    "jsx": "react-jsx"
   }
 }

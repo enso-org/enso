@@ -34,6 +34,19 @@ class GraalVMComponentConfigurationSpec extends AnyWordSpec with Matchers {
       ) should contain theSameElementsAs requiredAbove22
 
       conf.getRequiredComponents(
+        GraalVMVersion("22.3.0", "11"),
+        OS.MacOS
+      ) should contain theSameElementsAs requiredAbove22
+
+      conf.getRequiredComponents(
+        GraalVMVersion("22.3.0", "11"),
+        OS.Windows
+      ) should contain theSameElementsAs Seq(
+        GraalVMComponent.js,
+        GraalVMComponent.R
+      )
+
+      conf.getRequiredComponents(
         GraalVMVersion("20.0.0.0", "11"),
         OS.Linux
       ) should contain theSameElementsAs Seq()

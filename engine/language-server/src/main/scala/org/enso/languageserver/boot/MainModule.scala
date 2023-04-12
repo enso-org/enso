@@ -29,7 +29,7 @@ import org.enso.languageserver.protocol.binary.{
 }
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
-  JsonRpc
+  JsonRpcProtocolFactory
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
@@ -42,10 +42,10 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.masking.Masking
+import org.enso.logger.masking.{MaskedPath, Masking}
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -91,7 +91,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
-    serverConfig.profilingConfig
+    serverConfig.profilingConfig,
+    serverConfig.startupConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
@@ -102,14 +103,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       None,
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace(s"Created ActorSystem $system.")
+  log.trace("Created ActorSystem [{}].", system)
 
   private val zioRuntime =
-    effect.Runtime.fromExecutionContext(system.dispatcher)
+    new effect.ExecutionContextRuntime(system.dispatcher)
   private val zioExec = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
-  val fileSystem: FileSystem = new FileSystem
+  private val fileSystem: FileSystem = new FileSystem
   log.trace("Created file system [{}].", fileSystem)
 
   val git = Git.withEmptyUserConfig(
@@ -125,8 +126,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val sqlDatabase = SqlDatabase.inmem("memdb")
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-  log.trace("Created SQL repos: [{}. {}].", suggestionsRepo, versionsRepo)
+  log.trace("Created SQL suggestions repo: [{}].", suggestionsRepo)
 
   val idlenessMonitor =
     system.actorOf(IdlenessMonitor.props(utcClock))
@@ -165,7 +165,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
             monitor
           case Failure(exception) =>
             log.error(
-              s"Failed to create runtime events monitor for $path ($exception)."
+              "Failed to create runtime events monitor for [{}].",
+              MaskedPath(path),
+              exception
             )
             new NoopEventsMonitor
         }
@@ -173,7 +175,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         new NoopEventsMonitor
     }
   log.trace(
-    s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
+    "Started runtime events monitor [{}].",
+    runtimeEventsMonitor.getClass.getName
   )
 
   lazy val runtimeConnector =
@@ -240,7 +243,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           languageServerConfig,
           contentRootManagerWrapper,
           suggestionsRepo,
-          versionsRepo,
           sessionRouter,
           runtimeConnector
         ),
@@ -341,14 +343,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
-  val initializationComponent = ResourcesInitialization(
-    system.eventStream,
-    directoriesConfig,
-    suggestionsRepo,
-    versionsRepo,
-    context
-  )(system.dispatcher)
-
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver),
     "project-settings-manager"
@@ -377,7 +371,40 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   )
 
-  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+  val pingHandlerProps =
+    PingHandler.props(
+      List(
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        contextRegistry
+      ),
+      10.seconds,
+      true
+    )
+
+  private val healthCheckEndpoint =
+    new HealthCheckEndpoint(pingHandlerProps, system)(
+      serverConfig.computeExecutionContext
+    )
+
+  private val idlenessEndpoint =
+    new IdlenessEndpoint(idlenessMonitor)
+
+  private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
+
+  private val initializationComponent =
+    ResourcesInitialization(
+      system.eventStream,
+      directoriesConfig,
+      jsonRpcProtocolFactory,
+      sqlDatabase,
+      suggestionsRepo,
+      context,
+      zioRuntime
+    )(system.dispatcher)
+
+  private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     mainComponent          = initializationComponent,
     bufferRegistry         = bufferRegistry,
     capabilityRouter       = capabilityRouter,
@@ -400,29 +427,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     jsonRpcControllerFactory
   )
 
-  val pingHandlerProps =
-    PingHandler.props(
-      List(
-        bufferRegistry,
-        capabilityRouter,
-        fileManager,
-        contextRegistry
-      ),
-      10.seconds,
-      true
-    )
-
-  val healthCheckEndpoint =
-    new HealthCheckEndpoint(pingHandlerProps, system)(
-      serverConfig.computeExecutionContext
-    )
-
-  val idlenessEndpoint =
-    new IdlenessEndpoint(idlenessMonitor)
-
   val jsonRpcServer =
     new JsonRpcServer(
-      JsonRpc.protocol,
+      jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
@@ -450,7 +457,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   /** Close the main module releasing all resources. */
   def close(): Unit = {
     suggestionsRepo.close()
-    versionsRepo.close()
     context.close()
     log.info("Closed Language Server main module.")
   }

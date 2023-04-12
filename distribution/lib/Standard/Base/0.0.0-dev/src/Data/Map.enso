@@ -3,12 +3,11 @@ import project.Data.Vector.Vector
 import project.Data.Pair.Pair
 import project.Data.Text.Extensions
 import project.Data.Text.Text
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.No_Such_Key.No_Such_Key
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.No_Such_Key.No_Such_Key
 
 from project.Data.Boolean import Boolean, True, False
 from project import Error, Nothing, Any, Panic
-
 
 ## A key-value store. It is possible to use any type as keys and values and mix them in
    one Map. Keys are checked for equality based on their hash code and `==` operator, which
@@ -350,11 +349,11 @@ type Map key value
     to_vector : Vector Any
     to_vector self = @Builtin_Method "Map.to_vector"
 
-    ## Returns a text representation of this Map.
+    ## PRIVATE
+       Returns a text representation of this Map.
     to_text : Text
     to_text self = @Builtin_Method "Map.to_text"
 
     ## PRIVATE
     get_builtin : Any -> Any -> Any
     get_builtin self key ~if_missing = @Builtin_Method "Map.get_builtin"
-

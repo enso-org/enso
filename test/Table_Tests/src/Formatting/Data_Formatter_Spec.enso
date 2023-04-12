@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style
 from Standard.Table.Errors import all
@@ -98,10 +98,18 @@ spec =
             formatter.parse "2020-05-07" datatype=Date . should_equal (Date.new 2020 5 7)
             formatter.parse "1999-01-01 00:00:00" . should_equal (Date_Time.new 1999)
             formatter.parse "1999-02-03 04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
+            formatter.parse "1999-02-03T04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
+            formatter.parse "1999-02-03 04:05:06.123" . should_equal (Date_Time.new 1999 2 3 4 5 6 123)
+            formatter.parse "1999-02-03 04:05:06.000456" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 456)
+            formatter.parse "1999-02-03 04:05:06.000000789" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 0 789)
+            formatter.parse "1999-02-03 04:05:06.000000789[Europe/Madrid]" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 0 789 zone=(Time_Zone.parse "Europe/Madrid"))
             formatter.parse "1999-01-01 00:00" datatype=Date_Time . should_equal (Date_Time.new 1999)
             formatter.parse "1999-02-03 04:05" . should_equal (Date_Time.new 1999 2 3 4 5 0)
             formatter.parse "00:00:00" . should_equal (Time_Of_Day.new)
             formatter.parse "17:34:59" . should_equal (Time_Of_Day.new 17 34 59)
+            formatter.parse "17:34:59.123" . should_equal (Time_Of_Day.new 17 34 59 123)
+            formatter.parse "17:34:59.000456" . should_equal (Time_Of_Day.new 17 34 59 0 456)
+            formatter.parse "17:34:59.000000789" . should_equal (Time_Of_Day.new 17 34 59 0 0 789)
             formatter.parse "00:00" . should_equal (Time_Of_Day.new)
             formatter.parse "17:34" datatype=Time_Of_Day . should_equal (Time_Of_Day.new 17 34)
 
@@ -118,6 +126,27 @@ spec =
                 Text with such 'quotes' and also "that" and `that`
                 And newlines toO!
             formatter.parse complex_text . should_equal complex_text
+
+        Test.specify "should report Invalid_Format errors" <|
+            formatter = Data_Formatter.Value
+            expect_warning r =
+                r.should_equal Nothing
+                Problems.expect_only_warning Invalid_Format r
+
+            r1 = formatter.parse "Text" datatype=Decimal
+            w1 = expect_warning r1
+            w1.value_type . should_equal Decimal
+            w1.column . should_equal Nothing
+
+            expect_warning <| formatter.parse "Text" datatype=Integer
+            expect_warning <| formatter.parse "Text" datatype=Boolean
+            expect_warning <| formatter.parse "Text" datatype=Date
+            expect_warning <| formatter.parse "Text" datatype=Date_Time
+            expect_warning <| formatter.parse "Text" datatype=Time_Of_Day
+
+        Test.specify "should not allow unexpected types" <|
+            formatter = Data_Formatter.Value
+            formatter.parse "Text" datatype=List . should_fail_with Illegal_Argument
 
     Test.group "DataFormatter.format" <|
         Test.specify "should handle Nothing" <|
@@ -157,7 +186,7 @@ spec =
             formatter = Data_Formatter.Value true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
             formatter.format True . should_equal "YES"
             formatter.format False . should_equal "NO"
-            (Data_Formatter.Value true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument.Error
+            (Data_Formatter.Value true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument
 
         Test.specify "should format dates" <|
             formatter = Data_Formatter.Value
@@ -190,8 +219,8 @@ spec =
 
         Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="TODO: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
             formatter = Data_Formatter.Value
-            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State.Error
-            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State.Error
+            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State
+            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State
 
     Test.group "DataFormatter builders" <|
         # We create a formatter with all non-default values to ensure that the builders keep the existing values of other properties instead of switching to the constructor's defaults.

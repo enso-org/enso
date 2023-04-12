@@ -13,7 +13,7 @@ import org.enso.languageserver.filemanager.{
   Path
 }
 import org.enso.languageserver.util.UnhandledLogging
-import zio.IO
+import zio.{IO, ZIO}
 
 import java.io.File
 import java.util.UUID
@@ -32,7 +32,8 @@ class VcsManager(
   private def findContentRoot(
     id: UUID
   ): IO[FileSystemFailure, ContentRootWithFile] =
-    IO.fromFuture { ec => contentRootManager.findContentRoot(id)(ec) }
+    ZIO
+      .fromFuture { ec => contentRootManager.findContentRoot(id)(ec) }
       .mapError { _ => ContentRootNotFound }
       .absolve
 

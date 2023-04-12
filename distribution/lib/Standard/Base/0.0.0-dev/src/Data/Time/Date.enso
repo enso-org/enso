@@ -4,7 +4,6 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Time.Date_Time
@@ -15,15 +14,14 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Time_Error.Time_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Time_Error.Time_Error
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
@@ -177,7 +175,7 @@ type Date
          Recover from an error due to a wrong format.
 
              from Standard.Base import Date
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err = Date.parse "my birthday" . catch Time_Error _->
                  Date.new 2000 1 1
@@ -193,7 +191,7 @@ type Date
          Recover from the parse error.
 
              from Standard.Base import Date
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"
@@ -541,7 +539,8 @@ type Date
             _ ->
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
-    ## Convert to a JS_Object representing this Date.
+    ## PRIVATE
+       Convert to a JS_Object representing this Date.
 
        > Example
          Convert the current date to a JS_Object.
@@ -627,6 +626,3 @@ is_weekend date =
 ## PRIVATE
 fits_in_range start end date =
     (start <= date) && (date < end)
-
-
-Comparable.from (_:Date) = Default_Ordered_Comparator

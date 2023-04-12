@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use crate::config::ProjectToOpen;
 use crate::controller::ide::ManagingProjectAPI;
 use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
@@ -38,12 +39,13 @@ const UNNAMED_PROJECT_NAME: &str = "Unnamed";
 #[derive(Clone, CloneRef, Derivative)]
 #[derivative(Debug)]
 pub struct Handle {
-    current_project:      Rc<CloneCell<Option<model::Project>>>,
+    current_project: Rc<CloneCell<Option<model::Project>>>,
     #[derivative(Debug = "ignore")]
-    project_manager:      Rc<dyn project_manager::API>,
+    project_manager: Rc<dyn project_manager::API>,
     status_notifications: StatusNotificationPublisher,
-    parser:               Parser,
-    notifications:        notification::Publisher<Notification>,
+    parser: Parser,
+    notifications: notification::Publisher<Notification>,
+    component_browser_private_entries_visibility_flag: Rc<Cell<bool>>,
 }
 
 impl Handle {
@@ -52,10 +54,11 @@ impl Handle {
     /// Screen.
     pub async fn new(
         project_manager: Rc<dyn project_manager::API>,
-        project_name: Option<ProjectName>,
+        project_to_open: Option<ProjectToOpen>,
     ) -> FallibleResult<Self> {
-        let project = match project_name {
-            Some(name) => Some(Self::init_project_model(project_manager.clone_ref(), name).await?),
+        let project = match project_to_open {
+            Some(project_to_open) =>
+                Some(Self::init_project_model(project_manager.clone_ref(), project_to_open).await?),
             None => None,
         };
         Ok(Self::new_with_project_model(project_manager, project))
@@ -71,18 +74,26 @@ impl Handle {
         let status_notifications = default();
         let parser = Parser::new();
         let notifications = default();
-        Self { current_project, project_manager, status_notifications, parser, notifications }
+        let component_browser_private_entries_visibility_flag = default();
+        Self {
+            current_project,
+            project_manager,
+            status_notifications,
+            parser,
+            notifications,
+            component_browser_private_entries_visibility_flag,
+        }
     }
 
     /// Open project with provided name.
     async fn init_project_model(
         project_manager: Rc<dyn project_manager::API>,
-        project_name: ProjectName,
+        project_to_open: ProjectToOpen,
     ) -> FallibleResult<model::Project> {
         // TODO[ao]: Reuse of initializer used in previous code design. It should be soon replaced
         //      anyway, because we will soon resign from the "open or create" approach when opening
         //      IDE. See https://github.com/enso-org/ide/issues/1492 for details.
-        let initializer = initializer::WithProjectManager::new(project_manager, project_name);
+        let initializer = initializer::WithProjectManager::new(project_manager, project_to_open);
         let model = initializer.initialize_project_model().await?;
         Ok(model)
     }
@@ -106,6 +117,17 @@ impl API for Handle {
 
     fn manage_projects(&self) -> FallibleResult<&dyn ManagingProjectAPI> {
         Ok(self)
+    }
+
+    fn are_component_browser_private_entries_visible(&self) -> bool {
+        self.component_browser_private_entries_visibility_flag.get()
+    }
+
+    fn set_component_browser_private_entries_visibility(&self, visibility: bool) {
+        debug!(
+            "Setting the visibility of private entries in the component browser to {visibility}."
+        );
+        self.component_browser_private_entries_visibility_flag.set(visibility);
     }
 }
 

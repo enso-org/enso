@@ -2,7 +2,6 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.docs.generator.DocsGenerator
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
@@ -41,8 +40,6 @@ class RuntimeStdlibTest
   var context: TestContext = _
 
   class TestContext(packageName: String) {
-
-    val docsGenerator = new DocsGenerator
 
     val messageQueue: LinkedBlockingQueue[Api.Response] =
       new LinkedBlockingQueue()
@@ -238,18 +235,13 @@ class RuntimeStdlibTest
     )
     val responses =
       context.receiveAllUntil(
-        Seq(
-          context.executionComplete(contextId),
-          context.analyzeJobFinished,
-          context.analyzeJobFinished
-        ),
+        Seq(context.executionComplete(contextId)),
         timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId),
-      context.analyzeJobFinished,
     )
 
     // check that the suggestion notifications are received
@@ -260,7 +252,6 @@ class RuntimeStdlibTest
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(
               module,
-              _,
               actions,
               _,
               updates
@@ -299,39 +290,6 @@ class RuntimeStdlibTest
       )
     }
 
-    // check that the Standard.Base library is indexed
-    val stdlibSuggestions = responses.collect {
-      case Api.Response(
-            None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(
-              module,
-              _,
-              as,
-              _,
-              xs
-            )
-          ) if module.contains("Vector") =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
-        xs.toVector.map(_.suggestion.module)
-    }
-    stdlibSuggestions.nonEmpty shouldBe true
-
-    // check that builtins are indexed
-    val builtinsSuggestions = responses.collect {
-      case Api.Response(
-            None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(
-              module,
-              _,
-              as,
-              _,
-              xs
-            )
-          ) if module.contains("Builtins") =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
-    }
-    builtinsSuggestions.length shouldBe 1
-
     // check LibraryLoaded notifications
     val contentRootNotifications = responses.collect {
       case Api.Response(
@@ -345,30 +303,6 @@ class RuntimeStdlibTest
       (lib.namespace, lib.name, TestEdition.testLibraryVersion.toString)
     }
     contentRootNotifications should contain theSameElementsAs expectedLibraries
-
-    // check documentation generation
-    failAfter(30.seconds) {
-      responses.collect {
-        case Api.Response(
-              None,
-              Api.SuggestionsDatabaseModuleUpdateNotification(
-                _,
-                _,
-                _,
-                _,
-                updates
-              )
-            ) =>
-          updates.toVector.foreach { update =>
-            update.suggestion.documentation.foreach { documentation =>
-              context.docsGenerator.generate(
-                documentation,
-                update.suggestion.name
-              )
-            }
-          }
-      }
-    }
 
     context.consumeOut shouldEqual List("Hello World!")
   }

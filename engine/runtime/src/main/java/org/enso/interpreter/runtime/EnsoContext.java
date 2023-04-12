@@ -21,7 +21,7 @@ import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
-import org.enso.interpreter.runtime.state.IOPermissions;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
@@ -42,6 +42,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.StreamSupport;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -79,7 +80,7 @@ public class EnsoContext {
   private final AtomicLong clock = new AtomicLong();
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
-  private final IOPermissions rootIOPermissions;
+  private ExecutionEnvironment executionEnvironment;
 
   /**
    * Creates a new Enso context.
@@ -111,7 +112,7 @@ public class EnsoContext {
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
-    this.rootIOPermissions = getOption(EnsoLanguage.IO_ENVIRONMENT);
+    this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
 
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -337,13 +338,7 @@ public class EnsoContext {
    */
   public Optional<Module> findModuleByExpressionId(UUID expressionId) {
     return getTopScope().getModules().stream()
-        .filter(
-            module ->
-                module.getIr() != null
-                    && module
-                        .getIr()
-                        .preorder()
-                        .exists(ir -> ir.getExternalId().contains(expressionId)))
+        .filter(m -> m.containsUUID(expressionId))
         .findFirst();
   }
 
@@ -357,7 +352,7 @@ public class EnsoContext {
     if (file == null) {
       return Optional.empty();
     }
-    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
+    return StreamSupport.stream(packageRepository.getLoadedPackagesJava().spliterator(), true)
         .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
         .findFirst();
   }
@@ -436,7 +431,7 @@ public class EnsoContext {
   }
 
   /**
-   * @param name human readable name of the pool
+   * @param name human-readable name of the pool
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
@@ -446,7 +441,7 @@ public class EnsoContext {
 
   /**
    * @param parallel amount of parallelism for the pool
-   * @param name human readable name of the pool
+   * @param name human-readable name of the pool
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
@@ -513,8 +508,13 @@ public class EnsoContext {
     return clock.getAndIncrement();
   }
 
-  public IOPermissions getRootIOPermissions() {
-    return rootIOPermissions;
+  public ExecutionEnvironment getExecutionEnvironment() {
+    return executionEnvironment;
+  }
+
+  /** Set the runtime execution environment of this context. */
+  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
+    this.executionEnvironment = executionEnvironment;
   }
 
   public Shape getRootStateShape() {
@@ -527,6 +527,11 @@ public class EnsoContext {
 
   public int getMaxUnboxingLayouts() {
     return 10;
+  }
+
+  /** @return the notification handler. */
+  public NotificationHandler getNotificationHandler() {
+    return notificationHandler;
   }
 
   private <T> T getOption(OptionKey<T> key) {

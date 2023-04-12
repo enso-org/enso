@@ -1,7 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Arithmetic_Error
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Set_Mode
 from Standard.Table.Errors import all
@@ -34,7 +34,7 @@ spec setup =
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.at "nonexistent column name" . should_fail_with No_Such_Column.Error
+            table.at "nonexistent column name" . should_fail_with No_Such_Column
 
         Test.specify "should allow selecting columns by index" <|
             column_1 = table.at
@@ -61,10 +61,10 @@ spec setup =
             column_6.name . should_equal "abcd123"
             column_6.to_vector . should_equal [19, 20, 21]
 
-            table.at 100 . should_fail_with Index_Out_Of_Bounds.Error
+            table.at 100 . should_fail_with Index_Out_Of_Bounds
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
-            table.at (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
+            table.at (Pair.new 1 2) . should_fail_with Illegal_Argument
             table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
 
     Test.group prefix+"Table.get" <|
@@ -93,7 +93,7 @@ spec setup =
             table.get 100 column_1 . name . should_equal "foo"
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
-            table.get (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
+            table.get (Pair.new 1 2) . should_fail_with Illegal_Argument
             table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
 
     Test.group prefix+"Table.set" <|
@@ -106,6 +106,10 @@ spec setup =
             t3 = t2.set bar2 "bar3"
             t3.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2", "bar3"]
 
+        Test.specify "should not allow illegal column names" <|
+            table.set (table.get "bar") new_name="" . should_fail_with Illegal_Argument
+            table.set (table.get "bar") new_name='a\0b' . should_fail_with Illegal_Argument
+
         Test.specify "should allow replacing a column" <|
             foo = table.get "bar" . rename "foo"
             t2 = table.set foo
@@ -117,10 +121,10 @@ spec setup =
 
         Test.specify "should allow adding a column" <|
             bar2 = table.get "bar" . rename "bar2"
-            table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column.Error
+            table.set bar2 set_mode=Set_Mode.Update . should_fail_with Missing_Column
 
             foo = table.get "bar" . rename "foo"
-            table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column.Error
+            table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column
 
         Test.specify "should not affect existing columns that depended on the old column being replaced" <|
             t1 = table_builder [["X", [1,2,3]]]
@@ -135,7 +139,8 @@ spec setup =
         Test.specify "should gracefully handle expression failures" <|
             t1 = table_builder [["X", [1,2,3]]]
             t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
-            t1.set "[[[[" . should_fail_with Expression_Error.Syntax_Error
+            t1.set "[[[[" . should_fail_with Expression_Error
+            t1.set "[[[[" . catch . should_be_a Expression_Error.Syntax_Error
 
         Test.specify "should forward expression problems" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
@@ -162,6 +167,15 @@ spec setup =
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
             table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+
+        Test.specify "should allow weird column names in all backends" <|
+            columns = weird_names.map_with_index ix-> name->
+                [name, [100+ix, 2, 3]]
+            table = table_builder columns
+            table.column_names . should_equal weird_names
+
+            weird_names.map_with_index ix-> name->
+                table.at name . to_vector . should_equal [100+ix, 2, 3]
 
     Test.group prefix+"Table.column_count" <|
         Test.specify "should allow getting the column count" <|
@@ -201,15 +215,39 @@ spec setup =
 
             rows.map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"], [3, 7, "C"], [4, 8, "D"]]
 
+        Test.specify "should let you get the first row" <|
+            first_row = table.first_row
+            first_row . length . should_equal 3
+            first_row.at "X" . should_equal 1
+            first_row.at "Y" . should_equal 5
+            first_row.at "Z" . should_equal "A"
+
+        Test.specify "should let you get the second row" <|
+            second_row = table.second_row
+            second_row . length . should_equal 3
+            second_row.at "X" . should_equal 2
+            second_row.at "Y" . should_equal 6
+            second_row.at "Z" . should_equal "B"
+
+        Test.specify "should let you get the last row" <|
+            last_row = table.last_row
+            last_row . length . should_equal 3
+            last_row.at "X" . should_equal 4
+            last_row.at "Y" . should_equal 8
+            last_row.at "Z" . should_equal "D"
+
         Test.specify "should fetch rows up to the specified limit" <|
             table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
 
         Test.specify "should correctly handle errors" <|
-            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds.Error
+            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds
             err = table.rows.at -6
-            err.should_fail_with Index_Out_Of_Bounds.Error
+            err.should_fail_with Index_Out_Of_Bounds
             err.catch . should_equal (Index_Out_Of_Bounds.Error -6 4)
 
-            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds.Error
-            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds.Error
-            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column.Error
+            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds
+            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds
+            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column
+
+# A set of potentially problematic column names.
+weird_names = ['whitespace and \t others', 'foo "the bar" baz', "a 'X' c", "emoji? 😎 yep", "😊💡🎉🌻", "Polskie znaki - np. ąęćśó", 'acce\u0301nt a\u0301cuté', 'SELECT \'A\',"B" FROM t;--', '"', "'", '”', 'one " quote', 'double "" quote', 'even \nnewlines could go here', 'and\r\nthat\rtoo', 'foo ” bar', 'foo ”the” bar', 'x”; --']

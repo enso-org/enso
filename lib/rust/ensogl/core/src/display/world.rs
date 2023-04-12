@@ -5,7 +5,6 @@ use crate::control::callback::traits::*;
 use crate::data::dirty::traits::*;
 use crate::display::render::*;
 use crate::prelude::*;
-use crate::system::web::traits::*;
 use wasm_bindgen::prelude::*;
 
 use crate::animation;
@@ -26,7 +25,6 @@ use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::system::gpu::shader;
-use crate::system::js;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
@@ -55,8 +53,8 @@ thread_local! {
 }
 
 /// Perform an action with a reference to the global context.
-pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
-    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
+pub fn with_context<T>(f: impl FnOnce(&SymbolRegistry) -> T) -> T {
+    CONTEXT.with_borrow(move |t| f(t.as_ref().unwrap()))
 }
 
 /// Initialize global state (set stack trace size, logger output, etc).
@@ -87,21 +85,47 @@ fn init_context() {
 /// A constructor of view of some specific shape.
 pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
 
+/// The definition of shapes created with the `shape!` macro.
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct ShapeDefinition {
+    /// Location in the source code that the shape was defined.
+    pub definition_path: &'static str,
+    /// A constructor of single shape view.
+    #[derivative(Debug = "ignore")]
+    pub cons:            ShapeCons,
+}
+
+impl ShapeDefinition {
+    /// Return `true` if it is possible that this shape is used by the main application.
+    pub fn is_main_application_shape(&self) -> bool {
+        // Shapes defined in `examples` directories are not used in the main application.
+        !self.definition_path.contains("/examples/")
+    }
+}
+
 /// The definition of shapes created with the `cached_shape!` macro.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CachedShapeDefinition {
-    /// The size of the shape in the texture.
-    pub size: Vector2<i32>,
-    /// A constructor of single shape view.
+    /// The size of the texture's space occupied by the shape.
+    pub size: Vector2,
+    /// A pointer to function setting the global information about position in the cached shapes
+    /// texture, usually a concrete implementation of
+    /// [`set_position_in_texture`](crate::display::shape::system::cached::CachedShape::set_position_in_texture)
     #[derivative(Debug = "ignore")]
-    pub cons: ShapeCons,
+    pub position_on_texture_setter: Box<dyn Fn(Vector2)>,
+    /// A pointer to function creating a shape instance properly placed for cached texture
+    /// rendering, usually a concrete implementation of
+    /// [`create_view_for_texture`](crate::display::shape::system::cached::CachedShape::create_view_for_texture)
+    #[derivative(Debug = "ignore")]
+    pub for_texture_constructor: ShapeCons,
 }
 
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
-    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
+    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeDefinition>> = default();
 
     /// All shapes defined with the `cached_shape!` macro. They will be populated on the beginning
     /// of program execution, before the `main` function is called.
@@ -116,12 +140,9 @@ thread_local! {
 
 /// A precompiled shader definition. It contains the main function body for the vertex and fragment
 /// shaders.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 #[allow(missing_docs)]
-pub struct PrecompiledShader {
-    pub vertex:   String,
-    pub fragment: String,
-}
+pub struct PrecompiledShader(shader::Code);
 
 thread_local! {
     /// List of all precompiled shaders. They are registered here before main entry point is run by
@@ -129,60 +150,56 @@ thread_local! {
     pub static PRECOMPILED_SHADERS: RefCell<HashMap<String, PrecompiledShader>> = default();
 }
 
-/// Registers in JS a closure to acquire non-optimized shaders code and to set back optimized
-/// shaders code.
-#[before_main]
-pub fn register_get_and_set_shaders_fns() {
-    let js_app = js::app_or_panic();
-    let closure = Closure::new(|| {
-        let map = gather_shaders();
-        let js_map = web::Map::new();
-        for (key, code) in map {
-            let value = web::Object::new();
-            web::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
-            web::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
-            js_map.set(&key.into(), &value);
-        }
-        js_map.into()
+/// Set optimized shader code.
+pub fn set_shader_code(key: String, vertex: String, fragment: String) {
+    let vertex = strip_instance_declarations(&vertex);
+    let precompiled_shader = PrecompiledShader(shader::Code { vertex, fragment });
+    debug!("Registering precompiled shaders for '{key}'.");
+    PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
+        map.insert(key, precompiled_shader);
     });
-    js_app.register_get_shaders_rust_fn(&closure);
-    mem::forget(closure);
-
-    let closure = Closure::new(|value: JsValue| {
-        if extract_shaders_from_js(value).err().is_some() {
-            warn!("Internal error. Downloaded shaders are provided in a wrong format.")
-        }
-    });
-    js_app.register_set_shaders_rust_fn(&closure);
-    mem::forget(closure);
 }
 
-/// Extract optimized shaders code from the JS value.
-fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
-    let map = value.dyn_into::<web::Map>()?;
-    for opt_entry in map.entries() {
-        let entry = opt_entry?.dyn_into::<web::Array>()?;
-        let key: String = entry.get(0).dyn_into::<web::JsString>()?.into();
-        let value = entry.get(1).dyn_into::<web::Object>()?;
-        let vertex_field = web::Reflect::get(&value, &"vertex".into())?;
-        let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
-        let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
-        let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
-        let precompiled_shader = PrecompiledShader { vertex, fragment };
-        debug!("Registering precompiled shaders for '{key}'.");
-        PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
-            map.insert(key, precompiled_shader);
-        });
+/// Remove initial instance variable declarations.
+///
+/// When pre-compiling vertex shaders we don't have full information about inputs, and instead treat
+/// all inputs as instance variables. After the program has been optimized, we need to strip these
+/// imprecise declarations so they don't conflict with the real declarations we add when building
+/// the shader.
+fn strip_instance_declarations(input: &str) -> String {
+    let mut code = String::with_capacity(input.len());
+    let mut preamble_ended = false;
+    let input_prefix = display::symbol::gpu::shader::builder::INPUT_PREFIX;
+    let vertex_prefix = display::symbol::gpu::shader::builder::VERTEX_PREFIX;
+    for line in input.lines() {
+        // Skip lines as long as they match the `input_foo = vertex_foo` pattern.
+        if !preamble_ended {
+            let trimmed = line.trim_start();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let mut parts = trimmed.split(' ');
+            if let Some(part) = parts.next() && part.starts_with(input_prefix)
+                    && let Some(part) = parts.next() && part == "="
+                    && let Some(part) = parts.next() && part.starts_with(vertex_prefix)
+                    && let None = parts.next() {
+                continue;
+            }
+        }
+        preamble_ended = true;
+        code.push_str(line);
+        code.push('\n');
     }
-    Ok(())
+    code
 }
 
-fn gather_shaders() -> HashMap<&'static str, shader::Code> {
+/// Collect the un-optimized shader code for all the shapes used by the application.
+pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
     SHAPES_DEFINITIONS.with(|shapes| {
-        for shape_cons in shapes.borrow().iter() {
-            let shape = shape_cons();
+        for shape in shapes.borrow().iter() {
+            let shape = (shape.cons)();
             let path = shape.definition_path();
             let code = shape.abstract_shader_code_in_glsl_310();
             map.insert(path, code);
@@ -201,25 +218,16 @@ fn gather_shaders() -> HashMap<&'static str, shader::Code> {
 /// Uniforms managed by world.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Uniforms {
-    time:         Uniform<f32>,
-    display_mode: Uniform<i32>,
+    time: Uniform<f32>,
 }
 
 impl Uniforms {
     /// Constructor.
     pub fn new(scope: &UniformScope) -> Self {
         let time = scope.add_or_panic("time", 0.0);
-        let display_mode = scope.add_or_panic("display_mode", 0);
-        Self { time, display_mode }
+        Self { time }
     }
 }
-
-
-// =========================
-// === Metadata Profiler ===
-// =========================
-
-profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
 
 
 
@@ -272,6 +280,7 @@ impl<'t> From<&'t World> for &'t Scene {
 }
 
 
+
 // ===========
 // === FRP ===
 // ===========
@@ -281,6 +290,7 @@ crate::define_endpoints_2! {
         after_rendering(),
     }
 }
+
 
 
 // =========================
@@ -315,6 +325,7 @@ impl WorldDataWithLoop {
         // Context is initialized automatically before main entry point starts in WASM. We are
         // performing manual initialization for native tests to work correctly.
         init_context();
+        display::shape::primitive::system::cached::initialize_cached_shape_positions_in_texture();
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
@@ -399,13 +410,14 @@ pub struct WorldData {
     update_themes_handle: callback::Handle,
     garbage_collector: garbage::Collector,
     emit_measurements_handle: Rc<RefCell<Option<callback::Handle>>>,
+    pixel_read_pass_threshold: Rc<RefCell<Weak<Cell<usize>>>>,
 }
 
 impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
         let frp = frp.clone_ref();
-        let stats = Stats::new(web::window.performance_or_panic());
+        let stats = with_context(|context| context.stats.clone_ref());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
@@ -417,12 +429,12 @@ impl WorldData {
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
-            log_render_stats(*stats)
         }));
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
         SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
+        let pixel_read_pass_threshold = default();
 
         Self {
             frp,
@@ -438,6 +450,7 @@ impl WorldData {
             update_themes_handle,
             garbage_collector,
             emit_measurements_handle,
+            pixel_read_pass_threshold,
         }
         .init()
     }
@@ -456,7 +469,7 @@ impl WorldData {
     fn init_debug_hotkeys(&self) {
         let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.display_mode.clone_ref();
-        let display_mode_uniform = self.uniforms.display_mode.clone_ref();
+        let display_mode_uniform = with_context(|ctx| ctx.display_mode.clone_ref());
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
@@ -480,6 +493,8 @@ impl WorldData {
                 } else if key == "KeyQ" {
                     enso_debug_api::save_profile(&profiler::internal::get_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
+                } else if key == "KeyG" {
+                    enso_debug_api::open_gpu_debug_info();
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
                     if let Some(mode) = glsl::codes::DisplayModes::from_value(code_value) {
@@ -497,16 +512,15 @@ impl WorldData {
     }
 
     fn init_composer(&self) {
-        let mouse_hover_rgba = self.default_scene.mouse.hover_rgba.clone_ref();
+        let pointer_target_encoded = self.default_scene.mouse.pointer_target_encoded.clone_ref();
         let garbage_collector = &self.garbage_collector;
         let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
         pixel_read_pass.set_callback(f!([garbage_collector](v) {
-            mouse_hover_rgba.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
+            pointer_target_encoded.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
             garbage_collector.pixel_updated();
         }));
         pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
-        // TODO: We may want to enable it on weak hardware.
-        // pixel_read_pass.set_threshold(1);
+        *self.pixel_read_pass_threshold.borrow_mut() = pixel_read_pass.get_threshold().downgrade();
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(&self.default_scene.layers))
             .add(ScreenRenderPass::new())
@@ -516,10 +530,12 @@ impl WorldData {
     }
 
     fn run_stats(&self, time: Duration) {
-        let previous_frame_stats = self.stats.begin_frame(time);
-        if let Some(stats) = previous_frame_stats {
-            self.on.prev_frame_stats.run_all(&stats);
+        self.stats.calculate_prev_frame_fps(time);
+        {
+            let stats_borrowed = self.stats.borrow();
+            self.on.prev_frame_stats.run_all(&stats_borrowed.stats_data);
         }
+        self.stats.reset_per_frame_statistics();
     }
 
     /// Begin incrementally submitting [`profiler`] data to the User Timing web API.
@@ -564,6 +580,18 @@ impl WorldData {
     #[profile(Debug)]
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
+    }
+
+    /// Set the maximum frequency at which the pointer location will be checked, in terms of number
+    /// of frames per check.
+    pub fn set_pixel_read_period(&self, period: usize) {
+        if let Some(setter) = self.pixel_read_pass_threshold.borrow().upgrade() {
+            // Convert from minimum number of frames per pixel-read pass to
+            // minimum number of frames between each frame that does a pixel-read pass.
+            let threshold = period.saturating_sub(1);
+            info!("Setting pixel read pass threshold to {threshold}.");
+            setter.set(threshold);
+        }
     }
 }
 

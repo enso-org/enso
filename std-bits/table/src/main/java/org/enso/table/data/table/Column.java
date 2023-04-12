@@ -1,5 +1,6 @@
 package org.enso.table.data.table;
 
+import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -27,8 +28,26 @@ public class Column {
    * @param storage the underlying storage
    */
   public Column(String name, Storage<?> storage) {
+    ensureNameIsValid(name);
     this.name = name;
     this.storage = storage;
+  }
+
+  public static IllegalArgumentException raiseNothingName() throws IllegalArgumentException {
+    throw new IllegalArgumentException("Column name cannot be Nothing.");
+  }
+
+  public static void ensureNameIsValid(String name) {
+    if (name == null) {
+      raiseNothingName();
+    }
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException("Column name cannot be empty.");
+    }
+    if (name.indexOf('\0') >= 0) {
+      String pretty = Text_Utils.pretty_print(name);
+      throw new IllegalArgumentException("Column name "+pretty+" must not contain the NUL character.");
+    }
   }
 
   /**
@@ -108,8 +127,12 @@ public class Column {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     // to revert replace with: for (Value item : items) {
     for (Object item : items) {
-      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
-      builder.appendNoGrow(converted);
+      if (item instanceof Value v) {
+        Object converted = Polyglot_Utils.convertPolyglotValue(v);
+        builder.appendNoGrow(converted);
+      } else {
+        builder.appendNoGrow(item);
+      }
     }
     var storage = builder.seal();
     return new Column(name, storage);
@@ -178,10 +201,10 @@ public class Column {
     return new Column(name + "_duplicate_count", storage.duplicateCount());
   }
 
-  /** Resizes the given column to the provided new size.
+  /** Resizes the given column to the provided new length.
    * <p>
-   * If the new size is smaller than the current size, the column is truncated.
-   * If the new size is larger than the current size, the column is padded with nulls.
+   * If the new length is smaller than the current length, the column is truncated.
+   * If the new length is larger than the current length, the column is padded with nulls.
    */
   public Column resize(int newSize) {
     if (newSize == getSize()) {

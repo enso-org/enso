@@ -1,11 +1,17 @@
 from Standard.Base import all
-import Standard.Base.Error.Encoding_Error.Encoding_Error
-import Standard.Base.Error.File_Error.File_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
+
+set_writable file writable =
+    path = file.absolute.path
+    FileSystemHelper.setWritable path writable
 
 spec =
     sample_file = enso_project.data / "sample.txt"
@@ -73,7 +79,9 @@ spec =
 
         Test.specify "should handle exceptions when deleting a missing file" <|
             file = File.new "does_not_exist.txt"
-            file.delete . should_fail_with File_Error.Not_Found
+            result = file.delete
+            result.should_fail_with File_Error
+            result.catch.should_be_a File_Error.Not_Found
 
         if Platform.is_unix then
             Test.specify "should allow to check file permissions" <|
@@ -81,15 +89,34 @@ spec =
                 f.delete_if_exists
                 "foobar".write f
 
-                Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Code.Success
+                Process.run "chmod" ["0777", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 rwx = [Permission.Read, Permission.Write, Permission.Execute]
                 f.posix_permissions . should_equal <|
                     File_Permissions.Value rwx rwx rwx
 
-                Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Code.Success
+                Process.run "chmod" ["0421", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 f.posix_permissions . should_equal <|
                     File_Permissions.Value [Permission.Read] [Permission.Write] [Permission.Execute]
+                f.is_writable.should_be_false
 
+                f.delete
+
+            Test.specify "should gracefully handle permission errors" <|
+                f = enso_project.data / "transient" / "permissions2.txt"
+                f.delete_if_exists
+                "foobar".write f
+
+                Process.run "chmod" ["0000", f.absolute.path] . exit_code . should_equal Exit_Code.Success
+                f.posix_permissions . should_equal <|
+                    File_Permissions.Value [] [] []
+
+                r1 = f.read
+                r1.should_fail_with File_Error
+                r1.catch.should_be_a File_Error.Access_Denied
+                r1.catch.file . should_equal f
+                r1.catch.to_display_text.should_contain "Insufficient permissions"
+
+                Process.run "chmod" ["0744", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 f.delete
 
     Test.group "read_bytes" <|
@@ -115,8 +142,10 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            file.read_bytes . should_fail_with File_Error.Not_Found
-            non_existent_file.read_bytes . should_fail_with File_Error.Not_Found
+            file.read_bytes . should_fail_with File_Error
+            file.read_bytes.catch.should_be_a File_Error.Not_Found
+            non_existent_file.read_bytes . should_fail_with File_Error
+            non_existent_file.read_bytes.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
@@ -125,6 +154,10 @@ spec =
             file = sample_file
             contents_2 = File.new file . read_bytes
             contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+
+        Test.specify "no parent of dot implies nothing" <|
+            no_parent = (File.new '.').parent
+            no_parent.is_nothing . should_be_true
 
     Test.group "read_text" <|
         Test.specify "should allow reading a UTF-8 file" <|
@@ -146,11 +179,21 @@ spec =
             problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
+            # Check that it defaults to warning.
+            Problems.expect_only_warning Encoding_Error <|
+                windows_file.read_text Encoding.ascii
+
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            Data.read_text "does_not_exist.txt" . should_fail_with File_Error.Not_Found
-            file.read_text . should_fail_with File_Error.Not_Found
-            non_existent_file.read_text . should_fail_with File_Error.Not_Found
+            r1 = Data.read_text "does_not_exist.txt"
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
+            r2 = file.read_text
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Not_Found
+            r3 = non_existent_file.read_text
+            r3.should_fail_with File_Error
+            r3.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
@@ -189,7 +232,7 @@ spec =
             f.delete_if_exists
             f_bak.delete_if_exists
 
-        Test.specify "should allow to overwriting a file with new bytes" <|
+        Test.specify "should allow overwriting a file with new bytes" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
@@ -218,8 +261,8 @@ spec =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument.Error
-            [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument.Error
+            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument
+            [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument
 
         Test.specify "should not change the file when trying to write an invalid byte vector" <|
             f = transient / "work.txt"
@@ -227,12 +270,12 @@ spec =
             f_bak = transient / "work.txt.bak"
             f_bak.delete_if_exists
             Problems.assume_no_problems <| data.write_bytes f
-            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument.Error
+            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument
             f.read_bytes.should_equal data
             f_bak.exists.should_be_false
-            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_fail_with Illegal_Argument.Error
+            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_fail_with Illegal_Argument
             f.read_bytes.should_equal data
-            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
+            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
             f.read_bytes.should_equal data
             f.delete_if_exists
 
@@ -251,8 +294,8 @@ spec =
         Test.specify "should allow appending text to a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
             f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
@@ -276,7 +319,9 @@ spec =
             "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
-            "line 2!".write f on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error.Already_Exists
+            r1 = "line 2!".write f on_existing_file=Existing_File_Behavior.Error
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Already_Exists
             f.read_text.should_equal "line 1!"
             f.delete
             f.exists.should_be_false
@@ -319,7 +364,7 @@ spec =
             new_file = transient / "work.txt.new"
             [bak_file, new_file].each .delete_if_exists
 
-            result = Panic.catch Illegal_State.Error handler=(caught_panic-> caught_panic.payload.message) <|
+            result = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
                 Existing_File_Behavior.Backup.write f output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
@@ -333,7 +378,7 @@ spec =
                 Test.fail "The temporary file should have been cleaned up."
             f.delete
 
-            result2 = Panic.catch Illegal_State.Error handler=(caught_panic-> caught_panic.payload.message) <|
+            result2 = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
                 Existing_File_Behavior.Backup.write f output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
@@ -353,7 +398,7 @@ spec =
             result3 = Existing_File_Behavior.Backup.write f output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
-            result3.should_fail_with Illegal_State.Error
+            result3.should_fail_with Illegal_State
             result3.catch.message . should_equal "HMM..."
             f.read_text . should_equal "OLD"
             if bak_file.exists then
@@ -365,7 +410,7 @@ spec =
             result4 = Existing_File_Behavior.Backup.write f output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
-            result4.should_fail_with Illegal_State.Error
+            result4.should_fail_with Illegal_State
             result4.catch.message . should_equal "HMM..."
             if f.exists.not then
                 Test.fail "Since we were writing to the original destination, the partially written file should have been preserved even upon failure."
@@ -374,6 +419,75 @@ spec =
                 Test.fail "If the operation failed, we shouldn't have even created the backup."
             if new_file.exists then
                 Test.fail "The temporary file should have been cleaned up."
+            f.delete
+
+        Test.specify "should respect file access permissions and fail with an error if denied, in all modes" <|
+            f = transient / "permissions3.txt"
+            if f.exists then set_writable f True
+            f.delete_if_exists
+
+            "foobar".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+            f.is_writable.should_be_true
+            set_writable f False
+            f.is_writable.should_be_false
+
+            r2 = "FOO".write f on_existing_file=Existing_File_Behavior.Append
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Access_Denied
+            f.read . should_equal "foobar"
+
+            r3 = "FOO".write f on_existing_file=Existing_File_Behavior.Overwrite
+            r3.should_fail_with File_Error
+            r3.catch.should_be_a File_Error.Access_Denied
+            f.read . should_equal "foobar"
+
+            r4 = "FOO".write f on_existing_file=Existing_File_Behavior.Backup
+            r4.should_fail_with File_Error
+            r4.catch.should_be_a File_Error.Access_Denied
+            f.read . should_equal "foobar"
+
+            f.is_writable.should_be_false
+
+            set_writable f True
+            f.delete
+
+        Test.specify "should fail if the parent directory does not exist" <|
+            parent = transient / "nonexistent"
+            parent.exists.should_be_false
+
+            f = parent / "foo.txt"
+            r1 = "txt".write f
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
+            # The write fails because the _parent_ directory did not exist.
+            r1.catch.file . should_equal parent
+
+            r2 = [65, 67].write_bytes f
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Not_Found
+
+        Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
+            f = transient / "encoding-errors.txt"
+
+            encoding = Encoding.ascii
+            input_content = "Hello! 😊"
+            do_write pb =
+                f.delete_if_exists
+                input_content.write f encoding on_problems=pb
+            tester write_result =
+                write_result . should_equal f
+                write_result.read . should_equal "Hello! ?"
+            problems = [Encoding_Error.Error "Encoding issues at 7."]
+            Problems.test_problem_handling do_write problems tester
+
+            # And should not overwrite the original contents when working in backup mode.
+            f.delete_if_exists
+            "Initial Content".write f on_existing_file=Existing_File_Behavior.Overwrite
+            big_content = "Hello " * 2000 + input_content
+            r2 = big_content.write f encoding on_problems=Problem_Behavior.Report_Error
+            r2.should_fail_with Encoding_Error
+            f.read . should_equal "Initial Content"
             f.delete
 
     Test.group "folder operations" <|
@@ -388,7 +502,7 @@ spec =
 
         Test.specify "should list files in a directory" <|
             immediate = enso_project.data.list . map .to_text
-            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt"])
+            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt"])
 
             filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])

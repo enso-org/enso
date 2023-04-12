@@ -15,4 +15,6 @@ case class CompilerConfig(
   warningsEnabled: Boolean            = true,
   isStrictErrors: Boolean             = false,
   outputRedirect: Option[PrintStream] = None
-)
+) {
+  def parallelParsing: Boolean = false
+}

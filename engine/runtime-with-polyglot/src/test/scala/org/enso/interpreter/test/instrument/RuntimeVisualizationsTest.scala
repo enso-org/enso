@@ -308,8 +308,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -359,7 +360,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
@@ -426,8 +427,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -475,7 +477,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -490,7 +492,8 @@ class RuntimeVisualizationsTest
           contextId,
           Some(
             Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
-          )
+          ),
+          None
         )
       )
     )
@@ -559,8 +562,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -686,8 +690,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -813,8 +818,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1020,8 +1026,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1153,7 +1160,8 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
         Api.ExecutionFailed(
@@ -1216,7 +1224,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveNIgnoreExpressionUpdates(
       2
@@ -1233,7 +1241,8 @@ class RuntimeVisualizationsTest
           contextId,
           Some(
             Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
-          )
+          ),
+          None
         )
       )
     )
@@ -1288,8 +1297,9 @@ class RuntimeVisualizationsTest
     )
 
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1399,8 +1409,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1529,8 +1540,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1593,8 +1605,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1688,8 +1701,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1766,8 +1780,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1877,8 +1892,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1985,9 +2001,8 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val responses = context.receiveNIgnoreStdLib(n = 3)
-
-    responses should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2076,8 +2091,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -2189,8 +2205,8 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses = context.receiveNIgnoreStdLib(3)
-    pushContextResponses should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2288,9 +2304,10 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses =
-      context.receiveNIgnorePendingExpressionUpdates(3)
-    pushContextResponses should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -2386,8 +2403,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2441,7 +2459,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
@@ -2512,8 +2530,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2569,7 +2588,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
@@ -2684,8 +2703,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      7
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2741,7 +2761,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
@@ -2844,8 +2864,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -2941,8 +2962,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
       context.executionComplete(contextId)
@@ -3035,8 +3057,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -3153,8 +3176,9 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idX, s"$moduleName.T"),
       TestMessages.update(

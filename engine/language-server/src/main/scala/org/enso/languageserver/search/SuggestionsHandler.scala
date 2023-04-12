@@ -23,7 +23,6 @@ import org.enso.languageserver.filemanager.{
   FileDeletedEvent,
   Path
 }
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol._
 import org.enso.languageserver.search.handler.InvalidateModulesIndexHandler
@@ -35,8 +34,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
-import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
-import org.enso.text.ContentVersion
+import org.enso.searcher.SuggestionsRepo
 import org.enso.text.editing.model.Position
 
 import scala.collection.mutable
@@ -78,19 +76,15 @@ import scala.util.{Failure, Success}
   * @param config the server configuration
   * @param contentRootManager the content root manager
   * @param suggestionsRepo the suggestions repo
-  * @param versionsRepo the versions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
-  * @param docSectionsBuilder the builder of documentation sections
   */
 final class SuggestionsHandler(
   config: Config,
   contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
-  versionsRepo: VersionsRepo[Future],
   sessionRouter: ActorRef,
-  runtimeConnector: ActorRef,
-  docSectionsBuilder: DocSectionsBuilder
+  runtimeConnector: ActorRef
 ) extends Actor
     with Stash
     with LazyLogging
@@ -102,16 +96,20 @@ final class SuggestionsHandler(
 
   override def preStart(): Unit = {
     logger.info(
-      "Starting suggestions handler from [{}, {}, {}].",
+      "Starting suggestions handler from [{}, {}].",
       config,
-      suggestionsRepo,
-      versionsRepo
+      suggestionsRepo
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseModuleUpdateNotification])
-    context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
+    context.system.eventStream.subscribe(
+      self,
+      classOf[Api.SuggestionsDatabaseSuggestionsLoadedNotification]
+    )
+    context.system.eventStream
+      .subscribe(self, classOf[Api.LibraryLoaded])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
@@ -122,18 +120,7 @@ final class SuggestionsHandler(
   override def receive: Receive =
     initializing(SuggestionsHandler.Initialization())
 
-  def initializing(init: SuggestionsHandler.Initialization): Receive = {
-    case ProjectNameChangedEvent(oldName, newName) =>
-      logger.info(
-        "Initializing: project name changed from [{}] to [{}].",
-        oldName,
-        newName
-      )
-      suggestionsRepo
-        .renameProject(oldName, newName)
-        .map(_ => ProjectNameUpdated(newName))
-        .pipeTo(self)
-
+  private def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameUpdated(name, updates) =>
       logger.info("Initializing: project name is updated to [{}].", name)
       updates.foreach(sessionRouter ! _)
@@ -154,10 +141,9 @@ final class SuggestionsHandler(
         .fold(
           t =>
             logger.error(
-              "Cannot read the package definition from [{}]. {} {}",
+              "Cannot read the package definition from [{}].",
               MaskedPath(config.projectContentRoot.file.toPath),
-              t.getClass.getName,
-              t.getMessage
+              t
             ),
           pkg => self ! ProjectNameUpdated(pkg.config.name)
         )
@@ -169,44 +155,12 @@ final class SuggestionsHandler(
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case Status.Failure(ex) =>
-      logger.error(
-        "Initialization failure [{}]. {}",
-        ex.getClass,
-        ex.getMessage
-      )
+      logger.error("Initialization failure.", ex)
 
     case _ => stash()
   }
 
-  def verifying(
-    projectName: String,
-    graph: TypeGraph
-  ): Receive = {
-    case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
-      logger.info("Verifying: got verification response.")
-      val removeAction = for {
-        _ <- versionsRepo.remove(toRemove)
-        _ <- suggestionsRepo.removeModules(toRemove)
-      } yield SuggestionsHandler.Verified
-      removeAction.pipeTo(self)
-
-    case SuggestionsHandler.Verified =>
-      logger.info("Verified.")
-      context.become(initialized(projectName, graph, Set(), State()))
-      unstashAll()
-
-    case Status.Failure(ex) =>
-      logger.error(
-        "Database verification failure [{}]. {}",
-        ex.getClass,
-        ex.getMessage
-      )
-
-    case _ =>
-      stash()
-  }
-
-  def initialized(
+  private def initialized(
     projectName: String,
     graph: TypeGraph,
     clients: Set[ClientId],
@@ -230,16 +184,55 @@ final class SuggestionsHandler(
         initialized(projectName, graph, clients - client.clientId, state)
       )
 
+    case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification
+        if state.isSuggestionLoadingRunning =>
+      state.suggestionLoadingQueue.enqueue(msg)
+
+    case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
+      logger.debug(
+        "Starting loading suggestions for library [{}].",
+        msg.libraryName
+      )
+      applyLoadedSuggestions(msg.suggestions)
+        .onComplete {
+          case Success(notification) =>
+            logger.debug(
+              "Complete loading suggestions for library [{}].",
+              msg.libraryName
+            )
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+            self ! SuggestionsHandler.SuggestionLoadingCompleted
+          case Failure(ex) =>
+            logger.error(
+              "Error applying suggestion updates for loaded library [{}].",
+              msg.libraryName,
+              ex
+            )
+            self ! SuggestionsHandler.SuggestionLoadingCompleted
+        }
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.copy(isSuggestionLoadingRunning = true)
+        )
+      )
+
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification
         if state.isSuggestionUpdatesRunning =>
       state.suggestionUpdatesQueue.enqueue(msg)
 
     case SuggestionUpdatesBatch(updates) if state.isSuggestionUpdatesRunning =>
-      state.suggestionUpdatesQueue.enqueueAll(updates)
+      state.suggestionUpdatesQueue.prependAll(updates)
 
     case SuggestionUpdatesBatch(updates) =>
       val modules = updates.map(_.module)
-      traverseSeq(updates)(applyUpdateIfVersionChanged)
+      traverseSeq(updates)(applyDatabaseUpdates)
         .onComplete {
           case Success(results) =>
             logger.debug(
@@ -247,25 +240,23 @@ final class SuggestionsHandler(
               modules.length,
               modules.mkString(", ")
             )
-            results.foreach {
-              case Some(notification) =>
-                if (notification.updates.nonEmpty) {
-                  clients.foreach { clientId =>
-                    sessionRouter ! DeliverToJsonController(
-                      clientId,
-                      notification
-                    )
-                  }
+            results.foreach { notification =>
+              if (notification.updates.nonEmpty) {
+                clients.foreach { clientId =>
+                  sessionRouter ! DeliverToJsonController(
+                    clientId,
+                    notification
+                  )
                 }
-              case None =>
+              }
             }
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates batch of [{}] modules [{}]. ({})",
+              "Error applying suggestion database updates batch of [{}] modules [{}].",
               modules.length,
               modules.mkString(", "),
-              ex.getMessage
+              ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
         }
@@ -280,9 +271,9 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
       logger.debug("Got module update [{}].", msg.module)
-      applyUpdateIfVersionChanged(msg)
+      applyDatabaseUpdates(msg)
         .onComplete {
-          case Success(Some(notification)) =>
+          case Success(notification) =>
             logger.debug("Complete module update [{}].", msg.module)
             if (notification.updates.nonEmpty) {
               clients.foreach { clientId =>
@@ -290,18 +281,11 @@ final class SuggestionsHandler(
               }
             }
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
-          case Success(None) =>
-            logger.debug(
-              "Skip module update, version not changed [{}].",
-              msg.module
-            )
-            self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates [{}, {}] ({})",
+              "Error applying suggestion database updates [{}].",
               msg.module,
-              msg.version,
-              ex.getMessage
+              ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
         }
@@ -342,9 +326,9 @@ final class SuggestionsHandler(
             }
           case Failure(ex) =>
             logger.error(
-              "Error applying changes from computed values [{}]. {}",
+              "Error applying changes from computed values [{}].",
               updates.map(_.expressionId),
-              ex.getMessage
+              ex
             )
         }
 
@@ -354,20 +338,11 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case GetSuggestionsDatabase =>
-      suggestionsRepo.getAll
-        .map { case (version, entries) =>
-          GetSuggestionsDatabaseResult(
-            version,
-            entries.map { entry =>
-              SuggestionDatabaseEntry(
-                entry.copy(suggestion = generateDocumentation(entry.suggestion))
-              )
-            }
-          )
-        }
+      suggestionsRepo.currentVersion
+        .map(GetSuggestionsDatabaseResult(_, Seq()))
         .pipeTo(sender())
 
-    case Completion(path, pos, selfType, returnType, tags) =>
+    case Completion(path, pos, selfType, returnType, tags, isStatic) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
       getModuleName(projectName, path)
         .flatMap { either =>
@@ -380,12 +355,24 @@ final class SuggestionsHandler(
                   selfTypes,
                   returnType,
                   tags.map(_.map(SuggestionKind.toSuggestion)),
-                  Some(toPosition(pos))
+                  Some(toPosition(pos)),
+                  isStatic
                 )
                 .map(CompletionResult.tupled)
           )
         }
         .pipeTo(sender())
+      if (state.shouldStartBackgroundProcessing) {
+        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
+        context.become(
+          initialized(
+            projectName,
+            graph,
+            clients,
+            state.copy(shouldStartBackgroundProcessing = false)
+          )
+        )
+      }
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)
@@ -419,15 +406,14 @@ final class SuggestionsHandler(
             )
           case Failure(ex) =>
             logger.error(
-              "Error cleaning the index after file delete event. {}",
-              ex.getMessage
+              "Error cleaning the index after file delete event.",
+              ex
             )
         }
 
     case InvalidateSuggestionsDatabase =>
       val action = for {
         _ <- suggestionsRepo.clean
-        _ <- versionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
 
       val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
@@ -440,58 +426,16 @@ final class SuggestionsHandler(
       )
       action.pipeTo(handler)(sender())
 
-    case ProjectNameChangedEvent(oldName, newName) =>
-      suggestionsRepo
-        .renameProject(oldName, newName)
-        .map {
-          case (version, moduleIds, selfTypeIds, returnTypeIds, argumentIds) =>
-            val suggestionModuleUpdates = moduleIds.map {
-              case (suggestionId, moduleName) =>
-                SuggestionsDatabaseUpdate.Modify(
-                  id     = suggestionId,
-                  module = Some(fieldUpdate(moduleName))
-                )
-            }
-            val selfTypeUpdates = selfTypeIds.map {
-              case (suggestionId, selfType) =>
-                SuggestionsDatabaseUpdate.Modify(
-                  id       = suggestionId,
-                  selfType = Some(fieldUpdate(selfType))
-                )
-            }
-            val returnTypeUpdates = returnTypeIds.map {
-              case (suggestionId, returnType) =>
-                SuggestionsDatabaseUpdate.Modify(
-                  id         = suggestionId,
-                  returnType = Some(fieldUpdate(returnType))
-                )
-            }
-            val argumentUpdates =
-              argumentIds.groupBy(_._1).map { case (suggestionId, grouped) =>
-                val argumentUpdates = grouped.map { case (_, index, typeName) =>
-                  SuggestionArgumentUpdate.Modify(
-                    index    = index,
-                    reprType = Some(fieldUpdate(typeName))
-                  )
-                }
-                SuggestionsDatabaseUpdate.Modify(
-                  id        = suggestionId,
-                  arguments = Some(argumentUpdates)
-                )
-              }
-            val notification =
-              SuggestionsDatabaseUpdateNotification(
-                version,
-                suggestionModuleUpdates ++ selfTypeUpdates ++ returnTypeUpdates ++ argumentUpdates
-              )
-            val updates = clients.map(DeliverToJsonController(_, notification))
-            ProjectNameUpdated(newName, updates)
-        }
-        .pipeTo(self)
-
     case ProjectNameUpdated(name, updates) =>
       updates.foreach(sessionRouter ! _)
       context.become(initialized(name, graph, clients, state))
+
+    case libraryLoaded: Api.LibraryLoaded =>
+      logger.debug(
+        "Loaded Library [{}.{}]",
+        libraryLoaded.namespace,
+        libraryLoaded.name
+      )
 
     case SuggestionUpdatesCompleted =>
       if (state.suggestionUpdatesQueue.nonEmpty) {
@@ -506,6 +450,18 @@ final class SuggestionsHandler(
         )
       )
 
+    case SuggestionLoadingCompleted =>
+      if (state.suggestionLoadingQueue.nonEmpty) {
+        self ! state.suggestionLoadingQueue.dequeue()
+      }
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.copy(isSuggestionLoadingRunning = false)
+        )
+      )
   }
 
   /** Transition the initialization process.
@@ -515,31 +471,31 @@ final class SuggestionsHandler(
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     logger.debug("Trying to initialize with state [{}]", state)
     state.initialized.fold(context.become(initializing(state))) {
-      case (name, graph) =>
+      case (projectName, graph) =>
         logger.debug("Initialized with state [{}].", state)
-        val requestId = UUID.randomUUID()
-        suggestionsRepo.getAllModules
-          .map { modules =>
-            runtimeConnector ! Api.Request(
-              requestId,
-              Api.VerifyModulesIndexRequest(modules)
-            )
-          }
-        context.become(verifying(name, graph))
+        context.become(initialized(projectName, graph, Set(), State()))
         unstashAll()
     }
   }
 
-  private def applyUpdateIfVersionChanged(
-    msg: Api.SuggestionsDatabaseModuleUpdateNotification
-  ): Future[Option[SuggestionsDatabaseUpdateNotification]] = {
-    val isVersionChanged =
-      versionsRepo.getVersion(msg.module).map { digestOpt =>
-        !digestOpt.map(ContentVersion(_)).contains(msg.version)
-      }
-    isVersionChanged.flatMap { isChanged =>
-      if (isChanged) applyDatabaseUpdates(msg).map(Some(_))
-      else Future.successful(None)
+  /** Handle the suggestions of the loaded library.
+    *
+    * Adds the new suggestions to the suggestions database and returns the
+    * appropriate notification message.
+    *
+    * @param suggestions the loaded suggestions
+    * @return the API suggestions database update notification
+    */
+  private def applyLoadedSuggestions(
+    suggestions: Vector[Suggestion]
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    for {
+      (version, ids) <- suggestionsRepo.insertAll(suggestions)
+    } yield {
+      val updates = ids
+        .zip(suggestions)
+        .map(SuggestionsDatabaseUpdate.Add.tupled)
+      SuggestionsDatabaseUpdateNotification(version, updates)
     }
   }
 
@@ -559,7 +515,6 @@ final class SuggestionsHandler(
       treeResults   <- suggestionsRepo.applyTree(msg.updates.toVector)
       exportResults <- suggestionsRepo.applyExports(msg.exports)
       version       <- suggestionsRepo.currentVersion
-      _             <- versionsRepo.setVersion(msg.module, msg.version.toDigest)
     } yield {
       val actionUpdates = actionResults.flatMap {
         case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
@@ -576,7 +531,7 @@ final class SuggestionsHandler(
               ids.map(
                 SuggestionsDatabaseUpdate.Add(
                   _,
-                  generateDocumentation(suggestion)
+                  suggestion
                 )
               )
             case Api.SuggestionAction.Remove() =>
@@ -592,10 +547,7 @@ final class SuggestionsHandler(
                   arguments     = m.arguments.map(_.map(toApiArgumentAction)),
                   returnType    = m.returnType.map(fieldUpdate),
                   scope         = m.scope.map(fieldUpdate),
-                  documentation = m.documentation.map(fieldUpdateOption),
-                  documentationSections = m.documentation.map(
-                    fieldUpdateMapOption(docSectionsBuilder.build)
-                  )
+                  documentation = m.documentation.map(fieldUpdateOption)
                 )
               }
           }
@@ -633,20 +585,6 @@ final class SuggestionsHandler(
   private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
     value match {
       case Some(value) => FieldUpdate(FieldAction.Set, Some(value))
-      case None        => FieldUpdate(FieldAction.Remove, None)
-    }
-
-  /** Construct the field update object from an optional value.
-    *
-    * @param f the mapping function
-    * @param value the optional value
-    * @return the field update object representing the value update
-    */
-  private def fieldUpdateMapOption[A, B](
-    f: A => B
-  )(value: Option[A]): FieldUpdate[B] =
-    value match {
-      case Some(value) => FieldUpdate(FieldAction.Set, Some(f(value)))
       case None        => FieldUpdate(FieldAction.Remove, None)
     }
 
@@ -719,43 +657,6 @@ final class SuggestionsHandler(
     */
   private def toPosition(pos: Position): Suggestion.Position =
     Suggestion.Position(pos.line, pos.character)
-
-  /** Generate the documentation for the given suggestion.
-    *
-    * @param suggestion the initial suggestion
-    * @return the suggestion with documentation fields set
-    */
-  private def generateDocumentation(suggestion: Suggestion): Suggestion =
-    suggestion match {
-      case module: Suggestion.Module =>
-        val docSections = module.documentation.map(docSectionsBuilder.build)
-        module.copy(documentationSections = docSections)
-
-      case constructor: Suggestion.Constructor =>
-        val docSections =
-          constructor.documentation.map(docSectionsBuilder.build)
-        constructor.copy(documentationSections = docSections)
-
-      case tpe: Suggestion.Type =>
-        val docSections = tpe.documentation.map(docSectionsBuilder.build)
-        tpe.copy(documentationSections = docSections)
-
-      case method: Suggestion.Method =>
-        val docSections = method.documentation.map(docSectionsBuilder.build)
-        method.copy(documentationSections = docSections)
-
-      case conversion: Suggestion.Conversion =>
-        val docSections = conversion.documentation.map(docSectionsBuilder.build)
-        conversion.copy(documentationSections = docSections)
-
-      case function: Suggestion.Function =>
-        val docSections = function.documentation.map(docSectionsBuilder.build)
-        function.copy(documentationSections = docSections)
-
-      case local: Suggestion.Local =>
-        val docSections = local.documentation.map(docSectionsBuilder.build)
-        local.copy(documentationSections = docSections)
-    }
 }
 
 object SuggestionsHandler {
@@ -783,13 +684,13 @@ object SuggestionsHandler {
       new ProjectNameUpdated(projectName, Seq())
   }
 
-  /** The notification that the suggestions database has been verified. */
-  case object Verified
-
   /** The notification that the suggestion updates are processed. */
-  case object SuggestionUpdatesCompleted
+  private case object SuggestionUpdatesCompleted
 
-  case class SuggestionUpdatesBatch(
+  /** The notification that the suggestions loading is complete. */
+  private case object SuggestionLoadingCompleted
+
+  private case class SuggestionUpdatesBatch(
     updates: Seq[Api.SuggestionsDatabaseModuleUpdateNotification]
   )
 
@@ -821,13 +722,21 @@ object SuggestionsHandler {
   /** The suggestion updates state.
     *
     * @param suggestionUpdatesQueue the queue containing update messages
-    * @param isSuggestionUpdatesRunning a flag for a running update action
+    * @param isSuggestionUpdatesRunning a flag for a running suggestion update action
+    * @param isSuggestionLoadingRunning a flag for a running suggestion loading action
+    * @param shouldStartBackgroundProcessing a flag for starting a background
+    * processing action
     */
-  case class State(
+  final case class State(
     suggestionUpdatesQueue: mutable.Queue[
       Api.SuggestionsDatabaseModuleUpdateNotification
-    ]                                   = mutable.Queue.empty,
-    isSuggestionUpdatesRunning: Boolean = false
+    ] = mutable.Queue.empty,
+    suggestionLoadingQueue: mutable.Queue[
+      Api.SuggestionsDatabaseSuggestionsLoadedNotification
+    ]                                        = mutable.Queue.empty,
+    isSuggestionUpdatesRunning: Boolean      = false,
+    isSuggestionLoadingRunning: Boolean      = false,
+    shouldStartBackgroundProcessing: Boolean = true
   )
 
   private def traverseSeq[A, B](xs: Seq[A])(f: A => Future[B]): Future[Seq[B]] =
@@ -843,29 +752,23 @@ object SuggestionsHandler {
     * @param config the server configuration
     * @param contentRootManager the content root manager
     * @param suggestionsRepo the suggestions repo
-    * @param fileVersionsRepo the file versions repo
     * @param sessionRouter the session router
     * @param runtimeConnector the runtime connector
-    * @param docSectionsBuilder the builder of documentation sections
     */
   def props(
     config: Config,
     contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: VersionsRepo[Future],
     sessionRouter: ActorRef,
-    runtimeConnector: ActorRef,
-    docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
+    runtimeConnector: ActorRef
   ): Props =
     Props(
       new SuggestionsHandler(
         config,
         contentRootManager,
         suggestionsRepo,
-        fileVersionsRepo,
         sessionRouter,
-        runtimeConnector,
-        docSectionsBuilder
+        runtimeConnector
       )
     )
 }

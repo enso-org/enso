@@ -4,7 +4,6 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -16,9 +15,9 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Time_Error.Time_Error
+import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -29,7 +28,6 @@ from project.Data.Boolean import Boolean, True, False
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.ZonedDateTime
-polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 
@@ -246,7 +244,7 @@ type Date_Time
         Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
             case pattern of
                 Nothing -> parse_builtin text
-                _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
+                _ : Text -> Time_Utils.parse_datetime text pattern locale.java_locale
 
 
     ## Get the year portion of the time.
@@ -586,18 +584,8 @@ type Date_Time
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
         ensure_in_epoch result result
 
-    ## Convert this time to text using the default formatter.
-
-       > Example
-         Convert the current time to text.
-
-             from Standard.Base import Date_Time
-
-             example_to_text = Date_Time.now.to_text
-    to_text : Text
-    to_text self = @Builtin_Method "Date_Time.to_text"
-
-    ## Convert to a JavaScript Object representing a Date_Time.
+    ## PRIVATE
+       Convert to a JavaScript Object representing a Date_Time.
 
        > Example
          Convert the current time to a JS_Object.
@@ -688,5 +676,3 @@ type Date_Time
     format : Text -> Text
     format self pattern = @Builtin_Method "Date_Time.format"
 
-
-Comparable.from (_:Date_Time) = Default_Ordered_Comparator

@@ -11,6 +11,7 @@ use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
+use crate::ExecutionEnvironment;
 use crate::Type;
 use crate::WidgetUpdates;
 
@@ -108,6 +109,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style, bg_color:Vector4) {
             let bg_color = Var::<color::Rgba>::from(bg_color);
             let width    = Var::<Pixels>::from("input_size.x");
@@ -129,6 +131,7 @@ pub mod backdrop {
     ensogl::shape! {
         // Disabled to allow interaction with the output port.
         pointer_events = false;
+        alignment = center;
         (style:Style, selection:f32) {
 
             let width  = Var::<Pixels>::from("input_size.x");
@@ -188,6 +191,7 @@ pub mod drag_area {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -214,6 +218,7 @@ pub mod error_shape {
     use super::*;
 
     ensogl::shape! {
+        alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
 
@@ -299,8 +304,12 @@ ensogl::define_endpoints_2! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
+        edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
         set_freeze_macro      (bool),
+        /// Set whether the output context is explicitly enabled: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_context_switch    (Option<bool>),
         set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
@@ -321,19 +330,24 @@ ensogl::define_endpoints_2! {
         set_profiling_max_global_duration (f32),
         set_profiling_status              (profiling::Status),
         /// Indicate whether on hover the quick action icons should appear.
-        show_quick_action_bar_on_hover    (bool)
+        show_quick_action_bar_on_hover    (bool),
+        set_execution_environment         (ExecutionEnvironment),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
-        /// Emitted when node expression is modified as a whole. Does not include partial changes on
-        /// individual spans, which are emitted via `expression_span` output.
-        expression               (ImString),
-        /// Emitted when node expression is edited in context of specific span. Does not include
-        /// changes to the expression as a whole, which are emitted via `expression` output.
-        expression_span          (span_tree::Crumbs, ImString),
+        /// This event occurs when the user modifies an expression, either by typing directly or
+        /// using a widget. It includes information about the specific part of the expression that
+        /// was changed and where it fits within the larger expression.
+        ///
+        /// Note: Node component is not able to perform the actual modification of the expression,
+        /// as that requires rebuilding the span-tree, which in turn requires access to the
+        /// execution context. It is the responsibility of the parent component to apply the changes
+        /// and update the node with new expression tree using `set_expression`.
+        on_expression_modified   (span_tree::Crumbs, ImString),
         comment                  (Comment),
+        context_switch           (bool),
         skip                     (bool),
         freeze                   (bool),
         hover                    (bool),
@@ -359,6 +373,7 @@ ensogl::define_endpoints_2! {
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
         requested_widgets        (ast::Id, ast::Id),
+        request_import           (ImString),
     }
 }
 
@@ -720,7 +735,7 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area = &model.drag_area.events;
+            let drag_area = &model.drag_area.events_deprecated;
             drag_area_hover <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
             model.input.set_hover  <+ drag_area_hover;
             model.output.set_hover <+ model.input.body_hover;
@@ -729,7 +744,7 @@ impl Node {
 
             // === Background Press ===
 
-            out.background_press <+ model.drag_area.events.mouse_down_primary;
+            out.background_press <+ model.drag_area.events_deprecated.mouse_down_primary;
             out.background_press <+ model.input.on_background_press;
 
 
@@ -749,9 +764,10 @@ impl Node {
             );
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
-            out.expression                  <+ model.input.frp.expression;
-            out.expression_span             <+ model.input.frp.on_port_code_update;
-            out.requested_widgets           <+ model.input.frp.requested_widgets;
+            model.input.edit_expression <+ input.edit_expression;
+            out.on_expression_modified  <+ model.input.frp.on_port_code_update;
+            out.requested_widgets       <+ model.input.frp.requested_widgets;
+            out.request_import          <+ model.input.frp.request_import;
 
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
@@ -791,6 +807,7 @@ impl Node {
             // === Action Bar ===
 
             let visualization_button_state = action_bar.action_visibility.clone_ref();
+            out.context_switch <+ action_bar.action_context_switch;
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
             show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
@@ -798,6 +815,8 @@ impl Node {
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
             action_bar.set_action_freeze_state <+ input.set_freeze_macro;
             action_bar.set_action_skip_state <+ input.set_skip_macro;
+            action_bar.set_action_context_switch_state <+ input.set_context_switch;
+            action_bar.set_execution_environment <+ input.set_execution_environment;
 
 
             // === View Mode ===

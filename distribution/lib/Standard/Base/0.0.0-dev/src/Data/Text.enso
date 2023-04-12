@@ -1,15 +1,13 @@
 import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Ordering.Ordering
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Meta
 
-from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Text_Utils
-
 
 ## Enso's text type.
 
@@ -113,10 +111,6 @@ type Text
     not_empty self = self.is_empty.not
 
     ## PRIVATE
-       UNSTABLE
-
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
-
-Comparable.from (_:Text) = Default_Ordered_Comparator

@@ -30,10 +30,10 @@ import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
-import org.enso.interpreter.node.expression.builtin.ordering.DefaultOrderedComparator;
-import org.enso.interpreter.node.expression.builtin.ordering.DefaultUnorderedComparator;
+import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
+import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -84,10 +84,11 @@ public class Builtins {
   private final ModuleScope scope;
   private final Number number;
   private final Boolean bool;
+
+  private final Context contexts;
   private final Ordering ordering;
   private final Comparable comparable;
-  private final DefaultOrderedComparator defaultOrderedComparator;
-  private final DefaultUnorderedComparator defaultUnorderedComparator;
+  private final DefaultComparator defaultComparator;
   private final System system;
   private final Special special;
 
@@ -135,11 +136,11 @@ public class Builtins {
     error = new Error(this, context);
     ordering = getBuiltinType(Ordering.class);
     comparable = getBuiltinType(Comparable.class);
-    defaultUnorderedComparator = getBuiltinType(DefaultUnorderedComparator.class);
-    defaultOrderedComparator = getBuiltinType(DefaultOrderedComparator.class);
+    defaultComparator = getBuiltinType(DefaultComparator.class);
     system = new System(this);
     number = new Number(this);
     bool = this.getBuiltinType(Boolean.class);
+    contexts = this.getBuiltinType(Context.class);
 
     any = builtins.get(Any.class);
     nothing = builtins.get(Nothing.class);
@@ -248,7 +249,7 @@ public class Builtins {
         .map(
             line -> {
               String[] builtinMeta = line.split(":");
-              if (builtinMeta.length < 2 || builtinMeta.length > 3) {
+              if (builtinMeta.length < 2 || builtinMeta.length > 4) {
                 java.lang.System.out.println(Arrays.toString(builtinMeta));
                 throw new CompilerError("Invalid builtin metadata in: " + line);
               }
@@ -449,6 +450,12 @@ public class Builtins {
     return number;
   }
 
+
+  /** @return the builtin Context type */
+  public Context context() {
+    return contexts;
+  }
+
   /** @return the container for boolean constructors. */
   public Boolean bool() {
     return bool;
@@ -598,12 +605,8 @@ public class Builtins {
     return comparable;
   }
 
-  public DefaultOrderedComparator defaultOrderedComparator() {
-    return defaultOrderedComparator;
-  }
-
-  public DefaultUnorderedComparator defaultUnorderedComparator() {
-    return defaultUnorderedComparator;
+  public DefaultComparator defaultComparator() {
+    return defaultComparator;
   }
 
   /** @return the container for the dataflow error-related builtins */

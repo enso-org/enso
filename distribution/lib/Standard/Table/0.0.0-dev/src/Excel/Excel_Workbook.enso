@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Error.File_Error.File_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -9,7 +9,7 @@ import Standard.Base.Metadata.Display
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Reader
+import project.Internal.Excel_Reader
 
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.apache.poi.ss.usermodel.Workbook
@@ -24,7 +24,7 @@ type Excel_Workbook
     new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
     new file xls_format=False headers=Infer =
         file_obj = File.new file . normalize
-        File_Error.handle_java_exceptions file_obj <|
+        File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <|
             file_obj.with_input_stream [File_Access.Read] stream->
                 stream.with_java_stream java_stream->
                     workbook = ExcelReader.readWorkbook java_stream xls_format

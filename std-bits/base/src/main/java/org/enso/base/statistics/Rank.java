@@ -1,6 +1,10 @@
 package org.enso.base.statistics;
 
-import java.util.*;
+import org.enso.base.ObjectComparator;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class Rank {
   private static final Comparator<Object> DOUBLE_COMPARATOR =  (a, b) -> Double.compare((Double)a, (Double)b);
@@ -16,7 +20,7 @@ public class Rank {
   private record ValueWithIndex(Object value, int index) {
   }
 
-  public static double[] rank(Object[] input, Comparator<Object> comparator, Method method)
+  public static double[] rank(Object[] input, Method method)
       throws NullPointerException, ClassCastException
   {
     List<ValueWithIndex> tuples = new ArrayList<>(input.length);
@@ -27,7 +31,7 @@ public class Rank {
       tuples.add(new ValueWithIndex(input[i], i));
     }
 
-    return computeRankFromTuples(tuples, comparator, method);
+    return computeRankFromTuples(tuples, new ObjectComparator(), method);
   }
 
   public static double[][] pairedRanks(Double[] x, Double[] y, Method method)

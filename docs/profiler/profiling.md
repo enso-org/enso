@@ -135,9 +135,9 @@ procedure to collect data is:
   ./run ide build --profiling-level=detail
   ```
 - To profile in Electron:
-  - Start Enso with the `save-profile` option, e.g.:
+  - Start Enso with the `profile.save` option, e.g.:
     ```shell
-    ./distribution/bin/enso --save-profile=your_profile.json
+    ./distribution/bin/enso --profile.save=your_profile.json
     ```
   - Perform any activity the profiler should record (the profiler is always
     running).
@@ -164,13 +164,13 @@ without user-interaction. It can be run as follows:
 # First build with full profiling information.
 ./run ide build --profiling-level=debug
 # Now run the generated binary in batch mode.
-./distribution/bin/enso --entry-point profile --workflow create_node --save-profile create_node.json
+./distribution/bin/enso --startup.entry=profile --profile.workflow=create_node --profile.save=create_node.json
 ```
 
 The `profile` entry point selects batch mode; when it is used, the
-`save-profile` and `workflow` arguments are mandatory. `save-profile` specifies
-an output filename; `workflow` selects from a list of defined batch-mode
-workflows to measure. Supported workflows include:
+`profile.workflow` argument is mandatory. `profile.save` specifies an output
+filename; `profile.workflow` selects from a list of defined batch-mode workflows
+to measure. Supported workflows include:
 
 - `new_project`: This workflow includes starting the application, opening an
   empty project, and closing the application.
@@ -218,7 +218,7 @@ https://www.cs.middlebury.edu/~candrews/showcase/infovis_techniques_s16/icicle_p
 Invocation:
 
 ```shell
-./distribution/bin/enso --entry-point=profiling-run-graph --load-profile=profile.json
+./distribution/bin/enso --startup.entry=profiling-run-graph --profile.load=profile.json
 ```
 
 It takes as input the profiling data representing a single run

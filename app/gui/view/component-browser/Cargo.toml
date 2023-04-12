@@ -8,7 +8,13 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-frp = { path = "../../../../lib/rust/frp" }
+ensogl = { path = "../../../../lib/rust/ensogl" }
+ensogl-gui-component = { path = "../../../../lib/rust/ensogl/component/gui" }
+ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 ide-view-component-list-panel-breadcrumbs = { path = "component-list-panel/breadcrumbs" }
 ide-view-component-list-panel = { path = "component-list-panel" }
+ide-view-documentation = { path = "../documentation" }
+ide-view-graph-editor = { path = "../graph-editor" }
 ensogl-text = { path = "../../../../lib/rust/ensogl/component/text" }

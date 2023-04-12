@@ -70,5 +70,6 @@ class DefaultLogMessageRenderer(printExceptions: Boolean)
       case LogLevel.Debug   => "debug"
       case LogLevel.Trace   => "trace"
       case LogLevel.Off     => "off"
+      case _                => "error";
     }
 }

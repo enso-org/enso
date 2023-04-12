@@ -27,12 +27,15 @@ type Row
     get : (Integer | Text) -> Any -> Any
     get self column ~if_missing=Nothing =
         table_column = self.table.get column
-        if table_column.is_nothing then if_missing else table_column.at self.index
+        case table_column of
+            Nothing -> if_missing
+            _ -> table_column.at self.index
 
     ## Gets the row as a Vector.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
 
-    ## Converts this row into a JS_Object.
+    ## PRIVATE
+       Converts this row into a JS_Object.
     to_js_object : Vector
     to_js_object self = self.to_vector.to_js_object

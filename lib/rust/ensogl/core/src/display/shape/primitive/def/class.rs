@@ -117,6 +117,11 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Rotation(self, angle)
     }
 
+    /// Flip the shape upside-down, mirroring it over the X axis.
+    fn flip_y(&self) -> FlipY<Self> {
+        FlipY(self)
+    }
+
     /// Scales the shape by a given value.
     fn scale<S: Into<Var<f32>>>(&self, value: S) -> Scale<Self> {
         Scale(self, value)
@@ -125,6 +130,13 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     /// Unify the shape with another one.
     fn union<S: IntoOwned>(&self, that: S) -> Union<Self, Owned<S>> {
         Union(self, that)
+    }
+
+    /// Unify two shapes, blending their colors based on the foreground shape's SDF value. This
+    /// means that even if these shapes overlap and the foreground is semi-transparent, it will
+    /// blend with the background only in the anti-aliased areas.
+    fn union_exclusive<S: IntoOwned>(&self, that: S) -> UnionExclusive<Self, Owned<S>> {
+        UnionExclusive(self, that)
     }
 
     /// Subtracts the argument from this shape.
@@ -140,6 +152,41 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     /// Fill the shape with the provided color.
     fn fill<Color: Into<Var<color::Rgba>>>(&self, color: Color) -> Fill<Self> {
         Fill(self, color)
+    }
+
+    /// Change the shape color depending on RGB components.
+    ///
+    /// ### How The New Color Is Defined
+    ///
+    /// Assuming `s.color` is a previous shape premultiplied color (i.e. the alpha component is
+    /// applied to each channel), a new color is defined as:
+    /// `r * s.color.r + b * s.color.b + g * s.color.g`.
+    ///
+    /// ### Usage
+    ///
+    /// The main case for this function is coloring a complex shape serving as a
+    /// template - the best example are [cached
+    /// shapes](crate::display::shape::primitive::system::cached), which cannot be
+    /// parameterized.
+    ///
+    /// When the only colors in that template are [full red](color::Rgba::red),
+    /// [full green](color::Rgba::green), or [full blue](color::Rgba::blue), this method will
+    /// replace the template colors with the specialized ones.
+    ///
+    /// A real-world example is an icon (cached in the texture) which should change color on mouse
+    /// hover or click.
+    fn recolorize<RColor, GColor, BColor>(
+        &self,
+        r: RColor,
+        g: GColor,
+        b: BColor,
+    ) -> Recolorize<Self>
+    where
+        RColor: Into<Var<color::Rgba>>,
+        GColor: Into<Var<color::Rgba>>,
+        BColor: Into<Var<color::Rgba>>,
+    {
+        Recolorize(self, r, g, b)
     }
 
     /// Makes the borders of the shape crisp. Please note that it removes any form of antialiasing

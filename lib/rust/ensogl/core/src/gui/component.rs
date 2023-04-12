@@ -7,6 +7,7 @@ use crate::application::command::CommandApi;
 use crate::application::Application;
 use crate::display;
 use crate::display::scene;
+use crate::display::scene::layer::AnySymbolPartition;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::Shape;
@@ -21,7 +22,7 @@ use crate::frp;
 // === Export ===
 // ==============
 
-pub use crate::display::scene::PointerTarget;
+pub use crate::display::scene::PointerTarget_DEPRECATED;
 
 
 
@@ -94,10 +95,12 @@ impl<S: Shape> ShapeView<S> {
         let display_object = self.display_object();
         let network = &display_object.network;
         frp::extend! { network
-            eval display_object.on_layer_change([] ((scene, old_layer, new_layer)) {
+            eval display_object.on_layer_change([] ((scene, old_layer, new_layer, symbol_partition)) {
                 let scene = scene.as_ref().unwrap();
                 if let Some(model) = weak_model.upgrade() {
-                    model.on_scene_layer_changed(scene, old_layer.as_ref(), new_layer.as_ref());
+                    let old_layer = old_layer.as_ref();
+                    let new_layer = new_layer.as_ref();
+                    model.on_scene_layer_changed(scene, old_layer, new_layer, *symbol_partition);
                 }
             });
         }
@@ -130,27 +133,31 @@ where
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S: Shape> {
     #[deref]
-    shape:               ShapeInstance<S>,
-    pub data:            RefCell<S::ShapeData>,
-    pub events:          PointerTarget,
-    pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
+    shape:                 ShapeInstance<S>,
+    pub data:              RefCell<S::ShapeData>,
+    /// # Deprecated
+    /// This API is deprecated. Instead, use the display object's event API. For example, to get an
+    /// FRP endpoint for mouse event, you can use the [`crate::display::Object::on_event`]
+    /// function.
+    pub events_deprecated: PointerTarget_DEPRECATED,
+    pub pointer_targets:   RefCell<Vec<symbol::GlobalInstanceId>>,
 }
 
 impl<S: Shape> Drop for ShapeViewModel<S> {
     fn drop(&mut self) {
         self.unregister_existing_mouse_targets();
-        self.events.on_drop.emit(());
+        self.events_deprecated.on_drop.emit(());
     }
 }
 
 impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
-        let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data));
-        let events = PointerTarget::new();
+        let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data, default()));
+        let events_deprecated = PointerTarget_DEPRECATED::new();
         let pointer_targets = default();
         let data = RefCell::new(data);
-        ShapeViewModel { shape, data, events, pointer_targets }
+        ShapeViewModel { shape, data, events_deprecated, pointer_targets }
     }
 
     #[profile(Debug)]
@@ -159,18 +166,15 @@ impl<S: Shape> ShapeViewModel<S> {
         scene: &Scene,
         old_layer: Option<&WeakLayer>,
         new_layer: Option<&WeakLayer>,
+        new_symbol_partition: Option<AnySymbolPartition>,
     ) {
         if let Some(old_layer) = old_layer {
             self.remove_from_scene_layer(old_layer);
         }
-        if let Some(new_layer) = new_layer {
-            if let Some(layer) = new_layer.upgrade() {
-                self.add_to_scene_layer(scene, &layer)
-            }
+        if let Some(new_layer) = new_layer.and_then(|layer| layer.upgrade()) {
+            self.add_to_scene_layer(scene, &new_layer, new_symbol_partition)
         } else {
-            // Bug in clippy: https://github.com/rust-lang/rust-clippy/issues/9763
-            #[allow(clippy::explicit_auto_deref)]
-            let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow());
+            let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow(), default());
             self.shape.swap(&shape);
         }
     }
@@ -186,22 +190,27 @@ impl<S: Shape> ShapeViewModel<S> {
         }
         self.unregister_existing_mouse_targets();
     }
-}
 
-impl<S: Shape> ShapeViewModel<S> {
-    // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
-    #[allow(clippy::explicit_auto_deref)]
-    fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
-        let (shape, instance) = layer.instantiate(&*self.data.borrow());
-        scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
+    fn add_to_scene_layer(
+        &self,
+        scene: &Scene,
+        layer: &scene::Layer,
+        symbol_partition: Option<AnySymbolPartition>,
+    ) {
+        let shape_system = display::shape::system::ShapeSystem::<S>::id();
+        let symbol_partition = symbol_partition
+            .and_then(|assignment| assignment.partition_id(shape_system))
+            .unwrap_or_default();
+        let (shape, instance) = layer.instantiate(&*self.data.borrow(), symbol_partition);
+        scene.pointer_target_registry.insert(
+            instance.global_instance_id,
+            self.events_deprecated.clone_ref(),
+            self.display_object(),
+        );
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
     }
-}
 
-impl<S: Shape> ShapeViewModel<S> {
-    // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
-    #[allow(clippy::explicit_auto_deref)]
     fn unregister_existing_mouse_targets(&self) {
         for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
             scene().pointer_target_registry.remove(global_instance_id);
@@ -234,8 +243,8 @@ impl<S: Shape> display::Object for ShapeView<S> {
 struct WidgetData<Model: 'static, Frp: 'static> {
     app:            Application,
     display_object: display::object::Instance,
-    frp:            std::mem::ManuallyDrop<Frp>,
-    model:          std::mem::ManuallyDrop<Rc<Model>>,
+    frp:            mem::ManuallyDrop<Frp>,
+    model:          mem::ManuallyDrop<Rc<Model>>,
 }
 
 impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
@@ -248,8 +257,8 @@ impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
         Self {
             app: app.clone_ref(),
             display_object,
-            frp: std::mem::ManuallyDrop::new(frp),
-            model: std::mem::ManuallyDrop::new(model),
+            frp: mem::ManuallyDrop::new(frp),
+            model: mem::ManuallyDrop::new(model),
         }
     }
 }
@@ -261,8 +270,8 @@ impl<Model: 'static, Frp: 'static> Drop for WidgetData<Model, Frp> {
         // This is clearly the case, because the structure will be soon dropped anyway.
         #[allow(unsafe_code)]
         unsafe {
-            let frp = std::mem::ManuallyDrop::take(&mut self.frp);
-            let model = std::mem::ManuallyDrop::take(&mut self.model);
+            let frp = mem::ManuallyDrop::take(&mut self.frp);
+            let model = mem::ManuallyDrop::take(&mut self.model);
             self.app.display.collect_garbage(frp);
             self.app.display.collect_garbage(model);
         }

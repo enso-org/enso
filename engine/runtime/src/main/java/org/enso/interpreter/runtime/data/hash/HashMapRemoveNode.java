@@ -61,7 +61,7 @@ public abstract class HashMapRemoveNode extends Node {
       while (interop.hasIteratorNextElement(entriesIterator)) {
         Object keyValueArr = interop.getIteratorNextElement(entriesIterator);
         Object key = interop.readArrayElement(keyValueArr, 0);
-        if (equalsNode.execute(keyToRemove, key)) {
+        if ((boolean) equalsNode.execute(keyToRemove, key)) {
           if (keyToRemoveFound) {
             throw new IllegalStateException("Key " + key + " found twice");
           } else {

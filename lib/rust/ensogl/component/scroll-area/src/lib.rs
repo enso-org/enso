@@ -167,6 +167,7 @@ impl Viewport {
 mod mask {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style, corner_radius_top_right: f32, corner_radius_top_left: f32,
             corner_radius_bottom_right: f32, corner_radius_bottom_left: f32) {
             let width: Var<Pixels> = "input_size.x".into();
@@ -360,7 +361,7 @@ impl ScrollArea {
 
         let mouse = &scene.mouse;
         frp::extend! { network
-            hovering <- all_with(&mouse.frp.position,&frp.resize,
+            hovering <- all_with(&mouse.frp_deprecated.position, &frp.resize,
                 f!([scene,model](&pos,&size) {
                     let local_pos = scene.screen_to_object_space(&*model.display_object,pos);
                     (0.0..=size.x).contains(&local_pos.x) && (-size.y..=0.0).contains(&local_pos.y)
@@ -369,7 +370,7 @@ impl ScrollArea {
         }
 
         let mouse_manager = &mouse.mouse_manager;
-        let scroll_handler = f!([model](event:&mouse::OnWheel)
+        let scroll_handler = f!([model](event: &mouse::Wheel)
             if hovering.value() {
                 model.h_scrollbar.scroll_by(event.delta_x() as f32);
                 model.v_scrollbar.scroll_by(event.delta_y() as f32);

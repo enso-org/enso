@@ -134,6 +134,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/interrupt`](#executioncontextinterrupt)
+  - [`executionContext/setExecutionEnvironment`](#executioncontextsetexecutionenvironment)
   - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
@@ -303,6 +304,14 @@ interface ExecutionTime {
   /** The time elapsed during the expression's evaluation, in nanoseconds */
   nanoTime: Number;
 }
+```
+
+### `ExecutionEnvironment`
+
+The execution environment of Enso runtime.
+
+```typescript
+type ExecutionEnvironment = Design | Live;
 ```
 
 ### `ExpressionUpdate`
@@ -505,12 +514,6 @@ interface Module {
 
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
-
-  /** The rendered HTML of the documentation string. */
-  documentationHtml?: string;
-
-  /** The documentation string divided into sections. */
-  documentationSections?: DocSection[];
 }
 
 interface Type {
@@ -534,12 +537,6 @@ interface Type {
 
   /** The documentation string. */
   documentation?: string;
-
-  /** The rendered HTML of the documentation string. */
-  documentationHtml?: string;
-
-  /** The documentation string divided into sections. */
-  documentationSections?: DocSection[];
 }
 
 interface Constructor {
@@ -563,12 +560,6 @@ interface Constructor {
 
   /** The documentation string. */
   documentation?: string;
-
-  /** The rendered HTML of the documentation string. */
-  documentationHtml?: string;
-
-  /** The documentation string divided into sections. */
-  documentationSections?: DocSection[];
 }
 
 interface Method {
@@ -598,12 +589,6 @@ interface Method {
 
   /** The documentation string. */
   documentation?: string;
-
-  /** The rendered HTML of the documentation string. */
-  documentationHtml?: string;
-
-  /** The documentation string divided into sections. */
-  documentationSections?: DocSection[];
 }
 
 interface Function {
@@ -627,12 +612,6 @@ interface Function {
 
   /** The documentation string. */
   documentation?: string;
-
-  /** The rendered HTML of the documentation string. */
-  documentationHtml?: string;
-
-  /** The documentation string divided into sections. */
-  documentationSections?: DocSection[];
 }
 
 interface Local {
@@ -653,12 +632,6 @@ interface Local {
 
   /** The documentation string. */
   documentation?: string;
-
-  /** The rendered HTML of the documentation string. */
-  documentationHtml?: string;
-
-  /** The documentation string divided into sections. */
-  documentationSections?: DocSection[];
 }
 ```
 
@@ -687,119 +660,6 @@ The suggestion entry id of the suggestions database.
 
 ```typescript
 type SuggestionId = number;
-```
-
-### `DocSection`
-
-A single section of the documentation.
-
-#### Format
-
-```typescript
-type DocSection = Tag | Paragraph | Keyed | Marked;
-
-/** The documentation tag.
- *
- * {{{
- *   name text
- * }}}
- *
- * @example
- *
- * {{{
- *   UNSTABLE
- *   DEPRECATED
- *   ALIAS Length
- * }}}
- *
- */
-interface Tag {
-  /** The tag name. */
-  name: string;
-
-  /** The tag text. */
-  body: HTMLString;
-}
-
-/** The paragraph of the text.
- *
- * @example
- *
- * {{{
- *   Arbitrary text in the documentation comment.
- *
- *   This is another paragraph.
- * }}}
- *
- */
-interface Paragraph {
-  /** The elements that make up this paragraph. */
-  body: HTMLString;
-}
-
-/** The section that starts with the key followed by the colon and the body.
- *
- * {{{
- *   key: body
- * }}}
- *
- * @example
- *
- * {{{
- *   Arguments:
- *   - one: the first
- *   - two: the second
- * }}}
- *
- *
- * {{{
- *   Icon: table-from-rows
- * }}}
- *
- */
-interface Keyed {
-  /** The section key. */
-  key: string;
-
-  /** The elements that make up the body of the section. */
-  body: HTMLString;
-}
-
-/** The section that starts with the mark followed by the header and the body.
- *
- * {{{
- *   mark header
- *   body
- * }}}
- *
- * @example
- *
- * {{{
- *   > Example
- *     This is how it's done.
- *         foo = bar baz
- * }}}
- *
- * {{{
- *   ! Notice
- *     This is important.
- * }}}
- */
-interface Marked {
-  /** The section mark. */
-  mark: Mark;
-
-  /** The section header. */
-  header?: string;
-
-  /** The elements that make up the body of the section. */
-  body: HTMLString;
-}
-
-/** Text rendered as HTML (may contain HTML tags). */
-type HTMLString = string;
-
-type Mark = "Important" | "Info" | "Example";
 ```
 
 ### `SuggestionsDatabaseEntry`
@@ -979,11 +839,6 @@ interface Modify {
    * The documentation string to update.
    */
   documentation?: FieldUpdate<String>;
-
-  /**
-   * New documentation sections.
-   */
-  documentationSections?: FieldUpdate<DocSection[]>;
 
   /**
    * The scope to update.
@@ -3772,8 +3627,14 @@ May include a list of expressions for which caches should be invalidated.
 
 ```typescript
 {
+  /** The execution context identifier. */
   contextId: ContextId;
+
+  /** The expressions that will be invalidated before the execution. */
   invalidatedExpressions?: "all" | [ExpressionId]
+
+  /** The execution environment that will be used in the execution. */
+  executionEnvironment?: ExecutionEnvironment
 }
 ```
 
@@ -3805,6 +3666,37 @@ provided execution context.
 ```typescript
 {
   contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+
+### `executionContext/setExecutionEnvironment`
+
+Sent from the client to the server to set the execution context environment.
+After setting the environment, the runtime interrupts the current execution,
+clears the caches, and schedules execution of the context.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+  executionEnvironment: ExecutionEnvironment;
 }
 ```
 
@@ -4366,6 +4258,14 @@ main =
 
 Sent from client to the server to receive the full suggestions database.
 
+#### Deprecated
+
+The request always returns empty `entries` field with the correct
+`currentVersion`. The suggestions are sent during the initial project
+compilation as a part of
+[`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
+notification.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
@@ -4522,6 +4422,8 @@ Sent from client to the server to receive the autocomplete suggestion.
   returnType?: string;
   // Filter by the suggestion types
   tags?: [SuggestionEntryType];
+  // Filter by `static` attribute of the suggestion
+  isStatic?: Boolean;
 }
 ```
 

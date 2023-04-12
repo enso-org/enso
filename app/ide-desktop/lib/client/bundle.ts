@@ -1,43 +1,25 @@
-/** Script that bundles JS client code. */
+/** @file Script that bundles JS client code. */
 
-import path, { dirname } from 'node:path'
-import esbuild from 'esbuild'
-import { require_env, require_env_resolved_path } from '../../utils.js'
-import { fileURLToPath } from 'node:url'
+import * as path from 'node:path'
+import * as url from 'node:url'
 
-// ===================================================
-// === Constants provided through the environment. ===
-// ===================================================
+import * as esbuild from 'esbuild'
 
-/** Output directory for bundled client files. */
-const outdir = path.join(require_env_resolved_path('ENSO_BUILD_IDE'), 'client')
+import * as bundler from './esbuild-config'
+import * as dashboardBundler from '../dashboard/esbuild-config'
 
-/** Path to the project manager executable relative to the PM bundle root. */
-const projectManagerInBundlePath = require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH')
+// =================
+// === Constants ===
+// =================
 
-/** Version of the Engine (backend) that is bundled along with this client build. */
-const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
-
-export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
 // ================
 // === Bundling ===
 // ================
 
-const bundlerOptions: esbuild.BuildOptions = {
-    bundle: true,
-    outdir,
-    entryPoints: ['src/index.ts', 'src/preload.ts'],
-    outbase: 'src',
-    format: 'cjs',
-    outExtension: { '.js': '.cjs' },
-    platform: 'node',
-    define: {
-        BUNDLED_ENGINE_VERSION: JSON.stringify(bundledEngineVersion),
-        PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),
-    },
-    sourcemap: true,
-    external: ['electron'],
-}
-
-await esbuild.build(bundlerOptions)
+// The dashboard bundler bundles `tailwind.css`.
+const DASHBOARD_BUNDLER_OPTIONS = dashboardBundler.bundleOptions()
+await esbuild.build(DASHBOARD_BUNDLER_OPTIONS)
+const BUNDLER_OPTIONS = bundler.bundlerOptionsFromEnv()
+await esbuild.build(BUNDLER_OPTIONS)

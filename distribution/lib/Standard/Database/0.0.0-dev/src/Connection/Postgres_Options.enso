@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
@@ -28,11 +28,12 @@ type Postgres_Options
        - client_cert: The client certificate to use or `Nothing` if not needed.
     Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
-    ## Build the Connection resource.
+    ## PRIVATE
+       Build the Connection resource.
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options
+    connect : Connection_Options -> Postgres_Connection.Postgres_Connection
     connect self options =
         if Driver.isRegistered.not then Driver.register
 
@@ -44,12 +45,14 @@ type Postgres_Options
 
         Postgres_Connection.create self.jdbc_url properties make_new
 
-    ## Provides the jdbc url for the connection.
+    ## PRIVATE
+       Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
         'jdbc:postgresql://' + self.host + ':' + self.port.to_text + (if self.database == '' then '' else '/' + self.database)
 
-    ## Provides the properties for the connection.
+    ## PRIVATE
+       Provides the properties for the connection.
     jdbc_properties : [Pair Text Text]
     jdbc_properties self =
         credentials = case self.credentials of
@@ -98,7 +101,7 @@ default_postgres_port =
     hardcoded_port = 5432
     case Environment.get "PGPORT" of
         Nothing -> hardcoded_port
-        port -> Integer.parse port . catch Number_Parse_Error.Error (_->hardcoded_port)
+        port -> Integer.parse port . catch Number_Parse_Error (_->hardcoded_port)
 
 ## PRIVATE
 default_postgres_database = Environment.get "PGDATABASE" "postgres"

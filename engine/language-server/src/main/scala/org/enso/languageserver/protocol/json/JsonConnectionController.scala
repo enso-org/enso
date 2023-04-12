@@ -200,7 +200,7 @@ class JsonConnectionController(
         )
       )
     case Status.Failure(ex) =>
-      logger.error("Failed to initialize the resources. {}", ex.getMessage)
+      logger.error("Failed to initialize resources.", ex)
       receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
       context.system.eventStream.publish(InitializedEvent.InitializationFailed)
       context.become(connected(webActor))
@@ -487,6 +487,8 @@ class JsonConnectionController(
       ExecutionContextPop -> executioncontext.PopHandler
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextRecompute -> executioncontext.RecomputeHandler
+        .props(requestTimeout, contextRegistry, rpcSession),
+      ExecutionContextSetExecutionEnvironment -> executioncontext.SetExecutionEnvironmentHandler
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextInterrupt -> executioncontext.InterruptHandler
         .props(requestTimeout, contextRegistry, rpcSession),

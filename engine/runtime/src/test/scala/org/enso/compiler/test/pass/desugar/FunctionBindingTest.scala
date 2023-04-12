@@ -289,8 +289,12 @@ class FunctionBindingTest extends CompilerTest {
         .asInstanceOf[IR.DefinitionArgument.Specified]
       aArg.name.name shouldEqual "a"
       aArg.defaultValue.get
-        .asInstanceOf[IR.Expression.Binding]
-        .name
+        .asInstanceOf[IR.Application.Operator.Binary]
+        .left
+        .value
+        .asInstanceOf[IR.Application.Prefix]
+        .function
+        .asInstanceOf[IR.Name.Literal]
         .name shouldEqual "f"
 
       val body = ir.expression

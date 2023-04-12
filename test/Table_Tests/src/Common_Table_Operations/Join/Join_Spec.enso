@@ -1,9 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
-import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
@@ -16,12 +16,10 @@ type My_Type
     Value x y
 
 type My_Type_Comparator
-    is_ordered = True
-    
     compare my_1 my_2 =
         comp = Comparable.from my_1.x
         comp.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
-    
+
     hash my_type = Comparable.from my_type.x . hash (my_type.x + my_type.y)
 
 Comparable.from (_:My_Type) = My_Type_Comparator
@@ -48,16 +46,11 @@ spec setup =
 
         Test.specify "should allow Full join" <|
             t3 = t1.join t2 join_kind=Join_Kind.Full |> materialize |> _.order_by ["X", "W"]
-            case setup.test_selection.supports_full_join of
-                True ->
-                    expect_column_names ["X", "Y", "Z", "W"] t3
-                    t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
-                    t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
-                    t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
-                    t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
-                False ->
-                    t3.should_fail_with Unsupported_Database_Operation.Error
-
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
+            t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
+            t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
+            t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
 
         Test.specify "should allow Left Outer join" <|
             t4 = t1.join t2 join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by ["X", "W"]
@@ -265,17 +258,14 @@ spec setup =
             t2.at "Right_A" . to_vector . should_equal ["B", "C", "C", "D"]
 
             t3 = t1.join t1 join_kind=Join_Kind.Full on=(Join_Condition.Equals left="X" right="Y") |> materialize |> _.order_by ["X", "Y", "Right_X"]
-            case setup.test_selection.supports_full_join of
-                True ->
-                    expect_column_names ["X", "Y", "A", "Right_X", "Right_Y", "Right_A"] t3
-                    t3.at "X" . to_vector . should_equal [Nothing, Nothing, 0, 1, 2, 2, 3]
-                    t3.at "Right_Y" . to_vector . should_equal [100, 4, Nothing, 1, 2, 2, 3]
+            expect_column_names ["X", "Y", "A", "Right_X", "Right_Y", "Right_A"] t3
+            t3.at "X" . to_vector . should_equal [Nothing, Nothing, 0, 1, 2, 2, 3]
+            t3.at "Right_Y" . to_vector . should_equal [100, 4, Nothing, 1, 2, 2, 3]
 
-                    t3.at "Y" . to_vector . should_equal [Nothing, Nothing, 1, 2, 3, 100, 4]
-                    t3.at "A" . to_vector . should_equal [Nothing, Nothing, "B", "C", "D", "X", "E"]
-                    t3.at "Right_X" . to_vector . should_equal [2, 3, Nothing, 0, 1, 1, 2]
-                    t3.at "Right_A" . to_vector . should_equal ["X", "E", Nothing, "B", "C", "C", "D"]
-                False -> Nothing
+            t3.at "Y" . to_vector . should_equal [Nothing, Nothing, 1, 2, 3, 100, 4]
+            t3.at "A" . to_vector . should_equal [Nothing, Nothing, "B", "C", "D", "X", "E"]
+            t3.at "Right_X" . to_vector . should_equal [2, 3, Nothing, 0, 1, 1, 2]
+            t3.at "Right_A" . to_vector . should_equal ["X", "E", Nothing, "B", "C", "C", "D"]
 
             t4 = table_builder [["X", [Nothing, "a", "B"]], ["Y", ["ą", "b", Nothing]], ["Z", [1, 2, 3]]]
             t5 = t4.join t4 on=(Join_Condition.Equals_Ignore_Case left="Y" right="X") |> materialize |> _.order_by ["Y"]
@@ -301,11 +291,11 @@ spec setup =
                - Missing_Input_Columns.Error ["foo", "baz"]
                here, but we can throw only one error. I think column names error
                will be more useful, so I'd prioritize it.
-            r1.should_fail_with Missing_Input_Columns.Error
+            r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria.should_equal ["foo", "baz"]
 
             r2 = t1.join t2 on=[Join_Condition.Equals 42 0] on_problems=Problem_Behavior.Ignore
-            r2.should_fail_with Column_Indexes_Out_Of_Range.Error
+            r2.should_fail_with Column_Indexes_Out_Of_Range
             r2.catch.indexes.should_equal [42]
 
         Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
@@ -313,7 +303,7 @@ spec setup =
             t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
 
             test result =
-                result.should_fail_with Invalid_Value_Type.Error
+                result.should_fail_with Invalid_Value_Type
                 result.catch.expected.should_equal Value_Type.Char
 
             test <|
@@ -326,14 +316,14 @@ spec setup =
             t2 = table_builder ["Y", [1, 2, 3]]
 
             r1 = t1.join t2 on_problems=Problem_Behavior.Ignore
-            r1.should_fail_with Invalid_Value_Type.Error
+            r1.should_fail_with Invalid_Value_Type
 
         Test.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" pending="We need more advanced value type support to implement this in full-generality." <|
             t1 = table_builder ["X", ["1", "2", "c"], ["Y", [1, 2, 3]]]
             t2 = table_builder ["Z", ["1", "2", "c"], ["W", [1, 2, 3]]]
 
             test expected actual err =
-                err.should_fail_with Invalid_Value_Type.Error
+                err.should_fail_with Invalid_Value_Type
                 err.catch . should_equal (Invalid_Value_Type.Error expected actual)
 
             test Value_Type.Char Value_Type.Integer <|
@@ -421,20 +411,21 @@ spec setup =
             r1.at "Z" . to_vector . should_equal [20, 20]
 
         Test.specify "should rename columns of the right table to avoid duplicates" <|
-            t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]], ["Right_Y", [5, 6]]]
             t2 = table_builder [["X", [2, 1]], ["Y", [2, 2]]]
 
             t3 = t1.join t2 on=(Join_Condition.Equals "X" "Y") |> materialize |> _.order_by ["Right_X"]
-            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["X", "Y"]]
-            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t3
+            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["Right_Y"]]
+            expect_column_names ["X", "Y", "Right_Y", "Right_X", "Right_Y_1"] t3
             t3.at "X" . to_vector . should_equal [2, 2]
-            t3.at "Right_Y" . to_vector . should_equal [2, 2]
             t3.at "Y" . to_vector . should_equal [4, 4]
+            t3.at "Right_Y" . to_vector . should_equal [6, 6]
             t3.at "Right_X" . to_vector . should_equal [1, 2]
+            t3.at "Right_Y_1" . to_vector . should_equal [2, 2]
 
             err1 = t1.join t2 on=(Join_Condition.Equals "X" "Y") on_problems=Problem_Behavior.Report_Error
             err1.should_fail_with Duplicate_Output_Column_Names
-            err1.catch.column_names . should_equal ["X", "Y"]
+            err1.catch.column_names . should_equal ["Right_Y"]
 
             t4 = table_builder [["Right_X", [1, 1]], ["X", [1, 2]], ["Y", [3, 4]], ["Right_Y_2", [2, 2]]]
             t5 = table_builder [["Right_X", [2, 1]], ["X", [2, 2]], ["Y", [2, 2]], ["Right_Y", [2, 2]], ["Right_Y_1", [2, 2]], ["Right_Y_4", [2, 2]]]
@@ -443,12 +434,12 @@ spec setup =
             expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y_3", "Right_Y", "Right_Y_1", "Right_Y_4"] t6
 
             action = t1.join t2 right_prefix="" on_problems=_
-            tester = expect_column_names ["X", "Y", "Y_1"]
+            tester = expect_column_names ["X", "Y", "Right_Y", "Y_1"]
             problems = [Duplicate_Output_Column_Names.Error ["Y"]]
             Problems.test_problem_handling action problems tester
 
             t8 = t1.join t2 right_prefix="P"
-            expect_column_names ["X", "Y", "PY"] t8
+            expect_column_names ["X", "Y", "Right_Y", "PY"] t8
 
         Test.specify "should warn about renamed columns" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
@@ -457,20 +448,20 @@ spec setup =
             action1 = t1.join t2 on=(Join_Condition.Equals "X" "Y") on_problems=_
             tester1 table =
                 expect_column_names ["X", "Y", "Right_X", "Right_Y_1", "Right_Y"] table
-            problems1 = [Duplicate_Output_Column_Names.Error ["X", "Y"]]
+            problems1 = [Duplicate_Output_Column_Names.Error ["Right_Y"]]
             Problems.test_problem_handling action1 problems1 tester1
 
 
             action2 = t1.join t2 on=(Join_Condition.Equals "X" "X") on_problems=_
             tester2 table =
                 expect_column_names ["X", "Y", "Right_Y_1", "Right_Y"] table
-            problems2 = [Duplicate_Output_Column_Names.Error ["Y"]]
+            problems2 = [Duplicate_Output_Column_Names.Error ["Right_Y"]]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should pass dataflow errors through" <|
             error = Error.throw (Illegal_State.Error "FOO")
-            t1.join error . should_fail_with Illegal_State.Error
-            t1.join t2 on=[error, "X"] . should_fail_with Illegal_State.Error
+            t1.join error . should_fail_with Illegal_State
+            t1.join t2 on=[error, "X"] . should_fail_with Illegal_State
 
         Test.specify "should correctly handle all null rows" pending=db_todo <|
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
@@ -488,21 +479,17 @@ spec setup =
                 r3.at 4 . should_equal [2, 3, 2, 5]
 
             t4 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Full
-            case setup.test_selection.supports_full_join of
-                True ->
-                    expect_column_names ["A", "B", "C", "D"] t4
-                    r4 = materialize t4 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
-                    within_table t4 <|
-                        r4.length . should_equal 7
-                        r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                        r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
-                        r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
-                        r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
-                        r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
-                        r4.at 5 . should_equal [1, 7, Nothing, Nothing]
-                        r4.at 6 . should_equal [2, 3, 2, 5]
-                False ->
-                    (materialize t4) . should_fail_with Unsupported_Database_Operation.Error
+            expect_column_names ["A", "B", "C", "D"] t4
+            r4 = materialize t4 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
+            within_table t4 <|
+                r4.length . should_equal 7
+                r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
+                r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
+                r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
+                r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
+                r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
+                r4.at 5 . should_equal [1, 7, Nothing, Nothing]
+                r4.at 6 . should_equal [2, 3, 2, 5]
 
             t4_2 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Outer
             expect_column_names ["A", "B", "C", "D"] t4_2
@@ -618,7 +605,7 @@ spec setup =
             r2.at 0 . should_equal [2, 20, 5, 5, 100]
             r2.at 1 . should_equal [3, 30, 7, 7, 200]
 
-        Test.specify "should allow full joins with more complex join conditions" pending=(if setup.test_selection.supports_full_join.not then "Full join workaround is not implemented for this backend yet.") <|
+        Test.specify "should allow full joins with more complex join conditions" <|
             t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["X", ["Ć", "A", "b"]], ["Z", [100, 200, 300]]]
 
@@ -645,7 +632,7 @@ spec setup =
             r2.at 3 . should_equal [3, 30, 7, 7, 200]
 
             t4_3 = table_builder [["X", [Nothing, 2, 3]], ["Y", [10, 20, 30]]]
-            t4_4 = t4_3.set (t4_3.at "X" . fill_missing 7) new_name="C"
+            t4_4 = t4_3.set (t4_3.at "X" . fill_nothing 7) new_name="C"
             t7 = t4_4.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
             within_table t7 <|
                 expect_column_names ["X", "Y", "C", "Right_X", "Z"] t7

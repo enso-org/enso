@@ -1,19 +1,17 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
-import Standard.Base.Data.Ordering.Comparator
-import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Common.No_Such_Method
-import Standard.Base.Error.Common.Type_Error
-import Standard.Base.Error.File_Error.File_Error
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-import Standard.Base.Error.Incomparable_Values.Incomparable_Values
-import Standard.Base.Error.Unimplemented.Unimplemented
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
 import project.Data.Column as Column_Module
-import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Join_Condition.Join_Condition
@@ -25,11 +23,10 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Data.Storage.Storage
-import project.Data.Value_Type.Value_Type
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
+import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
@@ -40,13 +37,14 @@ import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
+from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Internal.Rows_View import Rows_View
 from project.Errors import all
 
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
+polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -117,7 +115,9 @@ type Table
        - java_table: The internal java representation of the table.
     Value java_table
 
-    ## Returns a text containing an ASCII-art table displaying this data.
+    ## PRIVATE
+       ADVANCED
+       Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
@@ -146,7 +146,9 @@ type Table
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
 
-    ## Prints an ASCII-art table with this data to the standard output.
+    ## PRIVATE
+       ADVANCED
+       Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
@@ -162,7 +164,8 @@ type Table
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## Converts this table into a JS_Object.
+    ## PRIVATE
+       Converts this table into a JS_Object.
 
        > Example
          Convert a table to a corresponding JavaScript JS_Object representation.
@@ -475,12 +478,22 @@ type Table
                other, a `Duplicate_Output_Column_Names`.
 
        > Example
-         Rename the first column to "FirstColumn"
+         Rename the "Alpha" column to "Beta"
 
-              table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
+              table.rename_columns (Map.from_vector [["Alpha", "Beta"]])
 
        > Example
-         Rename the first column to "FirstColumn" passed as a Vector
+         Rename the last column to "LastColumn"
+
+              table.rename_columns (Map.from_vector [[-1, "LastColumn"]])
+
+       > Example
+         Rename the "Alpha" column to "Beta" and last column to "LastColumn"
+
+              table.rename_columns (Map.from_vector [["Alpha", "Beta"], [-1, "LastColumn"]])
+
+       > Example
+         Rename the first column to "FirstColumn"
 
               table.rename_columns ["FirstColumn"]
 
@@ -492,18 +505,12 @@ type Table
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              table.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
-    rename_columns : Map | Vector Text | Column_Name_Mapping -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (error_on_missing_columns=True) (on_problems=Report_Warning) = case column_map of
-        _ : Vector ->
-            self.rename_columns (Column_Name_Mapping.By_Position column_map) error_on_missing_columns on_problems
-        _ : Map ->
-            self.rename_columns (Column_Name_Mapping.By_Name column_map) error_on_missing_columns on_problems
-        _ ->
-            case Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems of
-                new_names ->
-                    new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
-                    Table.new new_columns
+              by_name = Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True
+              table.rename_columns (Map.from_vector [[by_name, "key:$1"]])
+    rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
+        new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        new_names.if_not_error (Table.new (self.columns.map c-> c.rename (new_names.at c.name)))
 
     ## Returns a new table with the columns renamed based on entries in the
        first row.
@@ -531,7 +538,7 @@ type Table
                 Nothing -> Nothing
                 _ -> val.to_text
         new_names = self.columns.map mapper
-        self.drop (First 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
+        self.drop (First 1) . rename_columns new_names on_problems=on_problems
 
     ## ALIAS group, summarize
 
@@ -680,7 +687,16 @@ type Table
                 c.column.java_column
             directions = columns_for_ordering.map c->
                 c.associated_selector.direction.to_sign
-            comparator = Comparator.for_text_ordering text_ordering
+
+            comparator = case text_ordering.sort_digits_as_numbers of
+                True ->
+                    txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitivity . to_sign
+                    ObjectComparator.new txt_cmp
+                False -> case text_ordering.case_sensitivity of
+                    Case_Sensitivity.Default -> ObjectComparator.DEFAULT
+                    Case_Sensitivity.Sensitive -> ObjectComparator.DEFAULT
+                    Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
+
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy java_columns.to_array directions.to_array comparator
             Table.Value java_table
@@ -700,6 +716,9 @@ type Table
        - columns: The columns of the table to use for distinguishing the rows.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -731,74 +750,104 @@ type Table
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
-       type (columns with other types are not affected). If `column_types` are
-       provided, only selected columns are parsed, according to the specified
-       type.
+       type (columns with other types are not affected).
 
        The default parser options only parse values where the process is
        reversible (e.g., 0123 would not be converted to an integer as there is
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
-    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
-    parse_values self value_formatter=Data_Formatter.Value column_types=Nothing on_problems=Report_Warning =
-        columns = self.columns
-        problem_builder = Vector.new_builder
 
-        find_datatype index column =
-            matching_input = column_types.filter selection->
-                selector = selection.column
-                case selector of
-                    _ : Text -> column.name == selector
-                    _ : Integer -> if selector >= 0 then index == selector else
-                        index == columns.length + selector
-            if matching_input.length == 0 then Nothing else
-                if matching_input.length == 1 then matching_input.first.datatype else
-                    first_type = matching_input.first.datatype
-                    ambiguous = matching_input.any s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector.Error column.name ambiguous)
-                    if ambiguous then Nothing else first_type
+       Arguments:
+       - columns: The columns to parse. If not specified, all text columns
+         will be parsed.
+       - type: The type to parse the columns to. Defaults to `Auto` meaning that
+         the type will be inferred from the data.
+       - format: The formatting settings to use when parsing the columns.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting.
+       - error_on_missing_columns: if `True` (the default) raises an error if
+         any column is missing. Otherwise, reported as a problem.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
 
-        expected_types = case column_types of
-            Nothing -> columns.map _->Auto
-            _ ->
-                missing_columns = Vector.new_builder
-                invalid_indices = Vector.new_builder
-                column_types.each selection->
-                    selector = selection.column
-                    case selector of
-                        _ : Integer ->
-                            valid = Table_Helpers.is_index_valid columns.length selector
-                            if valid.not then
-                                invalid_indices.append selector
-                        _ : Text ->
-                            found = columns.any col-> col.name == selector
-                            if found.not then
-                                missing_columns.append selector
-                if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns.Error missing_columns.to_vector)
-                if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range.Error invalid_indices.to_vector)
-                columns.map_with_index find_datatype
+       ! Error Conditions
 
-        new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
-            Nothing -> column
-            _ ->
-                parser = if expected_type == Auto then value_formatter.make_auto_parser else
-                    value_formatter.make_datatype_parser expected_type
-                storage = column.java_column.getStorage
-                new_storage_and_problems = parser.parseColumn column.name storage
-                new_storage = new_storage_and_problems.value
-                problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
-                problems.each problem_builder.append
-                Column.Value (Java_Column.new column.name new_storage)
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error or problem
+           following the `error_on_missing_columns` rules.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error or problem following the
+           `error_on_missing_columns` rules.
+         - If a column selected for parsing is not a text column, an
+           `Invalid_Value_Type` error is raised.
+         - If no columns have been selected for parsing,
+           a `No_Input_Columns_Selected` error is raised.
+         - If some values in a column did not match the expected datatype
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
+         - If parsing a numeric column and the selected format does not allow
+           leading zeros (the default) and such cells are found, a
+           `Leading_Zeros` problem is reported. These cells are replaced with
+           `Nothing`.
 
-        ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
-           https://github.com/enso-org/enso/pull/3400
-        result = Table.new new_columns
-        on_problems.attach_problems_after result problem_builder.to_vector
+         > Example
+           Parse the first and last columns containing Yes/No values as booleans.
 
-    ## Replaces the first, last, or all occurrences of `term` with
-       `new_text` in each text row of selected columns.
+               table.parse columns=[0, -1] type=Boolean format="Yes|No"
+
+         > Example
+           Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+
+               table.parse "birthday" Date
+
+         > Example
+           Parse dates in a column in the format `dd/MM/yyyy`.
+
+               table.parse "birthday" Date 'dd/MM/yyyy'
+
+         > Example
+           Parse all columns inferring their types, using `,` as the decimal point for numbers.
+
+               table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
+        formatter = case format of
+            _ : Text ->
+                Data_Formatter.Value.with_format type format
+            _ : Data_Formatter -> format
+            _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
+
+        parser = formatter.make_value_type_parser type
+
+        select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        selected_columns = self.columns_helper.select_columns_helper columns reorder=True select_problem_builder
+        select_problem_builder.attach_problems_before on_problems <|
+            selected_column_names = case selected_columns.is_empty of
+                True ->
+                    no_columns_problem_behavior = case error_on_missing_columns of
+                        True -> Problem_Behavior.Report_Error
+                        False -> on_problems
+                    no_columns_problem_behavior.attach_problem_before No_Input_Columns_Selected Map.empty
+                False ->
+                    Map.from_vector <| selected_columns.map c-> [c.name, True]
+
+            parse_problem_builder = Problem_Builder.new
+            new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
+                Value_Type.expect_text column.value_type related_column=column.name <|
+                    storage = column.java_column.getStorage
+                    new_storage_and_problems = parser.parseColumn column.name storage
+                    new_storage = new_storage_and_problems.value
+                    problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
+                    problems.each parse_problem_builder.report_other_warning
+                    Column.Value (Java_Column.new column.name new_storage)
+
+            parse_problem_builder.attach_problems_before on_problems <|
+                Table.new new_columns
+
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       text row of selected columns.
        If `term` is empty, the function returns the table unchanged.
 
        This method follows the exact replacement semantics of the
@@ -808,15 +857,13 @@ type Table
        - columns: Column selection criteria or a column name or index.
        - term: The term to find.
        - new_text: The new text to replace occurrences of `term` with.
-         If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
-         patterns (such as `$<n>`) for a marked group.
-       - mode: Specifies which occurences of term the engine tries to find. When the
-         mode is `First` or `Last`, this method replaces the first or last occurence
-         of term in each individual table cell. If set to `All`, it replaces all
-         occurences of term.
-       - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-         rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
-         regular expression and matched using the associated options.
+         If use_regex is true, `new_text` can include replacement patterns
+         (such as `$<n>`) for a marked group.
+       - case_insensitive: Enables or disables case-insensitive matching. Case
+         insensitive matching behaves as if it normalises the case of all input
+         text before matching on it.
+       - only_first: If True, only replace the first match.
+       - use_regex: If true, the term is used as a regular expression.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -835,28 +882,30 @@ type Table
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
 
-             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
+             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" use_regex=True
 
        > Example
          Replace texts in quotes with parentheses in column at index 1.
 
-             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
-    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
-    replace_text self columns=[0] term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
+             table.replace_text 1 '"(.*?)"' '($1)' use_regex=True
+    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Table
+    replace_text self columns=[0] term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
 
         selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
+        ## TODO [RW] we should inherit the parent type here, but extend fixed length strings to varied length
+           To be done in #6106.
         map_preserve_name column f = column.map f . rename column.name
-        do_replace = _.replace term new_text mode matcher
+        do_replace = _.replace term new_text case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex
         do_replace_only_text = case _ of
                 item : Text -> do_replace item
                 item -> item
 
-        transform column = case column.storage_type of
-            Storage.Text -> map_preserve_name column do_replace
-            Storage.Any -> map_preserve_name column do_replace_only_text
+        transform column = case column.value_type of
+            Value_Type.Char _ _ -> map_preserve_name column do_replace
+            Value_Type.Mixed -> map_preserve_name column do_replace_only_text
             _ ->
                 problem = Invalid_Value_Type.Error Value_Type.Char column.value_type
                 problem_builder.report_other_warning problem
@@ -965,9 +1014,6 @@ type Table
         column = self.compute expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## PRIVATE
-    with_no_rows self = self.take (First 0)
-
     ## Creates a new Table with the specified range of rows from the input
        Table.
 
@@ -1057,7 +1103,7 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    set : Column | Text -> Text | Nothing -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : Column | Text -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.compute column on_problems
@@ -1100,8 +1146,7 @@ type Table
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        new_name = Expression.to_column_name expression
-        result = new_column.rename new_name
+        result = new_column.rename (Naming_Helpers.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -1141,6 +1186,30 @@ type Table
             _ : Integer -> self.slice 0 max_rows
         proxy = Rows_View.Value table
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
+
+    ## Returns the first row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    first_row : Row ! Index_Out_Of_Bounds
+    first_row self =
+        if self.row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value self 0
+
+    ## Returns the second row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    second_row : Row ! Index_Out_Of_Bounds
+    second_row self =
+        if self.row_count < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.row_count) else
+            Row.Value self 1
+
+    ## Returns the last row of the table.
+
+       In the database backend, it first materializes the table to in-memory.
+    last_row : Row ! Index_Out_Of_Bounds
+    last_row self =
+        if self.row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value self (self.row_count-1)
 
     ## Joins two tables according to the specified join conditions.
 
@@ -1220,11 +1289,8 @@ type Table
                 join_resolution = make_join_helpers self right . resolve on on_problems
                 right_columns_to_drop = join_resolution.redundant_column_names
 
-                object_comparator = Comparator.new
-                equality_fallback = .==
-
                 java_conditions = join_resolution.conditions
-                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
+                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
 
                 on_problems.attach_problems_after (Table.Value new_java_table) <|
                     problems = new_java_table.getProblems
@@ -1424,16 +1490,14 @@ type Table
          regardless of types of other columns. Mixing any other types will
          result in a `No_Common_Type` problem. If columns of incompatible types
          are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention.
+         retyped to the `Mixed` type to indicate that intention. Note that the
+         `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + v
             single_table -> [self, single_table]
-        ## `is_everything_ok` should actually never be False; it will either be
-           True or will contain a dataflow error propagating through the if.
-        is_everything_ok = all_tables.all (check_table "tables")
-        if is_everything_ok then
+        all_tables.all (check_table "tables") . if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
@@ -1441,7 +1505,7 @@ type Table
                 case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
                     Nothing -> Nothing
                     result_type : Value_Type ->
-                        concat_columns column_set all_tables result_type result_row_count
+                        concat_columns column_set all_tables result_type result_row_count on_problems
             good_columns = merged_columns.filter Filter_Condition.Not_Nothing
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
@@ -1476,8 +1540,8 @@ type Table
 
     ## Returns a Table describing this table's contents.
 
-       The table lists all columns, counts of non-null items and storage types
-       of each column.
+       The table lists all columns, counts of non-null items and value types of
+       each column.
 
        > Example
          Get information about a table.
@@ -1488,7 +1552,7 @@ type Table
     info : Table
     info self =
         cols = self.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
+        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -1577,10 +1641,17 @@ type Table
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
-    cross_tab : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Aggregate_Column | Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector | Aggregate_Column) -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
+
+        ## Normalize the group_by parameter to select columns
+        normalize_group_by input = case input of
+            Aggregate_Column.Group_By c _ -> c
+            _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
+            _ : Vector -> input.map normalize_group_by
+            _ -> input
 
         ## validate the name and group_by columns
         name_column_selector = case name_column of
@@ -1588,7 +1659,7 @@ type Table
             name : Text -> [name]
             _ -> Error.throw (Illegal_Argument.Error "name_column must be a column index or name.")
         matched_name = columns_helper.select_columns_helper name_column_selector True problem_builder
-        grouping = columns_helper.select_columns_helper group_by True problem_builder
+        grouping = columns_helper.select_columns_helper (normalize_group_by group_by) True problem_builder
 
         ## Validate the values
         values_vector = case values of
@@ -1637,9 +1708,7 @@ type Table
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
         Table.Value (self.java_table.slice offset limit)
 
-    ## UNSTABLE
-
-       Returns a table containing the rows of `self` table with their order
+    ## Returns a table containing the rows of `self` table with their order
        reversed.
 
        > Example
@@ -1738,14 +1807,13 @@ type Table
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_format file
-                if base_format == Nothing then Error.throw (File_Error.Unsupported_Type file) else
+                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                Panic.catch No_Such_Method.Error (format.write_table file self on_existing_file match_columns on_problems) caught_panic->
+                Panic.catch No_Such_Method (format.write_table file self on_existing_file match_columns on_problems) caught_panic->
                     # Ensure that we handle only the specific unresolved method and not swallow any other errors.
                     if caught_panic.payload.method_name != "write_table" then Panic.throw caught_panic else
-                        name = (Meta.meta format).constructor.name
-                        Error.throw (Illegal_Argument.Error ("Saving a Table as " + name + " is not supported."))
+                        Error.throw (File_Error.Unsupported_Output_Type format Table)
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
@@ -1838,8 +1906,8 @@ check_table arg_name table =
 
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
-concat_columns column_set all_tables result_type result_row_count =
-    storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=result_row_count
+concat_columns column_set all_tables result_type result_row_count on_problems =
+    storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count
     column_set.column_indices.zip all_tables i-> parent_table->
         case i of
             Nothing ->

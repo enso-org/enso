@@ -12,7 +12,7 @@ import Standard.Test.Extensions
 spec = Test.group "Examples" <|
     Test.specify "should allow construction of Example_Error_Type" <|
         val = Examples.Example_Error_Type.Error "Oh, no! Something went wrong!"
-        val.should_be_an Examples.Example_Error_Type.Error
+        val.should_be_a Examples.Example_Error_Type.Error
 
     Test.specify "should allow getting the examples data directory" <|
         dir = Examples.data_dir
@@ -53,7 +53,7 @@ spec = Test.group "Examples" <|
         Examples.map.size . should_equal 3
 
     Test.specify "should provide a type with no methods" <|
-        Examples.No_Methods.should_be_an Examples.No_Methods
+        Examples.No_Methods.should_be_a Examples.No_Methods
 
     Test.specify "should provide a no method error value" <|
         Examples.no_such_method
@@ -62,10 +62,10 @@ spec = Test.group "Examples" <|
         Examples.My_Error.Error
 
     Test.specify "should provide a method that throws an error" <|
-        Examples.throw_error.should_fail_with Examples.My_Error.Error
+        Examples.throw_error.should_fail_with Examples.My_Error
 
     Test.specify "should provide a method that throws a panic" <|
-        Test.expect_panic_with Examples.throw_panic Examples.My_Error.Error
+        Test.expect_panic_with Examples.throw_panic Examples.My_Error
 
     Test.specify "should provide a URL for some geo data" <|
         (Examples.geo_data_url.length > 0) . should_be_true

@@ -1,7 +1,8 @@
 package org.enso.pkg
 
-import scala.jdk.CollectionConverters._;
 import com.oracle.truffle.api.CompilerDirectives
+
+import scala.jdk.CollectionConverters._
 
 /** Represents a qualified name of a source item.
   *
@@ -10,9 +11,13 @@ import com.oracle.truffle.api.CompilerDirectives
   * @param item the name of the item
   */
 case class QualifiedName(path: List[String], item: String) {
+
+  private lazy val qualifiedNameString: String =
+    (path :+ item).mkString(QualifiedName.separator)
+
   @CompilerDirectives.TruffleBoundary
   override def toString: String =
-    (path :+ item).mkString(QualifiedName.separator)
+    qualifiedNameString
 
   /** Get the parent of this qualified name.
     *

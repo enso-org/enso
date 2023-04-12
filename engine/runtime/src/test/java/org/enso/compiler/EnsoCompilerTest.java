@@ -1,16 +1,8 @@
 package org.enso.compiler;
 
 import com.oracle.truffle.api.source.Source;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.function.Function;
-import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
-import org.enso.syntax.text.AST.ASTOf;
-import org.enso.syntax.text.Parser;
-import org.enso.syntax.text.Shape;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -78,6 +70,13 @@ public class EnsoCompilerTest {
     main =
         foo a = a + 1
         foo 42
+    """, true, true, true);
+  }
+
+  @Test
+  public void testListWithATrailingComma() throws Exception {
+    parseTest("""
+    main = ["a", ]
     """, true, true, true);
   }
 
@@ -1206,6 +1205,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testDotPrecedence() throws Exception {
+    equivalenceTest("x = -1.up_to 100", "x = (-1).up_to 100");
+  }
+
+  @Test
   public void testFreeze() throws Exception {
     equivalenceTest("a = x", "a = FREEZE x");
     equivalenceTest("a = x+1", "a = FREEZE x+1");
@@ -1244,62 +1248,6 @@ public class EnsoCompilerTest {
     """);
   }
 
-  static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
-    var txt = i.pretty();
-    if (noIds) {
-      txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
-    }
-    if (noLocations) {
-        for (;;) {
-          final String pref = " Location(";
-          int at = txt.indexOf(pref);
-          if (at == -1) {
-            break;
-          }
-          int to = at + pref.length();
-          int depth = 1;
-          while (depth > 0) {
-            switch (txt.charAt(to)) {
-              case '(' -> depth++;
-              case ')' -> depth--;
-            }
-            to++;
-          }
-          txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
-        }
-    }
-    if (lessDocs) {
-        for (;;) {
-          final String pref = "IR.Comment.Documentation(";
-          int at = txt.indexOf(pref);
-          if (at == -1) {
-            break;
-          }
-          int to = txt.indexOf("location =", at + pref.length());
-          txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
-        }
-        for (;;) {
-          final String pref = "IR.Case.Pattern.Doc(";
-          int at = txt.indexOf(pref);
-          if (at == -1) {
-            break;
-          }
-          int to = txt.indexOf("location =", at + pref.length());
-          txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
-        }
-    }
-    for (;;) {
-      final String pref = "IR.Error.Syntax(";
-      int at = txt.indexOf(pref);
-      if (at == -1) {
-        break;
-      }
-      int to = txt.indexOf("reason =", at + pref.length());
-      txt = txt.substring(0, at) + "IR.Error.Syntax (" + txt.substring(to);
-    }
-    return txt;
-  }
-
   private static void parseTest(String code) throws IOException {
       parseTest(code, true, true, true);
   }
@@ -1307,33 +1255,14 @@ public class EnsoCompilerTest {
   @SuppressWarnings("unchecked")
   private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) throws IOException {
     var ir = compile(code);
-
-    var oldAst = new Parser().runWithIds(code);
-    var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
-
-    Function<IR, String> filter = (f) -> simplifyIR(f, noIds, noLocations, lessDocs);
-    var old = filter.apply(oldIr);
-    var now = filter.apply(ir);
-    if (!old.equals(now)) {
-      var name = findTestMethodName();
-      var home = new File(System.getProperty("user.home")).toPath();
-      Files.writeString(home.resolve(name + ".old") , old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      Files.writeString(home.resolve(name + ".now") , now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      assertEquals("IR for " + code + " shall be equal", old, now);
-    }
+    assertNotNull(ir);
   }
 
   private static void equivalenceTest(String code1, String code2) throws IOException {
-    Function<IR, String> filter = (f) -> simplifyIR(f, true, true, false);
-    var ir1 = filter.apply(compile(code1));
-    var ir2 = filter.apply(compile(code2));
-    if (!ir1.equals(ir2)) {
-      var name = findTestMethodName();
-      var home = new File(System.getProperty("user.home")).toPath();
-      Files.writeString(home.resolve(name + ".1") , ir1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      Files.writeString(home.resolve(name + ".2") , ir2, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      assertEquals("IR for " + code1 + " shall be equal to IR for " + code2, ir1, ir2);
-    }
+    var old = compile(code1);
+    var now = compile(code2);
+    var msg = "IR for " + code1 + " shall be equal to IR for " + code2;
+    CompilerTest.assertIR(msg, old, now);
   }
 
   private static IR.Module compile(String code) {
@@ -1345,14 +1274,5 @@ public class EnsoCompilerTest {
     var ir = c.compile(src);
     assertNotNull("IR was generated", ir);
     return ir;
-  }
-
-  private static String findTestMethodName() {
-    for (var e : new Exception().getStackTrace()) {
-      if (e.getMethodName().startsWith("test")) {
-        return e.getMethodName();
-      }
-    }
-    throw new IllegalStateException();
   }
 }

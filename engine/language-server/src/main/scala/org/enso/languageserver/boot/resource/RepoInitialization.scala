@@ -9,7 +9,7 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.logger.masking.MaskedPath
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -19,14 +19,14 @@ import scala.util.{Failure, Success}
   *
   * @param directoriesConfig configuration of language server directories
   * @param eventStream akka events stream
+  * @param sqlDatabase the sql database
   * @param suggestionsRepo the suggestions repo
-  * @param versionsRepo the versions repo
   */
 class RepoInitialization(
   directoriesConfig: ProjectDirectoriesConfig,
   eventStream: EventStream,
-  suggestionsRepo: SqlSuggestionsRepo,
-  versionsRepo: SqlVersionsRepo
+  sqlDatabase: SqlDatabase,
+  suggestionsRepo: SqlSuggestionsRepo
 )(implicit ec: ExecutionContext)
     extends InitializationComponent
     with LazyLogging {
@@ -34,9 +34,23 @@ class RepoInitialization(
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     for {
+      _ <- sqlDatabaseInit
       _ <- suggestionsRepoInit
-      _ <- versionsRepoInit
     } yield InitializationComponent.Initialized
+
+  private def sqlDatabaseInit: Future[Unit] = {
+    val initAction = Future {
+      logger.info("Initializing sql database [{}]...", sqlDatabase)
+      sqlDatabase.open()
+      logger.info("Initialized sql database [{}].", sqlDatabase)
+    }
+    initAction.onComplete {
+      case Success(()) =>
+      case Failure(ex) =>
+        logger.error("Failed to initialize sql database [{}].", sqlDatabase, ex)
+    }
+    initAction
+  }
 
   private def suggestionsRepoInit: Future[Unit] = {
     val initAction =
@@ -62,39 +76,9 @@ class RepoInitialization(
         eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         logger.error(
-          "Failed to initialize SQL suggestions repo [{}]. {}",
+          "Failed to initialize SQL suggestions repo [{}].",
           MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
-          ex.getMessage
-        )
-    }
-    initAction
-  }
-
-  private def versionsRepoInit: Future[Unit] = {
-    val initAction =
-      for {
-        _ <- Future {
-          logger.info(
-            "Initializing versions repo [{}]...",
-            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
-          )
-        }
-        _ <- versionsRepo.init
-        _ <- Future {
-          logger.info(
-            "Initialized Versions repo [{}].",
-            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
-          )
-        }
-      } yield ()
-    initAction.onComplete {
-      case Success(()) =>
-        eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
-      case Failure(ex) =>
-        logger.error(
-          "Failed to initialize SQL versions repo [{}]. {}",
-          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
-          ex.getMessage
+          ex
         )
     }
     initAction
@@ -107,9 +91,9 @@ class RepoInitialization(
     for {
       _ <- Future {
         logger.warn(
-          "Failed to initialize the suggestions database [{}]. {}",
+          "Failed to initialize the suggestions database [{}].",
           MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
-          error.getMessage
+          error
         )
       }
       _ <- Future(db.close())
@@ -136,8 +120,10 @@ class RepoInitialization(
         Future.successful(())
       case error: FileSystemException =>
         logger.error(
-          s"Failed to delete the database file. Attempt #${retries + 1}." +
-          s"The file will be removed during the shutdown. ${error.getMessage}."
+          "Failed to delete the database file. Attempt #{}. " +
+          "The file will be removed during the shutdown.",
+          retries + 1,
+          error
         )
         sys.addShutdownHook(
           FileUtils.deleteQuietly(directoriesConfig.suggestionsDatabaseFile)
@@ -145,9 +131,9 @@ class RepoInitialization(
         Future.failed(error)
       case error: IOException =>
         logger.error(
-          "Failed to delete the database file. Attempt #{}. {}",
+          "Failed to delete the database file. Attempt #{}.",
           retries + 1,
-          error.getMessage
+          error
         )
         if (retries < RepoInitialization.MaxRetries) {
           Thread.sleep(1000)

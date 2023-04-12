@@ -4,7 +4,7 @@ import scala.concurrent.duration._
 
 /** TimingsConfig encapsulates information about timings or delays in messages being sent between services.
   *
-  * @param autoSave a request timeout
+  * @param timeout a request timeout
   * @param autoSave if non-empty value, determines the delay when auto-save should be triggered
   */
 class TimingsConfig(

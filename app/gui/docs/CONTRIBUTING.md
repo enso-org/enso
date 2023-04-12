@@ -79,10 +79,10 @@ setup:
   [the latest LTS version of node and npm](https://nodejs.org/en/download). Even
   minor release changes are known to cause serious issues, thus **we provide
   support for the latest LTS version only. Please do not report build issues if
-  you use other versions.** In case you run macOS or Linux the easiest way to
-  set up the proper version is by installing the
-  [Node Version Manager](https://github.com/nvm-sh/nvm) and running
-  `nvm install --lts && nvm use --lts`.
+  you use other versions.** The easiest way to set up the proper version is by
+  installing
+  [a Node version manager that automatically picks up the correct version](https://github.com/shadowspawn/node-version-usage#supporting-products),
+  like [fnm](https://github.com/Schniz/fnm).
 
 - **(Optional) FlatBuffer compiler `flatc`**
 
@@ -210,7 +210,7 @@ below:
 - **Selective mode** In order to compile only part of the project, and thus
   drastically shorten the incremental compile time, you are advised to use the
   selective compilation mode by passing the `--crate-path` option to the `build`
-  or `watch` command, e.g. `./run ide watch --crate-path ensogl/example` to
+  or `watch` command, e.g. `./run ide watch --crate-path ensogl/examples` to
   compile only the renderer-related example scenes. Please note, that in order
   to run a scene in a web-browser, the scene has to be compiled and has to
   expose a public function with a name starting with `entry_point_`. Thus, if

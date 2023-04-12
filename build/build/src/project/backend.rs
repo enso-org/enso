@@ -59,6 +59,18 @@ pub struct Artifact {
     pub engine_versions: Vec<Version>,
 }
 
+impl Artifact {
+    /// Latest version of Enso Engine that is bundled in this Project Manager distribution.
+    pub fn latest_engine_version(&self) -> Result<&Version> {
+        self.engine_versions.iter().max().with_context(|| {
+            format!(
+                "Project Manager bundle at {} does not contain any Enso Engine packages.",
+                self.path
+            )
+        })
+    }
+}
+
 impl AsRef<Path> for Artifact {
     fn as_ref(&self) -> &Path {
         &self.path
@@ -76,8 +88,8 @@ pub async fn bundled_engine_versions(
     let mut ret = vec![];
 
     let mut dir_reader = ide_ci::fs::tokio::read_dir(&project_manager_bundle.dist).await?;
-    while let Some(entry) = dir_reader.next_entry().await? {
-        if entry.metadata().await?.is_dir() {
+    while let Some(entry) = dir_reader.try_next().await? {
+        if ide_ci::fs::tokio::metadata(&entry.path()).await?.is_dir() {
             ret.push(Version::from_str(entry.file_name().as_str())?);
         }
     }

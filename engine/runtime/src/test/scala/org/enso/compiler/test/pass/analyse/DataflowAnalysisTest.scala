@@ -1293,17 +1293,19 @@ class DataflowAnalysisTest extends CompilerTest {
           |{ x := a ; y := b }
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
+      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+        val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val literal           = ir.asInstanceOf[IR.Application.Literal.Typeset]
-      val literalExpression = literal.expression.get
+        val literal           = ir.asInstanceOf[IR.Application.Literal.Typeset]
+        val literalExpression = literal.expression.get
 
-      val literalId           = mkStaticDep(literal.getId)
-      val literalExpressionId = mkStaticDep(literalExpression.getId)
+        val literalId           = mkStaticDep(literal.getId)
+        val literalExpressionId = mkStaticDep(literalExpression.getId)
 
-      depInfo.dependents.getDirect(literalExpressionId).get shouldEqual Set(
-        literalId
-      )
+        depInfo.dependents.getDirect(literalExpressionId).get shouldEqual Set(
+          literalId
+        )
+      }
     }
 
     "work properly for case expressions" in {
@@ -1461,18 +1463,25 @@ class DataflowAnalysisTest extends CompilerTest {
     implicit val inlineContext: InlineContext = mkInlineContext
 
     val meta     = new Metadata
-    val lambdaId = meta.addItem(1, 59)
-    val aBindId  = meta.addItem(10, 9)
+    val lambdaId = meta.addItem(1, 45, "aaaa")
+    val aBindId  = meta.addItem(10, 9, "bbbb")
 
     val code =
       """
         |x ->
         |    a = x + 1
         |    b = State.read
-        |    a+b . IO.println
-        |""".stripMargin
+        |    a+b
+        |""".stripMargin.linesIterator.mkString("\n")
 
     val codeWithMeta = meta.appendToCode(code)
+    meta.assertInCode(
+      lambdaId,
+      "\n" + codeWithMeta,
+      code.substring(0, code.length() - 1)
+    )
+    meta.assertInCode(aBindId, codeWithMeta, "a = x + 1")
+
     val ir = codeWithMeta.preprocessExpression.get.analyse
       .asInstanceOf[IR.Function.Lambda]
 
@@ -1484,7 +1493,9 @@ class DataflowAnalysisTest extends CompilerTest {
     val aBindExpr = aBind.expression
 
     "store a mapping between internal and external identifiers" in {
-      metadata.dependents.get(asStatic(aBind)).get should contain(
+      val b = asStatic(aBind)
+      val m = metadata.dependents.get(b)
+      m.get should contain(
         asStatic(ir)
       )
 

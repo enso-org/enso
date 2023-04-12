@@ -238,7 +238,7 @@ object ProgramExecutionSupport {
     val message = error match {
       case _: ThreadInterruptedException =>
         val message = s"Execution of function $itemName interrupted."
-        ctx.executionService.getLogger.log(Level.WARNING, message)
+        ctx.executionService.getLogger.log(Level.FINE, message)
         message
       case _ =>
         val message = s"Execution of function $itemName failed ($reason)."
@@ -345,6 +345,12 @@ object ProgramExecutionSupport {
           Api.ExpressionUpdate.Payload.DataflowError(
             ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
           )
+        case panic: AbstractTruffleException =>
+          Api.ExpressionUpdate.Payload
+            .Panic(
+              VisualizationResult.findExceptionMessage(panic),
+              ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+            )
         case withWarnings: WithWarnings =>
           val warningsCount = withWarnings.getWarningsCount
           val warning =
@@ -454,7 +460,7 @@ object ProgramExecutionSupport {
     val result = errorOrVisualisationData match {
       case Left(_: ThreadInterruptedException) =>
         ctx.executionService.getLogger.log(
-          Level.WARNING,
+          Level.FINE,
           s"Visualisation thread interrupted ${visualisation.expressionId}."
         )
         Completion.Interrupted

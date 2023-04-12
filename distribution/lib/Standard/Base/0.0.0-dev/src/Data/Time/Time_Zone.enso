@@ -3,7 +3,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Error.Error
-import project.Error.Time_Error.Time_Error
+import project.Errors.Time_Error.Time_Error
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
@@ -156,7 +156,8 @@ type Time_Zone
     zone_id : Text
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
 
-    ## Convert to a JavaScript Object representing this Time_Zone.
+    ## PRIVATE
+       Convert to a JavaScript Object representing this Time_Zone.
 
        > Example
          Convert your system's current timezone to a JS_Object.

@@ -138,6 +138,7 @@ pub mod shape {
     use super::*;
     crate::shape! {
         pointer_events = false;
+        alignment = center;
         ( style  : Style
         , press  : f32
         , radius : f32
@@ -152,7 +153,7 @@ pub mod shape {
             let width             = &width  - &press_diff * 2.0 - &sides_padding;
             let height            = &height - &press_diff * 2.0 - &sides_padding;
             let cursor            = Rect((width,height)).corners_radius(radius);
-            let cursor            = cursor.fill("srgba(input_color)");
+            let cursor            = cursor.fill(color);
             cursor.into()
         }
     }
@@ -241,7 +242,7 @@ impl Cursor {
         let frp = Frp::new();
         let network = frp.network();
         let model = CursorModel::new(scene);
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         // === Animations ===
         //

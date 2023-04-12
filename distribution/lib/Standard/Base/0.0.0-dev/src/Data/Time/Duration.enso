@@ -3,16 +3,15 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Pair.Pair
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Illegal_Argument.Illegal_Argument
-import project.Error.Illegal_State.Illegal_State
-import project.Error.Time_Error.Time_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
+import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Panic.Panic
 import project.Runtime
@@ -49,7 +48,7 @@ between_builtin start_inclusive end_exclusive timezone_aware = @Builtin_Method "
    - nanoseconds: nanoseconds
 
    Recommended to use `Duration.new` instead which provides defaults.
-new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
+new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new_builtin hours minutes seconds milliseconds nanoseconds = @Builtin_Method "Duration.new_builtin"
 
 ## PRIVATE
@@ -98,7 +97,7 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_duration = Duration.new hours=2
-    new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
+    new : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
     new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
         new_builtin hours minutes seconds milliseconds nanoseconds
 
@@ -245,28 +244,8 @@ type Duration
     total_hours : Decimal ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 
-    ## Convert this duration to a Vector of hours, minutes, seconds, milliseconds
-       and nanoseconds.
-
-       > Example
-         Convert a duration of one hour to a vector resulting in
-         `[1, 0, 30, 0, 0]`.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = (Duration.new hours=1 seconds=30).to_vector
-
-       > Example
-         Convert duration of 800 nanoseconds to a vector returning
-         `[0, 0, 0, 0, 0, 800]`
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = (Duration.new nanoseconds=800)).to_vector
-    to_vector : Vector Integer
-    to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
-
-    ## Convert to a JavaScript Object representing a Duration.
+    ## PRIVATE
+       Convert to a JavaScript Object representing a Duration.
 
        > Example
          Convert a duration of 10 seconds to a JS_Object.
@@ -283,16 +262,3 @@ type Duration
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
         JS_Object.from_pairs b.to_vector
-
-    ## Check if this duration represents an empty time-span.
-
-       > Example
-         Check if the duration of 10 seconds is empty.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_is_empty = Duration.zero.is_empty
-    is_empty : Boolean
-    is_empty self = self.to_vector . all (==0)
-
-Comparable.from (_:Duration) = Default_Ordered_Comparator

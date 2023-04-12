@@ -1,143 +1,48 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Data.Column.Column
 
 polyglot java import java.sql.Types
+polyglot java import java.sql.ResultSetMetaData
 
-## Represents an internal SQL data-type.
+## PRIVATE
+   Represents an internal SQL data-type.
 type SQL_Type
-
-    ## Represents an internal SQL data-type.
+    ## PRIVATE
+       Represents an internal SQL data-type.
 
        Arguments:
        - typeid: a numerical type id, as defined in `java.sql.Types`.
        - name: a database-specific type name, used for pretty printing.
-    Value typeid name
-
-    == self that = case that of
-        SQL_Type.Value that_id _ ->
-            self.typeid == that_id
-        _ -> False
-
-    ## The SQL representation of `Boolean` type.
-    boolean : SQL_Type
-    boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
-
-    ## The SQL representation of `Integer` type.
-    integer : SQL_Type
-    integer = SQL_Type.Value Types.INTEGER "INTEGER"
-
-    ## The SQL representation of the `BIGINT` type.
-    bigint : SQL_Type
-    bigint = SQL_Type.Value Types.BIGINT "BIGINT"
-
-    ## The SQL representation of the `SMALLINT` type.
-    smallint : SQL_Type
-    smallint = SQL_Type.Value Types.SMALLINT "SMALLINT"
-
-    ## The SQL type representing decimal numbers.
-    decimal : SQL_Type
-    decimal = SQL_Type.Value Types.DECIMAL "DECIMAL"
-
-    ## The SQL type representing decimal numbers.
-    real : SQL_Type
-    real = SQL_Type.Value Types.REAL "REAL"
-
-    ## The SQL type representing double-precision floating-point numbers.
-    double : SQL_Type
-    double = SQL_Type.Value Types.DOUBLE "DOUBLE PRECISION"
-
-    ## The SQL type representing a general numeric type.
-    numeric : SQL_Type
-    numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
-
-    ## The SQL type representing one of the supported textual types.
-    varchar : SQL_Type
-    varchar = SQL_Type.Value Types.VARCHAR "VARCHAR"
-
-    ## UNSTABLE
-       The SQL type representing one of the supported textual types.
-
-       It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
-    text : SQL_Type
-    text = SQL_Type.Value Types.VARCHAR "VARCHAR"
-
-    ## The SQL type representing a binary object.
-    blob : SQL_Type
-    blob = SQL_Type.Value Types.BLOB "BLOB"
-
-    ## The SQL type representing a date type.
-    date : SQL_Type
-    date = SQL_Type.Value Types.DATE "DATE"
-
-    ## The SQL type representing a time type.
-    time : SQL_Type
-    time = SQL_Type.Value Types.TIME "TIME"
-
-    ## The SQL type representing a time type.
-    date_time : SQL_Type
-    date_time = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMP"
-
-    ## ADVANCED
-       Given an Enso value gets the approximate SQL type.
-    approximate_type : Any -> SQL_Type ! Illegal_Argument
-    approximate_type value = case value of
-        _ : Boolean -> SQL_Type.boolean
-        _ : Integer -> SQL_Type.integer
-        _ : Decimal -> SQL_Type.double
-        _ : Text -> SQL_Type.varchar
-        _ : Date -> SQL_Type.date
-        _ : Time_Of_Day -> SQL_Type.time_of_day
-        _ : Date_Time -> SQL_Type.date_time
-            _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")
+       - precision: For character types, specifies their length.
+         See `ResultSetMetaData.getPrecision`.
+       - scale: The scale for fixed precision numeric types. Not applicable for
+         other types, so it's value is undefined.
+         See `ResultSetMetaData.getScale`.
+       - nullable: Specifies if the given column is nullable. May be `Nothing`
+         if that is unknown / irrelevant for the type.
+         TODO: the precise meaning of this will be revised with #5872.
+    Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Nothing | Integer = Nothing) (nullable : Boolean | Nothing = Nothing)
 
     ## PRIVATE
-
-       Returns True if this type represents an integer or a double.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_numeric : Boolean
-    is_definitely_numeric self = self.is_definitely_double || self.is_definitely_integer
+       ADVANCED
+       The SQL type representing a null value.
+    null : SQL_Type
+    null = SQL_Type.Value Types.NULL "NULL"
 
     ## PRIVATE
-
-       Returns True if this type represents an integer.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_integer : Boolean
-    is_definitely_integer self =
-        [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains self.typeid
-
-    ## PRIVATE
-
-       Returns True if this type represents a boolean.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_boolean : Boolean
-    is_definitely_boolean self =
-        [Types.BOOLEAN, Types.BIT].contains self.typeid
-
-    ## PRIVATE
-
-       Returns True if this type represents a floating point number.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_double : Boolean
-    is_definitely_double self =
-        [Types.FLOAT, Types.DOUBLE, Types.REAL].contains self.typeid
-
-    ## PRIVATE
-       Returns True if this type represents a Text.
-    is_definitely_text : Boolean
-    is_definitely_text self =
-       [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains self.typeid
-
-    ## PRIVATE
-       Returns True if this type represents a Text, using heuristics that may
-       match more possible types.
-    is_likely_text : Boolean
-    is_likely_text self =
-       self.is_definitely_text || self.name.contains "text" Case_Sensitivity.Insensitive
+       Constructs a `SQL_Type` from a `ResultSetMetaData` object.
+    from_metadata metadata ix =
+        typeid = metadata.getColumnType ix
+        typename = metadata.getColumnTypeName ix
+        precision = case metadata.getPrecision ix of
+            0 -> Nothing
+            p : Integer -> p
+        scale = metadata.getScale ix
+        effective_scale = if precision.is_nothing && (scale == 0) then Nothing else scale
+        nullable_id = metadata.isNullable ix
+        nullable = if nullable_id == ResultSetMetaData.columnNoNulls then False else
+            if nullable_id == ResultSetMetaData.columnNullable then True else
+                Nothing
+        SQL_Type.Value typeid typename precision effective_scale nullable

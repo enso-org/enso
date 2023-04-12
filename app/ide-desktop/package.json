@@ -17,17 +17,24 @@
   "private": true,
   "workspaces": [
     "lib/client",
+    "lib/common",
     "lib/content",
+    "lib/dashboard",
+    "lib/dashboard/src/authentication",
     "lib/content-config",
-    "lib/copy-plugin",
-    "lib/icons",
-    "lib/server"
+    "lib/esbuild-plugin-copy-directories",
+    "lib/icons"
   ],
   "devDependencies": {
-    "patch-package": "^6.4.7"
+    "@typescript-eslint/eslint-plugin": "^5.55.0",
+    "@typescript-eslint/parser": "^5.55.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.36.0",
+    "eslint-plugin-jsdoc": "^40.0.2"
   },
   "scripts": {
-    "watch": "npm run watch --workspace enso-studio-content",
-    "postinstall": "patch-package"
+    "watch": "npm run watch --workspace enso-content",
+    "watch-dashboard": "npm run watch --workspace enso-dashboard",
+    "build-dashboard": "npm run build --workspace enso-dashboard"
   }
 }

@@ -3,16 +3,11 @@ package org.enso.languageserver.boot.resource
 import akka.actor.ActorSystem
 import akka.testkit._
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
-import org.enso.searcher.sql.{
-  SchemaVersion,
-  SqlDatabase,
-  SqlSuggestionsRepo,
-  SqlVersionsRepo
-}
+import org.enso.searcher.sql.{SchemaVersion, SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.FlakySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -21,7 +16,6 @@ import org.sqlite.SQLiteException
 
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.UUID
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -44,15 +38,15 @@ class RepoInitializationSpec
   "RepoInitialization" should {
 
     "initialize repositories" in withDb {
-      (config, suggestionsRepo, versionsRepo) =>
+      (config, sqlDatabase, suggestionsRepo) =>
         system.eventStream.subscribe(self, classOf[InitializedEvent])
 
         val component =
           new RepoInitialization(
             config.directories,
             system.eventStream,
-            suggestionsRepo,
-            versionsRepo
+            sqlDatabase,
+            suggestionsRepo
           )
 
         val action =
@@ -64,14 +58,11 @@ class RepoInitializationSpec
         val version = Await.result(action, Timeout)
         version shouldEqual SchemaVersion.CurrentVersion
 
-        expectMsgAllOf(
-          InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
-        )
+        expectMsg(InitializedEvent.SuggestionsRepoInitialized)
     }
 
     "recreate suggestion database when schema version is incorrect" in withDb {
-      (config, suggestionsRepo, versionsRepo) =>
+      (config, sqlDatabase, suggestionsRepo) =>
         system.eventStream.subscribe(self, classOf[InitializedEvent])
 
         val testSchemaVersion = Long.MaxValue
@@ -79,9 +70,11 @@ class RepoInitializationSpec
           new RepoInitialization(
             config.directories,
             system.eventStream,
-            suggestionsRepo,
-            versionsRepo
+            sqlDatabase,
+            suggestionsRepo
           )
+
+        sqlDatabase.open()
 
         val action =
           for {
@@ -94,22 +87,19 @@ class RepoInitializationSpec
         val version = Await.result(action, Timeout)
         version shouldEqual SchemaVersion.CurrentVersion
 
-        expectMsgAllOf(
-          InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
-        )
+        expectMsg(InitializedEvent.SuggestionsRepoInitialized)
     }
 
     "recreate suggestion database when schema version is empty" in withDb {
-      (config, suggestionsRepo, versionsRepo) =>
+      (config, sqlDatabase, suggestionsRepo) =>
         system.eventStream.subscribe(self, classOf[InitializedEvent])
 
         val component =
           new RepoInitialization(
             config.directories,
             system.eventStream,
-            suggestionsRepo,
-            versionsRepo
+            sqlDatabase,
+            suggestionsRepo
           )
 
         // initialize
@@ -121,10 +111,7 @@ class RepoInitializationSpec
 
         val version1 = Await.result(init, Timeout)
         version1 shouldEqual SchemaVersion.CurrentVersion
-        expectMsgAllOf(
-          InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
-        )
+        expectMsg(InitializedEvent.SuggestionsRepoInitialized)
 
         // remove schema and re-initialize
         val action =
@@ -136,22 +123,19 @@ class RepoInitializationSpec
 
         val version2 = Await.result(action, Timeout)
         version2 shouldEqual SchemaVersion.CurrentVersion
-        expectMsgAllOf(
-          InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
-        )
+        expectMsg(InitializedEvent.SuggestionsRepoInitialized)
     }
 
     "recreate corrupted suggestion database file" taggedAs Flaky in withConfig {
       config =>
         // initialize
-        withRepos(config) { (suggestionsRepo, versionsRepo) =>
+        withRepos(config) { (sqlDatabase, suggestionsRepo) =>
           val component =
             new RepoInitialization(
               config.directories,
               system.eventStream,
-              suggestionsRepo,
-              versionsRepo
+              sqlDatabase,
+              suggestionsRepo
             )
 
           val init =
@@ -172,7 +156,8 @@ class RepoInitializationSpec
           bytes,
           StandardOpenOption.CREATE
         )
-        withRepos(config) { (suggestionsRepo, _) =>
+        withRepos(config) { (sqlDatabase, suggestionsRepo) =>
+          sqlDatabase.open()
           an[SQLiteException] should be thrownBy Await.result(
             suggestionsRepo.getSchemaVersion,
             Timeout
@@ -180,13 +165,13 @@ class RepoInitializationSpec
         }
 
         // re-initialize
-        withRepos(config) { (suggestionsRepo, versionsRepo) =>
+        withRepos(config) { (sqlDatabase, suggestionsRepo) =>
           val component =
             new RepoInitialization(
               config.directories,
               system.eventStream,
-              suggestionsRepo,
-              versionsRepo
+              sqlDatabase,
+              suggestionsRepo
             )
 
           val action =
@@ -197,10 +182,7 @@ class RepoInitializationSpec
 
           val version2 = Await.result(action, Timeout)
           version2 shouldEqual SchemaVersion.CurrentVersion
-          expectMsgAllOf(
-            InitializedEvent.SuggestionsRepoInitialized,
-            InitializedEvent.FileVersionsRepoInitialized
-          )
+          expectMsg(InitializedEvent.SuggestionsRepoInitialized)
         }
     }
 
@@ -214,7 +196,8 @@ class RepoInitializationSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig()
+      ProfilingConfig(),
+      StartupConfig()
     )
   }
 
@@ -233,12 +216,11 @@ class RepoInitializationSpec
 
   def withRepos(
     config: Config
-  )(test: (SqlSuggestionsRepo, SqlVersionsRepo) => Any): Unit = {
+  )(test: (SqlDatabase, SqlSuggestionsRepo) => Any): Unit = {
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
-    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 
-    try test(suggestionsRepo, versionsRepo)
+    try test(sqlDatabase, suggestionsRepo)
     finally {
       sqlDatabase.close()
     }
@@ -247,13 +229,13 @@ class RepoInitializationSpec
   def withDb(
     test: (
       Config,
-      SqlSuggestionsRepo,
-      SqlVersionsRepo
+      SqlDatabase,
+      SqlSuggestionsRepo
     ) => Any
   ): Unit = {
     withConfig { config =>
-      withRepos(config) { (suggestionsRepo, versionsRepo) =>
-        test(config, suggestionsRepo, versionsRepo)
+      withRepos(config) { (sqlDatabase, suggestionsRepo) =>
+        test(config, sqlDatabase, suggestionsRepo)
       }
     }
   }

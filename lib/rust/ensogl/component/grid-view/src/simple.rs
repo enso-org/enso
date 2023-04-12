@@ -157,7 +157,7 @@ impl crate::Entry for Entry {
             });
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
-            eval bg_color ((color) data.background.color.set(color.into()));
+            eval bg_color ((color) data.background.color.set(color::Rgba::from(color).into()));
             disabled <- input.set_model.map(|m| *m.disabled);
             data.label.set_property_default <+ all_with3(
                 &text_color,

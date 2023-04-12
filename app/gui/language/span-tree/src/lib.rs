@@ -67,6 +67,28 @@ use crate::generate::Context;
 
 
 
+// ================
+// === TagValue ===
+// ================
+
+/// Argument tag values with resolved labels. Represents statically defined choices of values for a
+/// function argument.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct TagValue {
+    /// An import that is required to be present when the value is inserted. `None` when no import
+    /// is required. Note that the import might or might not be already present in the module.
+    /// It should only be added if it is not present.
+    pub required_import: Option<String>,
+    /// Code expression that should be inserted into the node AST when this value is selected.
+    pub expression:      String,
+    /// Shortened label for the value. `None` when shortening wasn't possible. In that case, the
+    /// `expression` should be used as a label.
+    pub label:           Option<String>,
+}
+
+
+
 // =====================
 // === ArgumentInfo ===
 // =====================
@@ -80,7 +102,7 @@ pub struct ArgumentInfo {
     /// The AST ID of the call expression that this argument is passed to.
     /// See [`ApplicationBase`] for more details.
     pub call_id:    Option<ast::Id>,
-    pub tag_values: Vec<String>,
+    pub tag_values: Vec<TagValue>,
 }
 
 impl ArgumentInfo {
@@ -89,20 +111,29 @@ impl ArgumentInfo {
         name: Option<String>,
         tp: Option<String>,
         call_id: Option<ast::Id>,
-        tag_values: Vec<String>,
+        tag_values: Vec<TagValue>,
     ) -> Self {
         Self { name, tp, call_id, tag_values }
     }
 
+    /// Specialized constructor with argument name.
+    pub fn named(name: impl Str) -> Self {
+        Self::new(Some(name.into()), None, None, default())
+    }
+
     /// Specialized constructor for "this" argument.
     pub fn this(tp: Option<String>, call_id: Option<ast::Id>) -> Self {
-        let name = Some(node::This::NAME.into());
-        Self { name, tp, call_id, tag_values: Vec::new() }
+        Self::new(Some(node::Argument::THIS.into()), tp, call_id, default())
     }
 
     /// Extend the argument info with the given call id.
     pub fn with_call_id(self, call_id: Option<ast::Id>) -> Self {
         Self { call_id, ..self }
+    }
+
+    /// Check if this argument info represents an argument with specified name.
+    pub fn has_name(&self, name: &str) -> bool {
+        self.name.as_ref().map_or(false, |n| n == name)
     }
 }
 
@@ -127,7 +158,7 @@ pub struct SpanTree<T = ()> {
     pub root: Node<T>,
 }
 
-impl<T: Payload> SpanTree<T> {
+impl<T> SpanTree<T> {
     /// Create span tree from something that could generate it (usually AST).
     pub fn new(gen: &impl SpanTreeGenerator<T>, context: &impl Context) -> FallibleResult<Self> {
         gen.generate_tree(context)
@@ -135,7 +166,7 @@ impl<T: Payload> SpanTree<T> {
 
     /// Get a reference to the root node.
     pub fn root_ref(&self) -> node::Ref<T> {
-        node::Ref::new(&self.root)
+        node::Ref::root(self)
     }
 
     /// Get a mutable reference to the root node.
@@ -161,7 +192,7 @@ impl<T: Payload> SpanTree<T> {
 
 // === Getters ===
 
-impl<T: Payload> SpanTree<T> {
+impl<T> SpanTree<T> {
     /// Get `ast::Id` of the nested node, if exists.
     pub fn nested_ast_id(&self, crumbs: &Crumbs) -> Option<ast::Id> {
         if self.root_ref().crumbs == crumbs {
@@ -185,7 +216,7 @@ impl<T: Payload> Default for SpanTree<T> {
 
 // == Debug utils ==
 
-impl<T: Payload> SpanTree<T> {
+impl<T> SpanTree<T> {
     #[allow(dead_code)]
     /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
     /// argument should be identical to the expression that was used during generation of this
@@ -222,6 +253,12 @@ impl<T: Payload> SpanTree<T> {
     /// ```
     pub fn debug_print(&self, code: &str) -> String {
         use std::fmt::Write;
+
+        let mut code = code.to_string();
+        let code_padding = self.root.size.as_usize().saturating_sub(code.len());
+        for _ in 0..code_padding {
+            code.push(' ');
+        }
 
         let mut buffer = String::new();
         let span_padding = " ".repeat(code.len() + 1);

@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-## UNSTABLE
-
+## PRIVATE
    A function that throws an error to indicate that a file is being uploaded to
    `path`.
 

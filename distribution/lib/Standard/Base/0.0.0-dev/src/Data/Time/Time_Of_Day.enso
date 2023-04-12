@@ -3,7 +3,6 @@ import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
-import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
@@ -11,16 +10,15 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Error.Common.Type_Error
+import project.Errors.Common.Type_Error
 import project.Error.Error
-import project.Error.Time_Error.Time_Error
+import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 
-polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
@@ -148,7 +146,7 @@ type Time_Of_Day
          Recover from the parse error.
 
              from Standard.Base import Time_Of_Day
-             from Standard.Base.Error.Common import Time_Error
+             from Standard.Base.Errors.Common import Time_Error
 
              example_parse = Time_Of_Day.parse "half twelve" . catch Time_Error _->
                  Time_Of_Day.new
@@ -286,18 +284,8 @@ type Time_Of_Day
             duration : Duration -> self.minus_builtin duration
             _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
 
-    ## Format this time of day as text using the default formatter.
-
-       > Example
-         Convert the current time to text.
-
-             from Standard.Base import Time_Of_Day
-
-             example_to_text = Time_Of_Day.now.to_text
-    to_text : Text
-    to_text self = @Builtin_Method "Time_Of_Day.to_text"
-
-    ## Convert to a JavaScript Object representing this Time_Of_Day.
+    ## PRIVATE
+       Convert to a JavaScript Object representing this Time_Of_Day.
 
        > Example
          Convert the current time to a JS_Object.
@@ -357,5 +345,3 @@ type Time_Of_Day
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
     format self pattern = @Builtin_Method "Time_Of_Day.format"
-
-Comparable.from (_:Time_Of_Day) = Default_Ordered_Comparator

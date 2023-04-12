@@ -42,7 +42,7 @@ impl Frp {
         let frp = &self;
         let network = &frp.network;
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         let base_frp = super::Frp::new(model, style, network, frp.resize.clone().into(), mouse);
 

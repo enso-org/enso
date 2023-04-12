@@ -154,6 +154,7 @@ pub struct BuildInput {
     pub log_level:             LogLevel,
     pub uncollapsed_log_level: LogLevel,
     pub wasm_size_limit:       Option<byte_unit::Byte>,
+    pub system_shader_tools:   bool,
 }
 
 impl BuildInput {
@@ -219,8 +220,6 @@ impl IsTarget for Wasm {
             // We want to be able to pass --profile this way.
             WasmPack.require_present_that(VersionReq::parse(">=0.10.1")?).await?;
 
-            ShaderTools.install_if_missing(&cache).await?;
-
             let BuildInput {
                 crate_path,
                 wasm_opt_options,
@@ -231,7 +230,18 @@ impl IsTarget for Wasm {
                 log_level,
                 uncollapsed_log_level,
                 wasm_size_limit: _wasm_size_limit,
+                system_shader_tools,
             } = &inner;
+
+            // NOTE: We cannot trust locally installed version of shader tools to be correct.
+            // Those binaries have no reliable versioning, and existing common distributions (e.g.
+            // Vulkan SDK) contain old builds with bugs that impact our shaders. By default, we have
+            // to force usage of our own distribution built on our CI.
+            if *system_shader_tools {
+                ShaderTools.install_if_missing(&cache).await?;
+            } else {
+                ShaderTools.install(&cache).await?;
+            }
 
             cache::goodie::binaryen::Binaryen { version: BINARYEN_VERSION_TO_INSTALL }
                 .install_if_missing(&cache)
@@ -284,6 +294,8 @@ impl IsTarget for Wasm {
     }
 }
 
+
+
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct WatchInput {
@@ -332,6 +344,7 @@ impl IsWatchable for Wasm {
                 log_level,
                 uncollapsed_log_level,
                 wasm_size_limit,
+                system_shader_tools: _,
             } = inner;
 
 
@@ -343,11 +356,18 @@ impl IsWatchable for Wasm {
 
             let mut watch_cmd = Cargo.cmd()?;
 
+            let (watch_cmd_name, mut watch_cmd_opts) = match std::env::var("USE_CARGO_WATCH_PLUS") {
+                Ok(_) => ("watch-plus", vec!["--why"]),
+                Err(_) => ("watch", vec![]),
+            };
+            watch_cmd_opts.push("--ignore");
+            watch_cmd_opts.push("README.md");
+
             watch_cmd
                 .kill_on_drop(true)
                 .current_dir(&context.repo_root)
-                .arg("watch")
-                .args(["--ignore", "README.md"])
+                .arg(watch_cmd_name)
+                .args(watch_cmd_opts)
                 .args(cargo_watch_flags)
                 .arg("--");
 
@@ -426,7 +446,7 @@ impl Artifact {
         // consider whether they should be shipped or not.
         let RepoRootDistWasm {
             path: _,
-            shaders,
+            dynamic_assets,
             index_js: _,
             index_d_ts: _,
             index_js_map: _,
@@ -434,7 +454,7 @@ impl Artifact {
             pkg_wasm: _,
             pkg_opt_wasm,
         } = &self.0;
-        vec![shaders.as_path(), pkg_js.as_path(), pkg_opt_wasm.as_path()]
+        vec![dynamic_assets.as_path(), pkg_js.as_path(), pkg_opt_wasm.as_path()]
     }
 
     pub fn symlink_ensogl_dist(&self, linked_dist: &RepoRootTargetEnsoglPackLinkedDist) -> Result {

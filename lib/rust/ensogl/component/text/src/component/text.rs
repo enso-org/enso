@@ -303,6 +303,7 @@ ensogl_core::define_endpoints_2! {
 
         set_cursor (LocationLike),
         add_cursor (LocationLike),
+        select     (LocationLike, LocationLike),
         paste_string (ImString),
         insert (ImString),
         set_property (RangeLike, Option<formatting::Property>),
@@ -341,12 +342,14 @@ ensogl_core::define_endpoints_2! {
         width           (f32),
         height          (f32),
         changed         (Rc<Vec<buffer::Change>>),
+        selections      (buffer::selection::Group),
         content         (Rope),
         hovered         (bool),
         selection_color (color::Lch),
         single_line_mode(bool),
         view_width(Option<f32>),
         long_text_truncation_mode(bool),
+        glyph_system    (Option<glyph::System>),
 
         // === Internal API ===
 
@@ -399,7 +402,7 @@ impl Text {
         let network = self.frp.network();
         let input = &self.frp.input;
         let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
 
         frp::extend! { network
 
@@ -407,6 +410,9 @@ impl Text {
 
             loc_on_set <- input.set_cursor.map(f!([m](t) t.expand(&m)));
             loc_on_add <- input.add_cursor.map(f!([m](t) t.expand(&m)));
+            shape_on_select <- input.select.map(
+                f!([m]((s, e)) buffer::selection::Shape(s.expand(&m), e.expand(&m)))
+            );
 
             mouse_on_set <- mouse.position.sample(&input.set_cursor_at_mouse_position);
             mouse_on_add <- mouse.position.sample(&input.add_cursor_at_mouse_position);
@@ -421,8 +427,9 @@ impl Text {
             loc_on_set <- any(loc_on_set,loc_on_mouse_set,loc_on_set_at_front,loc_on_set_at_end);
             loc_on_add <- any(loc_on_add,loc_on_mouse_add,loc_on_add_at_front,loc_on_add_at_end);
 
-            eval loc_on_set ((loc) m.buffer.frp.set_cursor(loc));
-            eval loc_on_add ((loc) m.buffer.frp.add_cursor(loc));
+            m.buffer.frp.set_cursor <+ loc_on_set;
+            m.buffer.frp.add_cursor <+ loc_on_add;
+            m.buffer.frp.set_single_selection <+ shape_on_select;
 
 
             // === Cursor Transformations ===
@@ -472,10 +479,19 @@ impl Text {
         }
     }
 
+    /// Get current text location under the mouse cursor within this text area.
+    pub fn location_at_mouse_position(&self) -> Location {
+        let m = &self.data;
+        let scene = &m.app.display.default_scene;
+        let mouse = &scene.mouse.frp_deprecated;
+        let position = mouse.position.value();
+        m.screen_to_text_location(position)
+    }
+
     fn init_selections(&self) {
         let m = &self.data;
         let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp;
+        let mouse = &scene.mouse.frp_deprecated;
         let network = self.frp.network();
         let input = &self.frp.input;
 
@@ -578,6 +594,8 @@ impl Text {
             // read the new content, so it should be up-to-date.
             out.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
             out.changed <+ m.buffer.frp.text_change;
+            out.selections <+ m.buffer.frp.selection_non_edit_mode;
+            out.selections <+ m.buffer.frp.selection_edit_mode.map(|m| m.selection_group.clone());
 
 
             // === Text Width And Height Updates ===
@@ -604,7 +622,8 @@ impl Text {
 
             // === Font ===
 
-            eval input.set_font ((t) m.set_font(t));
+            new_glyph_system <- input.set_font.map(f!([m](t) Some(m.set_font(t))));
+            out.glyph_system <+ new_glyph_system;
 
 
             // === Colors ===
@@ -716,10 +735,9 @@ impl TextModel {
         let scene = &app.display.default_scene;
         let selection_map = default();
         let display_object = display::object::Instance::new();
-        let glyph_system = {
-            let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
-            RefCell::new(glyph_system)
-        };
+        let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
+        frp.private.output.glyph_system.emit(Some(glyph_system.clone()));
+        let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
@@ -1370,7 +1388,6 @@ impl TextModel {
                             let glyph_render_offset =
                                 render_info.offset.scale(style.font_size.value);
                             glyph.set_color(style.color);
-                            glyph.skip_color_animation();
                             glyph.set_sdf_weight(style.sdf_weight.value);
                             glyph.set_font_size(formatting::Size(
                                 style.font_size.value * magic_scale,
@@ -1715,14 +1732,15 @@ impl TextModel {
     }
 
     #[profile(Debug)]
-    fn set_font(&self, font_name: &str) {
+    fn set_font(&self, font_name: &str) -> glyph::System {
         let app = &self.app;
         let scene = &app.display.default_scene;
         let glyph_system = font::glyph::System::new(scene, font_name);
-        self.glyph_system.replace(glyph_system);
+        self.glyph_system.replace(glyph_system.clone());
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.take_lines();
         self.redraw();
+        glyph_system
     }
 }
 
@@ -1910,6 +1928,14 @@ where T: for<'t> FromInContextSnapped<&'t buffer::Buffer, S>
 {
     fn from_in_context_snapped(context: &TextModel, arg: S) -> Self {
         T::from_in_context_snapped(&context.buffer, arg)
+    }
+}
+
+impl<S, T> FromInContextSnapped<&Text, S> for T
+where T: for<'t> FromInContextSnapped<&'t TextModel, S>
+{
+    fn from_in_context_snapped(context: &Text, arg: S) -> Self {
+        T::from_in_context_snapped(&context.data, arg)
     }
 }
 

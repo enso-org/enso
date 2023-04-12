@@ -130,9 +130,9 @@ class BinaryConnectionController(
 
     case ConnectionFailed(th) =>
       logger.error(
-        "An error occurred during processing web socket connection [{}]. {}",
+        "An error occurred during processing web socket connection [{}].",
         clientIp,
-        th.getMessage
+        th
       )
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
@@ -160,8 +160,8 @@ class BinaryConnectionController(
   private def convertVisualisationUpdateToOutPacket(
     update: VisualisationUpdate
   ): ByteBuffer = {
-    implicit val builder = new FlatBufferBuilder(1024)
-    val event            = VisualisationUpdateFactory.create(update)
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
+    val event                               = VisualisationUpdateFactory.create(update)
     val msg = OutboundMessageFactory.create(
       UUID.randomUUID(),
       None,
@@ -177,7 +177,7 @@ class BinaryConnectionController(
   private def createSessionInitResponsePacket(
     requestId: EnsoUUID
   ): ByteBuffer = {
-    implicit val builder = new FlatBufferBuilder(1024)
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
     val outMsg = OutboundMessageFactory.create(
       UUID.randomUUID(),
       Some(requestId),

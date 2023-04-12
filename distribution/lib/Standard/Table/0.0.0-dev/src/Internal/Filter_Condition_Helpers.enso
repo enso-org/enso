@@ -1,8 +1,8 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.No_Such_Method
-import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Type_Error
 
-import project.Data.Value_Type.Value_Type
+import project.Data.Type.Value_Type.Value_Type
 
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
@@ -26,8 +26,8 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
                 on_problems.escalate_warnings <|
                     source_column != value
     # Nothing
-    Is_Nothing -> source_column.is_missing
-    Not_Nothing -> source_column.is_missing.not
+    Is_Nothing -> source_column.is_nothing
+    Not_Nothing -> source_column.is_nothing.not
     # Boolean
     Is_True ->
         Value_Type.expect_boolean source_column.value_type <| source_column
@@ -82,7 +82,7 @@ expect_column_or_value_as_text field_name column_or_value ~action = case column_
        the backend). So we assume it is a column and if it doesn't quack like a
        column, we fall back to a type error.
     maybe_column ->
-        result = Panic.catch No_Such_Method.Error (Value_Type.expect_text maybe_column.value_type True) _->
+        result = Panic.catch No_Such_Method (Value_Type.expect_text maybe_column.value_type True) _->
             Error.throw (Type_Error.Error Text (Meta.type_of maybe_column) field_name)
         ## We don't run the action above, to avoid catching spurious
            `No_Such_Method` from the action itself. Instead we just return

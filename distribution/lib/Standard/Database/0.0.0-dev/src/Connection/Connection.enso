@@ -1,22 +1,23 @@
 from Standard.Base import all
-import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
-from Standard.Table import Column_Name_Mapping
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
+import project.Data.Table as Database_Table_Module
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
-
-import project.Data.Table as Database_Table_Module
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
-from project.Errors import SQL_Error
+from project.Errors import SQL_Error, Table_Not_Found
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -32,7 +33,8 @@ type Connection
        - dialect: the dialect associated with the database we are connected to.
     Value jdbc_connection dialect
 
-    ## Closes the connection releasing the underlying database resources
+    ## PRIVATE
+       Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
        The connection is not usable afterwards.
@@ -40,18 +42,21 @@ type Connection
     close self = self.jdbc_connection.close
 
 
-    ## Returns the list of databases (or catalogs) for the connection.
+    ## PRIVATE
+       Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getCatalogs "TABLE_CAT"
 
-    ## Returns the name of the current database (or catalog).
+    ## PRIVATE
+       Returns the name of the current database (or catalog).
     database : Text
     database self =
         self.jdbc_connection.with_connection connection->connection.getCatalog
 
-    ## Returns a new Connection with the specified database set as default.
+    ## PRIVATE
+       Returns a new Connection with the specified database set as default.
 
        Arguments:
         - database: The name of the database to connect to.
@@ -60,18 +65,21 @@ type Connection
         if database == self.database then self else
             SQL_Error.throw_sql_error "Changing database is not supported."
 
-    ## Returns the list of schemas for the connection within the current database (or catalog).
+    ## PRIVATE
+       Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
     schemas self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getSchemas "TABLE_SCHEM"
 
-    ## Returns the name of the current schema.
+    ## PRIVATE
+       Returns the name of the current schema.
     schema : Text
     schema self =
         self.jdbc_connection.with_connection .getSchema
 
-    ## Returns a new Connection with the specified schema set as default.
+    ## PRIVATE
+       Returns a new Connection with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
@@ -80,13 +88,15 @@ type Connection
         if schema == self.schema then self else
             SQL_Error.throw_sql_error "Changing schema is not supported."
 
-    ## Gets a list of the table types
+    ## PRIVATE
+       Gets a list of the table types
     table_types : [Text]
     table_types self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## Returns a materialized Table of all the matching views and tables.
+    ## PRIVATE
+       Returns a materialized Table of all the matching views and tables.
 
        Arguments:
        - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
@@ -100,53 +110,95 @@ type Connection
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
-            table = result_set_to_table <|
-                metadata.getTables database schema name_like types_array
-
-            renamed = table.rename_columns (Column_Name_Mapping.By_Name name_map)
+            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_array) .close result_set->
+                result_set_to_table result_set self.dialect.make_column_fetcher_for_type
+            renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 
-    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+    ## PRIVATE
+       Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+         If supplied as `Text`, the name is checked against the `tables` list to
+         determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
-    query : Text | SQL_Query -> Text -> Table
-    query self query alias="" = handle_sql_errors <| case query of
+
+       ! Error Conditions
+
+         - If provided with a `Raw_SQL` query or `Text` that looks like a query, if
+           any SQL error occurs when executing the query, a `SQL_Error` error is
+           raised.
+         - If provided with a `Table_Name` or a text short-hand and the table is
+           not found, a `Table_Not_Found` error is raised.
+    query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
+    query self query alias="" = case query of
         _ : Text ->
-            self.query alias=alias <|
+            result = self.query alias=alias <|
                 if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
-        SQL_Query.Raw_SQL raw_sql ->
-            columns = self.jdbc_connection.fetch_columns raw_sql
-            name = if alias == "" then (UUID.randomUUID.to_text) else alias
-            ctx = Context.for_query raw_sql name
-            Database_Table_Module.make_table self name columns ctx
+            result.catch SQL_Error sql_error->
+                case self.dialect.is_probably_a_query query of
+                    True -> result
+                    False ->
+                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
+        SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
+            self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
+                columns = self.fetch_columns raw_sql Statement_Setter.null
+                name = if alias == "" then (UUID.randomUUID.to_text) else alias
+                ctx = Context.for_query raw_sql name
+                Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            ctx = Context.for_table name (if alias == "" then name else alias)
-            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select Nothing ctx))
-            Database_Table_Module.make_table self name columns ctx
+            result = handle_sql_errors <|
+                ctx = Context.for_table name (if alias == "" then name else alias)
+                statement = self.dialect.generate_sql (Query.Select Nothing ctx)
+                statement_setter = self.dialect.get_statement_setter
+                columns = self.fetch_columns statement statement_setter
+                Database_Table_Module.make_table self name columns ctx
+            result.catch SQL_Error sql_error->
+                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
 
-    ## Execute the query and load the results into memory as a Table.
+    ## PRIVATE
+       Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table
+    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing =
         self.query query . read max_rows=limit
 
     ## PRIVATE
        Internal read function for a statement with optional types.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
-    read_statement self statement expected_types=Nothing =
-        self.jdbc_connection.with_prepared_statement statement stmt->
-            result_set_to_table stmt.executeQuery expected_types
 
-    ## ADVANCED
+       Arguments:
+       - statement: SQL_Statement to execute.
+       - column_type_suggestions: A vector of SQL type references that can act
+         as suggested column types. By default, the overrides are respected and
+         types that should be computed by the database are passed as `Nothing`
+         to ensure that default `ResultSet` metadata is used for these columns.
+       - last_row_only: If set true, only the last row of the query is fetched.
+         Defaults to false.
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Materialized_Table
+    read_statement self statement column_type_suggestions=Nothing last_row_only=False =
+        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
+        statement_setter = self.dialect.get_statement_setter
+        self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
+            result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
+
+    ## PRIVATE
+       Given a prepared statement, gets the column names and types for the
+       result set.
+    fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
+    fetch_columns self statement statement_setter =
+        needs_execute_query = self.dialect.needs_execute_query_for_type_inference
+        self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
+
+    ## PRIVATE
+       ADVANCED
 
        Executes a raw update query. If the query was inserting, updating or
        deleting rows, the number of affected rows is returned; otherwise it
@@ -157,7 +209,8 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        self.jdbc_connection.with_prepared_statement query stmt->
+        statement_setter = self.dialect.get_statement_setter
+        self.jdbc_connection.with_prepared_statement query statement_setter stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
 
@@ -169,6 +222,12 @@ type Connection
        the table already existed), inserts the contents of the provided
        in-memory table and returns a handle to the newly created table.
 
+       ! Temporary Tables
+
+         Note that temporary tables may not be visible in the table catalog, so
+         some features which rely on it like the `Table.query` shorthand mode
+         may not work correctly with temporary tables.
+
        Arguments:
        - name: The name of the table to create.
        - table: An In-Memory table specifying the contents to upload. Schema of
@@ -179,15 +238,20 @@ type Connection
        - batch_size: Specifies how many rows should be uploaded in a single
          batch.
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Table
-    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State.Error <|
-        create_sql = create_table_statement name table temporary
+    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State <|
+        type_mapping = self.dialect.get_type_mapping
+        ## TODO [RW] problem handling! probably want to add on_problems to this method?
+           This is just a prototype, so ignoring this. To be revisited as part of #5161.
+        type_mapper value_type = type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error
+        create_sql = create_table_statement type_mapper name table temporary
         create_table = self.execute_update create_sql
 
         db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant col.sql_type Nothing]
+            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant Nothing]
             insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
-            self.jdbc_connection.load_table insert_template db_table table batch_size
+            statement_setter = self.dialect.get_statement_setter
+            self.jdbc_connection.load_table insert_template statement_setter table batch_size
 
         db_table

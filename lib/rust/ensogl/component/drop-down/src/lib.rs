@@ -136,6 +136,11 @@ ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
         /// working with multiselect dropdown, use `selected_entries` instead.
         single_selected_entry(Option<T>),
 
+        /// Emitted when the user actually selects an entry. This is different from
+        /// `selected_entries`, which is emitted each time the selection changes, including when the
+        /// selection is changed by the user or programmatically by setting `set_selected_entries`.
+        user_select_action(),
+
         /// Whether or not the dropdown is currently open.
         is_open(bool),
     }
@@ -148,7 +153,6 @@ impl<T: DropdownValue> Frp<T> {
         let output = &api.output;
 
         let open_anim = Animation::new(network);
-        let after_animations = ensogl_core::animation::on_after_animations();
 
         frp::extend! { network
             // === Static entries support ===
@@ -179,7 +183,7 @@ impl<T: DropdownValue> Frp<T> {
 
             // === Entry update and dynamic entries support ===
             requested_index <- model.grid.model_for_entry_needed._0();
-            requested_batch <- requested_index.batch(&after_animations);
+            requested_batch <- requested_index.batch();
             ready_and_request_ranges <- requested_batch.map(
                 f!((batch) model.get_ready_and_request_ranges(batch))
             );
@@ -230,6 +234,7 @@ impl<T: DropdownValue> Frp<T> {
             output.single_selected_entry <+ selection_changed.map(
                 f!((()) model.get_single_selected_entry())
             ).on_change();
+            output.user_select_action <+_ model.grid.entry_accepted;
 
             // === Keyboard navigation ===
             model.grid.accept_selected_entry <+ input.toggle_focused_entry;
@@ -246,8 +251,10 @@ impl<T: DropdownValue> Frp<T> {
 
             // === Initialization ===
             // request initial batch of entries after creating the dropdown
-            once_after_animations <- after_animations.constant(true).on_change().constant(());
-            model.grid.request_model_for_visible_entries <+ once_after_animations;
+            init <- source_();
+            run_once <- init.debounce();
+            init.emit(());
+            model.grid.request_model_for_visible_entries <+ run_once;
         }
     }
 }

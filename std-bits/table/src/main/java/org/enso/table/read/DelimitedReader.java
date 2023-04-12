@@ -207,13 +207,21 @@ public class DelimitedReader {
     return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
   }
 
-  private void reportMismatchedQuote() {
-    reportProblem(new MismatchedQuote());
+  private void reportMismatchedQuote(String cellText) {
+    throw new MismatchedQuote(cellText);
   }
 
-  private void reportInvalidRow(long source_row, Long table_index, String[] row) {
+  private void reportInvalidRow(long source_row, Long table_index, String[] row, long expected_length) {
+    // Mismatched quote error takes precedence over invalid row.
+    for (int i = 0; i < row.length; i++) {
+      String cell = row[i];
+      if (cell != null && QuoteHelper.hasMismatchedQuotes(quoteCharacter, cell)) {
+        reportMismatchedQuote(cell);
+      }
+    }
+
     if (invalidRowsCount < invalidRowsLimit) {
-      reportProblem(new InvalidRow(source_row, table_index, row));
+      reportProblem(new InvalidRow(source_row, table_index, row, expected_length));
     }
 
     invalidRowsCount++;
@@ -279,7 +287,7 @@ public class DelimitedReader {
     assert canFitMoreRows();
 
     if (row.length != builders.length) {
-      reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row);
+      reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
 
       if (keepInvalidRows) {
         for (int i = 0; i < builders.length && i < row.length; i++) {

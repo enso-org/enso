@@ -18,6 +18,7 @@ use crate::SectionLeft;
 use crate::SectionRight;
 use crate::SectionSides;
 use crate::Shape;
+use crate::Var;
 
 
 
@@ -40,6 +41,8 @@ pub mod predefined {
     pub const ASSIGNMENT: &str = "=";
     /// Used to create lambda expressions, e.g. `a -> b -> a + b`.
     pub const ARROW: &str = "->";
+    /// Used to create right-associative operators, e.g. `a <| b <| c`.
+    pub const RIGHT_ASSOC: &str = "<|";
 }
 
 
@@ -50,8 +53,8 @@ pub mod predefined {
 
 /// Checks if the given AST has Opr shape with the name matching given string.
 pub fn is_opr_named(ast: &Ast, name: impl Str) -> bool {
-    let opr_opt = known::Opr::try_from(ast).ok();
-    opr_opt.contains_if(|opr| opr.name == name.as_ref())
+    let name_ref = name.as_ref();
+    matches!(ast.shape(), Shape::Opr(Opr { name, .. }) if name == name_ref)
 }
 
 /// Checks if given Ast is an assignment operator identifier.
@@ -67,6 +70,11 @@ pub fn is_arrow_opr(ast: &Ast) -> bool {
 /// Checks if given Ast is an access operator identifier.
 pub fn is_access_opr(ast: &Ast) -> bool {
     is_opr_named(ast, predefined::ACCESS)
+}
+
+/// Checks if given Ast is a right-associative operator identifier.
+pub fn is_right_assoc_opr(ast: &Ast) -> bool {
+    is_opr_named(ast, predefined::RIGHT_ASSOC)
 }
 
 /// Interpret Ast as accessor chain, like `Int.method`.
@@ -97,10 +105,14 @@ pub fn to_access(ast: &Ast) -> Option<known::Infix> {
     to_specific_infix(ast, predefined::ACCESS)
 }
 
+/// Checks if a given node is an access infix expression.
+pub fn is_access(ast: &Ast) -> bool {
+    matches!(ast.shape(), Shape::Infix(Infix { opr, .. }) if is_access_opr(opr))
+}
+
 /// Checks if a given node is an assignment infix expression.
 pub fn is_assignment(ast: &Ast) -> bool {
-    let infix = known::Infix::try_from(ast);
-    infix.map(|infix| is_assignment_opr(&infix.opr)).unwrap_or(false)
+    matches!(ast.shape(), Shape::Infix(Infix { opr, .. }) if is_assignment_opr(opr))
 }
 
 /// Obtains a new `Opr` with an assignment.
@@ -111,9 +123,91 @@ pub fn assignment() -> known::Opr {
     known::Opr::new(opr, None)
 }
 
+/// Create a new [`ACCESS`] operator.
+pub fn access() -> known::Opr {
+    let name = predefined::ACCESS.into();
+    let opr = Opr { name, right_assoc: false };
+    known::Opr::new(opr, None)
+}
+
+/// Create a new [`RIGHT_ASSOC`] operator.
+pub fn right_assoc() -> known::Opr {
+    let name = predefined::RIGHT_ASSOC.into();
+    let opr = Opr { name, right_assoc: true };
+    known::Opr::new(opr, None)
+}
+
 /// Split qualified name into segments, like `"Int.add"` into `["Int","add"]`.
 pub fn name_segments(name: &str) -> impl Iterator<Item = &str> {
     name.split(predefined::ACCESS)
+}
+
+/// Create a chain of access operators representing a fully qualified name, like `"Int.add"`.
+pub fn qualified_name_chain(
+    mut segments: impl Iterator<Item = impl Into<String>>,
+) -> Option<Chain> {
+    let ast_from_identifier = |ident: &str| -> Ast {
+        let starts_with_uppercase = |s: &str| s.chars().next().map_or(false, |c| c.is_uppercase());
+        if starts_with_uppercase(ident) {
+            known::Cons::new(crate::Cons { name: ident.into() }, None).into()
+        } else {
+            known::Var::new(crate::Var { name: ident.into() }, None).into()
+        }
+    };
+    let arg_with_offset = |s: &str| ArgWithOffset { arg: ast_from_identifier(s), offset: 0 };
+    let target = segments.next()?;
+    let target = Some(arg_with_offset(target.into().as_str()));
+    let args = segments
+        .map(|segment| ChainElement {
+            operator: access(),
+            operand:  Some(arg_with_offset(segment.into().as_str())),
+            offset:   0,
+            infix_id: None,
+        })
+        .collect_vec();
+    let operator = access();
+    Some(Chain { target, args, operator })
+}
+
+
+
+// =======================
+// === Named arguments ===
+// =======================
+
+/// Matched AST fragments for named argument, flattened into easy to access structure.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct NamedArgumentDef<'a> {
+    pub id:   Option<Id>,
+    pub name: &'a str,
+    pub larg: &'a Ast,
+    pub loff: usize,
+    pub opr:  &'a Ast,
+    pub roff: usize,
+    pub rarg: &'a Ast,
+}
+
+/// Match AST against named argument pattern. Pack AST fragments into flat `NamedArgumentDef`
+/// structure. Does not clone or allocate.
+///
+/// ```text
+/// name=expression - Infix
+/// name              |- Var
+///     =             |- Opr ASSIGN
+///      expression   `- any Ast
+/// ```
+pub fn match_named_argument(ast: &Ast) -> Option<NamedArgumentDef<'_>> {
+    let id = ast.id;
+    match ast.shape() {
+        Shape::Infix(Infix { larg, loff, opr, roff, rarg }) if is_assignment_opr(opr) =>
+            match larg.shape() {
+                Shape::Var(Var { name }) =>
+                    Some(NamedArgumentDef { id, name, larg, loff: *loff, opr, roff: *roff, rarg }),
+                _ => None,
+            },
+        _ => None,
+    }
 }
 
 
@@ -424,17 +518,21 @@ impl Chain {
         self.insert_operand(last_index, operand)
     }
 
-    /// Add operand at the front of the chain, actually making it a new target (see docs for
-    /// `insert_operand`.
-    pub fn push_front_operand(&mut self, operand: ArgWithOffset<Ast>) {
-        self.insert_operand(0, operand)
-    }
-
     /// Erase the current target from chain, and make the current first operand a new target.
     /// Panics if there is no operand besides target.
     pub fn erase_target(&mut self) {
-        let new_target = self.args.pop_front().unwrap().operand;
+        let new_target = self.args.remove(0).operand;
         self.target = new_target
+    }
+
+    /// Erase `n` leading arguments from chain (including target), and make the next remaining
+    /// argument a new target. Panics if there are not enough arguments to remove.
+    pub fn erase_leading_operands(&mut self, n: usize) {
+        if n == 0 {
+            return;
+        }
+        let last_removed_arg = self.args.drain(0..n).next_back();
+        self.target = last_removed_arg.expect("Not enough operands to erase").operand;
     }
 
     /// Replace the target and first argument with a new target being an proper Infix or Section
@@ -461,15 +559,35 @@ impl Chain {
         while !self.args.is_empty() {
             self.fold_arg()
         }
-        // TODO[ao] the only case when target is none is when chain have None target and empty
-        //  arguments list. Such Chain cannot be generated from Ast, but someone could think that
-        //  this is still a valid chain. To consider returning error here.
-        self.target.unwrap().arg
+        if let Some(target) = self.target {
+            target.arg
+        } else {
+            SectionSides { opr: self.operator.into() }.into()
+        }
     }
 
     /// True if all operands are set, i.e. there are no section shapes in this chain.
     pub fn all_operands_set(&self) -> bool {
         self.target.is_some() && self.args.iter().all(|arg| arg.operand.is_some())
+    }
+
+    /// Try to convert the chain into a list of qualified name segments. Qualified name consists of
+    /// identifiers chained by [`ACCESS`] operator.
+    pub fn as_qualified_name_segments(&self) -> Option<Vec<ImString>> {
+        let every_operator_is_access = self
+            .enumerate_operators()
+            .all(|opr| opr.item.ast().repr() == crate::opr::predefined::ACCESS);
+        let name_segments: Option<Vec<_>> = self
+            .enumerate_operands()
+            .flatten()
+            .map(|opr| crate::identifier::name(&opr.item.arg).map(ImString::new))
+            .collect();
+        let name_segments = name_segments?;
+        if every_operator_is_access && !name_segments.is_empty() {
+            Some(name_segments)
+        } else {
+            None
+        }
     }
 }
 
