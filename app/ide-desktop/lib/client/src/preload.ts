@@ -105,10 +105,12 @@ const AUTHENTICATION_API = {
         electron.ipcRenderer.on(ipc.Channel.openDeepLink, (_event, url: string) => {
             callback(url)
         }),
+    /** Saves the access token to a credentials file.
+     *
+     * Enso backend doesn't have access to Electron localStorage so we need to save access token to a file.
+     * Then the token will be used to sign cloud API requests. */
     setAccessTokenToFile: (accessToken: string) => {
-        console.log("dumping access token")
-        console.log(accessToken)
         electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessToken)
-    }
+    },
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)

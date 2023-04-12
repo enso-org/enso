@@ -36,7 +36,6 @@ import * as results from 'ts-results'
 import * as config from './config'
 import * as loggerProvider from '../providers/logger'
 import * as platformModule from '../platform'
-import {AccessTokenSaver} from "./config";
 
 // =================
 // === Constants ===
@@ -131,26 +130,24 @@ function isAuthError(error: unknown): error is AuthError {
  * This way, the methods don't throw all errors, but define exactly which errors they return.
  * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
-    private _saveAccessToken: AccessTokenSaver | null;
-
     constructor(
         private readonly logger: loggerProvider.Logger,
         private readonly platform: platformModule.Platform,
-        amplifyConfig: config.AmplifyConfig
+        private readonly amplifyConfig: config.AmplifyConfig
     ) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
          * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
          * methods are called. */
         const nestedAmplifyConfig = config.toNestedAmplifyConfig(amplifyConfig)
-        this._saveAccessToken = amplifyConfig.accessTokenSaver
         amplify.Auth.configure(nestedAmplifyConfig)
     }
 
+    /** Saves the access token to a file for further reuse. */
+
     saveAccessToken(accessToken: string) {
-        console.log(this._saveAccessToken)
-        if (this._saveAccessToken) {
-            return this._saveAccessToken(accessToken)
+        if (this.amplifyConfig.accessTokenSaver) {
+            this.amplifyConfig.accessTokenSaver(accessToken)
         }
     }
 
@@ -161,7 +158,7 @@ export class Cognito {
         return userSession()
     }
 
-    /** Sign up with with username and password.
+    /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
     signUp(username: string, password: string) {

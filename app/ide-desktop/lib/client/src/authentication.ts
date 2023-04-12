@@ -74,7 +74,9 @@
 
 import * as electron from 'electron'
 import opener from 'opener'
-import * as fs from "node:fs";
+import * as fs from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -142,11 +144,31 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
     })
 }
 
+/** Registers a listener that fires a callback for `save-access-token` events.
+ *
+ * This listener is used to save given access token to credentials file to be later used by enso backend.
+ *
+ * Credentials file is placed in users home directory in `.enso` subdirectory in `credentials` file. */
 function initSaveAccessTokenListener() {
-    electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken) => {
-        logger.log(`Dumping access token to file: ${accessToken}`)
-        console.log(`Dumping access token to file: ${accessToken}`)
-        fs.writeFileSync("/tmp/credentials", accessToken)
-        event.preventDefault();
+    electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string) => {
+        const ensoCredentialsDirectoryName = '.enso'
+        const ensoCredentialsFileName = 'credentials'
+        const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
+        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, err => {
+            if (err) {
+                logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
+            }
+        })
+
+        fs.writeFile(
+            path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
+            accessToken,
+            err => {
+                if (err) {
+                    logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
+                }
+            }
+        )
+        event.preventDefault()
     })
 }

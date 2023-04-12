@@ -106,7 +106,7 @@ export interface AuthService {
     /** @see {@link cognito.Cognito}. */
     cognito: cognito.Cognito
     /** @see {@link listen.ListenFunction} */
-    registerAuthEventListener: listen.ListenFunction,
+    registerAuthEventListener: listen.ListenFunction
 }
 
 /** Creates an instance of the authentication service.
