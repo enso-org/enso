@@ -309,10 +309,11 @@ impl Handle {
     /// - Fails if the project is in read-only mode.
     pub async fn restart(&self) -> FallibleResult {
         if self.project.read_only() {
-            return Err(ReadOnly.into());
+            Err(ReadOnly.into())
+        } else {
+            self.execution_ctx.restart().await?;
+            Ok(())
         }
-        self.execution_ctx.restart().await?;
-        Ok(())
     }
 
     /// Get the current call stack frames.
