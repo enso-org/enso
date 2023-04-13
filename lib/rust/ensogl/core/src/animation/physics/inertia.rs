@@ -612,10 +612,12 @@ where
         if is_active {
             self.simulation.step(delta_seconds);
             self.on_step.call(self.simulation.value());
-        } else {
+        };
+        let is_active = self.simulation.active();
+        if !is_active {
             self.on_end.call(EndStatus::Normal);
         }
-        self.simulation.active()
+        is_active
     }
 }
 

@@ -623,7 +623,14 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     fn retain_non_collapsed_items(&mut self) {
-        self.items.retain(|item| item.exists());
+        warn!("retain_non_collapsed_items!");
+        self.items.retain(|item| {
+            let exists = item.exists();
+            if !exists {
+                warn!("removing 1 elem!")
+            }
+            exists
+        });
     }
 
     // FIXME: refactor and generalize
@@ -862,6 +869,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
 
     fn insert_index(&self, x: f32) -> usize {
         let center_points = self.elems_center_points();
+        warn!("center_points: {:?}", center_points);
         let mut index = 0;
         for center in center_points {
             if x < center {
