@@ -36,9 +36,8 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
-        let preserve_depth =
-            ctx.span_tree_node.is_chained() || ctx.span_tree_node.is_named_argument();
-        let next_depth = if preserve_depth { ctx.depth } else { ctx.depth + 1 };
+        let increase_depth = ctx.span_tree_node.is_argument();
+        let next_depth = if increase_depth { ctx.depth + 1 } else { ctx.depth };
 
         let children = ctx
             .span_tree_node

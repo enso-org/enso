@@ -11,6 +11,7 @@ use enso_config::ARGS;
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl_component::drop_down::DropdownValue;
@@ -40,19 +41,13 @@ pub const SPACE_GLYPH_WIDTH: f32 = 7.224_609_4;
 
 ensogl::define_endpoints_2! {
     Input {
-        // /// Set the widget's metadata that was received from the language server. It overrides
-        // /// widget's configuration, even allowing the widget type to be completely changed. When
-        // /// the metadata is set to `Some` value, the corresponding widget will ignore its span-tree
-        // /// type.
-        // set_metadata   (MetadataPointer, Option<Metadata>),
-
-        // /// Set the connection status of the port indicated by the breadcrumbs. The optional type
-        // /// is the type of the edge that was connected or disconnected if the edge was typed.
-        // set_connected  (span_tree::Crumbs, ConnectionStatus),
+        ports_visible  (bool),
     }
     Output {
         value_changed  (span_tree::Crumbs, Option<ImString>),
         request_import (ImString),
+        on_port_hover  (Switch<span_tree::Crumbs>),
+        on_port_press  (span_tree::Crumbs),
     }
 }
 
@@ -219,10 +214,8 @@ impl Metadata {
                 } else {
                     Self::always(label::Config::default())
                 },
-            Kind::Root | Kind::NamedArgument | Kind::Chained(_) if has_children =>
-                Self::always(hierarchy::Config),
-            Kind::InsertionPoint(inner) if inner.name.is_none() =>
-                Self::always(insertion_point::Config),
+            Kind::InsertionPoint(_) => Self::always(insertion_point::Config),
+            _ if has_children => Self::always(hierarchy::Config),
             _ => Self::always(label::Config::default()),
         }
     }
@@ -298,8 +291,11 @@ impl DropdownValue for Entry {
 /// Widget FRP endpoints that can be used by widget views, and go straight to the root.
 #[derive(Debug, Clone, CloneRef)]
 pub struct WidgetsFrp {
+    pub(self) ports_visible:  frp::Sampler<bool>,
     pub(self) value_changed:  frp::Any<(span_tree::Crumbs, Option<ImString>)>,
     pub(self) request_import: frp::Any<ImString>,
+    pub(self) on_port_hover:  frp::Any<Switch<span_tree::Crumbs>>,
+    pub(self) on_port_press:  frp::Any<span_tree::Crumbs>,
 }
 
 
@@ -314,7 +310,7 @@ pub struct WidgetsFrp {
 pub struct Root {
     #[deref]
     frp:         Frp,
-    sampled_frp: WidgetsFrp,
+    widgets_frp: WidgetsFrp,
     model:       Rc<RootModel>,
 }
 
@@ -332,11 +328,25 @@ impl Root {
         let frp = Frp::new();
         let model = Rc::new(RootModel::new(app));
 
+        let network = &frp.network;
+
+        frp::extend! { network
+            ports_visible <- frp.ports_visible.sampler();
+        }
+
         let value_changed = frp.private.output.value_changed.clone_ref();
         let request_import = frp.private.output.request_import.clone_ref();
-        let sampled_frp = WidgetsFrp { value_changed, request_import };
+        let on_port_hover = frp.private.output.on_port_hover.clone_ref();
+        let on_port_press = frp.private.output.on_port_press.clone_ref();
+        let widgets_frp = WidgetsFrp {
+            value_changed,
+            request_import,
+            on_port_hover,
+            on_port_press,
+            ports_visible,
+        };
 
-        Self { frp, sampled_frp, model }
+        Self { frp, widgets_frp, model }
     }
 
     pub fn set_metadata(&self, pointer: MetadataPointer, meta: Option<Metadata>) {
@@ -360,7 +370,7 @@ impl Root {
     }
 
     pub fn rebuild_tree(&self, tree: &span_tree::SpanTree, node_expression: &str) {
-        self.model.rebuild_tree(self.sampled_frp.clone_ref(), tree, node_expression)
+        self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression)
     }
 
     pub fn get_port_display_object(
@@ -662,7 +672,7 @@ impl<'a> WidgetTreeBuilder<'a> {
                     let app = ctx.app();
                     let frp = ctx.frp();
                     let widget = DynWidget::new(&meta.config, app, frp);
-                    let mut port = Port::new(widget);
+                    let mut port = Port::new(widget, frp);
                     port.configure(&meta.config, ctx);
                     port
                 }
@@ -693,51 +703,105 @@ pub mod port {
         pointer_events = false;
         (style:Style, color:Vector4) {
             let size = Var::canvas_size();
-            let transparent = Var::<color::Rgba>::from("srgba(1.0,1.0,1.0,0.00001)");
             let shape_color = Var::<color::Rgba>::from(color);
-            // let hover_shape  = Rect(&size).fill(transparent);
-            let visual_shape  = Rect(&size).corners_radius(size.y() / 2.0).fill(shape_color);
+            let visual_shape = Rect(&size).corners_radius(size.y() / 2.0).fill(shape_color);
             visual_shape.into()
-            // hover_shape.union(visual_shape).into()
+        }
+    }
+}
+
+/// Port shape definition.
+pub mod port_hover {
+    use super::*;
+    ensogl::shape! {
+        (style:Style) {
+            let size = Var::canvas_size();
+            let instance = Var::<color::Rgba>::from("srgba(hsva(mod(float(input_global_instance_id + input_mouse_click_count % 10) * 17.0, 100.0) / 100.0, 1.0, 1.0, 0.5))");
+            // let transparent = Var::<color::Rgba>::from("srgba(1.0,1.0,1.0,0.00001)");
+            let hover_shape = Rect(&size).fill(instance);
+            hover_shape.into()
         }
     }
 }
 
 #[derive(Debug)]
 pub(super) struct Port {
-    last_offset: usize,
     port_root:   display::object::Instance,
     widget_root: display::object::Instance,
     widget:      DynWidget,
     port_shape:  port::View,
+    #[allow(dead_code)]
+    hover_shape: port_hover::View,
+    #[allow(dead_code)]
+    network:     frp::Network,
+    crumbs:      Rc<RefCell<span_tree::Crumbs>>,
+    last_offset: usize,
 }
 
 impl Port {
-    fn new(widget: DynWidget) -> Self {
+    fn new(widget: DynWidget, frp: &WidgetsFrp) -> Self {
         let port_root = display::object::Instance::new();
         let widget_root = widget.root_object().clone_ref();
         let port_shape = port::View::new();
-        port_shape.color.set(color::Rgba::transparent().into());
+        let hover_shape = port_hover::View::new();
 
         port_root.add_child(&widget_root);
-        port_root.add_child(&port_shape);
         port_root.set_alignment_left();
+        port_root.set_z(-1.0);
         port_shape
             .allow_grow()
             .set_margin_left(-PORT_PADDING_X)
             .set_margin_right(-PORT_PADDING_X)
             .set_alignment_left();
+        hover_shape
+            .allow_grow()
+            .set_margin_left(-PORT_PADDING_X)
+            .set_margin_right(-PORT_PADDING_X)
+            .set_alignment_left();
 
-        Self { port_shape, widget, widget_root, last_offset: 0, port_root }
+        let mouse_enter = hover_shape.on_event::<mouse::Enter>();
+        let mouse_leave = hover_shape.on_event::<mouse::Leave>();
+        let mouse_down = hover_shape.on_event::<mouse::Down>();
+
+        let crumbs = Rc::new(RefCell::new(span_tree::Crumbs::default()));
+
+        if frp.ports_visible.value() {
+            port_root.add_child(&hover_shape);
+        }
+
+        frp::new_network! { network
+            hovering <- bool(&mouse_leave, &mouse_enter);
+            trace hovering;
+            frp.on_port_hover <+ hovering.map(
+                f!([crumbs](t) Switch::new(crumbs.borrow().clone(),*t))
+            );
+            frp.on_port_press <+ mouse_down.map(f!((_) crumbs.borrow().clone()));
+            eval frp.ports_visible([port_root, hover_shape] (active) {
+                if *active {
+                    port_root.add_child(&hover_shape);
+                } else {
+                    port_root.remove_child(&hover_shape);
+                }
+            });
+        };
+
+        Self {
+            port_shape,
+            hover_shape,
+            widget,
+            widget_root,
+            port_root,
+            network,
+            crumbs,
+            last_offset: 0,
+        }
     }
 
     fn configure(&mut self, config: &Config, ctx: ConfigContext) {
-        let is_placeholder = ctx.span_tree_node.is_expected_argument();
-        let min_offset = if is_placeholder { 1 } else { 0 };
-        let offset = min_offset.max(ctx.span_tree_node.sibling_offset.as_usize());
+        self.crumbs.replace(ctx.span_tree_node.crumbs.clone());
+        self.set_port_layout(&ctx);
         self.widget.configure(config, ctx);
         self.update_root();
-        self.set_offset(offset);
     }
 
     fn update_root(&mut self) {
@@ -749,7 +813,10 @@ impl Port {
         }
     }
 
-    fn set_offset(&mut self, offset: usize) {
+    fn set_port_layout(&mut self, ctx: &ConfigContext) {
+        let is_placeholder = ctx.span_tree_node.is_expected_argument();
+        let min_offset = if is_placeholder { 1 } else { 0 };
+        let offset = min_offset.max(ctx.span_tree_node.sibling_offset.as_usize());
         if self.last_offset != offset {
             self.last_offset = offset;
             self.port_root.set_margin_left(offset as f32 * SPACE_GLYPH_WIDTH);
@@ -758,9 +825,13 @@ impl Port {
 
     fn set_connected(&self, status: ConnectionStatus) {
         match status {
-            ConnectionStatus::Connected { color } =>
-                self.port_shape.color.set(color::Rgba::from(color).into()),
-            ConnectionStatus::Disconnected => self.port_shape.color.modify(|c| c.xyz().push(0.0)),
+            ConnectionStatus::Connected { color } => {
+                self.port_root.add_child(&self.port_shape);
+                self.port_shape.color.set(color::Rgba::from(color).into())
+            }
+            ConnectionStatus::Disconnected => {
+                self.port_root.remove_child(&self.port_shape);
+            }
         };
     }
 }
