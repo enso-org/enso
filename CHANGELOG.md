@@ -377,7 +377,10 @@
 - [Added support for Date/Time columns in the Postgres backend and added
   `year`/`month`/`day` operations to Table columns.][6153]
 - [`Text.split` can now take a vector of delimiters.][6156]
+- [Add `has_warnings`, `remove_warnings` and `throw_on_warning` extension
+  methods.][6176]
 - [Implemented `Table.union` for the Database backend.][6204]
+- [Array & Vector have the same methods & behavior][6218]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -571,8 +574,10 @@
 [6150]: https://github.com/enso-org/enso/pull/6150
 [6153]: https://github.com/enso-org/enso/pull/6153
 [6156]: https://github.com/enso-org/enso/pull/6156
+[6176]: https://github.com/enso-org/enso/pull/6176
 [6204]: https://github.com/enso-org/enso/pull/6204
 [6077]: https://github.com/enso-org/enso/pull/6077
+[6218]: https://github.com/enso-org/enso/pull/6218
 
 #### Enso Compiler
 

@@ -16,6 +16,10 @@ const ESBUILD_EVENT_NAME = 'change'
 // === Live reload ===
 // ===================
 
+import * as authentication from 'enso-authentication'
+
+import * as platform from './authentication/src/platform'
+
 if (IS_DEV_MODE) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         location.reload()

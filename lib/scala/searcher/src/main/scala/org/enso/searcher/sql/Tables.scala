@@ -54,13 +54,6 @@ case class SuggestionsVersionRow(id: Option[Long])
   */
 case class SchemaVersionRow(id: Option[Long])
 
-/** A row in the file_versions table
-  *
-  * @param module the module name
-  * @param digest the file version
-  */
-case class ModuleVersionRow(module: String, digest: Array[Byte])
-
 /** The type of a suggestion. */
 object SuggestionKind {
 
@@ -265,18 +258,6 @@ object SuggestionRowUniqueIndex {
     )
 }
 
-/** The schema of the module_versions table. */
-@nowarn("msg=multiarg infix syntax")
-final class ModuleVersionsTable(tag: Tag)
-    extends Table[ModuleVersionRow](tag, "module_versions") {
-
-  def module = column[String]("module", O.PrimaryKey)
-  def digest = column[Array[Byte]]("digest")
-
-  def * =
-    (module, digest) <> (ModuleVersionRow.tupled, ModuleVersionRow.unapply)
-}
-
 /** The schema of the suggestions_version table. */
 @nowarn("msg=multiarg infix syntax")
 final class SuggestionsVersionTable(tag: Tag)
@@ -298,8 +279,6 @@ final class SchemaVersionTable(tag: Tag)
 }
 
 object Suggestions extends TableQuery(new SuggestionsTable(_))
-
-object ModuleVersions extends TableQuery(new ModuleVersionsTable(_))
 
 object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 
