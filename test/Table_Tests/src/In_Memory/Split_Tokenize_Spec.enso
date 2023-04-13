@@ -9,7 +9,7 @@ from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
 
 spec =
-    Test.group "split" <|
+    Test.group "Table.split" <|
         Test.specify "can do split_to_columns" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
@@ -26,7 +26,7 @@ spec =
             t2 = t.split_to_rows "bar" "b"
             t2.should_equal_verbose expected
 
-    Test.group "tokenize" <|
+    Test.group "Table.tokenize" <|
         Test.specify "can do tokenize_to_columns" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
             t = Table.new cols
@@ -75,7 +75,7 @@ spec =
             t2 = t.tokenize_to_rows "bar" "[bc]" case_sensitivity=Case_Sensitivity.Insensitive
             t2.should_equal_verbose expected
 
-    Test.group "column count" <|
+    Test.group "Table.split/tokenize column count" <|
         Test.specify "should generate extra empty columns if column_count is set" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
@@ -114,7 +114,7 @@ spec =
             t2.should_equal_verbose expected
             t2.at "bar_3" . value_type . is_text . should_be_true
 
-    Test.group "errors" <|
+    Test.group "Table.split/tokenize errors" <|
         Test.specify "won't work on a non-text column" <|
             cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
             t = Table.new cols
@@ -141,7 +141,7 @@ spec =
             t = Table.new cols
             t.tokenize_to_rows "invalid_name" "([a-z]).(\d+)" . should_fail_with Missing_Input_Columns
 
-    Test.group "name conflicts" <|
+    Test.group "Table.split/tokenize name conflicts" <|
         Test.specify "will make column names unique" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]], ["bar_1", ["a", "b", "c"]]]
             t = Table.new cols
@@ -152,7 +152,7 @@ spec =
             problems = [Duplicate_Output_Column_Names.Error ["bar_1"]]
             Problems.test_problem_handling action problems tester
 
-    Test.group "column order" <|
+    Test.group "Table.split/tokenize column order" <|
         Test.specify "preserves column order" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]], ["baz", [1, 2, 3]]]
             t = Table.new cols
