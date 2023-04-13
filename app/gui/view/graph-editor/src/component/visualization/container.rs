@@ -526,6 +526,19 @@ impl Container {
         }
 
 
+        // ===  Visualisation Chooser Bindings ===
+
+        frp::extend! { network
+            selected_definition <- action_bar.visualisation_selection.map(f!([registry](path)
+                path.as_ref().and_then(|path| registry.definition_from_path(path))
+            ));
+            action_bar.hide_icons <+ selected_definition.constant(());
+            frp.source.vis_input_type <+ frp.set_vis_input_type;
+            let chooser = &model.action_bar.visualization_chooser();
+            chooser.frp.set_vis_input_type <+ frp.set_vis_input_type;
+        }
+
+
         // === Cycling Visualizations ===
 
         frp::extend! { network
@@ -538,7 +551,12 @@ impl Container {
         // === Switching Visualizations ===
 
         frp::extend! { network
-            new_vis_definition <- any(frp.set_visualization,vis_after_cycling,default_visualisation);
+            vis_definition_set <- any(
+                frp.set_visualization,
+                selected_definition,
+                vis_after_cycling,
+                default_visualisation);
+            new_vis_definition <- vis_definition_set.on_change();
             let preprocessor   =  &frp.source.preprocessor;
             frp.source.visualisation <+ new_vis_definition.map(f!(
                 [model,action_bar,app,preprocessor](vis_definition) {
@@ -622,32 +640,6 @@ impl Container {
                     let current_pos = pp * weight_inv;
                     model.fullscreen_view.set_position(current_pos);
             }));
-        }
-
-
-        // ===  Visualisation chooser frp bindings ===
-
-        frp::extend! { network
-            selected_definition  <- action_bar.visualisation_selection.map(f!([registry](path)
-                path.as_ref().and_then(|path| registry.definition_from_path(path))
-            ));
-            eval selected_definition([app,model,preprocessor](definition)  {
-                let vis = definition.as_ref().map(|d| d.new_instance(&app));
-                match vis {
-                    Some(Ok(vis))  => model.set_visualization(vis,&preprocessor),
-                    Some(Err(err)) => {
-                        warn!("Failed to instantiate visualisation: {err:?}");
-                    },
-                    None => warn!("Invalid visualisation selected."),
-                };
-            });
-            frp.source.visualisation <+ selected_definition;
-            on_selected              <- selected_definition.map(|d|d.as_ref().map(|_|())).unwrap();
-            eval_ on_selected ( action_bar.hide_icons.emit(()) );
-            frp.source.vis_input_type <+ frp.set_vis_input_type;
-            eval frp.set_vis_input_type (
-                (tp) model.action_bar.visualization_chooser().frp.set_vis_input_type(tp)
-            );
         }
 
 

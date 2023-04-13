@@ -16,12 +16,6 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 ## PRIVATE
-default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
-    new_from = From_Spec.Join join_kind left_subquery right_subquery on_expressions
-    new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
-    Table.Value new_table_name connection columns_to_select new_ctx
-
-## PRIVATE
 make_join_helpers left_table right_table left_column_mapping right_column_mapping =
     ## Resolves the column in the original table and finds the expression
        corresponding to it in the subquery.

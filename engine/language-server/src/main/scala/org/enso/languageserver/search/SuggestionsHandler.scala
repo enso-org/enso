@@ -34,7 +34,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
-import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
+import org.enso.searcher.SuggestionsRepo
 import org.enso.text.editing.model.Position
 
 import scala.collection.mutable
@@ -76,7 +76,6 @@ import scala.util.{Failure, Success}
   * @param config the server configuration
   * @param contentRootManager the content root manager
   * @param suggestionsRepo the suggestions repo
-  * @param versionsRepo the versions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
   */
@@ -84,7 +83,6 @@ final class SuggestionsHandler(
   config: Config,
   contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
-  versionsRepo: VersionsRepo[Future],
   sessionRouter: ActorRef,
   runtimeConnector: ActorRef
 ) extends Actor
@@ -98,10 +96,9 @@ final class SuggestionsHandler(
 
   override def preStart(): Unit = {
     logger.info(
-      "Starting suggestions handler from [{}, {}, {}].",
+      "Starting suggestions handler from [{}, {}].",
       config,
-      suggestionsRepo,
-      versionsRepo
+      suggestionsRepo
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
@@ -286,9 +283,8 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates [{}, {}].",
+              "Error applying suggestion database updates [{}].",
               msg.module,
-              msg.version,
               ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
@@ -418,7 +414,6 @@ final class SuggestionsHandler(
     case InvalidateSuggestionsDatabase =>
       val action = for {
         _ <- suggestionsRepo.clean
-        _ <- versionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
 
       val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
@@ -520,7 +515,6 @@ final class SuggestionsHandler(
       treeResults   <- suggestionsRepo.applyTree(msg.updates.toVector)
       exportResults <- suggestionsRepo.applyExports(msg.exports)
       version       <- suggestionsRepo.currentVersion
-      _             <- versionsRepo.setVersion(msg.module, msg.version.toDigest)
     } yield {
       val actionUpdates = actionResults.flatMap {
         case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
@@ -758,7 +752,6 @@ object SuggestionsHandler {
     * @param config the server configuration
     * @param contentRootManager the content root manager
     * @param suggestionsRepo the suggestions repo
-    * @param versionsRepo the versions repo
     * @param sessionRouter the session router
     * @param runtimeConnector the runtime connector
     */
@@ -766,7 +759,6 @@ object SuggestionsHandler {
     config: Config,
     contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
-    versionsRepo: VersionsRepo[Future],
     sessionRouter: ActorRef,
     runtimeConnector: ActorRef
   ): Props =
@@ -775,7 +767,6 @@ object SuggestionsHandler {
         config,
         contentRootManager,
         suggestionsRepo,
-        versionsRepo,
         sessionRouter,
         runtimeConnector
       )
