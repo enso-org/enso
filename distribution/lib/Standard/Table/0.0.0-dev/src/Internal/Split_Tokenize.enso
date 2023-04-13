@@ -16,37 +16,37 @@ polyglot java import org.enso.table.data.mask.OrderMask
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
 split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
-split_to_columns table input_column_name delimiter="," column_count=Nothing on_problems=Report_Error =
-    expect_text_column table input_column_name <|
-        fan_out_to_columns table input_column_name (ignore_nothing (_.split delimiter)) column_count on_problems
+split_to_columns table input_column_id delimiter="," column_count=Nothing on_problems=Report_Error =
+    expect_text_column table input_column_id <|
+        fan_out_to_columns table input_column_id (ignore_nothing (_.split delimiter)) column_count on_problems
 
 ## PRIVATE
    Splits a column of text into a set of new rows.
    See `Table.split_to_rows`.
 split_to_rows : Table -> Text | Integer -> Text -> Problem_Behavior -> Table
-split_to_rows table input_column_name delimiter="," on_problems=Report_Error =
+split_to_rows table input_column_id delimiter="," on_problems=Report_Error =
     _ = [on_problems]
-    expect_text_column table input_column_name <|
-        fan_out_to_rows table input_column_name (ignore_nothing (_.split delimiter))
+    expect_text_column table input_column_id <|
+        fan_out_to_rows table input_column_id (ignore_nothing (_.split delimiter))
 
 ## PRIVATE
    Tokenizes a column of text into a set of new columns using a regular
    expression.
    See `Table.tokenize_to_columns`.
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
-tokenize_to_columns table input_column_name pattern case_sensitivity column_count on_problems =
-    expect_text_column table input_column_name <|
-        fan_out_to_columns table input_column_name (ignore_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
+tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
+    expect_text_column table input_column_id <|
+        fan_out_to_columns table input_column_id (ignore_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
 
 ## PRIVATE
    Tokenizes a column of text into a set of new rows using a regular
    expression.
    See `Table.tokenize_to_rows`.
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Problem_Behavior -> Table
-tokenize_to_rows table input_column_name pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
+tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Error =
     _ = [on_problems]
-    expect_text_column table input_column_name <|
-        fan_out_to_rows table input_column_name (ignore_nothing (_.tokenize pattern case_sensitivity))
+    expect_text_column table input_column_id <|
+        fan_out_to_rows table input_column_id (ignore_nothing (_.tokenize pattern case_sensitivity))
 
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
@@ -59,8 +59,8 @@ tokenize_to_rows table input_column_name pattern="." case_sensitivity=Case_Sensi
    - function: A function that transforms a single element of `input_column`
      to multiple values.
 fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> Problem_Behavior -> Table | Nothing
-fan_out_to_columns table input_column_name function column_count=Nothing on_problems=Report_Error =
-    input_column = table.get input_column_name
+fan_out_to_columns table input_column_id function column_count=Nothing on_problems=Report_Error =
+    input_column = table.get input_column_id
     problem_builder = Problem_Builder.new
     new_columns_unrenamed = map_columns_to_multiple input_column function column_count problem_builder
     new_columns = rename_new_columns table new_columns_unrenamed problem_builder
@@ -79,8 +79,8 @@ fan_out_to_columns table input_column_name function column_count=Nothing on_prob
    - function: A function that transforms a single element of `input_column`
      to multiple values.
 fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
-fan_out_to_rows table input_column_name function =
-    input_column = table.at input_column_name
+fan_out_to_rows table input_column_id function =
+    input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size
 
@@ -99,14 +99,14 @@ fan_out_to_rows table input_column_name function =
 
     # Build the output column
     output_storage = output_column_builder.seal
-    output_column = Column.from_storage input_column_name output_storage
+    output_column = Column.from_storage input_column_id output_storage
 
     # Build the order mask.
     order_mask = OrderMask.new (order_mask_positions.to_vector)
 
     # Build the other columns, and include the output_column while doing it.
     new_columns = table.columns.map column->
-        case column.name == input_column_name of
+        case column.name == input_column_id of
             True ->
                 # Replace the input column with the output column.
                 output_column
