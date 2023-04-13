@@ -641,7 +641,7 @@ impl LayerModel {
     /// Consume all dirty flags and update the ordering of elements if needed. Returns [`true`] if
     /// the layer or its sub-layers were modified during this call.
     pub fn update(&self) -> bool {
-        self.update_internal(None)
+        self.update_internal(default(), default())
     }
 
     /// Consume all dirty flags and update the ordering of elements if needed.
@@ -649,10 +649,11 @@ impl LayerModel {
     pub(crate) fn update_internal(
         &self,
         global_element_depth_order: Option<&DependencyGraph<LayerItem>>,
+        parent_depth_order_changed: bool,
     ) -> bool {
         let mut was_dirty = false;
 
-        if self.depth_order_dirty.check() {
+        if self.depth_order_dirty.check() || parent_depth_order_changed {
             was_dirty = true;
             self.depth_order_dirty.unset();
             self.depth_sort(global_element_depth_order);
@@ -662,11 +663,13 @@ impl LayerModel {
             was_dirty = true;
             self.sublayers.element_depth_order_dirty.unset();
             self.for_each_sublayer(|layer| {
-                layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
+                let global_order = self.global_element_depth_order.borrow();
+                layer.update_internal(Some(&*global_order), true);
             });
             if let Some(layer) = &*self.mask.borrow() {
                 if let Some(layer) = layer.upgrade() {
-                    layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
+                    let global_order = self.global_element_depth_order.borrow();
+                    layer.update_internal(Some(&*global_order), true);
                 }
             }
         }
