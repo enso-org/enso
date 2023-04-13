@@ -1,20 +1,22 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
+import * as react from 'react'
 import * as router from 'react-router-dom'
+
+import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as common from './common'
-import * as hooks from '../../hooks'
-import * as icons from '../../components/svg'
-import * as utils from '../../utils'
+import * as svg from '../../components/svg'
+import FontAwesomeIcon from './fontAwesomeIcon'
+import Input from './input'
+import SvgIcon from './svgIcon'
 
 // =================
 // === Constants ===
 // =================
 
 const BUTTON_CLASS_NAME =
-    'relative mt-6 border rounded-md py-2 text-sm text-gray-800 ' + 'bg-gray-100 hover:bg-gray-200'
+    'relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200'
 
 const LOGIN_QUERY_PARAMS = {
     email: 'email',
@@ -30,8 +32,8 @@ function Login() {
 
     const initialEmail = parseUrlSearchParams(search)
 
-    const [email, bindEmail] = hooks.useInput(initialEmail ?? '')
-    const [password, bindPassword] = hooks.useInput('')
+    const [email, setEmail] = react.useState(initialEmail ?? '')
+    const [password, setPassword] = react.useState('')
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -44,12 +46,24 @@ function Login() {
                 <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
                     Login To Your Account
                 </div>
-                <button onClick={utils.handleEvent(signInWithGoogle)} className={BUTTON_CLASS_NAME}>
-                    <common.FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+                <button
+                    onClick={async event => {
+                        event.preventDefault()
+                        await signInWithGoogle()
+                    }}
+                    className={BUTTON_CLASS_NAME}
+                >
+                    <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
                     <span>Login with Google</span>
                 </button>
-                <button onClick={utils.handleEvent(signInWithGitHub)} className={BUTTON_CLASS_NAME}>
-                    <common.FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+                <button
+                    onClick={async event => {
+                        event.preventDefault()
+                        await signInWithGitHub()
+                    }}
+                    className={BUTTON_CLASS_NAME}
+                >
+                    <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
                     <span>Login with Github</span>
                 </button>
                 <div className="relative mt-10 h-px bg-gray-300">
@@ -61,9 +75,10 @@ function Login() {
                 </div>
                 <div className="mt-10">
                     <form
-                        onSubmit={utils.handleEvent(async () =>
-                            signInWithPassword(email, password)
-                        )}
+                        onSubmit={async event => {
+                            event.preventDefault()
+                            await signInWithPassword(email, password)
+                        }}
                     >
                         <div className="flex flex-col mb-6">
                             <label
@@ -73,15 +88,16 @@ function Login() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.at} />
+                                <SvgIcon svg={svg.AT} />
 
-                                <common.Input
-                                    {...bindEmail}
-                                    required={true}
+                                <Input
+                                    required
                                     id="email"
                                     type="email"
                                     name="email"
                                     placeholder="E-Mail Address"
+                                    value={email}
+                                    setValue={setEmail}
                                 />
                             </div>
                         </div>
@@ -93,15 +109,16 @@ function Login() {
                                 Password:
                             </label>
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.lock} />
+                                <SvgIcon svg={svg.LOCK} />
 
-                                <common.Input
-                                    {...bindPassword}
+                                <Input
                                     required={true}
                                     id="password"
                                     type="password"
                                     name="password"
                                     placeholder="Password"
+                                    value={password}
+                                    setValue={setPassword}
                                 />
                             </div>
                         </div>
@@ -127,9 +144,7 @@ function Login() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Login</span>
-                                <span>
-                                    <icons.Svg data={icons.PATHS.rightArrow} />
-                                </span>
+                                <span>{svg.RIGHT_ARROW}</span>
                             </button>
                         </div>
                     </form>
@@ -142,9 +157,7 @@ function Login() {
                             'text-xs text-center'
                         }
                     >
-                        <span>
-                            <icons.Svg data={icons.PATHS.createAccount} />
-                        </span>
+                        <span>{svg.CREATE_ACCOUNT}</span>
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>
                 </div>
