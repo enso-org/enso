@@ -6,6 +6,7 @@ import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Meta
 import project.Nothing.Nothing
 import project.Polyglot.Polyglot
 import project.Runtime
@@ -28,7 +29,26 @@ type Warning
     ## ADVANCED
        Are any warnings attached to the value?
     has_warnings : Any -> Boolean
-    has_warnings value = has_warnings_builtin value
+    has_warnings value warning_type=Any =
+        Warning.get_all value . any (w-> w.value.is_a warning_type)
+
+    ## Remove the warnings (either all or of a specified type) attached to the value.
+
+       Arguments:
+       - warning_type: The type to remove if attached to the value. Defaults to all warnings.
+    remove_warnings : Any -> Any
+    remove_warnings value warning_type=Any =
+        Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
+
+    ## Throws the first matching warning (either all or of a specified type) as a data flow error.
+
+       Arguments:
+       - warning_type: The type to throw if attached to the value. Defaults to all warnings.
+    throw_on_warning : Any -> Any
+    throw_on_warning self warning_type=Any =
+        warnings = Warning.get_all self
+        first = warnings.find (w-> w.value.is_a warning_type) if_missing=Nothing
+        if first.is_nothing then self else Error.throw first.value
 
     ## ADVANCED
        Gets all the warnings attached to the given value. Warnings are returned in the
@@ -250,12 +270,6 @@ create payload origin = @Builtin_Method "Warning.create"
    and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
 attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
 attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
-
-## PRIVATE
-
-   Builtin function that sees if any warnings attached.
-has_warnings_builtin : Any -> Array Warning
-has_warnings_builtin value = @Builtin_Method "Warning.has_warnings_builtin"
 
 ## PRIVATE
 
