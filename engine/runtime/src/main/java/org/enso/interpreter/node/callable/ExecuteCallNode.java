@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -10,12 +9,8 @@ import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
-import org.enso.interpreter.node.expression.builtin.bool.IfThenElseNode;
-import org.enso.interpreter.node.expression.builtin.bool.IfThenNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This node is responsible for optimising function calls.
@@ -65,55 +60,7 @@ public abstract class ExecuteCallNode extends Node {
 
   static DirectCallNode createWithPossibleClone(RootCallTarget t, Object state) {
     if (t.getRootNode() instanceof BuiltinRootNode n) {
-      if (n.getName().contains("if_then")) {
-        if (n.cloneBuiltin().getChildren().iterator().next() instanceof IfThenElseNode ite) {
-          class IteDirectCallNode extends DirectCallNode {
-            public IteDirectCallNode() {
-              super(null);
-            }
-
-            @Override
-            public Object call(Object... arguments) {
-              State state = Function.ArgumentsHelper.getState(arguments);
-              Object[] arg = Function.ArgumentsHelper.getPositionalArguments(arguments);
-              var self = TypesGen.asBoolean(arg[0]);
-              var if_true = arg[1];
-              var if_false = arg[2];
-              return ite.execute(state, self, if_true, if_false);
-            }
-
-            @Override
-            public boolean isInlinable() {
-              return true;
-            }
-
-            @Override
-            public boolean isInliningForced() {
-              return true;
-            }
-
-            @Override
-            public void forceInlining() {
-            }
-
-            @Override
-            public boolean isCallTargetCloningAllowed() {
-              return false;
-            }
-
-            @Override
-            public boolean cloneCallTarget() {
-              return false;
-            }
-
-            @Override
-            public CallTarget getClonedCallTarget() {
-              return null;
-            }
-          }
-          return new IteDirectCallNode();
-        }
-      }
+      return n.createDirectCallNode();
     }
     return DirectCallNode.create(t);
   }
