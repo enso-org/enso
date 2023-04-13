@@ -5,7 +5,6 @@ import org.enso.interpreter.instrument.command.Command
 import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.RuntimeOptions
-import org.enso.text.Sha3_224VersionCalculator
 
 import java.util.logging.Level
 
@@ -60,8 +59,7 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
       jobProcessor     = jobExecutionEngine,
       jobControlPlane  = jobExecutionEngine,
       locking          = locking,
-      state            = executionState,
-      versioning       = Sha3_224VersionCalculator
+      state            = executionState
     )
 
   /** @inheritdoc */

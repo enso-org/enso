@@ -107,6 +107,13 @@ object CacheInvalidation {
   ): CacheInvalidation =
     new CacheInvalidation(elements, command, Set())
 
+  /** Invalidate all caches in the provided stack.
+    *
+    * @param stack the stack to invalidate
+    */
+  def invalidateAll(stack: Iterable[InstrumentFrame]): Unit =
+    run(stack, CacheInvalidation(StackSelector.All, Command.InvalidateAll))
+
   /** Run a sequence of invalidation instructions on an execution stack.
     *
     * @param stack the runtime stack

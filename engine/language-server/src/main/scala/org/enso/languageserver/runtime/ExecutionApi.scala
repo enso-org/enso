@@ -91,7 +91,8 @@ object ExecutionApi {
 
     case class Params(
       contextId: ContextId,
-      invalidatedExpressions: Option[InvalidatedExpressions]
+      invalidatedExpressions: Option[InvalidatedExpressions],
+      executionEnvironment: Option[ExecutionEnvironment]
     )
 
     implicit val hasParams = new HasParams[this.type] {
@@ -193,6 +194,22 @@ object ExecutionApi {
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = VisualisationEvaluationFailed.Params
+    }
+  }
+
+  case object ExecutionContextSetExecutionEnvironment
+      extends Method("executionContext/setExecutionEnvironment") {
+
+    case class Params(
+      contextId: ContextId,
+      executionEnvironment: ExecutionEnvironment
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextSetExecutionEnvironment.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
     }
   }
 
