@@ -55,7 +55,12 @@ function ResetPassword() {
                     Reset Your Password
                 </div>
                 <div className="mt-10">
-                    <form onSubmit={utils.handleEvent(handleSubmit)}>
+                    <form
+                        onSubmit={async event => {
+                            event.preventDefault()
+                            await handleSubmit()
+                        }}
+                    >
                         <div className="flex flex-col mb-6">
                             <label
                                 htmlFor="email"

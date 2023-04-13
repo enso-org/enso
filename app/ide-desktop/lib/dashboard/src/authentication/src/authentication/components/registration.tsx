@@ -41,7 +41,12 @@ function Registration() {
                     Create new account
                 </div>
 
-                <form onSubmit={utils.handleEvent(handleSubmit)}>
+                <form
+                    onSubmit={async event => {
+                        event.preventDefault()
+                        await handleSubmit()
+                    }}
+                >
                     <div className="flex flex-col mb-4">
                         <label
                             htmlFor="email"
