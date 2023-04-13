@@ -28,6 +28,7 @@ pub use shape::Shape;
 mod shape {
     use super::*;
     crate::shape! {
+        pointer_events_instanced = true,
         (
             style: Style,
             color: Vector4,
@@ -158,6 +159,15 @@ impl Rectangle {
     /// Set the border color.
     pub fn set_border_color(&self, color: color::Rgba) -> &Self {
         self.modify_view(|view| view.border_color.set(color.into()))
+    }
+
+    /// Set whether the shape interacts with the mouse.
+    pub fn set_pointer_events(&self, enabled: bool) -> &Self {
+        let disabled = match enabled {
+            true => 0.0,
+            false => 1.0,
+        };
+        self.modify_view(|view| view.disable_pointer_events.set(disabled))
     }
 
     /// Set clipping of the shape. The clipping is normalized, which means, that the value of 0.5
