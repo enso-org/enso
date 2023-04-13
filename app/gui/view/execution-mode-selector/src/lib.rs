@@ -129,6 +129,7 @@ impl Model {
     fn update_dropdown_style(&self, style: &Style) {
         self.dropdown.set_menu_offset_y(style.menu_offset);
         self.dropdown.set_x(style.overall_width() / 2.0 - style.divider_offset);
+        self.dropdown.set_width(style.dropdown_width);
         self.dropdown.set_label_color(Rgba::white());
         self.dropdown.set_icon_size(Vector2::new(1.0, 1.0));
         self.dropdown.set_menu_alignment(ensogl_drop_down_menu::Alignment::Right);

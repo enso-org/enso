@@ -663,7 +663,7 @@ define_themes! { [light:0, dark:1]
             play_button_padding = 10.0, 10.0;
             divider_offset = 32.5, 32.5;
             divider_padding = 10.0, 10.0;
-            dropdown_width = 95.0, 95.0;
+            dropdown_width = 75.0, 75.0;
             height = 24.0, 24.0;
             menu_offset = 20.0, 20.0;
         }
