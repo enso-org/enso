@@ -102,9 +102,7 @@ impl StatusNotificationPublisher {
 /// used internally in code.
 #[derive(Copy, Clone, Debug)]
 pub enum Notification {
-    /// User created a new project. The new project is opened in IDE.
-    NewProjectCreated,
-    /// User opened an existing project.
+    /// User opened a new or existing project.
     ProjectOpened,
     /// User closed the project.
     ProjectClosed,
