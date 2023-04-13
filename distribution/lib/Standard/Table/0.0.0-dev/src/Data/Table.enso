@@ -921,11 +921,11 @@ type Table
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.
-       The new columns will be named with the name of the input with a
+       The new columns will be named with the name of the input column with a
        incrementing number after.
 
        Arguments:
-       - column: The column to split the text of.
+       - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
        - column_count: The number of columns to split to.
          If `Auto` then columns will be added to fit all data.
@@ -940,7 +940,7 @@ type Table
        The values of other columns are repeated for the new rows.
 
        Arguments:
-       - column: The column to split the text of.
+       - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
        - on_problems: Specifies the behavior when a problem occurs.
     split_to_rows : Text | Integer -> Text -> Problem_Behavior -> Table
@@ -952,11 +952,11 @@ type Table
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned.
        The original column will be removed from the table.
-       The new columns will be named with the name of the input with a
+       The new columns will be named with the name of the input column with a
        incrementing number after.
 
        Arguments:
-       - column: The column to tokenize the text of.
+       - column: The name or index of the column to tokenize the text of.
        - pattern: The pattern used to find within the text.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
@@ -976,7 +976,7 @@ type Table
        The values of other columns are repeated for the new rows.
 
        Arguments:
-       - column: The column to split the text of.
+       - column: The name or index of the column to tokenize the text of.
        - pattern: The pattern used to find within the text.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
