@@ -164,7 +164,6 @@ function AppRouter(props: AppProps) {
                                 />
                                 <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                             </router.Route>
-                            )
                             {/* Other pages are visible to unauthenticated and authenticated users. */}
                             <router.Route
                                 path={CONFIRM_REGISTRATION_PATH}
