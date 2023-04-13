@@ -26,6 +26,22 @@ spec =
             t2 = t.split_to_rows "bar" "b"
             t2.should_equal_verbose expected
 
+        Test.specify "can do split_to_columns with some Nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["abc", "cbdbef", Nothing, "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, Nothing, Nothing, Nothing], [3, "gh", "ij", "u"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.split_to_columns "bar" "b"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do split_to_rows with some Nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["abc", "cbdbef", Nothing, "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [3, "gh"], [3, "ij"], [3, "u"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.split_to_rows "bar" "b"
+            t2.should_equal_verbose expected
+
     Test.group "Table.tokenize" <|
         Test.specify "can do tokenize_to_columns" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
@@ -39,6 +55,22 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
             t = Table.new cols
             expected_rows = [[0, "12"], [0, "34"], [0, "5"], [1, "23"], [2, "2"], [2, "4"], [2, "55"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows "bar" "\d+"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_columns with some nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["a12b34r5", Nothing, "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12", "34", "5"], [1, Nothing, Nothing, Nothing], [2, "23", Nothing, Nothing], [3, "2", "4", "55"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.tokenize_to_columns "bar" "\d+"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_rows with some Nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["a12b34r5", Nothing, "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12"], [0, "34"], [0, "5"], [2, "23"], [3, "2"], [3, "4"], [3, "55"]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
             t2 = t.tokenize_to_rows "bar" "\d+"
             t2.should_equal_verbose expected

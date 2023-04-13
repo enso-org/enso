@@ -18,7 +18,7 @@ polyglot java import org.enso.table.data.mask.OrderMask
 split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
 split_to_columns table input_column_id delimiter="," column_count=Nothing on_problems=Report_Error =
     expect_text_column table input_column_id <|
-        fan_out_to_columns table input_column_id (ignore_nothing (_.split delimiter)) column_count on_problems
+        fan_out_to_columns table input_column_id (handle_nothing (_.split delimiter)) column_count on_problems
 
 ## PRIVATE
    Splits a column of text into a set of new rows.
@@ -26,7 +26,7 @@ split_to_columns table input_column_id delimiter="," column_count=Nothing on_pro
 split_to_rows : Table -> Text | Integer -> Text -> Table
 split_to_rows table input_column_id delimiter="," =
     expect_text_column table input_column_id <|
-        fan_out_to_rows table input_column_id (ignore_nothing (_.split delimiter))
+        fan_out_to_rows table input_column_id (handle_nothing (_.split delimiter))
 
 ## PRIVATE
    Tokenizes a column of text into a set of new columns using a regular
@@ -35,7 +35,7 @@ split_to_rows table input_column_id delimiter="," =
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
 tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
     expect_text_column table input_column_id <|
-        fan_out_to_columns table input_column_id (ignore_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
+        fan_out_to_columns table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
 
 ## PRIVATE
    Tokenizes a column of text into a set of new rows using a regular
@@ -44,7 +44,7 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Table
 tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
     expect_text_column table input_column_id <|
-        fan_out_to_rows table input_column_id (ignore_nothing (_.tokenize pattern case_sensitivity))
+        fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
 
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
@@ -220,10 +220,10 @@ maximum vec = if vec.is_empty then Nothing else
     vec.reduce (a-> b-> a.max b)
 
 ## PRIVATE
-   Wrap a function so that it returns Nothing if passed Nothing
-ignore_nothing : (Any -> Any) -> (Any -> Any)
-ignore_nothing function = x-> case x of
-    _ : Nothing -> Nothing
+   Wrap a function so that it returns [] if passed Nothing
+handle_nothing : (Any -> Any) -> (Any -> Any)
+handle_nothing function = x-> case x of
+    _ : Nothing -> []
     _ -> function x
 
 ## PRIVATE
