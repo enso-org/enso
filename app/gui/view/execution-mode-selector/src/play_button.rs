@@ -3,6 +3,7 @@ use ensogl::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
@@ -166,7 +167,8 @@ impl component::Frp<Model> for Frp {
 
             eval_ input.reset (model.set_playing(false));
 
-            output.pressed <+ play_icon.events_deprecated.mouse_down.constant(());
+            let play_icon_mouse_down = play_icon.on_event::<mouse::Down>();
+            output.pressed <+ play_icon_mouse_down.constant(());
 
             eval_ output.pressed (model.set_playing(true));
         }
