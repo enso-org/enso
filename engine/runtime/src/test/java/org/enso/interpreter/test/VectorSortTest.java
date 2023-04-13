@@ -3,10 +3,8 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Set;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.ordering.SortVectorNode;
+import java.util.ArrayList;
+import java.util.List;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -18,9 +16,9 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
-import java.util.List;
-
+/**
+ * This test ensures that any combination of values can be sorted - no attempt to sort should fail.
+ */
 @RunWith(Theories.class)
 public class VectorSortTest extends TestBase {
   private static Context context;
