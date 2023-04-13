@@ -6,7 +6,6 @@ import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
-from project.Data.Type.Value_Type import Auto
 from Standard.Table import Value_Type
 from Standard.Table.Errors import Column_Count_Exceeded, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
 from project.Internal.Java_Exports import make_string_builder
@@ -16,8 +15,8 @@ polyglot java import org.enso.table.data.mask.OrderMask
 ## PRIVATE
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
-split_to_columns : Table -> Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
-split_to_columns table input_column_name delimiter="," column_count=Auto on_problems=Report_Error =
+split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
+split_to_columns table input_column_name delimiter="," column_count=Nothing on_problems=Report_Error =
     expect_text_column table input_column_name <|
         fan_out_to_columns table input_column_name (ignore_nothing (_.split delimiter)) column_count on_problems
 
@@ -34,7 +33,7 @@ split_to_rows table input_column_name delimiter="," on_problems=Report_Error =
    Tokenizes a column of text into a set of new columns using a regular
    expression.
    See `Table.tokenize_to_columns`.
-tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
+tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
 tokenize_to_columns table input_column_name pattern case_sensitivity column_count on_problems =
     expect_text_column table input_column_name <|
         fan_out_to_columns table input_column_name (ignore_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
@@ -59,8 +58,8 @@ tokenize_to_rows table input_column_name pattern="." case_sensitivity=Case_Sensi
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Auto | Integer -> Problem_Behavior -> Table | Nothing
-fan_out_to_columns table input_column_name function column_count=Auto on_problems=Report_Error =
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table input_column_name function column_count=Nothing on_problems=Report_Error =
     input_column = table.get input_column_name
     problem_builder = Problem_Builder.new
     new_columns_unrenamed = map_columns_to_multiple input_column function column_count problem_builder
@@ -131,17 +130,17 @@ fan_out_to_rows table input_column_name function =
    - function: A function that transforms a single element of `input_column`
      to multiple values.
    - column_count: The number of columns to split to.
-     If `Auto` then columns will be added to fit all data.
+     If `Nothing` then columns will be added to fit all data.
      If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
      will follow the `on_problems` behavior.
    - on_problems: Specifies the behavior when a problem occurs.
-map_columns_to_multiple : Column -> (Any -> Vector Any) -> Auto | Integer -> Problem_Builder -> Vector Column
+map_columns_to_multiple : Column -> (Any -> Vector Any) -> Integer | Nothing -> Problem_Builder -> Vector Column
 map_columns_to_multiple input_column function column_count problem_builder =
     num_rows = input_column.length
     input_storage = input_column.java_column.getStorage
 
     builders = case column_count of
-        Auto ->
+        Nothing ->
             builders = Vector.new_builder
 
             0.up_to num_rows . map i->

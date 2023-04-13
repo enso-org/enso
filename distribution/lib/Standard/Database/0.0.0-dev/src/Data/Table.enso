@@ -1401,14 +1401,14 @@ type Table
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
        - column_count: The number of columns to split to.
-         If `Auto` then columns will be added to fit all data.
+         If `Nothing` then columns will be added to fit all data.
        - on_problems: Specifies the behavior when a problem occurs.
 
        ! Error Conditions
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
-    split_to_columns : Text | Integer -> Text -> Auto | Integer -> Problem_Behavior -> Table
-    split_to_columns self column delimiter="," column_count=Auto on_problems=Report_Error =
+    split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
+    split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
         _ = [column delimiter column_count on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
 
@@ -1438,12 +1438,12 @@ type Table
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - column_count: The number of columns to split to.
-         If `Auto` then columns will be added to fit all data.
+         If `Nothing` then columns will be added to fit all data.
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
          will follow the `on_problems` behavior.
        - on_problems: Specifies the behavior when a problem occurs.
-    tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Auto | Integer -> Problem_Behavior -> Table
-    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Auto on_problems=Report_Error =
+    tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
+    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
         _ = [column pattern case_sensitivity column_count on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
