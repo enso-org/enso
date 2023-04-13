@@ -38,8 +38,6 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
-import * as projectManagerModule from 'enso-content/src/project_manager'
-
 import * as authService from '../authentication/service'
 import * as platformModule from '../platform'
 
