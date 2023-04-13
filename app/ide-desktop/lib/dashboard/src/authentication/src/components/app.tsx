@@ -80,7 +80,7 @@ interface BaseAppProps {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
     /** Whether the dashboard should be rendered. */
-    enableDashboard: boolean
+    showDashboard: boolean
     onAuthenticated: () => void
 }
 
@@ -129,7 +129,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, enableDashboard, onAuthenticated } = props
+    const { logger, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
@@ -160,7 +160,7 @@ function AppRouter(props: AppProps) {
                             <router.Route element={<authProvider.ProtectedLayout />}>
                                 <router.Route
                                     path={DASHBOARD_PATH}
-                                    element={enableDashboard && <Dashboard {...props} />}
+                                    element={showDashboard && <Dashboard {...props} />}
                                 />
                                 <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                             </router.Route>
