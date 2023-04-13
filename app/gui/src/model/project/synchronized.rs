@@ -619,15 +619,13 @@ impl Project {
         &self,
         path: module::Path,
     ) -> impl Future<Output = FallibleResult<Rc<module::Synchronized>>> {
-        let language_server = self.language_server_rpc.clone_ref();
+        let ls = self.language_server_rpc.clone_ref();
         let parser = self.parser.clone_ref();
         let urm = self.urm();
-        let repository = urm.repository.clone_ref();
+        let repo = urm.repository.clone_ref();
         let read_only = self.read_only.clone_ref();
         async move {
-            let module =
-                module::Synchronized::open(path, language_server, parser, repository, read_only)
-                    .await?;
+            let module = module::Synchronized::open(path, ls, parser, repo, read_only).await?;
             urm.module_opened(module.clone());
             Ok(module)
         }
@@ -704,18 +702,20 @@ impl model::project::API for Project {
 
     fn rename_project(&self, name: String) -> BoxFuture<FallibleResult> {
         if self.read_only() {
-            return std::future::ready(Err(RenameInReadOnly.into())).boxed_local();
+            std::future::ready(Err(RenameInReadOnly.into())).boxed_local()
+        } else {
+            async move {
+                let referent_name = name.as_str().try_into()?;
+                let project_manager =
+                    self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
+                let project_id = self.properties.borrow().id;
+                let project_name = ProjectName::new_unchecked(name);
+                project_manager.rename_project(&project_id, &project_name).await?;
+                self.properties.borrow_mut().name.project = referent_name;
+                Ok(())
+            }
+            .boxed_local()
         }
-        async move {
-            let referent_name = name.as_str().try_into()?;
-            let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
-            let project_id = self.properties.borrow().id;
-            let project_name = ProjectName::new_unchecked(name);
-            project_manager.rename_project(&project_id, &project_name).await?;
-            self.properties.borrow_mut().name.project = referent_name;
-            Ok(())
-        }
-        .boxed_local()
     }
 
     fn project_content_root_id(&self) -> Uuid {

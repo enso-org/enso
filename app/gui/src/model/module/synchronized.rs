@@ -177,8 +177,9 @@ impl Module {
         let source = parser.parse_with_metadata(opened.content);
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
-        let model =
-            model::module::Plain::new(path, source.ast, source.metadata, repository, read_only);
+        let metadata = source.metadata;
+        let ast = source.ast;
+        let model = model::module::Plain::new(path, ast, metadata, repository, read_only);
         let this = Rc::new(Module { model, language_server });
         let content = this.model.serialized_content()?;
         let first_invalidation = this.full_invalidation(&summary, content);
@@ -425,8 +426,8 @@ impl Module {
                     };
                     //id_map goes first, because code change may alter its position.
                     let edits = vec![id_map_change, code_change];
-                    let notify_ls =
-                        self.notify_language_server(&summary.summary, &new_file, edits, true);
+                    let summary = &summary.summary;
+                    let notify_ls = self.notify_language_server(summary, &new_file, edits, true);
                     profiler::await_!(notify_ls, _profiler)
                 }
                 NotificationKind::MetadataChanged => {
@@ -434,8 +435,8 @@ impl Module {
                         range: summary.metadata_engine_range().into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
-                    let notify_ls =
-                        self.notify_language_server(&summary.summary, &new_file, edits, false);
+                    let summary = &summary.summary;
+                    let notify_ls = self.notify_language_server(summary, &new_file, edits, false);
                     profiler::await_!(notify_ls, _profiler)
                 }
                 NotificationKind::Reloaded => Ok(ParsedContentSummary::from_source(&new_file)),

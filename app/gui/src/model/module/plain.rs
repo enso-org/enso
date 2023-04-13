@@ -87,18 +87,19 @@ impl Module {
             return Ok(());
         }
         if self.read_only.get() && kind != NotificationKind::MetadataChanged {
-            return Err(EditInReadOnly.into());
-        }
-        trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
-        let transaction = self.repository.transaction("Setting module's content");
-        transaction.fill_content(self.id(), self.content.borrow().clone());
+            Err(EditInReadOnly.into())
+        } else {
+            trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
+            let transaction = self.repository.transaction("Setting module's content");
+            transaction.fill_content(self.id(), self.content.borrow().clone());
 
-        // We want the line below to fail before changing state.
-        let new_file = new_content.serialize()?;
-        let notification = Notification::new(new_file, kind);
-        self.content.replace(new_content);
-        self.notifications.notify(notification);
-        Ok(())
+            // We want the line below to fail before changing state.
+            let new_file = new_content.serialize()?;
+            let notification = Notification::new(new_file, kind);
+            self.content.replace(new_content);
+            self.notifications.notify(notification);
+            Ok(())
+        }
     }
 
     /// Use `f` to update the module's content.

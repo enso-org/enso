@@ -225,19 +225,20 @@ impl Handle {
     /// - Fails if the project is in read-only mode.
     pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
         if self.project.read_only() {
-            return Err(ReadOnly.into());
-        }
-        debug!("Entering node {}.", local_call.call);
-        let method_ptr = &local_call.definition;
-        let graph = controller::Graph::new_method(&self.project, method_ptr);
-        let graph = graph.await?;
-        self.execution_ctx.push(local_call.clone()).await?;
-        debug!("Replacing graph with {graph:?}.");
-        self.graph.replace(graph);
-        debug!("Sending graph invalidation signal.");
-        self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
+            Err(ReadOnly.into())
+        } else {
+            debug!("Entering node {}.", local_call.call);
+            let method_ptr = &local_call.definition;
+            let graph = controller::Graph::new_method(&self.project, method_ptr);
+            let graph = graph.await?;
+            self.execution_ctx.push(local_call.clone()).await?;
+            debug!("Replacing graph with {graph:?}.");
+            self.graph.replace(graph);
+            debug!("Sending graph invalidation signal.");
+            self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
 
-        Ok(())
+            Ok(())
+        }
     }
 
     /// Attempts to get the computed value of the specified node.
@@ -266,13 +267,15 @@ impl Handle {
     /// - Fails if the project is in read-only mode.
     pub async fn enter_node(&self, node: double_representation::node::Id) -> FallibleResult {
         if self.project.read_only() {
-            return Err(ReadOnly.into());
+            Err(ReadOnly.into())
+        } else {
+            let computed_value = self.node_computed_value(node)?;
+            let method_pointer =
+                computed_value.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
+            let definition = method_pointer.clone();
+            let local_call = LocalCall { call: node, definition };
+            self.enter_method_pointer(&local_call).await
         }
-        let computed_value = self.node_computed_value(node)?;
-        let method_pointer = computed_value.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
-        let definition = method_pointer.clone();
-        let local_call = LocalCall { call: node, definition };
-        self.enter_method_pointer(&local_call).await
     }
 
     /// Leave the current node. Reverse of `enter_node`.
@@ -283,14 +286,15 @@ impl Handle {
     /// - Fails if the project is in read-only mode.
     pub async fn exit_node(&self) -> FallibleResult {
         if self.project.read_only() {
-            return Err(ReadOnly.into());
+            Err(ReadOnly.into())
+        } else {
+            let frame = self.execution_ctx.pop().await?;
+            let method = self.execution_ctx.current_method();
+            let graph = controller::Graph::new_method(&self.project, &method).await?;
+            self.graph.replace(graph);
+            self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
+            Ok(())
         }
-        let frame = self.execution_ctx.pop().await?;
-        let method = self.execution_ctx.current_method();
-        let graph = controller::Graph::new_method(&self.project, &method).await?;
-        self.graph.replace(graph);
-        self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
-        Ok(())
     }
 
     /// Interrupt the program execution.
@@ -355,9 +359,10 @@ impl Handle {
     /// - Fails if the project is in read-only mode.
     pub fn connect(&self, connection: &Connection) -> FallibleResult {
         if self.project.read_only() {
-            return Err(ReadOnly.into());
+            Err(ReadOnly.into())
+        } else {
+            self.graph.borrow().connect(connection, self)
         }
-        self.graph.borrow().connect(connection, self)
     }
 
     /// Remove the connections from the graph. Returns an updated edge destination endpoint for
@@ -368,9 +373,10 @@ impl Handle {
     /// - Fails if the project is in read-only mode.
     pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
         if self.project.read_only() {
-            return Err(ReadOnly.into());
+            Err(ReadOnly.into())
+        } else {
+            self.graph.borrow().disconnect(connection, self)
         }
-        self.graph.borrow().disconnect(connection, self)
     }
 }
 
