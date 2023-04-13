@@ -180,7 +180,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
 
                 output_values.length
 
-            max_output_length = output_lengths.fold 0 .max
+            max_output_length = maximum output_lengths
 
             if max_output_length > column_count then
                 problem = Column_Count_Exceeded.Error column_count max_output_length
