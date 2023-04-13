@@ -38,6 +38,8 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
+import * as projectManagerModule from 'enso-content/src/project_manager'
+
 import * as authProvider from '../authentication/providers/auth'
 import * as authService from '../authentication/service'
 import * as loggerProvider from '../providers/logger'
@@ -74,13 +76,25 @@ export const SET_USERNAME_PATH = '/set-username'
 // === App ===
 // ===========
 
-/** Global configuration for the `App` component. */
-export interface AppProps {
-    /** Logger to use for logging. */
+interface BaseAppProps {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
+    /** Whether the dashboard should be rendered. */
+    showDashboard: boolean
     onAuthenticated: () => void
 }
+
+interface DesktopAppProps extends BaseAppProps {
+    platform: platformModule.Platform.desktop
+    projectManager: projectManagerModule.ProjectManager
+}
+
+interface OtherAppProps extends BaseAppProps {
+    platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
+}
+
+/** Global configuration for the `App` component. */
+export type AppProps = DesktopAppProps | OtherAppProps
 
 /** Component called by the parent module, returning the root React component for this
  * package.
@@ -115,7 +129,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, onAuthenticated } = props
+    const { logger, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
@@ -144,7 +158,10 @@ function AppRouter(props: AppProps) {
                             </router.Route>
                             {/* Protected pages are visible to authenticated users. */}
                             <router.Route element={<authProvider.ProtectedLayout />}>
-                                <router.Route path={DASHBOARD_PATH} element={<Dashboard />} />
+                                <router.Route
+                                    path={DASHBOARD_PATH}
+                                    element={showDashboard && <Dashboard {...props} />}
+                                />
                                 <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                             </router.Route>
                             {/* Other pages are visible to unauthenticated and authenticated users. */}
