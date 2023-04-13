@@ -82,6 +82,18 @@ export function handleOpenUrl(openedUrl: URL) {
     }
 }
 
+/** Register the callback that will be called when the application is requested to open a URL.
+ *
+ * This method serves to unify the url handling between macOS and Windows. On macOS, the OS
+ * handles the URL opening by passing the `open-url` event to the application. On Windows, a
+ * new instance of the application is started and the URL is passed as a command line argument.
+ *
+ * This method registers the callback for both events. Note that on Windows it is necessary to
+ * use {@link setAsUrlHandler} and {@link unsetAsUrlHandler} to ensure that the callback
+ * is called.
+ *
+ * @param callback - The callback to call when the application is requested to open a URL.
+ */
 export function registerUrlCallback(callback: (url: URL) => void) {
     // First, register the callback for the `open-url` event. This is used on macOS.
     electron.app.on('open-url', (event, url) => {
@@ -93,9 +105,11 @@ export function registerUrlCallback(callback: (url: URL) => void) {
     // Second, register the callback for the `second-instance` event. This is used on Windows.
     electron.app.on('second-instance', (event, argv) => {
         logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
-        urlCallbackCompleted()
+        unsetAsUrlHandler()
         // Check if additional data is an object that contains the URL.
-        const url = argsDenoteUrlOpenAttempt(argv.slice(argv.length - 1))
+        const requestOneLastElementSlice = -1;
+        const lastArgumentSlice = argv.slice(requestOneLastElementSlice)
+        const url = argsDenoteUrlOpenAttempt(lastArgumentSlice)
         if (url) {
             logger.log(`Got URL from second instance: '${url.toString()}'.`)
             event.preventDefault()
@@ -104,12 +118,33 @@ export function registerUrlCallback(callback: (url: URL) => void) {
     })
 }
 
-export function expectUrlCallback() {
-    logger.log('Expecting URL callback.')
-    electron.app.requestSingleInstanceLock();
+/** Make this application instance the recipient of URL callbacks.
+ *
+ * After the callback is received (or no longer expected), the `urlCallbackCompleted` function
+ * must be called. Otherwise, other IDE instances will not be able to receive their URL
+ * callbacks.
+ *
+ * The mechanism is built on top of the Electron's
+ * [instance lock]{@link https://www.electronjs.org/docs/api/app#apprequestsingleinstancelock} functionality.
+ *
+ * @throws An error if another instance of the application has already acquired the lock.
+ */
+export function setAsUrlHandler() {
+    logger.log('Expecting URL callback, acquiring the lock.')
+    if(!electron.app.requestSingleInstanceLock()) {
+        const message = 'Another instance of the application is already running. Exiting.'
+        logger.error(message)
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error(message)
+    }
 }
 
-export function urlCallbackCompleted() {
-    logger.log('URL callback completed.')
+/** Stop this application instance from receiving URL callbacks.
+ *
+ * This function releases the instance lock that was acquired by the {@link setAsUrlHandler}
+ * function. This is necessary to ensure that other IDE instances can receive their URL callbacks.
+ */
+export function unsetAsUrlHandler() {
+    logger.log('URL callback completed, releasing the lock.')
     electron.app.releaseSingleInstanceLock();
 }

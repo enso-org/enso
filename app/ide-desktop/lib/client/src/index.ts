@@ -45,14 +45,7 @@ class App {
     isQuitting = false
 
     async run() {
-        console.log('====Starting Enso IDE.')
         urlAssociations.registerAssociations()
-        electron.app.on('open-url', (event, url) => {
-            console.log('====Received URL: ' + url)
-            console.log(event)
-        })
-
-
         // Register file associations for macOS.
         electron.app.on('open-file', fileAssociations.onFileOpened)
 
