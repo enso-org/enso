@@ -30,8 +30,8 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
-@Warmup(iterations = 5)
-@Measurement(iterations = 3)
+@Warmup(iterations = 5, time = 1)
+@Measurement(iterations = 3, time = 3)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class IfVsCaseBenchmarks extends TestBase {
