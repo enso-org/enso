@@ -130,9 +130,11 @@ impl Initializer {
         match &self.config.backend {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
-                let project_to_open = self.config.project_to_open.clone();
-                let controller = controller::ide::Desktop::new(project_manager, project_to_open);
-                Ok(Rc::new(controller.await?))
+                let controller = controller::ide::Desktop::new(project_manager)?;
+                if let Some(project) = &self.config.project_to_open {
+                    controller.open_or_create_project(project.clone()).await?;
+                }
+                Ok(Rc::new(controller))
             }
             LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
                 let json_endpoint = json_endpoint.clone();
@@ -197,15 +199,6 @@ impl WithProjectManager {
         project_to_open: ProjectToOpen,
     ) -> Self {
         Self { project_manager, project_to_open }
-    }
-
-    /// Create and initialize a new Project Model, for a project with name passed in constructor.
-    ///
-    /// If the project with given name does not exist yet, it will be created.
-    pub async fn initialize_project_model(self) -> FallibleResult<model::Project> {
-        let project_id = self.get_project_or_create_new().await?;
-        let project_manager = self.project_manager;
-        model::project::Synchronized::new_opened(project_manager, project_id).await
     }
 
     /// Creates a new project and returns its id, so the newly connected project can be opened.

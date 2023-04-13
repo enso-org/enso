@@ -32,7 +32,7 @@ fn failure_to_open_project_is_reported() {
         let project_to_open = ProjectToOpen::Name(name);
         let initializer =
             ide::initializer::WithProjectManager::new(project_manager, project_to_open);
-        let result = initializer.initialize_project_model().await;
+        let result = initializer.get_project_or_create_new().await;
         result.expect_err("Error should have been reported.");
     });
     fixture.when_stalled_send_response(json!({

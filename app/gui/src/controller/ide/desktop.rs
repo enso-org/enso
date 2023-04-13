@@ -49,53 +49,26 @@ pub struct Handle {
 }
 
 impl Handle {
-    /// Create IDE controller. If `maybe_project_name` is `Some`, a project with provided name will
-    /// be opened. Otherwise controller will be used for project manager operations by Welcome
-    /// Screen.
-    pub async fn new(
-        project_manager: Rc<dyn project_manager::API>,
-        project_to_open: Option<ProjectToOpen>,
-    ) -> FallibleResult<Self> {
-        let project = match project_to_open {
-            Some(project_to_open) =>
-                Some(Self::init_project_model(project_manager.clone_ref(), project_to_open).await?),
-            None => None,
-        };
-        Ok(Self::new_with_project_model(project_manager, project))
-    }
-
-    /// Create IDE controller with prepared project model. If `project` is `None`,
-    /// `API::current_project` returns `None` as well.
-    pub fn new_with_project_model(
-        project_manager: Rc<dyn project_manager::API>,
-        project: Option<model::Project>,
-    ) -> Self {
-        let current_project = Rc::new(CloneCell::new(project));
-        let status_notifications = default();
-        let parser = Parser::new();
-        let notifications = default();
-        let component_browser_private_entries_visibility_flag = default();
-        Self {
-            current_project,
+    /// Create IDE controller.
+    pub fn new(project_manager: Rc<dyn project_manager::API>) -> FallibleResult<Self> {
+        Ok(Self {
+            current_project: default(),
             project_manager,
-            status_notifications,
-            parser,
-            notifications,
-            component_browser_private_entries_visibility_flag,
-        }
+            status_notifications: default(),
+            parser: default(),
+            notifications: default(),
+            component_browser_private_entries_visibility_flag: default(),
+        })
     }
 
-    /// Open project with provided name.
-    async fn init_project_model(
-        project_manager: Rc<dyn project_manager::API>,
-        project_to_open: ProjectToOpen,
-    ) -> FallibleResult<model::Project> {
-        // TODO[ao]: Reuse of initializer used in previous code design. It should be soon replaced
-        //      anyway, because we will soon resign from the "open or create" approach when opening
-        //      IDE. See https://github.com/enso-org/ide/issues/1492 for details.
-        let initializer = initializer::WithProjectManager::new(project_manager, project_to_open);
-        let model = initializer.initialize_project_model().await?;
-        Ok(model)
+    /// Open a project by name or ID.
+    ///
+    /// If no project with the given name exists, it will be created.
+    pub async fn open_or_create_project(&self, project: ProjectToOpen) -> FallibleResult<()> {
+        let initializer =
+            initializer::WithProjectManager::new(self.project_manager.clone_ref(), project);
+        let project_id = initializer.get_project_or_create_new().await?;
+        self.open_project(project_id).await
     }
 }
 
@@ -135,8 +108,6 @@ impl ManagingProjectAPI for Handle {
     #[profile(Objective)]
     fn create_new_project(&self, template: Option<project::Template>) -> BoxFuture<FallibleResult> {
         async move {
-            use model::project::Synchronized as Project;
-
             let list = self.project_manager.list_projects(&None).await?;
             let existing_names: HashSet<_> =
                 list.projects.into_iter().map(|p| p.name.into()).collect();
@@ -151,12 +122,7 @@ impl ManagingProjectAPI for Handle {
                 .project_manager
                 .create_project(&name, &template.map(|t| t.into()), &version, &action)
                 .await?;
-            let new_project_id = create_result.project_id;
-            let project_mgr = self.project_manager.clone_ref();
-            let new_project = Project::new_opened(project_mgr, new_project_id);
-            self.current_project.set(Some(new_project.await?));
-            self.notifications.notify(Notification::NewProjectCreated);
-            Ok(())
+            self.open_project(create_result.project_id).await
         }
         .boxed_local()
     }

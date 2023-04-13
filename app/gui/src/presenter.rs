@@ -214,8 +214,7 @@ impl Presenter {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, stream, move |notification, model| {
             match notification {
-                controller::ide::Notification::NewProjectCreated
-                | controller::ide::Notification::ProjectOpened =>
+                controller::ide::Notification::ProjectOpened =>
                     model.setup_and_display_new_project(),
                 controller::ide::Notification::ProjectClosed => {
                     model.close_project();
