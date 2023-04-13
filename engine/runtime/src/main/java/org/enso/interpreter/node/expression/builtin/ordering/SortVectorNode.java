@@ -258,19 +258,14 @@ public abstract class SortVectorNode extends Node {
             logger.fine(
                 () ->
                     "Have more groups than 1 and problem_behavior is Report_Error --> throw Dataflow_Error");
-            var allComparatorNames =
-                groups.stream()
-                    .map(Group::comparator)
-                    .map(comp -> comp.getQualifiedName().toString());
+            assert groups.get(0).elems.size() > 0 : "Groups should not be empty";
+            assert groups.get(1).elems.size() > 0 : "Groups should not be empty";
+            var firstIncomparableElem = groups.get(0).elems.get(0);
+            var secondIncomparableElem = groups.get(1).elems.get(0);
             var err =
                 ctx.getBuiltins()
                     .error()
-                    .makeUnsupportedArgumentsError(
-                        new Object[] {self},
-                        "self argument has more than one comparator - All comparators are: "
-                            + allComparatorNames
-                            + ". "
-                            + "See the documentation of Vector.sort method.");
+                    .makeIncomparableValues(firstIncomparableElem, secondIncomparableElem);
             return DataflowError.withoutTrace(err, this);
           } else {
             // Just one comparator, different from Default_Comparator
@@ -304,8 +299,7 @@ public abstract class SortVectorNode extends Node {
   }
 
   @TruffleBoundary(allowInlining = true)
-  private Object sortPrimitiveVector(Object[] elems,
-      DefaultSortComparator javaComparator)
+  private Object sortPrimitiveVector(Object[] elems, DefaultSortComparator javaComparator)
       throws CompareException {
     logger.fine(() -> "Sorting primitive elems = " + Arrays.toString(elems));
     Arrays.sort(elems, javaComparator);
@@ -318,8 +312,8 @@ public abstract class SortVectorNode extends Node {
     }
   }
 
-  private List<Group> splitByComparators(List<Object> elements, List<Type> comparators,
-      List<Function> compareFuncs) {
+  private List<Group> splitByComparators(
+      List<Object> elements, List<Type> comparators, List<Function> compareFuncs) {
     assert elements.size() == comparators.size();
     assert elements.size() == compareFuncs.size();
     // Mapping of FQN of comparator to groups
@@ -331,10 +325,7 @@ public abstract class SortVectorNode extends Node {
       String qualifiedName = comparator.getQualifiedName().toString();
 
       if (!groupMap.containsKey(qualifiedName)) {
-        groupMap.put(
-            qualifiedName,
-            new Group(new ArrayList<>(), comparator, compareFunc)
-        );
+        groupMap.put(qualifiedName, new Group(new ArrayList<>(), comparator, compareFunc));
       }
       var group = groupMap.get(qualifiedName);
       group.elems.add(elem);
@@ -343,30 +334,29 @@ public abstract class SortVectorNode extends Node {
     // Sort groups by the FQN of their comparator, with the default comparator
     // being the first one (the first group).
     String defCompFQN = getDefaultComparatorQualifiedName();
-    return groupMap
-        .entrySet()
-        .stream()
-        .sorted((entry1, entry2) -> {
-          var fqn1 = entry1.getKey();
-          var fqn2 = entry2.getKey();
-          if (fqn1.equals(defCompFQN)) {
-            return -1;
-          } else if (fqn2.equals(defCompFQN)) {
-            return 1;
-          } else {
-            return fqn1.compareTo(fqn2);
-          }
-        })
+    return groupMap.entrySet().stream()
+        .sorted(
+            (entry1, entry2) -> {
+              var fqn1 = entry1.getKey();
+              var fqn2 = entry2.getKey();
+              if (fqn1.equals(defCompFQN)) {
+                return -1;
+              } else if (fqn2.equals(defCompFQN)) {
+                return 1;
+              } else {
+                return fqn1.compareTo(fqn2);
+              }
+            })
         .map(Entry::getValue)
         .collect(Collectors.toList());
   }
 
   private Object attachWarnings(Object vector, Set<String> warnings) {
-    var warnArray = warnings
-        .stream()
-        .map(Text::create)
-        .map(text -> Warning.create(EnsoContext.get(this), text, this))
-        .toArray(Warning[]::new);
+    var warnArray =
+        warnings.stream()
+            .map(Text::create)
+            .map(text -> Warning.create(EnsoContext.get(this), text, this))
+            .toArray(Warning[]::new);
     return WithWarnings.appendTo(vector, new ArrayRope<>(warnArray));
   }
 
@@ -384,17 +374,21 @@ public abstract class SortVectorNode extends Node {
   }
 
   private String getDefaultComparatorQualifiedName() {
-    return EnsoContext.get(this).getBuiltins().defaultComparator().getType().getQualifiedName()
+    return EnsoContext.get(this)
+        .getBuiltins()
+        .defaultComparator()
+        .getType()
+        .getQualifiedName()
         .toString();
   }
 
-  /**
-   * A group is "primitive" iff its comparator is the default comparator.
-   */
+  /** A group is "primitive" iff its comparator is the default comparator. */
   private boolean isPrimitiveGroup(Group group) {
-    return group.comparator.getQualifiedName().toString().equals(
-        getDefaultComparatorQualifiedName()
-    );
+    return group
+        .comparator
+        .getQualifiedName()
+        .toString()
+        .equals(getDefaultComparatorQualifiedName());
   }
 
   private Object incomparableValuesError(Object left, Object right) {
@@ -405,8 +399,8 @@ public abstract class SortVectorNode extends Node {
    * Helper slow-path method to conveniently gather elements from interop arrays into a java list
    */
   @SuppressWarnings("unchecked")
-  private <T> List<T> readInteropArray(InteropLibrary interop, WarningsLibrary warningsLib,
-      Object vector) {
+  private <T> List<T> readInteropArray(
+      InteropLibrary interop, WarningsLibrary warningsLib, Object vector) {
     try {
       int size = (int) interop.getArraySize(vector);
       List<T> res = new ArrayList<>(size);
@@ -451,26 +445,23 @@ public abstract class SortVectorNode extends Node {
 
   private boolean isBuiltinType(Object type) {
     var builtins = EnsoContext.get(this).getBuiltins();
-    return
-        builtins.number().getNumber() == type ||
-            builtins.number().getDecimal() == type ||
-            builtins.number().getInteger() == type ||
-            builtins.nothing() == type ||
-            builtins.text() == type ||
-            builtins.bool().getType() == type ||
-            builtins.date() == type ||
-            builtins.dateTime() == type ||
-            builtins.duration() == type ||
-            builtins.vector() == type;
+    return builtins.number().getNumber() == type
+        || builtins.number().getDecimal() == type
+        || builtins.number().getInteger() == type
+        || builtins.nothing() == type
+        || builtins.text() == type
+        || builtins.bool().getType() == type
+        || builtins.date() == type
+        || builtins.dateTime() == type
+        || builtins.duration() == type
+        || builtins.vector() == type;
   }
 
   private boolean isTrue(Object object) {
     return Boolean.TRUE.equals(object);
   }
 
-  /**
-   * Returns true iff the given array of comparators is all Default_Comparator
-   */
+  /** Returns true iff the given array of comparators is all Default_Comparator */
   boolean areAllDefaultComparators(InteropLibrary interop, Object comparators) {
     assert interop.hasArrayElements(comparators);
     var ctx = EnsoContext.get(this);
@@ -535,7 +526,7 @@ public abstract class SortVectorNode extends Node {
    * incomparable values. The warnings are gathered as pure Strings in a hash set, so that they are
    * not duplicated.
    */
-  private static abstract class SortComparator implements java.util.Comparator<Object> {
+  private abstract static class SortComparator implements java.util.Comparator<Object> {
 
     private final Set<String> warnings = new HashSet<>();
     final AnyToTextNode toTextNode;
@@ -694,6 +685,7 @@ public abstract class SortVectorNode extends Node {
      * extracted from the comparator for the appropriate group.
      */
     private final Function compareFunc;
+
     private final Function onFunc;
     private final boolean hasCustomOnFunc;
     private final Type comparator;
@@ -741,17 +733,17 @@ public abstract class SortVectorNode extends Node {
       Object yConverted;
       if (hasCustomOnFunc) {
         // onFunc cannot have `self` argument, we assume it has just one argument.
-        xConverted = callNode.executeDispatch(onFunc, null, state, new Object[]{x});
-        yConverted = callNode.executeDispatch(onFunc, null, state, new Object[]{y});
+        xConverted = callNode.executeDispatch(onFunc, null, state, new Object[] {x});
+        yConverted = callNode.executeDispatch(onFunc, null, state, new Object[] {y});
       } else {
         xConverted = x;
         yConverted = y;
       }
       Object[] args;
       if (hasFunctionSelfArgument(compareFunc)) {
-        args = new Object[]{comparator, xConverted, yConverted};
+        args = new Object[] {comparator, xConverted, yConverted};
       } else {
-        args = new Object[]{xConverted, yConverted};
+        args = new Object[] {xConverted, yConverted};
       }
       Object res = callNode.executeDispatch(compareFunc, null, state, args);
       if (res == less) {
@@ -761,7 +753,8 @@ public abstract class SortVectorNode extends Node {
       } else if (res == greater) {
         return ascending ? 1 : -1;
       } else {
-        // res is either Nothing, or Incomparable_Values. Either way, it means that x and y are incomparable.
+        // res is either Nothing, or Incomparable_Values. Either way, it means that x and y are
+        // incomparable.
         // This case is not supported yet, as it requires topological sorting.
         // We cannot detect if the result was actually returned from the default comparator (it
         // could have been transitively called), so we just bailout.
@@ -782,8 +775,8 @@ public abstract class SortVectorNode extends Node {
      * dataflow error otherwise.
      */
     private Function checkAndConvertByFunc(Object byFuncObj) {
-      return checkAndConvertFunction(byFuncObj,
-          "Unsupported argument for `by`, expected a method with two arguments", 2, 3);
+      return checkAndConvertFunction(
+          byFuncObj, "Unsupported argument for `by`, expected a method with two arguments", 2, 3);
     }
 
     /**
