@@ -1,0 +1,74 @@
+from Standard.Base import all
+
+import project.Data.Column.Column
+import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Table.Table
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Pattern
+import Standard.Base.Data.Text.Regex.Match.Match
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
+
+from project import Value_Type
+from project.Errors import Duplicate_Output_Column_Names
+from Standard.Base.Errors.Problem_Behavior.Problem_Behavior import all
+
+## PRIVATE
+
+   Converts a Text into a Table using a regular expression pattern.
+
+   See Table.parse_text_to_table.
+parse_text_to_table : Text -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
+parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    pattern = Regex.compile pattern_string case_insensitive=case_insensitive
+    matches = pattern.match_all text
+
+    parse_maybe = case parse_values of
+        True ->
+            data_formatter = Data_Formatter.Value
+            v-> data_formatter.parse v on_problems=on_problems
+        False ->
+            Function.identity
+
+    columns = case pattern.group_count == 1 of
+        True ->
+            ## No match groups; each row is a single value consisting of the
+               entire match
+            column_name = "Column"
+            column_values = matches.map (match-> match.text 0) . map parse_maybe
+            [Column.from_vector column_name column_values]
+        False ->
+            ## There are match groups; each one becomes a separate value in the
+               row. Group 0 is not included.
+            nums_to_names = pattern.group_nums_to_names
+            IO.println "N2N"
+            IO.println nums_to_names
+            1.up_to pattern.group_count . map group_num->
+                column_values = matches.map (match-> match.at group_num) . map parse_maybe
+                column_name =  case nums_to_names.contains_key group_num of
+                    True -> nums_to_names.at group_num
+                    False -> "Column " + group_num.to_text
+                Column.from_vector column_name column_values
+
+    Table.new columns
+
+## PRIVATE
+
+   Assert that `text_maybe` is a Text, then call the action.
+expect_type : Any -> Any -> Any -> Any ! Type_Error
+expect_type typ value ~action = case Meta.type_of value == typ of
+    True -> action
+    False -> Error.throw (Type_Error.Error typ (Meta.type_of value) "")
+
+## PRIVATE
+
+   Map the functino over the map's key/value pairs, returning a vector of the
+   results.
+    map_over_pairs :: Map -> (Any -> Any -> Any) -> Vector Any
+    map_over_pairs map function =
+        map.keys.map key-> function key (map.at key)

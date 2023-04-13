@@ -14,4 +14,3 @@ expect_text text_maybe ~action = case text_maybe of
     _ : Text -> action
     _ ->
         Error.throw (Type_Error.Error Text (Meta.type_of text_maybe) "text_maybe")
-

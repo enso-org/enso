@@ -360,6 +360,10 @@ spec =
         match = pattern.match input
         match . should_be_a Match.Value
 
+        Test.specify "should provide access to info about group names" <|
+            pattern.named_groups.sort . should_equal ["empty", "letters"]
+            pattern.group_nums_to_names . should_equal <| Map.from_vector [[2, "letters"],[4, "empty"]]
+
         Test.specify "should return the results of all named groups" <|
             groups = match.named_groups
             groups.keys.sort . should_equal ["empty", "letters"]
