@@ -226,13 +226,20 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println("  @Override");
       out.println("  public Object execute(VirtualFrame frame) {");
-      out.println("    State state = Function.ArgumentsHelper.getState(frame.getArguments());");
+      if (methodDefinition.needsFrame()) {
+        out.println("    var args = frame.getArguments();");
+      } else {
+        out.println("    return handleExecute(frame.getArguments());");
+        out.println("  }");
+        out.println("  private Object handleExecute(Object[] args) {");
+      }
+      out.println("    State state = Function.ArgumentsHelper.getState(args);");
       if (methodDefinition.needsCallerInfo()) {
         out.println(
-            "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());");
+            "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(args);");
       }
       out.println(
-          "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());");
+          "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(args);");
       out.println("    int prefix = this.staticOfInstanceMethod ? 1 : 0;");
       List<String> callArgNames = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg :
