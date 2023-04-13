@@ -43,6 +43,14 @@ spec =
             t2 = t.tokenize_to_rows "bar" "\d+"
             t2.should_equal_verbose expected
 
+        Test.specify "can do tokenize_to_rows with some rows that have no matches" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["a12b34r5", "23", "q", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12"], [0, "34"], [0, "5"], [1, "23"], [3, "2"], [3, "4"], [3, "55"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows "bar" "\d+"
+            t2.should_equal_verbose expected
+
         Test.specify "can do tokenize_to_columns with groups" <|
             cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
             t = Table.new cols
