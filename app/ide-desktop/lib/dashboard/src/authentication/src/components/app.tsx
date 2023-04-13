@@ -156,7 +156,7 @@ function AppRouter(props: AppProps) {
                     )}
                     <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                 </router.Route>
-                ){/* Other pages are visible to unauthenticated and authenticated users. */}
+                {/* Other pages are visible to unauthenticated and authenticated users. */}
                 <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
                 <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
                 <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />

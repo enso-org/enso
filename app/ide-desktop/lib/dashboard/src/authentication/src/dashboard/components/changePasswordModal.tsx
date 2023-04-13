@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 
 import * as auth from '../../authentication/providers/auth'
 import * as icons from '../../components/svg'
+import * as modalProvider from '../../providers/modal.js'
 import Modal from './modal'
 
 // ==========================
@@ -13,6 +14,7 @@ import Modal from './modal'
 
 function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
+    const { unsetModal } = modalProvider.useSetModal()
 
     const [oldPassword, setOldPassword] = react.useState('')
     const [newPassword, setNewPassword] = react.useState('')
@@ -23,6 +25,7 @@ function ChangePasswordModal() {
         } else {
             await changePassword(oldPassword, newPassword)
         }
+        unsetModal()
     }
 
     return (
