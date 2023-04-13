@@ -73,12 +73,12 @@ mod placeholder {
     use super::*;
     ensogl_core::define_endpoints_2! {
         Input {
-            set_current_size(f32),
             set_target_size_no_animation (f32),
             set_target_size (f32),
             skip_animation(),
         }
         Output {
+            target_size(f32),
         }
     }
 
@@ -132,13 +132,14 @@ mod placeholder {
             let size_animation = &model.size_animation;
             size_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             frp::extend! { network
+                size_animation.target <+ model.frp.private.input.set_target_size;
                 size_animation.target <+ model.frp.private.input.set_target_size_no_animation;
                 size_animation.skip <+ model.frp.private.input.set_target_size_no_animation.constant(());
-                size_animation.set_value <+ model.frp.private.input.set_current_size;
                 size_animation.skip <+ model.frp.private.input.skip_animation;
 
-                tg <- model.frp.private.input.set_target_size.on_change();
-                size_animation.target <+ tg;
+                model.frp.private.output.target_size <+ model.frp.private.input.set_target_size;
+                model.frp.private.output.target_size <+ model.frp.private.input.set_target_size_no_animation;
+
                 eval size_animation.value ((t) { root.set_size_x(*t); });
                 eval_ size_animation.on_end ([collapsing, self_ref] {
                     if collapsing.get() {
@@ -328,6 +329,15 @@ impl<T: display::Object> Item<T> {
 
     pub fn computed_size(&self) -> Vector2 {
         self.display_object().map(|t| t.computed_size()).unwrap_or_default()
+    }
+
+    pub fn target_size(&self) -> f32 {
+        match self {
+            Item::Placeholder(t) => t.target_size.value(),
+            Item::WeakPlaceholder(t) =>
+                t.upgrade().map(|t| t.target_size.value()).unwrap_or_default(),
+            Item::DropSpot(t) => t.placeholder.target_size.value(),
+        }
     }
 
     pub fn exists(&self) -> bool {
@@ -594,7 +604,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     fn recompute_margins(&self) {
-        warn!("recompute margins!");
+        // warn!("recompute margins!");
         let mut first_elem = true;
         for item in &self.items {
             match item {
@@ -623,11 +633,11 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     fn retain_non_collapsed_items(&mut self) {
-        warn!("retain_non_collapsed_items!");
+        // warn!("retain_non_collapsed_items!");
         self.items.retain(|item| {
             let exists = item.exists();
             if !exists {
-                warn!("removing 1 elem!")
+                // warn!("removing 1 elem!")
             }
             exists
         });
@@ -727,6 +737,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         target: &display::object::Instance,
     ) {
         if let Some((index, elem)) = self.remove_item_by_display_object(target) {
+            // warn!("set_as_dragged_item");
             self.items.collapse_all_placeholders();
             let prev_index = index.checked_sub(1);
             let prev_placeholder = prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
@@ -747,6 +758,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 }
                 self.items[placeholder_index] = Item::Placeholder(placeholder);
             } else {
+                // warn!("inserting new placeholder");
                 self.items.insert(index, Placeholder::new_with_size(size).into());
             }
             dragged_elems.set_xy(elem.position().xy());
@@ -762,7 +774,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// Prepare place for the dragged item by creating or reusing a placeholder and growing it to
     /// the dragged object size.
     fn potential_insertion_point(&mut self, index: usize) {
-        warn!("Potential insertion point: {}.", index);
+        // warn!("Potential insertion point: {}.", index);
         if let Some(item) = self.dragged_item.as_ref() {
             self.items.collapse_all_placeholders();
 
@@ -777,24 +789,22 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                         }
                     },
                 );
-            warn!(
-                "first_non_placeholder_index: {:?}, gap: {}",
-                self.first_non_placeholder_index(),
-                gap
-            );
+            // warn!(
+            //     "first_non_placeholder_index: {:?}, gap: {}",
+            //     self.first_non_placeholder_index(),
+            //     gap
+            // );
             let size = item.computed_size().x + gap;
             let prev_index = index.checked_sub(1);
             let old_placeholder = self
                 .get_upgraded_weak_placeholder(index)
                 .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
             if let Some((index, placeholder)) = old_placeholder {
-                // self.items.collapse_all_placeholders_but(index);
                 placeholder.reuse();
                 placeholder.set_target_size(size);
                 self.items[index] = placeholder.into();
             } else {
-                // self.items.collapse_all_placeholders_but(999);
-                warn!("NEW PLACEHOLDER!");
+                // warn!("NEW PLACEHOLDER!");
                 let placeholder = Placeholder::new_with_size(0.0);
                 placeholder.set_target_size(size);
                 self.items.insert(index, placeholder.into());
@@ -855,10 +865,10 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         let mut centers = Vec::new();
         let mut current = 0.0;
         for item in &self.items {
-            let size = item.computed_size();
-            current += size.x / 2.0;
+            let size = item.target_size();
+            current += size / 2.0;
             centers.push(current);
-            current += size.x / 2.0;
+            current += size / 2.0;
             // if item.is_regular() {
             //     current += GAP;
             // }
@@ -869,7 +879,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
 
     fn insert_index(&self, x: f32) -> usize {
         let center_points = self.elems_center_points();
-        warn!("center_points: {:?}", center_points);
+        // warn!("center_points: {:?}", center_points);
         let mut index = 0;
         for center in center_points {
             if x < center {
@@ -953,20 +963,20 @@ pub fn main() {
 
 
     let shape1 = Circle().build(|t| {
-        t.set_size(Vector2::new(100.0, 100.0))
+        t.set_size(Vector2::new(60.0, 100.0))
             .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
             .set_inset_border(2.0)
             .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5))
             .keep_bottom_left_quarter();
     });
     let shape2 = RoundedRectangle(10.0).build(|t| {
-        t.set_size(Vector2::new(200.0, 100.0))
+        t.set_size(Vector2::new(120.0, 100.0))
             .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
             .set_inset_border(2.0)
             .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
     });
     let shape3 = RoundedRectangle(10.0).build(|t| {
-        t.set_size(Vector2::new(100.0, 100.0))
+        t.set_size(Vector2::new(240.0, 100.0))
             .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
             .set_inset_border(2.0)
             .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
