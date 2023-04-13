@@ -101,8 +101,8 @@ public class Error {
     return uninitializedState.newInstance(key);
   }
 
-  public Type makeModuleNotInPackageError() {
-    return moduleNotInPackageError.getType();
+  public Atom makeModuleNotInPackageError() {
+    return moduleNotInPackageError.newInstance();
   }
 
   public Type panic() {

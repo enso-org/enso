@@ -175,7 +175,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name `undefined` could not be found.",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -184,7 +184,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name `undefined` could not be found.",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -193,7 +193,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name `undefined` could not be found.",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -266,7 +266,7 @@ class RuntimeErrorsTest
         mainBodyId,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name `x` could not be found.",
+          "Compile_Error.Error",
           Seq(mainBodyId)
         ),
         builtin = true
@@ -1567,7 +1567,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name `IO` could not be found.",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -1576,7 +1576,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name `IO` could not be found.",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
