@@ -79,25 +79,13 @@ export const SET_USERNAME_PATH = '/set-username'
 // === App ===
 // ===========
 
-interface BaseAppProps {
+export interface AppProps {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
     /** Whether the dashboard should be rendered. */
     enableDashboard: boolean
     onAuthenticated: () => void
 }
-
-interface DesktopAppProps extends BaseAppProps {
-    platform: platformModule.Platform.desktop
-    projectManager: projectManagerModule.ProjectManager
-}
-
-interface OtherAppProps extends BaseAppProps {
-    platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
-}
-
-/** Global configuration for the `App` component. */
-export type AppProps = DesktopAppProps | OtherAppProps
 
 /** Component called by the parent module, returning the root React component for this
  * package.
@@ -156,7 +144,7 @@ function AppRouter(props: AppProps) {
                     )}
                     <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                 </router.Route>
-                ){/* Other pages are visible to unauthenticated and authenticated users. */}
+                {/* Other pages are visible to unauthenticated and authenticated users. */}
                 <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
                 <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
                 <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />

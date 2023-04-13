@@ -3,14 +3,13 @@
 import * as react from 'react'
 import * as reactDom from 'react-dom'
 
-import * as projectManagerModule from 'enso-content/src/project_manager'
-
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
+import * as projectManagerBackend from '../projectManagerService'
 import * as svg from '../../components/svg'
 
 import Label, * as label from './label'
@@ -152,6 +151,14 @@ const COLUMN_RENDERER: Record<
     [Column.ide]: () => <>aa</>,
 }
 
+// FIXME[sb]: `projectManagerBackend` pulls in the desktop `project_manager`,
+// event for the cloud frontend. It should be set to `backend.createBackend`
+// when entrypoints are merged.
+const BACKEND_FACTORY = {
+    [platformModule.Platform.cloud]: backend.createBackend,
+    [platformModule.Platform.desktop]: projectManagerBackend.createBackend,
+}
+
 // ========================
 // === Helper functions ===
 // ========================
@@ -182,27 +189,17 @@ function fileIcon(_extension: string) {
 // === Dashboard ===
 // =================
 
-interface BaseDashboardProps {
+export interface DashboardProps {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
 }
-
-interface DesktopDashboardProps extends BaseDashboardProps {
-    platform: platformModule.Platform.desktop
-    projectManager: projectManagerModule.ProjectManager
-}
-
-interface OtherDashboardProps extends BaseDashboardProps {
-    platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
-}
-
-export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
 
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
 
     const { accessToken, organization } = auth.useFullUserSession()
-    const backendService = backend.createBackend(accessToken, logger)
+    const [backendPlatform, setBackendPlatform] = react.useState(platformModule.Platform.cloud)
+    const backendService = BACKEND_FACTORY[backendPlatform](accessToken, logger)
 
     const { modal } = modalProvider.useModal()
     const { unsetModal } = modalProvider.useSetModal()
@@ -295,31 +292,9 @@ function Dashboard(props: DashboardProps) {
 
     react.useEffect(() => {
         void (async (): Promise<void> => {
-            let assets: backend.Asset[]
-
-            switch (platform) {
-                case platformModule.Platform.cloud: {
-                    assets = await backendService.listDirectory({
-                        parentId: directoryId,
-                    })
-                    break
-                }
-                case platformModule.Platform.desktop: {
-                    const result = await props.projectManager.listProjects({})
-                    const localProjects = result.result.projects
-                    assets = []
-                    for (const localProject of localProjects) {
-                        assets.push({
-                            type: backend.AssetType.project,
-                            title: localProject.name,
-                            id: localProject.id,
-                            parentId: '',
-                            permissions: [],
-                        })
-                    }
-                    break
-                }
-            }
+            const assets = await backendService.listDirectory({
+                parentId: directoryId,
+            })
             reactDom.unstable_batchedUpdates(() => {
                 setProjectAssets(assets.filter(backend.assetIsType(backend.AssetType.project)))
                 setDirectoryAssets(assets.filter(backend.assetIsType(backend.AssetType.directory)))

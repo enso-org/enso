@@ -1,7 +1,8 @@
 /** @file Container that launches the IDE. */
 import * as react from 'react'
 
-import * as service from '../service'
+import * as cloudService from '../service'
+import * as projectManagerService from '../projectManagerService'
 
 // =================
 // === Constants ===
@@ -14,8 +15,8 @@ const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
 // =================
 
 interface Props {
-    project: service.Project
-    backendService: service.Backend
+    project: cloudService.Project
+    backendService: cloudService.Backend | projectManagerService.Backend
 }
 
 /** Container that launches the IDE. */
@@ -32,7 +33,7 @@ function Ide({ project, backendService }: Props) {
         void (async () => {
             const ideVersion = (
                 await backendService.listVersions({
-                    versionType: service.VersionType.ide,
+                    versionType: cloudService.VersionType.ide,
                     default: true,
                 })
             )[0]
@@ -55,13 +56,13 @@ function Ide({ project, backendService }: Props) {
         void (async () => {
             const ideVersion = (
                 await backendService.listVersions({
-                    versionType: service.VersionType.ide,
+                    versionType: cloudService.VersionType.ide,
                     default: true,
                 })
             )[0]
             const backendVersion = (
                 await backendService.listVersions({
-                    versionType: service.VersionType.backend,
+                    versionType: cloudService.VersionType.backend,
                     default: true,
                 })
             )[0]

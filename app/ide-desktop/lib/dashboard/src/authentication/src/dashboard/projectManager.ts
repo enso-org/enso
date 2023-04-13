@@ -1,5 +1,5 @@
 /** @file This module defines the Project Manager endpoint. */
-import * as newtype from './newtype'
+import * as newtype from '../newtype'
 
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 
@@ -94,13 +94,50 @@ export interface ListSamplesParams {
 
 /** A WebSocket endpoint to the project manager. */
 export class ProjectManager {
+    static default = new ProjectManager(PROJECT_MANAGER_ENDPOINT)
+
     constructor(protected readonly connectionUrl: string) {}
 
-    static default() {
-        return new ProjectManager(PROJECT_MANAGER_ENDPOINT)
+    /** Open an existing project. */
+    public async openProject(params: OpenProjectParams): Promise<Result<OpenProject>> {
+        return this.sendRequest<OpenProject>('project/open', params)
     }
 
-    public async sendRequest<T = void>(method: string, params: unknown): Promise<Result<T>> {
+    /** Close an open project. */
+    public async closeProject(params: CloseProjectParams): Promise<Result<void>> {
+        return this.sendRequest('project/close', params)
+    }
+
+    /** Get the projects list, sorted by open time. */
+    public async listProjects(params: ListProjectsParams): Promise<Result<ProjectList>> {
+        return this.sendRequest<ProjectList>('project/list', params)
+    }
+
+    /** Create a new project. */
+    public async createProject(params: CreateProjectParams): Promise<Result<CreateProject>> {
+        return this.sendRequest<CreateProject>('project/create', {
+            missingComponentAction: MissingComponentAction.install,
+            ...params,
+        })
+    }
+
+    /** Rename a project. */
+    public async renameProject(params: RenameProjectParams): Promise<Result<void>> {
+        return this.sendRequest('project/rename', params)
+    }
+
+    /** Delete a project. */
+    public async deleteProject(params: DeleteProjectParams): Promise<Result<void>> {
+        return this.sendRequest('project/delete', params)
+    }
+
+    /** Get the list of sample projects that are available to the user. */
+    public async listSamples(params: ListSamplesParams): Promise<Result<ProjectList>> {
+        return this.sendRequest<ProjectList>('project/listSample', params)
+    }
+
+    /** Send a JSON-RPC request to the project manager. */
+    private async sendRequest<T = void>(method: string, params: unknown): Promise<Result<T>> {
         const req = {
             jsonrpc: '2.0',
             id: 0,
@@ -118,49 +155,9 @@ export class ProjectManager {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 resolve(JSON.parse(event.data))
             }
-            ws.onerror = error => {
-                reject(error)
-            }
+            ws.onerror = reject
         }).finally(() => {
             ws.close()
         })
-    }
-
-    /** * Open an existing project. */
-    public async openProject(params: OpenProjectParams): Promise<Result<OpenProject>> {
-        return this.sendRequest<OpenProject>('project/open', params)
-    }
-
-    /** * Close an open project. */
-    public async closeProject(params: CloseProjectParams): Promise<Result<void>> {
-        return this.sendRequest('project/close', params)
-    }
-
-    /** * Get the projects list, sorted by open time. */
-    public async listProjects(params: ListProjectsParams): Promise<Result<ProjectList>> {
-        return this.sendRequest<ProjectList>('project/list', params)
-    }
-
-    /** * Create a new project. */
-    public async createProject(params: CreateProjectParams): Promise<Result<CreateProject>> {
-        return this.sendRequest<CreateProject>('project/create', {
-            missingComponentAction: MissingComponentAction.install,
-            ...params,
-        })
-    }
-
-    /** * Rename a project. */
-    public async renameProject(params: RenameProjectParams): Promise<Result<void>> {
-        return this.sendRequest('project/rename', params)
-    }
-
-    /** * Delete a project. */
-    public async deleteProject(params: DeleteProjectParams): Promise<Result<void>> {
-        return this.sendRequest('project/delete', params)
-    }
-
-    /** * Get the list of sample projects that are available to the user. */
-    public async listSamples(params: ListSamplesParams): Promise<Result<ProjectList>> {
-        return this.sendRequest<ProjectList>('project/listSample', params)
     }
 }
