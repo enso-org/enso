@@ -50,3 +50,4 @@ Cargo.toml
 # Eslint configuration
 /app/ide-desktop/esbuild-plugin-copy-directories @somebody1234
 /app/ide-desktop/eslint.config.js @somebody1234
+/app/ide-desktop/utils.ts @somebody1234
