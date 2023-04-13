@@ -47,12 +47,10 @@ final class AnalyzeModuleInScopeJob(
       val newSuggestions = SuggestionBuilder(module.getSource.getCharacters)
         .build(moduleName, module.getIr)
         .filter(Suggestion.isGlobal)
-      val version     = ctx.versioning.evalVersion(module.getSource.getCharacters)
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(module.getName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        module  = moduleName.toString,
-        version = version,
+        module = moduleName.toString,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
         exports = ModuleExportsDiff.compute(prevExports, newExports),

@@ -114,7 +114,7 @@ impl VisualizationChooser {
             eval_ frp.hide_selection_menu ( menu.hide_selection_menu.emit(()) );
             eval  frp.set_menu_offset_y ((offset) menu.set_menu_offset_y.emit(offset) );
 
-            set_selected_ix <= frp.input.set_selected.map2(&frp.output.entries,|selected,entries|
+            set_selected_ix <= all_with(&frp.input.set_selected, &frp.output.entries, |selected,entries|
                 selected.as_ref().map(|s| entries.iter().position(|item| item == s))
             );
             eval set_selected_ix ((ix) menu.set_selected.emit(ix));

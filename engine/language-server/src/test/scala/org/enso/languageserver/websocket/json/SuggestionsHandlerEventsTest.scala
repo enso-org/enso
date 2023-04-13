@@ -24,7 +24,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("1"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -75,7 +74,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("2"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -127,7 +125,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("3"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -198,7 +195,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("4"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -293,7 +289,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("5"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -380,7 +375,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("6"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -500,7 +494,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("7"),
           Vector(),
           Vector(
             Api.ExportsUpdate(
@@ -544,7 +537,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("8"),
           Vector(
             Api.SuggestionsDatabaseAction.Clean(Suggestions.constructor.module)
           ),
