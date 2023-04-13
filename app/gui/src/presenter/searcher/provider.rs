@@ -133,7 +133,6 @@ impl ide_view::searcher::DocumentationProvider for Action {
                 Some(doc.unwrap_or_else(|| Self::doc_placeholder_for(&suggestion)))
             }
             Action::Example(example) => Some(example.documentation_html.clone()),
-            Action::ProjectManagement(_) => None,
         }
     }
 }
