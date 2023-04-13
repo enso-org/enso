@@ -23,9 +23,11 @@ function ChangePasswordModal() {
         if (newPassword !== confirmNewPassword) {
             toast.error('Passwords do not match.')
         } else {
-            await changePassword(oldPassword, newPassword)
+            const success = await changePassword(oldPassword, newPassword)
+            if (success) {
+                unsetModal()
+            }
         }
-        unsetModal()
     }
 
     return (
