@@ -83,6 +83,7 @@ spec =
             expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2", "bar_3"] expected_rows
             t2 = t.split_to_columns "bar" "b" column_count=4
             t2.should_equal_verbose expected
+            t2.at "bar_3" . value_type . is_text . should_be_true
 
         Test.specify "split should limit columns and return problems when exceeding the column limit" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
@@ -111,6 +112,7 @@ spec =
             expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2", "bar_3"] expected_rows
             t2 = t.split_to_columns "bar" "b" column_count=4
             t2.should_equal_verbose expected
+            t2.at "bar_3" . value_type . is_text . should_be_true
 
     Test.group "errors" <|
         Test.specify "won't work on a non-text column" <|
