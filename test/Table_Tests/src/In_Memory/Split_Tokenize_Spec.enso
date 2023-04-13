@@ -6,18 +6,9 @@ import Standard.Test.Extensions
 from Standard.Table import Table
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
 from Standard.Test import Test, Test_Suite, Problems
+from project.Util import all
 
 spec =
-    tables_equal t0 t1 =
-        same_headers = (t0.columns.map .name) == (t1.columns.map .name)
-        same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
-        same_headers && same_columns
-    tables_should_be_equal actual expected =
-        equal = tables_equal actual expected
-        if equal.not then
-            msg = 'Tables differ.\nActual:\n' + actual.display + '\nExpected:\n' + expected.display
-            Test.fail msg
-
     Test.group 'split' <|
         Test.specify 'can do split_to_columns' <|
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
@@ -25,7 +16,7 @@ spec =
             expected_rows = [[0, 'a', 'c', Nothing], [1, 'c', 'd', 'ef'], [2, 'gh', 'ij', 'u']]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
             t2 = t.split_to_columns 'bar' 'b'
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
         Test.specify 'can do split_to_rows' <|
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
@@ -33,7 +24,7 @@ spec =
             expected_rows = [[0, 'a'], [0, 'c'], [1, 'c'], [1, 'd'], [1, 'ef'], [2, 'gh'], [2, 'ij'], [2, 'u']]
             expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.split_to_rows 'bar' 'b'
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
     Test.group 'tokenize' <|
         Test.specify 'can do tokenize_to_columns' <|
@@ -42,7 +33,7 @@ spec =
             expected_rows = [[0, '12', '34', '5'], [1, '23', Nothing, Nothing], [2, '2', '4', '55']]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
             t2 = t.tokenize_to_columns 'bar' "\d+"
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
         Test.specify 'can do tokenize_to_rows' <|
             cols = [['foo', [0, 1, 2]], ['bar', ['a12b34r5', '23', '2r4r55']]]
@@ -50,7 +41,7 @@ spec =
             expected_rows = [[0, '12'], [0, '34'], [0, '5'], [1, '23'], [2, '2'], [2, '4'], [2, '55']]
             expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.tokenize_to_rows 'bar' "\d+"
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
         Test.specify "can do tokenize_to_columns with groups" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
@@ -58,7 +49,7 @@ spec =
             expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
             t2 = t.tokenize_to_columns 'bar' "([a-z]).(\d+)"
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
         Test.specify "can do tokenize_to_rows with groups" <|
             cols = [['foo', [0, 1]], ['bar', ['r a-1, b-12,qd-50', 'ab-10:bc-20c']]]
@@ -66,7 +57,7 @@ spec =
             expected_rows = [[0, 'a1'], [0, 'b12'], [0, 'd50'], [1, 'b10'], [1, 'c20']]
             expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.tokenize_to_rows 'bar' "([a-z]).(\d+)"
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
         Test.specify 'can do tokenize_to_columns case-insensitively' <|
             cols = [['foo', [0, 1, 2]], ['bar', ['aBqcE', 'qcBr', 'cCb']]]
@@ -74,7 +65,7 @@ spec =
             expected_rows = [[0, 'B', 'c', Nothing], [1, 'c', 'B', Nothing], [2, 'c', 'C', 'b']]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2'] expected_rows
             t2 = t.tokenize_to_columns 'bar' "[bc]" case_sensitivity=Case_Sensitivity.Insensitive
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
         Test.specify 'can do tokenize_to_rows case-insensitively' <|
             cols = [['foo', [0, 1, 2]], ['bar', ['aBqcE', 'qcBr', 'cCb']]]
@@ -82,7 +73,7 @@ spec =
             expected_rows = [[0, 'B'], [0, 'c'], [1, 'c'], [1, 'B'], [2, 'c'], [2, 'C'], [2, 'b']]
             expected = Table.from_rows ['foo', 'bar'] expected_rows
             t2 = t.tokenize_to_rows 'bar' "[bc]" case_sensitivity=Case_Sensitivity.Insensitive
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
     Test.group 'column count' <|
         Test.specify 'should generate extra empty columns if column_count is set' <|
@@ -91,7 +82,7 @@ spec =
             expected_rows = [[0, 'a', 'c', Nothing, Nothing], [1, 'c', 'd', 'ef', Nothing], [2, 'gh', 'ij', 'u', Nothing]]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2', 'bar_3'] expected_rows
             t2 = t.split_to_columns 'bar' 'b' column_count=4
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
         Test.specify "split should limit columns and return problems when exceeding the column limit" <|
             cols = [['foo', [0, 1, 2]], ['bar', ['abc', 'cbdbef', 'ghbijbu']]]
@@ -99,7 +90,7 @@ spec =
             expected_rows = [[0, 'a', 'c'], [1, 'c', 'd'], [2, 'gh', 'ij']]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1'] expected_rows
             action = t.split_to_columns 'bar' 'b' column_count=2 on_problems=_
-            tester = t-> tables_should_be_equal t expected
+            tester = t-> t.should_equal_verbose expected
             problems = [Column_Count_Exceeded.Error 2 3]
             Problems.test_problem_handling action problems tester
 
@@ -109,7 +100,7 @@ spec =
             expected_rows = [[0, 'a1', 'b12', 'd50'], [1, 'b10', 'c20', Nothing]]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1'] expected_rows
             action = t.tokenize_to_columns 'bar' "([a-z]).(\d+)" column_count=2 on_problems=_
-            tester = t-> tables_should_be_equal t expected
+            tester = t-> t.should_equal_verbose expected
             problems = [Column_Count_Exceeded.Error 2 3]
             Problems.test_problem_handling action problems tester
 
@@ -119,7 +110,7 @@ spec =
             expected_rows = [[0, 'gh', 'ij', 'u', Nothing], [1, 'c', 'd', 'ef', Nothing], [2, 'a', 'c', Nothing, Nothing]]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2', 'bar_3'] expected_rows
             t2 = t.split_to_columns 'bar' 'b' column_count=4
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
     Test.group 'errors' <|
         Test.specify "won't work on a non-text column" <|
@@ -155,7 +146,7 @@ spec =
             expected_rows = [[0, 'a', 'c', Nothing, 'a'], [1, 'c', 'd', 'ef', 'b'], [2, 'gh', 'ij', 'u', 'c']]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1_1', 'bar_2', 'bar_1'] expected_rows
             action = t.split_to_columns 'bar' 'b' on_problems=_
-            tester = t-> tables_should_be_equal t expected
+            tester = t-> t.should_equal_verbose expected
             problems = [Duplicate_Output_Column_Names.Error ['bar_1']]
             Problems.test_problem_handling action problems tester
 
@@ -166,6 +157,6 @@ spec =
             expected_rows = [[0, 'a', 'c', Nothing, 1], [1, 'c', 'd', 'ef', 2], [2, 'gh', 'ij', 'u', 3]]
             expected = Table.from_rows ['foo', 'bar_0', 'bar_1', 'bar_2', 'baz'] expected_rows
             t2 = t.split_to_columns 'bar' 'b'
-            tables_should_be_equal t2 expected
+            t2.should_equal_verbose expected
 
 main = Test_Suite.run_main spec
