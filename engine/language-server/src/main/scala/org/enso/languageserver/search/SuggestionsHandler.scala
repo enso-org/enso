@@ -687,48 +687,60 @@ object SuggestionsHandler {
     *
     * @param suggestionUpdatesQueue the queue containing suggestion update messages
     * @param suggestionLoadingQueue the queue containing notifications about loaded suggestions
-    * @param isSuggestionUpdatesRunning a flag for a running suggestion update action
-    * @param isSuggestionLoadingRunning a flag for a running suggestion loading action
-    * @param shouldStartBackgroundProcessing a flag for starting a background
+    * @param _isSuggestionUpdatesRunning a flag for a running suggestion update action
+    * @param _isSuggestionLoadingRunning a flag for a running suggestion loading action
+    * @param _shouldStartBackgroundProcessing a flag for starting a background
     * processing action
     */
   final private class State(
     val suggestionUpdatesQueue: mutable.Queue[Any] = mutable.Queue.empty,
     val suggestionLoadingQueue: mutable.Queue[
       Api.SuggestionsDatabaseSuggestionsLoadedNotification
-    ]                                            = mutable.Queue.empty,
-    var isSuggestionUpdatesRunning: Boolean      = false,
-    var isSuggestionLoadingRunning: Boolean      = false,
-    var shouldStartBackgroundProcessing: Boolean = true
+    ]                                                     = mutable.Queue.empty,
+    private var _isSuggestionUpdatesRunning: Boolean      = false,
+    private var _isSuggestionLoadingRunning: Boolean      = false,
+    private var _shouldStartBackgroundProcessing: Boolean = true
   ) {
+
+    /** @return `true` if suggestion updates actions are in progress. */
+    def isSuggestionUpdatesRunning: Boolean =
+      _isSuggestionUpdatesRunning
 
     /** @return the new state with the suggestion updates running. */
     def suggestionUpdatesRunning(): State = {
-      isSuggestionUpdatesRunning = true
+      _isSuggestionUpdatesRunning = true
       this
     }
 
     /** @return the new state with the suggestion updates completed. */
     def suggestionUpdatesComplete(): State = {
-      isSuggestionUpdatesRunning = false
+      _isSuggestionUpdatesRunning = false
       this
     }
 
+    /** @return `true` if suggestion loading actions are in progress. */
+    def isSuggestionLoadingRunning: Boolean =
+      _isSuggestionLoadingRunning
+
     /** @return the new state with the suggestion loading running. */
     def suggestionLoadingRunning(): State = {
-      isSuggestionLoadingRunning = true
+      _isSuggestionLoadingRunning = true
       this
     }
 
     /** @return the new state with the suggestion loading completed. */
     def suggestionLoadingComplete(): State = {
-      isSuggestionLoadingRunning = false
+      _isSuggestionLoadingRunning = false
       this
     }
 
+    /** @return `true` if the background processing was not started. */
+    def shouldStartBackgroundProcessing: Boolean =
+      _shouldStartBackgroundProcessing
+
     /** @return the new state with the background processing started. */
     def backgroundProcessingStarted(): State = {
-      shouldStartBackgroundProcessing = false
+      _shouldStartBackgroundProcessing = false
       this
     }
   }
