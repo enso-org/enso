@@ -240,7 +240,23 @@ impl LoopRegistry {
     }
 
     fn add_animation_callback(&self, callback: impl AnimationCallback) -> callback::Handle {
-        self.animations_callbacks.add(callback)
+        self.animations_callbacks.add(create_callback_wrapper(callback))
+    }
+}
+
+fn create_callback_wrapper(mut callback: impl AnimationCallback) -> impl AnimationCallback {
+    let mut loop_start_time: Option<Duration> = None;
+    move |time: FixedFrameRateStep<TimeInfo>| {
+        let local_time = time.map(|mut time| {
+            let start_time = loop_start_time.unwrap_or_else(|| {
+                let start_time = time.since_animation_loop_started - time.previous_frame;
+                loop_start_time = Some(start_time);
+                start_time
+            });
+            time.since_animation_loop_started = time.since_animation_loop_started - start_time;
+            time
+        });
+        callback(local_time)
     }
 }
 

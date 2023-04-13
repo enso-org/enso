@@ -31,7 +31,7 @@ pub type AnimationSimulator<T> = inertia::DynSimulator<mix::Repr<T>>;
 /// target value so that the animation is considered finished. The value is set to 1.0 because in
 /// most cases the animation is used for pixel values, where 1 pixel distance from target is small
 /// enough to be snapped.
-pub const DEFAULT_PRECISION: f32 = 0.001;
+pub const DEFAULT_PRECISION: f32 = 1.0;
 
 /// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
 /// is computed, it is emitted via the endpoint.
