@@ -221,8 +221,6 @@ export default [
                 BUNDLED_ENGINE_VERSION: true,
                 PROJECT_MANAGER_IN_BUNDLE_PATH: true,
                 BUILD_INFO: true,
-                // Used in `lib/copy-plugin/src/index.mjs`.
-                AsyncGenerator: true,
             },
         },
         rules: {

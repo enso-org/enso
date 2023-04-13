@@ -1,14 +1,14 @@
 /** @file Container responsible for rendering and interactions in second half of forgot password
  * flow. */
+import * as react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as common from './common'
-import * as hooks from '../../hooks'
-import * as icons from '../../components/svg'
-import * as utils from '../../utils'
+import * as svg from '../../components/svg'
+import Input from './input'
+import SvgIcon from './svgIcon'
 
 // =================
 // === Constants ===
@@ -29,10 +29,10 @@ function ResetPassword() {
 
     const { verificationCode: initialCode, email: initialEmail } = parseUrlSearchParams(search)
 
-    const [email, bindEmail] = hooks.useInput(initialEmail ?? '')
-    const [code, bindCode] = hooks.useInput(initialCode ?? '')
-    const [newPassword, bindNewPassword] = hooks.useInput('')
-    const [newPasswordConfirm, bindNewPasswordConfirm] = hooks.useInput('')
+    const [email, setEmail] = react.useState(initialEmail ?? '')
+    const [code, setCode] = react.useState(initialCode ?? '')
+    const [newPassword, setNewPassword] = react.useState('')
+    const [newPasswordConfirm, setNewPasswordConfirm] = react.useState('')
 
     const handleSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
@@ -55,7 +55,12 @@ function ResetPassword() {
                     Reset Your Password
                 </div>
                 <div className="mt-10">
-                    <form onSubmit={utils.handleEvent(handleSubmit)}>
+                    <form
+                        onSubmit={async event => {
+                            event.preventDefault()
+                            await handleSubmit()
+                        }}
+                    >
                         <div className="flex flex-col mb-6">
                             <label
                                 htmlFor="email"
@@ -64,14 +69,15 @@ function ResetPassword() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.at} />
+                                <SvgIcon svg={svg.AT} />
 
-                                <common.Input
-                                    {...bindEmail}
+                                <Input
                                     id="email"
                                     type="email"
                                     name="email"
                                     placeholder="E-Mail Address"
+                                    value={email}
+                                    setValue={setEmail}
                                 />
                             </div>
                         </div>
@@ -83,14 +89,15 @@ function ResetPassword() {
                                 Confirmation Code:
                             </label>
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.lock} />
+                                <SvgIcon svg={svg.LOCK} />
 
-                                <common.Input
-                                    {...bindCode}
+                                <Input
                                     id="code"
                                     type="text"
                                     name="code"
                                     placeholder="Confirmation Code"
+                                    value={code}
+                                    setValue={setCode}
                                 />
                             </div>
                         </div>
@@ -102,14 +109,15 @@ function ResetPassword() {
                                 New Password:
                             </label>
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.lock} />
+                                <SvgIcon svg={svg.LOCK} />
 
-                                <common.Input
-                                    {...bindNewPassword}
+                                <Input
                                     id="new_password"
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
+                                    value={newPassword}
+                                    setValue={setNewPassword}
                                 />
                             </div>
                         </div>
@@ -121,14 +129,15 @@ function ResetPassword() {
                                 Confirm New Password:
                             </label>
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.lock} />
+                                {svg.LOCK}
 
-                                <common.Input
-                                    {...bindNewPasswordConfirm}
+                                <Input
                                     id="new_password_confirm"
                                     type="password"
                                     name="new_password_confirm"
                                     placeholder="Confirm New Password"
+                                    value={newPasswordConfirm}
+                                    setValue={setNewPasswordConfirm}
                                 />
                             </div>
                         </div>
@@ -142,9 +151,7 @@ function ResetPassword() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Reset</span>
-                                <span>
-                                    <icons.Svg data={icons.PATHS.rightArrow} />
-                                </span>
+                                <span>{svg.RIGHT_ARROW}</span>
                             </button>
                         </div>
                     </form>
@@ -157,9 +164,7 @@ function ResetPassword() {
                             'text-center'
                         }
                     >
-                        <span>
-                            <icons.Svg data={icons.PATHS.goBack} />
-                        </span>
+                        <span>{svg.GO_BACK}</span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
                 </div>
