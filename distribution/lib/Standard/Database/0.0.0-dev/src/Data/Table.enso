@@ -1394,7 +1394,7 @@ type Table
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.
-       The new columns will be named with the name of the input with a
+       The new columns will be named with the name of the input column with a
        incrementing number after.
 
        Arguments:
