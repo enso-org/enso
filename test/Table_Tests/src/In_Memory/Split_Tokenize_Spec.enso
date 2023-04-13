@@ -142,12 +142,22 @@ spec =
             t.tokenize_to_rows "invalid_name" "([a-z]).(\d+)" . should_fail_with Missing_Input_Columns
 
     Test.group "Table.split/tokenize name conflicts" <|
-        Test.specify "will make column names unique" <|
+        Test.specify "split will make column names unique" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]], ["bar_1", ["a", "b", "c"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing, "a"], [1, "c", "d", "ef", "b"], [2, "gh", "ij", "u", "c"]]
             expected = Table.from_rows ["foo", "bar_0", "bar_1_1", "bar_2", "bar_1"] expected_rows
             action = t.split_to_columns "bar" "b" on_problems=_
+            tester = t-> t.should_equal_verbose expected
+            problems = [Duplicate_Output_Column_Names.Error ["bar_1"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "tokenize will make column names unique" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]], ["bar_1", ["a", "b", "c"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12", "34", "5", "a"], [1, "23", Nothing, Nothing, "b"], [2, "2", "4", "55", "c"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1_1", "bar_2", "bar_1"] expected_rows
+            action = t.tokenize_to_columns "bar" "\d+"  on_problems=_
             tester = t-> t.should_equal_verbose expected
             problems = [Duplicate_Output_Column_Names.Error ["bar_1"]]
             Problems.test_problem_handling action problems tester
