@@ -37,6 +37,7 @@ const INFINITE: f32 = 99999.0;
 mod background {
     use super::*;
     ensogl_core::shape! {
+        alignment = center;
         (style:Style) {
             let width  : Var<Pixels> = MARK_WIDTH.px();
             let height : Var<Pixels> = INFINITE.px();
@@ -75,7 +76,7 @@ impl component::Frp<Model> for Frp {
         model: &Model,
         _style: &StyleWatchFrp,
     ) {
-        let background = &model.background.events;
+        let background = &model.background.events_deprecated;
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
 

@@ -4,7 +4,8 @@ import project.System.File.File
 ## Functionality for inspecting the current project.
 @Builtin_Type
 type Project_Description
-    ## A representation of an Enso project.
+    ## PRIVATE
+       A representation of an Enso project.
 
        Arguments:
        - prim_root_file: The primitive root file of the project.

@@ -16,9 +16,9 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 /** This must be port `8081` because it is defined as such in AWS. */
 const PORT = 8081
 const HTTP_STATUS_OK = 200
-// `assetsPath` and `outputPath` do not have to be real directories because `write` is `false`,
+// `outputPath` does not have to be a real directory because `write` is `false`,
 // meaning that files will not be written to the filesystem.
-// However, they should still have non-empty paths in order for `esbuild.serve` to work properly.
+// However, the path should still be non-empty in order for `esbuild.serve` to work properly.
 const ARGS: bundler.Arguments = { outputPath: '/', devMode: true }
 const OPTS = bundler.bundlerOptions(ARGS)
 OPTS.entryPoints.push(
@@ -27,6 +27,8 @@ OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.write = false
+// eslint-disable-next-line @typescript-eslint/naming-convention
+OPTS.loader = { '.html': 'copy' }
 
 // ===============
 // === Watcher ===

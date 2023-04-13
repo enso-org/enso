@@ -1,21 +1,21 @@
 /** @file Container responsible for rendering and interactions in setting username flow, after
  * registration. */
+import * as react from 'react'
 
 import * as auth from '../providers/auth'
-import * as common from './common'
-import * as hooks from '../../hooks'
-import * as icons from '../../components/svg'
-import * as utils from '../../utils'
+import * as svg from '../../components/svg'
+import Input from './input'
+import SvgIcon from './svgIcon'
 
 // ===================
 // === SetUsername ===
 // ===================
 
 function SetUsername() {
-    const { setUsername } = auth.useAuth()
+    const { setUsername: authSetUsername } = auth.useAuth()
     const { accessToken, email } = auth.usePartialUserSession()
 
-    const [username, bindUsername] = hooks.useInput('')
+    const [username, setUsername] = react.useState('')
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -30,20 +30,22 @@ function SetUsername() {
                 </div>
                 <div className="mt-10">
                     <form
-                        onSubmit={utils.handleEvent(() =>
-                            setUsername(accessToken, username, email)
-                        )}
+                        onSubmit={async event => {
+                            event.preventDefault()
+                            await authSetUsername(accessToken, username, email)
+                        }}
                     >
                         <div className="flex flex-col mb-6">
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.at} />
+                                <SvgIcon svg={svg.AT} />
 
-                                <common.Input
-                                    {...bindUsername}
+                                <Input
                                     id="username"
                                     type="text"
                                     name="username"
                                     placeholder="Username"
+                                    value={username}
+                                    setValue={setUsername}
                                 />
                             </div>
                         </div>
@@ -57,9 +59,7 @@ function SetUsername() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Set username</span>
-                                <span>
-                                    <icons.Svg data={icons.PATHS.rightArrow} />
-                                </span>
+                                <span>{svg.RIGHT_ARROW}</span>
                             </button>
                         </div>
                     </form>

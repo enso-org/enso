@@ -187,6 +187,7 @@ pub mod overlay {
     use super::*;
 
     ensogl_core::shape! {
+        alignment = center;
         (style:Style, corner_radius: f32) {
             let size = Var::canvas_size();
             Rect(size).corners_radius(corner_radius.px()).fill(INVISIBLE_HOVER_COLOR).into()
@@ -206,6 +207,7 @@ pub mod shape {
 
     ensogl_core::shape! {
         below = [overlay, highlight::shape];
+        alignment = center;
         (style:Style, corner_radius: f32, color: Vector4) {
             let size = Var::canvas_size();
             Rect(size).corners_radius(corner_radius.px()).fill(color).into()

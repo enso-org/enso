@@ -9,6 +9,9 @@ use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
+use double_representation::context_switch::Context;
+use double_representation::context_switch::ContextSwitch;
+use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
@@ -16,6 +19,7 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+use view::graph_editor::ExecutionEnvironment;
 use view::graph_editor::WidgetUpdates;
 
 
@@ -79,13 +83,15 @@ pub fn default_node_position() -> Vector2 {
 
 #[derive(Debug)]
 struct Model {
-    project:          model::Project,
-    controller:       controller::ExecutedGraph,
-    view:             view::graph_editor::GraphEditor,
-    state:            Rc<State>,
-    _visualization:   Visualization,
-    widget:           controller::Widget,
-    _execution_stack: CallStack,
+    project:               model::Project,
+    controller:            controller::ExecutedGraph,
+    view:                  view::graph_editor::GraphEditor,
+    state:                 Rc<State>,
+    _visualization:        Visualization,
+    widget:                controller::Widget,
+    _execution_stack:      CallStack,
+    // TODO(#5930): Move me once we synchronise the execution environment with the language server.
+    execution_environment: Rc<Cell<ExecutionEnvironment>>,
 }
 
 impl Model {
@@ -112,6 +118,7 @@ impl Model {
             _visualization: visualization,
             widget,
             _execution_stack: execution_stack,
+            execution_environment: Default::default(),
         }
     }
 
@@ -143,12 +150,6 @@ impl Model {
         );
     }
 
-    /// Node expression was edited in the view. Should be called whenever the user changes the
-    /// contents of a node during editing.
-    fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
-        self.state.update_from_view().set_node_expression(id, expression);
-    }
-
     /// Update a part of node expression under specific span tree crumbs. Preserves identity of
     /// unaffected parts of the expression.
     fn node_expression_span_set(
@@ -166,6 +167,43 @@ impl Model {
                 Some(graph.set_expression_span(ast_id, crumbs, expression, &self.controller))
             },
             "update expression input span",
+        );
+    }
+
+    /// Sets or clears a context switch expression for the specified node.
+    ///
+    /// A context switch expression allows enabling or disabling the execution of a particular node
+    /// in the Output context. This function adds or removes the context switch expression based on
+    /// the provided `active` flag (representing the state of the icon) and the current context
+    /// state.
+    ///
+    /// The behavior of this function can be summarized in the following table:
+    /// ```ignore
+    /// | Global Context Permission | Active      | Action       |
+    /// |---------------------------|-------------|--------------|
+    /// | Enabled                   | Yes         | Add Disable  |
+    /// | Enabled                   | No          | Clear        |
+    /// | Disabled                  | Yes         | Add Enable   |
+    /// | Disabled                  | No          | Clear        |
+    /// ```
+    fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
+        let context = Context::Output;
+        let environment = self.execution_environment.get();
+        let current_state = environment.output_context_enabled();
+        let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
+        let expr = if active {
+            let environment_name = environment.to_string().into();
+            Some(ContextSwitchExpression { switch, context, environment: environment_name })
+        } else {
+            None
+        };
+        self.log_action(
+            || {
+                let ast_id =
+                    self.state.update_from_view().set_node_context_switch(id, expr.clone())?;
+                Some(self.controller.graph().set_node_context_switch(ast_id, expr))
+            },
+            "node context switch expression",
         );
     }
 
@@ -455,6 +493,15 @@ impl Model {
             }
         }
     }
+
+    fn toggle_execution_environment(&self) -> ExecutionEnvironment {
+        let new_environment = match self.execution_environment.get() {
+            ExecutionEnvironment::Live => ExecutionEnvironment::Design,
+            ExecutionEnvironment::Design => ExecutionEnvironment::Live,
+        };
+        self.execution_environment.set(new_environment);
+        new_environment
+    }
 }
 
 
@@ -467,26 +514,41 @@ impl Model {
 
 /// Helper struct storing information about node's expression updates.
 /// Includes not only the updated expression, but also an information about `SKIP` and
-/// `FREEZE` macros updates.
+/// `FREEZE` macros updates, and also execution context updates.
 #[derive(Clone, Debug, Default)]
 struct ExpressionUpdate {
-    id:             ViewNodeId,
-    expression:     node_view::Expression,
-    skip_updated:   Option<bool>,
-    freeze_updated: Option<bool>,
+    id:                     ViewNodeId,
+    expression:             node_view::Expression,
+    skip_updated:           Option<bool>,
+    freeze_updated:         Option<bool>,
+    context_switch_updated: Option<Option<ContextSwitchExpression>>,
 }
 
 impl ExpressionUpdate {
+    /// The updated expression.
     fn expression(&self) -> (ViewNodeId, node_view::Expression) {
         (self.id, self.expression.clone())
     }
 
+    /// An updated status of `SKIP` macro. `None` if the status was not updated.
     fn skip(&self) -> Option<(ViewNodeId, bool)> {
         self.skip_updated.map(|skip| (self.id, skip))
     }
 
+    /// An updated status of `FREEZE` macro. `None` if the status was not updated.
     fn freeze(&self) -> Option<(ViewNodeId, bool)> {
         self.freeze_updated.map(|freeze| (self.id, freeze))
+    }
+
+    /// An updated status of output context switch: `true` (or `false`) if the output context was
+    /// explicitly enabled (or disabled) for the node, `None` otherwise. The outer `Option` is
+    /// `None` if the status was not updated.
+    fn output_context(&self) -> Option<(ViewNodeId, Option<bool>)> {
+        self.context_switch_updated.as_ref().map(|context_switch_expr| {
+            let switch =
+                context_switch_expr.as_ref().map(|expr| expr.switch == ContextSwitch::Enable);
+            (self.id, switch)
+        })
     }
 }
 
@@ -542,7 +604,14 @@ impl ViewUpdate {
                 if let Some((id, expression)) = change.set_node_expression(node, trees) {
                     let skip_updated = change.set_node_skip(node);
                     let freeze_updated = change.set_node_freeze(node);
-                    Some(ExpressionUpdate { id, expression, skip_updated, freeze_updated })
+                    let context_switch_updated = change.set_node_context_switch(node);
+                    Some(ExpressionUpdate {
+                        id,
+                        expression,
+                        skip_updated,
+                        freeze_updated,
+                        context_switch_updated,
+                    })
                 } else {
                     None
                 }
@@ -649,6 +718,14 @@ impl Graph {
             }));
 
 
+            // === Execution Environment ===
+
+            // TODO(#5930): Delete me once we synchronise the execution environment with the
+            // language server.
+            view.set_execution_environment <+ view.toggle_execution_environment.map(
+                f_!(model.toggle_execution_environment()));
+
+
             // === Refreshing Nodes ===
 
             remove_node <= update_data.map(|update| update.remove_nodes());
@@ -656,6 +733,7 @@ impl Graph {
             update_node_expression <- expression_update.map(ExpressionUpdate::expression);
             set_node_skip <- expression_update.filter_map(ExpressionUpdate::skip);
             set_node_freeze <- expression_update.filter_map(ExpressionUpdate::freeze);
+            set_node_context_switch <- expression_update.filter_map(ExpressionUpdate::output_context);
             set_node_position <= update_data.map(|update| update.set_node_positions());
             set_node_visualization <= update_data.map(|update| update.set_node_visualizations());
             enable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_some().as_some(*id));
@@ -664,6 +742,7 @@ impl Graph {
             view.set_node_expression <+ update_node_expression;
             view.set_node_skip <+ set_node_skip;
             view.set_node_freeze <+ set_node_freeze;
+            view.set_node_context_switch <+ set_node_context_switch;
             view.set_node_position <+ set_node_position;
             view.set_visualization <+ set_node_visualization;
             view.enable_visualization <+ enable_vis;
@@ -709,8 +788,8 @@ impl Graph {
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
-            eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone_ref()));
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
+            eval view.node_action_context_switch(((node_id, active)) model.node_action_context_switch(*node_id, *active));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
             eval view.request_import((import_path) model.add_import_if_missing(import_path));

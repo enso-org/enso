@@ -8,7 +8,6 @@
  * included in the final bundle. */
 // It is safe to disable `no-restricted-syntax` because the `PascalCase` naming is required
 // as per the above comment.
-// @ts-expect-error See above comment for why this import is needed.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
@@ -21,7 +20,7 @@ import App, * as app from './components/app'
 // =================
 
 /** The `id` attribute of the root element that the app will be rendered into. */
-const ROOT_ELEMENT_ID = 'dashboard'
+const ROOT_ELEMENT_ID = 'enso-dashboard'
 /** The `id` attribute of the element that the IDE will be rendered into. */
 const IDE_ELEMENT_ID = 'root'
 

@@ -7,12 +7,13 @@ import Standard.Base.Metadata.Display
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 
+import project.Connection.Connection.Connection
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Type.SQL_Type
-import project.Internal.JDBC_Connection
 import project.Data.Dialect
-import project.Connection.Connection.Connection
 import project.Data.Table.Table as Database_Table
+import project.Internal.JDBC_Connection
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 import project.Data.SQL_Statement.SQL_Statement
 from project.Errors import SQL_Error
@@ -105,26 +106,6 @@ type SQLite_Connection
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing = self.connection.read query limit
-
-    ## PRIVATE
-       Internal read function for a statement with optional types.
-
-       Arguments:
-       - statement: SQL_Statement to execute.
-       - expected_types: Optional vector of expected types for each column.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
-    read_statement self statement expected_types=Nothing =
-        self.connection.read_statement statement expected_types
-
-    ## PRIVATE
-       Internal read function for a statement with optional types returning just last row.
-
-       Arguments:
-       - statement: SQL_Statement to execute.
-       - expected_types: Optional vector of expected types for each column.
-    read_last_row : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
-    read_last_row self statement expected_types=Nothing =
-        self.connection.read_last_row statement expected_types
 
     ## ADVANCED
 

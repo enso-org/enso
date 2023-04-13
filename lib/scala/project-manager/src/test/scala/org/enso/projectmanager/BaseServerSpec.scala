@@ -53,7 +53,7 @@ import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.interop.catz.core._
-import zio.{Runtime, Semaphore, ZEnv, ZIO}
+import zio.{Runtime, Semaphore, ZAny, ZIO}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -95,13 +95,13 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     )
 
   val testClock =
-    new ProgrammableClock[ZEnv](OffsetDateTime.now(ZoneOffset.UTC))
+    new ProgrammableClock[ZAny](OffsetDateTime.now(ZoneOffset.UTC))
 
   def getGeneratedUUID: UUID = {
     Await.result(Future(gen.takeFirst())(system.dispatcher), 3.seconds.dilated)
   }
 
-  lazy val gen = new ObservableGenerator[ZEnv]()
+  lazy val gen = new ObservableGenerator[ZAny]()
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
@@ -131,7 +131,9 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   lazy val fileSystem = new BlockingFileSystem(5.seconds)
 
   lazy val storageSemaphore =
-    Runtime.default.unsafeRun(Semaphore.make(1))
+    zio.Unsafe.unsafe { implicit unsafe =>
+      Runtime.default.unsafe.run(Semaphore.make(1)).getOrThrow()
+    }
 
   lazy val projectRepository =
     new ProjectFileRepository(
@@ -141,7 +143,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       gen
     )
 
-  lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
+  lazy val projectValidator = new MonadicProjectValidator[ZIO[ZAny, *, *]]()
 
   val distributionConfiguration =
     TestDistributionConfiguration(
@@ -169,10 +171,10 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     )
 
   lazy val shutdownHookActivator =
-    system.actorOf(ShutdownHookActivator.props[ZIO[ZEnv, +*, +*]]())
+    system.actorOf(ShutdownHookActivator.props[ZIO[ZAny, +*, +*]]())
 
   lazy val languageServerGateway =
-    new LanguageServerGatewayImpl[ZIO[ZEnv, +*, +*]](
+    new LanguageServerGatewayImpl[ZIO[ZAny, +*, +*]](
       languageServerRegistry,
       shutdownHookActivator,
       system,
@@ -180,22 +182,22 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     )
 
   lazy val projectCreationService =
-    new ProjectCreationService[ZIO[ZEnv, +*, +*]](
+    new ProjectCreationService[ZIO[ZAny, +*, +*]](
       distributionConfiguration,
       loggingService
     )
 
-  lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
+  lazy val globalConfigService = new GlobalConfigService[ZIO[ZAny, +*, +*]](
     distributionConfiguration
   )
 
   lazy val projectService =
-    new ProjectService[ZIO[ZEnv, +*, +*]](
+    new ProjectService[ZIO[ZAny, +*, +*]](
       projectValidator,
       projectRepository,
       projectCreationService,
       globalConfigService,
-      new Slf4jLogging[ZIO[ZEnv, +*, +*]],
+      new Slf4jLogging[ZIO[ZAny, +*, +*]],
       testClock,
       gen,
       languageServerGateway,
@@ -203,12 +205,12 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     )
 
   lazy val runtimeVersionManagementService =
-    new RuntimeVersionManagementService[ZIO[ZEnv, +*, +*]](
+    new RuntimeVersionManagementService[ZIO[ZAny, +*, +*]](
       distributionConfiguration
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
+    new ManagerClientControllerFactory[ZIO[ZAny, +*, +*]](
       system                          = system,
       projectService                  = projectService,
       globalConfigService             = globalConfigService,
@@ -295,7 +297,9 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       version,
       forceInstallBroken = false
     )
-    Runtime.default.unsafeRun(installAction)
+    zio.Unsafe.unsafe { implicit unsafe =>
+      Runtime.default.unsafe.run(installAction)
+    }
   }
 
   def uninstallEngine(version: SemVer): Unit = {
@@ -304,7 +308,9 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       blackhole,
       version
     )
-    Runtime.default.unsafeRun(action)
+    zio.Unsafe.unsafe { implicit unsafe =>
+      Runtime.default.unsafe.run(action)
+    }
   }
 
   def uninstallRuntime(graalVMVersion: GraalVMVersion): Unit = {

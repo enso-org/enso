@@ -1952,7 +1952,7 @@ class RuntimeServerTest
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, xId, ConstantsGen.FUNCTION_BUILTIN),
+      TestMessages.update(contextId, xId, ConstantsGen.FUNCTION),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -2521,7 +2521,7 @@ class RuntimeServerTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -2572,7 +2572,8 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All())
+          Some(Api.InvalidatedExpressions.All()),
+          None
         )
       )
     )
@@ -2638,7 +2639,8 @@ class RuntimeServerTest
           contextId,
           Some(
             Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
-          )
+          ),
+          None
         )
       )
     )
@@ -2648,6 +2650,77 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "recompute expressions changing an execution environment" in {
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // recompute
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All()),
+          Some(Api.ExecutionEnvironment.Live())
+        )
+      )
+    )
+    context.receiveN(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.pending(
+        contextId,
+        context.Main.idMainX,
+        context.Main.idMainY,
+        context.Main.idMainZ,
+        context.Main.idFooY,
+        context.Main.idFooZ
+      ),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
   }
 
   it should "return error when module not found" in {
@@ -3604,7 +3677,7 @@ class RuntimeServerTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -3662,13 +3735,33 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo"))
+    val renameProjectResponses = context.receiveN(6)
+    renameProjectResponses should contain allOf (
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      context.Main.Update.mainX(contextId),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+      ),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
     )
+    renameProjectResponses.collect {
+      case Api.Response(
+            _,
+            notification: Api.SuggestionsDatabaseModuleUpdateNotification
+          ) =>
+        notification.module shouldEqual moduleName
+        notification.actions should contain theSameElementsAs Vector(
+          Api.SuggestionsDatabaseAction.Clean(moduleName)
+        )
+    }
 
     // recompute existing stack
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -3681,7 +3774,8 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All())
+          Some(Api.InvalidatedExpressions.All()),
+          None
         )
       )
     )
@@ -3704,6 +3798,111 @@ class RuntimeServerTest
       ),
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
+    )
+  }
+
+  it should "push and pop functions after renaming the project" in {
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // rename Test -> Foo
+    context.pkg.rename("Foo")
+    context.send(
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+    )
+    val renameProjectResponses = context.receiveN(6)
+    renameProjectResponses should contain allOf (
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      context.Main.Update.mainX(contextId),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+      ),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+    renameProjectResponses.collect {
+      case Api.Response(
+            _,
+            notification: Api.SuggestionsDatabaseModuleUpdateNotification
+          ) =>
+        notification.module shouldEqual moduleName
+        notification.actions should contain theSameElementsAs Vector(
+          Api.SuggestionsDatabaseAction.Clean(moduleName)
+        )
+    }
+
+    // push foo call
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // pop foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        context.Main.idMainY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo"),
+        fromCache = true
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // pop main
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+
+    // pop empty stack
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.EmptyStackError(contextId))
     )
   }
 
@@ -4089,6 +4288,82 @@ class RuntimeServerTest
       TestMessages.update(contextId, res, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "set execution environment" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idX      = metadata.addItem(46, 14)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = "Hello World!"
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idX, ConstantsGen.TEXT),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
+
+    // set execution environment
+    context.send(
+      Api.Request(
+        requestId,
+        Api.SetExecutionEnvironmentRequest(
+          contextId,
+          Api.ExecutionEnvironment.Live()
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId)),
+      TestMessages.update(contextId, idX, ConstantsGen.TEXT),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Live()
+      .name
   }
 
 }

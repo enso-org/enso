@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use crate::config::ProjectToOpen;
 use crate::controller::ide::ManagingProjectAPI;
 use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
@@ -53,10 +54,11 @@ impl Handle {
     /// Screen.
     pub async fn new(
         project_manager: Rc<dyn project_manager::API>,
-        project_name: Option<ProjectName>,
+        project_to_open: Option<ProjectToOpen>,
     ) -> FallibleResult<Self> {
-        let project = match project_name {
-            Some(name) => Some(Self::init_project_model(project_manager.clone_ref(), name).await?),
+        let project = match project_to_open {
+            Some(project_to_open) =>
+                Some(Self::init_project_model(project_manager.clone_ref(), project_to_open).await?),
             None => None,
         };
         Ok(Self::new_with_project_model(project_manager, project))
@@ -86,12 +88,12 @@ impl Handle {
     /// Open project with provided name.
     async fn init_project_model(
         project_manager: Rc<dyn project_manager::API>,
-        project_name: ProjectName,
+        project_to_open: ProjectToOpen,
     ) -> FallibleResult<model::Project> {
         // TODO[ao]: Reuse of initializer used in previous code design. It should be soon replaced
         //      anyway, because we will soon resign from the "open or create" approach when opening
         //      IDE. See https://github.com/enso-org/ide/issues/1492 for details.
-        let initializer = initializer::WithProjectManager::new(project_manager, project_name);
+        let initializer = initializer::WithProjectManager::new(project_manager, project_to_open);
         let model = initializer.initialize_project_model().await?;
         Ok(model)
     }

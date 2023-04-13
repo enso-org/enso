@@ -19,6 +19,7 @@ import * as common from 'enso-common'
 
 import * as paths from './paths.js'
 import signArchivesMacOs from './tasks/signArchivesMacOs.js'
+import { BUNDLED_PROJECT_EXTENSION, SOURCE_FILE_EXTENSION } from './file-associations.js'
 
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
@@ -156,8 +157,13 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         ],
         fileAssociations: [
             {
-                ext: 'enso',
-                name: 'Enso Source File',
+                ext: SOURCE_FILE_EXTENSION,
+                name: `${common.PRODUCT_NAME} Source File`,
+                role: 'Editor',
+            },
+            {
+                ext: BUNDLED_PROJECT_EXTENSION,
+                name: `${common.PRODUCT_NAME} Project Bundle`,
                 role: 'Editor',
             },
         ],
@@ -238,8 +244,6 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             }
         },
 
-        // Third-party API specifies `null`, not `undefined`.
-        // eslint-disable-next-line no-restricted-syntax
         publish: null,
     }
 }
@@ -261,4 +265,8 @@ export async function buildPackage(passedArgs: Arguments) {
     console.log('Building with configuration:', cliOpts)
     const result = await electronBuilder.build(cliOpts)
     console.log('Electron Builder is done. Result:', result)
+    // FIXME: https://github.com/enso-org/enso/issues/6082
+    // This is workaround which fixes esbuild freezing after successfully finishing the electronBuilder.build.
+    // It's safe to exit(0) since all processes are finished.
+    process.exit(0)
 }

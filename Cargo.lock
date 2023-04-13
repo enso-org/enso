@@ -2752,6 +2752,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-built-in-shapes"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-cached-shape"
 version = "0.1.0"
 dependencies = [
@@ -2842,6 +2851,18 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "itertools",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-instance-ordering"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "getrandom 0.2.8",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rand_distr",
  "wasm-bindgen",
 ]
 
@@ -2971,11 +2992,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-vector-editor"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
  "ensogl-example-animation",
  "ensogl-example-auto-layout",
+ "ensogl-example-built-in-shapes",
  "ensogl-example-cached-shape",
  "ensogl-example-complex-shape-system",
  "ensogl-example-custom-shape-system",
@@ -2985,6 +3016,7 @@ dependencies = [
  "ensogl-example-easing-animator",
  "ensogl-example-focus-management",
  "ensogl-example-grid-view",
+ "ensogl-example-instance-ordering",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
  "ensogl-example-profiling-run-graph",
@@ -2994,6 +3026,7 @@ dependencies = [
  "ensogl-example-sprite-system",
  "ensogl-example-sprite-system-benchmark",
  "ensogl-example-text-area",
+ "ensogl-example-vector-editor",
 ]
 
 [[package]]
@@ -4204,6 +4237,7 @@ dependencies = [
  "tar",
  "tempfile",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "tracing",
  "tracing-subscriber",
@@ -7072,9 +7106,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d660770404473ccd7bc9f8b28494a811bc18542b915c0855c51e8f419d5223ce"
+checksum = "8fb52b74f05dbf495a8fba459fdc331812b96aa086d9eb78101fa0d4569c3313"
 dependencies = [
  "futures-core",
  "pin-project-lite",

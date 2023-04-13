@@ -28,7 +28,7 @@ const DEFAULT_IMPORT_ONLY_MODULES =
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|react-hot-toast`
 const OUR_MODULES = 'enso-content-config|enso-common'
 const RELATIVE_MODULES =
-    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|index|ipc|naming|paths|preload|security'
+    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|file-associations|index|ipc|naming|paths|preload|security'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -167,6 +167,10 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `node:` prefix to import builtin node modules',
     },
     {
+        selector: 'TSEnumDeclaration:not(:has(TSEnumMember))',
+        message: 'Enums must not be empty',
+    },
+    {
         selector:
             'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
         message:
@@ -214,11 +218,6 @@ export default [
                 ...globals.browser,
                 ...globals.node,
                 ...globals.es2015,
-                BUNDLED_ENGINE_VERSION: true,
-                PROJECT_MANAGER_IN_BUNDLE_PATH: true,
-                BUILD_INFO: true,
-                // Used in `lib/copy-plugin/src/index.mjs`.
-                AsyncGenerator: true,
             },
         },
         rules: {
@@ -310,7 +309,7 @@ export default [
             ],
             'no-redeclare': 'off',
             // Important to warn on accidental duplicated `interface`s e.g. when writing API wrappers.
-            '@typescript-eslint/no-redeclare': 'error',
+            '@typescript-eslint/no-redeclare': ['error', { ignoreDeclarationMerge: false }],
             'no-shadow': 'off',
             '@typescript-eslint/no-shadow': 'warn',
             'no-unused-expressions': 'off',

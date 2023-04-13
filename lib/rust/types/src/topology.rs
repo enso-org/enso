@@ -59,6 +59,12 @@ impl Min for Pixels {
     }
 }
 
+impl Abs for Pixels {
+    fn abs(&self) -> Self {
+        Pixels::from(self.value.abs())
+    }
+}
+
 
 // === Degrees ===
 

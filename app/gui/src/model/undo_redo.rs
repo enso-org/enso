@@ -343,7 +343,6 @@ impl Repository {
 /// Owns [`Repository`] and keeps track of open modules.
 #[derive(Debug, Default)]
 pub struct Manager {
-    #[allow(missing_docs)]
     /// Repository with undo and redo stacks.
     pub repository: Rc<Repository>,
     /// Currently available modules.
@@ -535,7 +534,8 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), graph).unwrap();
+            let context = &span_tree::generate::context::Empty;
+            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), context).unwrap();
             let sum_input =
                 sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = controller::graph::Connection {
@@ -543,7 +543,7 @@ main =
                 destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
             };
 
-            graph.connect(&connection, &span_tree::generate::context::Empty).unwrap();
+            graph.connect(&connection, context).unwrap();
         });
     }
 

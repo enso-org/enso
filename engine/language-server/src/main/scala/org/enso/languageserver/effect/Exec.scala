@@ -2,7 +2,6 @@ package org.enso.languageserver.effect
 
 import org.enso.languageserver.effect
 import zio._
-import zio.blocking.blocking
 
 import java.util.concurrent.{ExecutionException, TimeoutException}
 
@@ -18,7 +17,7 @@ trait Exec[-F[_, _]] {
     * @param op effect to execute
     * @return a future containing either a failure or a result
     */
-  def exec[E, A](op: F[E, A]): Future[Either[E, A]]
+  def exec[E, A](op: F[E, A])(implicit trace: Trace): Future[Either[E, A]]
 
   /** Execute Zio effect with timeout.
     *
@@ -29,13 +28,13 @@ trait Exec[-F[_, _]] {
   def execTimed[E, A](
     timeout: FiniteDuration,
     op: F[E, A]
-  ): Future[Either[E, A]]
+  )(implicit trace: Trace): Future[Either[E, A]]
 
   /** Execute long running task in background.
     *
     * @param op effect to execute
     */
-  def exec_[E, A](op: F[E, A]): Unit
+  def exec_[E <: Throwable, A](op: F[E, A])(implicit trace: Trace): Unit
 }
 
 /** Executor of Zio effects.
@@ -47,55 +46,66 @@ case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
   /** Execute Zio effect.
     *
     * @param op effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     * @return a future containing either a failure or a result
     */
-  override def exec[E, A](op: ZIO[ZEnv, E, A]): Future[Either[E, A]] = {
-    val promise = Promise[Either[E, A]]()
-    runtime.instance.unsafeRunAsync(op) {
-      _.fold(
-        ZioExec.completeFailure(promise, _),
-        ZioExec.completeSuccess(promise, _)
+  override def exec[E, A](
+    op: ZIO[ZAny, E, A]
+  )(implicit trace: Trace): Future[Either[E, A]] =
+    zio.Unsafe.unsafe { implicit unsafe =>
+      val promise = Promise[Either[E, A]]()
+      runtime.instance.unsafe.fork(
+        op.foldCause(
+          ZioExec.completeFailure(promise, _),
+          ZioExec.completeSuccess(promise, _)
+        )
       )
+      promise.future
     }
-    promise.future
-  }
 
   /** Execute Zio effect with timeout.
     *
     * @param timeout execution timeout
     * @param op effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     * @return a future. On timeout future is failed with `TimeoutException`.
     * Otherwise future contains either a failure or a result.
     */
   override def execTimed[E, A](
     timeout: FiniteDuration,
-    op: ZIO[ZEnv, E, A]
-  ): Future[Either[E, A]] = {
-    val promise = Promise[Either[E, A]]()
-    runtime.instance.unsafeRunAsync(
-      op.disconnect.timeout(zio.duration.Duration.fromScala(timeout))
-    ) {
-      _.fold(
-        ZioExec.completeFailure(promise, _),
-        _.fold(promise.failure(ZioExec.timeoutFailure))(a =>
-          promise.success(Right(a))
-        )
+    op: ZIO[ZAny, E, A]
+  )(implicit trace: Trace): Future[Either[E, A]] =
+    zio.Unsafe.unsafe { implicit unsafe =>
+      val promise = Promise[Either[E, A]]()
+      runtime.instance.unsafe.fork(
+        op.disconnect
+          .timeout(zio.Duration.fromScala(timeout))
+          .foldCause[Unit](
+            ZioExec.completeFailure(promise, _),
+            _.fold(promise.failure(ZioExec.timeoutFailure))(a =>
+              promise.success(Right(a))
+            )
+          )
       )
+      promise.future
     }
-    promise.future
-  }
 
   /** Execute long running task in background.
     *
     * @param op effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     */
-  override def exec_[E, A](op: ZIO[ZEnv, E, A]): Unit =
-    runtime.instance.unsafeRunAsync_(blocking(op))
+  override def exec_[E <: Throwable, A](
+    op: ZIO[ZAny, E, A]
+  )(implicit trace: Trace): Unit =
+    zio.Unsafe.unsafe { implicit unsafe =>
+      runtime.instance.unsafe.fork(ZIO.blocking(op))
+    }
 }
 
 object ZioExec {
 
-  type IO[+E, +A] = ZIO[ZEnv, E, A]
+  type IO[+E, +A] = ZIO[ZAny, E, A]
 
   object ZioExecutionException extends ExecutionException
 

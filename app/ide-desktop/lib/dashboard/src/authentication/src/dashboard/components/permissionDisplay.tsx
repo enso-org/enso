@@ -66,22 +66,22 @@ function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps
                     <div
                         className={`${
                             permissions.write ? 'border-perm-write' : 'border-perm-none'
-                        } quadrant-top-left border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-top-left border-2 rounded-full absolute w-full h-full`}
                     ></div>
                     <div
                         className={`${
                             permissions.read ? 'border-perm-read' : 'border-perm-none'
-                        } quadrant-top-right border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-top-right border-2 rounded-full absolute w-full h-full`}
                     ></div>
                     <div
                         className={`${
                             permissions.exec ? 'border-perm-exec' : 'border-perm-none'
-                        } quadrant-bottom-left border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-bottom-left border-2 rounded-full absolute w-full h-full`}
                     ></div>
                     <div
                         className={`${
                             permissions.docsWrite ? 'border-perm-docs-write' : 'border-perm-none'
-                        } quadrant-bottom-right border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-bottom-right border-2 rounded-full absolute w-full h-full`}
                     ></div>
                 </>
             )
@@ -92,7 +92,7 @@ function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps
     return (
         <div className="m-1 relative inline-block">
             {permissionBorder}
-            <div className="bg-label-bg rounded-full px-4 py-1 m-1">{children}</div>
+            <div className="bg-label rounded-full px-2 py-1 m-1">{children}</div>
         </div>
     )
 }

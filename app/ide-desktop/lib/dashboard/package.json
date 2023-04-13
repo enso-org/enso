@@ -4,18 +4,18 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "npx tsx bundle.ts",
-    "watch": "npx tsx watch.ts",
-    "start": "npx tsx start.ts"
+    "build": "tsx bundle.ts",
+    "watch": "tsx watch.ts",
+    "start": "tsx start.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.15",
     "@types/node": "^16.18.11",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "esbuild": "^0.17.0",
+    "esbuild": "^0.17.15",
     "esbuild-plugin-time": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -30,13 +30,12 @@
     "eslint": "^8.32.0",
     "eslint-plugin-jsdoc": "^39.6.8",
     "eslint-plugin-react": "^7.32.1",
-    "portfinder": "^1.0.32",
     "tailwindcss": "^3.2.7",
     "typescript": "^4.9.4"
   },
   "optionalDependencies": {
-    "esbuild-darwin-64": "^0.17.0",
-    "esbuild-linux-64": "^0.17.0",
-    "esbuild-windows-64": "^0.17.0"
+    "@esbuild/darwin-x64": "^0.17.15",
+    "@esbuild/linux-x64": "^0.17.15",
+    "@esbuild/windows-x64": "^0.17.15"
   }
 }

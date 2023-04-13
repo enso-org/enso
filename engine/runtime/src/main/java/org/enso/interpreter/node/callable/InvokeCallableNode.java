@@ -279,6 +279,7 @@ public abstract class InvokeCallableNode extends BaseNode {
                                     invokeFunctionNode.getDefaultsExecutionMode(),
                                     invokeFunctionNode.getArgumentsExecutionMode()));
             childDispatch.setTailStatus(getTailStatus());
+            childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);
           }
         } finally {
@@ -356,5 +357,8 @@ public abstract class InvokeCallableNode extends BaseNode {
     invokeFunctionNode.setId(id);
     invokeMethodNode.setId(id);
     invokeConversionNode.setId(id);
+    if (childDispatch != null) {
+      childDispatch.setId(id);
+    }
   }
 }

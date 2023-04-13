@@ -22,7 +22,6 @@ import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
@@ -540,7 +539,8 @@ type Date
             _ ->
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
-    ## Convert to a JS_Object representing this Date.
+    ## PRIVATE
+       Convert to a JS_Object representing this Date.
 
        > Example
          Convert the current date to a JS_Object.

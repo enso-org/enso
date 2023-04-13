@@ -153,48 +153,43 @@ type URI
     fragment : Text ! Nothing
     fragment self = handle_nothing self.internal_uri.getFragment
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Get the unescaped user info part of this URI.
     raw_user_info : Text ! Nothing
     raw_user_info self = handle_nothing self.internal_uri.getRawUserInfo
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Get the unescaped authority part of this URI.
     raw_authority : Text ! Nothing
     raw_authority self = handle_nothing self.internal_uri.getRawAuthority
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Get the unescaped path part of this URI.
     raw_path : Text ! Nothing
     raw_path self = handle_nothing self.internal_uri.getRawPath
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Get the unescaped query part of this URI.
     raw_query : Text ! Nothing
     raw_query self = handle_nothing self.internal_uri.getRawQuery
 
-    ## ADVANCED
-
+    ## PRIVATE
+       ADVANCED
        Get the unescaped fragment part of this URI.
     raw_fragment : Text ! Nothing
     raw_fragment self = handle_nothing self.internal_uri.getRawFragment
 
-    ## Convert this URI to text.
-
-       > Example
-         Convert a URI to text.
-
-             import Standard.Examples
-
-             example_to_text = Examples.uri.to_text
+    ## PRIVATE
+       Convert this URI to text.
     to_text : Text
     to_text self = self.internal_uri.toString
 
-    ## Convert to a JavaScript Object representing this URI.
+    ## PRIVATE
+       Convert to a JavaScript Object representing this URI.
 
        > Example
          Convert a URI to a JS_Object.

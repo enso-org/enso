@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Data.SQL_Type.SQL_Type
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.IR.SQL_Expression.SQL_Expression
 
 type Internal_Column
@@ -10,9 +11,9 @@ type Internal_Column
 
        Arguments:
        - name: The column name.
-       - sql_type: The SQL type of the column.
+       - sql_type_reference: Lazily computed SQL type of the column.
        - expression: An expression for applying to the column.
-    Value name:Text sql_type:SQL_Type expression:SQL_Expression
+    Value name:Text sql_type_reference:SQL_Type_Reference expression:SQL_Expression
 
     ## PRIVATE
 
@@ -21,4 +22,4 @@ type Internal_Column
        Arguments:
        - new_name: The new name for the column.
     rename : Text -> Internal_Column
-    rename self new_name = Internal_Column.Value new_name self.sql_type self.expression
+    rename self new_name = Internal_Column.Value new_name self.sql_type_reference self.expression

@@ -29,7 +29,7 @@ use crate::programs::spirv_cross::SpirvCross;
 pub const SHADER_TOOLS_REPO: RepoRef = RepoRef { owner: "enso-org", name: "shader-tools" };
 
 /// Version of the shader tools package that we download.
-pub const VERSION: Version = Version::new(0, 1, 0);
+pub const VERSION: Version = Version::new(0, 2, 0);
 
 
 // =========================

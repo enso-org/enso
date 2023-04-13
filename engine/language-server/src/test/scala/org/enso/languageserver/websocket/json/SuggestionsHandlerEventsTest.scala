@@ -24,7 +24,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("1"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -75,7 +74,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("2"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -127,7 +125,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("3"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -198,7 +195,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("4"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -293,7 +289,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("5"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -371,145 +366,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
         { "jsonrpc" : "2.0",
           "id" : 3,
           "result" : {
-            "entries" : [
-              {
-                "id" : 1,
-                "suggestion" : {
-                  "type" : "type",
-                  "module" : "local.Test.Main",
-                  "name" : "Newtype",
-                  "params" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    }
-                  ],
-                  "parentType" : "Any"
-                }
-              },
-              {
-                "id" : 2,
-                "suggestion" : {
-                  "type" : "constructor",
-                  "module" : "local.Test.Main",
-                  "name" : "MyType",
-                  "arguments" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    }
-                  ],
-                  "returnType" : "MyAtom",
-                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing."
-                }
-              },
-              {
-                "id" : 4,
-                "suggestion" : {
-                  "type" : "function",
-                  "externalId" : "78d452ce-ed48-48f1-b4f2-b7f45f8dff89",
-                  "module" : "local.Test.Main",
-                  "name" : "print",
-                  "arguments" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    },
-                    {
-                      "name" : "b",
-                      "reprType" : "Any",
-                      "isSuspended" : true,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    },
-                    {
-                      "name" : "c",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : true,
-                      "defaultValue" : "C",
-                      "tagValues" : null
-                    }
-                  ],
-                  "returnType" : "IO",
-                  "scope" : {
-                    "start" : {
-                      "line" : 1,
-                      "character" : 9
-                    },
-                    "end" : {
-                      "line" : 1,
-                      "character" : 22
-                    }
-                  },
-                  "documentation" : "My Function"
-                }
-              },
-              {
-                "id" : 3,
-                "suggestion" : {
-                  "type" : "method",
-                  "externalId" : "ea9d7734-26a7-4f65-9dd9-c648eaf57d63",
-                  "module" : "local.Test.Main",
-                  "name" : "foo",
-                  "arguments" : [
-                    {
-                      "name" : "this",
-                      "reprType" : "MyType",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    },
-                    {
-                      "name" : "foo",
-                      "reprType" : "Number",
-                      "isSuspended" : false,
-                      "hasDefault" : true,
-                      "defaultValue" : "42",
-                      "tagValues" : null
-                    }
-                  ],
-                  "selfType" : "MyType",
-                  "returnType" : "Number",
-                  "isStatic" : false,
-                  "documentation" : "Lovely"
-                }
-              },
-              {
-                "id" : 5,
-                "suggestion" : {
-                  "type" : "local",
-                  "externalId" : "dc077227-d9b6-4620-9b51-792c2a69419d",
-                  "module" : "local.Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
-                    }
-                  }
-                }
-              }
-            ],
+            "entries" : [],
             "currentVersion" : 5
           }
         }""")
@@ -518,7 +375,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("6"),
           Vector(),
           Vector(),
           Tree.Root(
@@ -629,7 +485,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 }
               }
             ],
-            "currentVersion" : 8
+            "currentVersion" : 7
           }
         }
         """)
@@ -638,7 +494,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("7"),
           Vector(),
           Vector(
             Api.ExportsUpdate(
@@ -673,7 +528,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   }
                 }
               ],
-              "currentVersion" : 9
+              "currentVersion" : 8
             }
           }
         """)
@@ -682,7 +537,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          versionCalculator.evalVersion("8"),
           Vector(
             Api.SuggestionsDatabaseAction.Clean(Suggestions.constructor.module)
           ),
@@ -717,7 +571,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "id" : 5
               }
             ],
-            "currentVersion" : 9
+            "currentVersion" : 8
           }
         }
         """)

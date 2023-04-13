@@ -31,6 +31,7 @@
 // ==============
 
 pub use ensogl_example_animation as animation;
+pub use ensogl_example_built_in_shapes as built_in_shapes;
 pub use ensogl_example_cached_shape as cached_shape;
 pub use ensogl_example_complex_shape_system as complex_shape_system;
 pub use ensogl_example_dom_symbols as dom_symbols;
@@ -39,6 +40,7 @@ pub use ensogl_example_drop_manager as drop_manager;
 pub use ensogl_example_easing_animator as easing_animator;
 pub use ensogl_example_focus_management as focus_management;
 pub use ensogl_example_grid_view as grid_view;
+pub use ensogl_example_instance_ordering as instance_ordering;
 pub use ensogl_example_list_view as list_view;
 pub use ensogl_example_mouse_events as mouse_events;
 pub use ensogl_example_profiling_run_graph as profiling_run_graph;

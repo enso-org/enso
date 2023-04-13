@@ -40,7 +40,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         console.log('Bundling client.')
         const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv()
         clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
-        // Eslint is wrong here; this is actually `undefined`.
+        // Eslint is wrong here; `clientBundlerOpts.plugins` is actually `undefined`.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         ;(clientBundlerOpts.plugins ??= []).push({
             name: 'enso-on-rebuild',
@@ -110,7 +110,7 @@ await fs.symlink(
     'dir'
 )
 
-const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), ...process.argv.slice(2)]
+const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.argv.slice(2)]
 
 process.on('SIGINT', () => {
     console.log('SIGINT received. Exiting.')
