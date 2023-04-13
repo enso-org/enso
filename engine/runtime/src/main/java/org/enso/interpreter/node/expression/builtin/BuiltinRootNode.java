@@ -8,10 +8,11 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.node.InlineableRootNode;
 
 /** Root node for use by all the builtin functions. */
 @NodeInfo(shortName = "BuiltinRoot", description = "Root node for builtin functions.")
-public abstract class BuiltinRootNode extends RootNode {
+public abstract class BuiltinRootNode extends RootNode implements InlineableRootNode {
   protected BuiltinRootNode(EnsoLanguage language) {
     super(language);
   }
