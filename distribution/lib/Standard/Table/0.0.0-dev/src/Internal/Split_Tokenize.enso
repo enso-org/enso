@@ -87,11 +87,11 @@ fan_out_to_rows table input_column_id function =
     # Accumulates repeated position indices for the order mask.
     order_mask_positions = Vector.new_builder 0
 
-    0.up_to num_input_rows . map i->
+    0.up_to num_input_rows . each i->
         input_value = input_storage.getItemBoxed i
         output_values = function input_value
         # Append each value.
-        output_values.map v-> output_column_builder.append v
+        output_values.each v-> output_column_builder.append v
         # Append n copies of the input row position, n = # of output values.
         repeat output_values.length <| order_mask_positions.append i
 
@@ -141,7 +141,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
         Nothing ->
             builders = Vector.new_builder
 
-            0.up_to num_rows . map i->
+            0.up_to num_rows . each i->
                 input_value = input_storage.getItemBoxed i
                 output_values = function input_value
 
@@ -155,11 +155,11 @@ map_columns_to_multiple input_column function column_count problem_builder =
                         num_nulls_needed = i
                         builder.appendNulls num_nulls_needed
 
-                        builders.append <| builder
+                        builders.append builder
 
                 ## Add `output_values` to builders; if there are more builders
                    than `output_values`, pad with null.
-                0.up_to builders.length . map i->
+                0.up_to builders.length . each i->
                     builders.at i . appendNoGrow (output_values.get i Nothing)
 
             builders.to_vector
@@ -173,7 +173,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
 
                 ## Add `output_values` to builders; if there are more builders
                    than `output_values`, pad with null.
-                0.up_to builders.length . map i->
+                0.up_to builders.length . each i->
                     builders.at i . appendNoGrow (output_values.get i Nothing)
 
                 output_values.length
@@ -187,7 +187,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
             builders
 
     # Build Columns.
-    builders.map .seal . map_with_index i->storage->
+    builders.map .seal . map_with_index i-> storage->
         name = input_column.name + "_" + i.to_text
         Column.from_storage name storage
 
