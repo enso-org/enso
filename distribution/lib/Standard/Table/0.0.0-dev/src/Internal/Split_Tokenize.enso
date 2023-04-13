@@ -205,6 +205,7 @@ rename_new_columns table columns problem_builder =
 
 ## PRIVATE
    Replace a single column in a table with new columns.
+   Does not ensure names are unique; that must be done before calling this.
 replace_column_with_columns : Table -> Column -> Vector Column -> Table
 replace_column_with_columns table old_column new_columns =
     Table.new ((table.columns.map (c-> if c.name == old_column.name then new_columns else [c])).flatten)
