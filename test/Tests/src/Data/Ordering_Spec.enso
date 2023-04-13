@@ -169,6 +169,9 @@ spec =
         Test.specify "should produce warnings when sorting primitive values in atoms" pending=topo_sort_pending <|
             expect_incomparable_warn (Ord.Value 1) (Ord.Value Nothing) [Ord.Value 1, Ord.Value Nothing].sort
 
+        Test.specify "should fail to sort custom incomparable values until topological sorting is implemented" <|
+            [(UPair.Value 1 2), (UPair.Value 3 4)].sort . should_fail_with Incomparable_Values
+
         Test.specify "should attach warning when trying to sort incomparable values" <|
             expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort on_incomparable=Problem_Behavior.Report_Warning
             expect_incomparable_warn 1 "hello" <| [1, "hello"].sort on_incomparable=Problem_Behavior.Report_Warning
