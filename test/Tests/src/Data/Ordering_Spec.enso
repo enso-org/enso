@@ -170,13 +170,13 @@ spec =
             expect_incomparable_warn (Ord.Value 1) (Ord.Value Nothing) [Ord.Value 1, Ord.Value Nothing].sort
 
         Test.specify "should attach warning when trying to sort incomparable values" <|
-            expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort
-            expect_incomparable_warn 1 "hello" <| [1, "hello"].sort
+            expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort on_incomparable=Problem_Behavior.Report_Warning
+            expect_incomparable_warn 1 "hello" <| [1, "hello"].sort on_incomparable=Problem_Behavior.Report_Warning
 
         Test.specify "should respect previous warnings on a vector" <|
             Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, 2]) . sort
             Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, Number.nan]) . sort
-            expect_incomparable_warn 3 Number.nan <| (Warning.attach "my_warn" [3, Number.nan]) . sort
+            expect_incomparable_warn 3 Number.nan <| (Warning.attach "my_warn" [3, Number.nan]) . sort on_incomparable=Problem_Behavior.Report_Warning
 
         Test.specify "should respect previous warnings on vectors" pending="https://github.com/enso-org/enso/issues/6070" <|
             Problems.expect_warning "my_warn" <| [3, Warning.attach "my_warn" 2].sort
@@ -200,12 +200,12 @@ spec =
 
         Test.specify "should produce warning when sorting types with different comparators" <|
             [Ord.Value 1, 1].sort . should_equal [1, Ord.Value 1]
-            Problems.expect_warning "Different comparators: [Standard.Base.Data.Ordering.Default_Comparator, Ordering_Spec.Ord_Comparator]" <| [Ord.Value 1, 1].sort
+            Problems.expect_warning "Different comparators: [Standard.Base.Data.Ordering.Default_Comparator, Ordering_Spec.Ord_Comparator]" <| [Ord.Value 1, 1].sort on_incomparable=Problem_Behavior.Report_Warning
 
         Test.specify "should merge groups of values with custom comparators based on the comparators FQN" <|
             [Ord.Value 1, My_Type.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
             [My_Type.Value 1, Ord.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
-            Problems.expect_warning "Different comparators: [Ordering_Spec.My_Type_Comparator, Ordering_Spec.Ord_Comparator]" <| [Ord.Value 1, My_Type.Value 1].sort
+            Problems.expect_warning "Different comparators: [Ordering_Spec.My_Type_Comparator, Ordering_Spec.Ord_Comparator]" <| [Ord.Value 1, My_Type.Value 1].sort on_incomparable=Problem_Behavior.Report_Warning
 
         Test.specify "should be stable when sorting values with different comparators" <|
             [Ord.Value 1, 20, My_Type.Value 1, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
