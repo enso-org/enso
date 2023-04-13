@@ -1,5 +1,4 @@
 /** @file Renders the list of templates that can be used to create a project from. */
-import * as React from 'react'
 
 // =================
 // === Templates ===
@@ -13,7 +12,7 @@ interface Template {
 }
 
 /** All templates for creating projects that have contents. */
-const templates: Template[] = [
+const TEMPLATES: Template[] = [
     {
         title: 'Colorado COVID',
         templateName: 'Colorado_COVID',
@@ -41,16 +40,21 @@ const templates: Template[] = [
     },
 ]
 
+// =======================
+// === TemplatesRender ===
+// =======================
+
 /** Render all templates, includes empty template */
 interface TemplatesRenderProps {
     // Later this data may be requested and therefore needs to be passed dynamically.
     templates: Template[]
-    onTemplateClick(name?: string): void
+    onTemplateClick: (name?: string | null) => void
 }
 
-const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onTemplateClick }) => {
-    /** Unify the border color and the text color. */
+function TemplatesRender(props: TemplatesRenderProps) {
+    const { templates, onTemplateClick } = props
 
+    /** Unify the border color and the text color. */
     const borderColor = '9E8C91'
     /**
      * Dash border spacing is not supported by native CSS.
@@ -125,17 +129,22 @@ const TemplatesRender: React.FC<TemplatesRenderProps> = ({ templates, onTemplate
     )
 }
 
+// =================
+// === Templates ===
+// =================
+
 /** The TemplatesRender's container. */
 interface TemplatesProps {
-    onTemplateClick(name?: string): void
+    onTemplateClick: (name?: string | null) => void
 }
 
-const Templates: React.FC<TemplatesProps> = ({ onTemplateClick }) => {
+function Templates(props: TemplatesProps) {
+    const { onTemplateClick } = props
     return (
         <div className="bg-white">
             <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    <TemplatesRender templates={templates} onTemplateClick={onTemplateClick} />
+                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
                 </div>
             </div>
         </div>

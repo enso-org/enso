@@ -323,28 +323,20 @@ function Dashboard(props: DashboardProps) {
         })()
     }, [accessToken, directoryId])
 
-    const getNewProjectName = (templateName: string | undefined): string => {
-        const projectNameTemplateStart = templateName ? `${templateName}_` : 'New_Project_'
-        const projectNameTemplate = new RegExp(`^${projectNameTemplateStart}(?<projectIndex>\\d+)$`)
-        let lastProjectIndex = 0
-        projectAssets.forEach(projectItem => {
-            let projectIndex: string | number | undefined = projectNameTemplate.exec(
-                projectItem.title
-            )?.groups?.projectIndex
-            if (!projectIndex) {
-                return
+    const getNewProjectName = (templateName?: string | null): string => {
+        const prefix = `${templateName ?? 'New_Project'}_`
+        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+        let highestProjectIndex = 0
+        for (const projectAsset of projectAssets) {
+            let projectIndex = projectNameTemplate.exec(projectAsset.title)?.groups?.projectIndex
+            if (projectIndex) {
+                highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
             }
-
-            projectIndex = parseInt(projectIndex, 10)
-            if (projectIndex > lastProjectIndex) {
-                lastProjectIndex = projectIndex
-            }
-        })
-        lastProjectIndex++
-
-        return projectNameTemplateStart + lastProjectIndex.toString()
+        }
+        return `${prefix}${highestProjectIndex + 1}`
     }
-    const handleCreateProject = async (templateName: string | undefined) => {
+
+    const handleCreateProject = async (templateName?: string | null) => {
         const projectName = getNewProjectName(templateName)
         switch (platform) {
             case platformModule.Platform.cloud: {
@@ -354,33 +346,33 @@ function Dashboard(props: DashboardProps) {
                 if (templateName) {
                     body.projectTemplateName = templateName.replace(/_/g, '').toLocaleLowerCase()
                 }
-                const project = await backendService.createProject(body)
-                setProjectAssets(p => [
-                    ...p,
+                const projectAsset = await backendService.createProject(body)
+                setProjectAssets(oldProjectAssets => [
+                    ...oldProjectAssets,
                     {
                         type: backend.AssetType.project,
-                        title: project.name,
-                        id: project.projectId,
+                        title: projectAsset.name,
+                        id: projectAsset.projectId,
                         parentId: '',
+                        permissions: [],
                     },
                 ])
                 break
             }
             case platformModule.Platform.desktop: {
-                const body: projectManagerModule.CreateProjectParams = {
-                    name: newtype.asNewtype(projectName),
-                }
-                if (templateName) {
-                    body.projectTemplate = templateName
-                }
-                const project = (await props.projectManager.createProject(body)).result
-                setProjectAssets(p => [
-                    ...p,
+                const result = await props.projectManager.createProject({
+                    name: newtype.asNewtype<projectManagerModule.ProjectName>(projectName),
+                    ...(templateName ? { projectTemplate: templateName } : {}),
+                })
+                const newProject = result.result
+                setProjectAssets(oldProjectAssets => [
+                    ...oldProjectAssets,
                     {
                         type: backend.AssetType.project,
                         title: projectName,
-                        id: project.projectId,
+                        id: newProject.projectId,
                         parentId: '',
+                        permissions: [],
                     },
                 ])
                 break
