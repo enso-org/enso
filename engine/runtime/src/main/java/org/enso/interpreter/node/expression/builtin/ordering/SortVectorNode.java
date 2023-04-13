@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -28,7 +29,6 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -46,17 +46,15 @@ import org.enso.interpreter.runtime.state.State;
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
  * builtin type, which is the most common scenario for sorting.
- * <p>
- * TODO: Max number of attached Incomparable values warnings?
- *  - hardcode or pass via a new parameter to Vector.sort?
+ *
+ * <p>TODO: Max number of attached Incomparable values warnings? - hardcode or pass via a new
+ * parameter to Vector.sort?
  */
-@BuiltinMethod(
-    type = "Vector",
-    name = "sort_builtin",
-    description = "Returns a sorted vector."
-)
+@BuiltinMethod(type = "Vector", name = "sort_builtin", description = "Returns a sorted vector.")
 @GenerateUncached
 public abstract class SortVectorNode extends Node {
+
+  private static final TruffleLogger logger = TruffleLogger.getLogger("enso", SortVectorNode.class);
 
   public static SortVectorNode build() {
     return SortVectorNodeGen.create();
@@ -65,22 +63,30 @@ public abstract class SortVectorNode extends Node {
   /**
    * Sorts a vector with elements that have only Default_Comparator, thus, only builtin types.
    *
-   * @param self             Vector that has elements with only Default_Comparator, that are
-   *                         elements with builtin types.
-   * @param ascending        -1 for descending, 1 for ascending
-   * @param comparators      Vector of comparators, with the same length of self. This is gather in
-   *                         the Enso code, because doing that in this builtin would be difficult.
-   *                         If {@code onFunc} parameter is not {@code Nothing}, comparators are
-   *                         gathered from the result of {@code onFunc} projection.
+   * @param self Vector that has elements with only Default_Comparator, that are elements with
+   *     builtin types.
+   * @param ascending -1 for descending, 1 for ascending
+   * @param comparators Vector of comparators, with the same length of self. This is gather in the
+   *     Enso code, because doing that in this builtin would be difficult. If {@code onFunc}
+   *     parameter is not {@code Nothing}, comparators are gathered from the result of {@code
+   *     onFunc} projection.
    * @param compareFunctions Vector of `Comparator.compare` functions gathered from the comparators
-   * @param byFunc           If Nothing, then the default `by` function should be used. The default
-   *                         `by` function is `Ordering.compare`.
+   * @param byFunc If Nothing, then the default `by` function should be used. The default `by`
+   *     function is `Ordering.compare`.
    * @param onFunc If Nothing, then the default identity function should be used.
+   * @param problemBehavior A long representation of `Problem_Behavior`. Ignore is 0, Report_warning
+   *     is 1, and Report_Error is 2.
    * @return A new, sorted vector.
    */
-  public abstract Object execute(State state, @AcceptsError Object self, long ascending,
+  public abstract Object execute(
+      State state,
+      @AcceptsError Object self,
+      long ascending,
       Object comparators,
-      Object compareFunctions, Object byFunc, Object onFunc);
+      Object compareFunctions,
+      Object byFunc,
+      Object onFunc,
+      long problemBehavior);
 
   /**
    * Sorts primitive values, i.e., values with only Default_Comparator. We can optimize this case.
@@ -89,14 +95,22 @@ public abstract class SortVectorNode extends Node {
    * it can redefine the default partial ordering of the primitive values, which requires
    * topological sort.
    */
-  @Specialization(guards = {
-      "interop.hasArrayElements(self)",
-      "areAllDefaultComparators(interop, comparators)",
-      "isNothing(byFunc)",
-      "isNothing(onFunc)"
-  })
-  Object sortPrimitives(State state, Object self, long ascending, Object comparators,
-      Object compareFunctions, Object byFunc, Object onFunc,
+  @Specialization(
+      guards = {
+        "interop.hasArrayElements(self)",
+        "areAllDefaultComparators(interop, comparators)",
+        "isNothing(byFunc)",
+        "isNothing(onFunc)"
+      })
+  Object sortPrimitives(
+      State state,
+      Object self,
+      long ascending,
+      Object comparators,
+      Object compareFunctions,
+      Object byFunc,
+      Object onFunc,
+      long problemBehavior,
       @Cached LessThanNode lessThanNode,
       @Cached EqualsNode equalsNode,
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
@@ -105,6 +119,11 @@ public abstract class SortVectorNode extends Node {
       @Cached BranchProfile warningEncounteredProfile,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warningsLib) {
+    logger.fine(
+        () ->
+            String.format(
+                "SortVectorNode.sortPrimitives: byFunc = %s, onFunc = %s, problemBehaviorNum = %s",
+                byFunc, onFunc, ProblemBehavior.fromInt((int) problemBehavior)));
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
     try {
@@ -113,29 +132,28 @@ public abstract class SortVectorNode extends Node {
       elems = new Object[(int) size];
       for (int i = 0; i < size; i++) {
         if (interop.isArrayElementReadable(self, i)) {
-          elems[i] = hostValueToEnsoNode.execute(
-              interop.readArrayElement(self, i)
-          );
+          elems[i] = hostValueToEnsoNode.execute(interop.readArrayElement(self, i));
         } else {
           CompilerDirectives.transferToInterpreter();
           throw new PanicException(
-              ctx.getBuiltins().error().makeUnsupportedArgumentsError(
-                  new Object[]{self},
-                  "Cannot read array element at index " + i + " of " + self
-              ),
-              this
-          );
+              ctx.getBuiltins()
+                  .error()
+                  .makeUnsupportedArgumentsError(
+                      new Object[] {self},
+                      "Cannot read array element at index " + i + " of " + self),
+              this);
         }
       }
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw new IllegalStateException("Should not reach here", e);
     }
-    var javaComparator = createDefaultComparator(lessThanNode, equalsNode, typeOfNode, toTextNode,
-        ascending);
+    var javaComparator =
+        createDefaultComparator(
+            lessThanNode, equalsNode, typeOfNode, toTextNode, ascending, problemBehavior);
     try {
       return sortPrimitiveVector(elems, javaComparator);
     } catch (CompareException e) {
-      throw DataflowError.withoutTrace(
+      return DataflowError.withoutTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
@@ -146,18 +164,31 @@ public abstract class SortVectorNode extends Node {
       EqualsNode equalsNode,
       TypeOfNode typeOfNode,
       AnyToTextNode toTextNode,
-      long ascending
-  ) {
-    return new DefaultSortComparator(lessThanNode, equalsNode, typeOfNode, toTextNode,
-        ascending > 0);
+      long ascending,
+      long problemBehaviorNum) {
+    return new DefaultSortComparator(
+        lessThanNode,
+        equalsNode,
+        typeOfNode,
+        toTextNode,
+        ascending > 0,
+        ProblemBehavior.fromInt((int) problemBehaviorNum));
   }
 
   @TruffleBoundary
-  @Specialization(guards = {
-      "interop.hasArrayElements(self)",
-  })
-  Object sortGeneric(State state, Object self, long ascending, Object comparatorsArray,
-      Object compareFuncsArray, Object byFunc, Object onFunc,
+  @Specialization(
+      guards = {
+        "interop.hasArrayElements(self)",
+      })
+  Object sortGeneric(
+      State state,
+      Object self,
+      long ascending,
+      Object comparatorsArray,
+      Object compareFuncsArray,
+      Object byFunc,
+      Object onFunc,
+      long problemBehaviorNum,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warningsLib,
       @Cached LessThanNode lessThanNode,
@@ -165,13 +196,24 @@ public abstract class SortVectorNode extends Node {
       @Cached TypeOfNode typeOfNode,
       @Cached AnyToTextNode toTextNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
+    var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
+    logger.finer(
+        () ->
+            String.format(
+                "SortVectorNode.sortGeneric: onFunc=%s, byFunc=%s, problemBehavior=%s",
+                onFunc, byFunc, problemBehavior));
     // Split into groups
     List<Object> elems = readInteropArray(interop, warningsLib, self);
     List<Type> comparators = readInteropArray(interop, warningsLib, comparatorsArray);
     List<Function> compareFuncs = readInteropArray(interop, warningsLib, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
+    logger.fine(
+        () ->
+            String.format(
+                "sortGeneric: elems.length=%d, groups.length=%d", elems.size(), groups.size()));
 
-    // Prepare input for DefaultSortComparator and GenericSortComparator and sort the elements within groups
+    // Prepare input for DefaultSortComparator and GenericSortComparator and sort the elements
+    // within groups
     var ctx = EnsoContext.get(this);
     Atom less = ctx.getBuiltins().ordering().newLess();
     Atom equal = ctx.getBuiltins().ordering().newEqual();
@@ -182,26 +224,26 @@ public abstract class SortVectorNode extends Node {
       for (var group : groups) {
         SortComparator javaComparator;
         if (isNothing(byFunc) && isNothing(onFunc) && isPrimitiveGroup(group)) {
-          javaComparator = new DefaultSortComparator(
-              lessThanNode,
-              equalsNode,
-              typeOfNode,
-              toTextNode,
-              ascending > 0
-          );
+          javaComparator =
+              new DefaultSortComparator(
+                  lessThanNode, equalsNode, typeOfNode, toTextNode, ascending > 0, problemBehavior);
         } else {
           Object compareFunc = isNothing(byFunc) ? group.compareFunc : byFunc;
-          javaComparator = new GenericSortComparator(
-              ascending > 0,
-              compareFunc,
-              onFunc,
-              group.comparator,
-              callNode, toTextNode,
-              state,
-              less,
-              equal,
-              greater);
+          javaComparator =
+              new GenericSortComparator(
+                  ascending > 0,
+                  compareFunc,
+                  onFunc,
+                  problemBehavior,
+                  group.comparator,
+                  callNode,
+                  toTextNode,
+                  state,
+                  less,
+                  equal,
+                  greater);
         }
+        logger.fine(() -> "Sorting Group@" + Integer.toHexString(group.hashCode()));
         group.elems.sort(javaComparator);
         if (javaComparator.hasWarnings()) {
           gatheredWarnings.addAll(javaComparator.getEncounteredWarnings());
@@ -210,8 +252,51 @@ public abstract class SortVectorNode extends Node {
       }
       var sortedVector = Vector.fromArray(new Array(resultVec.toArray()));
       // Attach gathered warnings along with different comparators warning
-      return attachDifferentComparatorsWarning(
-          attachWarnings(sortedVector, gatheredWarnings), groups);
+      switch (problemBehavior) {
+        case REPORT_ERROR -> {
+          if (groups.size() > 1) {
+            logger.fine(
+                () ->
+                    "Have more groups than 1 and problem_behavior is Report_Error --> throw Dataflow_Error");
+            var allComparatorNames =
+                groups.stream()
+                    .map(Group::comparator)
+                    .map(comp -> comp.getQualifiedName().toString());
+            var err =
+                ctx.getBuiltins()
+                    .error()
+                    .makeUnsupportedArgumentsError(
+                        new Object[] {self},
+                        "self argument has more than one comparator - All comparators are: "
+                            + allComparatorNames
+                            + ". "
+                            + "See the documentation of Vector.sort method.");
+            return DataflowError.withoutTrace(err, this);
+          } else {
+            // Just one comparator, different from Default_Comparator
+            if (!gatheredWarnings.isEmpty()) {
+              logger.fine(
+                  () ->
+                      String.format(
+                          "Have one comparator different from Default_Comparator and problem_behavior is Report_Error"
+                              + " gatheredWarnings not empty --> throw Dataflow_Error. gatheredWarning.size()=%d",
+                          gatheredWarnings.size()));
+              throw new UnsupportedOperationException("unimplemented");
+            } else {
+              return sortedVector;
+            }
+          }
+        }
+        case REPORT_WARNING -> {
+          logger.fine(() -> String.format("Attaching %d warnings", gatheredWarnings.size()));
+          return attachDifferentComparatorsWarning(
+              attachWarnings(sortedVector, gatheredWarnings), groups);
+        }
+        case IGNORE -> {
+          return sortedVector;
+        }
+        default -> throw new IllegalStateException("unreachable");
+      }
     } catch (CompareException e) {
       return DataflowError.withoutTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
@@ -222,6 +307,7 @@ public abstract class SortVectorNode extends Node {
   private Object sortPrimitiveVector(Object[] elems,
       DefaultSortComparator javaComparator)
       throws CompareException {
+    logger.fine(() -> "Sorting primitive elems = " + Arrays.toString(elems));
     Arrays.sort(elems, javaComparator);
     var sortedVector = Vector.fromArray(new Array(elems));
 
@@ -285,11 +371,14 @@ public abstract class SortVectorNode extends Node {
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
-    var diffCompsMsg = groups.stream()
-        .map(Group::comparator)
-        .map(comparator -> comparator.getQualifiedName().toString())
-        .collect(Collectors.joining(", "));
+    var diffCompsMsg =
+        groups.stream()
+            .map(Group::comparator)
+            .map(comparator -> comparator.getQualifiedName().toString())
+            .collect(Collectors.joining(", "));
     var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
+    logger.finer(
+        () -> String.format("Will attach different comparators warning '%s'", diffCompsMsg));
     var warn = Warning.create(EnsoContext.get(this), text, this);
     return WithWarnings.appendTo(vector, new ArrayRope<>(warn));
   }
@@ -416,21 +505,30 @@ public abstract class SortVectorNode extends Node {
     return object == ctx.getBuiltins().nothing();
   }
 
+  private enum ProblemBehavior {
+    IGNORE,
+    REPORT_WARNING,
+    REPORT_ERROR;
+
+    static ProblemBehavior fromInt(int intValue) {
+      return switch (intValue) {
+        case 0 -> IGNORE;
+        case 1 -> REPORT_WARNING;
+        case 2 -> REPORT_ERROR;
+        default -> throw new IllegalArgumentException(Integer.toString(intValue));
+      };
+    }
+  }
+
   /**
    * Group of elements grouped by comparator.
    *
-   * @param elems       Elements of the group.
-   * @param comparator  SortComparator for the elems, i.e., it should hold that
-   *                    {@code elems.each it-> (Comparable.from it) == comparator}.
+   * @param elems Elements of the group.
+   * @param comparator SortComparator for the elems, i.e., it should hold that {@code elems.each
+   *     it-> (Comparable.from it) == comparator}.
    * @param compareFunc `SortComparator.compare` function extracted from the comparator.
    */
-  private record Group(
-      List<Object> elems,
-      Type comparator,
-      Function compareFunc
-  ) {
-
-  }
+  private record Group(List<Object> elems, Type comparator, Function compareFunc) {}
 
   /**
    * Convenient base class that implements java.util.Comparator, and gathers warnings about
@@ -441,9 +539,11 @@ public abstract class SortVectorNode extends Node {
 
     private final Set<String> warnings = new HashSet<>();
     final AnyToTextNode toTextNode;
+    final ProblemBehavior problemBehavior;
 
-    protected SortComparator(AnyToTextNode toTextNode) {
+    protected SortComparator(AnyToTextNode toTextNode, ProblemBehavior problemBehavior) {
       this.toTextNode = toTextNode;
+      this.problemBehavior = problemBehavior;
     }
 
     @TruffleBoundary
@@ -467,12 +567,12 @@ public abstract class SortVectorNode extends Node {
   /**
    * SortComparator for comparing all values that have Default_Comparator. These are either
    * primitive types, or the types that do not provide their own comparator.
-   * <p>
-   * Note that it is essential for this class that the {@code by} method parameter to
-   * {@code Vector.sort} is set to the default value, which is {@code Ordering.compare}, because
-   * then, we know that the partial ordering for primitive types was not redefined by the user (we
-   * handle partial ordering for primitive types specifically, partial ordering for other types is
-   * not implemented yet - that requires topological sorting).
+   *
+   * <p>Note that it is essential for this class that the {@code by} method parameter to {@code
+   * Vector.sort} is set to the default value, which is {@code Ordering.compare}, because then, we
+   * know that the partial ordering for primitive types was not redefined by the user (we handle
+   * partial ordering for primitive types specifically, partial ordering for other types is not
+   * implemented yet - that requires topological sorting).
    */
   final class DefaultSortComparator extends SortComparator {
 
@@ -481,10 +581,14 @@ public abstract class SortVectorNode extends Node {
     private final TypeOfNode typeOfNode;
     private final boolean ascending;
 
-    private DefaultSortComparator(LessThanNode lessThanNode, EqualsNode equalsNode,
+    private DefaultSortComparator(
+        LessThanNode lessThanNode,
+        EqualsNode equalsNode,
         TypeOfNode typeOfNode,
-        AnyToTextNode toTextNode, boolean ascending) {
-      super(toTextNode);
+        AnyToTextNode toTextNode,
+        boolean ascending,
+        ProblemBehavior problemBehavior) {
+      super(toTextNode, problemBehavior);
       this.lessThanNode = lessThanNode;
       this.equalsNode = equalsNode;
       this.typeOfNode = typeOfNode;
@@ -504,7 +608,6 @@ public abstract class SortVectorNode extends Node {
         Object xLessThanYRes = lessThanNode.execute(x, y);
         if (isNothing(xLessThanYRes)) {
           // x and y are incomparable - this can happen if x and y are different types
-          attachIncomparableValuesWarning(x, y);
           return handleIncomparableValues(x, y);
         } else if (isTrue(xLessThanYRes)) {
           return ascending ? -1 : 1;
@@ -515,7 +618,6 @@ public abstract class SortVectorNode extends Node {
             return ascending ? 1 : -1;
           } else {
             // yLessThanXRes is either Nothing or False
-            attachIncomparableValuesWarning(y, x);
             return handleIncomparableValues(y, x);
           }
         }
@@ -523,6 +625,10 @@ public abstract class SortVectorNode extends Node {
     }
 
     private int handleIncomparableValues(Object x, Object y) {
+      switch (problemBehavior) {
+        case REPORT_ERROR -> throw new CompareException(x, y);
+        case REPORT_WARNING -> attachIncomparableValuesWarning(x, y);
+      }
       if (isPrimitiveValue(x) || isPrimitiveValue(y)) {
         if (isPrimitiveValue(x) && isPrimitiveValue(y)) {
           return handleIncomparablePrimitives(x, y);
@@ -597,15 +703,19 @@ public abstract class SortVectorNode extends Node {
     private final Atom equal;
     private final Atom greater;
 
-
     private GenericSortComparator(
         boolean ascending,
         Object compareFunc,
         Object onFunc,
-        Type comparator, CallOptimiserNode callNode, AnyToTextNode toTextNode, State state,
-        Atom less, Atom equal,
+        ProblemBehavior problemBehavior,
+        Type comparator,
+        CallOptimiserNode callNode,
+        AnyToTextNode toTextNode,
+        State state,
+        Atom less,
+        Atom equal,
         Atom greater) {
-      super(toTextNode);
+      super(toTextNode, problemBehavior);
       assert compareFunc != null;
       assert comparator != null;
       this.comparator = comparator;
@@ -720,6 +830,8 @@ public abstract class SortVectorNode extends Node {
     private CompareException(Object leftOperand, Object rightOperand) {
       this.leftOperand = leftOperand;
       this.rightOperand = rightOperand;
+      logger.finer(
+          () -> String.format("CompareException(left=%s, right=%s)", leftOperand, rightOperand));
     }
   }
 }

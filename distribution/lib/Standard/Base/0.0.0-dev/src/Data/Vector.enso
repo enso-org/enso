@@ -16,6 +16,7 @@ import project.Errors.Common.Not_Found
 import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Function.Function
 import project.Math
 import project.Meta
@@ -853,7 +854,8 @@ type Vector a
          elements, returning an an `Ordering` if the two elements are comparable
          or `Nothing` if they are not. If set to `Nothing` (the default argument),
          `Ordering.compare _ _` method will be used.
-         Must be a static method.
+       - on_incomparable: A `Problem_Behavior` specifying what should happen if
+         two incomparable values are encountered.
 
        By default, elements are sorted in ascending order.
 
@@ -907,13 +909,17 @@ type Vector a
          the resulting vector.
 
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
-    sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing =
+    sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         comps = case on == Nothing of
             True -> self.map it-> Comparable.from it
             False -> self.map it-> Comparable.from (on it)
         compare_funcs = comps.map (it-> it.compare)
-        self.sort_builtin order.to_sign comps compare_funcs by on
+        problem_behavior = case on_incomparable of
+            Problem_Behavior.Ignore -> 0
+            Problem_Behavior.Report_Warning -> 1
+            Problem_Behavior.Report_Error -> 2
+        self.sort_builtin order.to_sign comps compare_funcs by on problem_behavior
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
