@@ -172,6 +172,9 @@ export function AuthProvider(props: AuthProviderProps) {
                         organization,
                     }
 
+                    /** Save access token so can be reused by Enso backend. */
+                    cognito.saveAccessToken(accessToken)
+
                     /** Execute the callback that should inform the Electron app that the user has logged in.
                      * This is done to transition the app from the authentication/dashboard view to the IDE. */
                     onAuthenticated()
