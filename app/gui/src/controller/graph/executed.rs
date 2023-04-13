@@ -422,6 +422,8 @@ pub mod tests {
     use crate::model::execution_context::ExpressionId;
     use crate::test;
 
+    use crate::test::mock::Fixture;
+    use controller::graph::SpanTree;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -507,5 +509,96 @@ pub mod tests {
         );
 
         notifications.expect_pending();
+    }
+
+    // Test that moving nodes is possible in read-only mode.
+    #[wasm_bindgen_test]
+    fn read_only_mode_does_not_restrict_moving_nodes() {
+        use model::module::Position;
+
+        let fixture = crate::test::mock::Unified::new().fixture();
+        let Fixture { executed_graph, graph, .. } = fixture;
+
+        let nodes = executed_graph.graph().nodes().unwrap();
+        let node = &nodes[0];
+
+        let pos1 = Position::new(500.0, 250.0);
+        let pos2 = Position::new(300.0, 150.0);
+
+        graph.set_node_position(node.id(), pos1).unwrap();
+        assert_eq!(graph.node(node.id()).unwrap().position(), Some(pos1));
+        graph.set_node_position(node.id(), pos2).unwrap();
+        assert_eq!(graph.node(node.id()).unwrap().position(), Some(pos2));
+    }
+
+    // Test that certain actions are forbidden in read-only mode.
+    #[wasm_bindgen_test]
+    fn read_only_mode() {
+        fn run(code: &str, f: impl FnOnce(&Handle)) {
+            let mut data = crate::test::mock::Unified::new();
+            data.set_code(code);
+            let fixture = data.fixture();
+            fixture.read_only.set(true);
+            let Fixture { executed_graph, .. } = fixture;
+            f(&executed_graph);
+        }
+
+
+        // === Editing the node. ===
+
+        let default_code = r#"
+main =
+    foo = 2 * 2
+"#;
+        run(default_code, |executed| {
+            let nodes = executed.graph().nodes().unwrap();
+            let node = &nodes[0];
+            assert!(executed.graph().set_expression(node.info.id(), "5 * 20").is_err());
+        });
+
+
+        // === Collapsing nodes. ===
+
+        let code = r#"
+main =
+    foo = 2
+    bar = foo + 6
+    baz = 2 + foo + bar
+    caz = baz / 2 * baz
+"#;
+        run(code, |executed| {
+            let nodes = executed.graph().nodes().unwrap();
+            // Collapse two middle nodes.
+            let nodes_range = vec![nodes[1].id(), nodes[2].id()];
+            assert!(executed.graph().collapse(nodes_range, "extracted").is_err());
+        });
+
+
+        // === Connecting nodes. ===
+
+        let code = r#"
+main =
+    2 + 2
+    5 * 5
+"#;
+        run(code, |executed| {
+            let nodes = executed.graph().nodes().unwrap();
+            let sum_node = &nodes[0];
+            let product_node = &nodes[1];
+
+            assert_eq!(sum_node.expression().to_string(), "2 + 2");
+            assert_eq!(product_node.expression().to_string(), "5 * 5");
+
+            let context = &span_tree::generate::context::Empty;
+            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), context).unwrap();
+            let sum_input =
+                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
+            let connection = Connection {
+                source:      controller::graph::Endpoint::new(product_node.id(), []),
+                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+            };
+
+            assert!(executed.connect(&connection).is_err());
+        });
     }
 }

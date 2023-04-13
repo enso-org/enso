@@ -96,6 +96,11 @@ pub struct CannotCommitExpression {
     mode: Mode,
 }
 
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Fail)]
+#[fail(display = "Attempt to preview a suggestion in read-only mode")]
+pub struct SuggestionPreviewInReadOnly;
+
 
 // =====================
 // === Notifications ===

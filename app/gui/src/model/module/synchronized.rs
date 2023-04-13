@@ -760,9 +760,11 @@ pub mod test {
         // * there is an initial invalidation after opening the module
         // * replacing AST causes invalidation
         // * localized text edit emits similarly localized synchronization updates.
+        // * modifying the code fails if the read-only mode is enabled.
         let initial_code = "main =\n    println \"Hello World!\"";
         let mut data = crate::test::mock::Unified::new();
         data.set_code(initial_code);
+        let read_only: Rc<Cell<bool>> = default();
         // We do actually care about sharing `data` between `test` invocations, as it stores the
         // Parser which is time-consuming to construct.
         let test = |runner: &mut Runner| {
@@ -789,19 +791,33 @@ pub mod test {
                     Ok(())
                 });
             });
+            fixture.read_only.set(read_only.get());
 
             let parser = data.parser.clone();
             let module = fixture.synchronized_module();
 
             let new_content = "main =\n    println \"Test\"";
             let new_ast = parser.parse_module(new_content, default()).unwrap();
-            module.update_ast(new_ast).unwrap();
+            let res = module.update_ast(new_ast);
+            if read_only.get() {
+                assert!(res.is_err());
+            } else {
+                assert!(res.is_ok());
+            }
             runner.perhaps_run_until_stalled(&mut fixture);
             let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
-            module.apply_code_change(change, &Parser::new(), default()).unwrap();
+            let res = module.apply_code_change(change, &Parser::new(), default());
+            if read_only.get() {
+                assert!(res.is_err());
+            } else {
+                assert!(res.is_ok());
+            }
             runner.perhaps_run_until_stalled(&mut fixture);
         };
 
+        read_only.set(false);
+        Runner::run(test);
+        read_only.set(true);
         Runner::run(test);
     }
 

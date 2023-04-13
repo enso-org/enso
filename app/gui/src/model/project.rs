@@ -276,4 +276,8 @@ pub mod test {
             path.qualified_module_name(name.clone())
         });
     }
+
+    pub fn expect_read_only(project: &mut MockAPI, read_only: Rc<Cell<bool>>) {
+        project.expect_read_only().returning_st(move || read_only.get());
+      }
 }
