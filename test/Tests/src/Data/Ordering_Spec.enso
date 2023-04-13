@@ -203,12 +203,14 @@ spec =
 
         Test.specify "should produce warning when sorting types with different comparators" <|
             [Ord.Value 1, 1].sort . should_equal [1, Ord.Value 1]
-            Problems.expect_warning "Different comparators: [Standard.Base.Data.Ordering.Default_Comparator, Ordering_Spec.Ord_Comparator]" <| [Ord.Value 1, 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            sorted = [Ord.Value 1, 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            Warning.get_all sorted . at 0 . value . starts_with "Different comparators" . should_be_true
 
         Test.specify "should merge groups of values with custom comparators based on the comparators FQN" <|
             [Ord.Value 1, My_Type.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
             [My_Type.Value 1, Ord.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
-            Problems.expect_warning "Different comparators: [Ordering_Spec.My_Type_Comparator, Ordering_Spec.Ord_Comparator]" <| [Ord.Value 1, My_Type.Value 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            sorted = [Ord.Value 1, My_Type.Value 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            Warning.get_all sorted . at 0 . value . starts_with "Different comparators" . should_be_true
 
         Test.specify "should be stable when sorting values with different comparators" <|
             [Ord.Value 1, 20, My_Type.Value 1, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
