@@ -99,8 +99,8 @@ public abstract class SortVectorNode extends Node {
       guards = {
         "interop.hasArrayElements(self)",
         "areAllDefaultComparators(interop, comparators)",
-        "isNothing(byFunc)",
-        "isNothing(onFunc)"
+        "interop.isNull(byFunc)",
+        "interop.isNull(onFunc)"
       })
   Object sortPrimitives(
       State state,
@@ -149,7 +149,7 @@ public abstract class SortVectorNode extends Node {
     }
     var javaComparator =
         createDefaultComparator(
-            lessThanNode, equalsNode, typeOfNode, toTextNode, ascending, problemBehavior);
+            lessThanNode, equalsNode, typeOfNode, toTextNode, ascending, problemBehavior, interop);
     try {
       return sortPrimitiveVector(elems, javaComparator);
     } catch (CompareException e) {
@@ -165,14 +165,16 @@ public abstract class SortVectorNode extends Node {
       TypeOfNode typeOfNode,
       AnyToTextNode toTextNode,
       long ascending,
-      long problemBehaviorNum) {
+      long problemBehaviorNum,
+      InteropLibrary interop) {
     return new DefaultSortComparator(
         lessThanNode,
         equalsNode,
         typeOfNode,
         toTextNode,
         ascending > 0,
-        ProblemBehavior.fromInt((int) problemBehaviorNum));
+        ProblemBehavior.fromInt((int) problemBehaviorNum),
+        interop);
   }
 
   @TruffleBoundary
@@ -223,12 +225,18 @@ public abstract class SortVectorNode extends Node {
     try {
       for (var group : groups) {
         SortComparator javaComparator;
-        if (isNothing(byFunc) && isNothing(onFunc) && isPrimitiveGroup(group)) {
+        if (interop.isNull(byFunc) && interop.isNull(onFunc) && isPrimitiveGroup(group)) {
           javaComparator =
               new DefaultSortComparator(
-                  lessThanNode, equalsNode, typeOfNode, toTextNode, ascending > 0, problemBehavior);
+                  lessThanNode,
+                  equalsNode,
+                  typeOfNode,
+                  toTextNode,
+                  ascending > 0,
+                  problemBehavior,
+                  interop);
         } else {
-          Object compareFunc = isNothing(byFunc) ? group.compareFunc : byFunc;
+          Object compareFunc = interop.isNull(byFunc) ? group.compareFunc : byFunc;
           javaComparator =
               new GenericSortComparator(
                   ascending > 0,
@@ -241,7 +249,8 @@ public abstract class SortVectorNode extends Node {
                   state,
                   less,
                   equal,
-                  greater);
+                  greater,
+                  interop);
         }
         logger.fine(() -> "Sorting Group@" + Integer.toHexString(group.hashCode()));
         group.elems.sort(javaComparator);
@@ -488,14 +497,6 @@ public abstract class SortVectorNode extends Node {
     return object instanceof Double dbl && dbl.isNaN();
   }
 
-  boolean isNothing(Object object) {
-    return isNothing(object, EnsoContext.get(this));
-  }
-
-  private boolean isNothing(Object object, EnsoContext ctx) {
-    return object == ctx.getBuiltins().nothing();
-  }
-
   private enum ProblemBehavior {
     IGNORE,
     REPORT_WARNING,
@@ -531,10 +532,13 @@ public abstract class SortVectorNode extends Node {
     private final Set<String> warnings = new HashSet<>();
     final AnyToTextNode toTextNode;
     final ProblemBehavior problemBehavior;
+    final InteropLibrary interop;
 
-    protected SortComparator(AnyToTextNode toTextNode, ProblemBehavior problemBehavior) {
+    protected SortComparator(
+        AnyToTextNode toTextNode, ProblemBehavior problemBehavior, InteropLibrary interop) {
       this.toTextNode = toTextNode;
       this.problemBehavior = problemBehavior;
+      this.interop = interop;
     }
 
     @TruffleBoundary
@@ -578,8 +582,9 @@ public abstract class SortVectorNode extends Node {
         TypeOfNode typeOfNode,
         AnyToTextNode toTextNode,
         boolean ascending,
-        ProblemBehavior problemBehavior) {
-      super(toTextNode, problemBehavior);
+        ProblemBehavior problemBehavior,
+        InteropLibrary interop) {
+      super(toTextNode, problemBehavior, interop);
       this.lessThanNode = lessThanNode;
       this.equalsNode = equalsNode;
       this.typeOfNode = typeOfNode;
@@ -597,7 +602,7 @@ public abstract class SortVectorNode extends Node {
       } else {
         // Check if x < y
         Object xLessThanYRes = lessThanNode.execute(x, y);
-        if (isNothing(xLessThanYRes)) {
+        if (interop.isNull(xLessThanYRes)) {
           // x and y are incomparable - this can happen if x and y are different types
           return handleIncomparableValues(x, y);
         } else if (isTrue(xLessThanYRes)) {
@@ -661,7 +666,7 @@ public abstract class SortVectorNode extends Node {
     }
 
     private int getPrimitiveValueCost(Object object) {
-      if (isNothing(object)) {
+      if (interop.isNull(object)) {
         return 200;
       } else if (isNan(object)) {
         return 100;
@@ -706,15 +711,16 @@ public abstract class SortVectorNode extends Node {
         State state,
         Atom less,
         Atom equal,
-        Atom greater) {
-      super(toTextNode, problemBehavior);
+        Atom greater,
+        InteropLibrary interop) {
+      super(toTextNode, problemBehavior, interop);
       assert compareFunc != null;
       assert comparator != null;
       this.comparator = comparator;
       this.state = state;
       this.ascending = ascending;
       this.compareFunc = checkAndConvertByFunc(compareFunc);
-      if (isNothing(onFunc)) {
+      if (interop.isNull(onFunc)) {
         this.hasCustomOnFunc = false;
         this.onFunc = null;
       } else {
