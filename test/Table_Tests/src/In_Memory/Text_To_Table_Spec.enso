@@ -4,6 +4,7 @@ import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
 import Standard.Test.Extensions
 
 from Standard.Table import Table
+from Standard.Table.Data.Type.Value_Type import Bits, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
 from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
@@ -28,5 +29,27 @@ spec =
                                        [["ab", 12], ["bt", 100], ["c", 12], ["d", 20]]
             actual = Table.parse_text_to_table "a 7 ab-12 bt-100 c-12d-20q q8 12" "(?<letters>[a-z]+)-(\d*)"
             actual.should_equal_verbose expected
+
+    Test.group "Table.parse_text_to_table with case-insensitivity" <|
+        Test.specify "case insensitivity" <|
+            expected = Table.from_rows ["Column 1", "Column 2"]
+                                       [["a", "B"], ["A", "b"], ["a", "b"], ["A", "B"]]
+            actual = Table.parse_text_to_table "xy aB Ab ab AB" "(a)(b)" case_sensitivity=Case_Sensitivity.Insensitive
+            actual.should_equal_verbose expected
+
+    Test.group "Table.parse_text_to_table parsing" <|
+        Test.specify "parsing on" <|
+            expected = Table.from_rows ["Column 1", "Column 2"]
+                                       [["ab", 12], ["bt", 100], ["c", 12], ["d", 20]]
+            actual = Table.parse_text_to_table "a 7 ab-12 bt-100 c-12d-20q q8 12" "([a-z]+)-(\d*)"
+            actual.should_equal_verbose expected
+            actual.columns.map .value_type . should_equal [Value_Type.Char Nothing True, Value_Type.Integer Bits.Bits_64]
+
+        Test.specify "parsing off" <|
+            expected = Table.from_rows ["Column 1", "Column 2"]
+                                       [["ab", "12"], ["bt", "100"], ["c", "12"], ["d", "20"]]
+            actual = Table.parse_text_to_table "a 7 ab-12 bt-100 c-12d-20q q8 12" "([a-z]+)-(\d*)" parse_values=False
+            actual.should_equal_verbose expected
+            actual.columns.map .value_type . should_equal [Value_Type.Char Nothing True, Value_Type.Char Nothing True]
 
 main = Test_Suite.run_main spec
