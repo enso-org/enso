@@ -608,8 +608,7 @@ where
 {
     /// Proceed with the next simulation step for the given time delta.
     pub fn step(&self, delta_seconds: Duration) -> bool {
-        let is_active = self.simulation.active();
-        if is_active {
+        if self.simulation.active() {
             self.simulation.step(delta_seconds);
             self.on_step.call(self.simulation.value());
         };

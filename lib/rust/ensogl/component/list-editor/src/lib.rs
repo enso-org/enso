@@ -1,6 +1,7 @@
 //! Example scene showing the usage of built-in vector editor component.
 //!
 //! TODO[WD]: This is work in progress and will be changed in the upcoming PRs.
+//!   https://github.com/enso-org/enso/issues/6037
 
 #![recursion_limit = "512"]
 // === Features ===
@@ -43,7 +44,7 @@ const GAP: f32 = 10.0;
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
-pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
+pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -548,27 +549,21 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         &mut self,
         target: &display::object::Instance,
     ) -> Option<usize> {
-        for (index, item) in self.items.iter().enumerate() {
-            if let Item::DropSpot(t) = item {
-                if t.elem.display_object() == target {
-                    return Some(index);
+        self.items
+            .iter()
+            .enumerate()
+            .find(|(_, item)| {
+                if let Item::DropSpot(t) = item {
+                    t.elem.display_object() == target
+                } else {
+                    false
                 }
-            }
-        }
-        None
+            })
+            .map(|t| t.0)
     }
 
-    fn elem_index_to_item_index(&mut self, mut elem_index: Index) -> Option<usize> {
-        for (index, item) in self.items.iter().enumerate() {
-            if item.is_drop_spot() {
-                if elem_index == 0 {
-                    return Some(index);
-                } else {
-                    elem_index -= 1;
-                }
-            }
-        }
-        None
+    fn elem_index_to_item_index(&mut self, ix: Index) -> Option<usize> {
+        self.items.iter().enumerate().filter(|(_, item)| item.is_drop_spot()).nth(ix).map(|t| t.0)
     }
 
     fn get_upgraded_weak_placeholder(&self, index: usize) -> Option<(usize, Placeholder)> {
@@ -591,9 +586,10 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// ```
     ///
     /// 2. A single placeholder to reuse (either to the left or to the right of the dragged
-    /// element). In this case, dragging the element marked with "X" results in the placeholder
-    /// being scaled to cover the size of the dragged element. The placeholder will then be animated
-    /// to finally get the same size as the dragged element.
+    /// element). This situation can happen when an element was previously dragged and it's
+    /// placeholder did not collapse yet. In this case, dragging the element marked with "X" results
+    /// in the placeholder being scaled to cover the size of the dragged element. The
+    /// placeholder will then be animated to finally get the same size as the dragged element.
     ///
     /// ```text                                                    
     ///                                                       ╭──X──╮      

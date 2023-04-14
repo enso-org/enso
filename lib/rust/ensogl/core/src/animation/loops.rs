@@ -159,9 +159,10 @@ impl Loop {
 
 // === Types ===
 
-/// Type of the function that will be called on every animation frame.
+/// Type of the animation function that will be called on every frame.
 pub trait AnimationCallback = FnMut(FixedFrameRateStep<TimeInfo>) + 'static;
 
+/// Type of a function that will be called on every frame before animation callbacks are run.
 pub trait BeforeAnimationCallback = FnMut(TimeInfo) + 'static;
 
 
@@ -206,7 +207,8 @@ pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.on_before_rendering.clone_ref())
 }
 
-/// An animation loop. Runs the provided [`OnFrame`] callback on every animation frame.
+/// A wrapper for JavaScript `requestAnimationFrame` loop. It allows registering callbacks and also
+/// exposes FRP endpoints that will emit signals on every loop iteration.
 #[derive(CloneRef, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
