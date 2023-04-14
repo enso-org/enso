@@ -57,9 +57,8 @@ type Type_Error
     ## PRIVATE
        Infer the type of the actual value in a human-readable format.
     type_of_actual self =
-        case (Meta.type_of self.actual) of
-            Compile_Error.Error _ -> self.actual.to_display_text
-            t -> t.to_display_text
+        tpe = Meta.type_of self.actual
+        if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
 
     ## PRIVATE
        Convert the Type_Error error to a human-readable format.

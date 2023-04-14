@@ -9,11 +9,11 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
@@ -116,6 +116,16 @@ public abstract class TypeOfNode extends Node {
     }
   }
 
+  @Specialization
+  Object doholeInAtom(AtomWithAHoleNode.HoleInAtom holeInAtom) {
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
+    return Warning.attach(
+        EnsoContext.get(this),
+        builtins.nothing(),
+        Text.create("Hole in an atom doesn't have a type before being filled"),
+        null);
+  }
+
   @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})
   Object doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     return EnsoContext.get(this).getBuiltins().dateTime();
@@ -178,9 +188,11 @@ public abstract class TypeOfNode extends Node {
   @Fallback
   @CompilerDirectives.TruffleBoundary
   Object doAny(Object value) {
-    return EnsoContext.get(this)
-        .getBuiltins()
-        .error()
-        .makeCompileError("unknown type_of for " + value);
+    return DataflowError.withoutTrace(
+        EnsoContext.get(this)
+            .getBuiltins()
+            .error()
+            .makeCompileError("unknown type_of for " + value),
+        this);
   }
 }

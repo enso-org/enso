@@ -20,9 +20,8 @@ type Type_Error
     Error expected actual name
 
     type_of_actual self =
-        case (Meta.type_of self.actual) of
-            Compile_Error.Error _ -> self.actual.to_display_text
-            t -> t.to_display_text
+        tpe = Meta.type_of self.actual
+        if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
 
     to_display_text self = "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
 
