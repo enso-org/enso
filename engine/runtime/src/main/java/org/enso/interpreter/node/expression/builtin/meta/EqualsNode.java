@@ -236,10 +236,10 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  boolean equalsAtoms(Atom self, Atom other, @Cached EqualsAtomNode compare) {
-    return compare.execute(self, other);
+  boolean equalsAtoms(Atom self, Atom other, @Cached EqualsAtomNode equalsNode) {
+    return equalsNode.execute(self, other);
   }
-
+  
   @Specialization(guards = "isComplex(self, other, strings, warnings)")
   boolean equalsComplex(
     Object self, Object other,
