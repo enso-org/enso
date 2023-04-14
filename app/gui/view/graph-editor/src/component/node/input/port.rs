@@ -31,11 +31,7 @@ pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = 4.0;
 
 /// The maximum depth of the widget port that is still considered primary. This is used to determine
 /// the hover area of the port.
-pub const PRIMARY_PORT_MAX_DEPTH: usize = 2;
-
-/// Width of a single space glyph. Used to calculate padding based on the text offset between nodes.
-// TODO: avoid using hardcoded value. See https://www.pivotaltracker.com/story/show/183567623.
-pub const SPACE_GLYPH_WIDTH: f32 = 7.224_609_4;
+pub const PRIMARY_PORT_MAX_DEPTH: usize = 0;
 
 
 
@@ -109,7 +105,6 @@ pub(super) struct Port {
     widget:          DynWidget,
     port_shape:      shape::View,
     hover_shape:     hover_shape::View,
-    last_offset:     usize,
     last_node_depth: usize,
     is_primary:      bool,
 }
@@ -122,17 +117,17 @@ impl Port {
         let hover_shape = hover_shape::View::new();
 
         port_root.add_child(&widget_root);
-        port_root.set_alignment_left();
+        widget_root.set_margin_left(0.0);
         port_shape
             .allow_grow()
             .set_margin_left(-PORT_PADDING_X)
             .set_margin_right(-PORT_PADDING_X)
-            .set_alignment_left();
+            .set_alignment_left_center();
         hover_shape
             .allow_grow()
             .set_margin_left(-PORT_PADDING_X)
             .set_margin_right(-PORT_PADDING_X)
-            .set_alignment_left();
+            .set_alignment_left_center();
 
         let layers = app.display.default_scene.extension::<PortHoverLayers>();
         layers.add_to_partition(hover_shape.display_object(), 0);
@@ -183,7 +178,6 @@ impl Port {
             network,
             crumbs,
             is_primary: false,
-            last_offset: 0,
             last_node_depth: 0,
         }
     }
@@ -217,14 +211,6 @@ impl Port {
     }
 
     fn set_port_layout(&mut self, ctx: &ConfigContext) {
-        let is_placeholder = ctx.span_tree_node.is_expected_argument();
-        let min_offset = if is_placeholder { 1 } else { 0 };
-        let offset = min_offset.max(ctx.span_tree_node.sibling_offset.as_usize());
-        if self.last_offset != offset {
-            self.last_offset = offset;
-            self.port_root.set_margin_left(offset as f32 * SPACE_GLYPH_WIDTH);
-        }
-
         let node_depth = ctx.span_tree_node.crumbs.len();
         if self.last_node_depth != node_depth {
             self.last_node_depth = node_depth;
@@ -235,8 +221,11 @@ impl Port {
         let is_primary = ctx.depth <= PRIMARY_PORT_MAX_DEPTH;
         if self.is_primary != is_primary {
             self.is_primary = is_primary;
-            let y_margin = if is_primary { 0.0 } else { PRIMARY_PORT_HOVER_PADDING_Y };
-            self.hover_shape.set_margin_top(-y_margin).set_margin_bottom(-y_margin);
+            if is_primary {
+                self.hover_shape.set_size_y(crate::node::HEIGHT);
+            } else {
+                self.hover_shape.set_size_y_to_hug();
+            }
         }
     }
 

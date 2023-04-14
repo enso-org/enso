@@ -2656,6 +2656,12 @@ pub trait LayoutOps: Object {
         self.display_object().def.layout.size.get()
     }
 
+    /// Get the margin of the object.P lease note that this is user-set margin, not the computed
+    /// one.
+    fn margin(&self) -> Vector2<SideSpacing> {
+        self.display_object().def.layout.margin.get()
+    }
+
     /// Modify the size of the object. By default, the size is set to hug the children. You can set
     /// the size either to a fixed pixel value, a percentage parent container size, or to a fraction
     /// of the free space left after placing siblings with fixed sizes.
@@ -3443,20 +3449,26 @@ impl Model {
             for child in &children {
                 let to_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 if to_grow {
+                    let can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
                     let child_size = child.computed_size().get_dim(x);
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
-                    let desired_child_size = self_size - child_margin.total();
+                    let mut desired_child_size = self_size - child_margin.total();
+
+                    if !can_shrink {
+                        let child_static_size = child.resolve_size_static_values(x, self_size);
+                        desired_child_size = desired_child_size.max(child_static_size);
+                    }
 
                     if desired_child_size != child_size || child.should_refresh_layout() {
                         child.layout.computed_size.set_dim(x, desired_child_size);
                         child.refresh_layout_internal(x, PassConfig::DoNotHugDirectChildren);
                     }
 
-                    if child.layout.alignment.get().get_dim(x).is_some() {
-                        // If child is set to grow, there will never be any leftover space to align
-                        // it. It should always be positioned at 0.0 relative to its parent, plus
-                        // taking the margin into account.
-                        child.set_position_dim(x, child_margin.start);
+                    if let Some(alignment) = *child.layout.alignment.get().get_dim(x) {
+                        let remaining_size = self_size - desired_child_size - child_margin.total();
+                        let aligned_x =
+                            remaining_size * alignment.normalized() + child_margin.start;
+                        child.set_position_dim(x, aligned_x);
                     }
                 }
             }

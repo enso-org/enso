@@ -22,6 +22,18 @@ use text::index::Byte;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// Spacing between sibling widgets per each code character that separates them. Current value is
+/// based on the space glyph width at node's default font size, so that entering node edit mode
+/// introduces the least amount of visual changes. The value can be adjusted once we implement
+/// granular edit mode that works with widgets.
+pub const WIDGET_SPACING_PER_OFFSET: f32 = 7.224_609_4;
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -714,6 +726,8 @@ impl<'a> WidgetTreeBuilder<'a> {
             });
 
         let old_node = self.old_widgets.remove(&tree_ptr);
+        let is_placeholder = span_tree_node.is_expected_argument();
+        let sibling_offset = span_tree_node.sibling_offset.as_usize();
         let node = {
             let ctx =
                 ConfigContext { builder: &mut *self, display: meta.display, span_tree_node, depth };
@@ -741,6 +755,14 @@ impl<'a> WidgetTreeBuilder<'a> {
             }
         };
         let root = node.display_object().clone();
+
+        let offset = sibling_offset.max(if is_placeholder { 1 } else { 0 });
+        let left_margin = offset as f32 * WIDGET_SPACING_PER_OFFSET;
+        if root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
+            root.set_margin_left(left_margin);
+        }
+
+
         self.new_widgets.insert(tree_ptr.clone(), node);
 
         // After visiting child node, restore previous layer's data.

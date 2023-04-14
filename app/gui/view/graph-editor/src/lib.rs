@@ -2379,7 +2379,6 @@ impl GraphEditorModel {
                 updated |= self.refresh_edge_position(edge_id);
             }
         }
-        warn!("refresh_incoming_edge_positions_and_relayout {updated} {node_ids:?}");
         if updated {
             self.display_object().update(self.scene());
         }
