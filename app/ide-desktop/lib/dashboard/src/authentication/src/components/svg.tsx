@@ -126,7 +126,7 @@ export const SMALL_RIGHT_ARROW_ICON = (
 export const PLAY_ICON = (
     <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
-            d="m10.04 7.34 6 3.85a1 1 0 0 1 0 1.68l-6 3.85a1 1 0 0 1-1.54-.84v-7.7a1 1 0 0 1 1.54-.84Z"
+            d="m10 7.3 6 3.9a1 1 0 0 1 0 1.7l-6 3.9a1 1 0 0 1-1.5-.8v-7.7a1 1 0 0 1 1.5-.8Z"
             fill="currentColor"
         />
         <rect
@@ -157,7 +157,7 @@ export const ARROW_UP_ICON = (
         />
         <path d="M12 17a1.5 1.5 0 0 1-1.5-1.5V12h3v3.5A1.5 1.5 0 0 1 12 17Z" fill="currentColor" />
         <path
-            d="M8.943 12a1 1 0 0 1-.814-1.581l3.057-4.28a1 1 0 0 1 1.628 0l3.056 4.28A1 1 0 0 1 15.057 12H8.943Z"
+            d="M9 12a1 1 0 0 1-.8-1.6l3-4.3a1 1 0 0 1 1.6 0l3 4.3A1 1 0 0 1 15 12H9Z"
             fill="currentColor"
         />
     </svg>
@@ -176,10 +176,7 @@ export const BARS_ICON = (
 export const MAGNIFYING_GLASS_ICON = (
     <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g opacity={0.5}>
-            <path
-                d="M11.4142 10L15.6569 14.2426L14.2426 15.6569L10 11.4142L11.4142 10Z"
-                fill="currentColor"
-            />
+            <path d="M11.4 10L15.7 14.3L14.3 15.7L10 11.4L11.4 10Z" fill="currentColor" />
             <circle cx={7} cy={7} r={5} stroke="currentColor" stroke-width={2} />
         </g>
     </svg>
@@ -189,9 +186,74 @@ export const MAGNIFYING_GLASS_ICON = (
 export const SPEECH_BUBBLE_ICON = (
     <svg width={16} height={17} viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
         <ellipse cx={8} cy={8} rx={8} ry={7.5} fill="white" />
-        <path d="M4.17269e-05 16.5L2 10.5L5.50006 14L4.17269e-05 16.5Z" fill="white" />
+        <path d="M0 16.5L2 10.5L5.5 14L0 16.5Z" fill="white" />
     </svg>
 )
+
+export const CLOUD_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M6.5 16A2.9 2.9 0 1 1 8 10.5 4 4 0 0 1 15.5 11 2 2 0 0 1 17.5 12 1.9 1.9 0 1 1 18.5 16"
+            fill="currentColor"
+        />
+    </svg>
+)
+
+export const COMPUTER_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M3.5 18.5a1 1 0 0 1 0-2h3.5v-1.5h-3.5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3.5v1.5h3.5a1 1 0 0 1 0 2ZM4 14a.5.5 0 0 1-.5-.5v-6a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-.5.5ZM17.3 18.5a1 1 0 0 1-1-1v-10.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v10.5a1 1 0 0 1-1 1ZM17.3 9a.3.3 0 1 1 0-.6h3a.3.3 0 1 1 0 .6ZM18.8 16a.7.7 0 1 1 0-1.4.7.7 0 1 1 0 1.4Z"
+            fill="currentColor"
+            fillRule="evenodd"
+        />
+    </svg>
+)
+
+export interface StopIconProps {
+    className?: string
+}
+
+/** Icon displayed when a project is ready to stop. */
+export function StopIcon(props: StopIconProps) {
+    const { className } = props
+    return (
+        <svg
+            width={24}
+            height={24}
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+                d="m9 8L15 8a1 1 0 0 1 1 1L16 15a1 1 0 0 1 -1 1L9 16a1 1 0 0 1 -1 -1L8 9a1 1 0 0 1 1 -1"
+                fill="currentColor"
+            />
+            <rect
+                x={1.5}
+                y={1.5}
+                width={21}
+                height={21}
+                rx={10.5}
+                stroke="currentColor"
+                strokeOpacity={0.1}
+                strokeWidth={3}
+            />
+            <rect
+                x={1.5}
+                y={1.5}
+                width={21}
+                height={21}
+                rx={10.5}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth={3}
+                className={`animate-spin-ease origin-center transition-stroke-dasharray ${
+                    className ?? ''
+                }`}
+            />
+        </svg>
+    )
+}
 
 // ===========
 // === Svg ===

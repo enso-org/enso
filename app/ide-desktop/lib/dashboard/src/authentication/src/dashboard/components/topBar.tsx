@@ -1,6 +1,14 @@
 /** @file The top-bar of dashboard. */
+import * as react from 'react'
+
+import * as authProvider from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
+import * as cloudService from '../cloudService'
 import * as dashboard from './dashboard'
+import * as localService from '../localService'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
 import UserMenu from './userMenu'
@@ -10,6 +18,7 @@ import UserMenu from './userMenu'
 // ==============
 
 interface TopBarProps {
+    platform: platformModule.Platform
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
@@ -22,12 +31,46 @@ interface TopBarProps {
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { projectName, tab, toggleTab, searchVal, setSearchVal } = props
+    const { platform, projectName, tab, toggleTab, searchVal, setSearchVal } = props
+    const { accessToken } = authProvider.useFullUserSession()
+    const logger = loggerProvider.useLogger()
+    const { setBackend } = backendProvider.useSetBackend()
     const { setModal } = modalProvider.useSetModal()
+    const [backendPlatform, setBackendPlatform] = react.useState(platformModule.Platform.cloud)
 
     return (
         <div className="flex m-2 h-8">
             <div className="flex text-primary">
+                {platform === platformModule.Platform.desktop && (
+                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
+                        <button
+                            onClick={() => {
+                                setBackendPlatform(platformModule.Platform.desktop)
+                                setBackend(localService.createBackend())
+                            }}
+                            className={`${
+                                backendPlatform === platformModule.Platform.desktop
+                                    ? 'bg-white shadow-soft'
+                                    : 'opacity-50'
+                            } rounded-full px-1.5 py-1`}
+                        >
+                            {svg.COMPUTER_ICON}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setBackendPlatform(platformModule.Platform.cloud)
+                                setBackend(cloudService.createBackend(accessToken, logger))
+                            }}
+                            className={`${
+                                backendPlatform === platformModule.Platform.cloud
+                                    ? 'bg-white shadow-soft'
+                                    : 'opacity-50'
+                            } rounded-full px-1.5 py-1`}
+                        >
+                            {svg.CLOUD_ICON}
+                        </button>
+                    </div>
+                )}
                 <div
                     className={`flex items-center bg-label rounded-full pl-1
                                 pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}

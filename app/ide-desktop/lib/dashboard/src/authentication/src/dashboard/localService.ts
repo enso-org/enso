@@ -2,7 +2,7 @@
  *
  * Each exported function in the {@link Backend} in this module corresponds to an API endpoint. The
  * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
-import * as cloudService from './service'
+import * as cloudService from './cloudService'
 import * as newtype from '../newtype'
 import * as projectManager from './projectManager'
 
@@ -70,6 +70,7 @@ export class Backend implements Partial<cloudService.Backend> {
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
         const project = result.result
+        console.log(result, project)
         return {
             name: project.projectName,
             engineVersion: {

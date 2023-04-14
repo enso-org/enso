@@ -4,13 +4,15 @@ import * as react from 'react'
 import * as reactDom from 'react-dom'
 
 import * as auth from '../../authentication/providers/auth'
-import * as backend from '../service'
-import * as loggerProvider from '../../providers/logger'
-import * as modalProvider from '../../providers/modal'
+import * as cloudService from '../cloudService'
+import * as localService from '../localService'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
-import * as projectManagerBackend from '../projectManagerService'
 import * as svg from '../../components/svg'
+
+import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 
 import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
@@ -54,11 +56,11 @@ enum Column {
 // =================
 
 /** English names for the name column. */
-const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
-    [backend.AssetType.project]: 'Projects',
-    [backend.AssetType.file]: 'Files',
-    [backend.AssetType.secret]: 'Secrets',
-    [backend.AssetType.directory]: 'Folders',
+const ASSET_TYPE_NAME: Record<cloudService.AssetType, string> = {
+    [cloudService.AssetType.project]: 'Projects',
+    [cloudService.AssetType.file]: 'Files',
+    [cloudService.AssetType.secret]: 'Secrets',
+    [cloudService.AssetType.directory]: 'Folders',
 } as const
 
 /** English names for every column except for the name column. */
@@ -105,7 +107,7 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 /** React components for every column except for the name column. */
 const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
-    (project: backend.Asset) => JSX.Element
+    (project: cloudService.Asset) => JSX.Element
 > = {
     [Column.lastModified]: () => <>aa</>,
     [Column.sharedWith]: () => <>aa</>,
@@ -155,8 +157,8 @@ const COLUMN_RENDERER: Record<
 // event for the cloud frontend. It should be set to `backend.createBackend`
 // when entrypoints are merged.
 const BACKEND_FACTORY = {
-    [platformModule.Platform.cloud]: backend.createBackend,
-    [platformModule.Platform.desktop]: projectManagerBackend.createBackend,
+    [platformModule.Platform.cloud]: cloudService.createBackend,
+    [platformModule.Platform.desktop]: localService.createBackend,
 }
 
 // ========================
@@ -164,14 +166,14 @@ const BACKEND_FACTORY = {
 // ========================
 
 /** English names for every column. */
-function columnName(column: Column, assetType: backend.AssetType) {
+function columnName(column: Column, assetType: cloudService.AssetType) {
     return column === Column.name ? ASSET_TYPE_NAME[assetType] : COLUMN_NAME[column]
 }
 
 /** Returns the id of the root directory for a user or organization. */
-function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
-    return newtype.asNewtype<backend.DirectoryId>(
-        userOrOrganizationId.replace(/^organization-/, `${backend.AssetType.directory}-`)
+function rootDirectoryId(userOrOrganizationId: cloudService.UserOrOrganizationId) {
+    return newtype.asNewtype<cloudService.DirectoryId>(
+        userOrOrganizationId.replace(/^organization-/, `${cloudService.AssetType.directory}-`)
     )
 }
 
@@ -198,8 +200,7 @@ function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
 
     const { accessToken, organization } = auth.useFullUserSession()
-    const [backendPlatform, setBackendPlatform] = react.useState(platformModule.Platform.cloud)
-    const backendService = BACKEND_FACTORY[backendPlatform](accessToken, logger)
+    const { backend } = backendProvider.useBackend()
 
     const { modal } = modalProvider.useModal()
     const { unsetModal } = modalProvider.useSetModal()
@@ -207,24 +208,26 @@ function Dashboard(props: DashboardProps) {
     const [searchVal, setSearchVal] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
-        backend.Asset<backend.AssetType.directory>[]
+        cloudService.Asset<cloudService.AssetType.directory>[]
     >([])
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.compact)
-    const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
+    const [selectedAssets, setSelectedAssets] = react.useState<cloudService.Asset[]>([])
 
     const [projectAssets, setProjectAssets] = react.useState<
-        backend.Asset<backend.AssetType.project>[]
+        cloudService.Asset<cloudService.AssetType.project>[]
     >([])
     const [directoryAssets, setDirectoryAssets] = react.useState<
-        backend.Asset<backend.AssetType.directory>[]
+        cloudService.Asset<cloudService.AssetType.directory>[]
     >([])
     const [secretAssets, setSecretAssets] = react.useState<
-        backend.Asset<backend.AssetType.secret>[]
+        cloudService.Asset<cloudService.AssetType.secret>[]
     >([])
-    const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
+    const [fileAssets, setFileAssets] = react.useState<
+        cloudService.Asset<cloudService.AssetType.file>[]
+    >([])
 
     const [tab, setTab] = react.useState(Tab.dashboard)
-    const [project, setProject] = react.useState<backend.Project | null>(null)
+    const [project, setProject] = react.useState<cloudService.Project | null>(null)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -238,21 +241,21 @@ function Dashboard(props: DashboardProps) {
 
     /** React components for the name column. */
     const nameRenderers: {
-        [Type in backend.AssetType]: (asset: backend.Asset<Type>) => JSX.Element
+        [Type in cloudService.AssetType]: (asset: cloudService.Asset<Type>) => JSX.Element
     } = {
-        [backend.AssetType.project]: projectAsset => (
+        [cloudService.AssetType.project]: projectAsset => (
             <div className="flex text-left items-center align-middle whitespace-nowrap">
                 <ProjectActionButton
                     project={projectAsset}
                     openIde={async () => {
                         setTab(Tab.ide)
-                        setProject(await backendService.getProjectDetails(projectAsset.id))
+                        setProject(await backend.getProjectDetails(projectAsset.id))
                     }}
                 />
                 <span className="px-2">{projectAsset.title}</span>
             </div>
         ),
-        [backend.AssetType.directory]: directoryAsset => (
+        [cloudService.AssetType.directory]: directoryAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onDoubleClick={() => {
@@ -263,23 +266,23 @@ function Dashboard(props: DashboardProps) {
                 {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
             </div>
         ),
-        [backend.AssetType.secret]: secret => (
+        [cloudService.AssetType.secret]: secret => (
             <div className="flex text-left items-center align-middle whitespace-nowrap">
                 {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
             </div>
         ),
-        [backend.AssetType.file]: file => (
+        [cloudService.AssetType.file]: file => (
             <div className="flex text-left items-center align-middle whitespace-nowrap">
                 {fileIcon(fileExtension(file.title))} <span className="px-2">{file.title}</span>
             </div>
         ),
     }
 
-    const renderer = <Type extends backend.AssetType>(column: Column, assetType: Type) => {
+    const renderer = <Type extends cloudService.AssetType>(column: Column, assetType: Type) => {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
-              (nameRenderers[assetType] as (asset: backend.Asset<Type>) => JSX.Element)
+              (nameRenderers[assetType] as (asset: cloudService.Asset<Type>) => JSX.Element)
             : COLUMN_RENDERER[column]
     }
 
@@ -292,22 +295,29 @@ function Dashboard(props: DashboardProps) {
 
     react.useEffect(() => {
         void (async (): Promise<void> => {
-            const assets = await backendService.listDirectory({
+            const assets = await backend.listDirectory({
                 parentId: directoryId,
             })
             reactDom.unstable_batchedUpdates(() => {
-                setProjectAssets(assets.filter(backend.assetIsType(backend.AssetType.project)))
-                setDirectoryAssets(assets.filter(backend.assetIsType(backend.AssetType.directory)))
-                setSecretAssets(assets.filter(backend.assetIsType(backend.AssetType.secret)))
-                setFileAssets(assets.filter(backend.assetIsType(backend.AssetType.file)))
+                setProjectAssets(
+                    assets.filter(cloudService.assetIsType(cloudService.AssetType.project))
+                )
+                setDirectoryAssets(
+                    assets.filter(cloudService.assetIsType(cloudService.AssetType.directory))
+                )
+                setSecretAssets(
+                    assets.filter(cloudService.assetIsType(cloudService.AssetType.secret))
+                )
+                setFileAssets(assets.filter(cloudService.assetIsType(cloudService.AssetType.file)))
             })
         })()
-    }, [accessToken, directoryId])
+    }, [accessToken, directoryId, backend])
 
     return (
         <div className="text-primary text-xs" onClick={unsetModal}>
             <div className={tab === Tab.dashboard ? '' : 'hidden'}>
                 <TopBar
+                    platform={platform}
                     projectName={project?.name ?? null}
                     tab={tab}
                     toggleTab={() => {
@@ -436,7 +446,7 @@ function Dashboard(props: DashboardProps) {
                 </div>
                 <table className="items-center w-full bg-transparent border-collapse">
                     <tr className="h-8" />
-                    <Rows<backend.Asset<backend.AssetType.project>>
+                    <Rows<cloudService.Asset<cloudService.AssetType.project>>
                         items={projectAssets}
                         getKey={proj => proj.id}
                         placeholder={
@@ -447,47 +457,51 @@ function Dashboard(props: DashboardProps) {
                         }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
-                            name: columnName(column, backend.AssetType.project),
-                            render: renderer(column, backend.AssetType.project),
+                            name: columnName(column, cloudService.AssetType.project),
+                            render: renderer(column, cloudService.AssetType.project),
                         }))}
                     />
                     <tr className="h-8" />
-                    <Rows<backend.Asset<backend.AssetType.directory>>
+                    <Rows<cloudService.Asset<cloudService.AssetType.directory>>
                         items={directoryAssets}
                         getKey={proj => proj.id}
                         placeholder={<>This directory does not contain any subdirectories.</>}
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
-                            name: columnName(column, backend.AssetType.directory),
-                            render: renderer(column, backend.AssetType.directory),
+                            name: columnName(column, cloudService.AssetType.directory),
+                            render: renderer(column, cloudService.AssetType.directory),
                         }))}
                     />
                     <tr className="h-8" />
-                    <Rows<backend.Asset<backend.AssetType.secret>>
+                    <Rows<cloudService.Asset<cloudService.AssetType.secret>>
                         items={secretAssets}
                         getKey={proj => proj.id}
                         placeholder={<>This directory does not contain any secrets.</>}
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
-                            name: columnName(column, backend.AssetType.secret),
-                            render: renderer(column, backend.AssetType.secret),
+                            name: columnName(column, cloudService.AssetType.secret),
+                            render: renderer(column, cloudService.AssetType.secret),
                         }))}
                     />
                     <tr className="h-8" />
-                    <Rows<backend.Asset<backend.AssetType.file>>
+                    <Rows<cloudService.Asset<cloudService.AssetType.file>>
                         items={fileAssets}
                         getKey={proj => proj.id}
                         placeholder={<>This directory does not contain any files.</>}
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
-                            name: columnName(column, backend.AssetType.file),
-                            render: renderer(column, backend.AssetType.file),
+                            name: columnName(column, cloudService.AssetType.file),
+                            render: renderer(column, cloudService.AssetType.file),
                         }))}
                     />
                 </table>
             </div>
             <div className={tab === Tab.ide ? '' : 'hidden'}>
-                {project ? <Ide backendService={backendService} project={project} /> : <></>}
+                {project ? (
+                    <Ide platform={platform} backendService={backend} project={project} />
+                ) : (
+                    <></>
+                )}
             </div>
             {modal && <>{modal}</>}
         </div>

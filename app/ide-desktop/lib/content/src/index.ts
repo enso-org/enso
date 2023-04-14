@@ -193,6 +193,7 @@ class Main {
                         logger,
                         platform,
                         enableDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
+                        ide: appInstance,
                         onAuthenticated,
                     })
                 } else {

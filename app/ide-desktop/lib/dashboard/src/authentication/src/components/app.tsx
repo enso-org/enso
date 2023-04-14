@@ -38,10 +38,13 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
+import * as app from '../../../../../../../../target/ensogl-pack/linked-dist/index'
+
 import * as authService from '../authentication/service'
 import * as platformModule from '../platform'
 
 import * as authProvider from '../authentication/providers/auth'
+import * as backendProvider from '../providers/backend'
 import * as loggerProvider from '../providers/logger'
 import * as modalProvider from '../providers/modal'
 import * as sessionProvider from '../authentication/providers/session'
@@ -82,6 +85,7 @@ export interface AppProps {
     platform: platformModule.Platform
     /** Whether the dashboard should be rendered. */
     enableDashboard: boolean
+    ide?: app.App
     onAuthenticated: () => void
 }
 
@@ -156,12 +160,15 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <authProvider.AuthProvider
-                    authService={memoizedAuthService}
-                    onAuthenticated={onAuthenticated}
-                >
-                    <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
-                </authProvider.AuthProvider>
+                {/* @ts-expect-error Auth will always set this before dashboard is rendered. */}
+                <backendProvider.BackendProvider initialBackend={null}>
+                    <authProvider.AuthProvider
+                        authService={memoizedAuthService}
+                        onAuthenticated={onAuthenticated}
+                    >
+                        <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
+                    </authProvider.AuthProvider>
+                </backendProvider.BackendProvider>
             </sessionProvider.SessionProvider>
         </loggerProvider.LoggerProvider>
     )

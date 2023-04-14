@@ -1,10 +1,10 @@
 /** @file Container that launches the IDE. */
 import * as react from 'react'
 
-import * as cloudService from '../service'
-import * as projectManagerService from '../projectManagerService'
+import * as cloudService from '../cloudService'
+import * as projectManagerService from '../localService'
 
-import * as app from '../../../../../../../../../target/ensogl-pack/linked-dist/index'
+import * as platformModule from '../../platform'
 
 // =================
 // === Constants ===
@@ -18,61 +18,79 @@ const FALLBACK_VERSION = '2023.1.1-nightly.2023.4.13'
 // =================
 
 interface Props {
+    platform: platformModule.Platform
     project: cloudService.Project
     backendService: cloudService.Backend | projectManagerService.Backend
 }
 
 /** Container that launches the IDE. */
-function Ide({ project, backendService }: Props) {
+function Ide(props: Props) {
+    const { platform, project, backendService } = props
+    const [[loaded, resolveLoaded]] = react.useState<[Promise<void>, () => void]>(() => {
+        let doResolve!: () => void
+        const promise = new Promise<void>(resolve => (doResolve = resolve))
+        return [promise, doResolve]
+    })
+
     react.useEffect(() => {
-        void (async () => {
-            const ideVersion = (
-                'listVersions' in backendService
-                    ? await backendService.listVersions({
-                          versionType: cloudService.VersionType.ide,
-                          default: true,
-                      })
-                    : null
-            )?.[0].number.value
-            const backendVersion = (
-                'listVersions' in backendService
-                    ? await backendService.listVersions({
-                          versionType: cloudService.VersionType.backend,
-                          default: true,
-                      })
-                    : null
-            )?.[0].number.value
-            const projectIdeVersion = project.ideVersion?.value ?? ideVersion ?? FALLBACK_VERSION
-            const projectEngineVersion =
-                project.engineVersion?.value ?? backendVersion ?? FALLBACK_VERSION
-            const appInstance = new app.App({
-                config: {
-                    loader: {
-                        assetsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/dynamic-assets`,
-                        wasmUrl: `${IDE_CDN_URL}/${projectIdeVersion}/pkg-opt.wasm`,
-                        jsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/pkg.js.gz`,
-                    },
-                    // engine: {
-                    //     rpcUrl: `${project.address!}json`,
-                    //     dataUrl: `${project.address!}binary`,
-                    //     preferredVersion: projectEngineVersion,
-                    // },
-                    // startup: {
-                    //     project: project.packageName,
-                    // },
-                },
-            })
-            appInstance.showEntryPointSelector()
-            void appInstance.run()
-        })()
+        document.querySelector('root')?.remove()
+        if (platform === platformModule.Platform.cloud) {
+            const script = document.createElement('script')
+            script.src = `${IDE_CDN_URL}/${FALLBACK_VERSION}/index.js.gz`
+            script.onload = resolveLoaded
+            document.body.appendChild(script)
+        }
+    }, [])
+
+    react.useEffect(() => {
+        switch (platform) {
+            case platformModule.Platform.cloud:
+                void (async () => {
+                    const ideVersion = (
+                        'listVersions' in backendService
+                            ? await backendService.listVersions({
+                                  versionType: cloudService.VersionType.ide,
+                                  default: true,
+                              })
+                            : null
+                    )?.[0].number.value
+                    const backendVersion = (
+                        'listVersions' in backendService
+                            ? await backendService.listVersions({
+                                  versionType: cloudService.VersionType.backend,
+                                  default: true,
+                              })
+                            : null
+                    )?.[0].number.value
+                    const projectIdeVersion =
+                        project.ideVersion?.value ?? ideVersion ?? FALLBACK_VERSION
+                    const projectEngineVersion =
+                        project.engineVersion?.value ?? backendVersion ?? FALLBACK_VERSION
+                    await loaded
+                    await window.enso.main({
+                        loader: {
+                            assetsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/dynamic-assets`,
+                            wasmUrl: `${IDE_CDN_URL}/${projectIdeVersion}/pkg-opt.wasm`,
+                            jsUrl: `${IDE_CDN_URL}/${projectIdeVersion}/pkg.js.gz`,
+                        },
+                        engine: {
+                            rpcUrl: `${project.address!}json`,
+                            dataUrl: `${project.address!}binary`,
+                            preferredVersion: projectEngineVersion,
+                        },
+                        startup: {
+                            project: project.packageName,
+                        },
+                    })
+                })()
+                break
+            case platformModule.Platform.desktop: {
+                //
+            }
+        }
     }, [project])
 
-    return (
-        <>
-            <div id="root" />
-            <link rel="stylesheet" href={`${IDE_CDN_URL}/${FALLBACK_VERSION}/style.css`} />
-        </>
-    )
+    return <div id="root" />
 }
 
 export default Ide
