@@ -409,28 +409,28 @@ type Table
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error.Error "Column "+column.name)
 
-## Converts a Text into a Table using a regular expression pattern.
+    ## Converts a Text into a Table using a regular expression pattern.
 
-   Each match becomes a row in the table.
+       Each match becomes a row in the table.
 
-   If there are no marked groups, a single column with whole content of match.
-   Otherwise, each group becomes a column (with group name if named in Regex).
+       If there are no marked groups, a single column with whole content of match.
+       Otherwise, each group becomes a column (with group name if named in Regex).
 
-   Arguments:
-   - pattern: The pattern used to find within the text.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
-   - parse_values: Parse any values using the default value parser.
+       Arguments:
+       - pattern: The pattern used to find within the text.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - parse_values: Parse any values using the default value parser.
 
-   ? Column Names
+       ? Column Names
 
-   If no marked group, the new column will be `Column`.
-   If the marked groups are named, the names will be used otherwise the column
-   will be named `Column <N>` where `N` is the number of the marked group.
-   (Group 0 is not included.)
-Table.parse_text_to_table : Text -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> | Type_Error | Regex_Syntax_Error | Illegal_Argument
-Table.parse_text_to_table text pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
-    Error.throw (Unsupported_Database_Operation.Error "Table.parse_text_to_table is not implemented yet for the Database backends.")
+       If no marked group, the new column will be `Column`.
+       If the marked groups are named, the names will be used otherwise the column
+       will be named `Column <N>` where `N` is the number of the marked group.
+       (Group 0 is not included.)
+    parse_text_to_table : Text -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> | Type_Error | Regex_Syntax_Error | Illegal_Argument
+    parse_text_to_table text pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+        Error.throw (Unsupported_Database_Operation.Error "Table.parse_text_to_table is not implemented yet for the Database backends.")
 
     ## ALIAS Filter Rows
 
