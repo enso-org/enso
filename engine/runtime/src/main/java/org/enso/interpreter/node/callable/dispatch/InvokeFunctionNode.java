@@ -30,7 +30,7 @@ import java.util.UUID;
 @ImportStatic({CallArgumentInfo.ArgumentMappingBuilder.class, Constants.CacheSizes.class})
 public abstract class InvokeFunctionNode extends BaseNode {
 
-  private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
+  private final CallArgumentInfo[] schema;
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child CaptureCallerInfoNode captureCallerInfoNode = CaptureCallerInfoNode.build();

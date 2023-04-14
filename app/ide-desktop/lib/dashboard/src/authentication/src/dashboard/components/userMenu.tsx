@@ -34,13 +34,17 @@ function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
 /** Handling the UserMenuItem click event logic and displaying its content. */
 function UserMenu() {
     const { signOut } = auth.useAuth()
-    const { organization } = auth.useFullUserSession()
-
+    const { accessToken, organization } = auth.useFullUserSession()
     const { setModal } = modalProvider.useSetModal()
 
     const goToProfile = () => {
         // TODO: Implement this when the backend endpoints are implemented.
     }
+
+    // We know the shape of the JWT payload.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
+    const username: string = JSON.parse(atob(accessToken.split('.')[1]!)).username
+    const canChangePassword = !/^Github_|^Google_/.test(username)
 
     return (
         <div
@@ -57,13 +61,15 @@ function UserMenu() {
                         Signed in as <span className="font-bold">{organization.name}</span>
                     </UserMenuItem>
                     <UserMenuItem onClick={goToProfile}>Your profile</UserMenuItem>
-                    <UserMenuItem
-                        onClick={() => {
-                            setModal(() => <ChangePasswordModal />)
-                        }}
-                    >
-                        Change your password
-                    </UserMenuItem>
+                    {canChangePassword && (
+                        <UserMenuItem
+                            onClick={() => {
+                                setModal(() => <ChangePasswordModal />)
+                            }}
+                        >
+                            Change your password
+                        </UserMenuItem>
+                    )}
                     <UserMenuItem onClick={signOut}>Sign out</UserMenuItem>
                 </>
             ) : (
