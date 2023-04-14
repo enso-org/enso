@@ -57,27 +57,27 @@ public abstract class EqualsComplexNode extends Node {
 
   @Specialization
   boolean equalsUnresolvedSymbols(UnresolvedSymbol self, UnresolvedSymbol otherSymbol,
-                                  @Cached EqualsComplexNode equalsNode) {
+                                  @Cached EqualsNode equalsNode) {
     return self.getName().equals(otherSymbol.getName())
         && equalsNode.execute(self.getScope(), otherSymbol.getScope());
   }
 
   @Specialization
   boolean equalsUnresolvedConversion(UnresolvedConversion selfConversion, UnresolvedConversion otherConversion,
-                                     @Cached EqualsComplexNode equalsNode) {
+                                     @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
   }
 
   @Specialization
   boolean equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope,
-      @Cached EqualsComplexNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
   }
 
   @Specialization
   @TruffleBoundary
   boolean equalsModules(Module selfModule, Module otherModule,
-      @Cached EqualsComplexNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
   }
 
@@ -98,7 +98,7 @@ public abstract class EqualsComplexNode extends Node {
       "typesLib.hasType(otherType)"
   })
   boolean equalsTypes(Type selfType, Type otherType,
-      @Cached EqualsComplexNode equalsNode,
+      @Cached EqualsNode equalsNode,
       @CachedLibrary(limit = "5") TypesLibrary typesLib) {
     return equalsNode.execute(
         selfType.getQualifiedName().toString(),
@@ -116,7 +116,7 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
                              @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
                              @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-                             @Cached EqualsComplexNode equalsNode
+                             @Cached EqualsNode equalsNode
   ) {
     try {
       Object self =
@@ -309,7 +309,7 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsArrays(Object selfArray, Object otherArray,
                        @CachedLibrary("selfArray") InteropLibrary selfInterop,
                        @CachedLibrary("otherArray") InteropLibrary otherInterop,
-                       @Cached EqualsComplexNode equalsNode,
+                       @Cached EqualsNode equalsNode,
       @Cached HasCustomComparatorNode hasCustomComparatorNode,
       @Cached InvokeAnyEqualsNode invokeAnyEqualsNode
   ) {
@@ -349,7 +349,7 @@ public abstract class EqualsComplexNode extends Node {
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
       @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
-      @Cached EqualsComplexNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
       int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
@@ -385,7 +385,7 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsInteropObjectWithMembers(Object selfObject, Object otherObject,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
-      @Cached EqualsComplexNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     try {
       Object selfMembers = interop.getMembers(selfObject);
       Object otherMembers = interop.getMembers(otherObject);
@@ -434,9 +434,9 @@ public abstract class EqualsComplexNode extends Node {
     return selfConstructor == otherConstructor;
   }
 
-  static EqualsComplexNode[] createEqualsNodes(int size) {
-    EqualsComplexNode[] nodes = new EqualsComplexNode[size];
-    Arrays.fill(nodes, EqualsComplexNode.build());
+  static EqualsNode[] createEqualsNodes(int size) {
+    EqualsNode[] nodes = new EqualsNode[size];
+    Arrays.fill(nodes, EqualsNode.build());
     return nodes;
   }
 
@@ -449,7 +449,7 @@ public abstract class EqualsComplexNode extends Node {
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
       @Cached(value = "selfCtorCached.getFields().length", allowUncached = true) int fieldsLenCached,
-      @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true) EqualsComplexNode[] fieldEqualsNodes,
+      @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
       @Cached ConditionProfile constructorsNotEqualProfile,
       @Cached HasCustomComparatorNode hasCustomComparatorNode,
       @Cached InvokeAnyEqualsNode invokeAnyEqualsNode,
@@ -541,7 +541,7 @@ public abstract class EqualsComplexNode extends Node {
   })
   boolean equalsHostFunctions(Object selfHostFunc, Object otherHostFunc,
       @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached EqualsComplexNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
     Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
     return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
