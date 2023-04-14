@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
@@ -1485,8 +1486,9 @@ type Table
        If the marked groups are named, the names will be used otherwise the column
        will be named `Column <N>` where `N` is the number of the marked group.
        (Group 0 is not included.)
-    parse_text_to_table : Text -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> | Type_Error | Regex_Syntax_Error | Illegal_Argument
+    parse_text_to_table : Text -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
     parse_text_to_table text pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+        _ = [text, pattern, case_sensitivity, parse_values, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.parse_text_to_table is not implemented yet for the Database backends.")
 
     ## PRIVATE
