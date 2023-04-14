@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,7 +10,6 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,8 +51,6 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(type = "Vector", name = "sort_builtin", description = "Returns a sorted vector.")
 @GenerateUncached
 public abstract class SortVectorNode extends Node {
-
-  private static final TruffleLogger logger = TruffleLogger.getLogger("enso", SortVectorNode.class);
 
   public static SortVectorNode build() {
     return SortVectorNodeGen.create();
@@ -116,14 +112,7 @@ public abstract class SortVectorNode extends Node {
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
       @Cached TypeOfNode typeOfNode,
       @Cached AnyToTextNode toTextNode,
-      @Cached BranchProfile warningEncounteredProfile,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "5") WarningsLibrary warningsLib) {
-    logger.fine(
-        () ->
-            String.format(
-                "SortVectorNode.sortPrimitives: byFunc = %s, onFunc = %s, problemBehaviorNum = %s",
-                byFunc, onFunc, ProblemBehavior.fromInt((int) problemBehavior)));
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
     try {
@@ -199,20 +188,11 @@ public abstract class SortVectorNode extends Node {
       @Cached AnyToTextNode toTextNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
     var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
-    logger.finer(
-        () ->
-            String.format(
-                "SortVectorNode.sortGeneric: onFunc=%s, byFunc=%s, problemBehavior=%s",
-                onFunc, byFunc, problemBehavior));
     // Split into groups
     List<Object> elems = readInteropArray(interop, warningsLib, self);
     List<Type> comparators = readInteropArray(interop, warningsLib, comparatorsArray);
     List<Function> compareFuncs = readInteropArray(interop, warningsLib, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
-    logger.fine(
-        () ->
-            String.format(
-                "sortGeneric: elems.length=%d, groups.length=%d", elems.size(), groups.size()));
 
     // Prepare input for DefaultSortComparator and GenericSortComparator and sort the elements
     // within groups
@@ -252,7 +232,6 @@ public abstract class SortVectorNode extends Node {
                   greater,
                   interop);
         }
-        logger.fine(() -> "Sorting Group@" + Integer.toHexString(group.hashCode()));
         group.elems.sort(javaComparator);
         if (javaComparator.hasWarnings()) {
           gatheredWarnings.addAll(javaComparator.getEncounteredWarnings());
@@ -264,9 +243,6 @@ public abstract class SortVectorNode extends Node {
       switch (problemBehavior) {
         case REPORT_ERROR -> {
           if (groups.size() > 1) {
-            logger.fine(
-                () ->
-                    "Have more groups than 1 and problem_behavior is Report_Error --> throw Dataflow_Error");
             assert groups.get(0).elems.size() > 0 : "Groups should not be empty";
             assert groups.get(1).elems.size() > 0 : "Groups should not be empty";
             var firstIncomparableElem = groups.get(0).elems.get(0);
@@ -279,12 +255,6 @@ public abstract class SortVectorNode extends Node {
           } else {
             // Just one comparator, different from Default_Comparator
             if (!gatheredWarnings.isEmpty()) {
-              logger.fine(
-                  () ->
-                      String.format(
-                          "Have one comparator different from Default_Comparator and problem_behavior is Report_Error"
-                              + " gatheredWarnings not empty --> throw Dataflow_Error. gatheredWarning.size()=%d",
-                          gatheredWarnings.size()));
               throw new UnsupportedOperationException("unimplemented");
             } else {
               return sortedVector;
@@ -292,7 +262,6 @@ public abstract class SortVectorNode extends Node {
           }
         }
         case REPORT_WARNING -> {
-          logger.fine(() -> String.format("Attaching %d warnings", gatheredWarnings.size()));
           return attachDifferentComparatorsWarning(
               attachWarnings(sortedVector, gatheredWarnings), groups);
         }
@@ -310,7 +279,6 @@ public abstract class SortVectorNode extends Node {
   @TruffleBoundary(allowInlining = true)
   private Object sortPrimitiveVector(Object[] elems, DefaultSortComparator javaComparator)
       throws CompareException {
-    logger.fine(() -> "Sorting primitive elems = " + Arrays.toString(elems));
     Arrays.sort(elems, javaComparator);
     var sortedVector = Vector.fromArray(new Array(elems));
 
@@ -376,8 +344,6 @@ public abstract class SortVectorNode extends Node {
             .map(comparator -> comparator.getQualifiedName().toString())
             .collect(Collectors.joining(", "));
     var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
-    logger.finer(
-        () -> String.format("Will attach different comparators warning '%s'", diffCompsMsg));
     var warn = Warning.create(EnsoContext.get(this), text, this);
     return WithWarnings.appendTo(vector, new ArrayRope<>(warn));
   }
@@ -829,8 +795,6 @@ public abstract class SortVectorNode extends Node {
     private CompareException(Object leftOperand, Object rightOperand) {
       this.leftOperand = leftOperand;
       this.rightOperand = rightOperand;
-      logger.finer(
-          () -> String.format("CompareException(left=%s, right=%s)", leftOperand, rightOperand));
     }
   }
 }
