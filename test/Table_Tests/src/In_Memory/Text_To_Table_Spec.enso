@@ -11,18 +11,21 @@ from project.Util import all
 spec =
     Test.group "Table.parse_text_to_table" <|
         Test.specify "text_to_table" <|
-            expected = Table.from_rows ["Column"] [["a"], ["ab12"], ["bt100"], ["c12"], ["d20"], ["q"]]
+            expected = Table.from_rows ["Column"]
+                                       [["a"], ["ab12"], ["bt100"], ["c12"], ["d20"], ["q"]]
             actual = Table.parse_text_to_table "a 7 ab12 bt100 c12d20q 12" "[a-z]+\d*"
             actual.should_equal_verbose expected
 
     Test.group "Table.parse_text_to_table with groups" <|
         Test.specify "with groups" <|
-            expected = Table.from_rows ["Column 1", "Column 2"] [["ab", 12], ["bt", 100], ["c", 12], ["d", 20]]
+            expected = Table.from_rows ["Column 1", "Column 2"]
+                                       [["ab", 12], ["bt", 100], ["c", 12], ["d", 20]]
             actual = Table.parse_text_to_table "a 7 ab-12 bt-100 c-12d-20q q8 12" "([a-z]+)-(\d*)"
             actual.should_equal_verbose expected
 
         Test.specify "with named groups" <|
-            expected = Table.from_rows ["letters", "Column 2"] [["ab", 12], ["bt", 100], ["c", 12], ["d", 20]]
+            expected = Table.from_rows ["letters", "Column 2"]
+                                       [["ab", 12], ["bt", 100], ["c", 12], ["d", 20]]
             actual = Table.parse_text_to_table "a 7 ab-12 bt-100 c-12d-20q q8 12" "(?<letters>[a-z]+)-(\d*)"
             actual.should_equal_verbose expected
 
