@@ -16,6 +16,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
@@ -74,11 +75,6 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  boolean equalsByteByte(byte self, byte other) {
-    return self == other;
-  }
-
-  @Specialization
   boolean equalsLongLong(long self, long other) {
     return self == other;
   }
@@ -86,11 +82,6 @@ public abstract class EqualsNode extends Node {
   @Specialization
   boolean equalsLongBool(long self, boolean other) {
     return false;
-  }
-
-  @Specialization
-  boolean equalsLongInt(long self, int other) {
-    return self == (long) other;
   }
 
   @Specialization
@@ -123,11 +114,6 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  boolean equalsDoubleInt(double self, int other) {
-    return self == (double) other;
-  }
-
-  @Specialization
   @TruffleBoundary
   boolean equalsDoubleBigInt(double self, EnsoBigInteger other) {
     return self == other.doubleValue();
@@ -136,21 +122,6 @@ public abstract class EqualsNode extends Node {
   @Specialization
   boolean equalsDoubleText(double self, Text other) {
     return false;
-  }
-
-  @Specialization
-  boolean equalsIntInt(int self, int other) {
-    return self == other;
-  }
-
-  @Specialization
-  boolean equalsIntLong(int self, long other) {
-    return (long) self == other;
-  }
-
-  @Specialization
-  boolean equalsIntDouble(int self, double other) {
-    return (double) self == other;
   }
 
   @Specialization
@@ -269,21 +240,25 @@ public abstract class EqualsNode extends Node {
     return compare.execute(self, other);
   }
 
-  @Specialization(guards = "isComplex(self, other, strings)")
+  @Specialization(guards = "isComplex(self, other, strings, warnings)")
   boolean equalsComplex(
     Object self, Object other,
     @Cached EqualsComplexNode complex,
-    @CachedLibrary(limit = "10") InteropLibrary strings
+    @CachedLibrary(limit = "10") InteropLibrary strings,
+    @CachedLibrary(limit = "10") WarningsLibrary warnings
   ) {
     return complex.execute(self, other);
   }
 
-  static boolean isComplex(Object a, Object b, InteropLibrary strings) {
+  static boolean isComplex(Object a, Object b, InteropLibrary strings, WarningsLibrary warnings) {
     if (a instanceof AtomConstructor && b instanceof AtomConstructor) {
       return false;
     }
     if (a instanceof Atom && b instanceof Atom) {
       return false;
+    }
+    if (warnings.hasWarnings(a) || warnings.hasWarnings(b)) {
+      return true;
     }
     return !isPrimitive(a, strings) && !isPrimitive(b, strings);
   }

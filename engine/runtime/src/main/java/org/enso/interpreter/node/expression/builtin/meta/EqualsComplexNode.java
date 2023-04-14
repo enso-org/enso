@@ -28,7 +28,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.State;
 
 @GenerateUncached
 public abstract class EqualsComplexNode extends Node {
