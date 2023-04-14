@@ -58,8 +58,8 @@ type No_Comp_Type
 expect_incomparable_warn : Any -> Any -> Any -> Nothing
 expect_incomparable_warn left_val right_val result =
     # Incomparable values warning wraps Text values in simple quotes
-    left_val_text = if Meta.is_a left_val Text then "'" + left_val + "'" else left_val.to_text
-    right_val_text = if Meta.is_a right_val Text then "'" + right_val + "'" else right_val.to_text
+    left_val_text = left_val.pretty
+    right_val_text = right_val.pretty
     expected_warn_msg_left = "Values " + left_val_text + " and " + right_val_text + " are incomparable"
     expected_warn_msg_right = "Values " + right_val_text + " and " + left_val_text + " are incomparable"
     has_expected_warning = Warning.get_all result . map (_.value) . any (it-> it == expected_warn_msg_left || it == expected_warn_msg_right)
@@ -72,7 +72,7 @@ expect_no_warns result =
 
 # === The Tests ===
 spec =
-    topo_sort_pending = "Waiting for implementation of topological sort (https://github.com/enso-org/enso/issues/5742)"
+    topo_sort_pending = "Waiting for implementation of topological sort (https://github.com/enso-org/enso/issues/5834)"
 
     Test.group "Default comparator" <|
         Test.specify "should support custom comparator" <|
@@ -220,11 +220,11 @@ spec =
             [My_Type.Value 1, Ord.Value 1, 20, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
             [Ord.Value 1, 20, 10, My_Type.Value 1].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
 
-        Test.specify "should be able to sort even unordered values" pending="https://github.com/enso-org/enso/issues/5834" <|
+        Test.specify "should be able to sort even unordered values" pending=topo_sort_pending  <|
             [Ord.Value 2, UPair.Value "a" "b", Ord.Value 1, UPair.Value "c" "d"].sort . should_equal [Ord.Value 2, Ord.Value 1, UPair.Value "a" "b", UPair.Value "c" "d"]
             [Ord.Value 2, UPair.Value "X" "Y", Ord.Value 1, UPair.Value "c" "d"].sort . should_equal [Ord.Value 2, Ord.Value 1, UPair.Value "X" "Y", UPair.Value "c" "d"]
 
-        Test.specify "should produce warning when sorting unordered values" pending="https://github.com/enso-org/enso/issues/5834" <|
+        Test.specify "should produce warning when sorting unordered values" pending=topo_sort_pending  <|
             expect_incomparable_warn (UPair.Value 1 2) (UPair.Value 3 4) [UPair.Value 1 2, UPair.Value 3 4].sort
 
 

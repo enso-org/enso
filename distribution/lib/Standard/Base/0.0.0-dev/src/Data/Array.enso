@@ -161,7 +161,7 @@ type Array
        Arguments:
        - order: The order in which the array elements are sorted.
        - on: A projection from the element type to the value of that element
-         being sorted on. If set to `Nothing` (the default argument),
+         being sorted on. If set to `Nothing` (the default),
          identity function will be used.
        - by: A function that compares the result of applying `on` to two
          elements, returning an an `Ordering` if the two elements are comparable
@@ -183,6 +183,11 @@ type Array
          - *Average Time:* `O(n * log n)`
          - *Worst-Case Space:* `O(n)` additional
 
+       ? Incomparable values
+         Incomparable values are either values with different comparators or with
+         the same comparator returning `Nothing` from its `compare` method.
+         See the documentation of the `Ordering` module for more info.
+
        ? Implementation Note
          The sort implementation is based upon an adaptive, iterative mergesort
          that requires far fewer than `n * log(n)` comparisons when the array
@@ -198,8 +203,11 @@ type Array
          the comparators in the `self` array, with the exception of the group
          for the default comparator, which is always the first group.
 
-         Additionally, a warning will be attached, explaining that incomparable
-         values were encountered.
+         Additionally, an `Incomparable_Values` dataflow error will be returned
+         if the `on_incomparable` parameter is set to `Problem_Behavior.Report_Error`,
+         or a warning attached if the `on_incomparable` parameter is set to
+         `Problem_Behavior.Report_Warning` in case of encountering incomparable
+         values.
 
          It takes equal advantage of ascending and descending runs in the array,
          making it much simpler to merge two or more sorted arrays: simply
@@ -216,8 +224,8 @@ type Array
              [Pair 1 2, Pair -1 8].to_array.sort Sort_Direction.Descending (_.first)
 
        > Example
-         Sorting an array with elements with different comparators. Values 1
-         and My_Type have different comparators. 1 will be sorted before My_Type
+         Sorting an array with elements with different comparators. Values `1`
+         and `My_Type` have different comparators. `1` will be sorted before `My_Type`
          because it has the default comparator, and warning will be attached to
          the resulting array.
 

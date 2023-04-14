@@ -5,10 +5,7 @@ import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.state.State;
 
-/**
- * Just a wrapper for {@code Array.sort_builtin} that delegates to {@code Vector.sort_builtin}. This
- * is a temporary workaround until Array and Vector are fully merged into a single type.
- */
+/** Just a wrapper for {@code Array.sort_builtin} that delegates to {@code Vector.sort_builtin}. */
 @BuiltinMethod(type = "Array", name = "sort_builtin")
 public final class SortArrayNode extends Node {
   @Child private SortVectorNode sortVectorNode = SortVectorNode.build();

@@ -280,6 +280,9 @@ type Number
 
     ## Checks equality of numbers, using an `epsilon` value.
 
+       ! Error Conditions
+         If either of the arguments is `Number.nan`, an `Incomparable_Values` error is raised.
+
        Arguments:
        - that: The number to check equality against.
        - epsilon: The value by which `self` and `that` can be separated by before
