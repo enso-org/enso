@@ -6,13 +6,12 @@ import project.Internal.Helpers
 import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
-make_distinct_expression text_case_sensitivity problem_builder key_column =
-    if key_column.sql_type.is_definitely_double then
+make_distinct_expression text_case_sensitivity problem_builder key_column value_type =
+    if value_type.is_floating_point then
         problem_builder.report_other_warning (Floating_Point_Equality.Error key_column.name)
 
     expr = key_column.expression
-
-    if key_column.sql_type.is_definitely_text.not then expr else case text_case_sensitivity of
+    if value_type.is_text.not then expr else case text_case_sensitivity of
         Case_Sensitivity.Insensitive locale ->
             Helpers.assume_default_locale locale <|
                 SQL_Expression.Operation "FOLD_CASE" [expr]

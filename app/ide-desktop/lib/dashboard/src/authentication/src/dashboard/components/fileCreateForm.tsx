@@ -2,10 +2,9 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as dashboard from './dashboard'
+import * as backendModule from '../service'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 import CreateForm, * as createForm from './createForm'
 
 export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {

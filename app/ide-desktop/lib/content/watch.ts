@@ -1,6 +1,7 @@
 /** @file File watch and compile service. */
 import * as esbuild from 'esbuild'
 import * as portfinder from 'portfinder'
+import chalk from 'chalk'
 
 import * as bundler from './esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
@@ -24,7 +25,10 @@ async function watch() {
     // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
     // before the copy plugin runs.
     await dashboardBuilder.watch()
-    const opts = bundler.bundleOptions()
+    const opts = bundler.bundlerOptions({
+        ...bundler.argumentsFromEnv(),
+        devMode: true,
+    })
     const builder = await esbuild.context(opts)
     await builder.watch()
     await builder.serve({
@@ -32,7 +36,9 @@ async function watch() {
         servedir: opts.outdir,
         onRequest(args) {
             if (args.status !== HTTP_STATUS_OK) {
-                console.error(`HTTP error ${args.status} when serving path '${args.path}'.`)
+                console.error(
+                    chalk.red(`HTTP error ${args.status} when serving path '${args.path}'.`)
+                )
             }
         },
     })

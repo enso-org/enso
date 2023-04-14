@@ -140,7 +140,7 @@ impl Tooltip {
         );
 
         let hysteretic_transition =
-            HystereticAnimation::new(network, hide_delay_duration_ms, show_delay_duration_ms);
+            HystereticAnimation::new(network, show_delay_duration_ms, hide_delay_duration_ms);
 
         frp::extend! { network
 

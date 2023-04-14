@@ -120,7 +120,8 @@ object DistributionPackage {
     editionName: String,
     sourceStdlibVersion: String,
     targetStdlibVersion: String,
-    targetDir: File
+    targetDir: File,
+    generateIndex: Boolean
   ): Unit = {
     copyDirectoryIncremental(
       file("distribution/engine/THIRD-PARTY"),
@@ -171,14 +172,16 @@ object DistributionPackage {
       javaVersion  = javaVersion
     )
 
-    indexStdLibs(
-      stdLibVersion  = targetStdlibVersion,
-      ensoVersion    = ensoVersion,
-      stdLibRoot     = distributionRoot / "lib",
-      ensoExecutable = distributionRoot / "bin" / "enso",
-      cacheFactory   = cacheFactory.sub("stdlib"),
-      log            = log
-    )
+    if (generateIndex) {
+      indexStdLibs(
+        stdLibVersion  = targetStdlibVersion,
+        ensoVersion    = ensoVersion,
+        stdLibRoot     = distributionRoot / "lib",
+        ensoExecutable = distributionRoot / "bin" / "enso",
+        cacheFactory   = cacheFactory.sub("stdlib"),
+        log            = log
+      )
+    }
   }
 
   def indexStdLibs(

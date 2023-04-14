@@ -20,6 +20,7 @@ ensogl-example-drop-manager = { path = "drop-manager" }
 ensogl-example-easing-animator = { path = "easing-animator" }
 ensogl-example-focus-management = { path = "focus-management" }
 ensogl-example-grid-view = { path = "grid-view" }
+ensogl-example-instance-ordering = { path = "instance-ordering" }
 ensogl-example-list-view = { path = "list-view" }
 ensogl-example-mouse-events = { path = "mouse-events" }
 ensogl-example-profiling-run-graph = { path = "profiling-run-graph" }

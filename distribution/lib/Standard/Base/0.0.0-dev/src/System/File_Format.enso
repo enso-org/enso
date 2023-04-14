@@ -35,7 +35,6 @@ get_format callback =
                 @Tail_Call reader (idx + 1)
     reader 0
 
-
 type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -55,7 +54,6 @@ type Auto_Detect
     get_web_parser content_type uri =
         get_format f-> f.for_web content_type uri
 
-
 type File_Format
     ## Gets all the currently available file formats.
 
@@ -73,7 +71,8 @@ type File_Format
 type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
-    ## If the File_Format supports reading from the file, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Plain_Text_Format | Nothing
     for_file file =
         case file.extension of
@@ -81,7 +80,8 @@ type Plain_Text_Format
             ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
 
-    ## If the File_Format supports reading from the web response, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Plain_Text_Format | Nothing
     for_web content_type _ =
         parts = content_type.split ";" . map .trim
@@ -107,14 +107,16 @@ type Plain_Text_Format
         Text.from_bytes response.body.bytes self.encoding
 
 type Bytes
-    ## If the File_Format supports reading from the file, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Bytes | Nothing
     for_file file =
         case file.extension of
             ".dat" -> Bytes
             _ -> Nothing
 
-    ## If the File_Format supports reading from the web response, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the web response, return a configured instance.
        As `Bytes`, does not support reading from the web returns `Nothing`.
     for_web : Text -> URI -> Bytes | Nothing
     for_web _ _ = Nothing
@@ -126,7 +128,8 @@ type Bytes
         file.read_bytes
 
 type JSON_File
-    ## If the File_Format supports reading from the file, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> JSON_File | Nothing
     for_file file =
         case file.extension of
@@ -134,7 +137,8 @@ type JSON_File
             ".geojson" -> JSON_File
             _ -> Nothing
 
-    ## If the File_Format supports reading from the web response, return a configured instance.
+    ## PRIVATE
+       If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> JSON_File | Nothing
     for_web content_type _ =
         first = content_type.split ';' . first . trim

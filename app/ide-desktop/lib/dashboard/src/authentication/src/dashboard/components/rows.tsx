@@ -45,7 +45,6 @@ function Rows<T>(props: Props<T>) {
             items.map((item, index) => (
                 <tr
                     key={getKey(item)}
-                    className="transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
                     tabIndex={-1}
                     onClick={event => {
                         onClick(item, event)
@@ -53,6 +52,7 @@ function Rows<T>(props: Props<T>) {
                     onContextMenu={event => {
                         onContextMenu(item, event)
                     }}
+                    className="transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
                 >
                     {columns.map(({ id, render }) => (
                         <td key={id} className="px-4 border-0 border-r">

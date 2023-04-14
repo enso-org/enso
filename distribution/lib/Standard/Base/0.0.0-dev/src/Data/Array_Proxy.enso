@@ -3,7 +3,8 @@ import project.Data.Array.Array
 import project.Data.Numbers.Integer
 import project.Errors.Illegal_Argument.Illegal_Argument
 
-## A helper type used for creating an array from a length and a callback
+## PRIVATE
+   A helper type used for creating an array from a length and a callback
    providing its elements.
 
    It can be used to create an array from some non-standard underlying storage
@@ -13,8 +14,8 @@ import project.Errors.Illegal_Argument.Illegal_Argument
    vector backed by such custom storage.
 @Builtin_Type
 type Array_Proxy
-    ## ADVANCED
-       UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Creates a new `Array_Proxy` from a length and a callback.
 
        Arguments:
@@ -38,8 +39,8 @@ type Array_Proxy
     new_builtin : Integer -> (Integer -> Any) -> Array
     new_builtin length at = @Builtin_Method "Array_Proxy.new_builtin"
 
-    ## ADVANCED
-       UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Creates a new `Array_Proxy` from an object providing `length` and `at`
        methods.
     from_proxy_object : Any -> Array

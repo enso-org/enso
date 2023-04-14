@@ -43,6 +43,7 @@ enum ColumnDisplayMode {
     settings = 'settings',
 }
 
+/** Column type. */
 enum Column {
     name = 'name',
     lastModified = 'last-modified',
@@ -214,7 +215,7 @@ function Dashboard(props: DashboardProps) {
     >([])
     const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
 
-    const [, setProject] = react.useState<backend.Project | null>(null)
+    const [project, setProject] = react.useState<backend.Project | null>(null)
     const [projectStates, setProjectStates] = react.useState<
         Record<backend.ProjectId, backend.ProjectState>
     >({})
@@ -627,15 +628,13 @@ function Dashboard(props: DashboardProps) {
                 <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                 <div className="flex flex-row flex-nowrap mx-4">
                     <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                        {directory ? (
+                        {directory && (
                             <>
                                 <button className="mx-2" onClick={exitDirectory}>
                                     {parentDirectory?.title ?? '~'}
                                 </button>
                                 {svg.SMALL_RIGHT_ARROW_ICON}
                             </>
-                        ) : (
-                            <></>
                         )}
                         <span className="mx-2">{directory?.title ?? '~'}</span>
                     </div>

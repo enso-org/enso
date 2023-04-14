@@ -51,7 +51,24 @@ public class ListBenchmarks {
       from Standard.Base.Data.List.List import Cons, Nil
       import Standard.Base.IO
 
+      type Lenivy
+          Nic
+          Hlava ~x ~xs
+
+          map self fn = case self of
+              Lenivy.Nic -> Lenivy.Nic
+              Lenivy.Hlava x xs -> Lenivy.Hlava (fn x) (xs.map fn)
+
       plus_one list = list.map (x -> x + 1)
+
+      leniva_suma list acc = case list of
+          Lenivy.Nic -> acc
+          Lenivy.Hlava x xs -> @Tail_Call leniva_suma xs acc+x
+
+      lenivy_generator n =
+          go x v l = if x > n then l else
+              @Tail_Call go x+1 v+1 (Lenivy.Hlava v l)
+          go 1 1 Lenivy.Nic
 
       sum list acc =
           case list of
@@ -69,15 +86,22 @@ public class ListBenchmarks {
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
-    Value longList = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
-
     this.plusOne = getMethod.apply("plus_one");
-    this.sum = getMethod.apply("sum");
 
     switch (benchmarkName) {
       case "mapOverList": {
-        this.list = longList;
-        this.oldSum = sum.execute(self, longList, 0);
+        this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
+        this.sum = getMethod.apply("sum");
+        this.oldSum = sum.execute(self, this.list, 0);
+        if (!this.oldSum.fitsInLong()) {
+          throw new AssertionError("Expecting a number " + this.oldSum);
+        }
+        break;
+      }
+      case "mapOverLazyList": {
+        this.list = getMethod.apply("lenivy_generator").execute(self, LENGTH_OF_EXPERIMENT);
+        this.sum = getMethod.apply("leniva_suma");
+        this.oldSum = sum.execute(self, this.list, 0);
         if (!this.oldSum.fitsInLong()) {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
@@ -90,6 +114,11 @@ public class ListBenchmarks {
 
   @Benchmark
   public void mapOverList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void mapOverLazyList(Blackhole matter) {
     performBenchmark(matter);
   }
 

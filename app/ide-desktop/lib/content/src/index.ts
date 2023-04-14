@@ -13,10 +13,28 @@ import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
+// =================
 // === Constants ===
+// =================
+
+/** Path to the SSE endpoint over which esbuild sends events. */
+const ESBUILD_PATH = '/esbuild'
+/** SSE event indicating a build has finished. */
+const ESBUILD_EVENT_NAME = 'change'
 /** One second in milliseconds. */
 const SECOND = 1000
+/** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
+
+// ===================
+// === Live reload ===
+// ===================
+
+if (IS_DEV_MODE) {
+    new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
+        location.reload()
+    })
+}
 
 // =============
 // === Fetch ===
@@ -138,13 +156,16 @@ class Main {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    contentConfig.OPTIONS.options.authentication.value &&
+                    (contentConfig.OPTIONS.groups.cloud.options.authentication.value ||
+                        contentConfig.OPTIONS.groups.cloud.options.dashboard.value) &&
                     contentConfig.OPTIONS.groups.startup.options.entry.value ===
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
                     const hideAuth = () => {
                         const auth = document.getElementById('dashboard')
+                        const ide = document.getElementById('root')
                         if (auth) auth.style.display = 'none'
+                        if (ide) ide.style.display = ''
                     }
                     /** This package is an Electron desktop app (i.e., not in the Cloud), so
                      * we're running on the desktop. */
@@ -154,14 +175,26 @@ class Main {
                      * and one for the desktop. Once these are merged, we can't hardcode the
                      * platform here, and need to detect it from the environment. */
                     const platform = authentication.Platform.desktop
+                    /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+                     * React hooks rerender themselves multiple times. It is resulting in multiple
+                     * Enso main scene being initialized. As a temporary workaround we check whether
+                     * appInstance was already ran. Target solution should move running appInstance
+                     * where it will be called only once. */
+                    let appInstanceRan = false
                     const onAuthenticated = () => {
-                        hideAuth()
-                        void appInstance.run()
+                        if (!contentConfig.OPTIONS.groups.cloud.options.dashboard.value) {
+                            hideAuth()
+                            if (!appInstanceRan) {
+                                appInstanceRan = true
+                                void appInstance.run()
+                            }
+                        }
                     }
                     authentication.run({
                         logger,
                         platform,
                         projectManager: projectManager.ProjectManager.default(),
+                        showDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
                         onAuthenticated,
                     })
                 } else {

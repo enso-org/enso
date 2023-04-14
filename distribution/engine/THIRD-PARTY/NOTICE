@@ -183,7 +183,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'slick_2.13', licensed under the Two-clause BSD-style license, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.slick.slick_2.13-3.3.3`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.slick.slick_2.13-3.4.1`.
 
 
 'ssl-config-core_2.13', licensed under the Apache-2.0, is distributed with the engine.
@@ -356,9 +356,14 @@ The license file can be found at `licenses/CC0`.
 Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.3`.
 
 
+'reactive-streams', licensed under the MIT-0, is distributed with the engine.
+The license file can be found at `licenses/MIT-0`.
+Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.4`.
+
+
 'scala-collection-compat_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-collection-compat_2.13-2.0.0`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-collection-compat_2.13-2.8.1`.
 
 
 'scala-java8-compat_2.13', licensed under the Apache-2.0, is distributed with the engine.
@@ -433,7 +438,7 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.36.0.3`.
+Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.41.2.1`.
 
 
 'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with the engine.

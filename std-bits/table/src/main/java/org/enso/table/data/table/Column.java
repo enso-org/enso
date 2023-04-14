@@ -201,10 +201,10 @@ public class Column {
     return new Column(name + "_duplicate_count", storage.duplicateCount());
   }
 
-  /** Resizes the given column to the provided new size.
+  /** Resizes the given column to the provided new length.
    * <p>
-   * If the new size is smaller than the current size, the column is truncated.
-   * If the new size is larger than the current size, the column is padded with nulls.
+   * If the new length is smaller than the current length, the column is truncated.
+   * If the new length is larger than the current length, the column is padded with nulls.
    */
   public Column resize(int newSize) {
     if (newSize == getSize()) {

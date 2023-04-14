@@ -35,6 +35,8 @@ async function bundle() {
         await esbuild.build(opts)
     } catch (error) {
         console.error(error)
+        // The error is being re-thrown.
+        // eslint-disable-next-line no-restricted-syntax
         throw error
     }
 }

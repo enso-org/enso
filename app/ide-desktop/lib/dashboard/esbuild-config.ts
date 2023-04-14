@@ -80,10 +80,8 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 let output = cachedOutput[loadArgs.path]
                 if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
                     console.log(`Processing CSS file '${loadArgs.path}'.`)
-                    const result = await cssProcessor.process(
-                        await fs.readFile(loadArgs.path, 'utf8'),
-                        { from: loadArgs.path }
-                    )
+                    const content = await fs.readFile(loadArgs.path, 'utf8')
+                    const result = await cssProcessor.process(content, { from: loadArgs.path })
                     console.log(`Processed CSS file '${loadArgs.path}'.`)
                     output = { contents: result.css, lastModified }
                     cachedOutput[loadArgs.path] = output
@@ -105,15 +103,9 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
     const { outputPath } = args
-    // This is required so that the `true` options can be changed to false.
-    // Note that `satisfies T as T` is always a safe cast.
-    // eslint-disable-next-line no-restricted-syntax
-    const trueBoolean = true satisfies boolean as boolean
     const buildOptions = {
         absWorkingDir: THIS_PATH,
-        bundle: trueBoolean,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        loader: { '.html': 'copy' },
+        bundle: true,
         entryPoints: [path.resolve(THIS_PATH, 'src', 'tailwind.css')],
         outdir: outputPath,
         outbase: 'src',
@@ -127,15 +119,15 @@ export function bundlerOptions(args: Arguments) {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             IS_DEV_MODE: JSON.stringify(args.devMode),
         },
-        sourcemap: trueBoolean,
-        minify: trueBoolean,
-        metafile: trueBoolean,
+        sourcemap: true,
+        minify: true,
+        metafile: true,
         format: 'esm',
         platform: 'browser',
-        color: trueBoolean,
+        color: true,
     } satisfies esbuild.BuildOptions
     // The narrower type is required to avoid non-null assertions elsewhere.
-    // The intersection with `esbuild.BuildOptions` is required to allow mutation.
+    // The intersection with `esbuild.BuildOptions` is required to allow adding extra properties.
     const correctlyTypedBuildOptions: esbuild.BuildOptions & typeof buildOptions = buildOptions
     return correctlyTypedBuildOptions
 }

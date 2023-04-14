@@ -574,17 +574,16 @@ impl Model {
                     area_frp.source.pointer_style <+ pointer_style;
                 }
 
+                let port_range = port.span();
+                let port_code = &expression.code[port_range];
                 if let Some((widget_bind, widget)) = self.init_port_widget(port, size, call_info) {
                     widgets_map.insert(widget_bind, crumbs.clone_ref());
                     widget.set_x(position_x);
                     builder.parent.add_child(&widget);
-
                     if port.is_argument() {
-                        let range = port.span();
-                        let code = &expression.code[range];
-                        debug!("Setting current value while range is {range:?}, code is \"{code}\" \
+                        debug!("Setting current value while range is {port_range:?}, code is \"{port_code}\" \
                             and full expression is \"{}\".", expression.code);
-                        widget.set_current_value(Some(code.into()));
+                        widget.set_current_value(Some(port_code.into()));
                     } else {
                         widget.set_current_value(None);
                     }
@@ -659,7 +658,8 @@ impl Model {
         };
 
         let tag_values = port.kind.tag_values().unwrap_or_default().to_vec();
-        widget.set_node_data(widget::NodeData { tag_values, port_size });
+        let tp = port.kind.tp().cloned();
+        widget.set_node_data(widget::NodeData { tag_values, port_size, tp });
 
         Some((widget_bind, widget))
     }

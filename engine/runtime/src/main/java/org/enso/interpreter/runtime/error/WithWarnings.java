@@ -100,6 +100,14 @@ public final class WithWarnings implements TruffleObject {
     }
   }
 
+  public static WithWarnings prependTo(Object target, Warning[] warnings) {
+    if (target instanceof WithWarnings) {
+      return ((WithWarnings) target).prepend(warnings);
+    } else {
+      return new WithWarnings(target, warnings);
+    }
+  }
+
   @ExportMessage
   Object send(Message message, Object[] args, @CachedLibrary(limit = "3") ReflectionLibrary lib)
       throws Exception {
