@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
 from Standard.Table import Table
@@ -8,6 +10,7 @@ from Standard.Table.Data.Type.Value_Type import Bits, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
 from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
+
 
 spec =
     Test.group "Table.parse_text_to_table" <|
@@ -58,5 +61,12 @@ spec =
             actual = Table.parse_text_to_table "a 7 ab-12 bt-100 c-12d-20q q8 12" "([a-z]+)-(\d*)" parse_values=False
             actual.should_equal_verbose expected
             actual.columns.map .value_type . should_equal [Value_Type.Char Nothing True, Value_Type.Char Nothing True]
+
+    Test.group "Table.parse_text_to_table errors" <|
+        Test.specify "Regex_Syntax_Error" <|
+            Table.parse_text_to_table "abc" "(a)(?<<" . should_fail_with Regex_Syntax_Error
+
+        Test.specify "enpty pattern" <|
+            Table.parse_text_to_table "abc" "" . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec
