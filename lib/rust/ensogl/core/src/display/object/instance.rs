@@ -4089,7 +4089,13 @@ impl<T: Object + ?Sized> GenericLayoutApi for T {}
 mod hierarchy_tests {
     use super::*;
     use crate::display::world::World;
+    use enso_frp::microtasks;
     use std::f32::consts::PI;
+
+    fn update(node: &Instance, scene: &Scene) {
+        node.update(scene);
+        microtasks::flush_microtasks();
+    }
 
     #[test]
     fn hierarchy_test() {
@@ -4100,10 +4106,10 @@ mod hierarchy_tests {
         assert_eq!(node2.my_index(), Some(ChildIndex(0)));
 
         node1.add_child(&node2);
-        assert_eq!(node2.my_index(), Some(ChildIndex(0)));
+        assert_eq!(node2.my_index(), Some(ChildIndex(1)));
 
         node1.add_child(&node3);
-        assert_eq!(node3.my_index(), Some(ChildIndex(1)));
+        assert_eq!(node3.my_index(), Some(ChildIndex(2)));
 
         node1.remove_child(&node3);
         assert_eq!(node3.my_index(), None);
@@ -4134,7 +4140,7 @@ mod hierarchy_tests {
         assert_eq!(node2.global_position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(0.0, 0.0, 0.0));
 
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.position(), Vector3::new(0.0, 0.0, 0.0));
@@ -4143,25 +4149,25 @@ mod hierarchy_tests {
         assert_eq!(node3.global_position(), Vector3::new(7.0, 0.0, 0.0));
 
         node2.modify_position(|t| t.y += 5.0);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 5.0, 0.0));
 
         node3.modify_position(|t| t.x += 1.0);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(8.0, 5.0, 0.0));
 
         node2.modify_rotation(|t| t.z += PI / 2.0);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
 
         node1.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node3.global_position(), Vector3::new(8.0, 0.0, 0.0));
 
         node1.remove_child(&node3);
@@ -4169,11 +4175,11 @@ mod hierarchy_tests {
         assert_eq!(node3.global_position(), Vector3::new(1.0, 0.0, 0.0));
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
 
         node1.remove_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.update(scene);
         node3.update(scene);
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
@@ -4262,34 +4268,34 @@ mod hierarchy_tests {
         let node3 = TestedNode::new();
         node1.show();
         node3.check_if_still_hidden();
-        node3.update(scene);
+        update(&node3, scene);
         node3.check_if_still_hidden();
 
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_shown();
 
         node3.unset_parent();
         node3.check_if_still_shown();
 
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_hidden();
 
         node1.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_shown();
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_still_shown();
 
         node3.unset_parent();
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_hidden();
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_shown();
     }
 
@@ -4301,14 +4307,14 @@ mod hierarchy_tests {
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         node1.check_if_still_hidden();
-        node1.update(scene);
+        update(&node1, scene);
         node1.check_if_still_hidden();
         node1.show();
-        node1.update(scene);
+        update(&node1, scene);
         node1.check_if_was_shown();
 
         node1.add_child(&node2);
-        node1.update(scene);
+        update(&node1, scene);
         node1.check_if_still_shown();
         node2.check_if_was_shown();
     }
@@ -4324,13 +4330,13 @@ mod hierarchy_tests {
         node1.show();
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_shown();
         node3.check_if_was_shown();
 
         node3.unset_parent();
         node3.add_child(&node2);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_hidden();
         node3.check_if_was_hidden();
     }
@@ -4347,21 +4353,21 @@ mod hierarchy_tests {
         node1.show();
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_shown();
         node3.check_if_was_shown();
         node4.check_if_still_hidden();
 
         node2.unset_parent();
         node1.add_child(&node2);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_still_shown();
         node3.check_if_still_shown();
         node4.check_if_still_hidden();
 
         node1.add_child(&node4);
         node4.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_still_shown();
         // TODO[ao]: This assertion fails, see https://github.com/enso-org/ide/issues/1405
         // node3.check_if_still_shown();
@@ -4370,13 +4376,13 @@ mod hierarchy_tests {
 
         node4.unset_parent();
         node2.unset_parent();
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_hidden();
         node3.check_if_was_hidden();
         node4.check_if_was_hidden();
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_still_hidden();
         node3.check_if_still_hidden();
         node4.check_if_still_hidden();
@@ -4470,19 +4476,19 @@ mod hierarchy_tests {
         let node3 = Instance::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.display_layer(), None);
         assert_eq!(node2.display_layer(), None);
         assert_eq!(node3.display_layer(), None);
 
         node1.add_to_display_layer(&layer1);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.display_layer().as_ref(), Some(&layer1));
         assert_eq!(node2.display_layer().as_ref(), Some(&layer1));
         assert_eq!(node3.display_layer().as_ref(), Some(&layer1));
 
         node2.add_to_display_layer(&layer2);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.display_layer().as_ref(), Some(&layer1));
         assert_eq!(node2.display_layer().as_ref(), Some(&layer2));
         assert_eq!(node3.display_layer().as_ref(), Some(&layer1));
@@ -4716,6 +4722,7 @@ mod hierarchy_tests {
 mod layout_tests {
     use super::*;
     use crate::display::world::World;
+    use enso_frp::microtasks;
 
 
     // === Utils ===
@@ -4757,7 +4764,10 @@ mod layout_tests {
                 }
 
                 fn run(&self, assertions: impl Fn()) -> &Self {
-                    let update = || self.world.display_object().update(&self.world.default_scene);
+                    let update = || {
+                        self.world.display_object().update(&self.world.default_scene);
+                        microtasks::flush_microtasks();
+                    };
                     update();
                     assertions();
                     // Nothing should change if nothing happened.
@@ -5933,8 +5943,8 @@ mod layout_tests {
         test.root.add_child(&test.node1);
         test.run(|| {
             test.assert_root_computed_size(20.0, 10.0)
-                .assert_node1_position(0.0, 0.0)
-                .assert_node2_position(10.0, 0.0);
+                .assert_node2_position(0.0, 0.0)
+                .assert_node1_position(10.0, 0.0);
         });
 
         let node3 = Instance::new();
@@ -5942,8 +5952,8 @@ mod layout_tests {
         test.root.add_child(&node3);
         test.run(|| {
             test.assert_root_computed_size(32.0, 10.0)
-                .assert_node1_position(0.0, 0.0)
-                .assert_node2_position(10.0, 0.0);
+                .assert_node2_position(0.0, 0.0)
+                .assert_node1_position(10.0, 0.0);
         });
         assert_eq!(node3.position().xy(), Vector2(20.0, 0.0));
     }

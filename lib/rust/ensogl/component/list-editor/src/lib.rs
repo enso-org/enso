@@ -46,7 +46,7 @@ const GAP: f32 = 10.0;
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
-pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
+pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -54,22 +54,29 @@ pub const DEBUG_ANIMATION_SPRING_FACTOR: f32 = if DEBUG_ANIMATION_SLOWDOWN { 0.1
 
 
 
-// ===========
-// === FRP ===
-// ===========
-
+// =========================
+// === ItemOrPlaceholder ===
+// =========================
 
 #[derive(Debug)]
 pub enum ItemOrPlaceholder<T> {
-    Placeholder(Placeholder),
     Item(Item<T>),
+    Placeholder(Placeholder),
 }
 
 impl<T: display::Object> ItemOrPlaceholder<T> {
-    pub fn is_drop_spot(&self) -> bool {
+    /// Check whether this is an item.
+    pub fn is_item(&self) -> bool {
         matches!(self, Self::Item(_))
     }
 
+    /// Check whether this is a placeholder.
+    pub fn is_placeholder(&self) -> bool {
+        matches!(self, Self::Placeholder(_))
+    }
+
+    /// Get the display object of this item or placeholder. In case the placeholder is weak and does
+    /// not exist anymore, it will return [`None`].
     pub fn display_object(&self) -> Option<display::object::Instance> {
         match self {
             ItemOrPlaceholder::Placeholder(t) => t.display_object(),
@@ -77,10 +84,8 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
         }
     }
 
-    pub fn computed_size(&self) -> Vector2 {
-        self.display_object().map(|t| t.computed_size()).unwrap_or_default()
-    }
-
+    /// Get the target size of this item or placeholder. The current size can be different if the
+    /// size animation is running.
     pub fn target_size(&self) -> f32 {
         match self {
             ItemOrPlaceholder::Placeholder(t) => t.target_size(),
@@ -88,6 +93,7 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
         }
     }
 
+    /// Return false if this is a weak placeholder with no strong references. Return true otherwise.
     pub fn exists(&self) -> bool {
         match self {
             ItemOrPlaceholder::Placeholder(p) => p.exists(),
@@ -95,9 +101,11 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
         }
     }
 
-    pub fn upgraded_weak_placeholder(&self) -> Option<StrongPlaceholder> {
+    /// Return a strong placeholder reference. In case it was a dropped weak placeholder or an item,
+    /// return [`None`].
+    pub fn strong_placeholder(&self) -> Option<StrongPlaceholder> {
         match self {
-            ItemOrPlaceholder::Placeholder(Placeholder::Weak(p)) => p.upgrade(),
+            ItemOrPlaceholder::Placeholder(p) => p.upgrade(),
             _ => None,
         }
     }
@@ -471,11 +479,11 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     fn elem_index_to_item_index(&mut self, ix: Index) -> Option<usize> {
-        self.items.iter().enumerate().filter(|(_, item)| item.is_drop_spot()).nth(ix).map(|t| t.0)
+        self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0)
     }
 
     fn get_upgraded_weak_placeholder(&self, index: usize) -> Option<(usize, StrongPlaceholder)> {
-        self.items.get(index).and_then(|t| t.upgraded_weak_placeholder().map(|t| (index, t)))
+        self.items.get(index).and_then(|t| t.strong_placeholder().map(|t| (index, t)))
     }
 
     /// Remove the selected item from the item list and mark it as an element being dragged. In the
