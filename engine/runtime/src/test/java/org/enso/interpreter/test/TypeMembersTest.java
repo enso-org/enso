@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Set;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -85,6 +86,21 @@ public class TypeMembersTest {
     assertMembers("Keys in list2", false, endAtom, "head", "tail", "is_empty");
     assertMembers("Keys in list1", false, headAtom, "h", "t");
     assertMembers("Keys in list2", true, endAtom, "h", "t");
+  }
+
+  @Test
+  public void ensureNonBuiltinMembersArePresent() throws Exception {
+    final URI uri = new URI("memory://how_long.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base.Errors.Common import Compile_Error
+    v = Compile_Error.Error "foo"
+    """, "to_display_text.enso")
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var compileError = module.invokeMember("eval_expression", "v");
+    assertEquals("all members", compileError.getMemberKeys(), Set.of("to_display_text", "message"));
   }
 
   private static void assertMembers(String msg, boolean invokeFails, Value v, String... keys) {
