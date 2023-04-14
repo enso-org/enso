@@ -1607,7 +1607,12 @@ impl HierarchyFrp {
             on_layer_change <- on_layer_change_source.batch().iter();
             on_transformed <- on_transformed_source.batch().iter();
             on_resized <- on_resized_source.batch().iter().sampler();
+            // on_resized <- on_resized_source.sampler();
         }
+        // let on_show = on_show_source.clone().into();
+        // let on_hide = on_hide_source.clone().into();
+        // let on_layer_change = on_layer_change_source.clone().into();
+        // let on_transformed = on_transformed_source.clone().into();
         Self {
             on_show_source,
             on_hide_source,
