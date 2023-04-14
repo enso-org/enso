@@ -218,7 +218,7 @@ public abstract class HashCodeNode extends Node {
     // hashes stores hash codes for all fields, and for constructor.
     int[] hashes = new int[fieldsCount + 1];
     for (int i = 0; i < fieldsLenCached; i++) {
-      if (fields[i] instanceof Atom atomField && hasCustomComparatorNode.execute(atomField)) {
+      if (fields[i] instanceof Atom atomField && hasCustomComparatorNode.execute(atomField) != null) {
         hashes[i] = (int) hashCallbackNode.execute(atomField);
       } else {
         hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
@@ -244,7 +244,7 @@ public abstract class HashCodeNode extends Node {
     int[] hashes = new int[fields.length + 1];
     for (int i = 0; i < fields.length; i++) {
       if (fields[i] instanceof Atom atomField
-          && HasCustomComparatorNode.getUncached().execute(atomField)) {
+          && HasCustomComparatorNode.getUncached().execute(atomField) != null) {
         hashes[i] = (int) HashCallbackNode.getUncached().execute(atomField);
       } else {
         hashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
@@ -433,7 +433,7 @@ public abstract class HashCodeNode extends Node {
       for (int i = 0; loopProfile.inject(i < arraySize); i++) {
         if (interop.isArrayElementReadable(selfArray, i)) {
           Object elem = interop.readArrayElement(selfArray, i);
-          if (elem instanceof Atom atomElem && hasCustomComparatorNode.execute(atomElem)) {
+          if (elem instanceof Atom atomElem && hasCustomComparatorNode.execute(atomElem) != null) {
             elemHashCodes[i] = (int) hashCallbackNode.execute(atomElem);
           } else {
             elemHashCodes[i] = (int) hashCodeNode.execute(elem);

@@ -128,9 +128,9 @@ type Comparable
        A custom comparator is any comparator that is different than the
        default ones.
     has_custom_comparator : Atom -> Boolean
-    has_custom_comparator atom =
-        comp = Comparable.from atom
-        (comp.is_a Default_Comparator).not
+    has_custom_comparator atom = case Comparable.from atom of
+        _ : Default_Comparator -> Nothing
+        c -> c
 
 ## Default implementation of a _comparator_.
 @Builtin_Type

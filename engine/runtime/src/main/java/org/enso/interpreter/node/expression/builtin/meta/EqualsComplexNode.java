@@ -286,14 +286,7 @@ public abstract class EqualsComplexNode extends Node {
       for (long i = 0; i < selfSize; i++) {
         Object selfElem = selfInterop.readArrayElement(selfArray, i);
         Object otherElem = otherInterop.readArrayElement(otherArray, i);
-        boolean elemsAreEqual;
-        if (selfElem instanceof Atom selfAtomElem
-            && otherElem instanceof Atom otherAtomElem
-            && hasCustomComparatorNode.execute(selfAtomElem)) {
-          elemsAreEqual = invokeAnyEqualsNode.execute(selfAtomElem, otherAtomElem);
-        } else {
-          elemsAreEqual = equalsNode.execute(selfElem, otherElem);
-        }
+        boolean elemsAreEqual = equalsNode.execute(selfElem, otherElem);
         if (!elemsAreEqual) {
           return false;
         }

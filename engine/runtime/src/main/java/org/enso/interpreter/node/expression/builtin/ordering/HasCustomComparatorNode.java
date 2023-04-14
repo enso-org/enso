@@ -4,9 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
@@ -34,30 +31,20 @@ public abstract class HasCustomComparatorNode extends Node {
    * than the default (internal) ones.
    *
    * @param atom Atom for which we check whether it has custom comparator
-   * @return true iff the given atom has a custom comparator
+   * @return {@code null} if the atom has default comparator. Otherwise it returns the real comparator.
    */
-  public abstract boolean execute(Atom atom);
+  public abstract Object execute(Atom atom);
 
   @Specialization
-  boolean hasCustomComparatorCached(
+  Object hasCustomComparatorCached(
       Atom atom,
-      @Cached(value = "getHasCustomComparatorFunction()", allowUncached = true)
-          Function hasCustomComparatorFunc,
+      @Cached(value = "getHasCustomComparatorFunction()", allowUncached = true) Function fn,
       @Cached(value = "buildInvokeNodeWithAtomArgument()", allowUncached = true)
-          InvokeFunctionNode hasCustomComparatorInvokeNode,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+          InvokeFunctionNode invoke) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
-    Object res =
-        hasCustomComparatorInvokeNode.execute(
-            hasCustomComparatorFunc, null, State.create(ctx), new Object[] {comparableType, atom});
-    assert interop.isBoolean(res);
-    try {
-      return interop.asBoolean(res);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(
-          "Return type from Comparable.has_custom_comparator should be Boolean", e);
-    }
+    Object res = invoke.execute(fn, null, State.create(ctx), new Object[] {comparableType, atom});
+    return res == ctx.getBuiltins().nothing() ? null : res;
   }
 
   /**

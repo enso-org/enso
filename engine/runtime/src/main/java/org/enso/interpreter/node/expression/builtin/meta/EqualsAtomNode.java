@@ -41,8 +41,6 @@ public abstract class EqualsAtomNode extends Node {
       @Cached(value = "selfCtorCached.getFields().length", allowUncached = true) int fieldsLenCached,
       @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
       @Cached ConditionProfile constructorsNotEqualProfile,
-      @Cached HasCustomComparatorNode hasCustomComparatorNode,
-      @Cached EqualsComplexNode.InvokeAnyEqualsNode invokeAnyEqualsNode,
       @CachedLibrary(limit = "5") StructsLibrary structsLib
   ) {
     if (constructorsNotEqualProfile.profile(
@@ -56,21 +54,9 @@ public abstract class EqualsAtomNode extends Node {
 
     CompilerAsserts.partialEvaluationConstant(fieldsLenCached);
     for (int i = 0; i < fieldsLenCached; i++) {
-      boolean fieldsAreEqual;
-      // We don't check whether `other` has the same type of comparator, that is checked in
-      // `Any.==` that we invoke here anyway.
-      if (selfFields[i] instanceof Atom selfAtomField
-          && otherFields[i] instanceof Atom otherAtomField
-          && hasCustomComparatorNode.execute(selfAtomField)) {
-        // If selfFields[i] has a custom comparator, we delegate to `Any.==` that deals with
-        // custom comparators. EqualsNode cannot deal with custom comparators.
-        fieldsAreEqual = invokeAnyEqualsNode.execute(selfAtomField, otherAtomField);
-      } else {
-        fieldsAreEqual = fieldEqualsNodes[i].execute(
-            selfFields[i],
-            otherFields[i]
-        );
-      }
+      boolean fieldsAreEqual = fieldEqualsNodes[i].execute(
+        selfFields[i], otherFields[i]
+      );
       if (!fieldsAreEqual) {
         return false;
       }
@@ -90,14 +76,7 @@ public abstract class EqualsAtomNode extends Node {
       return false;
     }
     for (int i = 0; i < selfFields.length; i++) {
-      boolean areFieldsSame;
-      if (selfFields[i] instanceof Atom selfFieldAtom
-          && otherFields[i] instanceof Atom otherFieldAtom
-          && HasCustomComparatorNode.getUncached().execute(selfFieldAtom)) {
-        areFieldsSame = EqualsComplexNode.InvokeAnyEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
-      } else {
-        areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
-      }
+      boolean areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
       if (!areFieldsSame) {
         return false;
       }
