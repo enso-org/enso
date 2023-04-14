@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -31,12 +32,12 @@ public abstract class HasCustomComparatorNode extends Node {
    * than the default (internal) ones.
    *
    * @param atom Atom for which we check whether it has custom comparator
-   * @return {@code null} if the atom has default comparator. Otherwise it returns the real comparator.
+   * @return {@code null} if the atom has default comparator. Otherwise it returns the real comparator type.
    */
-  public abstract Object execute(Atom atom);
+  public abstract Type execute(Atom atom);
 
   @Specialization
-  Object hasCustomComparatorCached(
+  Type hasCustomComparatorCached(
       Atom atom,
       @Cached(value = "getHasCustomComparatorFunction()", allowUncached = true) Function fn,
       @Cached(value = "buildInvokeNodeWithAtomArgument()", allowUncached = true)
@@ -44,7 +45,7 @@ public abstract class HasCustomComparatorNode extends Node {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
     Object res = invoke.execute(fn, null, State.create(ctx), new Object[] {comparableType, atom});
-    return res == ctx.getBuiltins().nothing() ? null : res;
+    return res instanceof Type result && result != ctx.getNothing() ? result : null;
   }
 
   /**
