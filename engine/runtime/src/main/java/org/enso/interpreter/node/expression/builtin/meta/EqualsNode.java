@@ -248,7 +248,7 @@ public abstract class EqualsNode extends Node {
     ) == 0;
   }
 
-  @Specialization(guards = "isPrimitive(self) || isPrimitive(other)")
+  @Specialization(guards = "isPrimitive(self) != isPrimitive(other)")
   boolean equalsDifferent(Object self, Object other) {
     return false;
   }
