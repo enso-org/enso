@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use crate::config::ProjectToOpen;
 use crate::controller::ide::StatusNotification;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
@@ -115,7 +116,8 @@ impl Model {
         {
             crate::executor::global::spawn(async move {
                 if let Ok(managing_api) = controller.manage_projects() {
-                    if let Err(err) = managing_api.create_new_project(template.clone()).await {
+                    if let Err(err) = managing_api.create_new_project(None, template.clone()).await
+                    {
                         if let Some(template) = template {
                             error!("Could not create new project from template {template}: {err}.");
                         } else {
@@ -129,6 +131,20 @@ impl Model {
         } else if let Some(template) = template {
             error!("Invalid project template name: {template}");
         };
+    }
+
+    /// Open a project by name or ID. If no project with the given name exists, it will be created.
+    fn open_or_create_project(&self, project: ProjectToOpen) {
+        let controller = self.controller.clone_ref();
+        crate::executor::global::spawn(async move {
+            if let Ok(managing_api) = controller.manage_projects() {
+                if let Err(error) = managing_api.open_or_create_project(project).await {
+                    error!("Cannot open or create project: {error}.");
+                }
+            } else {
+                warn!("Project opening failed: no ProjectManagingAPI available.");
+            }
+        });
     }
 }
 
@@ -175,7 +191,6 @@ impl Presenter {
     fn init(self) -> Self {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
-        self.model.clone_ref().setup_and_display_new_project();
         executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
         self
     }
@@ -238,6 +253,11 @@ impl Presenter {
                 }
             }
         }
+    }
+
+    /// Open a project by name or ID. If no project with the given name exists, it will be created.
+    pub fn open_or_create_project(&self, project: ProjectToOpen) {
+        self.model.open_or_create_project(project)
     }
 }
 

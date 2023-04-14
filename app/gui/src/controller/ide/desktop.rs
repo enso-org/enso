@@ -4,12 +4,10 @@
 
 use crate::prelude::*;
 
-use crate::config::ProjectToOpen;
 use crate::controller::ide::ManagingProjectAPI;
 use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
 use crate::controller::ide::API;
-use crate::ide::initializer;
 
 use double_representation::name::project;
 use engine_protocol::project_manager;
@@ -60,16 +58,6 @@ impl Handle {
             component_browser_private_entries_visibility_flag: default(),
         })
     }
-
-    /// Open a project by name or ID.
-    ///
-    /// If no project with the given name exists, it will be created.
-    pub async fn open_or_create_project(&self, project: ProjectToOpen) -> FallibleResult<()> {
-        let initializer =
-            initializer::WithProjectManager::new(self.project_manager.clone_ref(), project);
-        let project_id = initializer.get_project_or_create_new().await?;
-        self.open_project(project_id).await
-    }
 }
 
 impl API for Handle {
@@ -106,12 +94,16 @@ impl API for Handle {
 
 impl ManagingProjectAPI for Handle {
     #[profile(Objective)]
-    fn create_new_project(&self, template: Option<project::Template>) -> BoxFuture<FallibleResult> {
+    fn create_new_project(
+        &self,
+        name: Option<String>,
+        template: Option<project::Template>,
+    ) -> BoxFuture<FallibleResult> {
         async move {
             let list = self.project_manager.list_projects(&None).await?;
             let existing_names: HashSet<_> =
                 list.projects.into_iter().map(|p| p.name.into()).collect();
-            let name = make_project_name(&template);
+            let name = name.unwrap_or_else(|| make_project_name(&template));
             let name = choose_unique_project_name(&existing_names, &name);
             let name = ProjectName::new_unchecked(name);
             let version = &enso_config::ARGS.groups.engine.options.preferred_version.value;

@@ -33,7 +33,7 @@ impl TestOnNewProjectControllersOnly {
         let initializer = enso_gui::Initializer::new(config);
         let error_msg = "Couldn't open project.";
         let ide = initializer.initialize_ide_controller().await.expect(error_msg);
-        ide.manage_projects().unwrap().create_new_project(None).await.unwrap();
+        ide.manage_projects().unwrap().create_new_project(None, None).await.unwrap();
         let project = ide.current_project().unwrap();
         Self { _ide: ide, project, _executor: executor }
     }
