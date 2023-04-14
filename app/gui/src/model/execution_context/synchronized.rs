@@ -437,7 +437,8 @@ pub mod test {
         let f = Fixture::new();
         assert_eq!(f.data.context_id, f.context.id);
         let name_in_data = f.data.module_qualified_name();
-        let name_in_ctx_model = QualifiedName::try_from(&f.context.model.entry_point.module);
+        let name_in_ctx_model =
+            QualifiedName::try_from(&f.context.model.entry_point.borrow().module);
         assert_eq!(name_in_data, name_in_ctx_model.unwrap());
         assert_eq!(Vec::<LocalCall>::new(), f.context.model.stack_items().collect_vec());
     }
