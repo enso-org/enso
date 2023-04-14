@@ -8,6 +8,7 @@ import * as projectManagerModule from 'enso-content/src/project_manager'
 import * as auth from '../../authentication/providers/auth'
 import * as backend from '../service'
 import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
@@ -16,6 +17,7 @@ import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
+import TopBar from './topBar'
 
 // =============
 // === Types ===
@@ -191,9 +193,14 @@ export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
 
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
+
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
 
+    const { modal } = modalProvider.useModal()
+    const { unsetModal } = modalProvider.useSetModal()
+
+    const [searchVal, setSearchVal] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
@@ -285,6 +292,13 @@ function Dashboard(props: DashboardProps) {
             : COLUMN_RENDERER[column]
     }
 
+    // The purpose of this effect is to enable search action.
+    react.useEffect(() => {
+        return () => {
+            // TODO
+        }
+    }, [searchVal])
+
     react.useEffect(() => {
         void (async (): Promise<void> => {
             let assets: backend.Asset[]
@@ -323,10 +337,10 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId])
 
     return (
-        <div className="text-primary text-xs">
+        <div className="text-primary text-xs" onClick={unsetModal}>
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
-            <div id="header" />
+            <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
             <div id="templates" />
             <div className="flex flex-row flex-nowrap">
                 <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
@@ -484,6 +498,7 @@ function Dashboard(props: DashboardProps) {
                     }))}
                 />
             </table>
+            {modal && <>{modal}</>}
         </div>
     )
 }
