@@ -13,6 +13,8 @@ import java.math.BigInteger;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -253,7 +255,19 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
-  @Specialization(guards = "nonPrimitive(self, other)")
+  /** Equals for Atoms and AtomConstructors */
+
+  @Specialization
+  boolean equalsAtomConstructors(AtomConstructor self, AtomConstructor other) {
+    return self == other;
+  }
+
+  @Specialization
+  boolean equalsAtoms(Atom self, Atom other, @Cached EqualsAtomNode compare) {
+    return compare.execute(self, other);
+  }
+
+  @Specialization(guards = "isComplex(self, other)")
   boolean equalsComplex(
     Object self, Object other,
     @Cached EqualsComplexNode complex
@@ -261,7 +275,13 @@ public abstract class EqualsNode extends Node {
     return complex.execute(self, other);
   }
 
-  static boolean nonPrimitive(Object a, Object b) {
+  static boolean isComplex(Object a, Object b) {
+    if (a instanceof AtomConstructor && b instanceof AtomConstructor) {
+      return false;
+    }
+    if (a instanceof Atom && b instanceof Atom) {
+      return false;
+    }
     return !isPrimitive(a) && !isPrimitive(b);
   }
 
