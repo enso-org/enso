@@ -37,6 +37,11 @@ public abstract class TypeOfNode extends Node {
   }
 
   @Specialization
+  Object doUnresolvedSymbol(UnresolvedSymbol value) {
+    return EnsoContext.get(this).getBuiltins().function();
+  }
+
+  @Specialization
   Object doDouble(double value) {
     return EnsoContext.get(this).getBuiltins().number().getDecimal();
   }
