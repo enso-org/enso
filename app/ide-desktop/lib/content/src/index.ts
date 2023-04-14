@@ -194,7 +194,7 @@ class Main {
                         logger,
                         platform,
                         projectManager: projectManager.ProjectManager.default(),
-                        enableDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
+                        showDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
                         onAuthenticated,
                     })
                 } else {

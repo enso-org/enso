@@ -4,8 +4,9 @@ import * as react from 'react'
 import toast from 'react-hot-toast'
 
 import * as auth from '../../authentication/providers/auth'
-import * as icons from '../../components/svg'
-import * as modalProvider from '../../providers/modal.js'
+import * as modalProvider from '../../providers/modal'
+import * as svg from '../../components/svg'
+
 import Modal from './modal'
 
 // ==========================
@@ -57,7 +58,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                                    <icons.Svg data={icons.PATHS.lock} />
+                                    {svg.LOCK}
                                 </div>
 
                                 <input
@@ -82,7 +83,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                                    <icons.Svg data={icons.PATHS.lock} />
+                                    {svg.LOCK}
                                 </div>
 
                                 <input
@@ -107,7 +108,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                                    <icons.Svg data={icons.PATHS.lock} />
+                                    {svg.LOCK}
                                 </div>
 
                                 <input
@@ -129,9 +130,7 @@ function ChangePasswordModal() {
                                 className="flex items-center justify-center focus:outline-none text-white text-sm sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in"
                             >
                                 <span className="mr-2 uppercase">Reset</span>
-                                <span>
-                                    <icons.Svg data={icons.PATHS.rightArrow} />
-                                </span>
+                                <span>{svg.RIGHT_ARROW}</span>
                             </button>
                         </div>
                     </form>
