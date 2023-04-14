@@ -151,9 +151,10 @@ function AppRouter(props: AppProps) {
                 </router.Route>
                 {/* Protected pages are visible to authenticated users. */}
                 <router.Route element={<authProvider.ProtectedLayout />}>
-                    {showDashboard && (
-                        <router.Route path={DASHBOARD_PATH} element={<Dashboard {...props} />} />
-                    )}
+                    <router.Route
+                        path={DASHBOARD_PATH}
+                        element={showDashboard && <Dashboard {...props} />}
+                    />
                     <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                 </router.Route>
                 {/* Other pages are visible to unauthenticated and authenticated users. */}
