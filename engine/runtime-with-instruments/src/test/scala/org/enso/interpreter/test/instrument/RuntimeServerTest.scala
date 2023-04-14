@@ -3058,7 +3058,6 @@ class RuntimeServerTest
       )
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3066,11 +3065,10 @@ class RuntimeServerTest
           Seq(
             Api.ExecutionResult.Diagnostic.error(
               "Type error: expected `str` to be Text, but got 2 (Integer).",
-              None,
-              None,
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
               None,
               Vector(
-                Api.StackTraceElement("Text.+", None, None, None),
                 Api.StackTraceElement(
                   "Main.bar",
                   Some(mainFile),
@@ -3092,6 +3090,7 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       context.executionComplete(contextId)
     )
   }
@@ -3216,7 +3215,6 @@ class RuntimeServerTest
       )
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3224,11 +3222,10 @@ class RuntimeServerTest
           Seq(
             Api.ExecutionResult.Diagnostic.error(
               "Type error: expected `that` to be Number, but got quux (Unresolved_Symbol).",
-              None,
-              None,
+              Some(mainFile),
+              Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
               None,
               Vector(
-                Api.StackTraceElement("Small_Integer.+", None, None, None),
                 Api.StackTraceElement(
                   "Main.baz",
                   Some(mainFile),
@@ -3266,6 +3263,7 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       context.executionComplete(contextId)
     )
   }
