@@ -1421,7 +1421,7 @@ type Table
        - on_problems: Specifies the behavior when a problem occurs.
     split_to_rows : Text | Integer -> Text -> Table
     split_to_rows self column delimiter="," =
-        _ = [column delimiter on_problems]
+        _ = [column delimiter]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
 
     ## Tokenizes a column of text into a set of new columns using a regular
@@ -1463,7 +1463,7 @@ type Table
        - on_problems: Specifies the behavior when a problem occurs.
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Table
     tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
-        _ = [column pattern case_sensitivity on_problems]
+        _ = [column pattern case_sensitivity]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_rows is not implemented yet for the Database backends.")
 
     ## PRIVATE
