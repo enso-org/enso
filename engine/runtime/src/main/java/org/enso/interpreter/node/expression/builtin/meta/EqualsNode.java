@@ -240,7 +240,7 @@ public abstract class EqualsNode extends Node {
     return equalsNode.execute(self, other);
   }
   
-  @Specialization(guards = "isComplex(self, other, strings, warnings)")
+  @Specialization(guards = "isNotPrimitive(self, other, strings, warnings)")
   boolean equalsComplex(
     Object self, Object other,
     @Cached EqualsComplexNode complex,
@@ -250,7 +250,7 @@ public abstract class EqualsNode extends Node {
     return complex.execute(self, other);
   }
 
-  static boolean isComplex(Object a, Object b, InteropLibrary strings, WarningsLibrary warnings) {
+  static boolean isNotPrimitive(Object a, Object b, InteropLibrary strings, WarningsLibrary warnings) {
     if (a instanceof AtomConstructor && b instanceof AtomConstructor) {
       return false;
     }
