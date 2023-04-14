@@ -253,7 +253,7 @@ fn create_callback_wrapper(mut callback: impl AnimationCallback) -> impl Animati
                 loop_start_time = Some(start_time);
                 start_time
             });
-            time.since_animation_loop_started = time.since_animation_loop_started - start_time;
+            time.since_animation_loop_started -= start_time;
             time
         });
         callback(local_time)

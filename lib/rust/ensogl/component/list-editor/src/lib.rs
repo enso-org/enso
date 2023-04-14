@@ -2,7 +2,7 @@
 //!
 //! TODO[WD]: This is work in progress and will be changed in the upcoming PRs.
 
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 // === Features ===
 #![feature(let_chains)]
 // === Standard Linter Configuration ===
@@ -10,6 +10,8 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+
+pub mod placeholder;
 
 use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
@@ -25,7 +27,13 @@ use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::Animation;
 
+use placeholder::Placeholder;
+use placeholder::WeakPlaceholder;
 
+
+// =================
+// === Constants ===
+// =================
 
 const DRAG_THRESHOLD: f32 = 4.0;
 
@@ -41,171 +49,6 @@ pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
 /// used for animation simulators.
 pub const DEBUG_ANIMATION_SPRING_FACTOR: f32 = if DEBUG_ANIMATION_SLOWDOWN { 0.1 } else { 1.0 };
 
-// ==============
-// === Events ===
-// ==============
-
-#[derive(Clone, CloneRef, Debug, Default)]
-pub struct MouseOver;
-
-
-// ============
-// === Glob ===
-// ============
-
-pub mod glob {
-    use super::*;
-    ensogl_core::define_endpoints_2! {
-        Input {
-        }
-        Output {
-        }
-    }
-}
-
-
-
-// ==============
-// === Placeholder ===
-// ==============
-
-mod placeholder {
-    use super::*;
-    ensogl_core::define_endpoints_2! {
-        Input {
-            set_target_size_no_animation (f32),
-            set_target_size (f32),
-            skip_animation(),
-        }
-        Output {
-            target_size(f32),
-        }
-    }
-
-    #[derive(Debug, Clone, CloneRef, Deref)]
-    pub struct Placeholder {
-        model: Rc<SpacerModel>,
-    }
-
-    #[derive(Debug, Deref)]
-    pub struct SpacerModel {
-        #[deref]
-        pub frp:        placeholder::Frp,
-        root:           display::object::Instance,
-        self_ref:       Rc<RefCell<Option<Rc<SpacerModel>>>>,
-        collapsing:     Rc<Cell<bool>>,
-        size_animation: Animation<f32>,
-        _viz:           Option<Rectangle>,
-    }
-
-    impl SpacerModel {
-        fn new() -> Self {
-            let frp = placeholder::Frp::new();
-            let root = display::object::Instance::new();
-            let self_ref = default();
-            let collapsing = default();
-            let size_animation = Animation::<f32>::new(frp.network());
-            let _viz = DEBUG_PLACEHOLDERS_VIZ.then(|| {
-                let viz = RoundedRectangle(10.0).build(|t| {
-                    t.set_size(Vector2::new(0.0, 20.0))
-                        .allow_grow_x()
-                        .set_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0))
-                        .set_inset_border(5.0)
-                        .set_border_color(color::Rgba::new(0.0, 1.0, 1.0, 1.0));
-                });
-                root.add_child(&viz);
-                viz
-            });
-            Self { frp, root, self_ref, collapsing, size_animation, _viz }
-        }
-    }
-
-    impl Placeholder {
-        pub fn new() -> Self {
-            let model = SpacerModel::new();
-            let model = Rc::new(model);
-            let root = model.root.clone_ref();
-            let collapsing = &model.collapsing;
-            let self_ref = &model.self_ref;
-
-            let network = &model.frp.network();
-            let size_animation = &model.size_animation;
-            size_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
-            frp::extend! { network
-                size_animation.target <+ model.frp.private.input.set_target_size;
-                size_animation.target <+ model.frp.private.input.set_target_size_no_animation;
-                size_animation.skip <+ model.frp.private.input.set_target_size_no_animation.constant(());
-                size_animation.skip <+ model.frp.private.input.skip_animation;
-
-                model.frp.private.output.target_size <+ model.frp.private.input.set_target_size;
-                model.frp.private.output.target_size <+ model.frp.private.input.set_target_size_no_animation;
-
-                eval size_animation.value ((t) { root.set_size_x(*t); });
-                eval_ size_animation.on_end ([collapsing, self_ref] {
-                    if collapsing.get() {
-                        self_ref.borrow_mut().take();
-                    }
-                });
-            }
-            Self { model }
-        }
-
-        pub fn new_with_size(size: f32) -> Self {
-            let placeholder = Self::new();
-            placeholder.set_target_size_no_animation(size);
-            placeholder
-        }
-
-        pub fn downgrade(&self) -> WeakPlaceholder {
-            WeakPlaceholder { model: Rc::downgrade(&self.model) }
-        }
-
-        pub fn collapse(&self) {
-            *self.self_ref.borrow_mut() = Some(self.model.clone());
-            self.set_target_size(0.0);
-            self.collapsing.set(true);
-        }
-
-        pub fn drop_self_ref(&self) {
-            *self.self_ref.borrow_mut() = None;
-        }
-
-        pub fn reuse(&self) {
-            self.drop_self_ref();
-            self.collapsing.set(false);
-        }
-
-        pub fn add_to_size(&self, delta: f32) {
-            self.size_animation.simulator.update_value(|v| v + delta);
-        }
-    }
-
-    impl Default for Placeholder {
-        fn default() -> Self {
-            Self::new()
-        }
-    }
-
-    impl display::Object for Placeholder {
-        fn display_object(&self) -> &display::object::Instance {
-            &self.root
-        }
-    }
-
-    #[derive(Debug, Clone, CloneRef, Deref)]
-    pub struct WeakPlaceholder {
-        model: Weak<SpacerModel>,
-    }
-
-    impl WeakPlaceholder {
-        pub fn upgrade(&self) -> Option<Placeholder> {
-            self.model.upgrade().map(|model| Placeholder { model })
-        }
-    }
-}
-
-use placeholder::Placeholder;
-use placeholder::WeakPlaceholder;
 
 
 // ===========
@@ -237,8 +80,8 @@ mod spot {
         pub fn new(elem: T, init_width: f32) -> Self {
             let placeholder = Placeholder::new();
             let this = Self::new_from_placeholder(elem, placeholder);
-            this.placeholder.set_target_size_no_animation(init_width);
-            this.placeholder.frp.skip_animation();
+            this.placeholder.set_target_size(init_width);
+            this.placeholder.skip_animation();
             this
         }
         pub fn new_from_placeholder(elem: T, placeholder: Placeholder) -> Self {
@@ -319,6 +162,10 @@ impl<T: display::Object> Item<T> {
         matches!(self, Self::WeakPlaceholder(_))
     }
 
+    pub fn is_drop_spot(&self) -> bool {
+        matches!(self, Self::DropSpot(_))
+    }
+
     pub fn display_object(&self) -> Option<display::object::Instance> {
         match self {
             Item::Placeholder(t) => Some(t.display_object().clone_ref()),
@@ -351,6 +198,13 @@ impl<T: display::Object> Item<T> {
     pub fn upgraded_weak_placeholder(&self) -> Option<Placeholder> {
         match self {
             Item::WeakPlaceholder(t) => t.upgrade(),
+            _ => None,
+        }
+    }
+
+    pub fn element(&self) -> Option<&T> {
+        match self {
+            Item::DropSpot(t) => Some(&t.elem),
             _ => None,
         }
     }
@@ -393,6 +247,9 @@ ensogl_core::define_endpoints_2! { <T: (frp::node::Data)>
 
         /// WARNING: not working yet, use `push` instead.
         insert((Index, Weak<T>)),
+
+        /// Remove the element at the given index. If the index is invalid, nothing will happen.
+        remove(Index),
     }
     Output {
         /// Fires whenever a new element was added to the list.
@@ -410,12 +267,13 @@ ensogl_core::define_endpoints_2! { <T: (frp::node::Data)>
 #[derivative(Clone(bound = ""))]
 pub struct ListEditor<T: frp::node::Data> {
     #[deref]
-    pub frp:        Frp<T>,
-    root:           display::object::Instance,
-    layouted_elems: display::object::Instance,
-    dragged_elems:  display::object::Instance,
-    model:          Rc<RefCell<Model<T>>>,
-    add_elem_icon:  Rectangle,
+    pub frp:          Frp<T>,
+    root:             display::object::Instance,
+    layouted_elems:   display::object::Instance,
+    dragged_elems:    display::object::Instance,
+    model:            Rc<RefCell<Model<T>>>,
+    add_elem_icon:    Rectangle,
+    remove_elem_icon: Rectangle,
 }
 
 #[derive(Debug, Derivative)]
@@ -489,9 +347,20 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
                 .set_inset_border(2.0)
                 .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
         });
+
+        let remove_elem_icon = Rectangle().build(|t| {
+            t.set_size(Vector2::new(20.0, 20.0))
+                .set_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0))
+                .set_inset_border(2.0)
+                .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
+        });
         add_elem_icon.set_y(-30.0);
         root.add_child(&add_elem_icon);
-        Self { frp, root, layouted_elems, dragged_elems, model, add_elem_icon }.init(cursor)
+        remove_elem_icon.set_y(-30.0);
+        remove_elem_icon.set_x(30.0);
+        root.add_child(&remove_elem_icon);
+        Self { frp, root, layouted_elems, dragged_elems, model, add_elem_icon, remove_elem_icon }
+            .init(cursor)
     }
 
     fn init(self, cursor: &Cursor) -> Self {
@@ -504,6 +373,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         let model = &self.model;
 
         let add_elem_icon_down = self.add_elem_icon.on_event::<mouse::Down>();
+        let remove_elem_icon_down = self.remove_elem_icon.on_event::<mouse::Down>();
         let on_down = self.layouted_elems.on_event_capturing::<mouse::Down>();
         let on_up = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
@@ -513,6 +383,8 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
                 let index = model.borrow_mut().items.len();
                 Response::new_gui_interaction(index)
             }));
+
+            frp.remove <+ remove_elem_icon_down.constant(0);
 
             push_item_index <= frp.push.map(f!([model, layouted_elems] (item)
                 item.upgrade().map(|t| model.borrow_mut().push_item(&layouted_elems, (*t).clone()))
@@ -549,6 +421,10 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             eval_ on_trashing (model.borrow_mut().items.collapse_all_placeholders());
             eval_ on_trash (model.borrow_mut().trash_dragged_item());
 
+            eval frp.remove([model, layouted_elems, dragged_elems] (index)
+                model.borrow_mut().trash_item_at(&layouted_elems, &dragged_elems, *index)
+            );
+
             // Re-parent the dragged element.
             eval target_on_start([model, layouted_elems, dragged_elems] (t) model.borrow_mut().set_as_dragged_item(&layouted_elems, &dragged_elems, t));
             // center_points <- target_on_start.map(f_!(model.borrow().elems_center_points()));
@@ -581,6 +457,10 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
 
     pub fn push(&self, item: T) {
         self.frp.push(Rc::new(item).downgrade());
+    }
+
+    pub fn items(&self) -> Vec<T> {
+        self.model.borrow().items.iter().flat_map(|item| item.element().cloned()).collect()
     }
 }
 
@@ -664,28 +544,31 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         (inv_object_matrix * world_space).xy()
     }
 
-
-    fn remove_item_by_display_object(
+    fn item_index_by_display_object(
         &mut self,
         target: &display::object::Instance,
-    ) -> Option<(usize, DropSpot<T>)> {
-        let mut result: Option<(usize, DropSpot<T>)> = None;
-        let items = mem::take(&mut self.items);
-        self.items = items
-            .into_iter()
-            .enumerate()
-            .filter_map(|(i, item)| match item {
-                Item::DropSpot(t) =>
-                    if t.elem.display_object() == target {
-                        result = Some((i, t));
-                        None
-                    } else {
-                        Some(Item::DropSpot(t))
-                    },
-                _ => Some(item),
-            })
-            .collect();
-        result
+    ) -> Option<usize> {
+        for (index, item) in self.items.iter().enumerate() {
+            if let Item::DropSpot(t) = item {
+                if t.elem.display_object() == target {
+                    return Some(index);
+                }
+            }
+        }
+        None
+    }
+
+    fn elem_index_to_item_index(&mut self, mut elem_index: Index) -> Option<usize> {
+        for (index, item) in self.items.iter().enumerate() {
+            if item.is_drop_spot() {
+                if elem_index == 0 {
+                    return Some(index);
+                } else {
+                    elem_index -= 1;
+                }
+            }
+        }
+        None
     }
 
     fn get_upgraded_weak_placeholder(&self, index: usize) -> Option<(usize, Placeholder)> {
@@ -736,38 +619,57 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         dragged_elems: &display::object::Instance,
         target: &display::object::Instance,
     ) {
-        if let Some((index, elem)) = self.remove_item_by_display_object(target) {
-            // warn!("set_as_dragged_item");
-            self.items.collapse_all_placeholders();
-            let prev_index = index.checked_sub(1);
-            let prev_placeholder = prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
-            let next_placeholder = self.get_upgraded_weak_placeholder(index);
-            let (placeholder, placeholder_to_merge) = match (prev_placeholder, next_placeholder) {
-                (Some(p1), Some(p2)) => (Some(p1), Some(p2)),
-                (p1, p2) => (p1.or(p2), None),
-            };
-            let size = elem.computed_size().x;
-            if let Some((placeholder_index, placeholder)) = placeholder {
-                placeholder.reuse();
-                placeholder.add_to_size(size);
-                placeholder.set_target_size(size);
-                if let Some((placeholder2_index, placeholder2)) = placeholder_to_merge {
-                    self.items.remove(placeholder2_index);
-                    placeholder.add_to_size(placeholder2.computed_size().x);
-                    placeholder2.drop_self_ref();
-                }
-                self.items[placeholder_index] = Item::Placeholder(placeholder);
-            } else {
-                // warn!("inserting new placeholder");
-                self.items.insert(index, Placeholder::new_with_size(size).into());
-            }
-            dragged_elems.set_xy(elem.position().xy());
-            dragged_elems.add_child(&elem.elem);
-            self.dragged_item = Some(elem.elem);
-            self.recompute_margins();
-            self.redraw_items(layouted_elems);
+        if let Some(index) = self.item_index_by_display_object(target) {
+            self.set_as_dragged_item2(layouted_elems, dragged_elems, index);
         } else {
             warn!("Dragged item not found in the item list.")
+        }
+    }
+
+    fn set_as_dragged_item2(
+        &mut self,
+        layouted_elems: &display::object::Instance,
+        dragged_elems: &display::object::Instance,
+        index: Index,
+    ) {
+        match self.items.remove(index) {
+            Item::DropSpot(elem) => {
+                // warn!("set_as_dragged_item");
+                self.items.collapse_all_placeholders();
+                let prev_index = index.checked_sub(1);
+                let prev_placeholder =
+                    prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
+                let next_placeholder = self.get_upgraded_weak_placeholder(index);
+                let (placeholder, placeholder_to_merge) = match (prev_placeholder, next_placeholder)
+                {
+                    (Some(p1), Some(p2)) => (Some(p1), Some(p2)),
+                    (p1, p2) => (p1.or(p2), None),
+                };
+                let size = elem.computed_size().x;
+                if let Some((placeholder_index, placeholder)) = placeholder {
+                    placeholder.reuse();
+                    placeholder.update_size(|t| t + size);
+                    placeholder.set_target_size(size);
+                    if let Some((placeholder2_index, placeholder2)) = placeholder_to_merge {
+                        self.items.remove(placeholder2_index);
+                        placeholder.update_size(|t| t + placeholder2.computed_size().x);
+                        placeholder2.drop_self_ref();
+                    }
+                    self.items[placeholder_index] = Item::Placeholder(placeholder);
+                } else {
+                    // warn!("inserting new placeholder");
+                    self.items.insert(index, Placeholder::new_with_size(size).into());
+                }
+                dragged_elems.set_xy(elem.position().xy());
+                dragged_elems.add_child(&elem.elem);
+                self.dragged_item = Some(elem.elem);
+                self.recompute_margins();
+                self.redraw_items(layouted_elems);
+            }
+            item => {
+                warn!("Wrong index.");
+                self.items.insert(index, item);
+            }
         }
     }
 
@@ -859,6 +761,22 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         }
     }
 
+    pub fn trash_item_at(
+        &mut self,
+        layouted_elems: &display::object::Instance,
+        dragged_elems: &display::object::Instance,
+        index: Index,
+    ) {
+        if let Some(item_index) = self.elem_index_to_item_index(index) {
+            self.set_as_dragged_item2(layouted_elems, dragged_elems, item_index);
+            self.trash_dragged_item();
+            self.items.collapse_all_placeholders();
+            self.recompute_margins();
+        } else {
+            warn!("Wrong index.");
+        }
+    }
+
 
     // FIXME: does not work correctly with placeholders
     fn elems_center_points(&self) -> Vec<f32> {
@@ -947,6 +865,16 @@ use trash::Trash;
 // ===================
 // === Entry Point ===
 // ===================
+
+pub mod glob {
+    use super::*;
+    ensogl_core::define_endpoints_2! {
+        Input {
+        }
+        Output {
+        }
+    }
+}
 
 /// The example entry point.
 #[entry_point]
