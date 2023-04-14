@@ -40,7 +40,7 @@ pub fn deserialize_widget_update(
 }
 
 fn map_metadata(resp: response::Widget) -> widget::Metadata {
-    widget::Metadata { display: resp.display, config: map_config(resp.inner) }
+    widget::Metadata { display: resp.display, config: map_config(resp.inner), has_port: true }
 }
 
 fn map_config(inner: response::WidgetSpecific) -> widget::Config {

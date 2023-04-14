@@ -509,8 +509,8 @@ impl NodeModel {
                 background                -> drag_area;
                 drag_area                 -> edge::front::corner;
                 drag_area                 -> edge::front::line;
-                edge::front::corner       -> input::widget::port;
-                edge::front::line         -> input::widget::port;
+                edge::front::corner       -> input::port::shape;
+                edge::front::line         -> input::port::shape;
             }
         }
 
@@ -891,9 +891,9 @@ impl Node {
             hover_onset_delay.set_delay <+ preview_show_delay;
             hide_tooltip                <- preview_show_delay.map(|&delay| delay <= EPSILON);
 
-            outout_hover            <- model.output.on_port_hover.map(|s| s.is_on());
-            hover_onset_delay.start <+ outout_hover.on_true();
-            hover_onset_delay.reset <+ outout_hover.on_false();
+            output_hover            <- model.output.on_port_hover.map(|s| s.is_on());
+            hover_onset_delay.start <+ output_hover.on_true();
+            hover_onset_delay.reset <+ output_hover.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset, &hover_onset_delay.on_end);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
@@ -904,7 +904,7 @@ impl Node {
             preview_visible <- hover_preview_visible || preview_enabled;
             preview_visible <- preview_visible.on_change();
 
-            // If the preview is visible while the visualization button is disabled, clicking the
+            // If the preview is visible while the visualization button is disabled, clic\king the
             // visualization button hides the preview and keeps the visualization button disabled.
             vis_button_on <- visualization_button_state.filter(|e| *e).constant(());
             vis_button_off <- visualization_button_state.filter(|e| !*e).constant(());
@@ -1131,7 +1131,7 @@ pub mod test_utils {
         /// 1. If there are no input ports.
         /// 2. If the port does not have a `Shape`. Some port models does not initialize the
         ///    `Shape`, see [`input::port::Model::init_shape`].
-        fn input_port_shape(&self) -> Option<input::widget::port::View>;
+        fn input_port_shape(&self) -> Option<input::port::hover_shape::View>;
     }
 
     impl NodeModelExt for NodeModel {
@@ -1146,7 +1146,7 @@ pub mod test_utils {
             }
         }
 
-        fn input_port_shape(&self) -> Option<input::widget::port::View> {
+        fn input_port_shape(&self) -> Option<input::port::hover_shape::View> {
             // let ports = self.input.model.ports();
             // let port = ports.first()?;
             // port.shape.as_ref().map(CloneRef::clone_ref)

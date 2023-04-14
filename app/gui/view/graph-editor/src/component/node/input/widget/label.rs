@@ -8,6 +8,7 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::object;
 use ensogl_component::text;
+use ensogl_hardcoded_theme as theme;
 
 // =============
 // === Label ===
@@ -21,6 +22,7 @@ ensogl::define_endpoints_2! {
     Input {
         content(ImString),
         text_color(color::Lcha),
+        crumbs(span_tree::Crumbs),
     }
 }
 
@@ -39,7 +41,7 @@ impl super::SpanWidget for Widget {
         &self.root.outer
     }
 
-    fn new(_: &Config, app: &Application, _: &super::WidgetsFrp) -> Self {
+    fn new(_: &Config, app: &Application, widgets_frp: &super::WidgetsFrp) -> Self {
         // Embed the label in a vertically centered fixed height container, so that the label's
         // baseline is properly aligned to center and lines up with other labels in the line.
 
@@ -58,11 +60,19 @@ impl super::SpanWidget for Widget {
 
         frp::extend! { network
             color_change <- frp.text_color.on_change();
-            eval color_change((color) label.set_property_default(color));
+            parent_port_hovered <- widgets_frp.on_port_hover.map2(&frp.crumbs, |h, crumbs| {
+                h.on().map_or(false, |h| crumbs.starts_with(h))
+            });
+            label_color <- color_change.map2(&parent_port_hovered, |color, hovered| {
+                if *hovered { color::Lcha::white() } else { *color }
+            });
+
+            eval label_color((color) label.set_property_default(color));
             content_change <- frp.content.on_change();
             eval content_change([label] (content) {
                 label.set_content(content);
             });
+
 
             width <- label.width.on_change();
             eval width((w) { inner.set_size_x(*w); });
@@ -81,16 +91,18 @@ impl super::SpanWidget for Widget {
         };
 
 
-        // let text_color = self.styles.get_color(theme::graph_editor::node::text);
         let text_color = if is_placeholder {
+            ctx.styles().get_color(theme::graph_editor::node::text);
             color::Lcha::new(0.5, 0.0, 0.0, 1.0)
         } else {
-            color::Lcha::new(0.0, 0.0, 0.0, 1.0)
+            let ty = ctx.span_tree_node.kind.tp();
+            let ty = ty.map(|t| crate::Type(t.into()));
+            crate::type_coloring::compute_for_code(ty.as_ref(), &ctx.styles())
         };
-
 
         let input = &self.frp.public.input;
         input.content.emit(content.clone());
         input.text_color.emit(text_color);
+        input.crumbs.emit(ctx.span_tree_node.crumbs.clone());
     }
 }

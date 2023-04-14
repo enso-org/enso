@@ -43,6 +43,14 @@ impl Network {
         self.register_raw(OwnedSource::new(label))
     }
 
+    /// A source that emits a single event when it is dropped. This is always returned as an owned
+    /// node, so its drop timing can be precisely controlled. It is not automatically retained by
+    /// the network. When the source is cloned, the event will only be emitted after all clones are
+    /// dropped.
+    pub fn on_drop(&self, label: Label) -> DropSource {
+        DropSource::new(label)
+    }
+
     /// Remember the last event value and allow sampling it anytime.
     pub fn sampler<T, Out>(&self, label: Label, src: &T) -> Sampler<Out>
     where
@@ -422,6 +430,27 @@ impl Network {
         self.switch_constant(label, check, default(), t)
     }
 
+    /// Map the incoming value into a stream and connect the resulting stream to the output. When a
+    /// new value is emitted, the previous stream is disconnected and the new one is connected.
+    pub fn flat_map<T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Out>
+    where
+        T: EventOutput,
+        Out: Data,
+        F: 'static + Fn(&Output<T>) -> Stream<Out>, {
+        let output = self.any_mut(label);
+        let stream = output.clone().into();
+        let last_proxy: RefCell<OwnedAny<Out>> = RefCell::new(OwnedAny::new("flat_map proxy"));
+
+        self.map(label, src, move |t| {
+            let stream = f(t);
+            last_proxy.replace_with(|_| {
+                let next_proxy = OwnedAny::new1("flat_map proxy", &stream);
+                output.attach(&next_proxy);
+                next_proxy
+            });
+        });
+        stream
+    }
 
     // === Any ===
 
@@ -4662,5 +4691,60 @@ where T: EventOutput<Output = usize>
         for _ in 0..*event {
             self.emit_event(stack, &())
         }
+    }
+}
+
+
+// ==================
+// === DropSource ===
+// ==================
+
+
+/// A source that emits a single event when dropped.
+#[derive(CloneRef, Debug, Clone)]
+pub struct DropSource {
+    source: OwnedSource<()>,
+}
+
+impl DropSource {
+    fn new(label: Label) -> Self {
+        Self { source: OwnedSource::new(label) }
+    }
+}
+
+impl Drop for DropSource {
+    fn drop(&mut self) {
+        self.source.emit_event(&default(), &());
+    }
+}
+
+impl HasOutput for DropSource {
+    type Output = ();
+}
+
+impl ValueProvider for DropSource {
+    fn value(&self) -> () {
+        ()
+    }
+
+    fn with<T>(&self, _: impl FnOnce(&()) -> T) -> Option<T>
+    where Self: Sized {
+        None
+    }
+}
+
+impl stream::EventEmitter for DropSource {
+    fn emit_event(&self, _: CallStack, _: &()) {}
+    fn register_target(&self, target: stream::EventInput<()>) {
+        self.source.register_target(target)
+    }
+    fn register_watch(&self) -> watch::Handle {
+        watch::Handle::null()
+    }
+}
+
+impl HasId for DropSource {
+    fn id(&self) -> Id {
+        self.source.id()
     }
 }

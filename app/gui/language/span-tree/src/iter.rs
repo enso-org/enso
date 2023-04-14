@@ -97,10 +97,6 @@ impl<'a, T> LeafIterator<'a, T> {
             TreeFragment::ChainAndDirectChildren => current_node.kind.is_chained(),
         }
     }
-
-    pub fn into_base(self) -> node::Ref<'a, T> {
-        self.base_node
-    }
 }
 
 

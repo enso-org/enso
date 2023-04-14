@@ -8,12 +8,12 @@ use ensogl::display::traits::*;
 use crate::component::type_coloring;
 use crate::node;
 use crate::node::input::widget;
+use crate::node::input::widget::MetadataPointer;
 use crate::node::profiling;
 use crate::view;
 use crate::Type;
 use crate::WidgetUpdates;
 
-use crate::component::node::input::widget::MetadataPointer;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
@@ -210,8 +210,6 @@ impl Model {
         self.set_label_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        // self.ports_label.set_property_default(text_color);
-        // self.ports_label.set_property_default(text::Size(TEXT_SIZE));
 
         self.edit_mode_label.set_single_line_mode(true);
         self.edit_mode_label.disable_command("cursor_move_up");
@@ -242,10 +240,17 @@ impl Model {
         port.map(|port| self.root_widget.set_connected(&port, status));
     }
 
-    /// Traverse all `SpanTree` leaves of the given port and emit hover style to set their colors.
-    fn set_port_hover(&self, target: &Switch<Crumbs>) {
-        // TODO
-        // self.with_port_mut(&target.value, |t| t.set_hover(target.is_on()))
+    fn hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
+        let crumbs = hovered.on()?;
+        let expr = self.expression.borrow();
+        let port = expr.span_tree.get_node(crumbs).ok()?;
+        let display_object = self.root_widget.get_port_display_object(&port)?;
+        let tp = port.tp().map(|t| Type(t.into()));
+        let color = tp.as_ref().map(|tp| type_coloring::compute(tp, &self.styles));
+        let pad_x = node::input::port::PORT_PADDING_X * 2.0;
+        let size = display_object.computed_size() + Vector2(pad_x, 0.0);
+        let radius = size.y / 2.0;
+        Some(cursor::Style::new_highlight(display_object, size, radius, color))
     }
 
     /// Apply widget updates to widgets in this input area.
@@ -257,7 +262,7 @@ impl Model {
             self.root_widget.set_metadata(meta_pointer, update.meta.clone());
         }
         let expr = self.expression.borrow();
-        self.root_widget.rebuild_tree_on_metadata_change(&expr.span_tree, &expr.code);
+        self.root_widget.rebuild_tree_on_metadata_change(&expr.span_tree, &expr.code, &self.styles);
     }
 
     /// Request widgets metadata for all method calls within the expression.
@@ -276,37 +281,26 @@ impl Model {
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let new_expression = InputExpression::from(new_expression.into());
-        // if DEBUG {
-        warn!("set expression: \n{:?}", new_expression.tree_pretty_printer());
-        // }
+        debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
 
-        self.root_widget.rebuild_tree(&new_expression.span_tree, &new_expression.code);
+        self.root_widget.rebuild_tree(
+            &new_expression.span_tree,
+            &new_expression.code,
+            &self.styles,
+        );
 
         // TODO streams to handle:
         // area_frp.source.pointer_style <+ pointer_style;
         //  area_frp.source.pointer_style
 
-        // pointer_style        (cursor::Style),
-        // width                (f32),
-        // editing              (bool),
-        // ports_visible        (bool),
-        // body_hover           (bool),
-        // on_port_press        (Crumbs),
-        // on_port_hover        (Switch<Crumbs>),
-        // on_port_type_change  (Crumbs,Option<Type>), ??
-        // on_background_press  (),
-        // view_mode            (view::Mode),
+        // pointer_style        (cursor::Style), <- handle edit mode cursor change
+        // view_mode            (view::Mode), <- frp into widgets to change label color
 
 
         // self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
         self.request_widgets_metadata(&new_expression, area_frp);
         *self.expression.borrow_mut() = new_expression;
     }
-}
-
-fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
-    let opt_color = tp.as_ref().map(|tp| type_coloring::compute(tp, styles));
-    opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection).into())
 }
 
 
@@ -370,7 +364,6 @@ ensogl::define_endpoints! {
         body_hover          (bool),
         on_port_press       (Crumbs),
         on_port_hover       (Switch<Crumbs>),
-        on_port_type_change (Crumbs,Option<Type>),
         on_port_code_update (Crumbs,ImString),
         on_background_press (),
         view_mode           (view::Mode),
@@ -379,6 +372,9 @@ ensogl::define_endpoints! {
         /// call's target expression (`self` or first argument).
         requested_widgets    (ast::Id, ast::Id),
         request_import       (ImString),
+        /// A connected port within the node has been moved. Some edges might need to be updated.
+        /// This event is already debounced.
+        input_edges_need_refresh (),
     }
 }
 
@@ -460,6 +456,8 @@ impl Area {
             frp.output.source.ports_visible <+ port_vis;
             frp.output.source.editing       <+ set_editing;
             model.root_widget.ports_visible <+ frp.ports_visible;
+            refresh_edges <- model.root_widget.connected_port_updated.debounce();
+            frp.output.source.input_edges_need_refresh <+ refresh_edges;
 
             // === Label Hover ===
 
@@ -468,9 +466,15 @@ impl Area {
 
             // === Port Hover ===
 
-            eval frp.on_port_hover ((t) model.set_port_hover(t));
             eval frp.set_connected (((crumbs,status)) model.set_connected(crumbs,*status));
-
+            hovered_port_pointer <- model.root_widget.on_port_hover.map(
+                f!((t) model.hover_pointer_style(t).unwrap_or_default())
+            );
+            pointer_style <- all[
+                model.root_widget.pointer_style,
+                hovered_port_pointer
+            ].fold();
+            frp.output.source.pointer_style <+ pointer_style;
 
             // === Properties ===
             let layout_refresh = ensogl::animation::on_before_animations();
@@ -532,18 +536,10 @@ impl Area {
             use theme::code::syntax;
             let std_selection_color      = model.styles_frp.get_color(syntax::selection);
             let profiled_selection_color = model.styles_frp.get_color(syntax::profiling::selection);
-            let std_base_color           = model.styles_frp.get_color(syntax::base);
-            let profiled_base_color      = model.styles_frp.get_color(syntax::profiling::base);
-
             selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
 
             selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            // model.ports_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
-
-            // std_base_color      <- all(std_base_color,init)._0();
-            // profiled_base_color <- all(profiled_base_color,init)._0();
-            // base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
-            // eval base_color ((color) model.ports_label.set_property_default(color));
+            model.edit_mode_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
         }
 
         init.emit(());

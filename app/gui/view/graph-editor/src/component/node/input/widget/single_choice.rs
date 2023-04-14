@@ -35,7 +35,7 @@ pub mod triangle {
         above = [
             crate::component::node::background,
             crate::component::node::drag_area,
-            crate::component::node::input::widget::port
+            crate::component::node::input::port::shape
         ];
         alignment = left_bottom;
         (style:Style, color:Vector4) {

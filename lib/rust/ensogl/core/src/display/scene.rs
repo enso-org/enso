@@ -701,6 +701,7 @@ pub struct Frp {
     camera_changed_source: frp::Source,
     frame_time_source:     frp::Source<f32>,
     focused_source:        frp::Source<bool>,
+    post_update:           frp::Source,
 }
 
 impl Frp {
@@ -710,6 +711,7 @@ impl Frp {
             camera_changed_source <- source();
             frame_time_source <- source();
             focused_source <- source();
+            post_update <- source();
         }
         let shape = shape.clone_ref();
         let camera_changed = camera_changed_source.clone_ref().into();
@@ -724,6 +726,7 @@ impl Frp {
             camera_changed_source,
             frame_time_source,
             focused_source,
+            post_update,
         }
     }
 }
@@ -1207,31 +1210,58 @@ impl Deref for Scene {
 }
 
 impl Scene {
+    /// Perform early phase of scene update. This includes updating camera and the layout of all
+    /// display objects. No GPU buffers are updated yet, giving the opportunity to perform
+    /// additional updates that affect the layout of display objects after the main scene layout
+    /// has been performed.
+    ///
+    /// During this phase, the layout updates can be observed using `on_updated` FRP events on each
+    /// individual display object. Any further updates to the scene may require the `update`
+    /// method to be manually called on affected objects in order to affect rendering during
+    /// this frame.
     #[profile(Debug)]
-    // FIXME:
-    #[allow(unused_assignments)]
-    pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
-        if let Some(context) = &*self.context.borrow() {
-            debug_span!("Updating.").in_scope(|| {
+    pub fn early_update(&self, time: animation::TimeInfo) -> UpdateStatus {
+        if let Some(_) = &*self.context.borrow() {
+            debug_span!("Early update.").in_scope(|| {
                 let mut scene_was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
-                scene_was_dirty = self.update_camera(self) || scene_was_dirty;
+                scene_was_dirty |= self.update_camera(self);
                 self.display_object.update(self);
-                scene_was_dirty = self.layers.update() || scene_was_dirty;
-                scene_was_dirty = self.update_shape() || scene_was_dirty;
-                scene_was_dirty = self.update_symbols() || scene_was_dirty;
-                self.handle_mouse_over_and_out_events();
-                scene_was_dirty = self.shader_compiler.run(context, time) || scene_was_dirty;
+                UpdateStatus { scene_was_dirty, pointer_position_changed: false }
+            })
+        } else {
+            default()
+        }
+    }
 
-                let pointer_position_changed = self.pointer_position_changed.get();
+    /// Perform late phase of scene update. At this point, all display object state is being
+    /// committed for rendering. This includes updating the layer stack, refreshing GPU buffers and
+    /// handling mouse events.
+    #[profile(Debug)]
+    pub fn late_update(
+        &self,
+        time: animation::TimeInfo,
+        early_status: UpdateStatus,
+    ) -> UpdateStatus {
+        if let Some(context) = &*self.context.borrow() {
+            debug_span!("Late update.").in_scope(|| {
+                let UpdateStatus { mut scene_was_dirty, mut pointer_position_changed } =
+                    early_status;
+                scene_was_dirty |= self.layers.update();
+                scene_was_dirty |= self.update_shape();
+                scene_was_dirty |= self.update_symbols();
+                self.handle_mouse_over_and_out_events();
+                scene_was_dirty |= self.shader_compiler.run(context, time);
+
+                pointer_position_changed |= self.pointer_position_changed.get();
                 self.pointer_position_changed.set(false);
 
                 // FIXME: setting it to true for now in order to make cursor blinking work.
                 //   Text cursor animation is in GLSL. To be handled properly in this PR:
                 //   #183406745
-                let scene_was_dirty = true;
+                scene_was_dirty |= true;
                 UpdateStatus { scene_was_dirty, pointer_position_changed }
             })
         } else {

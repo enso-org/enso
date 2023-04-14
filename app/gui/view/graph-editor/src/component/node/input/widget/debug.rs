@@ -2,6 +2,8 @@ use crate::prelude::*;
 use ensogl::data::color;
 use ensogl::display;
 
+const DEBUG_BORDER_ENABLED: bool = false;
+
 mod shape {
     ensogl::shape! {
         above = [
@@ -41,12 +43,13 @@ impl InstanceWithBg {
 
     pub fn with_color(color: color::Rgba) -> Self {
         let bg = shape::View::new();
-        let outer = bg.display_object().clone();
-        // let outer = display::object::Instance::new();
         let inner = display::object::Instance::new();
-        // bg.allow_grow();
-        bg.color.set(color.into());
-        // outer.add_child(&bg);
+        let outer = if DEBUG_BORDER_ENABLED {
+            bg.color.set(color.into());
+            bg.display_object().clone()
+        } else {
+            display::object::Instance::new()
+        };
         outer.add_child(&inner);
         Self { bg, outer, inner }
     }

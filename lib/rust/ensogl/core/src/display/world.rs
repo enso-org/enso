@@ -21,6 +21,7 @@ use crate::display::render::cache_shapes::CacheShapesPass;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
+use crate::display::scene::UpdateStatus;
 use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
@@ -330,10 +331,14 @@ impl WorldDataWithLoop {
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
         let on_before_rendering = animation::on_before_rendering();
+        let on_before_rendering_late = animation::on_before_rendering_late();
         let network = frp.network();
         crate::frp::extend! {network
             eval on_frame_start ((t) data.run_stats(*t));
-            eval on_before_rendering ((t) data.run_next_frame(*t));
+            early_update <- on_before_rendering.map(f!((t) data.run_next_frame_early(*t)));
+            _eval <- on_before_rendering_late.map2(&early_update,
+                f!((t, early) data.run_next_frame_late(*t, *early))
+            );
         }
 
         Self { frp, data }
@@ -554,18 +559,29 @@ impl WorldData {
         }
     }
 
-    /// Perform to the next frame with the provided time information.
+    /// Perform to the early step of next frame simulation with the provided time information.
+    /// See [`Scene::early_update`] for information about actions performed in this step.
     ///
     /// Please note that the provided time information from the [`requestAnimationFrame`] JS
     /// function is more precise than time obtained from the [`window.performance().now()`] one.
     /// Follow this link to learn more:
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
     #[profile(Objective)]
-    pub fn run_next_frame(&self, time: animation::TimeInfo) {
+    pub fn run_next_frame_early(&self, time: animation::TimeInfo) -> UpdateStatus {
         self.on.before_frame.run_all(time);
         self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
-        let update_status = self.default_scene.update(time);
+        self.default_scene.early_update(time)
+    }
+
+    /// perform to the late step of next frame simulation with the provided time information.
+    /// See [`Scene::late_update`] for information about actions performed in this step.
+    ///
+    /// Apart from the scene late update, this function also performs garbage collection and actual
+    /// rendering of the scene using updated GPU buffers.
+    #[profile(Objective)]
+    pub fn run_next_frame_late(&self, time: animation::TimeInfo, early_status: UpdateStatus) {
+        let update_status = self.default_scene.late_update(time, early_status);
         self.garbage_collector.mouse_events_handled();
         self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);

@@ -1847,8 +1847,9 @@ impl Model {
     #[profile(Detail)]
     pub fn update(&self, scene: &Scene) {
         self.refresh_layout();
-        let origin0 = Matrix4::identity();
-        self.update_with_origin(scene, origin0, false, false, None);
+        let parent_origin =
+            self.parent().map_or(Matrix4::identity(), |parent| parent.transformation_matrix());
+        self.update_with_origin(scene, parent_origin, false, false, None);
     }
 
     /// Update the display object tree transformations based on the parent object origin. See docs
