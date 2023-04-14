@@ -17,17 +17,12 @@ import com.oracle.truffle.api.nodes.Node;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.dsl.AcceptsError;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.ordering.HasCustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -285,8 +280,7 @@ public abstract class EqualsComplexNode extends Node {
       @CachedLibrary("selfArray") InteropLibrary selfInterop,
       @CachedLibrary("otherArray") InteropLibrary otherInterop,
       @Cached EqualsNode equalsNode,
-      @Cached HasCustomComparatorNode hasCustomComparatorNode,
-      @Cached InvokeAnyEqualsNode invokeAnyEqualsNode) {
+      @Cached HasCustomComparatorNode hasCustomComparatorNode) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
       if (selfSize != otherInterop.getArraySize(otherArray)) {
@@ -560,52 +554,5 @@ public abstract class EqualsComplexNode extends Node {
   @TruffleBoundary
   boolean isHostFunction(Object object) {
     return EnsoContext.get(this).getEnvironment().isHostFunction(object);
-  }
-
-  /** Helper node for invoking `Any.==` method. */
-  @GenerateUncached
-  abstract static class InvokeAnyEqualsNode extends Node {
-    static InvokeAnyEqualsNode getUncached() {
-      return EqualsComplexNodeGen.InvokeAnyEqualsNodeGen.getUncached();
-    }
-
-    abstract boolean execute(Atom selfAtom, Atom otherAtom);
-
-    @Specialization
-    boolean invokeEqualsCachedAtomCtor(
-        Atom selfAtom,
-        Atom thatAtom,
-        @Cached(value = "getAnyEqualsMethod()", allowUncached = true) Function anyEqualsFunc,
-        @Cached(value = "buildInvokeFuncNodeForAnyEquals()", allowUncached = true)
-            InvokeFunctionNode invokeAnyEqualsNode,
-        @CachedLibrary(limit = "3") InteropLibrary interop) {
-      Object ret =
-          invokeAnyEqualsNode.execute(
-              anyEqualsFunc,
-              null,
-              State.create(EnsoContext.get(this)),
-              // TODO: Shouldn't Any type be the very first argument? (synthetic self)?
-              new Object[] {selfAtom, thatAtom});
-      try {
-        return interop.asBoolean(ret);
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException("Return value from Any== should be Boolean", e);
-      }
-    }
-
-    @TruffleBoundary
-    Function getAnyEqualsMethod() {
-      var anyType = EnsoContext.get(this).getBuiltins().any();
-      Function anyEqualsFunc = anyType.getDefinitionScope().getMethods().get(anyType).get("==");
-      assert anyEqualsFunc != null : "Any.== method must exist";
-      return anyEqualsFunc;
-    }
-
-    InvokeFunctionNode buildInvokeFuncNodeForAnyEquals() {
-      return InvokeFunctionNode.build(
-          new CallArgumentInfo[] {new CallArgumentInfo("self"), new CallArgumentInfo("that")},
-          DefaultsExecutionMode.EXECUTE,
-          ArgumentsExecutionMode.EXECUTE);
-    }
   }
 }
