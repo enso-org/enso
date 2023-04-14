@@ -48,8 +48,9 @@ impl Builder {
         canvas.submit_shape_constructor("run");
         let shape_def = overload::allow_overloading(&canvas.to_glsl());
         let code = [GLSL_BOILERPLATE.as_str(), "", &shape_header, &shape_def].join("\n\n");
-        let main =
-            format!("bool pointer_events_enabled = ({disable_pointer_events}) == 0.0;\n{FRAGMENT_RUNNER}");
+        let main = format!(
+            "bool pointer_events_enabled = ({disable_pointer_events}) == 0.0;\n{FRAGMENT_RUNNER}"
+        );
 
         CodeTemplate::new(code, main, "")
     }

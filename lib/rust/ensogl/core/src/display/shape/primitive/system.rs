@@ -496,7 +496,7 @@ impl ShapeSystemModel {
                         let var = "disable_pointer_events";
                         self.material.borrow_mut().add_input_def::<f32>(var);
                         format!("input_{var}").into()
-                    },
+                    }
                 };
                 let code =
                     shader::builder::Builder::run(&*self.shape.borrow(), &disable_pointer_events);
@@ -773,10 +773,14 @@ macro_rules! _shape_old {
                     root_call_path!()
                 }
 
-                fn pointer_events() -> bool {
+                fn pointer_events() -> $crate::display::shape::primitive::system::PointerEvents {
+                    use $crate::display::shape::primitive::system::PointerEvents;
                     let _out = true;
                     $(let _out = $pointer_events;)?
-                    _out
+                    match _out {
+                        true => PointerEvents::Enabled,
+                        false => PointerEvents::Disabled,
+                    }
                 }
 
                 fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
@@ -936,6 +940,7 @@ macro_rules! _shape {
                 }
 
                 fn pointer_events() -> $crate::display::shape::primitive::system::PointerEvents {
+                    use $crate::display::shape::primitive::system::PointerEvents;
                     let _blanket = true;
                     $(let _blanket = $pointer_events;)?
                     let _instanced = false;

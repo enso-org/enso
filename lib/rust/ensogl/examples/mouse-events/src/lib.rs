@@ -60,9 +60,9 @@ impl Model {
         shape.set_corner_radius_max();
         display_object.add_child(&shape);
         let cover: Rectangle = default();
-        const INV_PHI: f32 = 0.61803398875;
+        const INV_PHI: f32 = 0.618_033;
         cover.set_size(Vector2::new(300.0 * INV_PHI, 300.0 * INV_PHI));
-        cover.set_color(Rgba(0.0, 0.0, 0.0, 0.5).into());
+        cover.set_color(Rgba(0.0, 0.0, 0.0, 0.5));
         cover.set_corner_radius_max();
         cover.set_pointer_events(false);
         display_object.add_child(&cover);
