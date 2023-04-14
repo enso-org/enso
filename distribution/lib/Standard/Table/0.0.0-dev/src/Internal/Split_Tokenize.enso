@@ -1,0 +1,236 @@
+from Standard.Base import all
+
+import project.Data.Column.Column
+import project.Data.Table.Table
+import project.Data.Type.Value_Type.Value_Type
+import project.Internal.Java_Exports
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+
+from project import Value_Type
+from project.Errors import Column_Count_Exceeded, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
+from project.Internal.Java_Exports import make_string_builder
+
+polyglot java import org.enso.table.data.mask.OrderMask
+
+## PRIVATE
+   Splits a column of text into a set of new columns.
+   See `Table.split_to_columns`.
+split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
+split_to_columns table input_column_id delimiter="," column_count=Nothing on_problems=Report_Error =
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
+        fan_out_to_columns table input_column_id (handle_nothing (_.split delimiter)) column_count on_problems
+
+## PRIVATE
+   Splits a column of text into a set of new rows.
+   See `Table.split_to_rows`.
+split_to_rows : Table -> Text | Integer -> Text -> Table
+split_to_rows table input_column_id delimiter="," =
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
+        fan_out_to_rows table input_column_id (handle_nothing (_.split delimiter))
+
+## PRIVATE
+   Tokenizes a column of text into a set of new columns using a regular
+   expression.
+   See `Table.tokenize_to_columns`.
+tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
+tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
+        fan_out_to_columns table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
+
+## PRIVATE
+   Tokenizes a column of text into a set of new rows using a regular
+   expression.
+   See `Table.tokenize_to_rows`.
+tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Table
+tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
+        fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
+
+## PRIVATE
+   Transform a table by transforming a column into a set of columns. Takes a
+   function that maps a single element of the input column to a vector of output
+   values. The original column is replaced by the new columns.
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table input_column_id function column_count=Nothing on_problems=Report_Error =
+    input_column = table.get input_column_id
+    problem_builder = Problem_Builder.new
+    new_columns_unrenamed = map_columns_to_multiple input_column function column_count problem_builder
+    new_columns = rename_new_columns table new_columns_unrenamed problem_builder
+    new_table = replace_column_with_columns table input_column new_columns
+    problem_builder.attach_problems_after on_problems new_table
+
+## PRIVATE
+   Transform a column by applying the given function to the values in the
+   column. The function produces multiple outputs, so each row is duplicated,
+   with each row getting a distinct output value in place of the original
+   input value. The other column values are just duplicated.
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
+fan_out_to_rows table input_column_id function =
+    input_column = table.at input_column_id
+    input_storage = input_column.java_column.getStorage
+    num_input_rows = input_storage.size
+
+    # Guess that most of the time, we'll get at least one value for each input.
+    initial_size = input_column.length
+    # Accumulates the output of the output column values.
+    output_column_builder = make_string_builder initial_size
+    # Accumulates repeated position indices for the order mask.
+    order_mask_positions = Vector.new_builder initial_size
+
+    0.up_to num_input_rows . each i->
+        input_value = input_storage.getItemBoxed i
+        output_values = function input_value
+        # Append each value.
+        output_values.each v-> output_column_builder.append v
+        # Append n copies of the input row position, n = # of output values.
+        repeat_each output_values.length <| order_mask_positions.append i
+
+    # Build the output column
+    output_storage = output_column_builder.seal
+    output_column = Column.from_storage input_column_id output_storage
+
+    # Build the order mask.
+    order_mask = OrderMask.new (order_mask_positions.to_vector)
+
+    # Build the other columns, and include the output_column while doing it.
+    new_columns = table.columns.map column->
+        case column.name == input_column_id of
+            True ->
+                # Replace the input column with the output column.
+                output_column
+            False ->
+                # Build a new column from the old one with the mask
+                old_storage = column.java_column.getStorage
+                new_storage = old_storage.applyMask order_mask
+                Column.from_storage column.name new_storage
+
+    Table.new new_columns
+
+## PRIVATE
+
+   Map a multi-valued function over a column and return the results as set of
+   output columns.
+
+   Returns a Pair of a Vector of Columns and a Vector of problems.
+
+   Arguments:
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+   - column_count: The number of columns to split to.
+     If `Nothing` then columns will be added to fit all data.
+     If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
+     will follow the `on_problems` behavior.
+   - on_problems: Specifies the behavior when a problem occurs.
+map_columns_to_multiple : Column -> (Any -> Vector Any) -> Integer | Nothing -> Problem_Builder -> Vector Column
+map_columns_to_multiple input_column function column_count problem_builder =
+    num_rows = input_column.length
+    input_storage = input_column.java_column.getStorage
+
+    builders = case column_count of
+        Nothing ->
+            builders = Vector.new_builder
+
+            0.up_to num_rows . each i->
+                input_value = input_storage.getItemBoxed i
+                output_values = function input_value
+
+                # Add more builders if necessary to accommodate `output_values`.
+                if output_values.length > builders.length then
+                    num_builders_needed = output_values.length - builders.length
+                    repeat_each num_builders_needed <|
+                        builder = make_string_builder num_rows
+
+                        # Pad the new builder with nulls
+                        num_nulls_needed = i
+                        builder.appendNulls num_nulls_needed
+
+                        builders.append builder
+
+                ## Add `output_values` to builders; if there are more builders
+                   than `output_values`, pad with null.
+                0.up_to builders.length . each i->
+                    builders.at i . appendNoGrow (output_values.get i Nothing)
+
+            builders.to_vector
+
+        _ : Integer ->
+            builders = Vector.new column_count (_-> make_string_builder num_rows)
+
+            output_lengths = 0.up_to num_rows . map i->
+                input_value = input_storage.getItemBoxed i
+                output_values = function input_value
+
+                ## Add `output_values` to builders; if there are more builders
+                   than `output_values`, pad with null.
+                0.up_to builders.length . each i->
+                    builders.at i . appendNoGrow (output_values.get i Nothing)
+
+                output_values.length
+
+            max_output_length = maximum output_lengths
+
+            if max_output_length > column_count then
+                problem = Column_Count_Exceeded.Error column_count max_output_length
+                problem_builder.report_other_warning problem
+
+            builders
+
+    # Build Columns.
+    builders.map .seal . map_with_index i-> storage->
+        name = input_column.name + "_" + i.to_text
+        Column.from_storage name storage
+
+## PRIVATE
+   Rename a vector of columns to be unique when added to a table.
+rename_new_columns : Table -> Vector Column -> Problem_Builder -> Vector Column
+rename_new_columns table columns problem_builder =
+    unique = Unique_Name_Strategy.new
+    unique.mark_used <| table.columns.map .name
+    new_columns = columns.map column->
+        new_name = unique.make_unique column.name
+        column.rename new_name
+    problem_builder.report_unique_name_strategy unique
+    new_columns
+
+## PRIVATE
+   Replace a single column in a table with new columns.
+   Does not ensure names are unique; that must be done before calling this.
+replace_column_with_columns : Table -> Column -> Vector Column -> Table
+replace_column_with_columns table old_column new_columns =
+    Table.new ((table.columns.map (c-> if c.name == old_column.name then new_columns else [c])).flatten)
+
+## PRIVATE
+   Return the maximum value of the vector.
+   Throws Empty_Error if the vector is empty.
+maximum : Vector Any -> Vector Any
+maximum vec = if vec.is_empty then Nothing else
+    vec.reduce (a-> b-> a.max b)
+
+## PRIVATE
+   Wrap a function so that it returns [] if passed Nothing
+handle_nothing : (Any -> Any) -> (Any -> Any)
+handle_nothing function = x-> case x of
+    _ : Nothing -> []
+    _ -> function x
+
+## PRIVATE
+   Repeat a computation n times.
+repeat_each n ~action = 0.up_to n . each _-> action

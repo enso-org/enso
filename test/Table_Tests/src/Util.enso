@@ -20,7 +20,7 @@ Table.should_equal_verbose self expected =
         same_headers && same_columns
     equal = tables_equal self expected
     if equal.not then
-        msg = 'Tables differ.\nactual:\n' + self.display + '\nExpected:\n' + expected.display
+        msg = 'Tables differ.\nActual:\n' + self.display + '\nExpected:\n' + expected.display
         Test.fail msg
 
 Column.should_equal self expected =
