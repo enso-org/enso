@@ -179,11 +179,15 @@ impl<F: ?Sized> RegistryModel<F> {
         };
         self.is_running.set(true);
         run_callbacks(&mut self.callback_list.borrow_mut());
-        while !self.callback_list_during_run.borrow().is_empty() {
-            let mut new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
-            run_callbacks(&mut new_callbacks);
-            self.callback_list.borrow_mut().extend(new_callbacks);
+        let mut callback_list_during_run = self.callback_list_during_run.borrow_mut();
+        if !callback_list_during_run.is_empty() {
+            self.callback_list.borrow_mut().extend(mem::take(&mut *callback_list_during_run));
         }
+        // while !self.callback_list_during_run.borrow().is_empty() {
+        //     let mut new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
+        //     run_callbacks(&mut new_callbacks);
+        //     self.callback_list.borrow_mut().extend(new_callbacks);
+        // }
         self.is_running.set(false);
     }
 
@@ -199,14 +203,18 @@ impl<F: ?Sized> RegistryModel<F> {
                 callback.call_once(args);
             }
         }
-        while !self.callback_list_during_run.borrow().is_empty() {
-            let new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
-            for (guard, callback) in new_callbacks {
-                if !guard.is_expired() {
-                    callback.call_once(args);
-                }
-            }
+        let mut callback_list_during_run = self.callback_list_during_run.borrow_mut();
+        if !callback_list_during_run.is_empty() {
+            self.callback_list.borrow_mut().extend(mem::take(&mut *callback_list_during_run));
         }
+        // while !self.callback_list_during_run.borrow().is_empty() {
+        //     let new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
+        //     for (guard, callback) in new_callbacks {
+        //         if !guard.is_expired() {
+        //             callback.call_once(args);
+        //         }
+        //     }
+        // }
         self.is_running.set(false);
     }
 }
