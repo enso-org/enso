@@ -1439,9 +1439,11 @@ type Table
          sensitively.
        - column_count: The number of columns to split to.
          If `Nothing` then columns will be added to fit all data.
-         If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
-         will follow the `on_problems` behavior.
        - on_problems: Specifies the behavior when a problem occurs.
+
+       ! Error Conditions
+         If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
+         be reported according to the `on_problems` behavior.
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
         _ = [column pattern case_sensitivity column_count on_problems]
