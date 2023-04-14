@@ -111,12 +111,13 @@ pub struct BufferData<T> {
     usage         : BufferUsage,
     stats         : Stats,
     gpu_mem_usage : u32,
+    indexes       : Rc<RefCell<Vec<attribute::InstanceIndex>>>,
 }
 
 impl<T:Storable> {
     /// Constructor.
     pub fn new<OnMut:callback::NoArgs, OnResize:callback::NoArgs>
-    (stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
+    (stats:&Stats, on_mut:OnMut, on_resize:OnResize, indexes: Rc<RefCell<Vec<attribute::InstanceIndex>>>) -> Self {
         debug_span!("Creating new {} buffer.", T::type_display()).in_scope(|| {
             stats.inc_buffer_count();
             let mut_dirty     = MutDirty::new(Box::new(on_mut));
@@ -129,7 +130,7 @@ impl<T:Storable> {
             let stats         = stats.clone_ref();
             let gpu_mem_usage = default();
             let gl            = default();
-            Self {gl, buffer, mut_dirty, resize_dirty, usage, stats, gpu_mem_usage}
+            Self {gl, buffer, mut_dirty, resize_dirty, usage, stats, gpu_mem_usage, indexes}
         })
     }
 
@@ -141,6 +142,12 @@ impl<T:Storable> {
     /// Check if the buffer is empty.
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
+    }
+
+    /// Retains only the elements specified by the predicate.
+    pub fn retain<F>(&mut self, f: F) where F: FnMut() -> bool {
+        let mut f = f;
+        self.buffer.retain(|_| f());
     }
 
     /// Read the usage pattern of the buffer.
@@ -155,18 +162,30 @@ impl<T:Storable> {
     }
 
     /// Get a copy of the data by its index.
-    pub fn get(&self, index:usize) -> T {
+    pub fn get(&self, index: usize) -> T {
         *self.buffer.index(index)
     }
 
     /// Set data value at the given index.
-    pub fn set(&mut self, index:usize, value:T) {
+    pub fn set(&mut self, index: usize, value:T) {
+        *self.buffer.index_mut(index) = value;
+    }
+
+    /// Get a copy of the data by its id.
+    pub fn get_at(&self, id: attribute::InstanceId) -> T {
+        let index: usize = self.indexes.borrow()[id.raw].into();
+        *self.buffer.index(index)
+    }
+
+    /// Set data value at the given id.
+    pub fn set_at(&mut self, id: attribute::InstanceId, value:T) {
+        let index: usize = self.indexes.borrow()[id.raw].into();
         *self.buffer.index_mut(index) = value;
     }
 
     /// Set the data at the given index to a default value.
-    pub fn set_to_default(&mut self, index:usize) {
-        self.set(index,gpu_default());
+    pub fn set_to_default(&mut self, index: usize) {
+        self.set(index, gpu_default());
     }
 
     /// Add a single new element initialized to default value.
@@ -177,6 +196,11 @@ impl<T:Storable> {
     /// Add multiple new elements initialized to default values.
     pub fn add_elements(&mut self, elem_count:usize) {
         self.extend(iter::repeat(T::gpu_default()).take(elem_count));
+    }
+
+    /// Add multiple new elements at the specified offset, initialized to default values.
+    pub fn insert_elements(&mut self, index: usize, elem_count: usize) {
+        self.splice(index..index, iter::repeat(T::gpu_default()).take(elem_count));
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -359,7 +383,7 @@ impl<T> BufferData<T> {
 
 impl<T: Storable> Buffer<T> {
     /// Get the attribute pointing to a given buffer index.
-    pub fn at(&self, index: attribute::InstanceIndex) -> Attribute<T> {
+    pub fn at(&self, index: attribute::InstanceId) -> Attribute<T> {
         Attribute::new(index, self.clone_ref())
     }
 }
@@ -461,8 +485,11 @@ pub trait IsBuffer {
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>);
     fn add_element(&self);
+    fn insert_elements(&self, index: usize, count: usize);
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
+    fn retain<F>(&mut self, f: F)
+    where F: FnMut() -> bool;
     fn update(&self);
     fn bind(&self, target: u32);
     fn vertex_attrib_pointer(&self, index: u32, instanced: bool);
@@ -482,11 +509,18 @@ impl<T: Storable> IsBuffer for Buffer<T> {
     fn add_element(&self) {
         self.add_element()
     }
+    fn insert_elements(&self, index: usize, count: usize) {
+        self.insert_elements(index, count)
+    }
     fn len(&self) -> usize {
         self.len()
     }
     fn is_empty(&self) -> bool {
         self.is_empty()
+    }
+    fn retain<F>(&mut self, f: F)
+    where F: FnMut() -> bool {
+        Self::retain(self, f)
     }
     fn update(&self) {
         self.update()

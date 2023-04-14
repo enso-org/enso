@@ -8,14 +8,33 @@ import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import * as projectManager from './project_manager'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
+// =================
 // === Constants ===
+// =================
+
+/** Path to the SSE endpoint over which esbuild sends events. */
+const ESBUILD_PATH = '/esbuild'
+/** SSE event indicating a build has finished. */
+const ESBUILD_EVENT_NAME = 'change'
 /** One second in milliseconds. */
 const SECOND = 1000
+/** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
+
+// ===================
+// === Live reload ===
+// ===================
+
+if (IS_DEV_MODE) {
+    new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
+        location.reload()
+    })
+}
 
 // =============
 // === Fetch ===
@@ -137,7 +156,8 @@ class Main {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    contentConfig.OPTIONS.options.authentication.value &&
+                    (contentConfig.OPTIONS.groups.cloud.options.authentication.value ||
+                        contentConfig.OPTIONS.groups.cloud.options.dashboard.value) &&
                     contentConfig.OPTIONS.groups.startup.options.entry.value ===
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
@@ -162,13 +182,21 @@ class Main {
                      * where it will be called only once. */
                     let appInstanceRan = false
                     const onAuthenticated = () => {
-                        hideAuth()
-                        if (!appInstanceRan) {
-                            appInstanceRan = true
-                            void appInstance.run()
+                        if (!contentConfig.OPTIONS.groups.cloud.options.dashboard.value) {
+                            hideAuth()
+                            if (!appInstanceRan) {
+                                appInstanceRan = true
+                                void appInstance.run()
+                            }
                         }
                     }
-                    authentication.run(logger, platform, onAuthenticated)
+                    authentication.run({
+                        logger,
+                        platform,
+                        projectManager: projectManager.ProjectManager.default(),
+                        showDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
+                        onAuthenticated,
+                    })
                 } else {
                     void appInstance.run()
                 }

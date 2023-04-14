@@ -8,7 +8,7 @@ type Setup
 
 make_expected_output_regex expected_output =
     parts = expected_output.split "???" . map Regex.escape
-    Regex.compile (parts.join ".+") dot_matches_newline=True
+    Regex.compile (parts.join ".+")
 
 spec setup =
     run_test source_path =

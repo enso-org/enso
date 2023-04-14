@@ -108,25 +108,26 @@ spec setup =
                 False -> r.should_equal expected_rows
 
         Test.specify "should rename columns of the right table to avoid duplicates" <|
-            t1 = table_builder [["X", [1]], ["Y", [5]]]
+            t1 = table_builder [["X", [1]], ["Y", [5]], ["Right_Y", [10]]]
             t2 = table_builder [["X", ['a']], ["Y", ['d']]]
 
             t3 = t1.cross_join t2
-            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t3
-            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["X", "Y"]]
+            expect_column_names ["X", "Y", "Right_Y", "Right_X", "Right_Y_1"] t3
+            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["Right_Y"]]
             t3.row_count . should_equal 1
             t3.at "X" . to_vector . should_equal [1]
             t3.at "Y" . to_vector . should_equal [5]
+            t3.at "Right_Y" . to_vector . should_equal [10]
             t3.at "Right_X" . to_vector . should_equal ['a']
-            t3.at "Right_Y" . to_vector . should_equal ['d']
+            t3.at "Right_Y_1" . to_vector . should_equal ['d']
 
             t1.cross_join t2 on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
 
-            expect_column_names ["X", "Y", "X_1", "Y_1"] (t1.cross_join t2 right_prefix="")
+            expect_column_names ["X", "Y", "Right_Y", "X_1", "Y_1"] (t1.cross_join t2 right_prefix="")
 
             t4 = table_builder [["X", [1]], ["Right_X", [5]]]
-            expect_column_names ["X", "Y", "Right_X_1", "Right_X"] (t1.cross_join t4)
-            expect_column_names ["X", "Right_X", "Right_X_1", "Y"] (t4.cross_join t1)
+            expect_column_names ["X", "Y", "Right_Y", "Right_X_1", "Right_X"] (t1.cross_join t4)
+            expect_column_names ["X", "Right_X", "Right_X_1", "Y", "Right_Y"] (t4.cross_join t1)
 
         Test.specify "should respect the column ordering" <|
             t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]]

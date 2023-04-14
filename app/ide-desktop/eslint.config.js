@@ -28,7 +28,7 @@ const DEFAULT_IMPORT_ONLY_MODULES =
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|react-hot-toast`
 const OUR_MODULES = 'enso-content-config|enso-common'
 const RELATIVE_MODULES =
-    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|index|ipc|naming|paths|preload|security'
+    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|file-associations|index|ipc|naming|paths|preload|security'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -102,7 +102,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector:
-            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))):has(:matches([finalizer=null], .finalizer :matches(ReturnStatement, ThrowStatement))))) > * > ReturnStatement',
+            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))):has(:matches([finalizer=null], .finalizer :matches(ReturnStatement, ThrowStatement))))) > * > :matches(ReturnStatement, ThrowStatement)',
         message: 'No early returns',
     },
     {
@@ -113,7 +113,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches functions and arrow functions, but not methods.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression ${JSX}, ${WITH_ROUTER})))`,
+        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX}, ${WITH_ROUTER})))`,
         message: 'Use `PascalCase` for React components',
     },
     {
@@ -167,6 +167,10 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `node:` prefix to import builtin node modules',
     },
     {
+        selector: 'TSEnumDeclaration:not(:has(TSEnumMember))',
+        message: 'Enums must not be empty',
+    },
+    {
         selector:
             'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
         message:
@@ -214,11 +218,6 @@ export default [
                 ...globals.browser,
                 ...globals.node,
                 ...globals.es2015,
-                BUNDLED_ENGINE_VERSION: true,
-                PROJECT_MANAGER_IN_BUNDLE_PATH: true,
-                BUILD_INFO: true,
-                // Used in `lib/copy-plugin/src/index.mjs`.
-                AsyncGenerator: true,
             },
         },
         rules: {
@@ -310,7 +309,7 @@ export default [
             ],
             'no-redeclare': 'off',
             // Important to warn on accidental duplicated `interface`s e.g. when writing API wrappers.
-            '@typescript-eslint/no-redeclare': 'error',
+            '@typescript-eslint/no-redeclare': ['error', { ignoreDeclarationMerge: false }],
             'no-shadow': 'off',
             '@typescript-eslint/no-shadow': 'warn',
             'no-unused-expressions': 'off',

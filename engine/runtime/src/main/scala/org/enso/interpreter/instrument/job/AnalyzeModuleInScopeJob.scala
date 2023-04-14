@@ -46,13 +46,11 @@ final class AnalyzeModuleInScopeJob(
       val moduleName = module.getName
       val newSuggestions = SuggestionBuilder(module.getSource.getCharacters)
         .build(moduleName, module.getIr)
-        .filter(isSuggestionGlobal)
-      val version     = ctx.versioning.evalVersion(module.getSource.getCharacters)
+        .filter(Suggestion.isGlobal)
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(module.getName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        module  = moduleName.toString,
-        version = version,
+        module = moduleName.toString,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
         exports = ModuleExportsDiff.compute(prevExports, newExports),
@@ -62,17 +60,6 @@ final class AnalyzeModuleInScopeJob(
       module.setIndexed(true)
     }
   }
-
-  private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
-    suggestion match {
-      case _: Suggestion.Module      => true
-      case _: Suggestion.Type        => true
-      case _: Suggestion.Constructor => true
-      case _: Suggestion.Method      => true
-      case _: Suggestion.Conversion  => true
-      case _: Suggestion.Function    => false
-      case _: Suggestion.Local       => false
-    }
 
   /** Send notification about module updates.
     *

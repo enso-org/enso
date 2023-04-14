@@ -3,48 +3,6 @@ import * as react from 'react'
 
 import * as loggerProvider from './providers/logger'
 
-// ============
-// === Bind ===
-// ============
-
-/** Type of the second parameter returned by the {@link useInput} hook.
- *
- * # Example
- *
- * This type is used to bind the `value` and `onChange` props to an input field. That is, the object
- * can be passed as the props to an input field, and the input field will be updated when the value
- * changes.
- *
- * ```tsx
- * const [value, bind] = useInput("");
- *
- * <input {...bind} />
- * ``` */
-interface Bind {
-    value: string
-    onChange: (value: react.ChangeEvent<HTMLInputElement>) => void
-}
-
-// ================
-// === useInput ===
-// ================
-
-/** A custom hook to handle input fields.
- *
- * In React, managing state (e.g., user input values) must be done via the `useState` hook, which
- * returns a prop (e.g., `value`) containing the current value of the state, and a function (e.g.,
- * `setValue`) to update the state. Because of this, to bind a `value` to an input field, we must
- * use the `value` prop and the `onChange` event handler. However, this can be tedious to do for
- * every input field, so we can use a custom hook to handle this for us. */
-export function useInput(initialValue: string): [string, Bind] {
-    const [value, setValue] = react.useState(initialValue)
-    const onChange = (event: react.ChangeEvent<HTMLInputElement>) => {
-        setValue(event.target.value)
-    }
-    const bind = { value, onChange }
-    return [value, bind]
-}
-
 // ======================
 // === useAsyncEffect ===
 // ======================

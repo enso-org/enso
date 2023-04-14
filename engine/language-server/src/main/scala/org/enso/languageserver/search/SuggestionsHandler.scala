@@ -34,7 +34,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
-import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
+import org.enso.searcher.SuggestionsRepo
 import org.enso.text.editing.model.Position
 
 import scala.collection.mutable
@@ -76,7 +76,6 @@ import scala.util.{Failure, Success}
   * @param config the server configuration
   * @param contentRootManager the content root manager
   * @param suggestionsRepo the suggestions repo
-  * @param versionsRepo the versions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
   */
@@ -84,7 +83,6 @@ final class SuggestionsHandler(
   config: Config,
   contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
-  versionsRepo: VersionsRepo[Future],
   sessionRouter: ActorRef,
   runtimeConnector: ActorRef
 ) extends Actor
@@ -98,10 +96,9 @@ final class SuggestionsHandler(
 
   override def preStart(): Unit = {
     logger.info(
-      "Starting suggestions handler from [{}, {}, {}].",
+      "Starting suggestions handler from [{}, {}].",
       config,
-      suggestionsRepo,
-      versionsRepo
+      suggestionsRepo
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
@@ -286,9 +283,8 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates [{}, {}].",
+              "Error applying suggestion database updates [{}].",
               msg.module,
-              msg.version,
               ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
@@ -342,13 +338,8 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case GetSuggestionsDatabase =>
-      suggestionsRepo.getAll
-        .map { case (version, entries) =>
-          GetSuggestionsDatabaseResult(
-            version,
-            entries.map { entry => SuggestionDatabaseEntry(entry) }
-          )
-        }
+      suggestionsRepo.currentVersion
+        .map(GetSuggestionsDatabaseResult(_, Seq()))
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
@@ -423,7 +414,6 @@ final class SuggestionsHandler(
     case InvalidateSuggestionsDatabase =>
       val action = for {
         _ <- suggestionsRepo.clean
-        _ <- versionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
 
       val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
@@ -490,8 +480,8 @@ final class SuggestionsHandler(
 
   /** Handle the suggestions of the loaded library.
     *
-    * Adds the new suggestions to the suggestions database and sends the
-    * appropriate notification to the client.
+    * Adds the new suggestions to the suggestions database and returns the
+    * appropriate notification message.
     *
     * @param suggestions the loaded suggestions
     * @return the API suggestions database update notification
@@ -500,34 +490,12 @@ final class SuggestionsHandler(
     suggestions: Vector[Suggestion]
   ): Future[SuggestionsDatabaseUpdateNotification] = {
     for {
-      treeResults <- suggestionsRepo.applyTree(
-        suggestions.map(Api.SuggestionUpdate(_, Api.SuggestionAction.Add()))
-      )
-      version <- suggestionsRepo.currentVersion
+      (version, ids) <- suggestionsRepo.insertAll(suggestions)
     } yield {
-      val treeUpdates = treeResults.flatMap {
-        case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
-          action match {
-            case Api.SuggestionAction.Add() =>
-              if (ids.isEmpty) {
-                val verb = action.getClass.getSimpleName
-                logger.error("Cannot {} [{}].", verb, suggestion)
-              }
-              ids.map(
-                SuggestionsDatabaseUpdate.Add(
-                  _,
-                  suggestion
-                )
-              )
-            case action =>
-              logger.error(
-                "Invalid action during suggestions loading [{}].",
-                action
-              )
-              Seq()
-          }
-      }
-      SuggestionsDatabaseUpdateNotification(version, treeUpdates)
+      val updates = ids
+        .zip(suggestions)
+        .map(SuggestionsDatabaseUpdate.Add.tupled)
+      SuggestionsDatabaseUpdateNotification(version, updates)
     }
   }
 
@@ -547,7 +515,6 @@ final class SuggestionsHandler(
       treeResults   <- suggestionsRepo.applyTree(msg.updates.toVector)
       exportResults <- suggestionsRepo.applyExports(msg.exports)
       version       <- suggestionsRepo.currentVersion
-      _             <- versionsRepo.setVersion(msg.module, msg.version.toDigest)
     } yield {
       val actionUpdates = actionResults.flatMap {
         case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
@@ -785,7 +752,6 @@ object SuggestionsHandler {
     * @param config the server configuration
     * @param contentRootManager the content root manager
     * @param suggestionsRepo the suggestions repo
-    * @param versionsRepo the versions repo
     * @param sessionRouter the session router
     * @param runtimeConnector the runtime connector
     */
@@ -793,7 +759,6 @@ object SuggestionsHandler {
     config: Config,
     contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
-    versionsRepo: VersionsRepo[Future],
     sessionRouter: ActorRef,
     runtimeConnector: ActorRef
   ): Props =
@@ -802,7 +767,6 @@ object SuggestionsHandler {
         config,
         contentRootManager,
         suggestionsRepo,
-        versionsRepo,
         sessionRouter,
         runtimeConnector
       )

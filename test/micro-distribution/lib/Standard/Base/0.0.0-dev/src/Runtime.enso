@@ -1,7 +1,43 @@
-type IO_Permissions
+import project.Any.Any
+import project.Data.Text.Text
+import project.Data.Boolean.Boolean
+import project.Errors.Common.Forbidden_Operation
+import project.Function.Function
+import project.Panic.Panic
+
+from project.Runtime.Context import Input,Output
+
+@Builtin_Type
+type Context
     Input
     Output
 
+    name : Text
+    name self =
+        case self of
+            Input  -> "Input"
+            Output -> "Output"
+
+    if_enabled : Function -> Text -> Any
+    if_enabled self ~action environment="design" =
+        if self.is_enabled environment then action else Panic.throw (Forbidden_Operation.Error self.name)
+
+    is_enabled : Text -> Boolean
+    is_enabled self environment="design" = @Builtin_Method "Context.is_enabled"
+
+current_execution_environment : Text
+current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"
+
+with_enabled_context : Context -> Function -> Text -> Any
+with_enabled_context context ~action environment=Runtime.current_execution_environment = with_enabled_context_builtin context action environment
+
+with_enabled_context_builtin : Context -> Function -> Text -> Any
+with_enabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_enabled_context_builtin"
+
+with_disabled_context : Context -> Function -> Text -> Any
+with_disabled_context context ~action environment=Runtime.current_execution_environment = with_disabled_context_builtin context action environment
+
+with_disabled_context_builtin : Context -> Function -> Text -> Any
+with_disabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_disabled_context_builtin"
+
 primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
-allow_input_in env = @Builtin_Method "Runtime.allow_input_in"
-allow_output_in env = @Builtin_Method "Runtime.allow_output_in"

@@ -85,15 +85,6 @@ is updated on every change in the suggestions table.
 | ------ | --------- | --------------------------------------------------------------- |
 | `id`   | `INTEGER` | the unique identifier representing the currend database version |
 
-#### File Versions Table
-
-Keeps track of SHA versions of the opened files.
-
-| Column   | Type   | Description                       |
-| -------- | ------ | --------------------------------- |
-| `path`   | `TEXT` | the unique identifier of the file |
-| `digest` | `BLOB` | the SHA hash of the file contents |
-
 #### Schema Version Table
 
 Schema version table has a single row with the current database schema version.
@@ -195,7 +186,7 @@ The searcher primarily consists of:
                                   +--------------------------------+
                                   |         SuggestionsDB          |
                                   +-----------------+--------------+
-                                  | SuggestionsRepo | VersionsRepo |
+                                  |         SuggestionsRepo        |
                                   +----+------------+---------+----+
                                        ^                      ^
                                        |                      |
