@@ -474,7 +474,7 @@ is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
    used carefully.
 get_source_location : Integer -> Text
 get_source_location skip_frames =
-    get_source_location_builtin skip_frames+1
+    get_source_location_builtin skip_frames
 
 ## PRIVATE
 
