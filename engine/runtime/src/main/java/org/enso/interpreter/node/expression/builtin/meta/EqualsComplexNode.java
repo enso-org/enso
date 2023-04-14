@@ -82,9 +82,8 @@ public abstract class EqualsComplexNode extends Node {
   }
 
   @Specialization
-  boolean equalsFiles(EnsoFile selfFile, EnsoFile otherFile,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
-    return equalsStrings(selfFile.getPath(), otherFile.getPath(), interop, interop);
+  boolean equalsFiles(EnsoFile selfFile, EnsoFile otherFile, @Cached EqualsNode equalsNode) {
+    return equalsNode.execute(selfFile.getPath(), otherFile.getPath());
   }
 
   /**
@@ -271,33 +270,6 @@ public abstract class EqualsComplexNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-  }
-
-  /**
-   * Compares interop strings according to the lexicographical order, handling Unicode
-   * normalization. See {@code Text_Utils.compare_to}.
-   */
-  @TruffleBoundary
-  @Specialization(guards = {
-      "selfInterop.isString(selfString)",
-      "otherInterop.isString(otherString)"
-  }, limit = "3")
-  boolean equalsStrings(Object selfString, Object otherString,
-                        @CachedLibrary("selfString") InteropLibrary selfInterop,
-                        @CachedLibrary("otherString") InteropLibrary otherInterop) {
-    String selfJavaString;
-    String otherJavaString;
-    try {
-      selfJavaString = selfInterop.asString(selfString);
-      otherJavaString = otherInterop.asString(otherString);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
-    return Normalizer.compare(
-        selfJavaString,
-        otherJavaString,
-        Normalizer.FOLD_CASE_DEFAULT
-    ) == 0;
   }
 
   @Specialization(guards = {

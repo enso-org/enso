@@ -1,51 +1,20 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.ibm.icu.text.Normalizer;
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.StopIterationException;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import java.math.BigInteger;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.util.Arrays;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.ordering.HasCustomComparatorNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.EnsoFile;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Comparable",
@@ -54,11 +23,11 @@ import org.enso.interpreter.runtime.state.State;
       Compares self with other object and returns True iff `self` is exactly the same as
       the other object, including all its transitively accessible properties or fields,
       False otherwise.
-      
+
       Can handle arbitrary objects, including all foreign objects.
-      
+
       Does not throw dataflow errors or panics.
-      
+
       Note that this is different than `Meta.is_same_object`, which checks whether two
       references point to the same object on the heap.
       """
@@ -252,11 +221,38 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
+  /**
+   * Compares interop strings according to the lexicographical order, handling Unicode
+   * normalization. See {@code Text_Utils.compare_to}.
+   */
+  @TruffleBoundary
+  @Specialization(guards = {
+      "selfInterop.isString(selfString)",
+      "otherInterop.isString(otherString)"
+  }, limit = "3")
+  boolean equalsStrings(Object selfString, Object otherString,
+                        @CachedLibrary("selfString") InteropLibrary selfInterop,
+                        @CachedLibrary("otherString") InteropLibrary otherInterop) {
+    String selfJavaString;
+    String otherJavaString;
+    try {
+      selfJavaString = selfInterop.asString(selfString);
+      otherJavaString = otherInterop.asString(otherString);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
+    return Normalizer.compare(
+        selfJavaString,
+        otherJavaString,
+        Normalizer.FOLD_CASE_DEFAULT
+    ) == 0;
+  }
+
   @Specialization(guards = "isPrimitive(self) || isPrimitive(other)")
   boolean equalsDifferent(Object self, Object other) {
     return false;
   }
-  
+
   @Specialization(guards = "nonPrimitive(self, other)")
   boolean equalsComplex(
     Object self, Object other,
@@ -264,7 +260,7 @@ public abstract class EqualsNode extends Node {
   ) {
     return complex.execute(self, other);
   }
-  
+
   static boolean nonPrimitive(Object a, Object b) {
     return !isPrimitive(a) && !isPrimitive(b);
   }
