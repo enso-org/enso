@@ -8,7 +8,6 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Pattern
 import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
-import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
@@ -29,12 +28,13 @@ parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Se
     pattern = Regex.compile pattern_string case_insensitive=case_insensitive
     matches = pattern.match_all text
 
+    data_formatter = case parse_values of
+        True -> Data_Formatter.Value
+        False -> Nothing
+
     parse_maybe = case parse_values of
-        True ->
-            data_formatter = Data_Formatter.Value
-            v-> data_formatter.parse v on_problems=on_problems
-        False ->
-            identity
+        True -> v-> data_formatter.parse v on_problems=on_problems
+        False -> identity
 
     columns = case pattern.group_count == 1 of
         True ->
@@ -57,17 +57,8 @@ parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Se
     Table.new columns
 
 ## PRIVATE
-
-   Assert that `text_maybe` is a Text, then call the action.
+   Assert that `value` is of type `typ`, then call the action.
 expect_type : Any -> Any -> Any -> Any ! Type_Error
 expect_type typ value ~action = case Meta.type_of value == typ of
     True -> action
     False -> Error.throw (Type_Error.Error typ (Meta.type_of value) "")
-
-## PRIVATE
-
-   Map the functino over the map's key/value pairs, returning a vector of the
-   results.
-    map_over_pairs :: Map -> (Any -> Any -> Any) -> Vector Any
-    map_over_pairs map function =
-        map.keys.map key-> function key (map.at key)
