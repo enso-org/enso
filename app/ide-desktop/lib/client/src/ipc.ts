@@ -19,4 +19,6 @@ export enum Channel {
     setDeepLinkHandler = 'set-deep-link-handler',
     /** Channel for signaling that a deep link to this application was opened. */
     openDeepLink = 'open-deep-link',
+    /** Channel for signaling that access token be saved to a credentials file. */
+    saveAccessToken = 'save-access-token',
 }
