@@ -18,9 +18,12 @@ export const content = [THIS_PATH + '/src/**/*.tsx']
 export const theme = {
     extend: {
         colors: {
+            // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
-            primary: '#3e515fe5',
-            label: '#3e515f14',
+            primary: '#52636f',
+            // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
+            label: '#f0f1f3',
+            help: '#3f68ce',
             warning: '#eab120',
             'severe-warning': '#e06740',
             'perm-owner': '#51626e',
@@ -29,10 +32,14 @@ export const theme = {
             'perm-read': '#b6cb34',
             'perm-exec': '#ad69e3',
             'perm-docs-write': '#2db1c3',
-            'perm-none': '#3e515f14',
+            // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
+            'perm-none': '#f0f1f3',
         },
         fontSize: {
             vs: '0.8125rem',
+        },
+        spacing: {
+            '140': '35rem',
         },
         boxShadow: {
             soft: '0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, 0 18px 80px 0 #0000001c',
