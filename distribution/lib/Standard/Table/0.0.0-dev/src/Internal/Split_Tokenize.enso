@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import project.Data.Column.Column
 import project.Data.Table.Table
+import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
@@ -17,7 +18,8 @@ polyglot java import org.enso.table.data.mask.OrderMask
    See `Table.split_to_columns`.
 split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
 split_to_columns table input_column_id delimiter="," column_count=Nothing on_problems=Report_Error =
-    expect_text_column table input_column_id <|
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
         fan_out_to_columns table input_column_id (handle_nothing (_.split delimiter)) column_count on_problems
 
 ## PRIVATE
@@ -25,7 +27,8 @@ split_to_columns table input_column_id delimiter="," column_count=Nothing on_pro
    See `Table.split_to_rows`.
 split_to_rows : Table -> Text | Integer -> Text -> Table
 split_to_rows table input_column_id delimiter="," =
-    expect_text_column table input_column_id <|
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
         fan_out_to_rows table input_column_id (handle_nothing (_.split delimiter))
 
 ## PRIVATE
@@ -34,7 +37,8 @@ split_to_rows table input_column_id delimiter="," =
    See `Table.tokenize_to_columns`.
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
 tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
-    expect_text_column table input_column_id <|
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
         fan_out_to_columns table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
 
 ## PRIVATE
@@ -43,7 +47,8 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
    See `Table.tokenize_to_rows`.
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Table
 tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
-    expect_text_column table input_column_id <|
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
         fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
 
 ## PRIVATE
@@ -95,7 +100,7 @@ fan_out_to_rows table input_column_id function =
         # Append each value.
         output_values.each v-> output_column_builder.append v
         # Append n copies of the input row position, n = # of output values.
-        repeat output_values.length <| order_mask_positions.append i
+        repeat_each output_values.length <| order_mask_positions.append i
 
     # Build the output column
     output_storage = output_column_builder.seal
@@ -150,7 +155,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
                 # Add more builders if necessary to accommodate `output_values`.
                 if output_values.length > builders.length then
                     num_builders_needed = output_values.length - builders.length
-                    repeat num_builders_needed <|
+                    repeat_each num_builders_needed <|
                         builder = make_string_builder num_rows
 
                         # Pad the new builder with nulls
@@ -227,20 +232,5 @@ handle_nothing function = x-> case x of
     _ -> function x
 
 ## PRIVATE
-   Asserts that a column exists in the table and is a text column.
-expect_text_column : Table -> Text | Integer -> Problem_Behavior -> Any -> Any
-expect_text_column table column_id ~action =
-    column = table.get column_id
-    case column of
-        Nothing ->
-            Error.throw <| Missing_Input_Columns.Error [column_id]
-        _ : Column ->
-            case Value_Type.is_text column.value_type of
-                False ->
-                    Error.throw <| Invalid_Value_Type.Error Value_Type.Char column.value_type column_id
-                True ->
-                    action
-
-## PRIVATE
    Repeat a computation n times.
-repeat n ~action = 0.up_to n . map _-> action
+repeat_each n ~action = 0.up_to n . each _-> action

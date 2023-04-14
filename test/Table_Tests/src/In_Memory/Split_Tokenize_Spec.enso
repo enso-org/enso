@@ -4,7 +4,7 @@ import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
 import Standard.Test.Extensions
 
 from Standard.Table import Table
-from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
+from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, No_Such_Column
 from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
 
@@ -174,12 +174,12 @@ spec =
         Test.specify "*_to_columns handles missing input column" <|
             cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
             t = Table.new cols
-            t.tokenize_to_columns "invalid_name" "([a-z]).(\d+)" . should_fail_with Missing_Input_Columns
+            t.tokenize_to_columns "invalid_name" "([a-z]).(\d+)" . should_fail_with No_Such_Column
 
         Test.specify "*_to_rows handles missing input column" <|
             cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
             t = Table.new cols
-            t.tokenize_to_rows "invalid_name" "([a-z]).(\d+)" . should_fail_with Missing_Input_Columns
+            t.tokenize_to_rows "invalid_name" "([a-z]).(\d+)" . should_fail_with No_Such_Column
 
     Test.group "Table.split/tokenize name conflicts" <|
         Test.specify "split will make column names unique" <|
