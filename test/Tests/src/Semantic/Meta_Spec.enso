@@ -303,15 +303,12 @@ spec =
                 _ -> Nothing
 
             tpe_of_bar = Meta.type_of atom.bar
-            tpe_of_bar . should_equal Nothing
-            warnings = Warning.get_all tpe_of_bar
-            warnings.map _.value . should_equal ["Hole in an atom doesn't have a type before being filled"]
+            tpe_of_bar.is_error . should_equal True
 
             fill 2
             atom.bar . should_equal 2
             tpe_of_bar_after_fill = Meta.type_of atom.bar
             tpe_of_bar_after_fill . should_equal Integer
-            Warning.has_warnings tpe_of_bar_after_fill . should_equal False
 
             fill 10 # no change
             atom.bar . should_equal 2

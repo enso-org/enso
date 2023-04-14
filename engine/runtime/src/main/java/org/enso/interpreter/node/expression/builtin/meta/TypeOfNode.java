@@ -116,16 +116,6 @@ public abstract class TypeOfNode extends Node {
     }
   }
 
-  @Specialization
-  Object doholeInAtom(AtomWithAHoleNode.HoleInAtom holeInAtom) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    return Warning.attach(
-        EnsoContext.get(this),
-        builtins.nothing(),
-        Text.create("Hole in an atom doesn't have a type before being filled"),
-        null);
-  }
-
   @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})
   Object doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     return EnsoContext.get(this).getBuiltins().dateTime();
