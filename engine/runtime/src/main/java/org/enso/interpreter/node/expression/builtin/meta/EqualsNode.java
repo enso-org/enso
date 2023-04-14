@@ -250,8 +250,10 @@ public abstract class EqualsNode extends Node {
     ) == 0;
   }
 
-  @Specialization(guards = "isPrimitive(self) != isPrimitive(other)")
-  boolean equalsDifferent(Object self, Object other) {
+  @Specialization(
+    guards = "isPrimitive(self, strings) != isPrimitive(other, strings)"
+  )
+  boolean equalsDifferent(Object self, Object other, @CachedLibrary(limit = "10") InteropLibrary strings) {
     return false;
   }
 
@@ -267,22 +269,23 @@ public abstract class EqualsNode extends Node {
     return compare.execute(self, other);
   }
 
-  @Specialization(guards = "isComplex(self, other)")
+  @Specialization(guards = "isComplex(self, other, strings)")
   boolean equalsComplex(
     Object self, Object other,
-    @Cached EqualsComplexNode complex
+    @Cached EqualsComplexNode complex,
+    @CachedLibrary(limit = "10") InteropLibrary strings
   ) {
     return complex.execute(self, other);
   }
 
-  static boolean isComplex(Object a, Object b) {
+  static boolean isComplex(Object a, Object b, InteropLibrary strings) {
     if (a instanceof AtomConstructor && b instanceof AtomConstructor) {
       return false;
     }
     if (a instanceof Atom && b instanceof Atom) {
       return false;
     }
-    return !isPrimitive(a) && !isPrimitive(b);
+    return !isPrimitive(a, strings) && !isPrimitive(b, strings);
   }
 
   /**
@@ -292,11 +295,12 @@ public abstract class EqualsNode extends Node {
    * All the primitive types should be handled in their corresponding specializations.
    * See {@link org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode}.
    */
-  static boolean isPrimitive(Object object) {
+  static boolean isPrimitive(Object object, InteropLibrary strings) {
     return object instanceof Boolean ||
         object instanceof Long ||
         object instanceof Double ||
         object instanceof EnsoBigInteger ||
-        object instanceof Text;
+        object instanceof Text ||
+        strings.isString(object);
   }
 }
