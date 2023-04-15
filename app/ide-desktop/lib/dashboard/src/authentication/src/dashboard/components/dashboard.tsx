@@ -479,17 +479,17 @@ function Dashboard(props: DashboardProps) {
 
     /** Heading element for every column. */
     function ColumnHeading(column: Column, assetType: backend.AssetType) {
-        const buttonRef = react.useRef<HTMLButtonElement | null>(null)
         return column === Column.name ? (
             <div className="inline-flex">
-                {ASSET_TYPE_NAME[assetType]}{' '}
+                {ASSET_TYPE_NAME[assetType]}
                 <button
-                    ref={buttonRef}
                     className="mx-1"
                     onClick={event => {
                         event.stopPropagation()
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        const buttonPosition = buttonRef.current!.getBoundingClientRect()
+                        const buttonPosition =
+                            // This type assertion is safe as this event handler is on a `button`.
+                            // eslint-disable-next-line no-restricted-syntax
+                            (event.target as HTMLButtonElement).getBoundingClientRect()
                         // This is a React component even though it doesn't contain JSX.
                         // eslint-disable-next-line no-restricted-syntax
                         const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
@@ -509,7 +509,7 @@ function Dashboard(props: DashboardProps) {
                 </button>
             </div>
         ) : (
-            <>{COLUMN_NAME[column]}</>
+            COLUMN_NAME[column]
         )
     }
 
@@ -598,37 +598,6 @@ function Dashboard(props: DashboardProps) {
             onClick={unsetModal}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
-            onContextMenu={event => {
-                event.preventDefault()
-                event.stopPropagation()
-                setModal(() => (
-                    <ContextMenu event={event}>
-                        <ContextMenuEntry
-                            disabled
-                            onClick={async () => {
-                                try {
-                                    const items = await navigator.clipboard.read()
-                                    const fileIds: string[] = []
-                                    for (const item of items) {
-                                        for (const type of item.types) {
-                                            if (type === 'application/enso-file-id') {
-                                                const blob = await item.getType(type)
-                                                fileIds.push(await blob.text())
-                                                break
-                                            }
-                                        }
-                                    }
-                                    // TODO[sb]: Re-parent `fileIds` to `directoryId` when endpoint is ready.
-                                } catch {
-                                    // ignored
-                                }
-                            }}
-                        >
-                            Paste
-                        </ContextMenuEntry>
-                    </ContextMenu>
-                ))
-            }}
         >
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}

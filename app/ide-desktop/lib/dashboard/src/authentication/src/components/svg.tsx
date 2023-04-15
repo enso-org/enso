@@ -191,7 +191,7 @@ export const MAGNIFYING_GLASS_ICON = (
                 d="M11.4142 10L15.6569 14.2426L14.2426 15.6569L10 11.4142L11.4142 10Z"
                 fill="currentColor"
             />
-            <circle cx={7} cy={7} r={5} stroke="currentColor" stroke-width={2} />
+            <circle cx={7} cy={7} r={5} stroke="currentColor" strokeWidth={2} />
         </g>
     </svg>
 )
