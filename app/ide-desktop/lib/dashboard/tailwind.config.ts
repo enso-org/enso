@@ -48,6 +48,7 @@ export const theme = {
             'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
         },
         transitionProperty: {
+            width: 'width',
             'stroke-dasharray': 'stroke-dasharray',
         },
         transitionDuration: {

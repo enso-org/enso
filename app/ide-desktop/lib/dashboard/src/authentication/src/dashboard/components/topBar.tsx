@@ -1,4 +1,5 @@
 /** @file The top-bar of dashboard. */
+import * as dashboard from './dashboard'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
@@ -9,6 +10,9 @@ import UserMenu from './userMenu'
 // ==============
 
 interface TopBarProps {
+    projectName: string | null
+    tab: dashboard.Tab
+    toggleTab: () => void
     searchVal: string
     setSearchVal: (value: string) => void
 }
@@ -18,28 +22,45 @@ interface TopBarProps {
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { searchVal, setSearchVal } = props
+    const { projectName, tab, toggleTab, searchVal, setSearchVal } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
         <div className="flex m-2 h-8">
             <div className="flex text-primary">
-                <div className="flex items-center bg-label rounded-full px-1 mx-2 cursor-pointer">
+                <div
+                    className={`flex items-center bg-label rounded-full pl-1
+                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                    onClick={toggleTab}
+                >
+                    <span
+                        className={`opacity-50 overflow-hidden transition-width nowrap ${
+                            tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
+                        }`}
+                    >
+                        Dashboard
+                    </span>
                     <div className="bg-white shadow-soft rounded-full px-1.5 py-1">
                         {svg.BARS_ICON}
                     </div>
-                    <span className="opacity-50 mx-2">My current project</span>
+                    <span
+                        className={`opacity-50 overflow-hidden transition-width nowrap ${
+                            tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
+                        }`}
+                    >
+                        {projectName ?? 'No project open'}
+                    </span>
                 </div>
                 <div className="flex items-center bg-label rounded-full px-2 w-140 max-w-2xl">
-                    <div className="mr-2">{svg.MAGNIFYING_GLASS_ICON}</div>
+                    <div>{svg.MAGNIFYING_GLASS_ICON}</div>
                     <input
-                        className="flex-1 bg-transparent"
                         type="text"
                         placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
                         value={searchVal}
                         onChange={event => {
                             setSearchVal(event.target.value)
                         }}
+                        className="flex-1 mx-2 bg-transparent"
                     />
                 </div>
             </div>
