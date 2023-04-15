@@ -34,6 +34,7 @@ use placeholder::Placeholder;
 use placeholder::StrongPlaceholder;
 
 
+
 // =================
 // === Constants ===
 // =================
@@ -54,10 +55,52 @@ pub const DEBUG_ANIMATION_SPRING_FACTOR: f32 = if DEBUG_ANIMATION_SLOWDOWN { 0.1
 
 
 
+// =============
+// === Types ===
+// =============
+
+pub type Index = usize;
+
+
+
+// ================
+// === Response ===
+// ================
+
+#[derive(Clone, Copy, Debug, Default, Deref, DerefMut)]
+pub struct Response<T> {
+    #[deref]
+    #[deref_mut]
+    pub payload:         T,
+    pub gui_interaction: bool,
+}
+
+impl<T> Response<T> {
+    /// Constructor.
+    pub fn new(payload: T, gui_interaction: bool) -> Self {
+        Self { payload, gui_interaction }
+    }
+
+    /// Constructor indicating that the response was triggered by an API interaction.
+    pub fn new_api_interaction(payload: T) -> Self {
+        Self::new(payload, false)
+    }
+
+    /// Constructor indicating that the response was triggered by a GUI interaction.
+    pub fn new_gui_interaction(payload: T) -> Self {
+        Self::new(payload, true)
+    }
+}
+
+
+
 // =========================
 // === ItemOrPlaceholder ===
 // =========================
 
+/// Enum for keeping either an item or a placeholder. Placeholder are used to display a place for
+/// items while dragging or inserting them.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub enum ItemOrPlaceholder<T> {
     Item(Item<T>),
@@ -125,90 +168,6 @@ impl<T> From<Placeholder> for ItemOrPlaceholder<T> {
     }
 }
 
-pub type Index = usize;
-
-
-// ================
-// === Response ===
-// ================
-
-#[derive(Clone, Copy, Debug, Default, Deref, DerefMut)]
-pub struct Response<T> {
-    #[deref]
-    #[deref_mut]
-    pub payload:         T,
-    pub gui_interaction: bool,
-}
-
-impl<T> Response<T> {
-    /// Constructor.
-    pub fn new(payload: T, gui_interaction: bool) -> Self {
-        Self { payload, gui_interaction }
-    }
-
-    /// Constructor indicating that the response was triggered by an API interaction.
-    pub fn new_api_interaction(payload: T) -> Self {
-        Self::new(payload, false)
-    }
-
-    /// Constructor indicating that the response was triggered by a GUI interaction.
-    pub fn new_gui_interaction(payload: T) -> Self {
-        Self::new(payload, true)
-    }
-}
-
-
-// =============
-// === Items ===
-// =============
-
-/// A wrapper for `Vec<ItemOrPlaceholder<T>>` that provides a few helper functions.
-#[derive(Debug, Derivative, Deref, DerefMut)]
-#[derivative(Default(bound = ""))]
-pub struct Items<T> {
-    items: Vec<ItemOrPlaceholder<T>>,
-}
-
-impl<T> Items<T> {
-    fn collapse_all_placeholders(&mut self) {
-        for item in self {
-            if let ItemOrPlaceholder::Placeholder(placeholder) = item {
-                placeholder.collapse();
-            }
-        }
-    }
-}
-
-impl<'t, T> IntoIterator for &'t Items<T> {
-    type Item = &'t ItemOrPlaceholder<T>;
-    type IntoIter = std::slice::Iter<'t, ItemOrPlaceholder<T>>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.iter()
-    }
-}
-
-impl<'t, T> IntoIterator for &'t mut Items<T> {
-    type Item = &'t mut ItemOrPlaceholder<T>;
-    type IntoIter = std::slice::IterMut<'t, ItemOrPlaceholder<T>>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.iter_mut()
-    }
-}
-
-impl<T> IntoIterator for Items<T> {
-    type Item = ItemOrPlaceholder<T>;
-    type IntoIter = std::vec::IntoIter<ItemOrPlaceholder<T>>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.into_iter()
-    }
-}
-
-impl<T> std::iter::FromIterator<ItemOrPlaceholder<T>> for Items<T> {
-    fn from_iter<I: IntoIterator<Item = ItemOrPlaceholder<T>>>(iter: I) -> Self {
-        let items = iter.into_iter().collect();
-        Self { items }
-    }
-}
 
 
 // ==================
@@ -243,8 +202,7 @@ pub struct ListEditor<T: frp::node::Data> {
     #[deref]
     pub frp:          Frp<T>,
     root:             display::object::Instance,
-    layouted_elems:   display::object::Instance,
-    dragged_elems:    display::object::Instance,
+    layouted_items:   display::object::Instance,
     model:            Rc<RefCell<Model<T>>>,
     add_elem_icon:    Rectangle,
     remove_elem_icon: Rectangle,
@@ -253,8 +211,7 @@ pub struct ListEditor<T: frp::node::Data> {
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Model<T> {
-    // dragged_item: Option<T>,
-    items: Items<T>,
+    items: Vec<ItemOrPlaceholder<T>>,
 }
 
 
@@ -263,12 +220,10 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
         let frp = Frp::new();
         let root = display::object::Instance::new();
-        let layouted_elems = display::object::Instance::new();
-        let dragged_elems = display::object::Instance::new();
-        root.add_child(&layouted_elems);
-        root.add_child(&dragged_elems);
+        let layouted_items = display::object::Instance::new();
+        root.add_child(&layouted_items);
         let model = default();
-        layouted_elems.use_auto_layout(); //.set_gap((GAP, GAP));
+        layouted_items.use_auto_layout();
         let add_elem_icon = Rectangle().build(|t| {
             t.set_size(Vector2::new(20.0, 20.0))
                 .set_color(color::Rgba::new(0.0, 1.0, 0.0, 1.0))
@@ -287,8 +242,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         remove_elem_icon.set_y(-30.0);
         remove_elem_icon.set_x(30.0);
         root.add_child(&remove_elem_icon);
-        Self { frp, root, layouted_elems, dragged_elems, model, add_elem_icon, remove_elem_icon }
-            .init(cursor)
+        Self { frp, root, layouted_items, model, add_elem_icon, remove_elem_icon }.init(cursor)
     }
 
     fn init(self, cursor: &Cursor) -> Self {
@@ -296,13 +250,12 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         let frp = &self.frp;
         let network = self.frp.network();
         let root = &self.root;
-        let layouted_elems = &self.layouted_elems;
-        let dragged_elems = &self.dragged_elems;
+        let layouted_items = &self.layouted_items;
         let model = &self.model;
 
         let add_elem_icon_down = self.add_elem_icon.on_event::<mouse::Down>();
         let remove_elem_icon_down = self.remove_elem_icon.on_event::<mouse::Down>();
-        let on_down = self.layouted_elems.on_event_capturing::<mouse::Down>();
+        let on_down = self.layouted_items.on_event_capturing::<mouse::Down>();
         let on_up = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
         frp::extend! { network
@@ -314,8 +267,8 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
 
             frp.remove <+ remove_elem_icon_down.constant(0);
 
-            push_item_index <= frp.push.map(f!([model, layouted_elems] (item)
-                item.upgrade().map(|t| model.borrow_mut().push_item(&layouted_elems, (*t).clone()))
+            push_item_index <= frp.push.map(f!([model, layouted_items] (item)
+                item.upgrade().map(|t| model.borrow_mut().push_item(&layouted_items, (*t).clone()))
             ));
             on_item_pushed <- frp.push.map2(&push_item_index, |item, ix| Response::new_api_interaction((*ix, item.clone())));
             frp.private.output.on_new_item <+ on_item_pushed;
@@ -346,15 +299,15 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             on_trashing <- trashing.on_true();
             on_trash <- on_up.gate(&trashing);
             eval trashing ((t) cursor.frp.set_style(if *t { cursor::Style::trash() } else { cursor::Style::default() }));
-            eval_ on_trashing (model.borrow_mut().items.collapse_all_placeholders());
+            eval_ on_trashing (model.borrow_mut().collapse_all_placeholders());
             eval_ on_trash ([model, cursor, root] model.borrow_mut().trash_dragged_item(&cursor, &root));
 
-            eval frp.remove([model, layouted_elems, dragged_elems] (index)
-                model.borrow_mut().trash_item_at(&layouted_elems, &dragged_elems, *index)
+            eval frp.remove([model, layouted_items] (index)
+                model.borrow_mut().trash_item_at(&layouted_items, *index)
             );
 
             // Re-parent the dragged element.
-            eval target_on_start([model, layouted_elems, dragged_elems, cursor] (t) model.borrow_mut().set_as_dragged_item(&cursor, &layouted_elems, &dragged_elems, t));
+            eval target_on_start([model, layouted_items, cursor] (t) model.borrow_mut().set_as_dragged_item(&cursor, &layouted_items, t));
             // center_points <- target_on_start.map(f_!(model.borrow().elems_center_points()));
             // trace center_points;
 
@@ -366,16 +319,16 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             insert_index <- pos_non_trash.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
             insert_index_on_drop <- insert_index.sample(&on_up).gate_not(&trashing);
 
-            eval insert_index ([model, cursor, layouted_elems] (index) {
+            eval insert_index ([model, cursor, layouted_items] (index) {
                 let mut model = model.borrow_mut();
                 model.potential_insertion_point(&cursor, *index);
-                model.redraw_items(&layouted_elems);
+                model.redraw_items(&layouted_items);
             });
 
-            eval insert_index_on_drop ([cursor, model, layouted_elems] (index) {
+            eval insert_index_on_drop ([cursor, model, layouted_items] (index) {
                 let mut model = model.borrow_mut();
                 model.place_dragged_item(&cursor, *index);
-                model.redraw_items(&layouted_elems);
+                model.redraw_items(&layouted_items);
             });
 
 
@@ -393,20 +346,28 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
 }
 
 impl<T: display::Object + frp::node::Data> Model<T> {
-    fn push_item(&mut self, layouted_elems: &display::object::Instance, item: T) -> usize {
+    fn collapse_all_placeholders(&mut self) {
+        for item in &mut self.items {
+            if let ItemOrPlaceholder::Placeholder(placeholder) = item {
+                placeholder.collapse();
+            }
+        }
+    }
+
+    fn push_item(&mut self, layouted_items: &display::object::Instance, item: T) -> usize {
         let index = self.items.len();
         let spot = Item::new(item, 0.0);
-        layouted_elems.add_child(&spot);
+        layouted_items.add_child(&spot);
         self.items.push(ItemOrPlaceholder::Item(spot));
         self.recompute_margins();
         index
     }
 
-    fn redraw_items(&mut self, layouted_elems: &display::object::Instance) {
+    fn redraw_items(&mut self, layouted_items: &display::object::Instance) {
         self.retain_non_collapsed_items();
         for item in &self.items {
             if let Some(display_object) = item.display_object() {
-                layouted_elems.add_child(&display_object);
+                layouted_items.add_child(&display_object);
             }
         }
     }
@@ -539,12 +500,11 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn set_as_dragged_item(
         &mut self,
         cursor: &Cursor,
-        layouted_elems: &display::object::Instance,
-        dragged_elems: &display::object::Instance,
+        layouted_items: &display::object::Instance,
         target: &display::object::Instance,
     ) {
         if let Some(index) = self.item_index_by_display_object(target) {
-            self.set_as_dragged_item2(cursor, layouted_elems, dragged_elems, index);
+            self.set_as_dragged_item2(cursor, layouted_items, index);
         } else {
             warn!("Dragged item not found in the item list.")
         }
@@ -553,14 +513,13 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn set_as_dragged_item2(
         &mut self,
         cursor: &Cursor,
-        layouted_elems: &display::object::Instance,
-        dragged_elems: &display::object::Instance,
+        layouted_items: &display::object::Instance,
         index: Index,
     ) {
         match self.items.remove(index) {
             ItemOrPlaceholder::Item(elem) => {
                 // warn!("set_as_dragged_item");
-                self.items.collapse_all_placeholders();
+                self.collapse_all_placeholders();
                 let prev_index = index.checked_sub(1);
                 let prev_placeholder =
                     prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
@@ -591,7 +550,6 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                         )),
                     );
                 }
-                dragged_elems.set_xy(elem.position().xy());
                 cursor.start_drag(elem.elem);
                 // cursor.model.view.add_child(&elem.elem);
                 // let scene = scene();
@@ -605,7 +563,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
 
                 // self.dragged_item = Some(elem.elem);
                 self.recompute_margins();
-                self.redraw_items(layouted_elems);
+                self.redraw_items(layouted_items);
             }
             item => {
                 warn!("Wrong index.");
@@ -619,7 +577,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn potential_insertion_point(&mut self, cursor: &Cursor, index: usize) {
         warn!("Potential insertion point: {}.", index);
         if let Some(item) = cursor.with_dragged_item_if_is::<T, _>(|t| t.display_object().clone()) {
-            self.items.collapse_all_placeholders();
+            self.collapse_all_placeholders();
 
             let gap =
                 self.first_non_placeholder_index().map_or(
@@ -663,7 +621,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// [`ItemOrPlaceholder`] to learn more.
     fn place_dragged_item(&mut self, cursor: &Cursor, index: usize) {
         if let Some(item) = cursor.stop_drag_if_is::<T>() {
-            self.items.collapse_all_placeholders();
+            self.collapse_all_placeholders();
             let prev_index = index.checked_sub(1);
             let placeholder = self
                 .get_upgraded_weak_placeholder(index)
@@ -697,21 +655,16 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     pub fn trash_dragged_item(
         &mut self,
         cursor: &Cursor,
-        layouted_elems: &display::object::Instance,
+        layouted_items: &display::object::Instance,
     ) {
         if let Some(item) = cursor.stop_drag_if_is::<T>() {
-            layouted_elems.add_child(&Trash::new(item));
+            layouted_items.add_child(&Trash::new(item));
         }
     }
 
-    pub fn trash_item_at(
-        &mut self,
-        layouted_elems: &display::object::Instance,
-        dragged_elems: &display::object::Instance,
-        index: Index,
-    ) {
+    pub fn trash_item_at(&mut self, layouted_items: &display::object::Instance, index: Index) {
         // if let Some(item_index) = self.elem_index_to_item_index(index) {
-        //     self.set_as_dragged_item2(layouted_elems, dragged_elems, item_index);
+        //     self.set_as_dragged_item2(layouted_items, item_index);
         //     self.trash_dragged_item();
         //     self.items.collapse_all_placeholders();
         //     self.recompute_margins();
