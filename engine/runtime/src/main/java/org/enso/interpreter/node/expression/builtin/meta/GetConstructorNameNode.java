@@ -26,6 +26,6 @@ public abstract class GetConstructorNameNode extends Node {
 
   @Specialization
   Text doType(Type type) {
-    return Text.create(type.getName());
+    return Text.create(type.getQualifiedName().toString());
   }
 }

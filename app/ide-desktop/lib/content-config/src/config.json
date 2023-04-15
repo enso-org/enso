@@ -1,10 +1,5 @@
 {
   "options": {
-    "authentication": {
-      "value": false,
-      "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
-    },
-
     "dataCollection": {
       "value": true,
       "description": "Determines whether anonymous usage data is to be collected.",
@@ -146,6 +141,19 @@
           "value": false,
           "description": "When enabled, profiling measurements will be submitted continuously to the User Timing Web API, which can be viewed using standard developer tools. Note that this mode significantly affects performance.",
           "primary": false
+        }
+      }
+    },
+    "cloud": {
+      "description": "Options related to cloud authentication, project storage, and project execution.",
+      "options": {
+        "authentication": {
+          "value": false,
+          "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
+        },
+        "dashboard": {
+          "value": false,
+          "description": "Determines whether the dashboard (containing the directory listing) is enabled. This option is disregarded if the application is executed in the cloud."
         }
       }
     }

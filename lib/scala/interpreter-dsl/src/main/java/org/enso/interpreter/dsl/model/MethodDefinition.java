@@ -25,6 +25,7 @@ public class MethodDefinition {
   private final List<ArgumentDefinition> arguments;
   private final Set<String> imports;
   private final boolean needsCallerInfo;
+  private final boolean needsFrame;
   private final String constructorExpression;
 
   /**
@@ -45,6 +46,7 @@ public class MethodDefinition {
     this.arguments = initArguments(execute);
     this.imports = initImports();
     this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
+    this.needsFrame = arguments.stream().anyMatch(ArgumentDefinition::isFrame);
     this.constructorExpression = initConstructor(element);
   }
 
@@ -192,6 +194,11 @@ public class MethodDefinition {
   /** @return whether this method requires caller info to work properly. */
   public boolean needsCallerInfo() {
     return needsCallerInfo;
+  }
+
+  /** @return whether this method requires virtual frame. */
+  public boolean needsFrame() {
+    return needsFrame;
   }
 
   public String getConstructorExpression() {

@@ -439,8 +439,13 @@ public class ExecutionService {
     var iop = InteropLibrary.getUncached();
     var p = context.getThreadManager().enter();
     try {
-      return iop.asString(
-          iop.invokeMember(panic.getPayload(), "to_display_text"));
+      // Invoking a member on an Atom that does not have a method `to_display_text` will not, contrary to what is
+      // expected from the documentation, throw an `UnsupportedMessageException`.
+      // Instead it will crash with some internal assertion deep inside runtime. Hence the check.
+      if (iop.isMemberInvocable(panic.getPayload(), "to_display_text")) {
+        return iop.asString(
+                iop.invokeMember(panic.getPayload(), "to_display_text"));
+      } else throw UnsupportedMessageException.create();
     } catch (UnsupportedMessageException
         | ArityException
         | UnknownIdentifierException

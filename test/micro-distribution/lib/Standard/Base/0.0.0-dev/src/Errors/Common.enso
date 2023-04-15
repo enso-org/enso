@@ -1,27 +1,76 @@
+import project.Meta
+import project.Error.Error
+import project.Any.Any
+
+
 @Builtin_Type
 type Syntax_Error
     Error message
+
+    to_display_text self = "Syntax error: "+self.message+"."
 
 @Builtin_Type
 type Arithmetic_Error
     Error message
 
+    to_display_text self = "Arithmetic error: "+self.message+"."
+
 @Builtin_Type
 type Type_Error
     Error expected actual name
+
+    type_of_actual self =
+        tpe = Meta.type_of self.actual
+        if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
+
+    to_display_text self = "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
+
+@Builtin_Type
+type Not_Invokable
+    Error target
+
+    to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
 
 @Builtin_Type
 type Compile_Error
     Error message
 
+    to_display_text self = "Compile error: "+self.message+"."
+
 @Builtin_Type
 type Inexhaustive_Pattern_Match
     Error scrutinee
+
+    to_display_text self = "Inexhaustive pattern match: no branch matches "+self.scrutinee.to_display_text+"."
+
+
+@Builtin_Type
+type No_Such_Method
+    Error target symbol
+
+    method_name self = Meta.meta self.symbol . name
+
+    to_display_text self = "Method `"+self.method_name+"` of "+self.target.to_display_text+" could not be found."
+
+@Builtin_Type
+type Module_Not_In_Package_Error
+    Error
+
+    to_display_text self = "Module is not a part of a package."
 
 @Builtin_Type
 type Arity_Error
     Error expected_min expected_max actual
 
+    to_display_text self =
+        expected = self.expected_min.to_text
+        expectedRange = if (self.expected_min == self.expected_max) then expected else
+            if (self.expected_max == -1) then expected+"-" else expected+self.expected_max.to_text
+
+        "Wrong number of arguments. Expected "+expectedRange+", but got "+self.actual.to_text+"."
+
 @Builtin_Type
 type Forbidden_Operation
     Error operation
+
+    to_display_text self = "Forbidden operation: "+self.operation+"."

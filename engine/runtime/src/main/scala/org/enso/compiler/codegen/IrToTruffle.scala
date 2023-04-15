@@ -996,7 +996,7 @@ class IrToTruffle(
             .error()
             .makeSyntaxError(
               Text.create(
-                "Type operators are not currently supported at runtime."
+                "Type operators are not currently supported at runtime"
               )
             )
         ),
@@ -1806,7 +1806,7 @@ class IrToTruffle(
                 .error()
                 .makeSyntaxError(
                   Text.create(
-                    "Typeset literals are not yet supported at runtime."
+                    "Typeset literals are not yet supported at runtime"
                   )
                 )
             ),
