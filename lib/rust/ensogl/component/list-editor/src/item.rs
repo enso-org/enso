@@ -46,12 +46,15 @@ impl<T: display::Object> Item<T> {
         frp::extend! { network
             margin_left.target <+ frp.set_margin_left;
             // fixme:
-            elem_size <- elem_display_object.on_transformed.map(f!((_)
-                elem_display_object.computed_size().x
-            ));
-            target_size <= all_with(&elem_size, &margin_left.value, f!([debug](w, m) {
+            // elem_size <- elem_display_object.on_resized.map(f!((_)
+            //     elem_display_object.computed_size().x
+            // ));
+            trace elem_display_object.on_resized;
+            target_size <= all_with(&elem_display_object.on_resized, &frp.set_margin_left, f!([debug](w, m) {
+                let w = w.x;
+                warn!("elem size: {:?}, margin_left: {:?}", w, m);
                 let out = w + m;
-                let out = if *w > 0.0 {
+                let out = if w > 0.0 {
                     Some(out)
                 } else {
                     None

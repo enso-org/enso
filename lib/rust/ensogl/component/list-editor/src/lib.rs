@@ -75,6 +75,23 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
         matches!(self, Self::Placeholder(_))
     }
 
+    /// Return a strong placeholder reference. In case it was a dropped weak placeholder or an item,
+    /// return [`None`].
+    pub fn as_strong_placeholder(&self) -> Option<StrongPlaceholder> {
+        match self {
+            ItemOrPlaceholder::Placeholder(p) => p.upgrade(),
+            _ => None,
+        }
+    }
+
+    /// Get the item reference if this is an item. Return [`None`] otherwise.
+    pub fn as_item(&self) -> Option<&T> {
+        match self {
+            ItemOrPlaceholder::Item(t) => Some(&t.elem),
+            _ => None,
+        }
+    }
+
     /// Get the display object of this item or placeholder. In case the placeholder is weak and does
     /// not exist anymore, it will return [`None`].
     pub fn display_object(&self) -> Option<display::object::Instance> {
@@ -98,22 +115,6 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
         match self {
             ItemOrPlaceholder::Placeholder(p) => p.exists(),
             ItemOrPlaceholder::Item(_) => true,
-        }
-    }
-
-    /// Return a strong placeholder reference. In case it was a dropped weak placeholder or an item,
-    /// return [`None`].
-    pub fn strong_placeholder(&self) -> Option<StrongPlaceholder> {
-        match self {
-            ItemOrPlaceholder::Placeholder(p) => p.upgrade(),
-            _ => None,
-        }
-    }
-
-    pub fn element(&self) -> Option<&T> {
-        match self {
-            ItemOrPlaceholder::Item(t) => Some(&t.elem),
-            _ => None,
         }
     }
 }
@@ -140,71 +141,42 @@ pub struct Response<T> {
 }
 
 impl<T> Response<T> {
+    /// Constructor.
     pub fn new(payload: T, gui_interaction: bool) -> Self {
         Self { payload, gui_interaction }
     }
 
+    /// Constructor indicating that the response was triggered by an API interaction.
     pub fn new_api_interaction(payload: T) -> Self {
         Self::new(payload, false)
     }
 
+    /// Constructor indicating that the response was triggered by a GUI interaction.
     pub fn new_gui_interaction(payload: T) -> Self {
         Self::new(payload, true)
     }
 }
 
 
-// ==================
-// === ListEditor ===
-// ==================
+// =============
+// === Items ===
+// =============
 
-ensogl_core::define_endpoints_2! { <T: ('static)>
-    Input {
-        /// Push a new element to the end of the list.
-        push(Weak<T>),
-
-        /// WARNING: not working yet, use `push` instead.
-        insert((Index, Weak<T>)),
-
-        /// Remove the element at the given index. If the index is invalid, nothing will happen.
-        remove(Index),
-    }
-    Output {
-        /// Fires whenever a new element was added to the list.
-        on_new_item(Response<(Index, Weak<T>)>),
-
-        /// Request new item to be inserted at the provided index. In most cases, this happens after
-        /// clicking a "plus" icon to add new element to the list. As a response, you should use the
-        /// [`insert`] endpoint to provide the new item.
-        request_new_item(Response<Index>),
-    }
-}
-
-
-#[derive(Derivative, CloneRef, Debug, Deref)]
-#[derivative(Clone(bound = ""))]
-pub struct ListEditor<T: frp::node::Data> {
-    #[deref]
-    pub frp:          Frp<T>,
-    root:             display::object::Instance,
-    layouted_elems:   display::object::Instance,
-    dragged_elems:    display::object::Instance,
-    model:            Rc<RefCell<Model<T>>>,
-    add_elem_icon:    Rectangle,
-    remove_elem_icon: Rectangle,
-}
-
-#[derive(Debug, Derivative)]
-#[derivative(Default(bound = ""))]
-pub struct Model<T> {
-    dragged_item: Option<T>,
-    items:        Items<T>,
-}
-
+/// A wrapper for `Vec<ItemOrPlaceholder<T>>` that provides a few helper functions.
 #[derive(Debug, Derivative, Deref, DerefMut)]
 #[derivative(Default(bound = ""))]
 pub struct Items<T> {
     items: Vec<ItemOrPlaceholder<T>>,
+}
+
+impl<T> Items<T> {
+    fn collapse_all_placeholders(&mut self) {
+        for item in self {
+            if let ItemOrPlaceholder::Placeholder(placeholder) = item {
+                placeholder.collapse();
+            }
+        }
+    }
 }
 
 impl<'t, T> IntoIterator for &'t Items<T> {
@@ -238,15 +210,54 @@ impl<T> std::iter::FromIterator<ItemOrPlaceholder<T>> for Items<T> {
     }
 }
 
-impl<T> Items<T> {
-    fn collapse_all_placeholders(&mut self) {
-        for item in self {
-            if let ItemOrPlaceholder::Placeholder(placeholder) = item {
-                placeholder.collapse();
-            }
-        }
+
+// ==================
+// === ListEditor ===
+// ==================
+
+ensogl_core::define_endpoints_2! { <T: ('static)>
+    Input {
+        /// Push a new element to the end of the list.
+        push(Weak<T>),
+
+        /// WARNING: not working yet, use `push` instead.
+        insert((Index, Weak<T>)),
+
+        /// Remove the element at the given index. If the index is invalid, nothing will happen.
+        remove(Index),
+    }
+    Output {
+        /// Fires whenever a new element was added to the list.
+        on_new_item(Response<(Index, Weak<T>)>),
+
+        /// Request new item to be inserted at the provided index. In most cases, this happens after
+        /// clicking a "plus" icon to add new element to the list. As a response, you should use the
+        /// [`insert`] endpoint to provide the new item.
+        request_new_item(Response<Index>),
     }
 }
+
+#[derive(Derivative, CloneRef, Debug, Deref)]
+#[derivative(Clone(bound = ""))]
+pub struct ListEditor<T: frp::node::Data> {
+    #[deref]
+    pub frp:          Frp<T>,
+    root:             display::object::Instance,
+    layouted_elems:   display::object::Instance,
+    dragged_elems:    display::object::Instance,
+    model:            Rc<RefCell<Model<T>>>,
+    add_elem_icon:    Rectangle,
+    remove_elem_icon: Rectangle,
+}
+
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = ""))]
+pub struct Model<T> {
+    dragged_item: Option<T>,
+    items:        Items<T>,
+}
+
+
 
 impl<T: display::Object + frp::node::Data> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
@@ -377,7 +388,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
     }
 
     pub fn items(&self) -> Vec<T> {
-        self.model.borrow().items.iter().flat_map(|item| item.element().cloned()).collect()
+        self.model.borrow().items.iter().flat_map(|item| item.as_item().cloned()).collect()
     }
 }
 
@@ -483,7 +494,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     fn get_upgraded_weak_placeholder(&self, index: usize) -> Option<(usize, StrongPlaceholder)> {
-        self.items.get(index).and_then(|t| t.strong_placeholder().map(|t| (index, t)))
+        self.items.get(index).and_then(|t| t.as_strong_placeholder().map(|t| (index, t)))
     }
 
     /// Remove the selected item from the item list and mark it as an element being dragged. In the
@@ -594,7 +605,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// Prepare place for the dragged item by creating or reusing a placeholder and growing it to
     /// the dragged object size.
     fn potential_insertion_point(&mut self, index: usize) {
-        // warn!("Potential insertion point: {}.", index);
+        warn!("Potential insertion point: {}.", index);
         if let Some(item) = self.dragged_item.as_ref() {
             self.items.collapse_all_placeholders();
 
@@ -609,11 +620,11 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                         }
                     },
                 );
-            // warn!(
-            //     "first_non_placeholder_index: {:?}, gap: {}",
-            //     self.first_non_placeholder_index(),
-            //     gap
-            // );
+            warn!(
+                "first_non_placeholder_index: {:?}, gap: {}",
+                self.first_non_placeholder_index(),
+                gap
+            );
             let size = item.computed_size().x + gap;
             let prev_index = index.checked_sub(1);
             let old_placeholder = self

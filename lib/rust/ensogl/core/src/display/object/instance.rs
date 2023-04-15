@@ -1966,6 +1966,9 @@ impl Model {
             }
         });
         self.dirty.transformation.unset();
+        if self.dirty.computed_size.check() {
+            self.on_resized_source.emit(self.layout.computed_size.get());
+        }
         self.dirty.computed_size.unset();
         self.dirty.new_parent.unset();
     }
@@ -3253,18 +3256,18 @@ impl Model {
     /// The main entry point from the recursive auto-layout algorithm.
     fn refresh_layout_internal<Dim>(&self, x: Dim, pass_cfg: PassConfig)
     where Dim: ResolutionDim {
-        let old_size = self.layout.computed_size.get();
+        // let old_size = self.layout.computed_size.get();
         if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
             self.refresh_grid_layout(x, layout);
         } else {
             self.refresh_manual_layout(x, pass_cfg);
         }
-        if x.last_pass() {
-            let new_size = self.layout.computed_size.get();
-            if old_size != new_size {
-                self.on_resized_source.emit(new_size);
-            }
-        }
+        // if x.last_pass() {
+        //     let new_size = self.layout.computed_size.get();
+        //     if old_size != new_size {
+        //         self.on_resized_source.emit(new_size);
+        //     }
+        // }
     }
 
     /// # Meaning of the function parameters.
