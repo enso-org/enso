@@ -215,6 +215,7 @@ pub struct CursorModel {
     pub view:           shape::View,
     pub port_selection: shape::View,
     pub style:          Rc<RefCell<Style>>,
+    pub dragged_item:   Rc<RefCell<Option<Box<dyn std::any::Any>>>>,
 }
 
 impl CursorModel {
@@ -235,7 +236,8 @@ impl CursorModel {
         tgt_layer.add(&view);
         port_selection_layer.add(&port_selection);
 
-        Self { scene, display_object, dragged_elem, view, port_selection, style }
+        let dragged_item = default();
+        Self { scene, display_object, dragged_elem, view, port_selection, style, dragged_item }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
@@ -502,26 +504,61 @@ impl Cursor {
         Cursor { frp, model }
     }
 
-    pub fn start_drag(&self, target: impl display::Object) {
-        let target = target.display_object();
-        self.model.dragged_elem.add_child(target);
-        let target_position = target.global_position().xy();
-        let cursor_position = self.frp.scene_position.value().xy();
-        target.set_xy(target_position - cursor_position);
+    pub fn start_drag<T: display::Object + 'static>(&self, target: T) {
+        if self.model.dragged_item.borrow().is_some() {
+            warn!("Can't start dragging an item because another item is already being dragged.");
+        } else {
+            let object = target.display_object();
+            self.model.dragged_elem.add_child(object);
+            let target_position = object.global_position().xy();
+            let cursor_position = self.frp.scene_position.value().xy();
+            object.set_xy(target_position - cursor_position);
 
-        let scene = scene();
-        let camera = scene.camera();
-        let zoom = camera.zoom();
-        self.model.dragged_elem.set_scale_xy((zoom, zoom));
+            let scene = scene();
+            let camera = scene.camera();
+            let zoom = camera.zoom();
+            self.model.dragged_elem.set_scale_xy((zoom, zoom));
+            *self.model.dragged_item.borrow_mut() = Some(Box::new(target));
+        }
     }
 
-    pub fn stop_drag(&self) -> Vec<display::object::Instance> {
-        let elems = self.model.dragged_elem.remove_all_children();
-        let cursor_position = self.frp.scene_position.value().xy();
-        for elem in &elems {
-            elem.update_xy(|t| t + cursor_position);
+    pub fn stop_drag(&self) -> Option<Box<dyn std::any::Any>> {
+        self.stop_drag_if_is()
+    }
+
+    pub fn stop_drag_if_is<T: 'static>(&self) -> Option<T> {
+        if let Some(item) = mem::take(&mut *self.model.dragged_item.borrow_mut()) {
+            match item.downcast::<T>() {
+                Ok(item) => {
+                    let elems = self.model.dragged_elem.remove_all_children();
+                    let cursor_position = self.frp.scene_position.value().xy();
+                    for elem in &elems {
+                        elem.update_xy(|t| t + cursor_position);
+                    }
+                    Some(*item)
+                }
+                Err(item) => {
+                    *self.model.dragged_item.borrow_mut() = Some(item);
+                    None
+                }
+            }
+        } else {
+            warn!("Can't stop dragging an item because no item is being dragged.");
+            None
         }
-        elems
+    }
+
+    pub fn dragged_item_is<T: 'static>(&self) -> bool {
+        self.model.dragged_item.borrow().as_ref().map(|item| item.is::<T>()).unwrap_or(false)
+    }
+
+    pub fn with_dragged_item_if_is<T, Out>(&self, f: impl FnOnce(&T) -> Out) -> Option<Out>
+    where T: 'static {
+        self.model
+            .dragged_item
+            .borrow()
+            .as_ref()
+            .and_then(|item| item.downcast_ref::<T>().map(|item| f(item)))
     }
 }
 

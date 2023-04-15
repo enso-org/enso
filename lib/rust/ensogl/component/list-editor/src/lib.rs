@@ -253,8 +253,8 @@ pub struct ListEditor<T: frp::node::Data> {
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Model<T> {
-    dragged_item: Option<T>,
-    items:        Items<T>,
+    // dragged_item: Option<T>,
+    items: Items<T>,
 }
 
 
@@ -347,7 +347,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             on_trash <- on_up.gate(&trashing);
             eval trashing ((t) cursor.frp.set_style(if *t { cursor::Style::trash() } else { cursor::Style::default() }));
             eval_ on_trashing (model.borrow_mut().items.collapse_all_placeholders());
-            eval_ on_trash (model.borrow_mut().trash_dragged_item());
+            eval_ on_trash ([model, cursor, root] model.borrow_mut().trash_dragged_item(&cursor, &root));
 
             eval frp.remove([model, layouted_elems, dragged_elems] (index)
                 model.borrow_mut().trash_item_at(&layouted_elems, &dragged_elems, *index)
@@ -366,9 +366,9 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             insert_index <- pos_non_trash.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
             insert_index_on_drop <- insert_index.sample(&on_up).gate_not(&trashing);
 
-            eval insert_index ([model, layouted_elems] (index) {
+            eval insert_index ([model, cursor, layouted_elems] (index) {
                 let mut model = model.borrow_mut();
-                model.potential_insertion_point(*index);
+                model.potential_insertion_point(&cursor, *index);
                 model.redraw_items(&layouted_elems);
             });
 
@@ -592,7 +592,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                     );
                 }
                 dragged_elems.set_xy(elem.position().xy());
-                cursor.start_drag(&elem.elem);
+                cursor.start_drag(elem.elem);
                 // cursor.model.view.add_child(&elem.elem);
                 // let scene = scene();
                 // let camera = scene.camera();
@@ -603,7 +603,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 // elem.elem.set_scale_xy((zoom, zoom));
                 // elem.elem.set_xy(p2 - p1);
 
-                self.dragged_item = Some(elem.elem);
+                // self.dragged_item = Some(elem.elem);
                 self.recompute_margins();
                 self.redraw_items(layouted_elems);
             }
@@ -616,9 +616,9 @@ impl<T: display::Object + frp::node::Data> Model<T> {
 
     /// Prepare place for the dragged item by creating or reusing a placeholder and growing it to
     /// the dragged object size.
-    fn potential_insertion_point(&mut self, index: usize) {
+    fn potential_insertion_point(&mut self, cursor: &Cursor, index: usize) {
         warn!("Potential insertion point: {}.", index);
-        if let Some(item) = self.dragged_item.as_ref() {
+        if let Some(item) = cursor.with_dragged_item_if_is::<T, _>(|t| t.display_object().clone()) {
             self.items.collapse_all_placeholders();
 
             let gap =
@@ -662,7 +662,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// [`Item`] object, will handles its animation. See the documentation of
     /// [`ItemOrPlaceholder`] to learn more.
     fn place_dragged_item(&mut self, cursor: &Cursor, index: usize) {
-        if let Some(item) = self.dragged_item.take() {
+        if let Some(item) = cursor.stop_drag_if_is::<T>() {
             self.items.collapse_all_placeholders();
             let prev_index = index.checked_sub(1);
             let placeholder = self
@@ -672,15 +672,12 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 placeholder.reuse();
                 // TODO: describe
                 placeholder.set_target_size(placeholder.computed_size().x);
-                cursor.stop_drag();
+                // let item = cursor.stop_drag();
                 let placeholder_position = placeholder.global_position().xy();
-                let item_position = item.global_position().xy();
                 item.update_xy(|t| t - placeholder_position);
                 let spot = Item::new_from_placeholder(item, placeholder);
-                let spot_frp = spot.frp.clone_ref();
                 self.items[index] = ItemOrPlaceholder::Item(spot);
                 self.recompute_margins();
-                spot_frp.skip_margin_anim();
             } else {
                 // This branch should never be reached, as when dragging an element we always create
                 // a placeholder for it (see the [`potential_insertion_point`] function). However,
@@ -697,9 +694,13 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         }
     }
 
-    pub fn trash_dragged_item(&mut self) {
-        if let Some(item) = mem::take(&mut self.dragged_item) {
-            Trash::new(item);
+    pub fn trash_dragged_item(
+        &mut self,
+        cursor: &Cursor,
+        layouted_elems: &display::object::Instance,
+    ) {
+        if let Some(item) = cursor.stop_drag_if_is::<T>() {
+            layouted_elems.add_child(&Trash::new(item));
         }
     }
 

@@ -12,6 +12,7 @@ ensogl_core::define_endpoints_2! {
         skip_margin_anim(),
     }
     Output {
+        margin_left(f32),
     }
 }
 
@@ -46,6 +47,7 @@ impl<T: display::Object> Item<T> {
         frp::extend! { network
             margin_left.skip <+ frp.skip_margin_anim;
             margin_left.target <+ frp.set_margin_left;
+            frp.private.output.margin_left <+ margin_left.value;
             target_size <- all_with(&elem_obj.on_resized, &frp.set_margin_left, |w, m| w.x + m);
             placeholder.frp.set_target_size <+ target_size;
             _eval <- all_with(&margin_left.value, &elem_offset.value, f!((margin, offset) {
