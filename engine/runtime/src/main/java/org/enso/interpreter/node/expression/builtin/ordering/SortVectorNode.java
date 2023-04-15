@@ -44,9 +44,6 @@ import org.enso.interpreter.runtime.state.State;
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
  * builtin type, which is the most common scenario for sorting.
- *
- * <p>TODO: Max number of attached Incomparable values warnings? - hardcode or pass via a new
- * parameter to Vector.sort?
  */
 @BuiltinMethod(type = "Vector", name = "sort_builtin", description = "Returns a sorted vector.")
 @GenerateUncached
@@ -94,7 +91,7 @@ public abstract class SortVectorNode extends Node {
   @Specialization(
       guards = {
         "interop.hasArrayElements(self)",
-        "areAllDefaultComparators(interop, comparators)",
+        "areAllDefaultComparators(interop, hostValueToEnsoNode, comparators)",
         "interop.isNull(byFunc)",
         "interop.isNull(onFunc)"
       })
@@ -186,12 +183,15 @@ public abstract class SortVectorNode extends Node {
       @Cached EqualsNode equalsNode,
       @Cached TypeOfNode typeOfNode,
       @Cached AnyToTextNode toTextNode,
+      @Cached(value = "build()", uncached = "build()") HostValueToEnsoNode hostValueToEnsoNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
     var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
     // Split into groups
-    List<Object> elems = readInteropArray(interop, warningsLib, self);
-    List<Type> comparators = readInteropArray(interop, warningsLib, comparatorsArray);
-    List<Function> compareFuncs = readInteropArray(interop, warningsLib, compareFuncsArray);
+    List<Object> elems = readInteropArray(interop, hostValueToEnsoNode, warningsLib, self);
+    List<Type> comparators =
+        readInteropArray(interop, hostValueToEnsoNode, warningsLib, comparatorsArray);
+    List<Function> compareFuncs =
+        readInteropArray(interop, hostValueToEnsoNode, warningsLib, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
 
     // Prepare input for DefaultSortComparator and GenericSortComparator and sort the elements
@@ -375,12 +375,15 @@ public abstract class SortVectorNode extends Node {
    */
   @SuppressWarnings("unchecked")
   private <T> List<T> readInteropArray(
-      InteropLibrary interop, WarningsLibrary warningsLib, Object vector) {
+      InteropLibrary interop,
+      HostValueToEnsoNode hostValueToEnsoNode,
+      WarningsLibrary warningsLib,
+      Object vector) {
     try {
       int size = (int) interop.getArraySize(vector);
       List<T> res = new ArrayList<>(size);
       for (int i = 0; i < size; i++) {
-        Object elem = interop.readArrayElement(vector, i);
+        Object elem = hostValueToEnsoNode.execute(interop.readArrayElement(vector, i));
         if (warningsLib.hasWarnings(elem)) {
           elem = warningsLib.removeWarnings(elem);
         }
@@ -437,14 +440,15 @@ public abstract class SortVectorNode extends Node {
   }
 
   /** Returns true iff the given array of comparators is all Default_Comparator */
-  boolean areAllDefaultComparators(InteropLibrary interop, Object comparators) {
+  boolean areAllDefaultComparators(
+      InteropLibrary interop, HostValueToEnsoNode hostValueToEnsoNode, Object comparators) {
     assert interop.hasArrayElements(comparators);
     var ctx = EnsoContext.get(this);
     try {
       int compSize = (int) interop.getArraySize(comparators);
       for (int i = 0; i < compSize; i++) {
         assert interop.isArrayElementReadable(comparators, i);
-        Object comparator = interop.readArrayElement(comparators, i);
+        Object comparator = hostValueToEnsoNode.execute(interop.readArrayElement(comparators, i));
         if (!isDefaultComparator(comparator, ctx)) {
           return false;
         }
