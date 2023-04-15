@@ -131,7 +131,7 @@ type Default_Comparator
     ## PRIVATE
     compare : Any -> Any -> (Ordering|Nothing)
     compare x y =
-        case Comparable.equals_builtin x y of
+        case Any.== x y of
             True -> Ordering.Equal
             False ->
                 case Comparable.less_than_builtin x y of

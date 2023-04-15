@@ -20,8 +20,8 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-    type = "Comparable",
-    name = "equals_builtin",
+    type = "Any",
+    name = "==",
     description = """
       Compares self with other object and returns True iff `self` is exactly the same as
       the other object, including all its transitively accessible properties or fields,
@@ -42,7 +42,7 @@ public abstract class EqualsNode extends Node {
     return EqualsNodeGen.create();
   }
 
-  public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
+  public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
 
   /**
    * Primitive values

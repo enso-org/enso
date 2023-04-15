@@ -108,7 +108,7 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that = Comparable.equals_builtin self that
+    == self that = @Builtin_Method "Any.=="
 
     ## ALIAS Inequality
 
