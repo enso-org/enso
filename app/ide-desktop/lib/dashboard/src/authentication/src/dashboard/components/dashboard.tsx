@@ -509,7 +509,7 @@ function Dashboard(props: DashboardProps) {
                 </button>
             </div>
         ) : (
-            COLUMN_NAME[column]
+            <>{COLUMN_NAME[column]}</>
         )
     }
 
