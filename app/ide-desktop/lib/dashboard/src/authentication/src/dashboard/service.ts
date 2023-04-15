@@ -439,7 +439,7 @@ interface ListTagsResponseBody {
 
 /** HTTP response body for the "list versions" endpoint. */
 interface ListVersionsResponseBody {
-    versions: Version[]
+    versions: [Version, ...Version[]]
 }
 
 // ===================
@@ -791,7 +791,7 @@ export class Backend {
     /** Returns list of backend or IDE versions, from the Cloud backend API.
      *
      * @throws An error if a 401 or 404 status code was received. */
-    async listVersions(params: ListVersionsRequestParams): Promise<Version[]> {
+    async listVersions(params: ListVersionsRequestParams): Promise<[Version, ...Version[]]> {
         const response = await this.get<ListVersionsResponseBody>(
             LIST_VERSIONS_PATH +
                 '?' +

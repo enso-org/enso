@@ -83,7 +83,7 @@ spec =
             Text.from Methods.get_bar . should_equal "bar"
 
         Test.specify "should fail graciously when there is no conversion" <|
-            Panic.recover Any (Foo.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux.Value` to `Foo`"
+            Panic.recover Any (Foo.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux.Value` to `Foo`."
         Test.specify "should fail graciously when the conversion target is invalid" <|
             Panic.recover Any (123.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
 
