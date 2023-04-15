@@ -38,6 +38,11 @@ type Syntax_Error
        - message: A description of the erroneous syntax.
     Error message
 
+    ## PRIVATE
+       Convert the Syntax_Error error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Syntax error: "+self.message+"."
+
 @Builtin_Type
 type Type_Error
     ## PRIVATE
@@ -49,6 +54,17 @@ type Type_Error
        - name: The name of the argument whose type is mismatched.
     Error expected actual name
 
+    ## PRIVATE
+       Infer the type of the actual value in a human-readable format.
+    type_of_actual self =
+        tpe = Meta.type_of self.actual
+        if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
+
+    ## PRIVATE
+       Convert the Type_Error error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
+
 @Builtin_Type
 type Compile_Error
     ## PRIVATE
@@ -58,6 +74,11 @@ type Compile_Error
        - message: A description of the erroneous state.
     Error message
 
+    ## PRIVATE
+       Convert the Compile_Error error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Compile error: "+self.message+"."
+
 @Builtin_Type
 type Inexhaustive_Pattern_Match
     ## PRIVATE
@@ -66,6 +87,11 @@ type Inexhaustive_Pattern_Match
        Arguments:
        - scrutinee: The scrutinee that failed to match.
     Error scrutinee
+
+    ## PRIVATE
+       Convert the Inexhaustive_Pattern_Match error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Inexhaustive pattern match: no branch matches "+self.scrutinee.to_display_text+"."
 
 @Builtin_Type
 type Arity_Error
@@ -79,6 +105,16 @@ type Arity_Error
        - actual: the actual number of arguments passed.
     Error expected_min expected_max actual
 
+    ## PRIVATE
+       Convert the Arity_Error error to a human-readable format.
+    to_display_text : Text
+    to_display_text self =
+        expected = self.expected_min.to_text
+        expectedRange = if (self.expected_min == self.expected_max) then expected else
+            if (self.expected_max == -1) then expected+"-" else expected+self.expected_max.to_text
+
+        "Wrong number of arguments. Expected "+expectedRange+", but got "+self.actual.to_text+"."
+
 @Builtin_Type
 type Uninitialized_State
     ## PRIVATE
@@ -88,6 +124,11 @@ type Uninitialized_State
        Arguments:
        - key: The key for the state slot that was not initialized.
     Error key
+
+    ## PRIVATE
+       Convert the Uninitialized_State error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "State is not initialized for type "+self.key.to_display_text+"."
 
 @Builtin_Type
 type No_Such_Method
@@ -117,6 +158,11 @@ type No_Such_Method
     method_name self =
         Meta.meta self.symbol . name
 
+    ## PRIVATE
+       Convert the No_Such_Method error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Method `"+self.method_name+"` of "+self.target.to_display_text+" could not be found."
+
 @Builtin_Type
 type No_Such_Field
     ## PRIVATE
@@ -128,10 +174,17 @@ type No_Such_Field
        - field_name: The name of the field that was being accessed.
     Error value field_name
 
-## An error that occurs when the enso_project function is called in a file
-   that is not part of a project.
+
 @Builtin_Type
 type Module_Not_In_Package_Error
+    ## An error that occurs when the enso_project function is called in a file
+       that is not part of a project.
+    Error
+
+    ## PRIVATE
+       Convert the Module_Not_In_Package_Error error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Module is not a part of a package."
 
 @Builtin_Type
 type Arithmetic_Error
@@ -141,6 +194,11 @@ type Arithmetic_Error
        Arguments:
        - message: A description of the error condition.
     Error message
+
+    ## PRIVATE
+       Convert the Arithmetic_Error error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Arithmetic error: "+self.message+"."
 
 @Builtin_Type
 type Incomparable_Values
@@ -181,6 +239,11 @@ type Invalid_Array_Index
        - index: The index that was out of bounds.
     Error array index
 
+    ## PRIVATE
+       Convert the Forbidden_Operation error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Invalid array index: "+self.index.to_text+"."
+
 @Builtin_Type
 type Not_Invokable
     ## PRIVATE
@@ -190,6 +253,11 @@ type Not_Invokable
        Arguments:
        - target: The called object.
     Error target
+
+    ## PRIVATE
+       Convert the Not_Invokable error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
 
 @Builtin_Type
 type Unsupported_Argument_Types
@@ -202,6 +270,11 @@ type Unsupported_Argument_Types
        - message: A detailed message.
     Error arguments message
 
+    ## PRIVATE
+       Convert the Unsupported_Argument_Types error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = self.message.to_text
+
 @Builtin_Type
 type Module_Does_Not_Exist
     ## PRIVATE
@@ -210,6 +283,11 @@ type Module_Does_Not_Exist
        Arguments:
        - name: The module searched for.
     Error name
+
+    ## PRIVATE
+       Convert the Module_Does_Not_Exist error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Module "+self.name+" does not exist."
 
 @Builtin_Type
 type Invalid_Conversion_Target
@@ -231,6 +309,11 @@ type No_Such_Conversion
        - conversion: the conversion that was attempted.
     Error target that conversion
 
+    ## PRIVATE
+       Convert the No_Such_Conversion error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Could not find a conversion from `"+self.that.to_display_text+"` to `"+self.target.to_display_text+"`."
+
 @Builtin_Type
 type Forbidden_Operation
     ## PRIVATE
@@ -239,3 +322,8 @@ type Forbidden_Operation
        Arguments:
        - operation: attempted context that is not allowed.
     Error operation
+
+    ## PRIVATE
+       Convert the Forbidden_Operation error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Forbidden operation: "+self.operation+"."

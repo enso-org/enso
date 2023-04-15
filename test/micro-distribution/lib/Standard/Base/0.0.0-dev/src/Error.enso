@@ -1,4 +1,5 @@
 import project.Any.Any
+from project.Data.Boolean import True
 
 @Builtin_Type
 type Error
@@ -7,3 +8,4 @@ type Error
     catch self (error_type = Any) (handler = x->x) =
         _ = error_type
         self.catch_primitive handler
+    is_error self = True

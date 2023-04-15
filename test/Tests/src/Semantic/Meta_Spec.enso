@@ -302,8 +302,13 @@ spec =
                 n : Number -> Test.fail "Shouldn't be number yet: "+n
                 _ -> Nothing
 
+            tpe_of_bar = Meta.type_of atom.bar
+            tpe_of_bar.is_error . should_equal True
+
             fill 2
             atom.bar . should_equal 2
+            tpe_of_bar_after_fill = Meta.type_of atom.bar
+            tpe_of_bar_after_fill . should_equal Integer
 
             fill 10 # no change
             atom.bar . should_equal 2

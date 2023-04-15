@@ -40,12 +40,14 @@ import * as toast from 'react-hot-toast'
 
 import * as projectManagerModule from 'enso-content/src/project_manager'
 
-import * as authProvider from '../authentication/providers/auth'
 import * as authService from '../authentication/service'
+import * as platformModule from '../platform'
+
+import * as authProvider from '../authentication/providers/auth'
 import * as loggerProvider from '../providers/logger'
 import * as modalProvider from '../providers/modal'
-import * as platformModule from '../platform'
-import * as session from '../authentication/providers/session'
+import * as sessionProvider from '../authentication/providers/session'
+
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
 import Dashboard from '../dashboard/components/dashboard'
 import ForgotPassword from '../authentication/components/forgotPassword'
@@ -139,7 +141,6 @@ function AppRouter(props: AppProps) {
     }, [navigate, props])
     const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito)
     const registerAuthEventListener = memoizedAuthService.registerAuthEventListener
-
     const routes = (
         <router.Routes>
             <react.Fragment>
@@ -163,10 +164,9 @@ function AppRouter(props: AppProps) {
             </react.Fragment>
         </router.Routes>
     )
-
     return (
         <loggerProvider.LoggerProvider logger={logger}>
-            <session.SessionProvider
+            <sessionProvider.SessionProvider
                 mainPageUrl={mainPageUrl}
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
@@ -177,7 +177,7 @@ function AppRouter(props: AppProps) {
                 >
                     <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
                 </authProvider.AuthProvider>
-            </session.SessionProvider>
+            </sessionProvider.SessionProvider>
         </loggerProvider.LoggerProvider>
     )
 }

@@ -8,10 +8,17 @@ export interface ModalContextType {
     setModal: (modal: Modal | null) => void
 }
 
-// This is just the default value. It will never be used as
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-const ModalContext = react.createContext<ModalContextType>({ modal: null, setModal: () => {} })
+const ModalContext = react.createContext<ModalContextType>({
+    modal: null,
+    setModal: () => {
+        // Ignored. This default value will never be used
+        // as `ModalProvider` always provides its own value.
+    },
+})
 
+// React components should always have a sibling `Props` interface
+// if they accept props.
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ModalProviderProps extends React.PropsWithChildren<object> {}
 
 export function ModalProvider(props: ModalProviderProps) {

@@ -22,6 +22,7 @@ import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
+import TopBar from './topBar'
 
 import ConfirmDeleteModal from './confirmDeleteModal'
 import RenameModal from './renameModal'
@@ -191,6 +192,7 @@ export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
 
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
+
     const { accessToken, organization } = auth.useFullUserSession()
     const backendService = backend.createBackend(accessToken, logger)
     const { modal } = modalProvider.useModal()
@@ -198,6 +200,7 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
+    const [searchVal, setSearchVal] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
@@ -512,6 +515,13 @@ function Dashboard(props: DashboardProps) {
 
     // FIXME[sb]: There is a race condition between the initial `directoryId`
     // and the `directoryId` saved in `localStorage`.
+    // The purpose of this effect is to enable search action.
+    react.useEffect(() => {
+        return () => {
+            // TODO
+        }
+    }, [searchVal])
+
     react.useEffect(() => {
         void (async (): Promise<void> => {
             let assets: backend.Asset[]
@@ -622,7 +632,7 @@ function Dashboard(props: DashboardProps) {
         >
             {/* These are placeholders. When implementing a feature,
              * please replace the appropriate placeholder with the actual element.*/}
-            <div id="header" />
+            <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
             <div id="templates" />
             <div className="flex flex-row flex-nowrap">
                 <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
@@ -943,8 +953,8 @@ function Dashboard(props: DashboardProps) {
                     Drop to upload files.
                 </div>
             ) : null}
-            {/* This should be just `{modal}`, however TypeScript throws an error for some reason. */}
-            {modal ? <>{modal}</> : null}
+            {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
+            {modal && <>{modal}</>}
         </div>
     )
 }
