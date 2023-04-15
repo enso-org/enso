@@ -354,13 +354,13 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             );
 
             // Re-parent the dragged element.
-            eval target_on_start([model, layouted_elems, dragged_elems] (t) model.borrow_mut().set_as_dragged_item(&layouted_elems, &dragged_elems, t));
+            eval target_on_start([model, layouted_elems, dragged_elems, cursor] (t) model.borrow_mut().set_as_dragged_item(&cursor, &layouted_elems, &dragged_elems, t));
             // center_points <- target_on_start.map(f_!(model.borrow().elems_center_points()));
             // trace center_points;
 
             // Move the dragged element.
-            target_new_pos <- map2(&pos_offset_on_drag, &target_pos_on_down, |a, b| a + b);
-            _eval <- target_new_pos.map2(&target, |pos, t| t.set_xy(*pos));
+            // target_new_pos <- map2(&pos_offset_on_drag, &target_pos_on_down, |a, b| a + b);
+            // _eval <- target_new_pos.map2(&target, |pos, t| t.set_xy(*pos));
 
             pos_non_trash <- pos_on_move.gate_not(&trashing);
             insert_index <- pos_non_trash.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
@@ -372,9 +372,9 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
                 model.redraw_items(&layouted_elems);
             });
 
-            eval insert_index_on_drop ([model, layouted_elems] (index) {
+            eval insert_index_on_drop ([cursor, model, layouted_elems] (index) {
                 let mut model = model.borrow_mut();
-                model.place_dragged_item(*index);
+                model.place_dragged_item(&cursor, *index);
                 model.redraw_items(&layouted_elems);
             });
 
@@ -538,12 +538,13 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// ```   
     fn set_as_dragged_item(
         &mut self,
+        cursor: &Cursor,
         layouted_elems: &display::object::Instance,
         dragged_elems: &display::object::Instance,
         target: &display::object::Instance,
     ) {
         if let Some(index) = self.item_index_by_display_object(target) {
-            self.set_as_dragged_item2(layouted_elems, dragged_elems, index);
+            self.set_as_dragged_item2(cursor, layouted_elems, dragged_elems, index);
         } else {
             warn!("Dragged item not found in the item list.")
         }
@@ -551,6 +552,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
 
     fn set_as_dragged_item2(
         &mut self,
+        cursor: &Cursor,
         layouted_elems: &display::object::Instance,
         dragged_elems: &display::object::Instance,
         index: Index,
@@ -590,7 +592,17 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                     );
                 }
                 dragged_elems.set_xy(elem.position().xy());
-                dragged_elems.add_child(&elem.elem);
+                cursor.start_drag(&elem.elem);
+                // cursor.model.view.add_child(&elem.elem);
+                // let scene = scene();
+                // let camera = scene.camera();
+                // let zoom = camera.zoom();
+                //
+                // let p1 = cursor.global_position().xy();
+                // let p2 = elem.global_position().xy();
+                // elem.elem.set_scale_xy((zoom, zoom));
+                // elem.elem.set_xy(p2 - p1);
+
                 self.dragged_item = Some(elem.elem);
                 self.recompute_margins();
                 self.redraw_items(layouted_elems);
@@ -649,7 +661,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// Place the currently dragged element in the given index. The item will be enclosed in the
     /// [`Item`] object, will handles its animation. See the documentation of
     /// [`ItemOrPlaceholder`] to learn more.
-    fn place_dragged_item(&mut self, index: usize) {
+    fn place_dragged_item(&mut self, cursor: &Cursor, index: usize) {
         if let Some(item) = self.dragged_item.take() {
             self.items.collapse_all_placeholders();
             let prev_index = index.checked_sub(1);
@@ -660,9 +672,10 @@ impl<T: display::Object + frp::node::Data> Model<T> {
                 placeholder.reuse();
                 // TODO: describe
                 placeholder.set_target_size(placeholder.computed_size().x);
+                cursor.stop_drag();
                 let placeholder_position = placeholder.global_position().xy();
                 let item_position = item.global_position().xy();
-                item.set_xy(item_position - placeholder_position);
+                item.update_xy(|t| t - placeholder_position);
                 let spot = Item::new_from_placeholder(item, placeholder);
                 let spot_frp = spot.frp.clone_ref();
                 self.items[index] = ItemOrPlaceholder::Item(spot);
@@ -696,14 +709,14 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         dragged_elems: &display::object::Instance,
         index: Index,
     ) {
-        if let Some(item_index) = self.elem_index_to_item_index(index) {
-            self.set_as_dragged_item2(layouted_elems, dragged_elems, item_index);
-            self.trash_dragged_item();
-            self.items.collapse_all_placeholders();
-            self.recompute_margins();
-        } else {
-            warn!("Wrong index.");
-        }
+        // if let Some(item_index) = self.elem_index_to_item_index(index) {
+        //     self.set_as_dragged_item2(layouted_elems, dragged_elems, item_index);
+        //     self.trash_dragged_item();
+        //     self.items.collapse_all_placeholders();
+        //     self.recompute_margins();
+        // } else {
+        //     warn!("Wrong index.");
+        // }
     }
 
 

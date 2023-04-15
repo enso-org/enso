@@ -211,6 +211,7 @@ crate::define_endpoints_2! {
 pub struct CursorModel {
     pub scene:          Scene,
     pub display_object: display::object::Instance,
+    pub dragged_elem:   display::object::Instance,
     pub view:           shape::View,
     pub port_selection: shape::View,
     pub style:          Rc<RefCell<Style>>,
@@ -221,18 +222,20 @@ impl CursorModel {
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
         let display_object = display::object::Instance::new();
+        let dragged_elem = display::object::Instance::new();
         let view = shape::View::new();
         let port_selection = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);
         display_object.add_child(&port_selection);
+        view.add_child(&dragged_elem);
         let tgt_layer = &scene.layers.cursor;
         let port_selection_layer = &scene.layers.port_selection;
         tgt_layer.add(&view);
         port_selection_layer.add(&port_selection);
 
-        Self { scene, display_object, view, port_selection, style }
+        Self { scene, display_object, dragged_elem, view, port_selection, style }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
@@ -252,8 +255,8 @@ impl CursorModel {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Cursor {
-    pub frp: Frp,
-    model:   Rc<CursorModel>,
+    pub frp:   Frp,
+    pub model: Rc<CursorModel>,
 }
 
 impl Cursor {
@@ -497,6 +500,28 @@ impl Cursor {
         frp.set_style.emit(Style::default());
         let model = Rc::new(model);
         Cursor { frp, model }
+    }
+
+    pub fn start_drag(&self, target: impl display::Object) {
+        let target = target.display_object();
+        self.model.dragged_elem.add_child(target);
+        let target_position = target.global_position().xy();
+        let cursor_position = self.frp.scene_position.value().xy();
+        target.set_xy(target_position - cursor_position);
+
+        let scene = scene();
+        let camera = scene.camera();
+        let zoom = camera.zoom();
+        self.model.dragged_elem.set_scale_xy((zoom, zoom));
+    }
+
+    pub fn stop_drag(&self) -> Vec<display::object::Instance> {
+        let elems = self.model.dragged_elem.remove_all_children();
+        let cursor_position = self.frp.scene_position.value().xy();
+        for elem in &elems {
+            elem.update_xy(|t| t + cursor_position);
+        }
+        elems
     }
 }
 
