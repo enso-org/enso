@@ -20,11 +20,71 @@ use std::collections::BTreeSet;
 // =============
 
 newtype_prim! {
-    /// Index of an attribute instance in a buffer.
-    InstanceIndex(usize);
-
     /// Index of a buffer.
     BufferIndex(usize);
+}
+
+/// Index of an attribute instance in a buffer.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Display, CloneRef)]
+pub struct InstanceIndex {
+    /// Raw value.
+    raw: usize,
+}
+
+/// Sentinel value used to identify references to deallocated instances.
+///
+/// If this is `None`, accesses will not be validated; if it is `Some(value)`, the value must not
+/// collide with any actual index.
+#[cfg(debug_assertions)]
+const FREED_INDEX: Option<usize> = Some(usize::MAX);
+#[cfg(not(debug_assertions))]
+const FREED_INDEX: Option<usize> = None;
+
+impl InstanceIndex {
+    /// Return the value, unless it is a freed-entry marker.
+    #[inline(always)]
+    pub fn raw(self) -> Option<usize> {
+        self.is_valid().then_some(self.raw)
+    }
+
+    /// Return a reference to the value for mutation, unless it is a freed-entry marker.
+    #[inline(always)]
+    fn raw_mut(&mut self) -> Option<&mut usize> {
+        self.is_valid().then_some(&mut self.raw)
+    }
+
+    /// Return true if this value is not the [`FREED_INDEX`] sentinel.
+    #[inline(always)]
+    fn is_valid(self) -> bool {
+        match FREED_INDEX {
+            Some(sentinel) => self.raw != sentinel,
+            None => true,
+        }
+    }
+
+    /// Return the value; it must be live.
+    #[inline(always)]
+    pub fn valid_index(self) -> usize {
+        debug_assert!(self.is_valid());
+        if self.is_valid() {
+            self.raw
+        } else {
+            #[cold]
+            #[inline(never)]
+            fn report_access_error() {
+                error!("InstanceIndex used after free.");
+            }
+            report_access_error();
+            0
+        }
+    }
+}
+
+impl From<Option<usize>> for InstanceIndex {
+    fn from(value: Option<usize>) -> Self {
+        let raw = value.or(FREED_INDEX).unwrap_or_default();
+        Self { raw }
+    }
 }
 
 /// Stable identifier of an instance in a buffer.
@@ -143,11 +203,14 @@ impl {
     /// be set to default.
     pub fn dispose(&mut self, id:InstanceId) {
         debug_span!("Disposing instance {id}.").in_scope(|| {
-            let ix = self.indexes.borrow()[id.raw];
-            for buffer in &self.buffers {
-                buffer.set_to_default(ix.into())
+            let ix = self.indexes.borrow()[id.raw].raw();
+            debug_assert_ne!(ix, None);
+            if let Some(ix) = ix {
+                for buffer in &self.buffers {
+                    buffer.set_to_default(ix)
+                }
+                self.free(ix);
             }
-            self.free(ix);
         })
     }
 
@@ -155,8 +218,7 @@ impl {
     pub fn update(&mut self) {
         debug_span!("Updating.").in_scope(|| {
             if self.used_size * 2 < self.size() {
-                // FIXME
-                // self.shrink_to_fit();
+                self.shrink_to_fit();
             }
             if self.shape_dirty.check() {
                 for i in 0..self.buffers.len() {
@@ -224,9 +286,9 @@ impl {
                 buffer.insert_elements(partition_orig_end, partition_increment);
             }
             // Update shifted entries in the id->index map.
-            for index in &mut *self.indexes.borrow_mut() {
-                if index.raw >= partition_orig_end {
-                    index.raw += partition_increment;
+            for index in self.indexes.borrow_mut().iter_mut().filter_map(|index| index.raw_mut()) {
+                if *index >= partition_orig_end {
+                    *index += partition_increment;
                 }
             }
             // Add new space to the freelist.
@@ -247,34 +309,37 @@ impl {
         InstanceIndex { raw: self.partitions[partition.index].start + i }
     }
 
-    /// Free the storage at the specified index.
-    fn free(&mut self, index: InstanceIndex) {
+    /// Free the storage at the specified instance-index.
+    fn free(&mut self, index: usize) {
         let partition = self.partitions.iter_mut().find(
-            |partition| index.raw < partition.start + partition.len).unwrap();
-        partition.free.insert(index.raw - partition.start);
+            |partition| index < partition.start + partition.len).unwrap();
+        partition.free.insert(index - partition.start);
         self.used_size -= 1;
     }
 
     /// Compact the buffers to the size of the used elements. This operation is stable: The order of
     /// elements will not be affected.
     fn shrink_to_fit(&mut self) {
+        const NO_ALLOCATION: isize = -1;
         // Drain all the freelists, build relocation table; update starts and lengths.
         let mut relocations = Vec::new();
         relocations.resize(self.size(), 0);
         let mut new_locations = relocations.iter_mut();
         let mut next_slot = 0;
         for partition in &mut self.partitions {
-            let orig_start = mem::replace(&mut partition.start, next_slot);
+            partition.start = next_slot;
             for i in 0..partition.len {
-                *new_locations.next().unwrap() = if !partition.free.contains(&(orig_start + i)) {
+                *new_locations.next().unwrap() = if !partition.free.contains(&i) {
                     let current_slot = next_slot;
                     next_slot += 1;
                     current_slot as isize
                 } else {
-                    -1
+                    NO_ALLOCATION
                 };
             }
-            partition.len = next_slot - orig_start;
+            let orig_partition_len = partition.len;
+            partition.len = next_slot - partition.start;
+            debug_assert_eq!(partition.len, orig_partition_len - partition.free.len());
             partition.free.clear();
         }
         self.used_size = next_slot;
@@ -285,7 +350,12 @@ impl {
         }
         // Update the id->index map.
         for index in &mut *self.indexes.borrow_mut() {
-            index.raw = relocations[index.raw] as usize;
+            if let Some(i) = index.raw() {
+                *index = (match relocations.get(i).copied() {
+                    None | Some(NO_ALLOCATION) => None,
+                    Some(valid) => Some(valid as usize),
+                }).into();
+            }
         }
     }
 
@@ -400,5 +470,141 @@ impl<T: Erase> EraseOnDrop<T> {
 impl<T: Erase> Drop for EraseOnDrop<T> {
     fn drop(&mut self) {
         self.elem.erase()
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod allocator_tests {
+    use super::*;
+
+    enum Op {
+        Alloc { partition: usize, count: usize },
+        Free { partition: usize, count: usize },
+    }
+
+    #[test]
+    fn test_single_partition() {
+        let steps = [
+            Op::Alloc { partition: 0, count: 23 },
+            Op::Free { partition: 0, count: 15 },
+            Op::Alloc { partition: 0, count: 16 },
+            Op::Free { partition: 0, count: 4 },
+            Op::Alloc { partition: 0, count: 42 },
+            Op::Free { partition: 0, count: 8 },
+        ];
+        check_allocator(1, &steps);
+    }
+
+    #[test]
+    fn test_multiple_partitions() {
+        let steps = [
+            Op::Alloc { partition: 1, count: 23 },
+            Op::Alloc { partition: 0, count: 23 },
+            Op::Free { partition: 0, count: 23 },
+            Op::Alloc { partition: 1, count: 2 },
+            Op::Free { partition: 1, count: 2 },
+            Op::Alloc { partition: 0, count: 23 },
+            Op::Alloc { partition: 1, count: 23 },
+            Op::Free { partition: 0, count: 4 },
+        ];
+        check_allocator(2, &steps);
+    }
+
+    /// Use a PRNG to generate a *deterministic* sequence of operations to test.
+    #[test]
+    fn test_multiple_partitions_random_ops() {
+        use rand::prelude::*;
+        use rand_chacha::ChaCha8Rng;
+        let mut rng = ChaCha8Rng::seed_from_u64(0);
+        let mut partition_counts = [0, 0];
+        let random_valid_op = |_| {
+            let partition = rng.gen::<bool>() as usize;
+            let count = rng.gen::<u8>() as usize;
+            match rng.gen() {
+                false => {
+                    partition_counts[partition] += count;
+                    Op::Alloc { partition, count }
+                }
+                true => {
+                    let count = std::cmp::min(count, partition_counts[partition]);
+                    partition_counts[partition] -= count;
+                    Op::Free { partition, count }
+                }
+            }
+        };
+        let steps = (0..1000).map(random_valid_op).collect_vec();
+        check_allocator(2, &steps);
+    }
+
+    fn check_allocator(partitions: usize, steps: impl IntoIterator<Item = &Op>) {
+        use enso_web::traits::WindowOps;
+        let stats = Stats::new(enso_web::window.performance_or_panic());
+        let scope = AttributeScope::new(&stats, || ());
+        let mut instances: Vec<Vec<InstanceId>> = default();
+        instances.resize(partitions, default());
+        macro_rules! check_live_instances {
+            () => {{
+                if let Some(freed_index) = FREED_INDEX {
+                    let scope = scope.rc.borrow();
+                    let indexes = scope.indexes.borrow();
+                    for (_partition, instances) in instances.iter().enumerate() {
+                        for instance in instances {
+                            assert_ne!(indexes[instance.raw].raw, freed_index);
+                        }
+                    }
+                }
+            }};
+        }
+        macro_rules! check_unique_locations {
+            () => {{
+                let mut locations_used: HashSet<usize> = default();
+                let scope = scope.rc.borrow();
+                let indexes = scope.indexes.borrow();
+                for (_partition, instances) in instances.iter().enumerate() {
+                    for instance in instances {
+                        if let Some(freed_index) = FREED_INDEX {
+                            assert_ne!(indexes[instance.raw].raw, freed_index);
+                        }
+                        let no_collision = locations_used.insert(indexes[instance.raw].raw);
+                        assert!(no_collision);
+                    }
+                }
+            }};
+        }
+        for step in steps {
+            match step {
+                Op::Alloc { partition, count } => {
+                    for _ in 0..*count {
+                        let instance =
+                            scope.add_instance_at(BufferPartitionId { index: *partition });
+                        instances[*partition].push(instance);
+                        check_live_instances!();
+                    }
+                    check_unique_locations!();
+                }
+                Op::Free { partition, count } => {
+                    for instance_ix in instances[*partition].splice(..count, None) {
+                        scope.dispose(instance_ix);
+                    }
+                    check_live_instances!();
+                    check_unique_locations!();
+                    scope.shrink_to_fit();
+                    check_live_instances!();
+                    check_unique_locations!();
+                }
+            }
+        }
+        for partition_instances in instances {
+            for instance_ix in partition_instances {
+                scope.dispose(instance_ix);
+            }
+        }
+        scope.shrink_to_fit();
     }
 }

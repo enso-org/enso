@@ -1392,6 +1392,80 @@ type Table
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
+    ## Splits a column of text into a set of new columns.
+       The original column will be removed from the table.
+       The new columns will be named with the name of the input column with a
+       incrementing number after.
+
+       Arguments:
+       - column: The name or index of the column to split the text of.
+       - delimiter: The term or terms used to split the text.
+       - column_count: The number of columns to split to.
+         If `Nothing` then columns will be added to fit all data.
+       - on_problems: Specifies the behavior when a problem occurs.
+
+       ! Error Conditions
+         If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
+         be reported according to the `on_problems` behavior.
+    split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
+    split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
+        _ = [column delimiter column_count on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
+
+    ## Splits a column of text into a set of new rows.
+       The values of other columns are repeated for the new rows.
+
+       Arguments:
+       - column: The name or index of the column to split the text of.
+       - delimiter: The term or terms used to split the text.
+       - on_problems: Specifies the behavior when a problem occurs.
+    split_to_rows : Text | Integer -> Text -> Table
+    split_to_rows self column delimiter="," =
+        _ = [column delimiter]
+        Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
+
+    ## Tokenizes a column of text into a set of new columns using a regular
+       expression.
+       If the pattern contains marked groups, the values are concatenated
+       together; otherwise the whole match is returned.
+       The original column will be removed from the table.
+       The new columns will be named with the name of the input column with a
+       incrementing number after.
+
+       Arguments:
+       - column: The name or index of the column to tokenize the text of.
+       - pattern: The pattern used to find within the text.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - column_count: The number of columns to split to.
+         If `Nothing` then columns will be added to fit all data.
+       - on_problems: Specifies the behavior when a problem occurs.
+
+       ! Error Conditions
+         If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
+         be reported according to the `on_problems` behavior.
+    tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
+    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
+        _ = [column pattern case_sensitivity column_count on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
+
+    ## Tokenizes a column of text into a set of new rows using a regular
+       expression.
+       If the pattern contains marked groups, the values are concatenated
+       together; otherwise the whole match is returned.
+       The values of other columns are repeated for the new rows.
+
+       Arguments:
+       - column: The name or index of the column to tokenize the text of.
+       - pattern: The pattern used to find within the text.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - on_problems: Specifies the behavior when a problem occurs.
+    tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Table
+    tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
+        _ = [column pattern case_sensitivity]
+        Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_rows is not implemented yet for the Database backends.")
+
     ## PRIVATE
        UNSTABLE
        Cast the selected columns to a specific type.

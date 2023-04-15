@@ -14,7 +14,7 @@ interface TopBarProps {
     tab: dashboard.Tab
     toggleTab: () => void
     searchVal: string
-    setSearchVal: (searchVal: string) => void
+    setSearchVal: (value: string) => void
 }
 
 /**

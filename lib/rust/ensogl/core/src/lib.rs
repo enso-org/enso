@@ -6,6 +6,7 @@
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(negative_impls)]
+#![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(associated_type_defaults)]
 #![feature(associated_type_bounds)]
 #![feature(cell_update)]
