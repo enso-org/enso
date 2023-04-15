@@ -27,7 +27,7 @@ from project.Data.Boolean import all
 
     ```
     type Comparator T
-        compare : T -> T -> (Ordering|Nothing) ! Incomparable_Values
+        compare : T -> T -> (Ordering|Nothing)
         hash : T -> Integer
     ```
 

@@ -913,8 +913,7 @@ type Vector a
        > Example
          Sorting a vector with elements with different comparators. Values `1`
          and `My_Type` have different comparators. `1` will be sorted before `My_Type`
-         because it has the default comparator, and warning will be attached to
-         the resulting vector.
+         because it has the default comparator.
 
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
