@@ -25,11 +25,9 @@ pub struct Item<T> {
 }
 
 impl<T: display::Object> Item<T> {
-    pub fn new(elem: T, init_width: f32) -> Self {
+    pub fn new(elem: T) -> Self {
         let placeholder = StrongPlaceholder::new();
         let this = Self::new_from_placeholder(elem, placeholder);
-        this.placeholder.set_target_size(init_width);
-        this.placeholder.skip_animation();
         this
     }
 
