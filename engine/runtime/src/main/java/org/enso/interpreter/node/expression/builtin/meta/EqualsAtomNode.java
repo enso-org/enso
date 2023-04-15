@@ -14,7 +14,7 @@ import java.util.Arrays;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.node.expression.builtin.ordering.HasCustomComparatorNode;
+import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -54,7 +54,7 @@ public abstract class EqualsAtomNode extends Node {
           int fieldsLenCached,
       @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true)
           EqualsNode[] fieldEqualsNodes,
-      @Cached HasCustomComparatorNode customComparatorNode,
+      @Cached CustomComparatorNode customComparatorNode,
       @Cached ConditionProfile constructorsNotEqualProfile,
       @CachedLibrary(limit = "5") StructsLibrary structsLib) {
     if (constructorsNotEqualProfile.profile(self.getConstructor() != other.getConstructor())) {
@@ -85,7 +85,7 @@ public abstract class EqualsAtomNode extends Node {
       Atom self,
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
-      @Cached HasCustomComparatorNode customComparatorNode,
+      @Cached CustomComparatorNode customComparatorNode,
       @Cached(value = "customComparatorNode.execute(self)") Type cachedComparator,
       @Cached(value = "findCompareMethod(cachedComparator)", allowUncached = true)
           Function compareFn,

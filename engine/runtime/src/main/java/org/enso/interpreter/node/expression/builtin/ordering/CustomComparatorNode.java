@@ -20,10 +20,10 @@ import org.enso.interpreter.runtime.state.State;
  * in Enso and just call it from this node.
  */
 @GenerateUncached
-public abstract class HasCustomComparatorNode extends Node {
+public abstract class CustomComparatorNode extends Node {
 
-  public static HasCustomComparatorNode getUncached() {
-    return HasCustomComparatorNodeGen.getUncached();
+  public static CustomComparatorNode getUncached() {
+    return CustomComparatorNodeGen.getUncached();
   }
 
   /**
