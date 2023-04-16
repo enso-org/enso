@@ -21,7 +21,7 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, From)]
 pub enum Placeholder {
     Strong(StrongPlaceholder),
     Weak(WeakPlaceholder),
@@ -29,7 +29,11 @@ pub enum Placeholder {
 
 impl Placeholder {
     pub fn new() -> Self {
-        Self::Strong(StrongPlaceholder::new())
+        StrongPlaceholder::new().into()
+    }
+
+    pub fn new_with_size(size: f32) -> Self {
+        StrongPlaceholder::new_with_size(size).into()
     }
 
     pub fn display_object(&self) -> Option<display::object::Instance> {

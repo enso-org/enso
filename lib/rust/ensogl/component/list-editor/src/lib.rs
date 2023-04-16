@@ -45,7 +45,7 @@ const DRAG_THRESHOLD: f32 = 4.0;
 const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
 
 pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
 
@@ -166,6 +166,7 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
         }
     }
 
+    /// Compare the provided display object with the item's one if self is an item.
     pub fn cmp_item_display_object(&self, target: &display::object::Instance) -> bool {
         match self {
             ItemOrPlaceholder::Placeholder(_) => false,
@@ -174,6 +175,17 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
     }
 }
 
+impl<T> From<WeakPlaceholder> for ItemOrPlaceholder<T> {
+    fn from(placeholder: WeakPlaceholder) -> Self {
+        Self::Placeholder(placeholder.into())
+    }
+}
+
+impl<T> From<StrongPlaceholder> for ItemOrPlaceholder<T> {
+    fn from(placeholder: StrongPlaceholder) -> Self {
+        Self::Placeholder(placeholder.into())
+    }
+}
 
 
 // ==================
@@ -323,7 +335,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             eval frp.remove((index) model.borrow_mut().trash_item_at(*index));
 
             // Re-parent the dragged element.
-            eval target_on_start([model, cursor] (t) model.borrow_mut().set_as_dragged_item(&cursor, t));
+            eval target_on_start([model, cursor] (t) model.borrow_mut().start_item_drag(&cursor, t));
             // center_points <- target_on_start.map(f_!(model.borrow().elems_center_points()));
             // trace center_points;
 
@@ -335,19 +347,11 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             insert_index <- pos_non_trash.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
             insert_index_on_drop <- insert_index.sample(&on_up).gate_not(&trashing);
 
-            eval insert_index ([model, cursor] (index) {
-                let mut model = model.borrow_mut();
-                model.potential_insertion_point(&cursor, *index);
-                model.redraw_items();
-            });
+            eval insert_index ([model, cursor] (i) model.borrow_mut().add_insertion_point(&cursor, *i));
 
-            eval insert_index_on_drop ([cursor, model] (index) {
-                let mut model = model.borrow_mut();
-                model.place_dragged_item(&cursor, *index);
-                model.redraw_items();
-            });
-
-
+            eval insert_index_on_drop ([cursor, model] (index)
+                model.borrow_mut().place_dragged_item(&cursor, *index)
+            );
         }
         self
     }
@@ -386,29 +390,20 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn push_item(&mut self, item: T) -> usize {
         let index = self.items.len();
         let item = Item::new(item);
-        self.layout.add_child(&item);
         self.items.push(item.into());
-        self.recompute_margins();
+        self.reposition_items();
         index
     }
 
-    /// Convert all placeholders to their weak versions and start the collapse animation.
-    fn collapse_all_placeholders(&mut self) {
-        for item in &mut self.items {
-            if let ItemOrPlaceholder::Placeholder(placeholder) = item {
-                placeholder.collapse();
-            }
-        }
-    }
-
     /// Remove all items and add them again, in order of their current position.
-    fn redraw_items(&mut self) {
+    fn reposition_items(&mut self) {
         self.retain_non_collapsed_items();
         for item in &self.items {
             if let Some(display_object) = item.display_object() {
                 self.layout.add_child(&display_object);
             }
         }
+        self.recompute_margins();
     }
 
     /// Recompute margins of all elements. The first element that is not a weak placeholder does not
@@ -439,26 +434,70 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     /// Find an element by the provided display object reference.
-    fn item_index_by_display_object(
-        &mut self,
-        target: &display::object::Instance,
-    ) -> Option<ItemOrPlaceholderIndex> {
-        self.items
-            .iter()
-            .enumerate()
-            .find(|t| t.1.cmp_item_display_object(target))
-            .map(|t| t.0.into())
+    fn item_index_of(&mut self, obj: &display::object::Instance) -> Option<ItemOrPlaceholderIndex> {
+        self.items.iter().enumerate().find(|t| t.1.cmp_item_display_object(obj)).map(|t| t.0.into())
     }
 
-    fn elem_index_to_item_index(&mut self, ix: Index) -> Option<ItemOrPlaceholderIndex> {
+    /// Convert the item index to item or placeholder index.
+    fn index_to_item_or_placeholder_index(&mut self, ix: Index) -> Option<ItemOrPlaceholderIndex> {
         self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0.into())
     }
 
-    fn get_upgraded_weak_placeholder(
+    /// Convert all placeholders to their weak versions and start the collapse animation.
+    fn collapse_all_placeholders(&mut self) {
+        for item in &mut self.items {
+            if let ItemOrPlaceholder::Placeholder(placeholder) = item {
+                placeholder.collapse();
+            }
+        }
+    }
+
+    /// Get the placeholder of the provided index if the index points to a strong placeholder or an
+    /// existing weak one.
+    fn get_placeholder_at(
         &self,
         index: ItemOrPlaceholderIndex,
     ) -> Option<(ItemOrPlaceholderIndex, StrongPlaceholder)> {
         self.items.get(index).and_then(|t| t.as_strong_placeholder().map(|t| (index, t)))
+    }
+
+    /// Get the placeholder next to the provided insertion point. In case the insertion point is
+    /// between two placeholders, they will be merged into one. In case the placeholders are weak,
+    /// the final placeholder will be upgraded to a strong one.
+    fn get_merged_placeholder_at(
+        &mut self,
+        index: ItemOrPlaceholderIndex,
+    ) -> Option<(ItemOrPlaceholderIndex, StrongPlaceholder)> {
+        let prev_index = index.checked_sub(ItemOrPlaceholderIndex::from(1));
+        let placeholder1 = prev_index.and_then(|i| self.get_placeholder_at(i));
+        let placeholder2 = self.get_placeholder_at(index);
+        let (placeholder, placeholder_to_merge) = match (placeholder1, placeholder2) {
+            (Some(p1), Some(p2)) => (Some(p1), Some(p2)),
+            (p1, p2) => (p1.or(p2), None),
+        };
+        placeholder.map(|(placeholder_index, placeholder)| {
+            placeholder.reuse();
+            if let Some((placeholder2_index, placeholder2)) = placeholder_to_merge {
+                placeholder2.drop_self_ref();
+                self.items.remove(placeholder2_index);
+                placeholder.update_size(|t| t + placeholder2.computed_size().x);
+            }
+            self.items[placeholder_index] = placeholder.clone().into();
+            (placeholder_index, placeholder)
+        })
+    }
+
+    /// Remove the selected item from the item list and mark it as an element being dragged. In the
+    /// place where the element was a new placeholder will be created or existing placeholder will
+    /// be reused and scaled to cover the size of the dragged element.
+    ///
+    /// See docs of [`Self::start_item_drag_at`] for more information.
+    fn start_item_drag(&mut self, cursor: &Cursor, target: &display::object::Instance) {
+        if let Some(index) = self.item_index_of(target) {
+            self.start_item_drag_at(cursor, index);
+        } else {
+            warn!("Requested to drag a non-existent item.")
+        }
     }
 
     /// Remove the selected item from the item list and mark it as an element being dragged. In the
@@ -500,96 +539,42 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// │  A  │ ┆    ┆ │  X  │ ┆    ┆ │  B  │   ------>   │  A  │ ┆     ╰─────╯  ┆ │  B  │
     /// ╰─────╯ ╰╌╌╌╌╯ ╰─────╯ ╰╌╌╌╌╯ ╰─────╯             ╰─────╯ ╰╌╌╌╌╌╌╌╌╌╌╌╌◀╌╯ ╰─────╯
     /// ```   
-    fn set_as_dragged_item(&mut self, cursor: &Cursor, target: &display::object::Instance) {
-        if let Some(index) = self.item_index_by_display_object(target) {
-            self.set_as_dragged_item2(cursor, index);
-        } else {
-            warn!("Dragged item not found in the item list.")
-        }
-    }
-
-    fn set_as_dragged_item2(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
+    fn start_item_drag_at(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
         match self.items.remove(index) {
-            ItemOrPlaceholder::Item(elem) => {
-                // warn!("set_as_dragged_item");
+            ItemOrPlaceholder::Item(item) => {
                 self.collapse_all_placeholders();
-                let prev_index = index.checked_sub(ItemOrPlaceholderIndex::from(1));
-                let prev_placeholder =
-                    prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i));
-                let next_placeholder = self.get_upgraded_weak_placeholder(index);
-                let (placeholder, placeholder_to_merge) = match (prev_placeholder, next_placeholder)
-                {
-                    (Some(p1), Some(p2)) => (Some(p1), Some(p2)),
-                    (p1, p2) => (p1.or(p2), None),
-                };
-                let size = elem.computed_size().x;
-                if let Some((placeholder_index, placeholder)) = placeholder {
-                    placeholder.reuse();
-                    placeholder.update_size(|t| t + size);
-                    placeholder.set_target_size(size);
-                    if let Some((placeholder2_index, placeholder2)) = placeholder_to_merge {
-                        self.items.remove(placeholder2_index);
-                        placeholder.update_size(|t| t + placeholder2.computed_size().x);
-                        placeholder2.drop_self_ref();
-                    }
-                    self.items[placeholder_index] =
-                        ItemOrPlaceholder::Placeholder(Placeholder::Strong(placeholder));
+                let item_size = item.computed_size().x;
+                if let Some((_, placeholder)) = self.get_merged_placeholder_at(index) {
+                    placeholder.update_size(|t| t + item_size);
+                    placeholder.set_target_size(item_size);
                 } else {
-                    // warn!("inserting new placeholder");
-                    self.items.insert(
-                        index,
-                        ItemOrPlaceholder::Placeholder(Placeholder::Strong(
-                            StrongPlaceholder::new_with_size(size),
-                        )),
-                    );
+                    self.items.insert(index, Placeholder::new_with_size(item_size).into())
                 }
-                cursor.start_drag(elem.elem);
-                // cursor.model.view.add_child(&elem.elem);
-                // let scene = scene();
-                // let camera = scene.camera();
-                // let zoom = camera.zoom();
-                //
-                // let p1 = cursor.global_position().xy();
-                // let p2 = elem.global_position().xy();
-                // elem.elem.set_scale_xy((zoom, zoom));
-                // elem.elem.set_xy(p2 - p1);
-
-                // self.dragged_item = Some(elem.elem);
-                self.recompute_margins();
-                self.redraw_items();
+                cursor.start_drag(item.elem);
+                self.reposition_items();
             }
             item => {
-                warn!("Wrong index.");
                 self.items.insert(index, item);
+                warn!("Trying to use a placeholder index as an element index.");
             }
         }
     }
 
     /// Prepare place for the dragged item by creating or reusing a placeholder and growing it to
     /// the dragged object size.
-    fn potential_insertion_point(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
-        warn!("Potential insertion point: {}.", index);
+    fn add_insertion_point(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
         if let Some(item) = cursor.with_dragged_item_if_is::<T, _>(|t| t.display_object().clone()) {
             self.collapse_all_placeholders();
-
             let gap = self.first_item_index().map_or(0.0, |i| if index <= i { 0.0 } else { GAP });
-            warn!("first_item_index: {:?}, gap: {}", self.first_item_index(), gap);
-            let size = item.computed_size().x + gap;
-            let prev_index = index.checked_sub(ItemOrPlaceholderIndex::from(1));
-            let old_placeholder = self
-                .get_upgraded_weak_placeholder(index)
-                .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
-            if let Some((index, placeholder)) = old_placeholder {
-                placeholder.reuse();
-                placeholder.set_target_size(size);
-                self.items[index] = Placeholder::Strong(placeholder).into();
+            let item_size = item.computed_size().x + gap;
+            if let Some((_, placeholder)) = self.get_merged_placeholder_at(index) {
+                placeholder.set_target_size(item_size);
             } else {
-                // warn!("NEW PLACEHOLDER!");
-                let placeholder = StrongPlaceholder::new_with_size(0.0);
-                placeholder.set_target_size(size);
-                self.items.insert(index, Placeholder::Strong(placeholder).into());
+                let placeholder = StrongPlaceholder::new();
+                placeholder.set_target_size(item_size);
+                self.items.insert(index, placeholder.into());
             }
-            self.recompute_margins();
+            self.reposition_items();
         } else {
             warn!("Called function to find insertion point while no element is being dragged.")
         }
@@ -601,29 +586,22 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn place_dragged_item(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
         if let Some(item) = cursor.stop_drag_if_is::<T>() {
             self.collapse_all_placeholders();
-            let prev_index = index.checked_sub(ItemOrPlaceholderIndex::from(1));
-            let placeholder = self
-                .get_upgraded_weak_placeholder(index)
-                .or_else(|| prev_index.and_then(|i| self.get_upgraded_weak_placeholder(i)));
-            if let Some((index, placeholder)) = placeholder {
-                placeholder.reuse();
-                // TODO: describe
+            if let Some((index, placeholder)) = self.get_merged_placeholder_at(index) {
                 placeholder.set_target_size(placeholder.computed_size().x);
-                // let item = cursor.stop_drag();
                 let placeholder_position = placeholder.global_position().xy();
                 item.update_xy(|t| t - placeholder_position);
                 let spot = Item::new_from_placeholder(item, placeholder);
                 self.items[index] = ItemOrPlaceholder::Item(spot);
-                self.recompute_margins();
             } else {
                 // This branch should never be reached, as when dragging an element we always create
-                // a placeholder for it (see the [`potential_insertion_point`] function). However,
+                // a placeholder for it (see the [`add_insertion_point`] function). However,
                 // in case something breaks, we want it to still provide the user with the correct
                 // outcome.
                 // self.items.insert(index, ItemOrPlaceholder::Regular(item));
                 warn!("An element was inserted without a placeholder. This should not happen.");
                 panic!();
             }
+            self.reposition_items();
             // self.items.collapse_all_placeholders();
             // self.recompute_margins();
         } else {
@@ -638,8 +616,8 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     pub fn trash_item_at(&mut self, index: Index) {
-        // if let Some(item_index) = self.elem_index_to_item_index(index) {
-        //     self.set_as_dragged_item2(layout, item_index);
+        // if let Some(item_index) = self.index_to_item_or_placeholder_index(index) {
+        //     self.start_item_drag_at(layout, item_index);
         //     self.trash_dragged_item();
         //     self.items.collapse_all_placeholders();
         //     self.recompute_margins();
@@ -730,6 +708,7 @@ mod trash {
         }
     }
 }
+use crate::placeholder::WeakPlaceholder;
 use trash::Trash;
 
 
