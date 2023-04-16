@@ -117,6 +117,17 @@ public abstract class TestBase {
   }
 
   /**
+   * Parses the given module and returns a method by the given name from the module.
+   *
+   * @param moduleSrc Source of the whole module
+   * @return Reference to the method.
+   */
+  protected static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
+    Value module = ctx.eval(Source.create("enso", moduleSrc));
+    return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+  }
+
+  /**
    * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root
    * node inside a context, all the other nodes, and insert them via {@link
    * #insertChildren(Node...)}.

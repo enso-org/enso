@@ -252,7 +252,6 @@ class RuntimeStdlibTest
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(
               module,
-              _,
               actions,
               _,
               updates

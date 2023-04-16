@@ -360,7 +360,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
@@ -477,7 +477,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -492,7 +492,8 @@ class RuntimeVisualizationsTest
           contextId,
           Some(
             Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
-          )
+          ),
+          None
         )
       )
     )
@@ -1223,7 +1224,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveNIgnoreExpressionUpdates(
       2
@@ -1240,7 +1241,8 @@ class RuntimeVisualizationsTest
           contextId,
           Some(
             Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
-          )
+          ),
+          None
         )
       )
     )
@@ -2457,7 +2459,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
@@ -2586,7 +2588,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
@@ -2759,7 +2761,7 @@ class RuntimeVisualizationsTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
 
     val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)

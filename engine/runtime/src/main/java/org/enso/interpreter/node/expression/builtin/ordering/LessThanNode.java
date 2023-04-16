@@ -116,21 +116,13 @@ public abstract class LessThanNode extends Node {
   @Specialization
   @TruffleBoundary
   boolean lessLongBigInt(long self, EnsoBigInteger other) {
-    if (BigIntegerOps.fitsInLong(other.getValue())) {
-      return BigInteger.valueOf(self).compareTo(other.getValue()) < 0;
-    } else {
-      return true;
-    }
+    return BigInteger.valueOf(self).compareTo(other.getValue()) < 0;
   }
 
   @Specialization
   @TruffleBoundary
   boolean lessBigIntLong(EnsoBigInteger self, long other) {
-    if (BigIntegerOps.fitsInLong(self.getValue())) {
-      return self.getValue().compareTo(BigInteger.valueOf(other)) < 0;
-    } else {
-      return false;
-    }
+    return self.getValue().compareTo(BigInteger.valueOf(other)) < 0;
   }
 
   /**

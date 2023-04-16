@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -9,11 +10,11 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
@@ -26,6 +27,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     name = "type_of",
     description = "Returns the type of a value.",
     autoRegister = false)
+@GenerateUncached
 public abstract class TypeOfNode extends Node {
 
   public abstract Object execute(@AcceptsError Object value);
@@ -178,9 +180,11 @@ public abstract class TypeOfNode extends Node {
   @Fallback
   @CompilerDirectives.TruffleBoundary
   Object doAny(Object value) {
-    return EnsoContext.get(this)
-        .getBuiltins()
-        .error()
-        .makeCompileError("unknown type_of for " + value);
+    return DataflowError.withoutTrace(
+        EnsoContext.get(this)
+            .getBuiltins()
+            .error()
+            .makeCompileError("unknown type_of for " + value),
+        this);
   }
 }

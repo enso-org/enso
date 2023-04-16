@@ -39,3 +39,15 @@ Cargo.toml
 # This section should be amended once the engine moves to /app/engine
 /distribution/lib/ @jdunkerley @radeusgd
 /std-bits/ @jdunkerley @radeusgd
+
+# Cloud Dashboard & Authentication
+/app/ide-desktop/dashboard @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/content @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/client @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/types @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/common @PabloBuchu @indiv0 @somebody1234
+
+# Eslint configuration
+/app/ide-desktop/esbuild-plugin-copy-directories @somebody1234
+/app/ide-desktop/eslint.config.js @somebody1234
+/app/ide-desktop/utils.ts @somebody1234
