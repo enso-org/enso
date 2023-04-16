@@ -17,6 +17,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.dsl.AcceptsError;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -279,15 +280,16 @@ public abstract class EqualsComplexNode extends Node {
       @CachedLibrary("selfArray") InteropLibrary selfInterop,
       @CachedLibrary("otherArray") InteropLibrary otherInterop,
       @Cached EqualsNode equalsNode,
-      @Cached CustomComparatorNode hasCustomComparatorNode) {
+      @Cached CustomComparatorNode hasCustomComparatorNode,
+      @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
       if (selfSize != otherInterop.getArraySize(otherArray)) {
         return false;
       }
       for (long i = 0; i < selfSize; i++) {
-        Object selfElem = selfInterop.readArrayElement(selfArray, i);
-        Object otherElem = otherInterop.readArrayElement(otherArray, i);
+        Object selfElem = valueToEnsoNode.execute(selfInterop.readArrayElement(selfArray, i));
+        Object otherElem = valueToEnsoNode.execute(otherInterop.readArrayElement(otherArray, i));
         boolean elemsAreEqual = equalsNode.execute(selfElem, otherElem);
         if (!elemsAreEqual) {
           return false;
@@ -313,7 +315,8 @@ public abstract class EqualsComplexNode extends Node {
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
       @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
-      @Cached EqualsNode equalsNode) {
+      @Cached EqualsNode equalsNode,
+      @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
       int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
@@ -324,10 +327,12 @@ public abstract class EqualsComplexNode extends Node {
       while (entriesInterop.hasIteratorNextElement(selfEntriesIter)) {
         Object selfKeyValue = entriesInterop.getIteratorNextElement(selfEntriesIter);
         Object key = entriesInterop.readArrayElement(selfKeyValue, 0);
-        Object selfValue = entriesInterop.readArrayElement(selfKeyValue, 1);
+        Object selfValue =
+            valueToEnsoNode.execute(entriesInterop.readArrayElement(selfKeyValue, 1));
         if (otherInterop.isHashEntryExisting(otherHashMap, key)
             && otherInterop.isHashEntryReadable(otherHashMap, key)) {
-          Object otherValue = otherInterop.readHashValue(otherHashMap, key);
+          Object otherValue =
+              valueToEnsoNode.execute(otherInterop.readHashValue(otherHashMap, key));
           if (!equalsNode.execute(selfValue, otherValue)) {
             return false;
           }
@@ -354,7 +359,8 @@ public abstract class EqualsComplexNode extends Node {
       Object otherObject,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
-      @Cached EqualsNode equalsNode) {
+      @Cached EqualsNode equalsNode,
+      @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       Object selfMembers = interop.getMembers(selfObject);
       Object otherMembers = interop.getMembers(otherObject);
@@ -380,8 +386,10 @@ public abstract class EqualsComplexNode extends Node {
       for (int i = 0; i < membersSize; i++) {
         if (interop.isMemberReadable(selfObject, memberNames[i])
             && interop.isMemberReadable(otherObject, memberNames[i])) {
-          Object selfMember = interop.readMember(selfObject, memberNames[i]);
-          Object otherMember = interop.readMember(otherObject, memberNames[i]);
+          Object selfMember =
+              valueToEnsoNode.execute(interop.readMember(selfObject, memberNames[i]));
+          Object otherMember =
+              valueToEnsoNode.execute(interop.readMember(otherObject, memberNames[i]));
           if (!equalsNode.execute(selfMember, otherMember)) {
             return false;
           }
