@@ -1,7 +1,10 @@
+from project.Data.Boolean import False
+
 @Builtin_Type
 type Any
     catch_primitive handler = @Builtin_Method "Any.catch_primitive"
     to_text self = @Builtin_Method "Any.to_text"
     to_display_text self = @Builtin_Method "Any.to_display_text"
     == self other = @Builtin_Method "Any.=="
+    is_error self = False
 

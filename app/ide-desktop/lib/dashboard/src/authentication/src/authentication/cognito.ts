@@ -223,6 +223,16 @@ export class Cognito {
         return forgotPasswordSubmit(email, code, password)
     }
 
+    /** Change a password for current authenticated user.
+     *
+     * Allow users to independently modify their passwords. The user needs to provide the old
+     * password, new password, and repeat new password to change their old password to the new
+     * one. The validation of the repeated new password is handled by the `changePasswordModel`
+     * component. */
+    changePassword(oldPassword: string, newPassword: string) {
+        return changePassword(oldPassword, newPassword)
+    }
+
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
      * redirected back to the application after signing in via an external identity provider. This
      * is done so we get a chance to fix the location history. The location history is the history
@@ -581,5 +591,32 @@ async function signOut(logger: loggerProvider.Logger) {
         logger.error('Sign out failed', error)
     } finally {
         await amplify.Auth.signOut()
+    }
+}
+
+// ======================
+// === ChangePassword ===
+// ======================
+
+async function currentAuthenticatedUser() {
+    const result = await results.Result.wrapAsync(
+        /** The interface provided by Amplify declares that the return type is `Promise<CognitoUser | any>`,
+         * but TypeScript automatically converts it to `Promise<any>`. Therefore, it is necessary to use
+         * `as` to narrow down the type to `Promise<CognitoUser>`. */
+        // eslint-disable-next-line no-restricted-syntax
+        () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
+    )
+    return result.mapErr(intoAmplifyErrorOrThrow)
+}
+
+async function changePassword(oldPassword: string, newPassword: string) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+        const cognitoUser = cognitoUserResult.unwrap()
+        return results.Result.wrapAsync(async () => {
+            await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+        }).then(result => result.mapErr(intoAmplifyErrorOrThrow))
+    } else {
+        return results.Err(cognitoUserResult.val)
     }
 }

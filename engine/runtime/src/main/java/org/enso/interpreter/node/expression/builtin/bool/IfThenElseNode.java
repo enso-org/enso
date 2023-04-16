@@ -12,12 +12,13 @@ import org.enso.interpreter.runtime.state.State;
     type = "Boolean",
     name = "if_then_else",
     description = "Performs the standard if-then-else control flow operation.")
-public class IfThenElseNode extends Node {
+public final class IfThenElseNode extends Node {
   private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();
   private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
 
-  Object execute(State state, boolean self, @Suspend Object if_true, @Suspend Object if_false) {
+  public Object execute(
+      State state, boolean self, @Suspend Object if_true, @Suspend Object if_false) {
     if (condProfile.profile(self)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {
