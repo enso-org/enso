@@ -42,10 +42,10 @@ use placeholder::StrongPlaceholder;
 const DRAG_THRESHOLD: f32 = 4.0;
 
 // FIXME: to be parametrized
-const GAP: f32 = 10.0;
+const GAP: f32 = 20.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
 pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
 
@@ -151,10 +151,18 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
 
     /// Get the target size of this item or placeholder. The current size can be different if the
     /// size animation is running.
-    pub fn target_size(&self) -> f32 {
+    pub fn target_size2(&self) -> f32 {
         match self {
             ItemOrPlaceholder::Placeholder(t) => t.target_size(),
-            ItemOrPlaceholder::Item(t) => t.placeholder.target_size.value(),
+            ItemOrPlaceholder::Item(t) =>
+                t.placeholder.target_size.value() - t.frp.margin_left.value(),
+        }
+    }
+
+    pub fn margin_left(&self) -> f32 {
+        match self {
+            ItemOrPlaceholder::Placeholder(t) => 0.0,
+            ItemOrPlaceholder::Item(t) => t.frp.margin_left.value(),
         }
     }
 
@@ -228,6 +236,7 @@ pub struct ListEditor<T: frp::node::Data> {
 #[derive(Debug)]
 pub struct Model<T> {
     items:  VecIndexedBy<ItemOrPlaceholder<T>, ItemOrPlaceholderIndex>,
+    root:   display::object::Instance,
     layout: display::object::Instance,
 }
 
@@ -235,9 +244,11 @@ impl<T> Model<T> {
     /// Constructor.
     pub fn new() -> Self {
         let items = default();
+        let root = display::object::Instance::new();
         let layout = display::object::Instance::new();
         layout.use_auto_layout();
-        Self { items, layout }
+        root.add_child(&layout);
+        Self { items, root, layout }
     }
 }
 
@@ -251,9 +262,8 @@ impl<T> Default for Model<T> {
 impl<T: display::Object + frp::node::Data> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
         let frp = Frp::new();
-        let root = display::object::Instance::new();
         let model = Model::new();
-        root.add_child(&model.layout);
+        let root = model.root.clone_ref();
         let add_elem_icon = Rectangle().build(|t| {
             t.set_size(Vector2::new(20.0, 20.0))
                 .set_color(color::Rgba::new(0.0, 1.0, 0.0, 1.0))
@@ -280,7 +290,6 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         let scene = scene();
         let frp = &self.frp;
         let network = self.frp.network();
-        let root = &self.root;
         let model = &self.model;
 
         let add_elem_icon_down = self.add_elem_icon.on_event::<mouse::Down>();
@@ -311,10 +320,10 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             target_pos_on_down <- target.map(|t| t.xy());
             pressed <- bool(&on_up, &on_down);
             glob_pos_on_down <- on_down.map(|event| event.client_centered());
-            pos_on_down <- glob_pos_on_down.map(f!([root, model] (p) model.borrow().screen_to_object_space(&root, *p)));
+            pos_on_down <- glob_pos_on_down.map(f!([model] (p) model.borrow().screen_to_object_space(*p)));
             on_move_pressed <- on_move.gate(&pressed);
             glob_pos_on_move <- on_move_pressed.map(|event| event.client_centered());
-            pos_on_move <- glob_pos_on_move.map(f!([root, model] (p) model.borrow().screen_to_object_space(&root, *p)));
+            pos_on_move <- glob_pos_on_move.map(f!([model] (p) model.borrow().screen_to_object_space(*p)));
             pos_offset_on_move <- map2(&pos_on_move, &pos_on_down, |a, b| a - b);
 
             // Discover whether the elements are dragged. They need to be moved vertically by at
@@ -329,14 +338,17 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             on_trashing <- trashing.on_true();
             on_trash <- on_up.gate(&trashing);
             eval trashing ((t) cursor.frp.set_style(if *t { cursor::Style::trash() } else { cursor::Style::default() }));
-            eval_ on_trashing (model.borrow_mut().collapse_all_placeholders());
-            eval_ on_trash ([model, cursor, root] model.borrow_mut().trash_dragged_item(&cursor, &root));
+            eval_ on_trashing ([model] {
+                model.borrow_mut().collapse_all_placeholders();
+                model.borrow_mut().recompute_margins();
+            });
+            eval_ on_trash ([model, cursor] model.borrow_mut().trash_dragged_item(&cursor));
 
             eval frp.remove((index) model.borrow_mut().trash_item_at(*index));
 
             // Re-parent the dragged element.
             eval target_on_start([model, cursor] (t) model.borrow_mut().start_item_drag(&cursor, t));
-            // center_points <- target_on_start.map(f_!(model.borrow().elems_center_points()));
+            // center_points <- target_on_start.map(f_!(model.borrow().center_points()));
             // trace center_points;
 
             // Move the dragged element.
@@ -367,16 +379,12 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
 
 impl<T: display::Object + frp::node::Data> Model<T> {
     // FIXME: refactor and generalize
-    fn screen_to_object_space(
-        &self,
-        display_object: &display::object::Instance,
-        screen_pos: Vector2,
-    ) -> Vector2 {
+    fn screen_to_object_space(&self, screen_pos: Vector2) -> Vector2 {
         let scene = scene();
         let camera = scene.camera();
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = display_object.transformation_matrix().try_inverse().unwrap();
+        let inv_object_matrix = self.root.transformation_matrix().try_inverse().unwrap();
 
         let shape = scene.frp.shape.value();
         let clip_space_z = origin_clip_space.z;
@@ -428,6 +436,12 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         self.items.iter().enumerate().find(|(_, t)| t.is_item()).map(|(i, _)| i.into())
     }
 
+    /// Get the margin at the given insertion point. If the insertion point is before the first
+    /// item, the margin will be 0.
+    fn margin_at(&self, index: ItemOrPlaceholderIndex) -> f32 {
+        self.first_item_index().map_or(0.0, |i| if index <= i { 0.0 } else { GAP })
+    }
+
     /// Retain only items and placeholders that did not collapse yet (both strong and weak ones).
     fn retain_non_collapsed_items(&mut self) {
         self.items.retain(|item| item.exists());
@@ -464,7 +478,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// Get the placeholder next to the provided insertion point. In case the insertion point is
     /// between two placeholders, they will be merged into one. In case the placeholders are weak,
     /// the final placeholder will be upgraded to a strong one.
-    fn get_merged_placeholder_at(
+    fn get_indexed_merged_placeholder_at(
         &mut self,
         index: ItemOrPlaceholderIndex,
     ) -> Option<(ItemOrPlaceholderIndex, StrongPlaceholder)> {
@@ -485,6 +499,14 @@ impl<T: display::Object + frp::node::Data> Model<T> {
             self.items[placeholder_index] = placeholder.clone().into();
             (placeholder_index, placeholder)
         })
+    }
+
+    /// Non-indexed version of [`Self::get_indexed_merged_placeholder_at`].
+    fn get_merged_placeholder_at(
+        &mut self,
+        index: ItemOrPlaceholderIndex,
+    ) -> Option<StrongPlaceholder> {
+        self.get_indexed_merged_placeholder_at(index).map(|t| t.1)
     }
 
     /// Remove the selected item from the item list and mark it as an element being dragged. In the
@@ -540,22 +562,29 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// ╰─────╯ ╰╌╌╌╌╯ ╰─────╯ ╰╌╌╌╌╯ ╰─────╯             ╰─────╯ ╰╌╌╌╌╌╌╌╌╌╌╌╌◀╌╯ ╰─────╯
     /// ```   
     fn start_item_drag_at(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
+        if let Some(item) = self.replace_item_with_placeholder(index) {
+            cursor.start_drag(item);
+        }
+    }
+
+    fn replace_item_with_placeholder(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {
         match self.items.remove(index) {
             ItemOrPlaceholder::Item(item) => {
                 self.collapse_all_placeholders();
                 let item_size = item.computed_size().x;
-                if let Some((_, placeholder)) = self.get_merged_placeholder_at(index) {
+                if let Some(placeholder) = self.get_merged_placeholder_at(index) {
                     placeholder.update_size(|t| t + item_size);
                     placeholder.set_target_size(item_size);
                 } else {
                     self.items.insert(index, Placeholder::new_with_size(item_size).into())
                 }
-                cursor.start_drag(item.elem);
                 self.reposition_items();
+                Some(item.elem)
             }
             item => {
-                self.items.insert(index, item);
                 warn!("Trying to use a placeholder index as an element index.");
+                self.items.insert(index, item);
+                None
             }
         }
     }
@@ -565,15 +594,13 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn add_insertion_point(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
         if let Some(item) = cursor.with_dragged_item_if_is::<T, _>(|t| t.display_object().clone()) {
             self.collapse_all_placeholders();
-            let gap = self.first_item_index().map_or(0.0, |i| if index <= i { 0.0 } else { GAP });
-            let item_size = item.computed_size().x + gap;
-            if let Some((_, placeholder)) = self.get_merged_placeholder_at(index) {
-                placeholder.set_target_size(item_size);
-            } else {
+            let item_size = item.computed_size().x + self.margin_at(index);
+            let placeholder = self.get_merged_placeholder_at(index).unwrap_or_else(|| {
                 let placeholder = StrongPlaceholder::new();
-                placeholder.set_target_size(item_size);
-                self.items.insert(index, placeholder.into());
-            }
+                self.items.insert(index, placeholder.clone().into());
+                placeholder
+            });
+            placeholder.set_target_size(item_size);
             self.reposition_items();
         } else {
             warn!("Called function to find insertion point while no element is being dragged.")
@@ -584,77 +611,74 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// [`Item`] object, will handles its animation. See the documentation of
     /// [`ItemOrPlaceholder`] to learn more.
     fn place_dragged_item(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
-        if let Some(item) = cursor.stop_drag_if_is::<T>() {
+        if let Some(element) = cursor.stop_drag_if_is::<T>() {
             self.collapse_all_placeholders();
-            if let Some((index, placeholder)) = self.get_merged_placeholder_at(index) {
+            if let Some((index, placeholder)) = self.get_indexed_merged_placeholder_at(index) {
                 placeholder.set_target_size(placeholder.computed_size().x);
-                let placeholder_position = placeholder.global_position().xy();
-                item.update_xy(|t| t - placeholder_position);
-                let spot = Item::new_from_placeholder(item, placeholder);
-                self.items[index] = ItemOrPlaceholder::Item(spot);
+                element.update_xy(|t| t - placeholder.global_position().xy());
+                self.items[index] = Item::new_from_placeholder(element, placeholder).into();
             } else {
                 // This branch should never be reached, as when dragging an element we always create
-                // a placeholder for it (see the [`add_insertion_point`] function). However,
+                // a placeholder for it (see the [`Self::add_insertion_point`] function). However,
                 // in case something breaks, we want it to still provide the user with the correct
                 // outcome.
-                // self.items.insert(index, ItemOrPlaceholder::Regular(item));
+                self.items.insert(index, Item::new(element).into());
                 warn!("An element was inserted without a placeholder. This should not happen.");
-                panic!();
             }
             self.reposition_items();
-            // self.items.collapse_all_placeholders();
-            // self.recompute_margins();
         } else {
             warn!("Called function to insert dragged element, but no element is being dragged.")
         }
     }
 
-    pub fn trash_dragged_item(&mut self, cursor: &Cursor, root: &display::object::Instance) {
+    pub fn trash_item(&mut self, item: T) {
+        self.root.add_child(&Trash::new(item));
+        self.reposition_items();
+    }
+
+    pub fn trash_dragged_item(&mut self, cursor: &Cursor) {
         if let Some(item) = cursor.stop_drag_if_is::<T>() {
-            root.add_child(&Trash::new(item));
+            self.trash_item(item)
         }
     }
 
     pub fn trash_item_at(&mut self, index: Index) {
-        // if let Some(item_index) = self.index_to_item_or_placeholder_index(index) {
-        //     self.start_item_drag_at(layout, item_index);
-        //     self.trash_dragged_item();
-        //     self.items.collapse_all_placeholders();
-        //     self.recompute_margins();
-        // } else {
-        //     warn!("Wrong index.");
-        // }
+        if let Some(item_index) = self.index_to_item_or_placeholder_index(index) {
+            if let Some(item) = self.replace_item_with_placeholder(item_index) {
+                self.collapse_all_placeholders();
+                self.trash_item(item);
+            }
+        } else {
+            warn!("Wrong index.");
+        }
     }
 
 
-    // FIXME: does not work correctly with placeholders
-    fn elems_center_points(&self) -> Vec<f32> {
+    /// Get the center points of items and placeholders. This is used to determine the index of the
+    /// insertion point when a new item is being dragged.
+    ///
+    /// ```text                                                    
+    ///   ┬      ┬         ┬         ┬
+    /// ╭─┼─╮ ╭──┼──╮ ╭╌╌╌╌┼╌╌╌╌╮ ╭──┼──╮  
+    /// │ ┆ │ │  ┆  │ ┆    ┆    ┆ │  ┆  │  
+    /// ╰─┼─╯ ╰──┼──╯ ╰╌╌╌╌┼╌╌╌╌╯ ╰──┼──╯
+    ///   ┴      ┴         ┴         ┴
+    /// ```       
+    fn center_points(&self) -> Vec<f32> {
         let mut centers = Vec::new();
         let mut current = 0.0;
         for item in &self.items {
-            let size = item.target_size();
-            current += size / 2.0;
+            let size2 = item.target_size2() / 2.0;
+            current += item.margin_left() + size2;
             centers.push(current);
-            current += size / 2.0;
-            // if item.is_regular() {
-            //     current += GAP;
-            // }
+            current += size2;
         }
-        // warn!("centers: {:#?}", centers);
         centers
     }
 
+    /// The insertion point of the given vertical offset.
     fn insert_index(&self, x: f32) -> ItemOrPlaceholderIndex {
-        let center_points = self.elems_center_points();
-        // warn!("center_points: {:?}", center_points);
-        let mut index = 0;
-        for center in center_points {
-            if x < center {
-                break;
-            }
-            index += 1;
-        }
-        index.into()
+        self.center_points().iter().position(|t| x < *t).unwrap_or_else(|| self.items.len()).into()
     }
 }
 
@@ -664,6 +688,10 @@ impl<T: frp::node::Data> display::Object for ListEditor<T> {
     }
 }
 
+
+// =============
+// === Trash ===
+// =============
 
 mod trash {
     use super::*;
