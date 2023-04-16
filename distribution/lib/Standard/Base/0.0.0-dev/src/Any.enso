@@ -481,11 +481,11 @@ type Any
 
 ## PRIVATE
    Checks if the comparators for the given objects are both of the same type. If so,
-   proceeds with the given action, and if not, throws `Type_Error`.
-assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Type_Error
+   proceeds with the given action, and if not, throws `Incomparable_Values` error.
+assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Incomparable_Values
 assert_same_comparators this that ~action =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
     case Meta.is_same_object comp_this comp_that of
         True -> action
-        False -> Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that")
+        False -> Error.throw (Incomparable_Values.Error this that)
