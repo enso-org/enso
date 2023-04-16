@@ -33,7 +33,7 @@ public abstract class GreaterOrEqualNode extends Node {
   }
 
   @Fallback
-  DataflowError doOther(long self, Object that) {
+  Object doOther(long self, Object that) {
     var builtins = EnsoContext.get(this).getBuiltins();
     var incomparableValsErr = builtins.error().makeIncomparableValues(self, that);
     return DataflowError.withoutTrace(incomparableValsErr, this);
