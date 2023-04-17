@@ -270,7 +270,7 @@ impl super::SpanWidget for Widget {
             // Do not increment the depth. If the dropdown is displayed, it should also display
             // its arguments.
             let children =
-                chain.map(|child| ctx.builder.child_widget(child, ctx.depth)).collect_vec();
+                chain.map(|child| ctx.builder.child_widget(child, ctx.state.depth)).collect_vec();
             self.args_wrapper.replace_children(&children);
         } else {
             self.args_wrapper.remove_all_children();

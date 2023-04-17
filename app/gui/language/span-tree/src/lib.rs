@@ -299,6 +299,10 @@ impl<T> SpanTree<T> {
                 write!(buffer, " name={name:?}").unwrap();
             }
 
+            if let Some(tp) = node.kind.tp() {
+                write!(buffer, " tp={tp:?}").unwrap();
+            }
+
             if let Some(call_id) = node.kind.call_id() {
                 write!(buffer, " call_id={call_id:?}").unwrap();
             }

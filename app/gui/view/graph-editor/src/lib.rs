@@ -1942,8 +1942,7 @@ impl GraphEditorModel {
         neutral_color: color::Lcha,
     ) {
         let status = match status {
-            true =>
-                node::ConnectionStatus::Connected { color: self.edge_color(edge_id, neutral_color) },
+            true => node::ConnectionStatus::connected(self.edge_color(edge_id, neutral_color)),
             false => node::ConnectionStatus::Disconnected,
         };
         self.set_input_connected(target, status);

@@ -39,6 +39,33 @@ pub trait HashMapOps<K, V>: BorrowMut<HashMap<K, V>> + Sized {
             }
         }
     }
+
+    /// Writes or removes the value at the given key. Returns `true` if the action had any effect.
+    /// Returns `false` when equal value was already present at the given key, or when the value
+    /// was already absent and the removal was requested.
+    fn synchronize_entry<'a>(&'a mut self, key: K, value: Option<V>) -> bool
+    where
+        K: std::hash::Hash + Eq + 'a,
+        V: PartialEq, {
+        use std::collections::hash_map::Entry;
+        let map = self.borrow_mut();
+        let entry = map.entry(key);
+        match (entry, value) {
+            (Entry::Occupied(e), None) => {
+                e.remove();
+                true
+            }
+            (Entry::Occupied(mut e), Some(value)) if e.get() != &value => {
+                e.insert(value);
+                true
+            }
+            (Entry::Vacant(e), Some(value)) => {
+                e.insert(value);
+                true
+            }
+            _ => false,
+        }
+    }
 }
 
 impl<K, V> HashMapOps<K, V> for HashMap<K, V> {}

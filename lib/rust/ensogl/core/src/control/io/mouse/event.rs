@@ -140,20 +140,6 @@ where JsEvent: AsRef<web::MouseEvent>
         )
     }
 
-    pub fn is_primary(&self) -> bool {
-        self.button() == mouse::PrimaryButton
-    }
-
-    /// Indicates whether the secondary mouse button was pressed when the event was triggered.
-    pub fn is_secondary(&self) -> bool {
-        self.button() == mouse::SecondaryButton
-    }
-
-    /// Indicates whether the middle mouse button was pressed when the event was triggered.
-    pub fn is_middle(&self) -> bool {
-        self.button() == mouse::MiddleButton
-    }
-
     /// Return the position relative to the event handler that was used to catch the event. If the
     /// event handler does not have a position in the DOM, the returned position will be relative to
     /// the viewport. This can happen if the event handler is, for example, the window.

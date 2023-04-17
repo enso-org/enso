@@ -90,13 +90,15 @@ impl super::SpanWidget for Widget {
             ctx.expression_at(ctx.span_tree_node.span())
         };
 
-
-        let text_color = if is_placeholder {
-            ctx.styles().get_color(theme::graph_editor::node::text);
-            color::Lcha::new(0.5, 0.0, 0.0, 1.0)
+        let text_color: color::Lcha = if ctx.state.subtree_connection.is_connected() {
+            ctx.styles().get_color(theme::code::types::selected).into()
+        } else if ctx.state.disabled {
+            ctx.styles().get_color(theme::code::syntax::disabled).into()
+        } else if is_placeholder {
+            ctx.styles().get_color(theme::code::syntax::expected).into()
         } else {
-            let ty = ctx.span_tree_node.kind.tp();
-            let ty = ty.map(|t| crate::Type(t.into()));
+            let ty = ctx.state.usage_type.clone();
+            let ty = ty.or_else(|| ctx.span_tree_node.kind.tp().map(|t| crate::Type(t.into())));
             crate::type_coloring::compute_for_code(ty.as_ref(), &ctx.styles())
         };
 

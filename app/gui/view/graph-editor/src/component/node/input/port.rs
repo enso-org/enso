@@ -25,6 +25,9 @@ use ensogl::display::scene::layer::LayerSymbolPartition;
 /// boundary on both sides.
 pub const PORT_PADDING_X: f32 = 4.0;
 
+/// The minimum size of the port visual area.
+pub const BASE_PORT_HEIGHT: f32 = 18.0;
+
 /// The vertical hover padding of ports at low depth. It affects how the port hover should extend
 /// the target text boundary on both sides.
 pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = 4.0;
@@ -119,11 +122,13 @@ impl Port {
         port_root.add_child(&widget_root);
         widget_root.set_margin_left(0.0);
         port_shape
+            .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
             .set_margin_left(-PORT_PADDING_X)
             .set_margin_right(-PORT_PADDING_X)
             .set_alignment_left_center();
         hover_shape
+            .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
             .set_margin_left(-PORT_PADDING_X)
             .set_margin_right(-PORT_PADDING_X)
@@ -138,7 +143,7 @@ impl Port {
 
         let crumbs = Rc::new(RefCell::new(span_tree::Crumbs::default()));
 
-        if frp.ports_visible.value() {
+        if frp.set_ports_visible.value() {
             port_root.add_child(&hover_shape);
         }
 
@@ -154,7 +159,7 @@ impl Port {
             );
 
             frp.on_port_press <+ mouse_down.map(f!((_) crumbs.borrow().clone()));
-            eval frp.ports_visible([port_root, hover_shape] (active) {
+            eval frp.set_ports_visible([port_root, hover_shape] (active) {
                 if *active {
                     port_root.add_child(&hover_shape);
                 } else {
@@ -184,6 +189,7 @@ impl Port {
 
     pub fn configure(&mut self, config: &Config, ctx: ConfigContext) {
         self.crumbs.replace(ctx.span_tree_node.crumbs.clone());
+        self.set_connected(ctx.state.connection);
         self.set_port_layout(&ctx);
         self.widget.configure(config, ctx);
         self.update_root();
@@ -191,9 +197,9 @@ impl Port {
 
     pub fn set_connected(&self, status: ConnectionStatus) {
         match status {
-            ConnectionStatus::Connected { color } => {
+            ConnectionStatus::Connected(data) => {
                 self.port_root.add_child(&self.port_shape);
-                self.port_shape.color.set(color::Rgba::from(color).into())
+                self.port_shape.color.set(color::Rgba::from(data.color).into())
             }
             ConnectionStatus::Disconnected => {
                 self.port_root.remove_child(&self.port_shape);
@@ -218,14 +224,12 @@ impl Port {
             layers.add_to_partition(self.hover_shape.display_object(), node_depth);
         }
 
-        let is_primary = ctx.depth <= PRIMARY_PORT_MAX_DEPTH;
+        let is_primary = ctx.state.depth <= PRIMARY_PORT_MAX_DEPTH;
         if self.is_primary != is_primary {
             self.is_primary = is_primary;
-            if is_primary {
-                self.hover_shape.set_size_y(crate::node::HEIGHT);
-            } else {
-                self.hover_shape.set_size_y_to_hug();
-            }
+            let margin = if is_primary { -PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };
+            self.hover_shape.set_margin_top(margin);
+            self.hover_shape.set_margin_bottom(margin);
         }
     }
 

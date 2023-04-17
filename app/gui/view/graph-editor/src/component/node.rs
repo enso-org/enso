@@ -289,13 +289,66 @@ impl Default for Crumbs {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+
+
+// ========================
+// === ConnectionStatus ===
+// ========================
+
+/// The status of a single incoming connection to a specific port of a node. If a port has been
+/// disconnected, the status is set to `Disconnected`. All ports are initially disconnected.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum ConnectionStatus {
     #[default]
     Disconnected,
-    Connected {
-        color: color::Lcha,
-    },
+    Connected(ConnectionData),
+}
+
+impl ConnectionStatus {
+    /// Create a new `ConnectionStatus` representing an existing connection.
+    pub fn connected(color: color::Lcha) -> Self {
+        Self::Connected(ConnectionData { color })
+    }
+
+    /// Returns the data associated with the connection, if it exists.
+    pub fn data(&self) -> Option<ConnectionData> {
+        match self {
+            Self::Connected(data) => Some(*data),
+            Self::Disconnected => None,
+        }
+    }
+
+    /// Combine two statuses of a connection. If the first status is `Disconnected`, the second one
+    /// will be returned. Otherwise, the first status will be returned.
+    pub fn or(self, other: Self) -> Self {
+        match self {
+            Self::Disconnected => other,
+            _ => self,
+        }
+    }
+
+    /// Returns true if the port is connected.
+    pub fn is_connected(&self) -> bool {
+        matches!(self, Self::Connected(_))
+    }
+}
+
+impl From<Option<ConnectionData>> for ConnectionStatus {
+    fn from(t: Option<ConnectionData>) -> Self {
+        match t {
+            Some(t) => Self::Connected(t),
+            None => Self::Disconnected,
+        }
+    }
+}
+
+/// The data associated with a single existing incoming connection to a port. Holds the color
+/// matching connected edge.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ConnectionData {
+    /// Color of an edge connected to the port.
+    pub color: color::Lcha,
 }
 
 
@@ -647,8 +700,9 @@ impl NodeModel {
 
     #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
+        warn!("set_expression_usage_type: {:?} {:?}", crumbs, tp);
         match crumbs.endpoint {
-            Endpoint::Input => {} //self.input.set_expression_usage_type(&crumbs.crumbs, tp),
+            Endpoint::Input => self.input.set_expression_usage_type(&crumbs.crumbs, tp),
             Endpoint::Output => self.output.set_expression_usage_type(&crumbs.crumbs, tp),
         }
     }

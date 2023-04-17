@@ -149,7 +149,7 @@ pub struct Model {
     id_crumbs_map:   RefCell<HashMap<ast::Id, Crumbs>>,
     styles:          StyleWatch,
     styles_frp:      StyleWatchFrp,
-    root_widget:     widget::Root,
+    widget_tree:     widget::Tree,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -170,7 +170,7 @@ impl Model {
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let root_widget = widget::Root::new(&app);
+        let widget_tree = widget::Tree::new(&app);
         Self {
             app,
             display_object,
@@ -179,7 +179,7 @@ impl Model {
             id_crumbs_map,
             styles,
             styles_frp,
-            root_widget,
+            widget_tree,
         }
         .init()
     }
@@ -190,12 +190,12 @@ impl Model {
         if edit_mode_active {
             let expression = self.expression.borrow();
             self.edit_mode_label.set_content(expression.code.clone());
-            self.display_object.remove_child(&self.root_widget);
+            self.display_object.remove_child(&self.widget_tree);
             self.display_object.add_child(&self.edit_mode_label);
             self.edit_mode_label.set_cursor_at_mouse_position();
         } else {
             self.display_object.remove_child(&self.edit_mode_label);
-            self.display_object.add_child(&self.root_widget);
+            self.display_object.add_child(&self.widget_tree);
             self.edit_mode_label.set_content("");
         }
         self.edit_mode_label.deprecated_set_focus(edit_mode_active);
@@ -221,7 +221,7 @@ impl Model {
 
         let widgets_origin = Vector2(0.0, -NODE_HEIGHT / 2.0);
         let label_origin = Vector2(TEXT_OFFSET, TEXT_SIZE / 2.0);
-        self.root_widget.set_xy(widgets_origin);
+        self.widget_tree.set_xy(widgets_origin);
         self.edit_mode_label.set_xy(label_origin);
         self.set_edit_mode(false);
 
@@ -237,14 +237,22 @@ impl Model {
     fn set_connected(&self, crumbs: &Crumbs, status: node::ConnectionStatus) {
         let expr = self.expression.borrow();
         let port = expr.span_tree.get_node(crumbs).ok();
-        port.map(|port| self.root_widget.set_connected(&port, status));
+        port.map(|port| self.widget_tree.set_connected(&port, status));
+    }
+
+    /// Set usage type of the given port.
+    fn set_usage_type(&self, crumbs: &Crumbs, usage_type: Option<Type>) {
+        warn!("set_usage_type({crumbs:?}, {usage_type:?})");
+        let expr = self.expression.borrow();
+        let port = expr.span_tree.get_node(crumbs).ok();
+        port.map(|port| self.widget_tree.set_usage_type(&port, usage_type));
     }
 
     fn hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
         let crumbs = hovered.on()?;
         let expr = self.expression.borrow();
         let port = expr.span_tree.get_node(crumbs).ok()?;
-        let display_object = self.root_widget.get_port_display_object(&port)?;
+        let display_object = self.widget_tree.get_port_display_object(&port)?;
         let tp = port.tp().map(|t| Type(t.into()));
         let color = tp.as_ref().map(|tp| type_coloring::compute(tp, &self.styles));
         let pad_x = node::input::port::PORT_PADDING_X * 2.0;
@@ -259,10 +267,14 @@ impl Model {
         for update in updates.iter() {
             let argument_name = update.argument_name.clone().into();
             let meta_pointer = MetadataPointer { call_id: *call_id, argument_name };
-            self.root_widget.set_metadata(meta_pointer, update.meta.clone());
+            self.widget_tree.set_metadata(meta_pointer, update.meta.clone());
         }
+    }
+
+    /// If the widget tree was marked as dirty since its last update, rebuild it.
+    fn rebuild_widget_tree_if_dirty(&self) {
         let expr = self.expression.borrow();
-        self.root_widget.rebuild_tree_on_metadata_change(&expr.span_tree, &expr.code, &self.styles);
+        self.widget_tree.rebuild_tree_if_dirty(&expr.span_tree, &expr.code, &self.styles);
     }
 
     /// Request widgets metadata for all method calls within the expression.
@@ -281,23 +293,18 @@ impl Model {
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let new_expression = InputExpression::from(new_expression.into());
-        debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
+        warn!("set expression: \n{:?}", new_expression.tree_pretty_printer());
 
-        self.root_widget.rebuild_tree(
+        self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
             &new_expression.code,
             &self.styles,
         );
 
         // TODO streams to handle:
-        // area_frp.source.pointer_style <+ pointer_style;
-        //  area_frp.source.pointer_style
-
         // pointer_style        (cursor::Style), <- handle edit mode cursor change
         // view_mode            (view::Mode), <- frp into widgets to change label color
 
-
-        // self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
         self.request_widgets_metadata(&new_expression, area_frp);
         *self.expression.borrow_mut() = new_expression;
     }
@@ -335,6 +342,9 @@ ensogl::define_endpoints! {
         /// Disable the node (aka "skip mode").
         set_disabled (bool),
 
+        /// Set read-only mode for input ports.
+        set_read_only (bool),
+
         /// Set the connection status of the port indicated by the breadcrumbs. For connected ports,
         /// contains the color of connected edge.
         set_connected (Crumbs, node::ConnectionStatus),
@@ -350,8 +360,10 @@ ensogl::define_endpoints! {
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
 
-        /// Set read-only mode for input ports.
-        set_read_only (bool),
+        /// Set the expression USAGE type. This is not the definition type, which can be set with
+        /// `set_expression` instead. In case the usage type is set to None, ports still may be
+        /// colored if the definition type was present.
+        set_expression_usage_type (Crumbs,Option<Type>),
     }
 
     Output {
@@ -420,8 +432,8 @@ impl Area {
             // This is meant to be on top of FRP network. Read more about `Node` docs to
             // learn more about the architecture and the importance of the hover
             // functionality.
-            frp.output.source.on_port_hover <+ model.root_widget.on_port_hover;
-            frp.output.source.on_port_press <+ model.root_widget.on_port_press;
+            frp.output.source.on_port_hover <+ model.widget_tree.on_port_hover;
+            frp.output.source.on_port_press <+ model.widget_tree.on_port_press;
             port_hover <- frp.on_port_hover.map(|t| t.is_on());
             frp.output.source.body_hover <+ frp.set_hover || port_hover;
 
@@ -453,10 +465,10 @@ impl Area {
             edit_or_ready   <- frp.set_edit_ready_mode || set_editing;
             reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, (a, _)| *e && !a);
             port_vis        <- all_with(&edit_or_ready, ports_active, |e, (a, _)| !e && *a);
-            frp.output.source.ports_visible <+ port_vis;
-            frp.output.source.editing       <+ set_editing;
-            model.root_widget.ports_visible <+ frp.ports_visible;
-            refresh_edges <- model.root_widget.connected_port_updated.debounce();
+            frp.output.source.ports_visible     <+ port_vis;
+            frp.output.source.editing           <+ set_editing;
+            model.widget_tree.set_ports_visible <+ frp.ports_visible;
+            refresh_edges <- model.widget_tree.connected_port_updated.debounce();
             frp.output.source.input_edges_need_refresh <+ refresh_edges;
 
             // === Label Hover ===
@@ -466,27 +478,26 @@ impl Area {
 
             // === Port Hover ===
 
-            eval frp.set_connected (((crumbs,status)) model.set_connected(crumbs,*status));
-            hovered_port_pointer <- model.root_widget.on_port_hover.map(
+            hovered_port_pointer <- model.widget_tree.on_port_hover.map(
                 f!((t) model.hover_pointer_style(t).unwrap_or_default())
             );
             pointer_style <- all[
-                model.root_widget.pointer_style,
+                model.widget_tree.pointer_style,
                 hovered_port_pointer
             ].fold();
             frp.output.source.pointer_style <+ pointer_style;
 
             // === Properties ===
             let layout_refresh = ensogl::animation::on_before_animations();
-            root_widget_width <- layout_refresh.map(f!([model](_) {
-                let instance = model.root_widget.display_object();
+            widget_tree_width <- layout_refresh.map(f!([model](_) {
+                let instance = model.widget_tree.display_object();
                 instance.computed_size().x()
             })).on_change();
 
             padded_edit_label_width <- model.edit_mode_label.width.map(|t| t + 2.0 * TEXT_OFFSET);
 
             frp.output.source.width <+ set_editing.switch(
-                &root_widget_width,
+                &widget_tree_width,
                 &padded_edit_label_width
             );
 
@@ -513,17 +524,28 @@ impl Area {
                 (default(), e.into())
             });
 
-            widget_code_update <- model.root_widget.value_changed.map(|(crumbs, value)| {
+            model.widget_tree.set_view_mode <+ frp.set_view_mode;
+            widget_code_update <- model.widget_tree.value_changed.map(|(crumbs, value)| {
                 let expression = value.clone().unwrap_or_default();
                 (crumbs.clone(), expression)
             });
 
             frp.output.source.on_port_code_update <+ widget_code_update;
-            frp.output.source.request_import <+ model.root_widget.request_import;
+            frp.output.source.request_import <+ model.widget_tree.request_import;
 
             // === Widgets ===
 
-            eval frp.update_widgets ((a) model.apply_widget_updates(a));
+            eval frp.update_widgets((a) model.apply_widget_updates(a));
+            eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
+            eval frp.set_expression_usage_type(((cr,tp)) model.set_usage_type(cr,tp.clone()));
+            eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
+            widget_tree_invalidated <- any_(...);
+            widget_tree_invalidated <+ frp.update_widgets;
+            widget_tree_invalidated <+ frp.set_connected;
+            widget_tree_invalidated <+ frp.set_disabled;
+            widget_tree_invalidated <+ frp.set_expression_usage_type;
+            rebuild_widget_tree <- widget_tree_invalidated.debounce();
+            eval rebuild_widget_tree((_) model.rebuild_widget_tree_if_dirty());
 
             // === View Mode ===
 
@@ -551,7 +573,7 @@ impl Area {
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         let node = expr.get_node(crumbs).ok()?;
-        let instance = self.model.root_widget.get_port_display_object(&node)?;
+        let instance = self.model.widget_tree.get_port_display_object(&node)?;
         let pos = instance.global_position();
         let node_pos = self.model.display_object.global_position();
         let size = instance.computed_size();
