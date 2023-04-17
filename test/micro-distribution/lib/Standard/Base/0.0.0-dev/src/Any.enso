@@ -5,9 +5,13 @@ type Any
     catch_primitive handler = @Builtin_Method "Any.catch_primitive"
     to_text self = @Builtin_Method "Any.to_text"
     to_display_text self = @Builtin_Method "Any.to_display_text"
-    # Access EqualsNode directly
-    == self other = Comparable.equals_builtin self other
     is_error self = False
+    == self other = Comparable.equals_builtin self other
+    != self other = (self == other).not
+    < self other = Comparable.less_than_builtin self other
+    <= self other = Comparable.less_than_builtin self other || Comparable.equals_builtin self other
+    > self other = Comparable.less_than_builtin other self
+    >= self other = Comparable.less_than_builtin other self || Comparable.equals_builtin other self
 
 @Builtin_Type
 type Comparable

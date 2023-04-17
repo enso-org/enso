@@ -170,7 +170,7 @@ type Ordering
     Greater
 
     ## Compares to values and returns an Ordering
-    compare : Any -> Any -> Ordering ! (Incomparable_Values | Type_Error)
+    compare : Any -> Any -> Ordering ! Incomparable_Values
     compare x y =
         if x < y then Ordering.Less else
             if x == y then Ordering.Equal else

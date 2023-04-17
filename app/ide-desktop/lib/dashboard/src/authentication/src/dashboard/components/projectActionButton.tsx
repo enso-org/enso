@@ -35,8 +35,8 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 function StopIcon(spinnerState: SpinnerState) {
     return (
         <svg
-            width={36}
-            height={36}
+            width={24}
+            height={24}
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -76,23 +76,29 @@ function StopIcon(spinnerState: SpinnerState) {
 
 export interface ProjectActionButtonProps {
     project: backend.Asset<backend.AssetType.project>
-    state: backend.ProjectState
     openIde: () => void
-    onOpen: () => void
-    onOpenStart: () => void
-    onClose: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, state, openIde, onOpen, onOpenStart, onClose } = props
+    const { project, openIde } = props
     const { accessToken } = auth.useFullUserSession()
     const logger = loggerProvider.useLogger()
     const backendService = backend.createBackend(accessToken, logger)
+
+    const [state, setState] = react.useState(backend.ProjectState.created)
     const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(null)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
-    const handleCloseProject = () => {
+    react.useEffect(() => {
+        void (async () => {
+            const projectDetails = await backendService.getProjectDetails(project.id)
+            setState(projectDetails.state.type)
+        })()
+    }, [])
+
+    function closeProject() {
+        setState(backend.ProjectState.closed)
         void backendService.closeProject(project.id)
 
         reactDom.unstable_batchedUpdates(() => {
@@ -100,11 +106,11 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             if (checkStatusInterval != null) {
                 clearInterval(checkStatusInterval)
             }
-            onClose()
         })
     }
 
-    const handleOpenProject = () => {
+    function openProject() {
+        setState(backend.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
         // the `initial` fraction to the `loading` fraction,
@@ -118,12 +124,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         const checkProjectStatus = async () => {
             const response = await backendService.getProjectDetails(project.id)
 
+            setState(response.state.type)
+
             if (response.state.type === backend.ProjectState.opened) {
                 setCheckStatusInterval(null)
                 if (checkStatusInterval != null) {
                     clearInterval(checkStatusInterval)
                 }
-                onOpen()
                 setSpinnerState(SpinnerState.done)
             }
         }
@@ -132,7 +139,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             setCheckStatusInterval(
                 window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
             )
-            onOpenStart()
         })
     }
 
@@ -140,13 +146,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backend.ProjectState.created:
         case backend.ProjectState.new:
         case backend.ProjectState.closed:
-            return <button onClick={handleOpenProject}>{svg.PLAY_ICON}</button>
+            return <button onClick={openProject}>{svg.PLAY_ICON}</button>
         case backend.ProjectState.openInProgress:
-            return <button onClick={handleCloseProject}>{StopIcon(spinnerState)}</button>
+            return <button onClick={closeProject}>{StopIcon(spinnerState)}</button>
         case backend.ProjectState.opened:
             return (
                 <>
-                    <button onClick={handleCloseProject}>{StopIcon(spinnerState)}</button>
+                    <button onClick={closeProject}>{StopIcon(spinnerState)}</button>
                     <button onClick={openIde}>{svg.ARROW_UP_ICON}</button>
                 </>
             )

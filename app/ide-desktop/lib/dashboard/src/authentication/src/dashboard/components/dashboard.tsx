@@ -20,6 +20,7 @@ import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
+import Ide from './ide'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
 import TopBar from './topBar'
@@ -36,6 +37,12 @@ import SecretCreateForm from './secretCreateForm'
 // =============
 // === Types ===
 // =============
+
+/** Main content of the screen. Only one should be visible at a time. */
+export enum Tab {
+    dashboard = 'dashboard',
+    ide = 'ide',
+}
 
 enum ColumnDisplayMode {
     all = 'all',
@@ -218,10 +225,8 @@ function Dashboard(props: DashboardProps) {
     >([])
     const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
 
+    const [tab, setTab] = react.useState(Tab.dashboard)
     const [project, setProject] = react.useState<backend.Project | null>(null)
-    const [projectStates, setProjectStates] = react.useState<
-        Record<backend.ProjectId, backend.ProjectState>
-    >({})
 
     const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
@@ -241,6 +246,13 @@ function Dashboard(props: DashboardProps) {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
+
+    // The purpose of this effect is to enable search action.
+    react.useEffect(() => {
+        return () => {
+            // TODO
+        }
+    }, [searchVal])
 
     react.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
@@ -289,27 +301,9 @@ function Dashboard(props: DashboardProps) {
             >
                 <ProjectActionButton
                     project={projectAsset}
-                    state={projectStates[projectAsset.id] ?? backend.ProjectState.created}
                     openIde={async () => {
+                        setTab(Tab.ide)
                         setProject(await backendService.getProjectDetails(projectAsset.id))
-                    }}
-                    onOpen={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.opened,
-                        })
-                    }}
-                    onOpenStart={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.openInProgress,
-                        })
-                    }}
-                    onClose={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.closed,
-                        })
                     }}
                 />
                 <span className="px-2">{projectAsset.title}</span>
@@ -554,7 +548,6 @@ function Dashboard(props: DashboardProps) {
                 setDirectoryAssets(assets.filter(backend.assetIsType(backend.AssetType.directory)))
                 setSecretAssets(assets.filter(backend.assetIsType(backend.AssetType.secret)))
                 setFileAssets(assets.filter(backend.assetIsType(backend.AssetType.file)))
-                setProjectStates({})
             })
         })()
     }, [accessToken, directoryId, refresh])
@@ -599,111 +592,127 @@ function Dashboard(props: DashboardProps) {
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
-            {/* These are placeholders. When implementing a feature,
-             * please replace the appropriate placeholder with the actual element.*/}
-            <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
-            <div id="templates" />
-            <div className="flex flex-row flex-nowrap">
-                <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
-                <div className="flex flex-row flex-nowrap mx-4">
-                    <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                        {directory && (
-                            <>
-                                <button className="mx-2" onClick={exitDirectory}>
-                                    {parentDirectory?.title ?? '~'}
-                                </button>
-                                {svg.SMALL_RIGHT_ARROW_ICON}
-                            </>
-                        )}
-                        <span className="mx-2">{directory?.title ?? '~'}</span>
-                    </div>
-                    <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                        <div className="m-2">Shared with</div>
-                        <div className="-m-1">
-                            <PermissionDisplay
-                                permissions={{ type: permissionDisplay.Permission.admin }}
+            <div className={tab === Tab.dashboard ? '' : 'hidden'}>
+                <TopBar
+                    projectName={project?.name ?? null}
+                    tab={tab}
+                    toggleTab={() => {
+                        if (project && tab === Tab.dashboard) {
+                            setTab(Tab.ide)
+                        } else {
+                            setTab(Tab.dashboard)
+                        }
+                    }}
+                    searchVal={searchVal}
+                    setSearchVal={setSearchVal}
+                />
+                {/* This is a placeholder. When implementing a feature,
+                 * please replace it with the actual element.*/}
+                <div id="templates" />
+                <div className="flex flex-row flex-nowrap">
+                    <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
+                    <div className="flex flex-row flex-nowrap mx-4">
+                        <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
+                            {directory && (
+                                <>
+                                    <button className="mx-2" onClick={exitDirectory}>
+                                        {parentDirectory?.title ?? '~'}
+                                    </button>
+                                    {svg.SMALL_RIGHT_ARROW_ICON}
+                                </>
+                            )}
+                            <span className="mx-2">{directory?.title ?? '~'}</span>
+                        </div>
+                        <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
+                            <div className="m-2">Shared with</div>
+                            <div className="-m-1">
+                                <PermissionDisplay
+                                    permissions={{ type: permissionDisplay.Permission.admin }}
+                                >
+                                    marketing
+                                </PermissionDisplay>
+                            </div>
+                        </div>
+                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
+                            <button
+                                className="mx-1"
+                                onClick={event => {
+                                    event.stopPropagation()
+                                    setModal(() => (
+                                        <UploadFileModal
+                                            backend={backendService}
+                                            directoryId={directoryId}
+                                            onSuccess={doRefresh}
+                                        />
+                                    ))
+                                }}
                             >
-                                marketing
-                            </PermissionDisplay>
+                                {svg.UPLOAD_ICON}
+                            </button>
+                            <button
+                                className={`mx-1 ${
+                                    selectedAssets.length === 0 ? 'opacity-50' : ''
+                                }`}
+                                disabled={selectedAssets.length === 0}
+                                onClick={event => {
+                                    event.stopPropagation()
+                                    /* TODO */
+                                }}
+                            >
+                                {svg.DOWNLOAD_ICON}
+                            </button>
+                        </div>
+                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.all
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.all)
+                                }}
+                            >
+                                All
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.compact
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.compact)
+                                }}
+                            >
+                                Compact
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.docs
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.docs)
+                                }}
+                            >
+                                Docs
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.settings
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.settings)
+                                }}
+                            >
+                                Settings
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                    <button
-                        className="mx-1"
-                        onClick={event => {
-                            event.stopPropagation()
-                            setModal(() => (
-                                <UploadFileModal
-                                    backend={backendService}
-                                    directoryId={directoryId}
-                                    onSuccess={doRefresh}
-                                />
-                            ))
-                        }}
-                    >
-                        {svg.UPLOAD_ICON}
-                    </button>
-                    <button
-                        className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                        disabled={selectedAssets.length === 0}
-                        onClick={event => {
-                            event.stopPropagation()
-                            /* TODO */
-                        }}
-                    >
-                        {svg.DOWNLOAD_ICON}
-                    </button>
-                </div>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.all
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.all)
-                        }}
-                    >
-                        All
-                    </button>
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.compact
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.compact)
-                        }}
-                    >
-                        Compact
-                    </button>
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.docs
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.docs)
-                        }}
-                    >
-                        Docs
-                    </button>
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.settings
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.settings)
-                        }}
-                    >
-                        Settings
-                    </button>
                 </div>
             </div>
             <table className="items-center w-full bg-transparent border-collapse">
@@ -923,6 +932,9 @@ function Dashboard(props: DashboardProps) {
                 </div>
             ) : null}
             {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
+            <div className={tab === Tab.ide ? '' : 'hidden'}>
+                {project ? <Ide backendService={backendService} project={project} /> : <></>}
+            </div>
             {modal && <>{modal}</>}
         </div>
     )

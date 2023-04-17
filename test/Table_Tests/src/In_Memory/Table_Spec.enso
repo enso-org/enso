@@ -472,7 +472,7 @@ spec =
             c = Column.from_vector 'foo' [My.Data 1 2, My.Data 2 5, My.Data 3 4, My.Data 6 3, Nothing, My.Data 1 0]
             cmp a b = Ordering.compare (a.x-a.y).abs (b.x-b.y).abs
             r = c.sort by=cmp
-            r.to_vector.should_equal [My.Data 1 2, My.Data 3 4, My.Data 1 0, My.Data 2 5, My.Data 6 3, Nothing]
+            r.to_vector.should_equal [Nothing, My.Data 1 2, My.Data 3 4, My.Data 1 0, My.Data 2 5, My.Data 6 3]
 
             d = Column.from_vector 'foo' [1,3,2,4,Nothing,5]
             cmp2 a b = Ordering.compare -a -b
