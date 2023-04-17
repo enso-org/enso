@@ -288,13 +288,11 @@ type Pattern
                 groups = self.internal_regex_object.groups
 
                 n = case groups of
-                        # If Nothing, there are no named groups
-                        Nothing -> Error.throw (No_Such_Group.Error name)
-                        _ ->
-                            n = read_group_map groups name
-                            case n of
-                                Nothing -> Nothing
-                                _ : Integer -> n
+                    # If Nothing, there are no named groups
+                    Nothing -> Error.throw (No_Such_Group.Error name)
+                    _ ->
+                        n = read_group_map groups name
+                        if n.is_nothing then Nothing else n
                 case n of
                     _ : Integer -> n
                     Nothing -> Error.throw (No_Such_Group.Error name)
