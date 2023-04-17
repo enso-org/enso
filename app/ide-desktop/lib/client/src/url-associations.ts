@@ -1,20 +1,18 @@
 /** @file URL associations for the IDE. */
 
-import * as electron from "electron";
-import electronIsDev from "electron-is-dev";
+import * as electron from 'electron'
+import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
-
 const logger = contentConfig.logger
 
-
 export function registerAssociations() {
-    if(!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
-        if(electronIsDev) {
+    if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
+        if (electronIsDev) {
             logger.log('Not registering protocol client in dev mode.')
-        } else if(process.platform === 'darwin') {
+        } else if (process.platform === 'darwin') {
             // Registration is handled automatically there thanks to electron-builder.
             logger.log('Not registering protocol client on macOS.')
         } else {
@@ -25,7 +23,6 @@ export function registerAssociations() {
         logger.log('Protocol client already registered.')
     }
 }
-
 
 /**
  * Check if the given list of application startup arguments denotes an attempt to open a URL.
@@ -65,7 +62,7 @@ export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
  */
 export function handleOpenUrl(openedUrl: URL) {
     logger.log(`Opening URL '${openedUrl.toString()}'.`)
-    const appLock = electron.app.requestSingleInstanceLock({openedUrl})
+    const appLock = electron.app.requestSingleInstanceLock({ openedUrl })
     if (!appLock) {
         // If we failed to acquire the lock, it means that another instance of the application is
         // already running. In this case, we must send the URL to the existing instance and exit.
@@ -107,7 +104,7 @@ export function registerUrlCallback(callback: (url: URL) => void) {
         logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
         unsetAsUrlHandler()
         // Check if additional data is an object that contains the URL.
-        const requestOneLastElementSlice = -1;
+        const requestOneLastElementSlice = -1
         const lastArgumentSlice = argv.slice(requestOneLastElementSlice)
         const url = argsDenoteUrlOpenAttempt(lastArgumentSlice)
         if (url) {
@@ -131,7 +128,7 @@ export function registerUrlCallback(callback: (url: URL) => void) {
  */
 export function setAsUrlHandler() {
     logger.log('Expecting URL callback, acquiring the lock.')
-    if(!electron.app.requestSingleInstanceLock()) {
+    if (!electron.app.requestSingleInstanceLock()) {
         const message = 'Another instance of the application is already running. Exiting.'
         logger.error(message)
         // eslint-disable-next-line no-restricted-syntax
@@ -146,5 +143,5 @@ export function setAsUrlHandler() {
  */
 export function unsetAsUrlHandler() {
     logger.log('URL callback completed, releasing the lock.')
-    electron.app.releaseSingleInstanceLock();
+    electron.app.releaseSingleInstanceLock()
 }

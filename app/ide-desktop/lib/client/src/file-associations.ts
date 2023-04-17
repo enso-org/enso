@@ -153,7 +153,6 @@ export function handleOpenFile(openedFile: string): string {
     }
 }
 
-
 /** Handle the file to open, if any. See {@link handleOpenFile} for details.
  *
  * If no file to open is provided, does nothing.

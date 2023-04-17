@@ -72,11 +72,12 @@
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
 
-import * as electron from 'electron'
-import opener from 'opener'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import opener from 'opener'
+
+import * as electron from 'electron'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -129,7 +130,7 @@ function initIpc() {
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link common.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
 function initOpenUrlListener(window: () => electron.BrowserWindow) {
-    urlAssociations.registerUrlCallback((url) => {
+    urlAssociations.registerUrlCallback(url => {
         onOpenUrl(url, window)
     })
 }

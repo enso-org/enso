@@ -88,7 +88,7 @@ class App {
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse = (fileToOpen || urlToOpen) ? [] : fileAssociations.CLIENT_ARGUMENTS
+        const argsToParse = fileToOpen || urlToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
