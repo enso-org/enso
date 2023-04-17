@@ -989,6 +989,28 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     )
   )
 
+lazy val `interpreter-dsl-test` =
+  (project in file("engine/interpreter-dsl-test"))
+    .configs(Test)
+    .settings(
+      version := "0.1",
+      frgaalJavaCompilerSetting,
+      Test / fork := true,
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
+      commands += WithDebugCommand.withDebug,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion % "provided",
+        "junit"               % "junit"                 % junitVersion % Test,
+        "com.novocode"        % "junit-interface"       % "0.11"       % Test exclude ("junit", "junit-dep")
+      )
+    )
+    .dependsOn(`interpreter-dsl`)
+    .dependsOn(`runtime`)
+
 // ============================================================================
 // === Sub-Projects ===========================================================
 // ============================================================================
