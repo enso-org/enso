@@ -182,13 +182,13 @@ type Data_Formatter
             WhitespaceStrippingParser.new base_parser
 
     ## PRIVATE
-    make_integer_parser self = self.wrap_base_parser <|
-        if self.decimal_point == Auto then AutoNumberParser.new False else
+    make_integer_parser self allow_currency=True = self.wrap_base_parser <|
+        if self.decimal_point == Auto then AutoNumberParser.new False allow_currency else
             IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
 
     ## PRIVATE
-    make_decimal_parser self = self.wrap_base_parser <|
-        if self.decimal_point == Auto then AutoNumberParser.new True else
+    make_decimal_parser self allow_currency=True = self.wrap_base_parser <|
+        if self.decimal_point == Auto then AutoNumberParser.new True allow_currency else
             DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
 
     ## PRIVATE
@@ -244,7 +244,7 @@ type Data_Formatter
 
     ## PRIVATE
     get_specific_type_parsers self =
-        [self.make_integer_parser, self.make_decimal_parser, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
+        [self.make_integer_parser False, self.make_decimal_parser False, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
 
     ## PRIVATE
     make_auto_parser self =
