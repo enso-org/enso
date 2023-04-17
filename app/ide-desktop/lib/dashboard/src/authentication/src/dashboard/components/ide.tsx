@@ -2,9 +2,10 @@
 import * as react from 'react'
 
 import * as cloudService from '../cloudService'
-import * as projectManagerService from '../localService'
-
+import * as dashboard from './dashboard'
 import * as platformModule from '../../platform'
+import * as projectManagerService from '../localService'
+import * as svg from '../../components/svg'
 
 // =================
 // === Constants ===
@@ -21,11 +22,12 @@ interface Props {
     platform: platformModule.Platform
     project: cloudService.Project
     backendService: cloudService.Backend | projectManagerService.Backend
+    setTab: (tab: dashboard.Tab) => void
 }
 
 /** Container that launches the IDE. */
 function Ide(props: Props) {
-    const { project, backendService } = props
+    const { project, backendService, setTab } = props
     const [[loaded, resolveLoaded]] = react.useState<[Promise<void>, () => void]>(() => {
         let doResolve!: () => void
         const promise = new Promise<void>(resolve => (doResolve = resolve))
@@ -83,7 +85,19 @@ function Ide(props: Props) {
         })()
     }, [project])
 
-    return <div id="root" />
+    return (
+        <>
+            <div id="root" />
+            <button
+                onClick={() => {
+                    setTab(dashboard.Tab.dashboard)
+                }}
+                className="fixed top-4 right-8 z-10"
+            >
+                {svg.CLOSE_ICON}
+            </button>
+        </>
+    )
 }
 
 export default Ide

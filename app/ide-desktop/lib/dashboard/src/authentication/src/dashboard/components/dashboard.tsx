@@ -486,7 +486,14 @@ function Dashboard(props: DashboardProps) {
                 </table>
             </div>
             <div className={tab === Tab.ide ? '' : 'hidden'}>
-                {project && <Ide platform={platform} backendService={backend} project={project} />}
+                {project && (
+                    <Ide
+                        platform={platform}
+                        backendService={backend}
+                        project={project}
+                        setTab={setTab}
+                    />
+                )}
             </div>
             {modal && <>{modal}</>}
         </div>
