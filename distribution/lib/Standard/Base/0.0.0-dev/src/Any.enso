@@ -108,22 +108,7 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that =
-        # If there is No_Such_Conversion, then `self` and `that` are probably
-        # host or polyglot values, so we just compare them with the default comparator.
-        eq_self = Comparable.from self
-        eq_that = Comparable.from that
-        similar_type = Meta.is_same_object eq_self eq_that
-        case similar_type of
-            False -> False
-            True ->
-                case Meta.is_same_object eq_self Default_Comparator of
-                    # Shortcut for objects with Default_Comparator, because of the performance.
-                    True -> Comparable.equals_builtin self that
-                    False ->
-                        case eq_self.compare self that of
-                            Ordering.Equal -> True
-                            _ -> False
+    == self that = @Builtin_Method "Any.=="
 
     ## ALIAS Inequality
 
