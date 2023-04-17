@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.error;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -24,7 +25,7 @@ public abstract class ThrowPanicNode extends Node {
     return ThrowPanicNodeGen.create();
   }
 
-  abstract Object execute(Object payload);
+  abstract Object execute(VirtualFrame giveMeAStackFrame, Object payload);
 
   EnsoContext getContext() {
     return EnsoContext.get(this);
@@ -35,6 +36,7 @@ public abstract class ThrowPanicNode extends Node {
         "payload.getConstructor().getType() == getContext().getBuiltins().caughtPanic().getType()"
       })
   Object doCaughtPanic(
+      VirtualFrame frame,
       Atom payload,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @CachedLibrary(limit = "5") StructsLibrary structs,

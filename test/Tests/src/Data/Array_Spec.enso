@@ -52,10 +52,7 @@ spec =
     Test.group "Compare functionality with Vector" <|
         Test.specify "compare methods" <|
             vector_methods = Meta.meta Vector . methods . sort
-            array_methods_all = Meta.meta Array . methods . sort
-
-            array_methods = array_methods_all.filter (name -> name != "sort_builtin")
-
+            array_methods = Meta.meta Array . methods . sort
             vector_methods . should_equal array_methods
 
     Test.group "ArrayOverBuffer" <|

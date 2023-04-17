@@ -38,6 +38,8 @@ interface AuthenticationApi {
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
      * via a deep link. See {@link setDeepLinkHandler} for details. */
     setDeepLinkHandler: (callback: (url: string) => void) => void
+    /** Saves the access token to a file. */
+    saveAccessToken: (access_token: string) => void
 }
 
 declare global {
@@ -59,7 +61,6 @@ declare global {
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: BuildInfo
-    // eslint-disable-next-line no-restricted-syntax
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
