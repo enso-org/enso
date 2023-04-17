@@ -10,6 +10,7 @@ use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 
 use enso_frp as frp;
+use ensogl::system::js;
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;
 
@@ -27,6 +28,16 @@ pub use code::Code;
 pub use graph::Graph;
 pub use project::Project;
 pub use searcher::Searcher;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// We don't know how long the project opening will take, but we still want to show a fake progress
+/// indicator for the user. This constant represents a progress percentage that will be displayed.
+const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 
 
 
@@ -95,7 +106,7 @@ impl Model {
     #[profile(Task)]
     pub fn open_project(&self, project_name: String) {
         let controller = self.controller.clone_ref();
-        crate::executor::global::spawn(async move {
+        crate::executor::global::spawn(with_progress_indicator(|| async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(err) = managing_api.open_project_by_name(project_name).await {
                     error!("Cannot open project by name: {err}.");
@@ -103,7 +114,7 @@ impl Model {
             } else {
                 warn!("Project opening failed: no ProjectManagingAPI available.");
             }
-        });
+        }));
     }
 
     /// Create a new project. `template` is an optional name of the project template passed to the
@@ -114,7 +125,7 @@ impl Model {
         if let Ok(template) =
             template.map(double_representation::name::project::Template::from_text).transpose()
         {
-            crate::executor::global::spawn(async move {
+            crate::executor::global::spawn(with_progress_indicator(|| async move {
                 if let Ok(managing_api) = controller.manage_projects() {
                     if let Err(err) = managing_api.create_new_project(None, template.clone()).await
                     {
@@ -127,16 +138,17 @@ impl Model {
                 } else {
                     warn!("Project creation failed: no ProjectManagingAPI available.");
                 }
-            })
+            }))
         } else if let Some(template) = template {
             error!("Invalid project template name: {template}");
         };
     }
 
     /// Open a project by name or ID. If no project with the given name exists, it will be created.
+    #[profile(Task)]
     fn open_or_create_project(&self, project: ProjectToOpen) {
         let controller = self.controller.clone_ref();
-        crate::executor::global::spawn(async move {
+        crate::executor::global::spawn(with_progress_indicator(|| async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(error) = managing_api.open_or_create_project(project).await {
                     error!("Cannot open or create project: {error}.");
@@ -144,8 +156,19 @@ impl Model {
             } else {
                 warn!("Project opening failed: no ProjectManagingAPI available.");
             }
-        });
+        }));
     }
+}
+
+/// Show a full-screen spinner for the exact duration of the specified function.
+async fn with_progress_indicator<F, T>(f: F)
+where
+    F: FnOnce() -> T,
+    T: Future<Output = ()>, {
+    let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
+    app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
+    f().await;
+    app.hide_progress_indicator();
 }
 
 
