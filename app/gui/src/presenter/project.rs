@@ -11,7 +11,6 @@ use crate::presenter::graph::ViewNodeId;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
-use ensogl::system::js;
 use ide_view as view;
 use ide_view::project::SearcherParams;
 use model::module::NotificationKind;
@@ -266,29 +265,6 @@ impl Model {
         })
     }
 
-    /// User clicked a project in the Open Project dialog. Open it.
-    fn open_project(&self, project_id: Uuid) {
-        let controller = self.ide_controller.clone_ref();
-        let view = self.view.clone_ref();
-        let status_bar = self.status_bar.clone_ref();
-        executor::global::spawn(async move {
-            let app = js::app_or_panic();
-            app.show_progress_indicator(super::OPEN_PROJECT_SPINNER_PROGRESS);
-            view.hide_graph_editor();
-            if let Ok(api) = controller.manage_projects() {
-                api.close_project();
-                if let Err(error) = api.open_project(project_id).await {
-                    error!("Error opening project: {error}.");
-                    status_bar.add_event(format!("Error opening project: {error}."));
-                }
-            } else {
-                error!("Project Manager API not available, cannot open project.");
-            }
-            app.hide_progress_indicator();
-            view.show_graph_editor();
-        })
-    }
-
     fn execution_environment_changed(
         &self,
         execution_environment: ide_view::execution_environment_selector::ExecutionEnvironment,
@@ -371,11 +347,6 @@ impl Project {
             );
             open_project_list <- view.project_list_shown.on_true();
             eval_ open_project_list (model.project_list_opened(project_list_ready.clone_ref()));
-            eval project_list.selected_project ([model] (project) {
-                if let Some((_, id)) = project {
-                    model.open_project(*id);
-                }
-            });
 
             eval view.searcher ([model](params) {
                 if let Some(params) = params {
