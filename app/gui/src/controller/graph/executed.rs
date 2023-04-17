@@ -244,22 +244,6 @@ impl Handle {
         Ok(node_info)
     }
 
-    /// Enter node by given ID.
-    ///
-    /// This will cause pushing a new stack frame to the execution context and changing the graph
-    /// controller to point to a new definition.
-    ///
-    /// Fails if there's no information about target method pointer (e.g. because node value hasn't
-    /// been yet computed by the engine) or if method graph cannot be created (see
-    /// `graph_for_method` documentation).
-    pub async fn enter_node(&self, node: double_representation::node::Id) -> FallibleResult {
-        let computed_value = self.node_computed_value(node)?;
-        let method_pointer = computed_value.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
-        let definition = method_pointer.clone();
-        let local_call = LocalCall { call: node, definition };
-        self.enter_method_pointer(&local_call).await
-    }
-
     /// Leave the current node. Reverse of `enter_node`.
     ///
     /// Fails if this execution context is already at the stack's root or if the parent graph

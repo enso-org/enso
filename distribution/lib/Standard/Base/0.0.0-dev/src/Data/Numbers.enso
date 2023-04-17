@@ -1,6 +1,7 @@
 import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
+import project.Errors.Common.Incomparable_Values
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -279,6 +280,9 @@ type Number
 
     ## Checks equality of numbers, using an `epsilon` value.
 
+       ! Error Conditions
+         If either of the arguments is `Number.nan`, an `Incomparable_Values` error is raised.
+
        Arguments:
        - that: The number to check equality against.
        - epsilon: The value by which `self` and `that` can be separated by before
@@ -288,7 +292,7 @@ type Number
          Check if 1 is equal to 1.0000001 within 0.001.
 
              1.equals 1.0000001 epsilon=0.001
-    equals : Number -> Number -> Boolean
+    equals : Number -> Number -> Boolean ! Incomparable_Values
     equals self that epsilon=0.0 =
         (self == that) || ((self - that).abs <= epsilon)
 

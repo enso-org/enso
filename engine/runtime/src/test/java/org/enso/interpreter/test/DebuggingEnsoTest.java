@@ -113,6 +113,8 @@ public class DebuggingEnsoTest {
   @Test
   public void recursiveFactorialCall() {
     final Value facFn = createEnsoMethod("""
+    from Standard.Base.Data.Ordering import all
+    
     fac : Number -> Number
     fac n =
         facacc : Number -> Number -> Number
