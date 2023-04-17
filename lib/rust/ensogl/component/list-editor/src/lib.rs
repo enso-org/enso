@@ -1,7 +1,68 @@
-//! Example scene showing the usage of built-in vector editor component.
+//! List Editor is a list component allowing adding, removing and reordering its items.
 //!
-//! TODO[WD]: This is work in progress and will be changed in the upcoming PRs.
-//!   https://github.com/enso-org/enso/issues/6037
+//! # Primary and secondary axis
+//! Although the current implementation supports only horizontally layouted elements, it is designed
+//! to be extended with vertical layout. Thus, the implementation uses terms "primary" and
+//! "secondary" to describe the axis of the list. The primary axis is the axis along which the items
+//! are laid out. The secondary axis is the axis orthogonal to the primary axis.
+//! ```text
+//!           ▲                          
+//! secondary │ ╭─────╮ ╭─────╮ ╭─────╮
+//!      axis │ ╰─────╯ ╰─────╯ ╰─────╯
+//!           ┼────────────────────────▶
+//!                 primary axis
+//! ```
+//!
+//!
+//! # Reordering items
+//! In order to initialize items dragging, the item has to be first dragged along the secondary axis
+//! to be detached from its current position. Then, the item can be dragged freely and placed back
+//! in the list by dropping next to other items.
+//!
+//! This behavior is designed so because list items may be interactive widgets, like sliders. An
+//! interactive item has to be able to receive mouse events, like horizontal dragging in case of
+//! sliders. However, as dragging with mouse is not precise, the following algorithm is implemented:
+//!
+//! 1. When the mouse is pressed, we store the press position.
+//! 2. When the pressed mouse is moved, we check whether the mouse primary axis offset was bigger
+//! than [`ListEditor::primary_axis_no_drag_threshold`]. If so, the dragging is disabled until the
+//! mouse is released and all following mouse events are passed to the item.
+//! 3. In case the dragging is not disabled, when the pressed mouse is moved, we check whether the
+//! mouse secondary axis offset was bigger than [`ListEditor::secondary_axis_drag_threshold`]. If
+//! so, the dragging is initialized and the item starts following the mouse.
+//! 4. In order to provide the user with the ability to control the widgets in the most precise way,
+//! the [`ListEditor::primary_axis_no_drag_threshold`] decays with time after the mouse is pressed.
+//! The decay time is controlled by [`ListEditor::primary_axis_no_drag_threshold_decay`].
+//!
+//! To better illustrate this behavior, the following illustration uses the "x" symbol to denote
+//! mouse press position:
+//!
+//! ```text
+//! ListEditor::primary_axis_no_drag_threshold
+//!                ▶───◀
+//!                ┆   ┆    
+//! ╭─────────╮ ╭──┼───┼──╮ ╭─────────╮
+//! │         │ │  ├╌╌╌┼╌╌┼╌┼╌╌╌╌╌╌╌╌╌┼╌╌▼
+//! │         │ │  ┆ x ┆  │ │         │  │ ListEditor::secondary_axis_drag_threshold
+//! │         │ │  └╌╌╌┴╌╌┼╌┼╌╌╌╌╌╌╌╌╌┼╌╌▲
+//! ╰─────────╯ ╰─────────╯ ╰─────────╯
+//! ```
+//!
+//!
+//! # Removing items
+//! In order to remove an item, it should be dragged out of the list along the secondary axis by at
+//! least the size of the list along the secondary axis multiplied by
+//! [`ListEditor::thrashing_offset_ratio`].
+//!
+//! ```text
+//!             ╭─────────╮
+//!             │         │   
+//! ╭─────────╮ │    x    │ ╭─────────╮
+//! │         │ │         │ │         │
+//! │         │ ╰─────────╯╌┼╌╌╌╌╌╌╌╌╌┼╌╌▼ ListEditor::secondary_axis_drag_threshold
+//! │         │             │         │  │ * ListEditor height
+//! ╰─────────╯             ╰─────────╯╌╌▲
+//! ```
 
 #![recursion_limit = "512"]
 // === Features ===
@@ -24,10 +85,12 @@ use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_core::display::object::Event;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::Animation;
+use ensogl_core::Easing;
 
 use item::Item;
 use placeholder::Placeholder;
@@ -38,8 +101,6 @@ use placeholder::StrongPlaceholder;
 // =================
 // === Constants ===
 // =================
-
-const DRAG_THRESHOLD: f32 = 4.0;
 
 // FIXME: to be parametrized
 const GAP: f32 = 20.0;
@@ -82,12 +143,12 @@ impl<T> Response<T> {
     }
 
     /// Constructor indicating that the response was triggered by an API interaction.
-    pub fn new_api_interaction(payload: T) -> Self {
+    pub fn api(payload: T) -> Self {
         Self::new(payload, false)
     }
 
     /// Constructor indicating that the response was triggered by a GUI interaction.
-    pub fn new_gui_interaction(payload: T) -> Self {
+    pub fn gui(payload: T) -> Self {
         Self::new(payload, true)
     }
 }
@@ -210,6 +271,11 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
 
         /// Remove the element at the given index. If the index is invalid, nothing will happen.
         remove(Index),
+
+        secondary_axis_drag_threshold(f32),
+        primary_axis_no_drag_threshold(f32),
+        primary_axis_no_drag_threshold_decay_time(f32),
+        thrashing_offset_ratio(f32),
     }
     Output {
         /// Fires whenever a new element was added to the list.
@@ -228,7 +294,7 @@ pub struct ListEditor<T: frp::node::Data> {
     #[deref]
     pub frp:          Frp<T>,
     root:             display::object::Instance,
-    model:            Rc<RefCell<Model<T>>>,
+    model:            SharedModel<T>,
     add_elem_icon:    Rectangle,
     remove_elem_icon: Rectangle,
 }
@@ -258,6 +324,18 @@ impl<T> Default for Model<T> {
     }
 }
 
+#[derive(Derivative, CloneRef, Debug, Default, Deref)]
+#[derivative(Clone(bound = ""))]
+pub struct SharedModel<T> {
+    rc: Rc<RefCell<Model<T>>>,
+}
+
+impl<T> From<Model<T>> for SharedModel<T> {
+    fn from(model: Model<T>) -> Self {
+        Self { rc: Rc::new(RefCell::new(model)) }
+    }
+}
+
 
 impl<T: display::Object + frp::node::Data> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
@@ -282,8 +360,8 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         remove_elem_icon.set_y(-30.0);
         remove_elem_icon.set_x(30.0);
         root.add_child(&remove_elem_icon);
-        let model = Rc::new(RefCell::new(model));
-        Self { frp, root, model, add_elem_icon, remove_elem_icon }.init(cursor)
+        let model = model.into();
+        Self { frp, root, model, add_elem_icon, remove_elem_icon }.init(cursor).init_frp_values()
     }
 
     fn init(self, cursor: &Cursor) -> Self {
@@ -295,13 +373,14 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         let add_elem_icon_down = self.add_elem_icon.on_event::<mouse::Down>();
         let remove_elem_icon_down = self.remove_elem_icon.on_event::<mouse::Down>();
         let on_down = model.borrow().layout.on_event_capturing::<mouse::Down>();
-        let on_up = scene.on_event::<mouse::Up>();
+        let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
-        frp::extend! { network
 
+
+        frp::extend! { network
             frp.private.output.request_new_item <+ add_elem_icon_down.map(f!([model] (_) {
                 let index = model.borrow_mut().items.len();
-                Response::new_gui_interaction(index)
+                Response::gui(index)
             }));
 
             frp.remove <+ remove_elem_icon_down.constant(0);
@@ -309,7 +388,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             push_item_index <= frp.push.map(f!([model] (item)
                 item.upgrade().map(|t| model.borrow_mut().push_item((*t).clone()))
             ));
-            on_item_pushed <- frp.push.map2(&push_item_index, |item, ix| Response::new_api_interaction((*ix, item.clone())));
+            on_item_pushed <- frp.push.map2(&push_item_index, |item, ix| Response::api((*ix, item.clone())));
             frp.private.output.on_new_item <+ on_item_pushed;
 
             // Do not pass events to children, as we don't know whether we are about to drag
@@ -317,47 +396,37 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             eval on_down ([] (event) event.stop_propagation());
             target <= on_down.map(|event| event.target());
 
-            target_pos_on_down <- target.map(|t| t.xy());
-            pressed <- bool(&on_up, &on_down);
-            glob_pos_on_down <- on_down.map(|event| event.client_centered());
-            pos_on_down <- glob_pos_on_down.map(f!([model] (p) model.borrow().screen_to_object_space(*p)));
-            on_move_pressed <- on_move.gate(&pressed);
-            glob_pos_on_move <- on_move_pressed.map(|event| event.client_centered());
-            pos_on_move <- glob_pos_on_move.map(f!([model] (p) model.borrow().screen_to_object_space(*p)));
-            pos_offset_on_move <- map2(&pos_on_move, &pos_on_down, |a, b| a - b);
+            on_up <- on_up_source.identity();
+            on_up_cleaning_phase <- on_up_source.identity();
 
-            // Discover whether the elements are dragged. They need to be moved vertically by at
-            // least the [`DRAG_THRESHOLD`].
-            drag_gate <- pos_offset_on_move.map(|t| t.y.abs() >= DRAG_THRESHOLD);
-            pos_offset_on_drag <- pos_offset_on_move.gate(&drag_gate);
-            status <- bool(&on_up, &pos_offset_on_drag).on_change();
+            is_down <- bool(&on_up, &on_down);
+            on_move_down <- on_move.gate(&is_down);
+            glob_pos_on_down <- on_down.map(|event| event.client_centered());
+            glob_pos_on_move <- on_move_down.map(|event| event.client_centered());
+            pos_on_down <- glob_pos_on_down.map(f!([model] (p) model.screen_to_object_space(*p)));
+            pos_on_move <- glob_pos_on_move.map(f!([model] (p) model.screen_to_object_space(*p)));
+            pos_diff_on_move <- pos_on_move.map2(&pos_on_down, |a, b| a - b);
+            pos_diff_on_down <- on_down.constant(Vector2::new(0.0, 0.0));
+            pos_diff_on_up <- on_up_cleaning_phase.constant(Vector2::new(0.0, 0.0));
+            pos_diff <- any3(&pos_diff_on_move, &pos_diff_on_down, &pos_diff_on_up);
+        }
+
+        let (_is_dragging, drag_diff) = self.init_drag(&on_up, &on_down, &pos_diff);
+        let is_trashing = self.init_trashing(cursor, &on_up, &drag_diff);
+
+        frp::extend! { network
+            status <- bool(&on_up, &drag_diff).on_change();
             start <- status.on_true();
             target_on_start <- target.sample(&start);
-
-            trashing <- pos_offset_on_drag.map(|t| t.y.abs() >= 100.0).on_change();
-            on_trashing <- trashing.on_true();
-            on_trash <- on_up.gate(&trashing);
-            eval trashing ((t) cursor.frp.set_style(if *t { cursor::Style::trash() } else { cursor::Style::default() }));
-            eval_ on_trashing ([model] {
-                model.borrow_mut().collapse_all_placeholders();
-                model.borrow_mut().recompute_margins();
-            });
-            eval_ on_trash ([model, cursor] model.borrow_mut().trash_dragged_item(&cursor));
 
             eval frp.remove((index) model.borrow_mut().trash_item_at(*index));
 
             // Re-parent the dragged element.
             eval target_on_start([model, cursor] (t) model.borrow_mut().start_item_drag(&cursor, t));
-            // center_points <- target_on_start.map(f_!(model.borrow().center_points()));
-            // trace center_points;
 
-            // Move the dragged element.
-            // target_new_pos <- map2(&pos_offset_on_drag, &target_pos_on_down, |a, b| a + b);
-            // _eval <- target_new_pos.map2(&target, |pos, t| t.set_xy(*pos));
-
-            pos_non_trash <- pos_on_move.gate_not(&trashing);
+            pos_non_trash <- pos_on_move.gate_not(&is_trashing);
             insert_index <- pos_non_trash.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
-            insert_index_on_drop <- insert_index.sample(&on_up).gate_not(&trashing);
+            insert_index_on_drop <- insert_index.sample(&on_up).gate_not(&is_trashing);
 
             eval insert_index ([model, cursor] (i) model.borrow_mut().add_insertion_point(&cursor, *i));
 
@@ -365,6 +434,76 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
                 model.borrow_mut().place_dragged_item(&cursor, *index)
             );
         }
+        self
+    }
+
+    /// Implementation of item dragging logic. See docs of this crate to learn more.
+    fn init_drag(
+        &self,
+        on_up: &frp::Stream<Event<mouse::Up>>,
+        on_down: &frp::Stream<Event<mouse::Down>>,
+        pos_diff: &frp::Stream<Vector2>,
+    ) -> (frp::Stream<bool>, frp::Stream<Vector2>) {
+        let on_up = on_up.clone_ref();
+        let on_down = on_down.clone_ref();
+        let pos_diff = pos_diff.clone_ref();
+        let frp = &self.frp;
+        let network = self.frp.network();
+        let decay = Easing::new(&network);
+        frp::extend! { network
+            let init_drag_threshold = &frp.secondary_axis_drag_threshold;
+            let init_no_drag_threshold = &frp.primary_axis_no_drag_threshold;
+
+            decay.set_duration <+ frp.primary_axis_no_drag_threshold_decay_time;
+            decay.stop_and_rewind <+ any_(&on_up, &on_down).constant(1.0);
+            decay.target <+ on_down.constant(0.0);
+            no_drag_threshold <- all_with(&decay.value, init_no_drag_threshold, |d, t| d * t);
+
+            init_no_drag <- all_with(&pos_diff, &no_drag_threshold, |p, t| p.x.abs() > *t).on_true();
+            init_drag <- all_with(&pos_diff, init_drag_threshold, |p, t| p.y.abs() > *t).on_true();
+            drag_disabled <- bool(&on_up, &init_no_drag).on_change();
+            init_drag_not_disabled <- init_drag.gate_not(&drag_disabled);
+            is_dragging <- bool(&on_up, &init_drag_not_disabled).on_change();
+            drag_diff <- pos_diff.gate(&is_dragging);
+        }
+        (is_dragging, drag_diff)
+    }
+
+    /// Implementation of item trashing logic. See docs of this crate to learn more.
+    fn init_trashing(
+        &self,
+        cursor: &Cursor,
+        on_up: &frp::Stream<Event<mouse::Up>>,
+        drag_diff: &frp::Stream<Vector2>,
+    ) -> frp::Stream<bool> {
+        let on_up = on_up.clone_ref();
+        let drag_diff = drag_diff.clone_ref();
+        let model = &self.model;
+        let layout = model.borrow().layout.clone_ref();
+        let frp = &self.frp;
+        let network = self.frp.network();
+        frp::extend! { network
+            required_offset <- all_with(&frp.thrashing_offset_ratio, &layout.on_resized,
+                |ratio, size| size.y * ratio
+            );
+            status <- drag_diff.map2(&required_offset, |t, m| t.y.abs() >= *m).on_change();
+            status_on_up <- on_up.constant(false);
+            status_cleaning_phase <- any(&status, &status_on_up).on_change();
+            cursor.frp.set_style <+ status_cleaning_phase.default_or(cursor::Style::trash());
+            on <- status.on_true();
+            perform <- on_up.gate(&status);
+            eval_ on (model.collapse_all_placeholders());
+            eval_ perform ([model, cursor] model.borrow_mut().trash_dragged_item(&cursor));
+        }
+        status
+    }
+
+    /// Initializes default FRP values. See docs of this crate to learn more.
+    fn init_frp_values(self) -> Self {
+        self.frp.secondary_axis_drag_threshold(4.0);
+        self.frp.primary_axis_no_drag_threshold(4.0);
+        self.frp.primary_axis_no_drag_threshold_decay_time(1000.0);
+        self.frp.thrashing_offset_ratio(1.0);
         self
     }
 
@@ -377,7 +516,17 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
     }
 }
 
-impl<T: display::Object + frp::node::Data> Model<T> {
+impl<T: display::Object + 'static> SharedModel<T> {
+    fn screen_to_object_space(&self, screen_pos: Vector2) -> Vector2 {
+        self.borrow().screen_to_object_space(screen_pos)
+    }
+
+    fn collapse_all_placeholders(&self) {
+        self.borrow_mut().collapse_all_placeholders()
+    }
+}
+
+impl<T: display::Object + 'static> Model<T> {
     // FIXME: refactor and generalize
     fn screen_to_object_space(&self, screen_pos: Vector2) -> Vector2 {
         let scene = scene();
@@ -457,13 +606,21 @@ impl<T: display::Object + frp::node::Data> Model<T> {
         self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0.into())
     }
 
-    /// Convert all placeholders to their weak versions and start the collapse animation.
-    fn collapse_all_placeholders(&mut self) {
+    /// Convert all placeholders to their weak versions and start the collapse animation. The
+    /// margins will not be updated.
+    fn collapse_all_placeholders_no_margin_update(&mut self) {
         for item in &mut self.items {
             if let ItemOrPlaceholder::Placeholder(placeholder) = item {
                 placeholder.collapse();
             }
         }
+    }
+
+    /// Convert all placeholders to their weak versions and start the collapse animation. The
+    /// margins of items will be updated as well.
+    fn collapse_all_placeholders(&mut self) {
+        self.collapse_all_placeholders_no_margin_update();
+        self.recompute_margins();
     }
 
     /// Get the placeholder of the provided index if the index points to a strong placeholder or an
@@ -570,7 +727,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     fn replace_item_with_placeholder(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {
         match self.items.remove(index) {
             ItemOrPlaceholder::Item(item) => {
-                self.collapse_all_placeholders();
+                self.collapse_all_placeholders_no_margin_update();
                 let item_size = item.computed_size().x;
                 if let Some(placeholder) = self.get_merged_placeholder_at(index) {
                     placeholder.update_size(|t| t + item_size);
@@ -593,7 +750,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// the dragged object size.
     fn add_insertion_point(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
         if let Some(item) = cursor.with_dragged_item_if_is::<T, _>(|t| t.display_object().clone()) {
-            self.collapse_all_placeholders();
+            self.collapse_all_placeholders_no_margin_update();
             let item_size = item.computed_size().x + self.margin_at(index);
             let placeholder = self.get_merged_placeholder_at(index).unwrap_or_else(|| {
                 let placeholder = StrongPlaceholder::new();
@@ -612,7 +769,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     /// [`ItemOrPlaceholder`] to learn more.
     fn place_dragged_item(&mut self, cursor: &Cursor, index: ItemOrPlaceholderIndex) {
         if let Some(element) = cursor.stop_drag_if_is::<T>() {
-            self.collapse_all_placeholders();
+            self.collapse_all_placeholders_no_margin_update();
             if let Some((index, placeholder)) = self.get_indexed_merged_placeholder_at(index) {
                 placeholder.set_target_size(placeholder.computed_size().x);
                 element.update_xy(|t| t - placeholder.global_position().xy());
@@ -637,6 +794,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     }
 
     pub fn trash_dragged_item(&mut self, cursor: &Cursor) {
+        warn!("Trash dragged item.");
         if let Some(item) = cursor.stop_drag_if_is::<T>() {
             self.trash_item(item)
         }
@@ -645,7 +803,7 @@ impl<T: display::Object + frp::node::Data> Model<T> {
     pub fn trash_item_at(&mut self, index: Index) {
         if let Some(item_index) = self.index_to_item_or_placeholder_index(index) {
             if let Some(item) = self.replace_item_with_placeholder(item_index) {
-                self.collapse_all_placeholders();
+                self.collapse_all_placeholders_no_margin_update();
                 self.trash_item(item);
             }
         } else {
