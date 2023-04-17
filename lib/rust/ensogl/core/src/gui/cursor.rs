@@ -215,7 +215,7 @@ pub struct CursorModel {
     pub view:           shape::View,
     pub port_selection: shape::View,
     pub style:          Rc<RefCell<Style>>,
-    pub dragged_item:   Rc<RefCell<Option<Box<dyn std::any::Any>>>>,
+    pub dragged_item:   Rc<RefCell<Option<Box<dyn Any>>>>,
 }
 
 impl CursorModel {
@@ -504,6 +504,9 @@ impl Cursor {
         Cursor { frp, model }
     }
 
+    /// Initialize item dragging. The provided item should implement [`display::Object`]. It will be
+    /// stored in the cursor and moved around with it. You can retrieve the item back using the
+    /// [`Self::stop_drag`] method or another similar one.
     pub fn start_drag<T: display::Object + 'static>(&self, target: T) {
         if self.model.dragged_item.borrow().is_some() {
             warn!("Can't start dragging an item because another item is already being dragged.");
@@ -522,10 +525,13 @@ impl Cursor {
         }
     }
 
-    pub fn stop_drag(&self) -> Option<Box<dyn std::any::Any>> {
+    /// Remove the dragged item and return it as [`Any`]. If you want to retrieve the item if it is
+    /// of a particular type, use the [`Self::stop_drag_if_is`] method instead.
+    pub fn stop_drag(&self) -> Option<Box<dyn Any>> {
         self.stop_drag_if_is()
     }
 
+    /// Check whether the dragged item is of a particular type. If it is, remove and return it.
     pub fn stop_drag_if_is<T: 'static>(&self) -> Option<T> {
         if let Some(item) = mem::take(&mut *self.model.dragged_item.borrow_mut()) {
             match item.downcast::<T>() {
@@ -548,17 +554,16 @@ impl Cursor {
         }
     }
 
+    /// Check whether the dragged item is of a particular type.
     pub fn dragged_item_is<T: 'static>(&self) -> bool {
         self.model.dragged_item.borrow().as_ref().map(|item| item.is::<T>()).unwrap_or(false)
     }
 
+    /// Check whether the dragged item is of a particular type. If it is, call the provided function
+    /// on it's reference.
     pub fn with_dragged_item_if_is<T, Out>(&self, f: impl FnOnce(&T) -> Out) -> Option<Out>
     where T: 'static {
-        self.model
-            .dragged_item
-            .borrow()
-            .as_ref()
-            .and_then(|item| item.downcast_ref::<T>().map(|item| f(item)))
+        self.model.dragged_item.borrow().as_ref().and_then(|item| item.downcast_ref::<T>().map(f))
     }
 }
 

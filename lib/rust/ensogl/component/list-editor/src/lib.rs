@@ -1,10 +1,10 @@
 //! List Editor is a list component allowing adding, removing and reordering its items.
 //!
 //! # Primary and secondary axis
-//! Although the current implementation supports only horizontally layouted elements, it is designed
-//! to be extended with vertical layout. Thus, the implementation uses terms "primary" and
-//! "secondary" to describe the axis of the list. The primary axis is the axis along which the items
-//! are laid out. The secondary axis is the axis orthogonal to the primary axis.
+//! The implementation currently only supports horizontal layout, but it's designed to also support
+//! vertical layout. It uses "primary" and "secondary" to describe the list's axis. The primary axis
+//! is where the items are laid out, while the secondary axis is perpendicular to it.
+//!
 //! ```text
 //!           ▲                          
 //! secondary │ ╭─────╮ ╭─────╮ ╭─────╮
@@ -15,24 +15,24 @@
 //!
 //!
 //! # Reordering items
-//! In order to initialize items dragging, the item has to be first dragged along the secondary axis
-//! to be detached from its current position. Then, the item can be dragged freely and placed back
-//! in the list by dropping next to other items.
+//! To initialize item dragging, it must first be dragged along the secondary axis to detach it from
+//! its current position. Then, it can be freely dragged and placed back in the list by dropping it
+//! next to other items.
 //!
-//! This behavior is designed so because list items may be interactive widgets, like sliders. An
-//! interactive item has to be able to receive mouse events, like horizontal dragging in case of
-//! sliders. However, as dragging with mouse is not precise, the following algorithm is implemented:
+//! This behavior is designed so because list items may be interactive widgets, such as sliders,
+//! that need to receive mouse events like horizontal dragging. However, as mouse dragging is not
+//! precise, the following algorithm is implemented:
 //!
-//! 1. When the mouse is pressed, we store the press position.
-//! 2. When the pressed mouse is moved, we check whether the mouse primary axis offset was bigger
-//! than [`ListEditor::primary_axis_no_drag_threshold`]. If so, the dragging is disabled until the
-//! mouse is released and all following mouse events are passed to the item.
-//! 3. In case the dragging is not disabled, when the pressed mouse is moved, we check whether the
-//! mouse secondary axis offset was bigger than [`ListEditor::secondary_axis_drag_threshold`]. If
-//! so, the dragging is initialized and the item starts following the mouse.
-//! 4. In order to provide the user with the ability to control the widgets in the most precise way,
-//! the [`ListEditor::primary_axis_no_drag_threshold`] decays with time after the mouse is pressed.
-//! The decay time is controlled by [`ListEditor::primary_axis_no_drag_threshold_decay`].
+//! 1. When the mouse is pressed, the press position is stored.
+//! 2. When the mouse is moved, the algorithm checks if the mouse primary axis offset is greater
+//! than [`ListEditor::primary_axis_no_drag_threshold`]. If it is, the dragging is disabled until
+//! the mouse is released and all following mouse events are passed to the item.
+//! 3. If dragging is not disabled, when the mouse is moved, the algorithm checks if the mouse
+//! secondary axis offset is greater than [ListEditor::secondary_axis_drag_threshold]. If it is, the
+//! dragging is initialized and the item starts to follow the mouse.
+//! The [`ListEditor::primary_axis_no_drag_threshold`] decays with time after the mouse is pressed
+//! to provide the user with precise control over the widgets. The decay time is controlled by
+//! [`ListEditor::primary_axis_no_drag_threshold_decay`].
 //!
 //! To better illustrate this behavior, the following illustration uses the "x" symbol to denote
 //! mouse press position:
@@ -222,7 +222,7 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
 
     pub fn margin_left(&self) -> f32 {
         match self {
-            ItemOrPlaceholder::Placeholder(t) => 0.0,
+            ItemOrPlaceholder::Placeholder(_) => 0.0,
             ItemOrPlaceholder::Item(t) => t.frp.margin_left.value(),
         }
     }
@@ -449,7 +449,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
         let pos_diff = pos_diff.clone_ref();
         let frp = &self.frp;
         let network = self.frp.network();
-        let decay = Easing::new(&network);
+        let decay = Easing::new(network);
         frp::extend! { network
             let init_drag_threshold = &frp.secondary_axis_drag_threshold;
             let init_no_drag_threshold = &frp.primary_axis_no_drag_threshold;
@@ -836,7 +836,7 @@ impl<T: display::Object + 'static> Model<T> {
 
     /// The insertion point of the given vertical offset.
     fn insert_index(&self, x: f32) -> ItemOrPlaceholderIndex {
-        self.center_points().iter().position(|t| x < *t).unwrap_or_else(|| self.items.len()).into()
+        self.center_points().iter().position(|t| x < *t).unwrap_or(self.items.len()).into()
     }
 }
 
