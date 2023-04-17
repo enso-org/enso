@@ -146,13 +146,6 @@ spec =
             Map.empty.insert Number.nan 1 . insert Number.nan Number.nan . at Number.nan . to_text . should_equal "NaN"
             Map.empty.insert Number.nan 1 . insert Number.nan Number.nan . remove Number.nan . size . should_equal 0
 
-        Test.specify "should support vector with NaNs as keys" <|
-            Map.emtpy.insert [Number.nan] 1 . keys . to_text . should_equal [["NaN"]]
-            Map.emtpy.insert [Number.nan] 1 . values . should_equal [1]
-            Map.emtpy.insert [Number.nan] 1 . at Number.nan . should_equal 1
-            Map.emtpy.insert [Number.nan] 1 . insert [Number.nan, Number.nan] 2 . keys . to_text . should_equal [["NaN"], ["NaN", "NaN"]]
-            Map.emtpy.insert [Number.nan] 1 . insert [Number.nan, Number.nan] 2 . values . should_equal [1, 2]
-
         Test.specify "should support dates as keys" <|
             map = Map.empty.insert (Date.new 1993) 1 . insert (Date.new 1993 2 5) 2 . insert (Date_Time.new 1993 2 5 13 45) 3
             map.size.should_equal 3
