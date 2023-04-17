@@ -1151,20 +1151,26 @@ type Table
                         sql_type.catch Inexact_Type_Coercion error->
                             Panic.throw <|
                                 Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                        [column_set, sql_type]
+                        [column_set, sql_type, result_type]
             good_columns = merged_columns.filter r-> r.is_nothing.not
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
-                    cast_after_union = dialect.cast_after_union
                     queries = all_tables.map_with_index i-> t->
                         columns_to_select = good_columns.map description->
                             column_set = description.first
+                            sql_type = description.second
                             column_name = column_set.name
                             case column_set.column_indices.at i of
                                 Nothing ->
                                     typ = SQL_Type_Reference.from_constant SQL_Type.null
                                     expr = SQL_Expression.Literal "NULL"
-                                    Internal_Column.Value column_name typ expr
+                                    null_column = Internal_Column.Value column_name typ expr
+                                    ## We assume that the type for this
+                                       expression will never be queried - it is
+                                       just used internally to build the Union
+                                       operation and never exposed externally.
+                                    infer_return_type _ = SQL_Type_Reference.null
+                                    dialect.make_cast null_column sql_type infer_return_type
                                 corresponding_column_index : Integer ->
                                     t.at corresponding_column_index . as_internal . rename column_name
                         pairs = columns_to_select.map c->
@@ -1182,15 +1188,11 @@ type Table
                         SQL_Type_Reference.new self.connection new_ctx expression
                     new_columns = good_columns.map description->
                         column_set = description.first
-                        result_type = description.second
+                        result_type = description.at 2
                         name = column_set.name
                         expression = SQL_Expression.Column union_alias name
-                        case cast_after_union of
-                            True ->
-                                input_column = Internal_Column.Value name SQL_Type_Reference.null expression
-                                dialect.make_cast input_column result_type infer_return_type
-                            False ->
-                                Internal_Column.Value name (infer_return_type expression) expression
+                        input_column = Internal_Column.Value name (infer_return_type expression) expression
+                        dialect.adapt_unified_column input_column result_type infer_return_type
 
                     Table.Value union_alias self.connection new_columns new_ctx
 

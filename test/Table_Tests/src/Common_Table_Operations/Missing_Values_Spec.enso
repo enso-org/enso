@@ -157,7 +157,7 @@ spec setup =
             c.value_type.is_floating_point.should_be_true
 
         Test.specify "should keep String, Boolean, Long and Double type" <|
-            table = table_builder [["X", ["a", Nothing, "b", Nothing]], ["Y", [True, False, Nothing]], ["Z", [1, Nothing, 2, Nothing]], ["W", [0.5, Nothing, Nothing, 0.25]]]
+            table = table_builder [["X", ["a", Nothing, "b", Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [1, Nothing, 2, Nothing]], ["W", [0.5, Nothing, Nothing, 0.25]]]
             strs = table.at "X"
             strs_filled = strs.fill_nothing "X"
             strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
@@ -165,7 +165,7 @@ spec setup =
 
             bools = table.at "Y"
             bools_filled = bools.fill_nothing False
-            bools_filled.to_vector . should_equal [True, False, False]
+            bools_filled.to_vector . should_equal [True, False, False, False]
             bools_filled.value_type . should_equal Value_Type.Boolean
 
             ints = table.at "Z"

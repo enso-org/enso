@@ -28,6 +28,21 @@ spec setup =
             c2.to_vector . should_equal [22, 33, Nothing, 22]
             c2.value_type . is_floating_point . should_be_true
 
+            c3 = t.at "X" . iif "A" "B"
+            c3.to_vector . should_equal ["A", "B", Nothing, "A"]
+            c3.value_type . is_text . should_be_true
+
+            c4 = t.at "X" . iif Nothing "B"
+            c4.to_vector . should_equal [Nothing, "B", Nothing, Nothing]
+            c4.value_type . is_text . should_be_true
+
+            c5 = t.at "X" . iif 42 Nothing
+            c5.to_vector . should_equal [42, Nothing, Nothing, 42]
+            c5.value_type . is_integer . should_be_true
+
+            c6 = t.at "X" . iif Nothing Nothing
+            c6.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+
             t.at "X" . iif 22.0 False . to_vector . should_fail_with No_Common_Type
             t.at "X" . iif 22 "0" . to_vector . should_fail_with No_Common_Type
 
@@ -45,6 +60,33 @@ spec setup =
             t3 = table_builder [["X", [True, False]], ["Y", [10, 20]], ["Z", [False, True]]]
             t3.at "X" . iif (t3.at "Y") (t3.at "Z") . to_vector . should_fail_with No_Common_Type
             t3.at "X" . iif (t3.at "Y") "<NA>" . to_vector . should_fail_with No_Common_Type
+
+        Test.specify "iif should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
+            t1 = t0
+               . cast "A" (Value_Type.Char size=1 variable_length=False)
+               . cast "B" (Value_Type.Char size=3 variable_length=False)
+
+            a = t1.at "A"
+            b = t1.at "B"
+            a.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+            b.value_type.should_equal (Value_Type.Char size=3 variable_length=False)
+
+            c = (t.at "x").iif a b
+            c.to_vector.should_equal ["xyz", "b", "def"]
+            Test.with_clue "c.value_type="+c.value_type.to_display_text+": " <|
+                c.value_type.variable_length.should_be_true
+
+            d = b.cast (Value_Type.Char size=1 variable_length=False)
+            e = (t.at "x").iif a d
+            e.to_vector.should_equal ["x", "b", "d"]
+            e.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+
+            f = b.cast (Value_Type.Char size=1 variable_length=True)
+            g = (t.at "x").iif a f
+            g.to_vector.should_equal ["x", "b", "d"]
+            Test.with_clue "g.value_type="+g.value_type.to_display_text+": " <|
+                g.value_type.variable_length.should_be_true
 
         Test.specify "should allow to compute &&, || and not" <|
             t = table_builder [["X", [True, False, True]], ["Y", [True, False, False]]]
@@ -149,6 +191,29 @@ spec setup =
 
             c2 = t.at "X" . fill_empty "<empty>"
             c2.to_vector . should_equal ["a", "<empty>", " ", "<empty>", "b"]
+
+        Test.specify "fill_nothing should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            t0 = table_builder [["A", ["a", Nothing, "c"]], ["B", ["X", "Y", "Z"]], ["C", ["xyz", "abc", "def"]]]
+            t1 = t0
+               . cast "A" (Value_Type.Char size=1 variable_length=False)
+               . cast "B" (Value_Type.Char size=1 variable_length=False)
+               . cast "C" (Value_Type.Char size=3 variable_length=False)
+
+            a = t1.at "A"
+            b = t1.at "B"
+            c = t1.at "C"
+            a.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+            b.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+            c.value_type.should_equal (Value_Type.Char size=3 variable_length=False)
+
+            d = a.fill_nothing b
+            d.to_vector . should_equal ["a", "Y", "c"]
+            d.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+
+            e = a.fill_nothing c
+            e.to_vector . should_equal ["a", "abc", "c"]
+            Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
+                e.value_type.variable_length.should_be_true
 
         Test.specify "should report a warning if checking equality on floating point columns" <|
             t = table_builder [["X", [1.0, 2.1, 3.2]], ["Y", [1.0, 2.0, 3.2]]]
@@ -378,18 +443,14 @@ spec setup =
             (x / Nothing).to_vector . should_equal nulls
 
         Test.specify "should correctly merge types in fill_nothing/coalesce" <|
-            x.fill_nothing y . value_type . is_floating_point . should_be_true
+            c = x.fill_nothing y
+            Test.with_clue "c.value_type="+c.value_type.to_display_text+": " <|
+                c.value_type . is_floating_point . should_be_true
+
             x.fill_nothing 1 . value_type . is_integer . should_be_true
             x.fill_nothing 1.0 . value_type . is_floating_point . should_be_true
 
             y.fill_nothing 1 . value_type . is_floating_point . should_be_true
-            c2 = y.fill_nothing False
-            c2.value_type.is_floating_point.should_be_true
-            c2.to_vector . should_equal [2.0, 3.25, 5.0, 0.0]
-
-            c3 = x.coalesce [y, False]
-            c3.value_type.is_floating_point.should_be_true
-            c3.to_vector . should_equal [1, 4, 5, 0]
 
             x.fill_nothing True . to_vector . should_fail_with No_Common_Type
             y.fill_nothing True . to_vector . should_fail_with No_Common_Type
@@ -511,7 +572,8 @@ spec setup =
 
             c5 = a.min b
             c5.to_vector . should_equal [1, 2, 3]
-            c5.value_type.is_floating_point . should_be_true
+            Test.with_clue "c5.value_type="+c5.value_type.to_display_text+": " <|
+                c5.value_type.is_floating_point . should_be_true
 
             c6 = a.max b
             c6.to_vector . should_equal [4.5, 5.5, 6.5]

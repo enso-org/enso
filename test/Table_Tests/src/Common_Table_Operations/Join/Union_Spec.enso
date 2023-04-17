@@ -204,7 +204,8 @@ spec setup =
             expect_column_names ["A"] t3
             t3.at "A" . to_vector . should_equal ["a", "b", "c", "xyz", "abc", "def"]
             t3.at "A" . value_type . is_text . should_be_true
-            t3.at "A" . value_type . variable_length . should_be_true
+            Test.with_clue "t3[A].value_type="+(t3.at "A").value_type.to_display_text+": " <|
+                t3.at "A" . value_type . variable_length . should_be_true
 
         Test.specify "should find a common type that will fit the merged columns" <|
             t1 = table_builder [["int+float", [0, 1, 2]]]
@@ -268,7 +269,9 @@ spec setup =
                 (types == ["Char", "Integer"]) || (types == ["Boolean", "Char"]) . should_be_true
 
             # A boolean column cannot be merged with integers.
-            r4 = t1.select_columns ["C"] . union (t2.select_columns ["A"]) match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
+            t3 = t1.select_columns ["C", "A"] reorder=True
+            t4 = t2.select_columns ["B", "A"] reorder=True
+            r4 = t3.union t4 match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
             r4.should_fail_with No_Common_Type
 
         Test.specify "if type widening is not allowed, should use the type from first table that contained the given column" <|

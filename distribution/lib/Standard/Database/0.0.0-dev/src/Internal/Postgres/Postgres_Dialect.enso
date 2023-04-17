@@ -153,8 +153,13 @@ type Postgres_Dialect
     supports_separate_nan self = True
 
     ## PRIVATE
-    cast_after_union : Boolean
-    cast_after_union self = False
+       There is a bug in Postgres type inference, where if we unify two
+       fixed-length char columns of length N and M, the result type is said to
+       be a **fixed-length** column of length max_int4. This is wrong, and in
+       practice the column is just a variable-length text. This method detects
+       this situations and overrides the type to make it correct.
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement

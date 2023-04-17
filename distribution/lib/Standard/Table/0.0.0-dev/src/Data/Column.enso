@@ -20,7 +20,7 @@ import project.Internal.Widget_Helpers
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Data.Type.Value_Type_Helpers import type_helpers
-from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type
+from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -646,9 +646,9 @@ type Column
     iif : Any -> Any -> Column
     iif self when_true when_false =
         type_helpers.check_argument_type self Value_Type.expect_boolean <|
-            common_type = type_helpers.find_common_type_for_arguments [when_true, when_false]
+            common_type = type_helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
             storage_type = Storage.from_value_type common_type Problem_Behavior.Report_Error
-            storage_type.catch Inexact_Type_Coercion error->
+            storage_type.catch Inexact_Type_Coercion _->
                 Panic.throw (Illegal_State.Error "Common type "+common_type.to_display_text+" is not supported by the Storage. This should never happen and is a bug in the Table library.")
 
             storage_type.if_not_error <|

@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Data.Column.Column
 import project.Data.Type.Enso_Types
 from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Errors import Invalid_Value_Type
+from project.Errors import Invalid_Value_Type, No_Common_Type
 
 ## PRIVATE
    Finds a type that can fit both a current type and a new type.
@@ -158,12 +158,16 @@ type Operation_Type_Helpers
         Error.throw error
 
     ## PRIVATE
+    find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
     find_common_type_for_arguments self arguments =
-        types = arguments.map self.find_argument_type
-        case find_common_type types strict=True of
-            common_type : Value_Type -> common_type
-            Nothing -> Error.throw <|
-                No_Common_Type.Error types related_column_name=Nothing
+        types = arguments.map self.find_argument_type . filter Filter_Condition.Not_Nothing
+        case types.is_empty of
+            # TODO [RW] what to do with `x.iif Nothing Nothing`?
+            True -> Nothing
+            False -> case find_common_type types strict=True of
+                common_type : Value_Type -> common_type
+                Nothing -> Error.throw <|
+                    No_Common_Type.Error types related_column_name=Nothing
 
 
 ## PRIVATE

@@ -32,12 +32,14 @@ public class JDBCUtils {
   }
 
   /** Sets a LocalTime in a PreparedStatement. */
-  public static void setLocalTime(PreparedStatement stmt, int columnIndex, LocalTime localTime) throws SQLException {
+  public static void setLocalTime(PreparedStatement stmt, int columnIndex, LocalTime localTime)
+      throws SQLException {
     stmt.setObject(columnIndex, localTime, Types.TIME);
   }
 
   /** Sets a LocalDate in a PreparedStatement. */
-  public static void setLocalDate(PreparedStatement stmt, int columnIndex, LocalDate localDate) throws SQLException {
+  public static void setLocalDate(PreparedStatement stmt, int columnIndex, LocalDate localDate)
+      throws SQLException {
     stmt.setObject(columnIndex, localDate, Types.DATE);
   }
 }

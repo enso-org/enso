@@ -6,6 +6,7 @@ import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table import Value_Type
 
 import project.Connection.Connection.Connection
 import project.Data.SQL.Builder
@@ -157,8 +158,12 @@ type SQLite_Dialect
     supports_separate_nan self = False
 
     ## PRIVATE
-    cast_after_union : Boolean
-    cast_after_union self = True
+       SQLite allows mixed type columns, but we want our columns to be uniform.
+       So after unifying columns with mixed types, we add a cast to ensure that.
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
+        sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Ignore
+        self.make_cast column sql_type infer_result_type_from_database_callback
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
