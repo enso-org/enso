@@ -139,10 +139,14 @@ spec =
             map.get [1, "a", 2] . should_equal "Value"
 
         Test.specify "should support NaN as keys" <|
-            Map.empty.insert Number.nan 1 . should_equal Map.singleton Number.nan 1
             Map.empty.insert Number.nan 1 . contains_key Number.nan . should_be_true
-            Map.empty.insert Number.nan 1 . insert Number.nan 2 . should_equal Map.singleton Number.nan 2
-            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . should_equal Map.singleton Number.nan 3
+            Map.empty.insert Number.nan 1 . values . should_equal [1]
+            Map.empty.insert Number.nan 1 . insert Number.nan 2 . contains_key Number.nan . should_be_true
+            Map.empty.insert Number.nan 1 . insert Number.nan 2 . values . should_equal [2]
+            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key Number.nan . should_be_true
+            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key "key" . should_be_true
+            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at Number.nan . should_equal 3
+            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at "key" . should_equal 2
             Map.empty.insert Number.nan 1 . insert Number.nan Number.nan . at Number.nan . to_text . should_equal "NaN"
             Map.empty.insert Number.nan 1 . insert Number.nan Number.nan . remove Number.nan . size . should_equal 0
 
@@ -166,8 +170,8 @@ spec =
 
         Test.specify "should support another hash map with NaN keys as key" <|
             Map.singleton (Map.singleton Number.nan 1) 42 . size . should_equal 1
-            Map.singleton (Map.singleton Number.nan 1) 42 . keys . at 0 . keys . to_text . should_equal ["NaN"]
-            Map.singleton (Map.singleton Number.nan 1) 42 . keys . at 0 . get Number.nan . should_equal 42
+            Map.singleton (Map.singleton Number.nan 1) 42 . keys . at 0 . keys . to_text . should_equal "[NaN]"
+            Map.singleton (Map.singleton Number.nan 1) 42 . keys . at 0 . get Number.nan . should_equal 1
             Map.singleton (Map.singleton Number.nan 1) 42 . at (Map.singleton Number.nan 1) . should_equal 42
 
         Test.specify "should support atoms with custom comparators that violate reflexivity as keys" <|
@@ -200,9 +204,9 @@ spec =
         Test.specify "should handle Nothing as keys" <|
             Map.singleton Nothing 3 . get Nothing . should_equal 3
             Map.singleton Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
-            Map.singleton Nothing 1 . should_equal Map.singleton Nothing 1
-            Map.singleton Nothing 1 . insert Nothing 2 . should_equal Map.singleton Nothing 1
-            Map.singleton js_null 1 . should_equal Map.singleton Nothing 1
+            Map.singleton Nothing 1 . should_equal (Map.singleton Nothing 1)
+            Map.singleton Nothing 1 . insert Nothing 2 . at Nothing . should_equal 2
+            Map.singleton js_null 1 . at Nothing . should_equal 1
 
         Test.specify "should handle incomparable values as keys" <|
             Map.empty.insert Number.nan 1 . insert Number.nan 2 . get Number.nan . should_equal 2

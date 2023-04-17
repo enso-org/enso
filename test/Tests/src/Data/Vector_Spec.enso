@@ -658,13 +658,13 @@ type_spec name alter = Test.group name <|
         alter [1, "a"] . distinct . should_equal [1, "a"]
         alter ["a", 1] . distinct . should_equal ["a", 1]
         alter [Nothing, Nothing] . distinct . should_equal [Nothing]
-        alter [Number.nan, Number.nan] . distinct . to_text . should_equal ["NaN"]
-        alter [Nothing, Number.nan, Nothing, Number.nan] . distinct . to_text . should_equal ["Nothing", "NaN"]
+        alter [Number.nan, Number.nan] . distinct . to_text . should_equal "[NaN]"
+        alter [Nothing, Number.nan, Nothing, Number.nan] . distinct . to_text . should_equal "[Nothing, NaN]"
         alter [1, Nothing] . distinct . should_equal [1, Nothing]
         alter [Nothing, 1, Nothing] . distinct . should_equal [Nothing, 1]
-        alter [1, Number.nan] . distinct . to_text . should_equal ["1", "NaN"]
-        alter [Number.nan, 1, Number.nan] . distinct . to_text . should_equal ["NaN", "1"]
-        alter [1, Number.nan, 1] . distinct . to_text . should_equal ["1", "NaN"]
+        alter [1, Number.nan] . distinct . to_text . should_equal "[1, NaN]"
+        alter [Number.nan, 1, Number.nan] . distinct . to_text . should_equal "[NaN, 1]"
+        alter [1, Number.nan, 1] . distinct . to_text . should_equal "[1, NaN]"
 
     Test.specify "should correctly handle distinct with types that have custom comparators" <|
         alter [T.Value 1 2, T.Value 3 3, T.Value 1 2] . distinct . should_equal [T.Value 1 2, T.Value 3 3]

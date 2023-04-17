@@ -172,9 +172,9 @@ spec =
         Test.specify "Any.== should check for Meta.is_same_object" <|
             obj_1 = My_Nan.Value 42
             obj_2 = My_Nan.Value 42
-            obj_1 == obj_2 . should_be_false
+            (obj_1 == obj_2).should_be_false
             Meta.is_same_object obj_1 obj_2 . should_be_false
-            obj_1 == obj_1 . should_be_true
+            (obj_1 == obj_1).should_be_true
             Meta.is_same_object obj_1 obj_1 . should_be_true
 
         Test.specify "should handle `==` on types" <|
