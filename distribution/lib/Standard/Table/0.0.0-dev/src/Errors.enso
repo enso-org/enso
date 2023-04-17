@@ -552,3 +552,16 @@ type Invalid_Value_For_Type
     to_display_text : Text
     to_display_text self =
         "The value ["+self.value.to_text+"] is not valid for the column type ["+self.value_type.to_text+"]."
+
+type Column_Count_Exceeded
+    ## PRIVATE
+       Indicates that an operation generating new columns produced more columns
+       than allowed by the limit.
+    Error (limit : Integer) (column_count : Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The operation produced more columns than the specified limit. The limit is "+self.limit.to_text+" and the number of new columns was "+self.column_count.to_text+". The limit may be turned off by setting the `limit` option to `Nothing`."

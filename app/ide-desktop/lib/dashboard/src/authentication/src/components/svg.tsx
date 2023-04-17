@@ -8,22 +8,23 @@
 // === Constants ===
 // =================
 
-/** Path data for the SVG icons used in app. */
-export const PATHS = {
-    /** Path data for the `@` icon SVG. */
-    at: `M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 \
-8.959 0 01-4.5 1.207`,
-    /** Path data for the lock icon SVG. */
-    lock: `M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 \
-0 00-8 0v4h8z`,
-    /** Path data for the "right arrow" icon SVG. */
-    rightArrow: 'M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z',
-    /** Path data for the "create account" icon SVG. */
-    createAccount:
-        'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z',
-    /** Path data for the "go back" icon SVG. */
-    goBack: 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1',
-} as const
+export const AT = (
+    <Svg path="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+)
+
+export const LOCK = (
+    <Svg path="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+)
+
+export const RIGHT_ARROW = <Svg path="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+
+export const CREATE_ACCOUNT = (
+    <Svg path="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+)
+
+export const GO_BACK = (
+    <Svg path="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+)
 
 // ===================================
 // === SVGs with custom formatting ===
@@ -126,7 +127,7 @@ export const SMALL_RIGHT_ARROW_ICON = (
 export const PLAY_ICON = (
     <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
-            d="m10 7.3 6 3.9a1 1 0 0 1 0 1.7l-6 3.9a1 1 0 0 1-1.5-.8v-7.7a1 1 0 0 1 1.5-.8Z"
+            d="m10.04 7.34 6 3.85a1 1 0 0 1 0 1.68l-6 3.85a1 1 0 0 1-1.54-.84v-7.7a1 1 0 0 1 1.54-.84Z"
             fill="currentColor"
         />
         <rect
@@ -157,7 +158,7 @@ export const ARROW_UP_ICON = (
         />
         <path d="M12 17a1.5 1.5 0 0 1-1.5-1.5V12h3v3.5A1.5 1.5 0 0 1 12 17Z" fill="currentColor" />
         <path
-            d="M9 12a1 1 0 0 1-.8-1.6l3-4.3a1 1 0 0 1 1.6 0l3 4.3A1 1 0 0 1 15 12H9Z"
+            d="M8.943 12a1 1 0 0 1-.814-1.581l3.057-4.28a1 1 0 0 1 1.628 0l3.056 4.28A1 1 0 0 1 15.057 12H8.943Z"
             fill="currentColor"
         />
     </svg>
@@ -176,7 +177,10 @@ export const BARS_ICON = (
 export const MAGNIFYING_GLASS_ICON = (
     <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g opacity={0.5}>
-            <path d="M11.4 10L15.7 14.3L14.3 15.7L10 11.4L11.4 10Z" fill="currentColor" />
+            <path
+                d="M11.4142 10L15.6569 14.2426L14.2426 15.6569L10 11.4142L11.4142 10Z"
+                fill="currentColor"
+            />
             <circle cx={7} cy={7} r={5} stroke="currentColor" stroke-width={2} />
         </g>
     </svg>
@@ -186,7 +190,7 @@ export const MAGNIFYING_GLASS_ICON = (
 export const SPEECH_BUBBLE_ICON = (
     <svg width={16} height={17} viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
         <ellipse cx={8} cy={8} rx={8} ry={7.5} fill="white" />
-        <path d="M0 16.5L2 10.5L5.5 14L0 16.5Z" fill="white" />
+        <path d="M4.17269e-05 16.5L2 10.5L5.50006 14L4.17269e-05 16.5Z" fill="white" />
     </svg>
 )
 
@@ -271,14 +275,14 @@ export function StopIcon(props: StopIconProps) {
 
 /** Props for the `Svg` component. */
 interface Props {
-    data: string
+    path: string
 }
 
 /** Component for rendering SVG icons.
  *
  * @param props - Extra props for the SVG path. The `props.data` field in particular contains the
  * SVG path data. */
-export function Svg(props: Props) {
+function Svg(props: Props) {
     return (
         <svg
             className="h-6 w-6"
@@ -289,7 +293,7 @@ export function Svg(props: Props) {
             viewBox="0 0 24 24"
             stroke="currentColor"
         >
-            <path d={props.data} />
+            <path d={props.path} />
         </svg>
     )
 }

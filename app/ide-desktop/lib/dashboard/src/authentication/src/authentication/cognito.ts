@@ -133,7 +133,7 @@ export class Cognito {
     constructor(
         private readonly logger: loggerProvider.Logger,
         private readonly platform: platformModule.Platform,
-        amplifyConfig: config.AmplifyConfig
+        private readonly amplifyConfig: config.AmplifyConfig
     ) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
@@ -143,6 +143,14 @@ export class Cognito {
         amplify.Auth.configure(nestedAmplifyConfig)
     }
 
+    /** Saves the access token to a file for further reuse. */
+
+    saveAccessToken(accessToken: string) {
+        if (this.amplifyConfig.accessTokenSaver) {
+            this.amplifyConfig.accessTokenSaver(accessToken)
+        }
+    }
+
     /** Returns the current {@link UserSession}, or `None` if the user is not logged in.
      *
      * Will refresh the {@link UserSession} if it has expired. */
@@ -150,7 +158,7 @@ export class Cognito {
         return userSession()
     }
 
-    /** Sign up with with username and password.
+    /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
     signUp(username: string, password: string) {

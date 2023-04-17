@@ -1,15 +1,16 @@
 /** @file The top-bar of dashboard. */
 import * as react from 'react'
 
-import * as authProvider from '../../authentication/providers/auth'
-import * as backendProvider from '../../providers/backend'
 import * as cloudService from '../cloudService'
 import * as dashboard from './dashboard'
 import * as localService from '../localService'
-import * as loggerProvider from '../../providers/logger'
-import * as modalProvider from '../../providers/modal'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
+
+import * as authProvider from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 
 import UserMenu from './userMenu'
 

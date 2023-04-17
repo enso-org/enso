@@ -377,8 +377,11 @@
 - [Added support for Date/Time columns in the Postgres backend and added
   `year`/`month`/`day` operations to Table columns.][6153]
 - [`Text.split` can now take a vector of delimiters.][6156]
+- [Add `has_warnings`, `remove_warnings` and `throw_on_warning` extension
+  methods.][6176]
 - [Implemented `Table.union` for the Database backend.][6204]
 - [Array & Vector have the same methods & behavior][6218]
+- [Implemented `Table.split` and `Table.tokenize` for in-memory tables.][6233]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -572,9 +575,11 @@
 [6150]: https://github.com/enso-org/enso/pull/6150
 [6153]: https://github.com/enso-org/enso/pull/6153
 [6156]: https://github.com/enso-org/enso/pull/6156
+[6176]: https://github.com/enso-org/enso/pull/6176
 [6204]: https://github.com/enso-org/enso/pull/6204
 [6077]: https://github.com/enso-org/enso/pull/6077
 [6218]: https://github.com/enso-org/enso/pull/6218
+[6233]: https://github.com/enso-org/enso/pull/6233
 
 #### Enso Compiler
 
@@ -679,6 +684,7 @@
 - [Ensure calls involving warnings remain instrumented][6067]
 - [One can define lazy atom fields][6151]
 - [Replace IOContexts with Execution Environment and generic Context][6171]
+- [Vector.sort handles incomparable types][5998]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -784,6 +790,7 @@
 [6067]: https://github.com/enso-org/enso/pull/6067
 [6151]: https://github.com/enso-org/enso/pull/6151
 [6171]: https://github.com/enso-org/enso/pull/6171
+[5998]: https://github.com/enso-org/enso/pull/5998
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

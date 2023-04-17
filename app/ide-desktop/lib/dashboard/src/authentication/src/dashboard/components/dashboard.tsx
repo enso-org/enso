@@ -1,14 +1,13 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as react from 'react'
-import * as reactDom from 'react-dom'
 
-import * as auth from '../../authentication/providers/auth'
 import * as cloudService from '../cloudService'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
+import * as auth from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
@@ -287,18 +286,14 @@ function Dashboard(props: DashboardProps) {
             const assets = await backend.listDirectory({
                 parentId: directoryId,
             })
-            reactDom.unstable_batchedUpdates(() => {
-                setProjectAssets(
-                    assets.filter(cloudService.assetIsType(cloudService.AssetType.project))
-                )
-                setDirectoryAssets(
-                    assets.filter(cloudService.assetIsType(cloudService.AssetType.directory))
-                )
-                setSecretAssets(
-                    assets.filter(cloudService.assetIsType(cloudService.AssetType.secret))
-                )
-                setFileAssets(assets.filter(cloudService.assetIsType(cloudService.AssetType.file)))
-            })
+            setProjectAssets(
+                assets.filter(cloudService.assetIsType(cloudService.AssetType.project))
+            )
+            setDirectoryAssets(
+                assets.filter(cloudService.assetIsType(cloudService.AssetType.directory))
+            )
+            setSecretAssets(assets.filter(cloudService.assetIsType(cloudService.AssetType.secret)))
+            setFileAssets(assets.filter(cloudService.assetIsType(cloudService.AssetType.file)))
         })()
     }, [accessToken, directoryId, backend])
 

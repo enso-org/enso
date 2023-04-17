@@ -7,7 +7,6 @@ class AtomFixtures extends DefaultInterpreterRunner {
 
   val millionElementList = eval(
     s"""import Standard.Base.Data.List.List
-       |import Standard.Base.Any.Any
        |
        |main =
        |    generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
@@ -17,7 +16,6 @@ class AtomFixtures extends DefaultInterpreterRunner {
 
   val generateListCode =
     """import Standard.Base.Data.List.List
-      |import Standard.Base.Any.Any
       |
       |main = length ->
       |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
@@ -29,7 +27,6 @@ class AtomFixtures extends DefaultInterpreterRunner {
 
   val generateListQualifiedCode =
     """import Standard.Base.Data.List.List
-      |import Standard.Base.Any.Any
       |
       |main = length ->
       |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
