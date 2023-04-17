@@ -20,16 +20,6 @@ use model::project::VcsStatus;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-/// We don't know how long the project opening will take, but we still want to show a fake progress
-/// indicator for the user. This constant represents a progress percentage that will be displayed.
-const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
-
-
-
 // =============
 // === Model ===
 // =============
@@ -283,7 +273,7 @@ impl Model {
         let status_bar = self.status_bar.clone_ref();
         executor::global::spawn(async move {
             let app = js::app_or_panic();
-            app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
+            app.show_progress_indicator(super::OPEN_PROJECT_SPINNER_PROGRESS);
             view.hide_graph_editor();
             if let Ok(api) = controller.manage_projects() {
                 api.close_project();
