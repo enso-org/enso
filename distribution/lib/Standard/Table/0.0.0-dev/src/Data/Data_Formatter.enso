@@ -259,7 +259,8 @@ type Data_Formatter
 
     ## PRIVATE
     make_decimal_formatter self =
-        DecimalFormatter.new self.get_thousand_separator self.decimal_point
+        decimal_point = if self.decimal_point == Auto then '.'  else self.decimal_point
+        DecimalFormatter.new self.get_thousand_separator decimal_point
 
     ## PRIVATE
     make_date_formatter self =
