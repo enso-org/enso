@@ -32,7 +32,7 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
 
         var separators = SEPARATORS[separatorsIndex];
 
-        var INTEGER = "(?<integer>(\\d+)|(\\d{1,3}([" + separators.charAt(0) + "]\\d{3})))";
+        var INTEGER = "(?<integer>(\\d+)|(\\d{1,3}([" + separators.charAt(0) + "]\\d{3})*))";
         var NUMBER = INTEGER + (allowDecimal ? "(?<decimal>[" + separators.charAt(1) + "]\\d+)?" : "") + "\\s*";
 
         var pattern = switch (patternIndex) {

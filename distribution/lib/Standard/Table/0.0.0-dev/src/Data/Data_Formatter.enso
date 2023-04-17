@@ -182,14 +182,16 @@ type Data_Formatter
             WhitespaceStrippingParser.new base_parser
 
     ## PRIVATE
-    make_integer_parser self allow_currency=True = self.wrap_base_parser <|
+    make_integer_parser self allow_currency=True =
         if self.decimal_point == Auto then AutoNumberParser.new False allow_currency else
-            IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
+            self.wrap_base_parser <|
+                IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
 
     ## PRIVATE
-    make_decimal_parser self allow_currency=True = self.wrap_base_parser <|
+    make_decimal_parser self allow_currency=True =
         if self.decimal_point == Auto then AutoNumberParser.new True allow_currency else
-            DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
+            self.wrap_base_parser <|
+                DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|
