@@ -548,8 +548,10 @@ type Column
     iif : Any -> Any -> Column
     iif self when_true when_false =
         type_helpers.check_argument_type self Value_Type.expect_boolean <|
-            new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
-            self.make_op "IIF" [when_true, when_false] new_name
+            common_type = type_helpers.find_common_type_for_arguments [when_true, when_false]
+            common_type.if_not_error <|
+                new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
+                self.make_op "IIF" [when_true, when_false] new_name
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -564,12 +566,13 @@ type Column
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
     coalesce : (Any | Vector Any) -> Column
-    coalesce self values = case values of
-        _ : Vector ->
-            new_name = self.naming_helpers.function_name "coalesce" [self]+values
-            self.make_op "COALESCE" values new_name
-        _ : Array -> self.coalesce (Vector.from_polyglot_array values)
-        _ -> self.coalesce [values]
+    coalesce self values =
+        vec = Vector.unify_vector_or_element values
+        args_with_self = [self]+vec
+        common_type = type_helpers.find_common_type_for_arguments args_with_self
+        common_type.if_not_error <|
+            new_name = self.naming_helpers.function_name "coalesce" args_with_self
+            self.make_op "COALESCE" vec new_name
 
     ## Returns a column of minimum on each row of `self` and `values`.
 
@@ -676,8 +679,10 @@ type Column
        provided default.
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
-        new_name = self.naming_helpers.function_name "fill_nothing" [self, default]
-        self.make_binary_op "FILL_NULL" default new_name
+        common_type = type_helpers.find_common_type_for_arguments [self, default]
+        common_type.if_not_error <|
+            new_name = self.naming_helpers.function_name "fill_nothing" [self, default]
+            self.make_binary_op "FILL_NULL" default new_name
 
     ## ALIAS Fill Empty
 

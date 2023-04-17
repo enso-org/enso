@@ -1159,18 +1159,14 @@ type Table
                     queries = all_tables.map_with_index i-> t->
                         columns_to_select = good_columns.map description->
                             column_set = description.first
-                            result_type = description.second
                             column_name = column_set.name
-                            input_column = case column_set.column_indices.at i of
+                            case column_set.column_indices.at i of
                                 Nothing ->
                                     typ = SQL_Type_Reference.from_constant SQL_Type.null
                                     expr = SQL_Expression.Literal "NULL"
                                     Internal_Column.Value column_name typ expr
                                 corresponding_column_index : Integer ->
                                     t.at corresponding_column_index . as_internal . rename column_name
-
-                            if cast_after_union then input_column else
-                                dialect.make_cast input_column result_type infer_return_type
                         pairs = columns_to_select.map c->
                             [c.name, c.expression]
                         Query.Select pairs t.context

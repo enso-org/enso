@@ -435,16 +435,26 @@ type Column_Type_Mismatch
 
 type No_Common_Type
     ## PRIVATE
-       An error indicating that no common type could be found for the merged
-       columns.
-    Error (column_name : Text)
+       An error indicating that no common type could be found.
+
+       Arguments:
+       - types: The types that were tried to be unified.
+       - related_column_name: The name of the resulting column that was being
+         unified, if applicable.
+    Error (types : Vector Value_Type) (related_column_name : Nothing|Text)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "No common type could have been found for the columns corresponding to ["+self.column_name+"]. If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        types = self.types.map .to_display_text . join ", "
+        prefix = "No common type could have been found for the types: "+types
+        infix = case self.related_column_name of
+            Nothing -> "."
+            column_name : Text -> " when unifying the column ["+column_name+"]."
+        suffix = "If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        prefix + infix + suffix
 
 type Unmatched_Columns
     ## PRIVATE

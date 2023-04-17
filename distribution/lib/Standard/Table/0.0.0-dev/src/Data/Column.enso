@@ -646,19 +646,25 @@ type Column
     iif : Any -> Any -> Column
     iif self when_true when_false =
         type_helpers.check_argument_type self Value_Type.expect_boolean <|
-            new_name = "if " + Naming_Helpers.to_expression_text self + " then " + Naming_Helpers.to_expression_text when_true + " else " + Naming_Helpers.to_expression_text when_false
-            s = self.java_column.getStorage
+            common_type = type_helpers.find_common_type_for_arguments [when_true, when_false]
+            storage_type = Storage.from_value_type common_type Problem_Behavior.Report_Error
+            storage_type.catch Inexact_Type_Coercion error->
+                Panic.throw (Illegal_State.Error "Common type "+common_type.to_display_text+" is not supported by the Storage. This should never happen and is a bug in the Table library.")
 
-            true_val = case when_true of
-                _ : Column -> when_true.java_column.getStorage
-                _ -> when_true
+            storage_type.if_not_error <|
+                new_name = "if " + Naming_Helpers.to_expression_text self + " then " + Naming_Helpers.to_expression_text when_true + " else " + Naming_Helpers.to_expression_text when_false
+                s = self.java_column.getStorage
 
-            false_val = case when_false of
-                _ : Column -> when_false.java_column.getStorage
-                _ -> when_false
+                true_val = case when_true of
+                    _ : Column -> when_true.java_column.getStorage
+                    _ -> when_true
 
-            rs = s.iif true_val false_val
-            Column.Value (Java_Column.new new_name rs)
+                false_val = case when_false of
+                    _ : Column -> when_false.java_column.getStorage
+                    _ -> when_false
+
+                rs = s.iif true_val false_val storage_type
+                Column.Value (Java_Column.new new_name rs)
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -815,16 +821,18 @@ type Column
              example_fill_missing = Examples.decimal_column.fill_nothing 20.5
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
-        new_name = Naming_Helpers.function_name "fill_nothing" [self, default]
-        storage = self.java_column.getStorage
-        new_st = case default of
-            Column.Value java_col ->
-                other_storage = java_col.getStorage
-                storage.fillMissingFrom other_storage
-            _ ->
-                storage.fillMissing default
-        col = Java_Column.new new_name new_st
-        Column.Value col
+        common_type = type_helpers.find_common_type_for_arguments [self, default]
+        common_type.if_not_error <|
+            new_name = Naming_Helpers.function_name "fill_nothing" [self, default]
+            storage = self.java_column.getStorage
+            new_st = case default of
+                Column.Value java_col ->
+                    other_storage = java_col.getStorage
+                    storage.fillMissingFrom other_storage
+                _ ->
+                    storage.fillMissing default
+            col = Java_Column.new new_name new_st
+            Column.Value col
 
     ## ALIAS Fill Empty
 
@@ -1538,26 +1546,32 @@ type Column
    - name: The name of the vectorized operation.
    - fallback_fn: A function used if the vectorized operation isn't available.
    - operands: The vector of operands to apply to the function after `column`.
+   - new_name: The name of the column created as the result of this operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
      value results in null without passing it to the function. If set to
      `False`, the null values are passed as any other value and can have custom
      handling logic.
-   - new_name: The name of the column created as the result of this operation.
+   - check_common_type: If True, the method will check if a common type can be
+     found for all arguments.
 run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Text|Nothing -> Boolean -> Column
-run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nulls=False =
+run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nulls=False check_common_type=True =
     effective_operands = Vector.unify_vector_or_element operands
     effective_new_name = new_name.if_nothing <|
         Naming_Helpers.function_name name [column]+effective_operands
-    problem_builder = MapOperationProblemBuilder.new effective_new_name
-    folded = effective_operands.fold column.java_column.getStorage current-> operand->
-        case operand of
-            _ : Column ->
-                current.zip name fallback_fn operand.java_column.getStorage skip_nulls problem_builder
-            _ ->
-                current.bimap name fallback_fn operand skip_nulls problem_builder
-    result = Column.Value (Java_Column.new effective_new_name folded)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    common_type_check = case check_common_type of
+        True  -> type_helpers.find_common_type_for_arguments effective_operands
+        False -> Nothing
+    common_type_check.if_not_error <|
+        problem_builder = MapOperationProblemBuilder.new effective_new_name
+        folded = effective_operands.fold column.java_column.getStorage current-> operand->
+            case operand of
+                _ : Column ->
+                    current.zip name fallback_fn operand.java_column.getStorage skip_nulls problem_builder
+                _ ->
+                    current.bimap name fallback_fn operand skip_nulls problem_builder
+        result = Column.Value (Java_Column.new effective_new_name folded)
+        Problem_Behavior.Report_Warning.attach_problems_after result <|
+            Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
 

@@ -14,7 +14,6 @@ reconcile_types current new = case current of
         Value_Type.Integer new_size ->
             Value_Type.Integer (Math.max size new_size)
         Value_Type.Byte    -> Value_Type.Integer size
-        Value_Type.Boolean -> Value_Type.Integer size
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Float _ -> Value_Type.Float
         _                  -> Value_Type.Mixed
@@ -24,21 +23,15 @@ reconcile_types current new = case current of
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Integer _ -> Value_Type.Float
         Value_Type.Byte      -> Value_Type.Float
-        Value_Type.Boolean   -> Value_Type.Float
         _                    -> Value_Type.Mixed
     Value_Type.Byte -> case new of
         Value_Type.Byte    -> Value_Type.Byte
         Value_Type.Integer size ->
             Value_Type.Integer size
-        Value_Type.Boolean -> Value_Type.Byte
         Value_Type.Float _ -> Value_Type.Float
         _                  -> Value_Type.Mixed
     Value_Type.Boolean -> case new of
         Value_Type.Boolean -> Value_Type.Boolean
-        Value_Type.Integer size ->
-            Value_Type.Integer size
-        Value_Type.Byte    -> Value_Type.Byte
-        Value_Type.Float _ -> Value_Type.Float
         _                  -> Value_Type.Mixed
     Value_Type.Char current_size current_variable -> case new of
         Value_Type.Char new_size new_variable ->
@@ -163,6 +156,14 @@ type Operation_Type_Helpers
             False ->
                 Invalid_Value_Type.Error expected_type (self.find_argument_type argument) related_column=Nothing
         Error.throw error
+
+    ## PRIVATE
+    find_common_type_for_arguments self arguments =
+        types = arguments.map self.find_argument_type
+        case find_common_type types strict=True of
+            common_type : Value_Type -> common_type
+            Nothing -> Error.throw <|
+                No_Common_Type.Error types related_column_name=Nothing
 
 
 ## PRIVATE

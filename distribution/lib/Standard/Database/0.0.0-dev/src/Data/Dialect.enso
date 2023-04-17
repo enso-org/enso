@@ -124,25 +124,6 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Allows to add a custom transformation of a column before unifying it with
-       other columns.
-
-       Most of the time, we rely on the Database to unify the column types, so
-       nothing needs to be done. But there are some cases where we want to
-       support additional flexibility and the Database does not support it. For
-       example, Postgres does not allow unifying boolean columns with most
-       numeric columns and we want a boolean column to be converted to 0-1 in
-       these cases. This is the place where this can be detected and any
-       additional conversions can be performed.
-
-       This can be used by both `union` and `iif` to prepare columns for
-       unification.
-    adapt_column_for_unification : Internal_Column -> SQL_Type -> Internal_Column
-    adapt_column_for_unification input_column approximated_result_type =
-        _ = [input_column, approximated_result_type]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
        Specifies if the `fetch_columns` operation needs to execute the query to
        get the column types.
 

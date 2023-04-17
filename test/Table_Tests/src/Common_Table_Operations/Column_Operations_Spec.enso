@@ -28,13 +28,8 @@ spec setup =
             c2.to_vector . should_equal [22, 33, Nothing, 22]
             c2.value_type . is_floating_point . should_be_true
 
-            c3 = t.at "X" . iif 22.0 False
-            case setup.test_selection.booleans_automatically_coerced_to_ints of
-                True ->
-                    c3.to_vector . should_equal [22, 0, Nothing, 22]
-                    c3.value_type . is_floating_point . should_be_true
-                False ->
-                    c3.to_vector . should_fail_with SQL_Error
+            t.at "X" . iif 22.0 False . to_vector . should_fail_with No_Common_Type
+            t.at "X" . iif 22 "0" . to_vector . should_fail_with No_Common_Type
 
         Test.specify "iif on Columns" <|
             t1 = table_builder [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.5, 3.5, 4.5]]]
@@ -48,13 +43,8 @@ spec setup =
             c2.value_type . is_floating_point . should_be_true
 
             t3 = table_builder [["X", [True, False]], ["Y", [10, 20]], ["Z", [False, True]]]
-            c3 = t3.at "X" . iif (t3.at "Y") (t3.at "Z")
-            case setup.test_selection.booleans_automatically_coerced_to_ints of
-                True ->
-                    c3.to_vector . should_equal [10, 1]
-                    c3.value_type . is_integer . should_be_true
-                False ->
-                    c3.to_vector . should_fail_with SQL_Error
+            t3.at "X" . iif (t3.at "Y") (t3.at "Z") . to_vector . should_fail_with No_Common_Type
+            t3.at "X" . iif (t3.at "Y") "<NA>" . to_vector . should_fail_with No_Common_Type
 
         Test.specify "should allow to compute &&, || and not" <|
             t = table_builder [["X", [True, False, True]], ["Y", [True, False, False]]]
@@ -392,10 +382,6 @@ spec setup =
             x.fill_nothing 1 . value_type . is_integer . should_be_true
             x.fill_nothing 1.0 . value_type . is_floating_point . should_be_true
 
-            c = x.fill_nothing True
-            c.value_type.is_floating_point.should_be_true
-            c.to_vector . should_equal [1, 4, 5, 1]
-
             y.fill_nothing 1 . value_type . is_floating_point . should_be_true
             c2 = y.fill_nothing False
             c2.value_type.is_floating_point.should_be_true
@@ -404,6 +390,9 @@ spec setup =
             c3 = x.coalesce [y, False]
             c3.value_type.is_floating_point.should_be_true
             c3.to_vector . should_equal [1, 4, 5, 0]
+
+            x.fill_nothing True . to_vector . should_fail_with No_Common_Type
+            y.fill_nothing True . to_vector . should_fail_with No_Common_Type
 
     Test.group prefix+"Text Column Operations" <|
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
