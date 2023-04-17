@@ -8,7 +8,6 @@ import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
-import * as projectManager from './project_manager'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -193,13 +192,8 @@ class Main {
                     authentication.run({
                         logger,
                         platform,
-<<<<<<< HEAD
-                        enableDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
-                        ide: appInstance,
-=======
-                        projectManager: projectManager.ProjectManager.default(),
                         showDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
->>>>>>> develop
+                        ide: appInstance,
                         onAuthenticated,
                     })
                 } else {
