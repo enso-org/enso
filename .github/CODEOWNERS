@@ -41,13 +41,13 @@ Cargo.toml
 /std-bits/ @jdunkerley @radeusgd
 
 # Cloud Dashboard & Authentication
-/app/ide-desktop/dashboard @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/content @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/client @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/types @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/common @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/dashboard @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/content @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/client @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/types @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/common @PabloBuchu @indiv0 @somebody1234
 
-# Eslint configuration
-/app/ide-desktop/esbuild-plugin-copy-directories @somebody1234
+# Eslint & Esbuild Configuration
+/app/ide-desktop/lib/esbuild-plugin-copy-directories @somebody1234
 /app/ide-desktop/eslint.config.js @somebody1234
 /app/ide-desktop/utils.ts @somebody1234

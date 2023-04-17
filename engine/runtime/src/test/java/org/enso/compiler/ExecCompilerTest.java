@@ -51,6 +51,7 @@ public class ExecCompilerTest {
   @Test
   public void testHalfAssignment() throws Exception {
     var module = ctx.eval("enso", """
+    from Standard.Base.Errors.Common import all
     run value =
         x = 4
         y =
@@ -63,5 +64,18 @@ public class ExecCompilerTest {
     } catch (PolyglotException ex) {
         assertEquals("Syntax error: Unexpected expression.", ex.getMessage());
     }
+  }
+
+  @Test
+  public void testInvalidEnsoProjectRef() throws Exception {
+    var module = ctx.eval("enso", """
+    from Standard.Base.Errors.Common import all
+    run dummy =
+        _ = dummy
+        (enso_project.data / "foo").to_display_text
+    """);
+    var run = module.invokeMember("eval_expression", "run");
+    var err = run.execute(0);
+    assertEquals("Error: Module is not a part of a package.", err.asString());
   }
 }

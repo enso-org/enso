@@ -16,6 +16,7 @@ class CaseTest extends InterpreterTest {
       val code =
         """
           |import Standard.Base.Data.List.List
+          |from Standard.Base.Errors.Common import Compile_Error
           |
           |main =
           |    x = List.Cons 0 List.Nil
@@ -25,7 +26,7 @@ class CaseTest extends InterpreterTest {
           |""".stripMargin
 
       val msg =
-        "Compile error: Cons2 is not visible in this scope, Nil2 is not visible in this scope"
+        "Compile error: Cons2 is not visible in this scope, Nil2 is not visible in this scope."
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
 
@@ -33,6 +34,7 @@ class CaseTest extends InterpreterTest {
       val code =
         """
           |import Standard.Base.Data.List.List
+          |from Standard.Base.Errors.Common import Compile_Error
           |
           |main =
           |    x = List.Cons 0 List.Nil
@@ -41,7 +43,7 @@ class CaseTest extends InterpreterTest {
           |""".stripMargin
 
       val msg =
-        "Compile error: Cannot match on List.Cons using 1 field (expecting 2)"
+        "Compile error: Cannot match on List.Cons using 1 field (expecting 2)."
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
 
@@ -49,6 +51,7 @@ class CaseTest extends InterpreterTest {
       val code =
         """
           |import Standard.Base.Data.Vector
+          |from Standard.Base.Errors.Common import Compile_Error
           |
           |main =
           |    case [1,2,3] of
@@ -57,7 +60,7 @@ class CaseTest extends InterpreterTest {
           |""".stripMargin
 
       val msg =
-        "Compile error: Vector is not visible in this scope"
+        "Compile error: Vector is not visible in this scope."
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
   }

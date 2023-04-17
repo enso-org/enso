@@ -15,6 +15,7 @@ import * as svg from '../../components/svg'
 
 import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
+import Ide from './ide'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
 import TopBar from './topBar'
@@ -22,6 +23,12 @@ import TopBar from './topBar'
 // =============
 // === Types ===
 // =============
+
+/** Main content of the screen. Only one should be visible at a time. */
+export enum Tab {
+    dashboard = 'dashboard',
+    ide = 'ide',
+}
 
 enum ColumnDisplayMode {
     all = 'all',
@@ -219,13 +226,18 @@ function Dashboard(props: DashboardProps) {
     >([])
     const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
 
+    const [tab, setTab] = react.useState(Tab.dashboard)
     const [project, setProject] = react.useState<backend.Project | null>(null)
-    const [projectStates, setProjectStates] = react.useState<
-        Record<backend.ProjectId, backend.ProjectState>
-    >({})
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
+
+    // The purpose of this effect is to enable search action.
+    react.useEffect(() => {
+        return () => {
+            // TODO
+        }
+    }, [searchVal])
 
     /** React components for the name column. */
     const nameRenderers: {
@@ -235,27 +247,9 @@ function Dashboard(props: DashboardProps) {
             <div className="flex text-left items-center align-middle whitespace-nowrap">
                 <ProjectActionButton
                     project={projectAsset}
-                    state={projectStates[projectAsset.id] ?? backend.ProjectState.created}
                     openIde={async () => {
+                        setTab(Tab.ide)
                         setProject(await backendService.getProjectDetails(projectAsset.id))
-                    }}
-                    onOpen={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.opened,
-                        })
-                    }}
-                    onOpenStart={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.openInProgress,
-                        })
-                    }}
-                    onClose={() => {
-                        setProjectStates({
-                            ...projectStates,
-                            [projectAsset.id]: backend.ProjectState.closed,
-                        })
                     }}
                 />
                 <span className="px-2">{projectAsset.title}</span>
@@ -331,173 +325,195 @@ function Dashboard(props: DashboardProps) {
                 setDirectoryAssets(assets.filter(backend.assetIsType(backend.AssetType.directory)))
                 setSecretAssets(assets.filter(backend.assetIsType(backend.AssetType.secret)))
                 setFileAssets(assets.filter(backend.assetIsType(backend.AssetType.file)))
-                setProjectStates({})
             })
         })()
     }, [accessToken, directoryId])
 
     return (
         <div className="text-primary text-xs" onClick={unsetModal}>
-            {/* These are placeholders. When implementing a feature,
-             * please replace the appropriate placeholder with the actual element.*/}
-            <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
-            <div id="templates" />
-            <div className="flex flex-row flex-nowrap">
-                <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
-                <div className="flex flex-row flex-nowrap mx-4">
-                    <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                        {/* FIXME[sb]: Remove `|| true` when UI to create directory is implemented. */}
-                        {/* eslint-disable-next-line no-constant-condition, @typescript-eslint/no-unnecessary-condition */}
-                        {directory || true ? (
-                            <>
-                                <button
-                                    className="mx-2"
-                                    onClick={() => {
-                                        setDirectoryId(
-                                            parentDirectory?.id ?? rootDirectoryId(organization.id)
-                                        )
-                                        setDirectoryStack(
-                                            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                                            directoryStack.slice(0, -1)
-                                        )
-                                    }}
+            <div className={tab === Tab.dashboard ? '' : 'hidden'}>
+                <TopBar
+                    projectName={project?.name ?? null}
+                    tab={tab}
+                    toggleTab={() => {
+                        if (project && tab === Tab.dashboard) {
+                            setTab(Tab.ide)
+                        } else {
+                            setTab(Tab.dashboard)
+                        }
+                    }}
+                    searchVal={searchVal}
+                    setSearchVal={setSearchVal}
+                />
+                {/* This is a placeholder. When implementing a feature,
+                 * please replace it with the actual element.*/}
+                <div id="templates" />
+                <div className="flex flex-row flex-nowrap">
+                    <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
+                    <div className="flex flex-row flex-nowrap mx-4">
+                        <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
+                            {/* FIXME[sb]: Remove `|| true` when UI to create directory is implemented. */}
+                            {/* eslint-disable-next-line no-constant-condition, @typescript-eslint/no-unnecessary-condition */}
+                            {directory || true ? (
+                                <>
+                                    <button
+                                        className="mx-2"
+                                        onClick={() => {
+                                            setDirectoryId(
+                                                parentDirectory?.id ??
+                                                    rootDirectoryId(organization.id)
+                                            )
+                                            setDirectoryStack(
+                                                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                                                directoryStack.slice(0, -1)
+                                            )
+                                        }}
+                                    >
+                                        {parentDirectory?.title ?? '~'}
+                                    </button>
+                                    {svg.SMALL_RIGHT_ARROW_ICON}
+                                </>
+                            ) : null}
+                            <span className="mx-2">{directory?.title ?? '~'}</span>
+                        </div>
+                        <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
+                            <div className="m-2">Shared with</div>
+                            <div className="-m-1">
+                                <PermissionDisplay
+                                    permissions={{ type: permissionDisplay.Permission.admin }}
                                 >
-                                    {parentDirectory?.title ?? '~'}
-                                </button>
-                                {svg.SMALL_RIGHT_ARROW_ICON}
-                            </>
-                        ) : null}
-                        <span className="mx-2">{directory?.title ?? '~'}</span>
-                    </div>
-                    <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                        <div className="m-2">Shared with</div>
-                        <div className="-m-1">
-                            <PermissionDisplay
-                                permissions={{ type: permissionDisplay.Permission.admin }}
+                                    marketing
+                                </PermissionDisplay>
+                            </div>
+                        </div>
+                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1 mx-4">
+                            <button
+                                className="mx-1"
+                                onClick={() => {
+                                    /* TODO */
+                                }}
                             >
-                                marketing
-                            </PermissionDisplay>
+                                {svg.UPLOAD_ICON}
+                            </button>
+                            <button
+                                className={`mx-1 ${
+                                    selectedAssets.length === 0 ? 'opacity-50' : ''
+                                }`}
+                                disabled={selectedAssets.length === 0}
+                                onClick={() => {
+                                    /* TODO */
+                                }}
+                            >
+                                {svg.DOWNLOAD_ICON}
+                            </button>
+                        </div>
+                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.all
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.all)
+                                }}
+                            >
+                                All
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.compact
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.compact)
+                                }}
+                            >
+                                Compact
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.docs
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.docs)
+                                }}
+                            >
+                                Docs
+                            </button>
+                            <button
+                                className={`${
+                                    columnDisplayMode === ColumnDisplayMode.settings
+                                        ? 'bg-white shadow-soft'
+                                        : 'opacity-50'
+                                } rounded-full px-1.5`}
+                                onClick={() => {
+                                    setColumnDisplayMode(ColumnDisplayMode.settings)
+                                }}
+                            >
+                                Settings
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                    <button
-                        className="mx-1"
-                        onClick={() => {
-                            /* TODO */
-                        }}
-                    >
-                        {svg.UPLOAD_ICON}
-                    </button>
-                    <button
-                        className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                        disabled={selectedAssets.length === 0}
-                        onClick={() => {
-                            /* TODO */
-                        }}
-                    >
-                        {svg.DOWNLOAD_ICON}
-                    </button>
-                </div>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.all
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.all)
-                        }}
-                    >
-                        All
-                    </button>
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.compact
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.compact)
-                        }}
-                    >
-                        Compact
-                    </button>
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.docs
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.docs)
-                        }}
-                    >
-                        Docs
-                    </button>
-                    <button
-                        className={`${
-                            columnDisplayMode === ColumnDisplayMode.settings
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5`}
-                        onClick={() => {
-                            setColumnDisplayMode(ColumnDisplayMode.settings)
-                        }}
-                    >
-                        Settings
-                    </button>
-                </div>
+                <table className="items-center w-full bg-transparent border-collapse">
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.project>>
+                        items={projectAssets}
+                        getKey={proj => proj.id}
+                        placeholder={
+                            <>
+                                You have no project yet. Go ahead and create one using the form
+                                above.
+                            </>
+                        }
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            name: columnName(column, backend.AssetType.project),
+                            render: renderer(column, backend.AssetType.project),
+                        }))}
+                    />
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.directory>>
+                        items={directoryAssets}
+                        getKey={proj => proj.id}
+                        placeholder={<>This directory does not contain any subdirectories.</>}
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            name: columnName(column, backend.AssetType.directory),
+                            render: renderer(column, backend.AssetType.directory),
+                        }))}
+                    />
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.secret>>
+                        items={secretAssets}
+                        getKey={proj => proj.id}
+                        placeholder={<>This directory does not contain any secrets.</>}
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            name: columnName(column, backend.AssetType.secret),
+                            render: renderer(column, backend.AssetType.secret),
+                        }))}
+                    />
+                    <tr className="h-8" />
+                    <Rows<backend.Asset<backend.AssetType.file>>
+                        items={fileAssets}
+                        getKey={proj => proj.id}
+                        placeholder={<>This directory does not contain any files.</>}
+                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                            id: column,
+                            name: columnName(column, backend.AssetType.file),
+                            render: renderer(column, backend.AssetType.file),
+                        }))}
+                    />
+                </table>
             </div>
-            <table className="items-center w-full bg-transparent border-collapse">
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.project>>
-                    items={projectAssets}
-                    getKey={proj => proj.id}
-                    placeholder={
-                        <>You have no project yet. Go ahead and create one using the form above.</>
-                    }
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        name: columnName(column, backend.AssetType.project),
-                        render: renderer(column, backend.AssetType.project),
-                    }))}
-                />
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.directory>>
-                    items={directoryAssets}
-                    getKey={proj => proj.id}
-                    placeholder={<>This directory does not contain any subdirectories.</>}
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        name: columnName(column, backend.AssetType.directory),
-                        render: renderer(column, backend.AssetType.directory),
-                    }))}
-                />
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.secret>>
-                    items={secretAssets}
-                    getKey={proj => proj.id}
-                    placeholder={<>This directory does not contain any secrets.</>}
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        name: columnName(column, backend.AssetType.secret),
-                        render: renderer(column, backend.AssetType.secret),
-                    }))}
-                />
-                <tr className="h-8" />
-                <Rows<backend.Asset<backend.AssetType.file>>
-                    items={fileAssets}
-                    getKey={proj => proj.id}
-                    placeholder={<>This directory does not contain any files.</>}
-                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                        id: column,
-                        name: columnName(column, backend.AssetType.file),
-                        render: renderer(column, backend.AssetType.file),
-                    }))}
-                />
-            </table>
+            <div className={tab === Tab.ide ? '' : 'hidden'}>
+                {project ? <Ide backendService={backendService} project={project} /> : <></>}
+            </div>
             {modal && <>{modal}</>}
         </div>
     )

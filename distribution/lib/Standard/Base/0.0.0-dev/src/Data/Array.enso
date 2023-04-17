@@ -14,6 +14,7 @@ import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -160,13 +161,17 @@ type Array
        Arguments:
        - order: The order in which the array elements are sorted.
        - on: A projection from the element type to the value of that element
-         being sorted on.
+         being sorted on. If set to `Nothing` (the default),
+         identity function will be used.
        - by: A function that compares the result of applying `on` to two
-         elements, returning an Ordering to compare them.
+         elements, returning an an `Ordering` if the two elements are comparable
+         or `Nothing` if they are not. If set to `Nothing` (the default argument),
+         `Ordering.compare _ _` method will be used.
+       - on_incomparable: A `Problem_Behavior` specifying what should happen if
+         two incomparable values are encountered.
 
-       By default, elements are sorted in ascending order, using the comparator
-       acquired from each element. A custom compare function may be passed to
-       the sort method.
+       By default, elements are sorted in ascending order.
+
 
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
@@ -178,11 +183,31 @@ type Array
          - *Average Time:* `O(n * log n)`
          - *Worst-Case Space:* `O(n)` additional
 
+       ? Incomparable values
+         Incomparable values are either values with different comparators or with
+         the same comparator returning `Nothing` from its `compare` method.
+         See the documentation of the `Ordering` module for more info.
+
        ? Implementation Note
          The sort implementation is based upon an adaptive, iterative mergesort
          that requires far fewer than `n * log(n)` comparisons when the array
          is partially sorted. When the array is randomly ordered, the
          performance is equivalent to a standard mergesort.
+
+       ? Multiple comparators
+         Elements with different comparators are incomparable by definition.
+         This case is handled by first grouping the `self` array into groups
+         with the same comparator, recursively sorting these groups, and then
+         merging them back together. The order of the sorted groups in the
+         resulting array is based on the order of fully qualified names of
+         the comparators in the `self` array, with the exception of the group
+         for the default comparator, which is always the first group.
+
+         Additionally, an `Incomparable_Values` dataflow error will be returned
+         if the `on_incomparable` parameter is set to `Problem_Behavior.Report_Error`,
+         or a warning attached if the `on_incomparable` parameter is set to
+         `Problem_Behavior.Report_Warning` in case of encountering incomparable
+         values.
 
          It takes equal advantage of ascending and descending runs in the array,
          making it much simpler to merge two or more sorted arrays: simply
@@ -197,8 +222,16 @@ type Array
          Sorting an array of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].to_array.sort Sort_Direction.Descending (_.first)
-    sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (Ordering.compare _ _)) = Vector.sort self order on by
+
+       > Example
+         Sorting an array with elements with different comparators. Values `1`
+         and `My_Type` have different comparators. `1` will be sorted before `My_Type`
+         because it has the default comparator.
+
+             [My_Type.Value 'hello', 1].to_array.sort == [1, My_Type.Value 'hello'].to_array
+    sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
+        Vector.sort self order on by on_incomparable
 
     ## Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
