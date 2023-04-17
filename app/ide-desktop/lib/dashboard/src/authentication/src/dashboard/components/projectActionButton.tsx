@@ -1,11 +1,8 @@
 /** @file An interactive button displaying the status of a project. */
 import * as react from 'react'
-import * as reactDom from 'react-dom'
 
-import * as auth from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as cloudService from '../cloudService'
-import * as loggerProvider from '../../providers/logger'
 import * as svg from '../../components/svg'
 
 // =============
@@ -54,19 +51,35 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         void (async () => {
             const projectDetails = await backend.getProjectDetails(project.id)
             setState(projectDetails.state.type)
+            if (projectDetails.state.type === cloudService.ProjectState.openInProgress) {
+                setCheckStatusInterval(
+                    window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
+                )
+            }
         })()
     }, [])
 
-    function closeProject() {
-        setState(cloudService.ProjectState.closed)
-        void backend.closeProject(project.id)
+    async function checkProjectStatus() {
+        const response = await backend.getProjectDetails(project.id)
 
-        reactDom.unstable_batchedUpdates(() => {
+        setState(response.state.type)
+
+        if (response.state.type === cloudService.ProjectState.opened) {
             setCheckStatusInterval(null)
             if (checkStatusInterval != null) {
                 clearInterval(checkStatusInterval)
             }
-        })
+            setSpinnerState(SpinnerState.done)
+        }
+    }
+
+    function closeProject() {
+        setState(cloudService.ProjectState.closed)
+        void backend.closeProject(project.id)
+        setCheckStatusInterval(null)
+        if (checkStatusInterval != null) {
+            clearInterval(checkStatusInterval)
+        }
     }
 
     function openProject() {
@@ -81,25 +94,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
         void backend.openProject(project.id)
 
-        const checkProjectStatus = async () => {
-            const response = await backend.getProjectDetails(project.id)
-
-            setState(response.state.type)
-
-            if (response.state.type === cloudService.ProjectState.opened) {
-                setCheckStatusInterval(null)
-                if (checkStatusInterval != null) {
-                    clearInterval(checkStatusInterval)
-                }
-                setSpinnerState(SpinnerState.done)
-            }
-        }
-
-        reactDom.unstable_batchedUpdates(() => {
-            setCheckStatusInterval(
-                window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
-            )
-        })
+        setCheckStatusInterval(
+            window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
+        )
     }
 
     switch (state) {

@@ -5,13 +5,11 @@ import * as reactDom from 'react-dom'
 
 import * as auth from '../../authentication/providers/auth'
 import * as cloudService from '../cloudService'
-import * as localService from '../localService'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
 import * as backendProvider from '../../providers/backend'
-import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import Label, * as label from './label'
@@ -153,14 +151,6 @@ const COLUMN_RENDERER: Record<
     [Column.ide]: () => <>aa</>,
 }
 
-// FIXME[sb]: `projectManagerBackend` pulls in the desktop `project_manager`,
-// event for the cloud frontend. It should be set to `backend.createBackend`
-// when entrypoints are merged.
-const BACKEND_FACTORY = {
-    [platformModule.Platform.cloud]: cloudService.createBackend,
-    [platformModule.Platform.desktop]: localService.createBackend,
-}
-
 // ========================
 // === Helper functions ===
 // ========================
@@ -192,12 +182,11 @@ function fileIcon(_extension: string) {
 // =================
 
 export interface DashboardProps {
-    logger: loggerProvider.Logger
     platform: platformModule.Platform
 }
 
 function Dashboard(props: DashboardProps) {
-    const { logger, platform } = props
+    const { platform } = props
 
     const { accessToken, organization } = auth.useFullUserSession()
     const { backend } = backendProvider.useBackend()
@@ -497,11 +486,7 @@ function Dashboard(props: DashboardProps) {
                 </table>
             </div>
             <div className={tab === Tab.ide ? '' : 'hidden'}>
-                {project ? (
-                    <Ide platform={platform} backendService={backend} project={project} />
-                ) : (
-                    <></>
-                )}
+                {project && <Ide platform={platform} backendService={backend} project={project} />}
             </div>
             {modal && <>{modal}</>}
         </div>
