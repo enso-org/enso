@@ -13,6 +13,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -34,6 +35,11 @@ public abstract class TypeOfNode extends Node {
 
   public static TypeOfNode build() {
     return TypeOfNodeGen.create();
+  }
+
+  @Specialization
+  Object doUnresolvedSymbol(UnresolvedSymbol value) {
+    return EnsoContext.get(this).getBuiltins().function();
   }
 
   @Specialization

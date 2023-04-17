@@ -79,7 +79,7 @@ impl ExecutionContext {
     }
 
     fn push_root_frame(&self) -> impl Future<Output = FallibleResult> {
-        let method_pointer = self.model.entry_point.clone();
+        let method_pointer = self.model.entry_point.borrow().clone();
         let this_argument_expression = default();
         let positional_arguments_expressions = default();
 
@@ -304,6 +304,10 @@ impl model::execution_context::API for ExecutionContext {
         }
         .boxed_local()
     }
+
+    fn rename_method_pointers(&self, old_project_name: String, new_project_name: String) {
+        self.model.rename_method_pointers(old_project_name, new_project_name);
+    }
 }
 
 impl Drop for ExecutionContext {
@@ -433,7 +437,8 @@ pub mod test {
         let f = Fixture::new();
         assert_eq!(f.data.context_id, f.context.id);
         let name_in_data = f.data.module_qualified_name();
-        let name_in_ctx_model = QualifiedName::try_from(&f.context.model.entry_point.module);
+        let name_in_ctx_model =
+            QualifiedName::try_from(&f.context.model.entry_point.borrow().module);
         assert_eq!(name_in_data, name_in_ctx_model.unwrap());
         assert_eq!(Vec::<LocalCall>::new(), f.context.model.stack_items().collect_vec());
     }

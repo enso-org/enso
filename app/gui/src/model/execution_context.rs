@@ -500,6 +500,9 @@ pub trait API: Debug {
     /// Restart the program execution.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn restart<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
+    /// Adjust method pointers after the project rename action.
+    fn rename_method_pointers(&self, old_project_name: String, new_project_name: String);
 }
 
 // Note: Needless lifetimes
