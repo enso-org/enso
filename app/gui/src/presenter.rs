@@ -204,6 +204,13 @@ impl Presenter {
             let root_frp = &model.view.frp;
             root_frp.switch_view_to_project <+ welcome_view_frp.create_project.constant(());
             root_frp.switch_view_to_project <+ welcome_view_frp.open_project.constant(());
+
+            eval root_frp.selected_project ([model] (project) {
+                if let Some((name, _)) = project {
+                    model.close_project();
+                    model.open_project(name.to_string());
+                }
+            });
         }
 
 
