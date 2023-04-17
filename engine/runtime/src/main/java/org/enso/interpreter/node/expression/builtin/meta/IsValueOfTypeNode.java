@@ -70,7 +70,7 @@ public abstract class IsValueOfTypeNode extends Node {
   @Specialization
   boolean doUresolvedSymbol(Type expectedType, UnresolvedSymbol value) {
     var funTpe = EnsoContext.get(this).getBuiltins().function();
-    return isSameObject.execute(expectedType, funTpe);
+    return expectedType == funTpe;
   }
 
   @ExplodeLoop
