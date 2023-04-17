@@ -1,0 +1,20 @@
+
+type Unresolved_Symbol
+    Value value
+
+    name self = get_unresolved_symbol_name self.value
+    scope self = get_unresolved_symbol_scope self.value
+
+type Primitive
+    Value value
+
+type_of value = @Builtin_Method "Meta.type_of"
+
+# A **very** minimal version of meta for the purpose of tests
+meta value =
+    if is_unresolved_symbol value then Unresolved_Symbol.Value value else
+        Primitive.Value value
+
+is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
+get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
+get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"

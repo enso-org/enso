@@ -175,6 +175,103 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error.Error",
+          Seq(xId)
+        ),
+        builtin = true
+      ),
+      TestMessages.panic(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error.Error",
+          Seq(xId)
+        ),
+        builtin = true
+      ),
+      TestMessages.panic(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error.Error",
+          Seq(xId)
+        ),
+        builtin = true
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return panic sentinels in method body (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    // foo body id
+    metadata.addItem(65, 5)
+    val xId       = metadata.addItem(79, 9)
+    val yId       = metadata.addItem(97, 8)
+    val mainResId = metadata.addItem(110, 7)
+
+    val code =
+      """from Standard.Base.Errors.Common import all
+        |main =
+        |    foo a b = a + b
+        |    x = undefined
+        |    y = foo x 42
+        |    foo y 1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      7
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name `undefined` could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 8), model.Position(3, 17))),
+              Some(xId)
+            )
+          )
+        )
+      ),
+      TestMessages.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
@@ -256,6 +353,80 @@ class RuntimeErrorsTest
               "The name `x` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(0, 18), model.Position(0, 19))),
+              None
+            )
+          )
+        )
+      ),
+      TestMessages.panic(
+        contextId,
+        mainBodyId,
+        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error.Error",
+          Seq(mainBodyId)
+        ),
+        builtin = true
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return panic sentinels in method calls (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val mainBodyId = metadata.addItem(72, 7)
+
+    val code =
+      """from Standard.Base.Errors.Common import all
+        |foo a b = a + b + x
+        |
+        |main = foo 1 2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name `x` could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(1, 18), model.Position(1, 19))),
               None
             )
           )
@@ -1558,6 +1729,118 @@ class RuntimeErrorsTest
               "The name `IO` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 8), model.Position(1, 10))),
+              None
+            )
+          )
+        )
+      ),
+      TestMessages.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error.Error",
+          Seq(xId)
+        ),
+        builtin = true
+      ),
+      TestMessages.panic(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error.Error",
+          Seq(xId)
+        ),
+        builtin = true
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 0), model.Position(0, 0)),
+              s"import Standard.Base.IO$newline$newline"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("MyError")
+  }
+
+  it should "not cache panics (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val newline    = "\n" // was: System.lineSeparator()
+
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(59, 20)
+    val mainResId  = metadata.addItem(84, 1)
+    val x1Id       = metadata.addItem(84, 20)
+    val mainRes1Id = metadata.addItem(109, 1)
+
+    val code =
+      """from Standard.Base.Errors.Common import all
+        |main =
+        |    x = IO.println "MyError"
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name `IO` could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 8), model.Position(2, 10))),
               None
             )
           )

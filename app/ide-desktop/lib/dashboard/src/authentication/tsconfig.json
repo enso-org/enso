@@ -1,4 +1,4 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["../../../types", ".", "../../tailwind.config.ts"]
+  "include": ["../../../types", "."]
 }
