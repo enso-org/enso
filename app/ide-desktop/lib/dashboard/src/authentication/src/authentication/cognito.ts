@@ -406,8 +406,7 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 async function confirmSignUp(email: string, code: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.confirmSignUp(email, code)
-    })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow))
+    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow))
 }
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
@@ -470,8 +469,9 @@ async function signInWithGitHub() {
 async function signInWithPassword(username: string, password: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.signIn(username, password)
-    })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow))
+    }).then(result =>
+        result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
+    )
 }
 
 type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
@@ -516,8 +516,7 @@ const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
 async function forgotPassword(email: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.forgotPassword(email)
-    })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow))
+    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow))
 }
 
 type ForgotPasswordErrorKind = 'UserNotConfirmed' | 'UserNotFound'
