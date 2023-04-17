@@ -13,6 +13,7 @@ polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.parsing.AutoNumberParser
 
 polyglot java import org.enso.table.formatting.AnyObjectFormatter
 polyglot java import org.enso.table.formatting.BooleanFormatter
@@ -46,8 +47,9 @@ type Data_Formatter
          a warning will be issued indicating that some leading zeroes were present,
          but the conversion will proceed.
        - decimal_point: The character used to separate the integer part from the
-         fractional part of a number. Defaults to '.'. Can be changed for example to
-         ',' to allow for European format.
+         fractional part of a number. If `Auto` then the format for numbers will
+         be guessed automatically. Can be changed for example to ',' to allow
+         for European format.
        - thousand_separator: A separator that can be used to separate groups of digits in numbers.
        - allow_exponential_notation: Specifies if exponential notation is allowed.
        - thousand_separator: A separator that can be used to separate groups of
@@ -59,7 +61,7 @@ type Data_Formatter
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["ISO_LOCAL_DATE"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
+    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text|Auto=Auto thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["ISO_LOCAL_DATE"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
 
     ## PRIVATE
        ADVANCED
@@ -181,11 +183,13 @@ type Data_Formatter
 
     ## PRIVATE
     make_integer_parser self = self.wrap_base_parser <|
-        IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
+        if self.decimal_point == Auto then AutoNumberParser.new False else
+            IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
 
     ## PRIVATE
     make_decimal_parser self = self.wrap_base_parser <|
-        DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
+        if self.decimal_point == Auto then AutoNumberParser.new True else
+            DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|
