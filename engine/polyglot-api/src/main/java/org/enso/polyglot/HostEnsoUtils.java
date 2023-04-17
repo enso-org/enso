@@ -9,7 +9,7 @@ public final class HostEnsoUtils {
   /**
    * Extracts a string representation for a polyglot exception.
    *
-   * @param exexception the exception
+   * @param ex the exception
    * @return message representing the exception
    */
   public static String findExceptionMessage(Throwable ex) {
