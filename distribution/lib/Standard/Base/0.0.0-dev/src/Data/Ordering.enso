@@ -124,14 +124,6 @@ type Comparable
         ordering = Ordering.compare atom that
         if ordering.is_error then Nothing else ordering.to_sign
 
-    ## PRIVATE
-       A custom comparator is any comparator that is different than the
-       default ones.
-    has_custom_comparator : Atom -> Boolean
-    has_custom_comparator atom =
-        comp = Comparable.from atom
-        (comp.is_a Default_Comparator).not
-
 ## PRIVATE
    Default implementation of a _comparator_.
 @Builtin_Type
@@ -139,7 +131,7 @@ type Default_Comparator
     ## PRIVATE
     compare : Any -> Any -> (Ordering|Nothing)
     compare x y =
-        case Comparable.equals_builtin x y of
+        case Any.== x y of
             True -> Ordering.Equal
             False ->
                 case Comparable.less_than_builtin x y of
