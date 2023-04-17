@@ -24,15 +24,6 @@ public abstract class IsSameObjectNode extends Node {
   public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
 
   @Specialization
-  boolean isSameDouble(double left, double right) {
-    if (Double.isNaN(left) && Double.isNaN(right)) {
-      return true;
-    } else {
-      return left == right;
-    }
-  }
-
-  @Specialization
   boolean isSameType(Type typeLeft, Type typeRight) {
     return typeLeft == typeRight;
   }
