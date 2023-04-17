@@ -214,22 +214,16 @@ public abstract class EqualsNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return Normalizer.compare(
-        selfJavaString,
-        otherJavaString,
-        Normalizer.FOLD_CASE_DEFAULT
-    ) == 0;
+    return Normalizer.compare(selfJavaString, otherJavaString, Normalizer.FOLD_CASE_DEFAULT) == 0;
   }
 
-  @Specialization(
-    guards = "isPrimitive(self, strings) != isPrimitive(other, strings)"
-  )
-  boolean equalsDifferent(Object self, Object other, @CachedLibrary(limit = "10") InteropLibrary strings) {
+  @Specialization(guards = "isPrimitive(self, interop) != isPrimitive(other, interop)")
+  boolean equalsDifferent(
+      Object self, Object other, @CachedLibrary(limit = "10") InteropLibrary interop) {
     return false;
   }
 
   /** Equals for Atoms and AtomConstructors */
-
   @Specialization
   boolean equalsAtomConstructors(AtomConstructor self, AtomConstructor other) {
     return self == other;
@@ -237,20 +231,21 @@ public abstract class EqualsNode extends Node {
 
   @Specialization
   boolean equalsAtoms(Atom self, Atom other, @Cached EqualsAtomNode equalsNode) {
-    return equalsNode.execute(self, other);
-  }
-  
-  @Specialization(guards = "isNotPrimitive(self, other, strings, warnings)")
-  boolean equalsComplex(
-    Object self, Object other,
-    @Cached EqualsComplexNode complex,
-    @CachedLibrary(limit = "10") InteropLibrary strings,
-    @CachedLibrary(limit = "10") WarningsLibrary warnings
-  ) {
-    return complex.execute(self, other);
+    return self == other || equalsNode.execute(self, other);
   }
 
-  static boolean isNotPrimitive(Object a, Object b, InteropLibrary strings, WarningsLibrary warnings) {
+  @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")
+  boolean equalsComplex(
+      Object self,
+      Object other,
+      @Cached EqualsComplexNode equalsComplex,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+    return self == other || equalsComplex.execute(self, other);
+  }
+
+  static boolean isNotPrimitive(
+      Object a, Object b, InteropLibrary interop, WarningsLibrary warnings) {
     if (a instanceof AtomConstructor && b instanceof AtomConstructor) {
       return false;
     }
@@ -260,22 +255,22 @@ public abstract class EqualsNode extends Node {
     if (warnings.hasWarnings(a) || warnings.hasWarnings(b)) {
       return true;
     }
-    return !isPrimitive(a, strings) && !isPrimitive(b, strings);
+    return !isPrimitive(a, interop) && !isPrimitive(b, interop);
   }
 
   /**
-   * Return true iff object is a primitive value used in some specializations
-   * guard. By primitive value we mean any value that can be present in Enso, so,
-   * for example, not Integer, as that cannot be present in Enso.
-   * All the primitive types should be handled in their corresponding specializations.
-   * See {@link org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode}.
+   * Return true iff object is a primitive value used in some specializations guard. By primitive
+   * value we mean any value that can be present in Enso, so, for example, not Integer, as that
+   * cannot be present in Enso. All the primitive types should be handled in their corresponding
+   * specializations. See {@link
+   * org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode}.
    */
-  static boolean isPrimitive(Object object, InteropLibrary strings) {
-    return object instanceof Boolean ||
-        object instanceof Long ||
-        object instanceof Double ||
-        object instanceof EnsoBigInteger ||
-        object instanceof Text ||
-        strings.isString(object);
+  static boolean isPrimitive(Object object, InteropLibrary interop) {
+    return object instanceof Boolean
+        || object instanceof Long
+        || object instanceof Double
+        || object instanceof EnsoBigInteger
+        || object instanceof Text
+        || interop.isString(object);
   }
 }
