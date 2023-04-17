@@ -129,7 +129,7 @@ function ResetPassword() {
                                 Confirm New Password:
                             </label>
                             <div className="relative">
-                                {svg.LOCK}
+                                <SvgIcon svg={svg.LOCK} />
 
                                 <Input
                                     id="new_password_confirm"

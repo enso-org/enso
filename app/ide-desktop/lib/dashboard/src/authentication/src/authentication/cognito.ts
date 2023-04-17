@@ -364,7 +364,7 @@ const SIGN_UP_INVALID_PARAMETER_ERROR = {
 } as const
 
 const SIGN_UP_INVALID_PASSWORD_ERROR = {
-    internalCode: 'InvalidParameterException',
+    internalCode: 'InvalidPasswordException',
     kind: 'InvalidPassword',
 } as const
 
