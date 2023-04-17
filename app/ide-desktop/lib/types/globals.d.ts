@@ -38,6 +38,8 @@ interface AuthenticationApi {
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
      * via a deep link. See {@link setDeepLinkHandler} for details. */
     setDeepLinkHandler: (callback: (url: string) => void) => void
+    /** Saves the access token to a file. */
+    saveAccessToken: (access_token: string) => void
 }
 
 declare global {

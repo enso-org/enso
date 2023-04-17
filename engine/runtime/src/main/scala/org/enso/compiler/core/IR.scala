@@ -6896,6 +6896,9 @@ object IR {
       */
     def message: String
 
+    /** @return a human-readable description of this error condition, formatted for immediate reporting. */
+    def formattedMessage: String = message
+
     /** The location at which the diagnostic occurs. */
     val location: Option[IdentifiedLocation]
 
@@ -7408,6 +7411,9 @@ object IR {
       /** @inheritdoc */
       override def message: String = reason.explain(originalName)
 
+      /** @inheritdoc */
+      override def formattedMessage: String = s"${message}."
+
       override def diagnosticKeys(): Array[Any] = Array(reason)
 
       /** @inheritdoc */
@@ -7425,14 +7431,14 @@ object IR {
       case object UnresolvedSequenceMacro extends Reason {
         override def explain(originalName: Name): String =
           "No definition for the sequence macro could be found. Try" +
-          " importing the default definition from the Standard.Base module."
+          " importing the default definition from the Standard.Base module"
       }
 
       /** An error coming from an unknown annotation name.
         */
       case object UnknownAnnotation extends Reason {
         override def explain(originalName: Name): String =
-          s"The annotation ${originalName.name} is not defined."
+          s"The annotation ${originalName.name} is not defined"
       }
 
       /** An error coming from a tail call annotation placed in a syntactically
@@ -7441,7 +7447,7 @@ object IR {
       case object UnexpectedAnnotation extends Reason {
         override def explain(originalName: Name): String =
           s"Unexpected ${originalName.name} annotation. This annotation can " +
-          s"only be used with function applications."
+          s"only be used with function applications"
       }
 
       /** An error coming from an unexpected occurence of a polyglot symbol.
@@ -7452,7 +7458,7 @@ object IR {
       case class UnexpectedPolyglot(context: String) extends Reason {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a polyglot symbol, " +
-          s"but polyglot symbols are not allowed in $context."
+          s"but polyglot symbols are not allowed in $context"
       }
 
       /** An error coming from an unexpected occurence of a constructor.
@@ -7463,7 +7469,7 @@ object IR {
       case class UnexpectedConstructor(context: String) extends Reason {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a constructor, " +
-          s"but constructors are not allowed in $context."
+          s"but constructors are not allowed in $context"
       }
 
       /** An error coming from an unexpected occurence of a static method.
@@ -7474,7 +7480,7 @@ object IR {
       case class UnexpectedMethod(context: String) extends Reason {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a method, " +
-          s"but methods are not allowed in $context."
+          s"but methods are not allowed in $context"
       }
 
       /** An error coming from an unexpected occurence of a module.
@@ -7485,7 +7491,7 @@ object IR {
       case class UnexpectedModule(context: String) extends Reason {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a module, " +
-          s"but modules are not allowed in $context."
+          s"but modules are not allowed in $context"
       }
 
       /** An error coming from an unexpected occurence of a type.
@@ -7496,14 +7502,14 @@ object IR {
       case class UnexpectedType(context: String) extends Reason {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a type, " +
-          s"but types are not allowed in $context."
+          s"but types are not allowed in $context"
       }
 
       /** An error coming from usage of an undefined variable name.
         */
       case object VariableNotInScope extends Reason {
         override def explain(originalName: Name): String =
-          s"Variable `${originalName.name}` is not defined."
+          s"Variable `${originalName.name}` is not defined"
       }
 
       /** An error coming from name resolver.
@@ -7539,7 +7545,7 @@ object IR {
               }
               (firstLine :: lines).mkString("\n")
             case BindingsMap.ResolutionNotFound =>
-              s"The name `${originalName.name}` could not be found."
+              s"The name `${originalName.name}` could not be found"
           }
 
       }
@@ -7547,7 +7553,7 @@ object IR {
       case class MissingLibraryImportInFQNError(namespace: String)
           extends Reason {
         override def explain(originalName: IR.Name): String =
-          s"Fully qualified name references a library $namespace.${originalName.name} but an import statement for it is missing."
+          s"Fully qualified name references a library $namespace.${originalName.name} but an import statement for it is missing"
       }
 
     }
@@ -7654,7 +7660,7 @@ object IR {
           extends Reason {
         override def explain: String =
           s"Wrong number of fields when matching on $consName." +
-          s" Expected $expected fields, but provided $actual."
+          s" Expected $expected fields, but provided $actual"
       }
     }
 
@@ -7743,6 +7749,9 @@ object IR {
       /** @inheritdoc */
       override def message: String = reason.explanation
 
+      /** @inheritdoc */
+      override def formattedMessage: String = s"${message}."
+
       override def diagnosticKeys(): Array[Any] = Array(reason)
 
       /** @inheritdoc */
@@ -7761,105 +7770,106 @@ object IR {
 
       case object SuspendedArgInAtom extends Reason {
         override def explanation: String =
-          "Atoms may not have suspended arguments."
+          "Atoms may not have suspended arguments"
       }
 
       case class InvalidEscapeSequence(lit: String) extends Reason {
-        override def explanation: String = s"Invalid escape sequence $lit."
+        override def explanation: String = s"Invalid escape sequence $lit"
       }
 
       case object InvalidBaseInDecimalLiteral extends Reason {
         override def explanation: String =
-          "Cannot change base of the fractional part of a number literal."
+          "Cannot change base of the fractional part of a number literal"
       }
 
       case class InvalidBase(base: String) extends Reason {
         override def explanation: String =
-          s"$base is not a valid numeric base."
+          s"$base is not a valid numeric base"
       }
 
       case class InvalidNumberForBase(base: String, number: String)
           extends Reason {
         override def explanation: String =
-          s"$number is not valid in $base."
+          s"$number is not valid in $base"
       }
 
       case class UnsupportedSyntax(syntaxName: String) extends Reason {
         override def explanation: String =
-          s"Syntax is not supported yet: $syntaxName."
+          s"Syntax is not supported yet: $syntaxName"
       }
 
       case object InvalidPattern extends Reason {
         override def explanation: String =
-          s"Cannot define a pattern outside a pattern context."
+          s"Cannot define a pattern outside a pattern context"
       }
 
       case object InvalidImport extends Reason {
         override def explanation: String =
-          s"Imports must have a valid module path."
+          s"Imports must have a valid module path"
       }
 
       case object InvalidStandaloneSignature extends Reason {
         override def explanation: String =
-          s"Invalid stand-alone signature expression."
+          s"Invalid stand-alone signature expression"
       }
 
       case class MethodDefinedInline(methodName: String) extends Reason {
         override def explanation: String =
           s"Cannot define $methodName, methods are not supported in the " +
-          s"inline flow."
+          s"inline flow"
       }
 
       case object UnexpectedDeclarationInType extends Reason {
         override def explanation: String =
-          "Unexpected declaration in the body of a type."
+          "Unexpected declaration in the body of a type"
       }
 
       case object InvalidTypeDefinition extends Reason {
         override def explanation: String =
-          "Invalid definition of a type."
+          "Invalid definition of a type"
       }
 
       case class TypeDefinedInline(typeName: String) extends Reason {
         override def explanation: String =
           s"Cannot define $typeName, type definitions are not supported " +
-          s"in the inline flow."
+          s"in the inline flow"
       }
 
       case object EmptyParentheses extends Reason {
-        override def explanation: String = "Parentheses can't be empty."
+        override def explanation: String =
+          "Parentheses can't be empty"
       }
 
       case object UnexpectedExpression extends Reason {
-        override def explanation: String = "Unexpected expression."
+        override def explanation: String = "Unexpected expression"
       }
 
       case object AmbiguousExpression extends Reason {
-        override def explanation: String = "Ambiguous expression."
+        override def explanation: String = "Ambiguous expression"
       }
 
       case object UnrecognizedToken extends Reason {
-        override def explanation: String = "Unrecognized token."
+        override def explanation: String = "Unrecognized token"
       }
 
       case object InvalidSuffix extends Reason {
-        override def explanation: String = "Invalid suffix."
+        override def explanation: String = "Invalid suffix"
       }
 
       case object UnclosedTextLiteral extends Reason {
-        override def explanation: String = "Unclosed text literal."
+        override def explanation: String = "Unclosed text literal"
       }
 
       case object NamedArgInSection extends Reason {
-        override def explanation: String = "Named argument in operator section."
+        override def explanation: String = "Named argument in operator section"
       }
 
       case object NamedArgInOperator extends Reason {
-        override def explanation: String = "Named argument in operator section."
+        override def explanation: String = "Named argument in operator section"
       }
 
       case object InvalidOperatorName extends Reason {
-        override def explanation: String = "Invalid operator name."
+        override def explanation: String = "Invalid operator name"
       }
 
       case class InvalidForeignDefinition(details: String) extends Reason {
