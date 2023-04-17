@@ -363,8 +363,14 @@ const SIGN_UP_INVALID_PARAMETER_ERROR = {
     kind: 'InvalidParameter',
 } as const
 
+const SIGN_UP_INVALID_PASSWORD_ERROR = {
+    internalCode: 'InvalidParameterException',
+    kind: 'InvalidPassword',
+} as const
+
 type SignUpErrorKind =
     | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
+    | (typeof SIGN_UP_INVALID_PASSWORD_ERROR)['kind']
     | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
 
 export interface SignUpError {
@@ -383,6 +389,11 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
             kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
         }
+    } else if (error.code === SIGN_UP_INVALID_PASSWORD_ERROR.internalCode) {
+        return {
+            kind: SIGN_UP_INVALID_PASSWORD_ERROR.kind,
+            message: error.message,
+        }
     } else {
         throw error
     }
@@ -396,8 +407,7 @@ async function confirmSignUp(email: string, code: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.confirmSignUp(email, code)
     })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
+        .then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow))
 }
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
@@ -461,8 +471,7 @@ async function signInWithPassword(username: string, password: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.signIn(username, password)
     })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow))
+        .then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow))
 }
 
 type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
@@ -508,8 +517,7 @@ async function forgotPassword(email: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.forgotPassword(email)
     })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow))
+        .then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow))
 }
 
 type ForgotPasswordErrorKind = 'UserNotConfirmed' | 'UserNotFound'
