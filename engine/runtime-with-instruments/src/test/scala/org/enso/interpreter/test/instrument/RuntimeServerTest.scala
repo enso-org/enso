@@ -3622,7 +3622,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected `that` to be Number, but got quux (Unresolved_Symbol).",
+              "Type error: expected `that` to be Number, but got Function.",
               Some(mainFile),
               Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
               None,

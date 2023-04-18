@@ -1614,6 +1614,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-execution-mode-dropdown"
+version = "0.1.0"
+dependencies = [
+ "ensogl",
+ "ensogl-drop-down-menu",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf",
+ "ide-view-execution-mode-selector",
+]
+
+[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
@@ -1635,6 +1647,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "ide-view",
+ "ide-view-execution-mode-selector",
  "parser",
  "span-tree",
  "uuid 0.8.2",
@@ -2096,6 +2109,7 @@ version = "0.1.0"
 dependencies = [
  "debug-scene-component-list-panel-view",
  "debug-scene-documentation",
+ "debug-scene-execution-mode-dropdown",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-text-grid-visualization",
@@ -4273,6 +4287,7 @@ dependencies = [
  "ensogl-text-msdf",
  "ide-view-component-browser",
  "ide-view-documentation",
+ "ide-view-execution-mode-selector",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
@@ -4387,6 +4402,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ide-view-execution-mode-selector"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-prelude",
+ "ensogl",
+ "ensogl-derive-theme",
+ "ensogl-drop-down-menu",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+]
+
+[[package]]
 name = "ide-view-graph-editor"
 version = "0.1.0"
 dependencies = [
@@ -4406,6 +4435,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "failure",
+ "ide-view-execution-mode-selector",
  "indexmap",
  "js-sys",
  "nalgebra",

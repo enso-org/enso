@@ -601,6 +601,7 @@ pub struct HardcodedLayers {
     pub above_nodes_text:   Layer,
     /// Layer containing all panels with fixed position (not moving with the panned scene)
     /// like status bar, breadcrumbs or similar.
+    pub panel_background:   Layer,
     pub panel:              Layer,
     pub panel_text:         Layer,
     pub node_searcher:      Layer,
@@ -640,6 +641,7 @@ impl HardcodedLayers {
         let label = root.create_sublayer("label");
         let above_nodes = root.create_sublayer("above_nodes");
         let above_nodes_text = root.create_sublayer("above_nodes_text");
+        let panel_background = root.create_sublayer_with_camera("panel_background", &panel_cam);
         let panel = root.create_sublayer_with_camera("panel", &panel_cam);
         let panel_text = root.create_sublayer_with_camera("panel_text", &panel_cam);
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
@@ -662,6 +664,7 @@ impl HardcodedLayers {
             label,
             above_nodes,
             above_nodes_text,
+            panel_background,
             panel,
             panel_text,
             node_searcher,
