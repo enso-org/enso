@@ -55,7 +55,7 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     // === Profiling Mode ===
     (Press, "", "cmd p", "toggle_profiling_mode"),
     // === Execution Mode ===
-    (Press, "", "shift ctrl e", "toggle_execution_mode"),
+    (Press, "", "shift ctrl e", "toggle_execution_environment"),
     // === Debug ===
     (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
     (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),

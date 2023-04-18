@@ -29,7 +29,7 @@ use ensogl::display::camera::Camera2d;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
 use ensogl_gui_component::component;
-use ensogl_hardcoded_theme::graph_editor::execution_mode_selector as theme;
+use ensogl_hardcoded_theme::graph_editor::execution_environment_selector as theme;
 
 
 
@@ -39,7 +39,7 @@ use ensogl_hardcoded_theme::graph_editor::execution_mode_selector as theme;
 
 /// Theme specification for the execution mode selector.
 #[derive(Debug, Clone, Copy, Default, FromTheme)]
-#[base_path = "ensogl_hardcoded_theme::graph_editor::execution_mode_selector"]
+#[base_path = "ensogl_hardcoded_theme::graph_editor::execution_environment_selector"]
 pub struct Style {
     play_button_size:    f32,
     play_button_offset:  f32,
@@ -96,11 +96,11 @@ pub type ExecutionModes = Rc<Vec<ExecutionMode>>;
 
 ensogl::define_endpoints_2! {
     Input {
-        set_available_execution_modes      (ExecutionModes),
-        set_execution_mode                 (ExecutionMode),
+        set_available_execution_environments      (ExecutionModes),
+        set_execution_environment                 (ExecutionMode),
     }
     Output {
-        selected_execution_mode (ExecutionMode),
+        selected_execution_environment (ExecutionMode),
         play_press(),
         size                    (Vector2),
     }
@@ -253,17 +253,17 @@ impl component::Frp<Model> for Frp {
 
             // == Inputs ==
 
-            eval input.set_available_execution_modes ((entries) model.set_entries(entries.clone()));
+            eval input.set_available_execution_environments ((entries) model.set_entries(entries.clone()));
 
-            update_selected_entry <- input.set_execution_mode.map2(&input.set_available_execution_modes, |entry, entries| {
+            update_selected_entry <- input.set_execution_environment.map2(&input.set_available_execution_environments, |entry, entries| {
                     entries.iter().position(|mode| mode == entry)
             });
             dropdown.frp.set_selected <+ update_selected_entry;
 
             selected_id <- dropdown.frp.chosen_entry.unwrap();
-            selection <- all(input.set_available_execution_modes, selected_id);
+            selection <- all(input.set_available_execution_environments, selected_id);
             selected_entry <- selection.map(|(entries, entry_id)| entries[*entry_id].clone());
-            output.selected_execution_mode <+ selected_entry;
+            output.selected_execution_environment <+ selected_entry;
 
             // == Outputs ==
 

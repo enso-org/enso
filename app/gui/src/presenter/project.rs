@@ -280,7 +280,10 @@ impl Model {
         })
     }
 
-    fn execution_mode_changed(&self, mode: &ide_view::execution_mode_selector::ExecutionMode) {
+    fn execution_environment_changed(
+        &self,
+        mode: &ide_view::execution_environment_selector::ExecutionMode,
+    ) {
         if let Ok(mode) = mode.as_str().try_into() {
             let graph_controller = self.graph_controller.clone_ref();
             executor::global::spawn(async move {
@@ -389,28 +392,24 @@ impl Project {
 
             eval_ view.execution_context_restart(model.execution_context_restart());
 
-            eval graph_view.execution_mode((mode) model.execution_mode_changed(mode));
-            eval graph_view.execution_mode([](mode) error!("project::execution_mode_changed {mode:?}"));
-
+            eval graph_view.execution_environment((mode) model.execution_environment_changed(mode));
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
 
         self.init_analytics()
-            .init_execution_modes()
+            .init_execution_environments()
             .setup_notification_handler()
             .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
     }
 
-    /// Initialises execution modes. Currently a dummy implementqation to be replaced during
-    /// implementation of #5930.
-    fn init_execution_modes(self) -> Self {
+    /// Initialises execution modes.
+    fn init_execution_environments(self) -> Self {
         let graph = &self.model.view.graph();
         let entries = Rc::new(ExecutionEnvironment::list_all_as_imstrings());
-        graph.set_available_execution_modes(entries);
+        graph.set_available_execution_environments(entries);
         let default_mode = ExecutionEnvironment::default();
-        let default_mode: ImString = default_mode.into();
-        graph.set_execution_mode(default_mode);
+        graph.set_execution_environment(default_mode);
         self
     }
 

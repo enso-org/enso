@@ -34,7 +34,7 @@ pub mod component;
 pub mod automation;
 pub mod builtin;
 pub mod data;
-pub mod execution_mode;
+pub mod execution_environment;
 pub mod new_node_position;
 #[warn(missing_docs)]
 pub mod profiling;
@@ -78,7 +78,7 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
-use ide_view_execution_mode_selector as execution_mode_selector;
+use ide_view_execution_environment_selector as execution_environment_selector;
 
 
 // ===============
@@ -582,9 +582,11 @@ ensogl::define_endpoints_2! {
 
         // === Execution Environment ===
 
-        set_execution_environment(ExecutionEnvironment),
         // TODO(#5930): Temporary shortcut for testing different execution environments
         toggle_execution_environment(),
+        /// Set the execution modes available to the graph.
+        set_available_execution_environments          (Rc<Vec<execution_environment_selector::ExecutionMode>>),
+        set_execution_environment                     (ExecutionEnvironment),
 
 
         // === Debug ===
@@ -654,10 +656,7 @@ ensogl::define_endpoints_2! {
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
 
-        /// Set the execution modes available to the graph.
-        set_available_execution_modes          (Rc<Vec<execution_mode_selector::ExecutionMode>>),
-        set_execution_mode                     (execution_mode_selector::ExecutionMode),
-        toggle_execution_mode(),
+
 
 
     }
@@ -761,9 +760,9 @@ ensogl::define_endpoints_2! {
         min_x_spacing_for_new_nodes (f32),
 
         /// The selected execution mode.
-        execution_mode (execution_mode_selector::ExecutionMode),
+        execution_environment (execution_environment_selector::ExecutionMode),
         /// A press of the execution mode selector play button.
-        execution_mode_play_button_pressed (),
+        execution_environment_play_button_pressed (),
     }
 }
 
@@ -1767,25 +1766,25 @@ impl GraphEditorModelWithNetwork {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
-    pub display_object:      display::object::Instance,
-    pub app:                 Application,
-    pub breadcrumbs:         component::Breadcrumbs,
-    pub cursor:              cursor::Cursor,
-    pub nodes:               Nodes,
-    pub edges:               Edges,
-    pub vis_registry:        visualization::Registry,
-    pub drop_manager:        ensogl_drop_manager::Manager,
-    pub navigator:           Navigator,
-    pub add_node_button:     Rc<component::add_node_button::AddNodeButton>,
-    tooltip:                 Tooltip,
-    touch_state:             TouchState,
-    visualisations:          Visualisations,
-    frp:                     Frp,
-    profiling_statuses:      profiling::Statuses,
-    profiling_button:        component::profiling::Button,
-    styles_frp:              StyleWatchFrp,
-    selection_controller:    selection::Controller,
-    execution_mode_selector: execution_mode_selector::ExecutionModeSelector,
+    pub display_object: display::object::Instance,
+    pub app: Application,
+    pub breadcrumbs: component::Breadcrumbs,
+    pub cursor: cursor::Cursor,
+    pub nodes: Nodes,
+    pub edges: Edges,
+    pub vis_registry: visualization::Registry,
+    pub drop_manager: ensogl_drop_manager::Manager,
+    pub navigator: Navigator,
+    pub add_node_button: Rc<component::add_node_button::AddNodeButton>,
+    tooltip: Tooltip,
+    touch_state: TouchState,
+    visualisations: Visualisations,
+    frp: Frp,
+    profiling_statuses: profiling::Statuses,
+    profiling_button: component::profiling::Button,
+    styles_frp: StyleWatchFrp,
+    selection_controller: selection::Controller,
+    execution_environment_selector: execution_environment_selector::ExecutionModeSelector,
 }
 
 
@@ -1803,7 +1802,8 @@ impl GraphEditorModel {
         let visualisations = default();
         let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
-        let execution_mode_selector = execution_mode_selector::ExecutionModeSelector::new(app);
+        let execution_environment_selector =
+            execution_environment_selector::ExecutionModeSelector::new(app);
 
         let app = app.clone_ref();
         let frp = frp.clone_ref();
@@ -1842,7 +1842,7 @@ impl GraphEditorModel {
             add_node_button,
             styles_frp,
             selection_controller,
-            execution_mode_selector,
+            execution_environment_selector,
         }
         .init()
     }
@@ -1850,7 +1850,7 @@ impl GraphEditorModel {
     fn init(self) -> Self {
         let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
 
-        self.add_child(&self.execution_mode_selector);
+        self.add_child(&self.execution_environment_selector);
 
         self.add_child(&self.breadcrumbs);
         self.breadcrumbs.set_x(x_offset);
@@ -3826,7 +3826,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Execution Mode Selection ===
     // ================================
 
-    execution_mode::init_frp(&frp, &model);
+    execution_environment::init_frp(&frp, &model);
 
 
     // ==================

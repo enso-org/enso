@@ -19,7 +19,7 @@ use ensogl::prelude::*;
 use ensogl::animation;
 use ensogl::application::Application;
 use ensogl_text_msdf::run_once_initialized;
-use ide_view_execution_mode_selector as execution_mode_selector;
+use ide_view_execution_environment_selector as execution_environment_selector;
 
 
 
@@ -27,7 +27,7 @@ use ide_view_execution_mode_selector as execution_mode_selector;
 // === Initialisation ===
 // ======================
 
-fn make_entries() -> execution_mode_selector::ExecutionModes {
+fn make_entries() -> execution_environment_selector::ExecutionModes {
     Rc::new(vec!["development".to_string().into(), "production".to_string().into()])
 }
 
@@ -36,15 +36,16 @@ fn init(app: &Application) {
     let world = &app.display;
     let _scene = &world.default_scene;
 
-    let execution_mode_selector = execution_mode_selector::ExecutionModeSelector::new(&app);
-    world.add_child(&execution_mode_selector);
-    execution_mode_selector.set_available_execution_modes(make_entries());
+    let execution_environment_selector =
+        execution_environment_selector::ExecutionModeSelector::new(&app);
+    world.add_child(&execution_environment_selector);
+    execution_environment_selector.set_available_execution_environments(make_entries());
 
     world
         .on
         .before_frame
         .add(move |_time_info: animation::TimeInfo| {
-            let _keep_alive = &execution_mode_selector;
+            let _keep_alive = &execution_environment_selector;
         })
         .forget();
 }

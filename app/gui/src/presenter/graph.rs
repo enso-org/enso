@@ -503,9 +503,9 @@ impl Model {
         new_environment
     }
 
-    // fn set_execution_mode(&self, mode: ide_view::execution_mode_selector::ExecutionMode) {
-    //     match mode.as_str().try_into() {
-    //         Ok(mode) => self.execution_environment.set(mode),
+    // fn set_execution_environment(&self, mode:
+    // ide_view::execution_environment_selector::ExecutionMode) {     match mode.as_str().
+    // try_into() {         Ok(mode) => self.execution_environment.set(mode),
     //         Err(_err) => error!("Invalid execution mode given: {mode:?}"),
     //     }
     // }

@@ -208,7 +208,7 @@ trait API {
 
     /// Set the execution mode of the context for future evaluations.
     #[MethodInput=SetModeInput, rpc_name="executionContext/setExecutionEnvironment"]
-    fn set_execution_environment(&self, context_id: ContextId, mode: ExecutionEnvironment) -> ();
+    fn set_execution_environment(&self, context_id: ContextId, execution_environment: ExecutionEnvironment) -> ();
 
 }}
 
