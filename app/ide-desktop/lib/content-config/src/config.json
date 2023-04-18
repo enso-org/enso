@@ -6,7 +6,7 @@
     },
     "newDashboard": {
       "value": false,
-      "description": "Determines whether the dashboard (containing the directory listing) is enabled. This option is disregarded if the application is executed in the cloud."
+      "description": "Determines whether the dashboard (containing the directory listing) is enabled."
     },
     "dataCollection": {
       "value": true,
