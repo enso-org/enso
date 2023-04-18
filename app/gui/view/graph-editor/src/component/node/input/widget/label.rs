@@ -56,22 +56,21 @@ impl super::SpanWidget for Widget {
         let frp = Frp::new();
         let network = &frp.network;
 
+        let hover_color: color::Lcha = ctx.styles().get_color(theme::code::types::selected).into();
 
         frp::extend! { network
             color_change <- frp.text_color.on_change();
             parent_port_hovered <- widgets_frp.on_port_hover.map2(&frp.crumbs, |h, crumbs| {
                 h.on().map_or(false, |h| crumbs.starts_with(h))
             });
-            trace parent_port_hovered;
-            label_color <- color_change.map2(&parent_port_hovered, |color, hovered| {
-                if *hovered { color::Lcha::white() } else { *color }
+            label_color <- color_change.all_with(&parent_port_hovered, move |color, hovered| {
+                if *hovered { hover_color } else { *color }
             });
 
+            label_color <- label_color.on_change();
             eval label_color((color) label.set_property_default(color));
             content_change <- frp.content.on_change();
-            eval content_change([label] (content) {
-                label.set_content(content);
-            });
+            eval content_change((content) label.set_content(content));
 
             width <- label.width.on_change();
             eval width((w) root.set_size_x(*w); );

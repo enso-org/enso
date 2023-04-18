@@ -280,7 +280,7 @@ impl Model {
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let new_expression = InputExpression::from(new_expression.into());
-        warn!("set expression: \n{:?}", new_expression.tree_pretty_printer());
+        debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
 
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
