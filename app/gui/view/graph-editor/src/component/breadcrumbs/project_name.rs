@@ -297,10 +297,7 @@ impl ProjectName {
             eval text_color((&color) animations.color.set_target_value(color));
 
             edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
-            trace edit_click;
-            trace input.start_editing;
             start_editing <- any(edit_click,frp.input.start_editing);
-            trace start_editing;
             eval_ start_editing ([model, text]{
                 model.text_field.focus();
                 text.deprecated_set_focus(true);
