@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.ThreadLocalAction;
+import com.oracle.truffle.api.TruffleSafepoint;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.runtime.data.ManagedResource;
 
@@ -10,8 +11,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,7 +79,7 @@ public class ResourceManager {
       return;
     }
     // Unconditional finalization – user controls the resource manually.
-    it.doFinalize(context);
+    it.scheduleFinalizeAtSafepoint(context);
   }
 
   /**
@@ -106,7 +105,7 @@ public class ResourceManager {
         // no further attempts are made.
         boolean continueFinalizing = it.isFlaggedForFinalization().compareAndSet(true, false);
         if (continueFinalizing) {
-          it.doFinalize(context);
+          it.scheduleFinalizeAtSafepoint(context);
           items.remove(it.reference);
         }
       }
@@ -163,7 +162,7 @@ public class ResourceManager {
       Item it = items.remove(key);
       if (it != null) {
         // Finalize unconditionally – all other threads are dead by now.
-        it.doFinalize(context);
+        it.scheduleFinalizeAtSafepoint(context);
       }
     }
   }
@@ -234,11 +233,12 @@ public class ResourceManager {
     }
 
     /**
-     * Unconditionally performs the finalization action of this resource.
+     * Unconditionally performs the finalization action of this resource when a {@link
+     * TruffleSafepoint} is hit.
      *
      * @param context current execution context
      */
-    public void doFinalize(EnsoContext context) {
+    public void scheduleFinalizeAtSafepoint(EnsoContext context) {
       var futureToCancel = new AtomicReference<Future<Void>>(null);
       var performFinalizer =
           new ThreadLocalAction(false, false, true) {
