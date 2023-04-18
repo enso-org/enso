@@ -221,14 +221,14 @@ impl {
                 //self.shrink_to_fit();
             }
             if self.shape_dirty.check() {
-                for i in 0..self.buffers.len() {
-                    self.buffers[i].update()
+                for buffer in self.buffers.iter() {
+                    buffer.update()
                 }
             } else {
-                for i in 0..self.buffers.len() {
-                    if self.buffer_dirty.check(&i) {
-                        self.buffers[i].update()
-                    }
+                let dirty_buffers = self.buffers.iter_enumerate().filter_map(|(i, buffer)|
+                    self.buffer_dirty.check(&i).then_some(buffer));
+                for buffer in dirty_buffers {
+                    buffer.update()
                 }
             }
             self.shape_dirty.unset();
