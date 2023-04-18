@@ -1165,7 +1165,6 @@ pub struct LibraryComponentGroup {
 /// For more information, see
 /// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
 #[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
-#[serde(rename_all = "camelCase")]
 pub enum ExecutionEnvironment {
     /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
     /// changes.
