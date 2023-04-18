@@ -41,8 +41,8 @@ impl Builder {
     ///
     /// `disable_pointer_events` is a GLSL expression determining whether instances of the shader
     /// are transparent to pointer events. It should be one of:
-    /// - "1.0": Pointer events pass through the object. (As GLSL attributes cannot be `bool`s,
-    ///   this is a floating-point equivalent of `true`.)
+    /// - "1.0": Pointer events pass through the object. (As GLSL attributes cannot be `bool`s, this
+    ///   is a floating-point equivalent of `true`.)
     /// - "0.0": The object receives pointer events.
     /// - The name of an instance variable: The variable determines on a per-instance basis whether
     ///   pointer events are disabled.

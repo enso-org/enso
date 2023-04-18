@@ -60,8 +60,10 @@ impl Model {
         shape.set_corner_radius_max();
         display_object.add_child(&shape);
         let cover: Rectangle = default();
-        const INV_PHI: f32 = 0.618_033;
-        cover.set_size(Vector2(300.0 * INV_PHI, 300.0 * INV_PHI));
+        // We need a value that will make the covering shape a bit smaller than the main shape.
+        // Euclid found a good one.
+        const INVERSE_PHI: f32 = 0.618_033;
+        cover.set_size(Vector2(300.0 * INVERSE_PHI, 300.0 * INVERSE_PHI));
         cover.set_color(Rgba(0.0, 0.0, 0.0, 0.5));
         cover.set_corner_radius_max();
         cover.set_pointer_events(false);
