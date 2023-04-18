@@ -132,6 +132,11 @@
   quickly understand each button's function.
 - [File associations are created on Windows and macOS][6077]. This allows
   opening Enso files by double-clicking them in the file explorer.
+- [Feedback when renaming a project][6366]. When the user tries to rename the
+  project to an invalid name, a helpful error message is shown and the name is
+  reverted.
+
+[6366]: https://github.com/enso-org/enso/pull/6366
 
 #### EnsoGL (rendering engine)
 

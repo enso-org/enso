@@ -13,6 +13,7 @@ use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
+use crate::popup;
 use crate::project_list::ProjectList;
 use crate::searcher;
 
@@ -145,6 +146,7 @@ struct Model {
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     project_list:           Rc<ProjectList>,
     debug_mode_popup:       debug_mode_popup::View,
+    popup:                  popup::View,
 }
 
 impl Model {
@@ -156,6 +158,7 @@ impl Model {
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let debug_mode_popup = debug_mode_popup::View::new(app);
+        let popup = popup::View::new(app);
         let runs_in_web = ARGS.groups.startup.options.platform.value == "web";
         let window_control_buttons = runs_in_web.as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
@@ -170,6 +173,7 @@ impl Model {
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
+        display_object.add_child(&popup);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -184,6 +188,7 @@ impl Model {
             fullscreen_vis,
             project_list,
             debug_mode_popup,
+            popup,
         }
     }
 
@@ -644,6 +649,11 @@ impl View {
     /// Debug Mode Popup
     pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
         &self.model.debug_mode_popup
+    }
+
+    /// Pop-up
+    pub fn popup(&self) -> &popup::View {
+        &self.model.popup
     }
 }
 

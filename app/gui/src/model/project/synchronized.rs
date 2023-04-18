@@ -224,6 +224,13 @@ async fn update_modules_on_file_change(
 #[fail(display = "Project Manager is unavailable.")]
 pub struct ProjectManagerUnavailable;
 
+/// An error signalling the project name was invalid.
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "The project name is not allowed: {}", cause)]
+pub struct ProjectNameInvalid {
+    cause: String,
+}
+
 /// A wrapper for an error with information that user tried to open project with unsupported
 /// engine's version (which is likely the cause of the problems).
 #[derive(Debug, Fail)]
@@ -708,7 +715,17 @@ impl model::project::API for Project {
             let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
             let project_id = self.properties.borrow().id;
             let project_name = ProjectName::new_unchecked(name);
-            project_manager.rename_project(&project_id, &project_name).await?;
+            project_manager.rename_project(&project_id, &project_name).await.map_err(|error| {
+                match error {
+                    RpcError::RemoteError(cause) =>
+                        if cause.code == 4001 {
+                            failure::Error::from(ProjectNameInvalid { cause: cause.message })
+                        } else {
+                            RpcError::RemoteError(cause).into()
+                        },
+                    error => error.into(),
+                }
+            })?;
             self.properties.borrow_mut().name.project = referent_name.clone_ref();
             self.execution_contexts.rename_project(old_name, referent_name);
             Ok(())
