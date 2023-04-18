@@ -207,8 +207,8 @@ trait API {
     fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> response::RestoreVcs;
 
     /// Set the execution mode of the context for future evaluations.
-    #[MethodInput=SetModeInput, rpc_name="executionContext/setMode"]
-    fn set_mode(&self, context_id: ContextId, mode: ExecutionEnvironment) -> ();
+    #[MethodInput=SetModeInput, rpc_name="executionContext/setExecutionEnvironment"]
+    fn set_execution_environment(&self, context_id: ContextId, mode: ExecutionEnvironment) -> ();
 
 }}
 

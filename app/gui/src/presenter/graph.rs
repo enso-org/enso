@@ -12,6 +12,7 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
@@ -19,7 +20,6 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-use view::graph_editor::ExecutionEnvironment;
 use view::graph_editor::WidgetUpdates;
 
 
@@ -503,12 +503,12 @@ impl Model {
         new_environment
     }
 
-    fn set_execution_mode(&self, mode: ide_view::execution_mode_selector::ExecutionMode) {
-        match mode.as_str().try_into() {
-            Ok(mode) => self.controller.set_mode(mode),
-            Err(err) => error!("Invalid execution mode given: {mode:?}"),
-        }
-    }
+    // fn set_execution_mode(&self, mode: ide_view::execution_mode_selector::ExecutionMode) {
+    //     match mode.as_str().try_into() {
+    //         Ok(mode) => self.execution_environment.set(mode),
+    //         Err(_err) => error!("Invalid execution mode given: {mode:?}"),
+    //     }
+    // }
 }
 
 

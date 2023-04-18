@@ -311,13 +311,12 @@ impl DropDownMenu {
                 model.label.set_y(0.5 * text_height);
             });
 
-            overlay_size <- all5(
-                &model.label.frp.width,
+            overlay_size <- all4(
                 &model.label.frp.height,
                 &frp.input.set_icon_size,
                 &frp.input.set_icon_padding,
                 &menu_width);
-            eval overlay_size ([model]((text_width,text_height,icon_size,icon_padding,menu_width)) {
+            eval overlay_size ([model]((text_height,icon_size,icon_padding,menu_width)) {
                 let height = icon_size.y.max(*text_height);
                 let width = *menu_width;
                 let size = Vector2::new(width,height);

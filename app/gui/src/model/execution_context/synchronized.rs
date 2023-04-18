@@ -318,7 +318,7 @@ impl model::execution_context::API for ExecutionContext {
         self.model.execution_environment.set(mode);
         async move {
             info!("Setting execution mode to {mode:?}.");
-            self.language_server.client.set_mode(&self.id, &mode).await?;
+            self.language_server.client.set_execution_environment(&self.id, &mode).await?;
             Ok(())
         }
         .boxed_local()

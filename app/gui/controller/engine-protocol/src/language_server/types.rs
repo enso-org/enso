@@ -1160,11 +1160,19 @@ pub struct LibraryComponentGroup {
 // === Execution Environment ===
 // =============================
 
+/// The execution environment which controls the global execution of functions with side effects.
+///
+/// For more information, see
+/// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
 #[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
+
 pub enum ExecutionEnvironment {
+    /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
+    /// changes.
     Design,
+    /// Unrestricted, live editing of data.
     Live,
 }
 
@@ -1203,6 +1211,17 @@ impl TryFrom<&str> for ExecutionEnvironment {
         }
     }
 }
+
+impl ExecutionEnvironment {
+    /// Returns whether the output context is enabled for this execution environment.
+    pub fn output_context_enabled(&self) -> bool {
+        match self {
+            Self::Design => false,
+            Self::Live => true,
+        }
+    }
+}
+
 
 
 // ======================

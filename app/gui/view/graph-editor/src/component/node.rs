@@ -11,11 +11,11 @@ use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
-use crate::ExecutionEnvironment;
 use crate::Type;
 use crate::WidgetUpdates;
 
 use super::edge;
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;
@@ -30,7 +30,6 @@ use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme;
 use std::f32::EPSILON;
-
 
 // ==============
 // === Export ===

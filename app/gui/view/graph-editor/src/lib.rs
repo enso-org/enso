@@ -53,6 +53,7 @@ use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
+use engine_protocol::language_server::ExecutionEnvironment;
 
 use application::tooltip;
 use enso_config::ARGS;
@@ -3855,48 +3856,6 @@ impl display::Object for GraphEditor {
         self.model.display_object()
     }
 }
-
-
-
-// =============================
-// === Execution Environment ===
-// =============================
-
-// TODO(#5930): Move me once we synchronise the execution environment with the language server.
-/// The execution environment which controls the global execution of functions with side effects.
-///
-/// For more information, see
-/// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
-#[derive(Debug, Clone, CloneRef, Copy, Default)]
-pub enum ExecutionEnvironment {
-    /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
-    /// changes.
-    #[default]
-    Design,
-    /// Unrestricted, live editing of data.
-    Live,
-}
-
-impl ExecutionEnvironment {
-    /// Returns whether the output context is enabled for this execution environment.
-    pub fn output_context_enabled(&self) -> bool {
-        match self {
-            Self::Design => false,
-            Self::Live => true,
-        }
-    }
-}
-
-impl Display for ExecutionEnvironment {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            Self::Design => "design",
-            Self::Live => "live",
-        };
-        write!(f, "{name}")
-    }
-}
-
 
 
 // =============
