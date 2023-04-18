@@ -9,7 +9,7 @@ import org.junit.Assert;
 final class InliningBuiltinsOutNode extends Node {
 
   long execute(VirtualFrame frame, long a, long b) {
-    Assert.assertNotNull("VirtualFrame is always provided " + frame);
+    Assert.assertNotNull("VirtualFrame is always provided", frame);
     return a + b;
   }
 
