@@ -240,21 +240,22 @@ public class ResourceManager {
      */
     public void doFinalize(EnsoContext context) {
       var futureToCancel = new AtomicReference<Future<Void>>(null);
-      var performFinalizer = new ThreadLocalAction(false, false, true) {
-        @Override
-        protected void perform(ThreadLocalAction.Access access) {
-          var tmp = futureToCancel.getAndSet(null);
-          if (tmp == null) {
-            return;
-          }
-          tmp.cancel(false);
-          try {
-            InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
-          } catch (Exception e) {
-            context.getErr().println("Exception in finalizer: " + e.getMessage());
-          }
-        }
-      };
+      var performFinalizer =
+          new ThreadLocalAction(false, false, true) {
+            @Override
+            protected void perform(ThreadLocalAction.Access access) {
+              var tmp = futureToCancel.getAndSet(null);
+              if (tmp == null) {
+                return;
+              }
+              tmp.cancel(false);
+              try {
+                InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
+              } catch (Exception e) {
+                context.getErr().println("Exception in finalizer: " + e.getMessage());
+              }
+            }
+          };
       futureToCancel.set(context.getEnvironment().submitThreadLocal(null, performFinalizer));
     }
 
