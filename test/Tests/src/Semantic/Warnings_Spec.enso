@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 polyglot java import java.lang.Long
 polyglot java import java.util.function.Function as Java_Function
@@ -83,6 +84,12 @@ throw_a_bar =
     Panic.throw "bar"
 
 Any.is_static_nothing self x = x.is_nothing
+
+extract_warnings_or_errors result =
+    case result.is_error of
+        True  -> result.catch
+        False -> Warning.get_all result . map .value
+
 
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|
@@ -369,6 +376,23 @@ spec = Test.group "Dataflow Warnings" <|
         b.has_warnings . should_equal False
         a.remove_warnings . should_equal 42
         b.remove_warnings . should_equal 42
+
+    Test.specify "should not automatically propagate from suspended arguments" <|
+        x1 = 33
+        x2 = Warning.attach "WARN" 44
+        x3 = Error.throw (Illegal_State.Error "ERR")
+
+        condition_1 x y = if x then y else 42
+        condition_2 x y = if x then y + 100 else 42
+
+        (extract_warnings_or_errors <| condition_1 False x1) . should_equal []
+        (extract_warnings_or_errors <| condition_2 False x1) . should_equal []
+
+        (extract_warnings_or_errors <| condition_1 False x2) . should_equal []
+        (extract_warnings_or_errors <| condition_2 False x2) . should_equal []
+
+        (extract_warnings_or_errors <| condition_1 False x3) . should_equal []
+        (extract_warnings_or_errors <| condition_2 False x3) . should_equal []
 
 
 main = Test_Suite.run_main spec
