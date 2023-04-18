@@ -791,7 +791,7 @@ impl LayerModel {
         if self.flags.contains(LayerFlags::INHERIT_PARENT_CAMERA) {
             self.set_camera(parent.camera());
         }
-        // Depth order may be affected by new parent's `global_element_depth_order`.
+        // Parent's `global_element_depth_order` is an input to depth order computation.
         self.depth_order_dirty.set();
     }
 

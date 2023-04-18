@@ -55,13 +55,13 @@ impl Model {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let shape: Rectangle = default();
-        shape.set_size(Vector2::new(300.0, 300.0));
+        shape.set_size(Vector2(300.0, 300.0));
         shape.set_color(Rgb(1.0, 0.0, 0.0).into());
         shape.set_corner_radius_max();
         display_object.add_child(&shape);
         let cover: Rectangle = default();
         const INV_PHI: f32 = 0.618_033;
-        cover.set_size(Vector2::new(300.0 * INV_PHI, 300.0 * INV_PHI));
+        cover.set_size(Vector2(300.0 * INV_PHI, 300.0 * INV_PHI));
         cover.set_color(Rgba(0.0, 0.0, 0.0, 0.5));
         cover.set_corner_radius_max();
         cover.set_pointer_events(false);

@@ -638,6 +638,8 @@ macro_rules! shape {
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
+    // Recognize `pointer_events_instanced = true`; in addition to passing it to `_shape!`, insert
+    // a suitable instance attribute into the list of GPU parameters.
     (
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?
@@ -661,6 +663,9 @@ macro_rules! shape {
             [$style] (disable_pointer_events : f32$(,$gpu_param : $gpu_param_type)*){$($body)*}
         }
     };
+    // Recognize `pointer_events_instanced = false`. Only `true` and `false` are allowed, because
+    // if it were a computed value, we wouldn't know during macro expansion whether to create an
+    // instance parameter for it.
     (
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?

@@ -37,8 +37,15 @@ const FRAGMENT_RUNNER: &str = include_str!("../glsl/fragment_runner.glsl");
 pub struct Builder {}
 
 impl Builder {
-    /// Returns the final GLSL code. If `pointer_events_enabled` is set to false, the generated
-    /// shape will be transparent for pointer events and will pass them trough.
+    /// Returns the final GLSL code.
+    ///
+    /// `disable_pointer_events` is a GLSL expression determining whether instances of the shader
+    /// are transparent to pointer events. It should be one of:
+    /// - "1.0": Pointer events pass through the object. (As GLSL attributes cannot be `bool`s,
+    ///   this is a floating-point equivalent of `true`.)
+    /// - "0.0": The object receives pointer events.
+    /// - The name of an instance variable: The variable determines on a per-instance basis whether
+    ///   pointer events are disabled.
     #[profile(Detail)]
     pub fn run<S: canvas::Draw>(shape: &S, disable_pointer_events: &str) -> CodeTemplate {
         let mut canvas = Canvas::default();
