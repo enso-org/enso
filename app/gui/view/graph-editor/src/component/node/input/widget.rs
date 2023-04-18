@@ -388,6 +388,8 @@ impl Tree {
         self.model.set_metadata(pointer, meta);
     }
 
+    /// Set usage type for given span tree node. The usage type is used to determine the widget
+    /// appearance and default inferred widget metadata.
     pub fn set_usage_type(
         &self,
         tree_node: &span_tree::node::Ref,
@@ -398,16 +400,24 @@ impl Tree {
         }
     }
 
+    /// Set connection status for given span tree node. The connected nodes will be highlighted
+    /// with a different color, and the widgets might change behavior depending on the connection
+    /// status.
     pub fn set_connected(&self, tree_node: &span_tree::node::Ref, status: ConnectionStatus) {
         if let Some(pointer) = self.model.get_port_widget_pointer(tree_node) {
             self.model.set_connected(pointer, status);
         }
     }
 
+    /// Set disabled status for given span tree node. The disabled nodes will be grayed out.
+    /// The widgets might change behavior depending on the disabled status.
     pub fn set_disabled(&self, disabled: bool) {
         self.model.set_disabled(disabled);
     }
 
+    /// Rebuild tree if it has been marked as dirty. The dirty flag is marked whenever more data
+    /// external to the span-tree is provided, using `set_metadata`, `set_usage_type`,
+    /// `set_connected` or `set_disabled` methods of the widget tree.
     pub fn rebuild_tree_if_dirty(
         &self,
         tree: &span_tree::SpanTree,
@@ -419,6 +429,10 @@ impl Tree {
         }
     }
 
+    /// Rebuild the widget tree using given span tree expression. All widgets necessary for the
+    /// provided expression will be created and added to the view hierarchy. If the tree has been
+    /// already built, existing widgets will be reused in the parts of the expression that did not
+    /// change since then.
     pub fn rebuild_tree(
         &self,
         tree: &span_tree::SpanTree,
@@ -428,6 +442,9 @@ impl Tree {
         self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles)
     }
 
+    /// Get the root display object of the widget port for given span tree node. Not all widgets
+    /// have a port, so the returned value might be `None` even if a widget exist for given span
+    /// tree node.
     pub fn get_port_display_object(
         &self,
         tree_node: &span_tree::node::Ref,
@@ -562,19 +579,24 @@ impl TreeModel {
         let metadata_map = self.metadata_map.borrow();
         let connected_map = self.connected_map.borrow();
         let usage_type_map = self.usage_type_map.borrow();
-        let widgets_map = self.widgets_map.take();
+        let old_widgets = self.widgets_map.take();
         let node_disabled = self.disabled.load(Ordering::Acquire);
-        let mut builder = WidgetTreeBuilder::new(
-            node_expression,
-            node_disabled,
+        let mut builder = WidgetTreeBuilder {
             app,
             frp,
-            &*metadata_map,
-            &*connected_map,
-            &*usage_type_map,
-            widgets_map,
+            node_disabled,
+            node_expression,
             styles,
-        );
+            metadata_map: &metadata_map,
+            connected_map: &connected_map,
+            usage_type_map: &usage_type_map,
+            old_widgets,
+            new_widgets: default(),
+            parent_ast_id: default(),
+            parent_crumbs: default(),
+            parent_state: default(),
+        };
+
         let child = builder.child_widget(tree.root_ref(), 0);
         self.display_object.inner.replace_children(&[child]);
         self.widgets_map.replace(builder.new_widgets);
@@ -703,54 +725,49 @@ struct WidgetTreePointer {
     crumbs: span_tree::Crumbs,
 }
 
+
+
+/// =========================
+/// === WidgetTreeBuilder ===
+/// =========================
+
+/// A builder for the widget tree. Maintains transient state necessary during the tree construction,
+/// and provides methods for creating child nodes of the tree. Maintains a map of all widgets
+/// created so far, and is able to reuse existing widgets under the same location in the tree, only
+/// updating their configuration as necessary.
 #[derive(Debug)]
 struct WidgetTreeBuilder<'a> {
-    app:                Application,
-    frp:                WidgetsFrp,
-    metadata_map:       &'a HashMap<MetadataPointer, Metadata>,
-    connected_map:      &'a HashMap<WidgetTreePointer, ConnectionData>,
-    usage_type_map:     &'a HashMap<WidgetTreePointer, crate::Type>,
-    old_widgets:        HashMap<WidgetTreePointer, TreeNode>,
-    new_widgets:        HashMap<WidgetTreePointer, TreeNode>,
-    last_ast_id:        Option<ast::Id>,
-    last_ast_id_crumbs: span_tree::Crumbs,
-    last_node_state:    NodeState,
-    node_expression:    &'a str,
-    node_disabled:      bool,
-    styles:             &'a StyleWatch,
+    app:             Application,
+    frp:             WidgetsFrp,
+    node_disabled:   bool,
+    node_expression: &'a str,
+    styles:          &'a StyleWatch,
+    metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
+    connected_map:   &'a HashMap<WidgetTreePointer, ConnectionData>,
+    usage_type_map:  &'a HashMap<WidgetTreePointer, crate::Type>,
+    old_widgets:     HashMap<WidgetTreePointer, TreeNode>,
+    new_widgets:     HashMap<WidgetTreePointer, TreeNode>,
+    parent_ast_id:   Option<ast::Id>,
+    parent_crumbs:   span_tree::Crumbs,
+    parent_state:    NodeState,
 }
 
 impl<'a> WidgetTreeBuilder<'a> {
-    fn new(
-        node_expression: &'a str,
-        node_disabled: bool,
-        app: Application,
-        frp: WidgetsFrp,
-        metadata_map: &'a HashMap<MetadataPointer, Metadata>,
-        connected_map: &'a HashMap<WidgetTreePointer, ConnectionData>,
-        usage_type_map: &'a HashMap<WidgetTreePointer, crate::Type>,
-        old_widgets: HashMap<WidgetTreePointer, TreeNode>,
-        styles: &'a StyleWatch,
-    ) -> Self {
-        Self {
-            app,
-            frp,
-            metadata_map,
-            connected_map,
-            usage_type_map,
-            old_widgets,
-            new_widgets: default(),
-            last_ast_id: default(),
-            last_ast_id_crumbs: default(),
-            last_node_state: default(),
-            node_expression,
-            node_disabled,
-            styles,
-        }
-    }
-
+    /// Create a new child widget. The widget type will be automatically inferred, either based on
+    /// the node kind, or on the metadata provided from the language server. If possible, an
+    /// existing widget will be reused under the same location in the tree, only updating its
+    /// configuration as necessary. If no widget can be reused, a new one will be created.
+    ///
+    /// The root display object of the created widget will be returned, and it must be inserted into
+    /// the display object hierarchy by the caller. It will be common that the returned display
+    /// object will frequently not change between subsequent widget `configure` calls, but it will
+    /// eventually happen if the child widget is relocated or changed its type. The caller must be
+    /// prepared to handle that situation, and never rely on it not changing. In order to handle
+    /// that efficiently, the caller can use the `replace_children` method of
+    /// [`display::object::InstanceDef`], which will only perform hierarchy updates if the children
+    /// list has been actually modified.
     #[must_use]
-    pub(self) fn child_widget(
+    pub fn child_widget(
         &mut self,
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
@@ -758,8 +775,13 @@ impl<'a> WidgetTreeBuilder<'a> {
         self.create_child_widget(span_tree_node, depth, None)
     }
 
+    /// Create a new child widget. Does not infer the widget type, but uses the provided metadata
+    /// instead. That way, the parent widget can explicitly control the type of the child widget.
+    ///
+    /// See [`child_widget`] method for more details about widget creation.
     #[must_use]
-    pub(self) fn child_widget_of_type(
+    #[allow(dead_code)] // Currently unused, but will be used in the future in VectorEditor.
+    pub fn child_widget_of_type(
         &mut self,
         span_tree_node: span_tree::node::Ref<'_>,
         depth: usize,
@@ -786,19 +808,19 @@ impl<'a> WidgetTreeBuilder<'a> {
         // contained a widget for this pointer, we have to reuse it.
         let tree_ptr = match span_tree_node.ast_id {
             Some(ast_id) => {
-                let prev_ast_id = self.last_ast_id.replace(ast_id);
-                let prev_crumbs =
-                    std::mem::replace(&mut self.last_ast_id_crumbs, span_tree_node.crumbs.clone());
-                ast_data_to_restore = Some((prev_ast_id, prev_crumbs));
+                let parent_ast_id = self.parent_ast_id.replace(ast_id);
+                let parent_tail_crumbs =
+                    std::mem::replace(&mut self.parent_crumbs, span_tree_node.crumbs.clone());
+                ast_data_to_restore = Some((parent_ast_id, parent_tail_crumbs));
                 WidgetTreePointer { id: Some(ast_id), crumbs: default() }
             }
             None => {
                 let this_crumbs = &span_tree_node.crumbs;
                 // We should always be in a child node since last ast ID. Verify that.
-                let is_in_ast_subtree = this_crumbs.starts_with(&self.last_ast_id_crumbs);
+                let is_in_ast_subtree = this_crumbs.starts_with(&self.parent_crumbs);
                 assert!(is_in_ast_subtree, "Not in AST child node.");
-                let id = self.last_ast_id;
-                let crumbs_since_id = &this_crumbs[self.last_ast_id_crumbs.len()..];
+                let id = self.parent_ast_id;
+                let crumbs_since_id = &this_crumbs[self.parent_crumbs.len()..];
                 let crumbs = span_tree::Crumbs::new(crumbs_since_id.to_vec());
                 WidgetTreePointer { id, crumbs }
             }
@@ -837,14 +859,13 @@ impl<'a> WidgetTreeBuilder<'a> {
             });
 
 
-        /// Once we have the metadata and potential old widget to reuse, we have to apply the
-        /// configuration to the widget.
+        // Once we have the metadata and potential old widget to reuse, we have to apply the
+        // configuration to the widget.
         let connection: ConnectionStatus = self.connected_map.get(&tree_ptr).copied().into();
-        let subtree_connection = connection.or(self.last_node_state.subtree_connection);
+        let subtree_connection = connection.or(self.parent_state.subtree_connection);
         let disabled = self.node_disabled;
         let state = NodeState { depth, connection, subtree_connection, disabled, usage_type };
-        let mut state_to_restore = std::mem::replace(&mut self.last_node_state, state.clone());
-
+        let state_to_restore = std::mem::replace(&mut self.parent_state, state.clone());
 
         let ctx =
             ConfigContext { builder: &mut *self, display: meta.display, span_tree_node, state };
@@ -852,8 +873,12 @@ impl<'a> WidgetTreeBuilder<'a> {
         let frp = ctx.frp();
 
         // Widget creation/update can recurse into the builder. All borrows must be dropped
-        // at this point.
-        let node = if meta.has_port {
+        // at this point. The `configure` calls on the widgets are allowed to call back into the
+        // tree builder in order to create their child widgets. Those calls will change builder's
+        // state to reflect the correct parent node. We need to restore the state after the
+        // `configure` call has been done, so that the next sibling node will receive correct parent
+        // data.
+        let child_node = if meta.has_port {
             let mut port = match old_node {
                 Some(TreeNode::Port(port)) => port,
                 Some(TreeNode::Widget(widget)) => Port::new(widget, app, frp),
@@ -871,23 +896,23 @@ impl<'a> WidgetTreeBuilder<'a> {
             TreeNode::Widget(widget)
         };
 
-        self.last_node_state = state_to_restore;
+        // After visiting child node, restore previous layer's parent data.
+        self.parent_state = state_to_restore;
+        if let Some((id, crumbs)) = ast_data_to_restore {
+            self.parent_ast_id = id;
+            self.parent_crumbs = crumbs;
+        }
+
 
         // Apply left margin to the widget, based on its offset relative to the previous sibling.
-        let root = node.display_object().clone();
+        let child_root = child_node.display_object().clone();
         let offset = sibling_offset.max(if is_placeholder { 1 } else { 0 });
         let left_margin = offset as f32 * WIDGET_SPACING_PER_OFFSET;
-        if root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
-            root.set_margin_left(left_margin);
+        if child_root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
+            child_root.set_margin_left(left_margin);
         }
 
-        self.new_widgets.insert(tree_ptr.clone(), node);
-
-        // After visiting child node, restore previous layer's data.
-        if let Some((id, crumbs)) = ast_data_to_restore {
-            self.last_ast_id = id;
-            self.last_ast_id_crumbs = crumbs;
-        }
-        root
+        self.new_widgets.insert(tree_ptr.clone(), child_node);
+        child_root
     }
 }

@@ -14,15 +14,24 @@ use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
 use ensogl_component::text;
 
+
+
 /// =================
 /// === Constants ===
 /// =================
 
+/// Color of the activation triangle shape.
 pub const ACTIVATION_SHAPE_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
-const ACTIVATION_SHAPE_Y_OFFSET: f32 = 15.0;
+
+/// Height of the activation triangle shape.
 pub const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
-/// Distance between the dropdown and the bottom of the port.
-const DROPDOWN_Y_OFFSET: f32 = 5.0;
+
+/// Distance between the top of the dropdown list and the bottom of the widget.
+const DROPDOWN_Y_OFFSET: f32 = -20.0;
+
+/// Maximum allowed size of the dropdown list. If the list needs to be longer or wider than allowed
+/// by these values, it will receive a scroll bar.
+const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
 
 // ======================
 // === Triangle Shape ===
@@ -124,8 +133,8 @@ impl super::SpanWidget for Widget {
 
         let dropdown = app.new_view::<Dropdown<Entry>>();
         layers.above_nodes.add(&dropdown);
-        dropdown.set_y(-20.0);
-        dropdown.set_max_open_size(Vector2(300.0, 500.0));
+        dropdown.set_y(DROPDOWN_Y_OFFSET);
+        dropdown.set_max_open_size(DROPDOWN_MAX_SIZE);
         dropdown.allow_deselect_all(true);
 
         let display_object = InstanceWithBg::magenta();

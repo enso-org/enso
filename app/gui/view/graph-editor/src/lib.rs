@@ -1612,6 +1612,14 @@ impl GraphEditorModelWithNetwork {
                 (_) model.frp.private.output.node_incoming_edge_updates.emit(node_id)
             );
 
+            let neutral_color = model.styles_frp.get_color(theme::code::types::any::selection);
+            _eval <- node_model.output.frp.on_port_type_change.map2(&neutral_color,
+                f!(((crumbs,_),neutral_color)
+                    model.with_output_edge_id(node_id,crumbs,|id|
+                        model.refresh_edge_color(id,neutral_color.into())
+                    )
+                ));
+
             let is_editing = &node_model.input.frp.editing;
             expression_change_temporary <- node.on_expression_modified.gate(is_editing);
             expression_change_permanent <- node.on_expression_modified.gate_not(is_editing);
@@ -2415,6 +2423,29 @@ impl GraphEditorModel {
 
     fn edge_target(&self, id: EdgeId) -> Option<EdgeEndpoint> {
         self.with_edge_map_target(id, |endpoint| endpoint)
+    }
+
+    // FIXME[WD]: This implementation is slow. Node should allow for easy mapping between Crumbs
+    //            and edges. Should be part of https://github.com/enso-org/ide/issues/822.
+    fn with_output_edge_id<T>(
+        &self,
+        id: NodeId,
+        crumbs: &span_tree::Crumbs,
+        f: impl FnOnce(EdgeId) -> T,
+    ) -> Option<T> {
+        self.with_node(id, move |node| {
+            let mut target_edge_id = None;
+            for edge_id in node.out_edges.keys() {
+                self.with_edge(edge_id, |edge| {
+                    let ok = edge.target().map(|tgt| tgt.port == crumbs) == Some(true);
+                    if ok {
+                        target_edge_id = Some(edge_id)
+                    }
+                });
+            }
+            target_edge_id.map(f)
+        })
+        .flatten()
     }
 
     fn with_edge_source<T>(&self, id: EdgeId, f: impl FnOnce(EdgeEndpoint) -> T) -> Option<T> {

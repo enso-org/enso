@@ -31,6 +31,7 @@ ensogl::define_endpoints_2! {
 pub struct Widget {
     frp:   Frp,
     root:  InstanceWithBg,
+    #[allow(dead_code)]
     label: text::Text,
 }
 

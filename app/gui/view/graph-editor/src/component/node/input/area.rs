@@ -241,8 +241,7 @@ impl Model {
     }
 
     /// Set usage type of the given port.
-    fn set_usage_type(&self, crumbs: &Crumbs, usage_type: Option<Type>) {
-        warn!("set_usage_type({crumbs:?}, {usage_type:?})");
+    fn set_expression_usage_type(&self, crumbs: &Crumbs, usage_type: Option<Type>) {
         let expr = self.expression.borrow();
         let port = expr.span_tree.get_node(crumbs).ok();
         port.map(|port| self.widget_tree.set_usage_type(&port, usage_type));
@@ -537,7 +536,7 @@ impl Area {
 
             eval frp.update_widgets((a) model.apply_widget_updates(a));
             eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
-            eval frp.set_expression_usage_type(((cr,tp)) model.set_usage_type(cr,tp.clone()));
+            eval frp.set_expression_usage_type(((cr,tp)) model.set_expression_usage_type(cr,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
             widget_tree_invalidated <- any_(...);
             widget_tree_invalidated <+ frp.update_widgets;

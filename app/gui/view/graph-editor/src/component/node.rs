@@ -958,7 +958,7 @@ impl Node {
             preview_visible <- hover_preview_visible || preview_enabled;
             preview_visible <- preview_visible.on_change();
 
-            // If the preview is visible while the visualization button is disabled, clic\king the
+            // If the preview is visible while the visualization button is disabled, clicking the
             // visualization button hides the preview and keeps the visualization button disabled.
             vis_button_on <- visualization_button_state.filter(|e| *e).constant(());
             vis_button_off <- visualization_button_state.filter(|e| !*e).constant(());
