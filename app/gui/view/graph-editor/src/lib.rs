@@ -448,6 +448,7 @@ ensogl::define_endpoints_2! {
 
 
         // === Read-only mode ===
+
         set_read_only(bool),
 
 
