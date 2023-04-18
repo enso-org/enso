@@ -379,8 +379,18 @@ impl Project {
         let graph_controller = self.model.graph_controller.clone_ref();
 
         self.init_analytics()
+            .init_execution_modes()
             .setup_notification_handler()
             .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
+    }
+
+    /// Initialises execution modes. Currently a dummy implementqation to be replaced during
+    /// implementation of #5930.
+    fn init_execution_modes(self) -> Self {
+        let graph = &self.model.view.graph();
+        let entries = Rc::new(vec!["development".to_string(), "production".to_string()]);
+        graph.set_available_execution_modes(entries);
+        self
     }
 
     fn init_analytics(self) -> Self {
