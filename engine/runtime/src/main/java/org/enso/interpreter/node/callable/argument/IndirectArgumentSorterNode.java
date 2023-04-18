@@ -52,7 +52,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
    *
    * @param preApplicationSchema the function schema before applying the arguments
    * @param mapping the pre-computed argument mapping for the function
-   * @param argumentsExecutionEnvironment whether arguments should be executed or not
+   * @param argumentsExecutionMode whether arguments should be executed or not
    * @param function the function this node is reordering arguments for
    * @param state the state to pass to the function
    * @param arguments the arguments to reorder
@@ -61,7 +61,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
   public abstract ArgumentSorterNode.MappedArguments execute(
       FunctionSchema preApplicationSchema,
       ArgumentMapping mapping,
-      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       Function function,
       State state,
       Object[] arguments);
@@ -70,13 +70,13 @@ public abstract class IndirectArgumentSorterNode extends Node {
   ArgumentSorterNode.MappedArguments doExecute(
       FunctionSchema preApplicationSchema,
       ArgumentMapping mapping,
-      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       Function function,
       State state,
       Object[] arguments,
       @Cached ThunkExecutorNode thunkExecutorNode) {
     FunctionSchema postApplicationSchema = mapping.getPostApplicationSchema();
-    if (argumentsExecutionEnvironment.shouldExecute()) {
+    if (argumentsExecutionMode.shouldExecute()) {
       executeArguments(mapping, arguments, state, thunkExecutorNode);
     }
     Object[] mappedAppliedArguments =

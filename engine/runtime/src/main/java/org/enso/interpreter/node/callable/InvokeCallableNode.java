@@ -40,7 +40,7 @@ import org.enso.interpreter.runtime.state.State;
 public abstract class InvokeCallableNode extends BaseNode {
 
   /** Denotes the mode of defaulted arguments treatment for a function invocation. */
-  public enum DefaultsExecutionEnvironment {
+  public enum DefaultsExecutionMode {
     /** Defaulted arguments should be ignored for this application position. */
     IGNORE,
     /** Defaulted arguments should be executed normally for this application position. */
@@ -66,7 +66,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   /** Denotes the mode of arguments execution for a function invocation */
-  public enum ArgumentsExecutionEnvironment {
+  public enum ArgumentsExecutionMode {
     /** Arguments are pre-executed for this call. */
     PRE_EXECUTED,
     /** Arguments are passed as thunks and should be executed before calling the function. */
@@ -94,12 +94,12 @@ public abstract class InvokeCallableNode extends BaseNode {
   private final int thisArgumentPosition;
   private final int thatArgumentPosition;
 
-  private final ArgumentsExecutionEnvironment argumentsExecutionEnvironment;
+  private final ArgumentsExecutionMode argumentsExecutionMode;
 
   InvokeCallableNode(
       CallArgumentInfo[] schema,
-      DefaultsExecutionEnvironment defaultsExecutionEnvironment,
-      ArgumentsExecutionEnvironment argumentsExecutionEnvironment) {
+      DefaultsExecutionMode defaultsExecutionMode,
+      ArgumentsExecutionMode argumentsExecutionMode) {
     Integer thisArg = thisArgumentPosition(schema);
     this.canApplyThis = thisArg != null;
     this.thisArgumentPosition = thisArg == null ? -1 : thisArg;
@@ -108,16 +108,16 @@ public abstract class InvokeCallableNode extends BaseNode {
     this.canApplyThat = thatArg != null;
     this.thatArgumentPosition = thatArg == null ? -1 : thatArg;
 
-    this.argumentsExecutionEnvironment = argumentsExecutionEnvironment;
+    this.argumentsExecutionMode = argumentsExecutionMode;
 
     this.invokeFunctionNode =
-        InvokeFunctionNode.build(schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment);
+        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.invokeMethodNode =
         InvokeMethodNode.build(
-            schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment, thisArgumentPosition);
+            schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition);
     this.invokeConversionNode =
         InvokeConversionNode.build(
-            schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment, thatArgumentPosition);
+            schema, defaultsExecutionMode, argumentsExecutionMode, thatArgumentPosition);
   }
 
   public static Integer thisArgumentPosition(CallArgumentInfo[] schema) {
@@ -150,14 +150,14 @@ public abstract class InvokeCallableNode extends BaseNode {
    * Creates a new instance of this node.
    *
    * @param schema a description of the arguments being applied to the callable
-   * @param defaultsExecutionEnvironment the defaulted arguments handling mode for this call
-   * @param argumentsExecutionEnvironment the arguments execution mode for this call
+   * @param defaultsExecutionMode the defaulted arguments handling mode for this call
+   * @param argumentsExecutionMode the arguments execution mode for this call
    */
   public static InvokeCallableNode build(
       CallArgumentInfo[] schema,
-      DefaultsExecutionEnvironment defaultsExecutionEnvironment,
-      ArgumentsExecutionEnvironment argumentsExecutionEnvironment) {
-    return InvokeCallableNodeGen.create(schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment);
+      DefaultsExecutionMode defaultsExecutionMode,
+      ArgumentsExecutionMode argumentsExecutionMode) {
+    return InvokeCallableNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   @Specialization
@@ -190,7 +190,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     if (canApplyThis && canApplyThat) {
       Object selfArgument = arguments[thisArgumentPosition];
       Object thatArgument = arguments[thatArgumentPosition];
-      if (argumentsExecutionEnvironment.shouldExecute()) {
+      if (argumentsExecutionMode.shouldExecute()) {
         if (thisExecutor == null) {
           CompilerDirectives.transferToInterpreterAndInvalidate();
           Lock lock = getLock();
@@ -235,7 +235,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       UnresolvedSymbol symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
-      if (argumentsExecutionEnvironment.shouldExecute()) {
+      if (argumentsExecutionMode.shouldExecute()) {
         if (thisExecutor == null) {
           CompilerDirectives.transferToInterpreterAndInvalidate();
           Lock lock = getLock();
@@ -276,8 +276,8 @@ public abstract class InvokeCallableNode extends BaseNode {
                     insert(
                             build(
                                     invokeFunctionNode.getSchema(),
-                                    invokeFunctionNode.getDefaultsExecutionEnvironment(),
-                                    invokeFunctionNode.getArgumentsExecutionEnvironment()));
+                                    invokeFunctionNode.getDefaultsExecutionMode(),
+                                    invokeFunctionNode.getArgumentsExecutionMode()));
             childDispatch.setTailStatus(getTailStatus());
             childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);

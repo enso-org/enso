@@ -11,8 +11,8 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionEnvironment;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionEnvironment;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -107,8 +107,8 @@ public class PanicException extends AbstractTruffleException {
             payload,
             new Object[] {payload},
             new CallArgumentInfo[] {new CallArgumentInfo("self")},
-            DefaultsExecutionEnvironment.EXECUTE,
-            ArgumentsExecutionEnvironment.EXECUTE,
+            DefaultsExecutionMode.EXECUTE,
+            ArgumentsExecutionMode.EXECUTE,
             TailStatus.NOT_TAIL,
             0);
     try {

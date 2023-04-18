@@ -22,7 +22,7 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
   private UnboxingAtom.FieldGetterNode get;
   @Node.Child
   private InvokeFunctionNode invoke = InvokeFunctionNode.build(
-          new CallArgumentInfo[0], InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE, InvokeCallableNode.ArgumentsExecutionEnvironment.EXECUTE
+          new CallArgumentInfo[0], InvokeCallableNode.DefaultsExecutionMode.EXECUTE, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE
   );
 
   private SuspendedFieldGetterNode(UnboxingAtom.FieldGetterNode get, UnboxingAtom.FieldSetterNode set) {

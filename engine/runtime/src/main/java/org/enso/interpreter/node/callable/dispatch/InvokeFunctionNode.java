@@ -31,34 +31,34 @@ import java.util.UUID;
 public abstract class InvokeFunctionNode extends BaseNode {
 
   private final CallArgumentInfo[] schema;
-  private final InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment;
-  private final InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment;
+  private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
+  private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child CaptureCallerInfoNode captureCallerInfoNode = CaptureCallerInfoNode.build();
   private @Child FunctionCallInstrumentationNode functionCallInstrumentationNode =
       FunctionCallInstrumentationNode.build();
 
   InvokeFunctionNode(
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
-      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment) {
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     this.schema = schema;
-    this.defaultsExecutionEnvironment = defaultsExecutionEnvironment;
-    this.argumentsExecutionEnvironment = argumentsExecutionEnvironment;
+    this.defaultsExecutionMode = defaultsExecutionMode;
+    this.argumentsExecutionMode = argumentsExecutionMode;
   }
 
   /**
    * Creates an instance of this node.
    *
    * @param schema information about the call arguments in positional order
-   * @param defaultsExecutionEnvironment the defaults execution mode for this function invocation
-   * @param argumentsExecutionEnvironment the arguments execution mode for this function invocation
+   * @param defaultsExecutionMode the defaults execution mode for this function invocation
+   * @param argumentsExecutionMode the arguments execution mode for this function invocation
    * @return an instance of this node.
    */
   public static InvokeFunctionNode build(
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
-      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment) {
-    return InvokeFunctionNodeGen.create(schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment);
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+    return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   EnsoContext getContext() {
@@ -76,10 +76,10 @@ public abstract class InvokeFunctionNode extends BaseNode {
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
       @Cached("generate(cachedSchema, getSchema())")
           CallArgumentInfo.ArgumentMapping argumentMapping,
-      @Cached("build(cachedSchema, argumentMapping, getArgumentsExecutionEnvironment())")
+      @Cached("build(cachedSchema, argumentMapping, getArgumentsExecutionMode())")
           ArgumentSorterNode mappingNode,
       @Cached(
-              "build(argumentMapping, getDefaultsExecutionEnvironment(), getArgumentsExecutionEnvironment(), getTailStatus())")
+              "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), getTailStatus())")
           CurryNode curryNode) {
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(function, state, arguments);
@@ -123,7 +123,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
         mappingNode.execute(
             function.getSchema(),
             argumentMapping,
-            getArgumentsExecutionEnvironment(),
+            getArgumentsExecutionMode(),
             function,
             state,
             arguments);
@@ -145,8 +145,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
         argumentMapping.getPostApplicationSchema(),
-        defaultsExecutionEnvironment,
-        argumentsExecutionEnvironment,
+        defaultsExecutionMode,
+        argumentsExecutionMode,
         getTailStatus());
   }
 
@@ -166,12 +166,12 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return schema;
   }
 
-  public InvokeCallableNode.DefaultsExecutionEnvironment getDefaultsExecutionEnvironment() {
-    return this.defaultsExecutionEnvironment;
+  public InvokeCallableNode.DefaultsExecutionMode getDefaultsExecutionMode() {
+    return this.defaultsExecutionMode;
   }
 
-  public InvokeCallableNode.ArgumentsExecutionEnvironment getArgumentsExecutionEnvironment() {
-    return argumentsExecutionEnvironment;
+  public InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
+    return argumentsExecutionMode;
   }
 
   /** @return the source section for this node. */

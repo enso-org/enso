@@ -27,19 +27,19 @@ public class CurryNode extends BaseNode {
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
   private final BranchProfile keepExecutingProfile = BranchProfile.create();
-  private final InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment;
+  private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
 
   private CurryNode(
       FunctionSchema postApplicationSchema,
-      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
-      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
     setTailStatus(isTail);
-    this.defaultsExecutionEnvironment = defaultsExecutionEnvironment;
+    this.defaultsExecutionMode = defaultsExecutionMode;
     this.postApplicationSchema = postApplicationSchema;
-    appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionEnvironment);
+    appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionMode);
     initializeCallNodes();
-    initializeOversaturatedCallNode(argumentsExecutionEnvironment);
+    initializeOversaturatedCallNode(argumentsExecutionMode);
   }
 
   /**
@@ -47,20 +47,20 @@ public class CurryNode extends BaseNode {
    *
    * @param argumentMapping the argument mapping for moving from the original schema to the argument
    *     schema expected by the function.
-   * @param defaultsExecutionEnvironment the mode of handling defaulted arguments for this call.
-   * @param argumentsExecutionEnvironment the mode of executing lazy arguments for this call.
+   * @param defaultsExecutionMode the mode of handling defaulted arguments for this call.
+   * @param argumentsExecutionMode the mode of executing lazy arguments for this call.
    * @param tailStatus is this a tail call position?
    * @return an instance of this node.
    */
   public static CurryNode build(
       CallArgumentInfo.ArgumentMapping argumentMapping,
-      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
-      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus tailStatus) {
     return new CurryNode(
         argumentMapping.getPostApplicationSchema(),
-        defaultsExecutionEnvironment,
-        argumentsExecutionEnvironment,
+        defaultsExecutionMode,
+        argumentsExecutionMode,
         tailStatus);
   }
 
@@ -73,13 +73,13 @@ public class CurryNode extends BaseNode {
   }
 
   private void initializeOversaturatedCallNode(
-      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment) {
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     if (postApplicationSchema.hasOversaturatedArgs()) {
       oversaturatedCallableNode =
           InvokeCallableNodeGen.create(
               postApplicationSchema.getOversaturatedArguments(),
-              defaultsExecutionEnvironment,
-              argumentsExecutionEnvironment);
+              defaultsExecutionMode,
+              argumentsExecutionMode);
       oversaturatedCallableNode.setTailStatus(getTailStatus());
     }
   }
@@ -106,7 +106,7 @@ public class CurryNode extends BaseNode {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         var value = doCall(function, callerInfo, state, arguments);
-        if (defaultsExecutionEnvironment.isExecute()
+        if (defaultsExecutionMode.isExecute()
             && (value instanceof Function || (value instanceof AtomConstructor cons
               && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           keepExecutingProfile.enter();
@@ -120,8 +120,8 @@ public class CurryNode extends BaseNode {
                     insert(
                         InvokeCallableNode.build(
                             new CallArgumentInfo[0],
-                            InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
-                            InvokeCallableNode.ArgumentsExecutionEnvironment.EXECUTE));
+                            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+                            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE));
               }
             } finally {
               lock.unlock();

@@ -28,7 +28,7 @@ public class ApplicationNode extends ExpressionNode {
   private ApplicationNode(
       ExpressionNode callable,
       CallArgument[] callArguments,
-      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment) {
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
     this.argExpressions =
         Arrays.stream(callArguments)
             .map(CallArgument::getExpression)
@@ -40,7 +40,7 @@ public class ApplicationNode extends ExpressionNode {
     this.callable = callable;
     this.invokeCallableNode =
         InvokeCallableNode.build(
-            argSchema, defaultsExecutionEnvironment, InvokeCallableNode.ArgumentsExecutionEnvironment.EXECUTE);
+            argSchema, defaultsExecutionMode, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
   }
 
   /**
@@ -48,14 +48,14 @@ public class ApplicationNode extends ExpressionNode {
    *
    * @param callable the object being called
    * @param callArguments the arguments to pass to {@code callable}
-   * @param defaultsExecutionEnvironment whether or not defaults should be executed
+   * @param defaultsExecutionMode whether or not defaults should be executed
    * @return a node representing a function application
    */
   public static ApplicationNode build(
       ExpressionNode callable,
       CallArgument[] callArguments,
-      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment) {
-    return new ApplicationNode(callable, callArguments, defaultsExecutionEnvironment);
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
+    return new ApplicationNode(callable, callArguments, defaultsExecutionMode);
   }
 
   /**

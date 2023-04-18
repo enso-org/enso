@@ -333,19 +333,19 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     List<String> argumentDefs = new ArrayList<>();
     int staticPrefix = 0;
     if (staticInstance) {
-      argumentDefs.add("        new ArgumentDefinition(0, \"selfStatic\", ArgumentDefinition.ExecutionEnvironment.EXECUTE)");
+      argumentDefs.add("        new ArgumentDefinition(0, \"selfStatic\", ArgumentDefinition.ExecutionMode.EXECUTE)");
       staticPrefix = 1;
     }
     for (MethodDefinition.ArgumentDefinition arg : args) {
       if (arg.isPositional()) {
-        String ExecutionEnvironment = arg.isSuspended() ? "PASS_THUNK" : "EXECUTE";
+        String executionMode = arg.isSuspended() ? "PASS_THUNK" : "EXECUTE";
         argumentDefs.add(
                 "        new ArgumentDefinition("
                         + (staticPrefix + arg.getPosition())
                         + ", \""
                         + arg.getName()
-                        + "\", ArgumentDefinition.ExecutionEnvironment."
-                        + ExecutionEnvironment
+                        + "\", ArgumentDefinition.ExecutionMode."
+                        + executionMode
                         + ")");
       }
     }

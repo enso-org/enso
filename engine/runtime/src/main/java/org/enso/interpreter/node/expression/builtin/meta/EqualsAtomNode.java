@@ -11,8 +11,8 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import java.util.Arrays;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionEnvironment;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionEnvironment;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -136,6 +136,6 @@ public abstract class EqualsAtomNode extends Node {
       argsInfo[i] = new CallArgumentInfo(argDef.getName());
     }
     return InvokeFunctionNode.build(
-        argsInfo, DefaultsExecutionEnvironment.EXECUTE, ArgumentsExecutionEnvironment.EXECUTE);
+        argsInfo, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
   }
 }

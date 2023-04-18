@@ -21,8 +21,8 @@ public class CatchErrorNode extends Node {
     this.invokeCallableNode =
         InvokeCallableNode.build(
             new CallArgumentInfo[] {new CallArgumentInfo()},
-            InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
+            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+            InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
     this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 

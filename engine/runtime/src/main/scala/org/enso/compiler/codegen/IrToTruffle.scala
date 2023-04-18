@@ -736,7 +736,7 @@ class IrToTruffle(
       new ArgumentDefinition(
         0,
         Constants.Names.SELF_ARGUMENT,
-        ArgumentDefinition.ExecutionEnvironment.EXECUTE
+        ArgumentDefinition.ExecutionMode.EXECUTE
       )
     )
     val fun = new RuntimeFunction(body, null, schema)
@@ -752,7 +752,7 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
-            ArgumentDefinition.ExecutionEnvironment.EXECUTE
+            ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
       )
@@ -766,7 +766,7 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
-            ArgumentDefinition.ExecutionEnvironment.EXECUTE
+            ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
       )
@@ -1840,10 +1840,10 @@ class IrToTruffle(
         callArgs.append(arg)
       }
 
-      val defaultsExecutionEnvironment = if (hasDefaultsSuspended) {
-        InvokeCallableNode.DefaultsExecutionEnvironment.IGNORE
+      val defaultsExecutionMode = if (hasDefaultsSuspended) {
+        InvokeCallableNode.DefaultsExecutionMode.IGNORE
       } else {
-        InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE
       }
 
       val appNode = application.getMetadata(ApplicationSaturation) match {
@@ -1855,7 +1855,7 @@ class IrToTruffle(
           ApplicationNode.build(
             this.run(fn, subjectToInstrumentation),
             callArgs.toArray,
-            defaultsExecutionEnvironment
+            defaultsExecutionMode
           )
       }
 
@@ -2032,17 +2032,17 @@ class IrToTruffle(
             defaultExpression
           }
 
-          val ExecutionEnvironment = if (arg.suspended) {
-            ArgumentDefinition.ExecutionEnvironment.PASS_THUNK
+          val executionMode = if (arg.suspended) {
+            ArgumentDefinition.ExecutionMode.PASS_THUNK
           } else {
-            ArgumentDefinition.ExecutionEnvironment.EXECUTE
+            ArgumentDefinition.ExecutionMode.EXECUTE
           }
 
           new ArgumentDefinition(
             position,
             arg.name.name,
             defaultedValue,
-            ExecutionEnvironment
+            executionMode
           )
       }
   }

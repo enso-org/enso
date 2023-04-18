@@ -73,8 +73,8 @@ public abstract class PrintErrNode extends Node {
   InvokeCallableNode buildInvokeCallableNode() {
     return InvokeCallableNode.build(
         new CallArgumentInfo[] {new CallArgumentInfo()},
-        InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   UnresolvedSymbol buildSymbol() {

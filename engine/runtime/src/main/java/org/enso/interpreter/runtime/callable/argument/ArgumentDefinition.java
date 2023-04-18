@@ -7,7 +7,7 @@ import org.enso.interpreter.node.ExpressionNode;
 public final class ArgumentDefinition {
 
   /** Represents the mode of passing this argument to the function. */
-  public enum ExecutionEnvironment {
+  public enum ExecutionMode {
     /** Argument should be passed fully executed. */
     EXECUTE,
     /** Argument should be passed suspended, as a thunk. */
@@ -33,10 +33,10 @@ public final class ArgumentDefinition {
    *
    * @param position the position of the argument at the definition site
    * @param name the name of the argument
-   * @param ExecutionEnvironment the execution mode for this argument
+   * @param executionMode the execution mode for this argument
    */
-  public ArgumentDefinition(int position, String name, ExecutionEnvironment ExecutionEnvironment) {
-    this(position, name, null, ExecutionEnvironment);
+  public ArgumentDefinition(int position, String name, ExecutionMode executionMode) {
+    this(position, name, null, executionMode);
   }
 
   /**
@@ -45,14 +45,14 @@ public final class ArgumentDefinition {
    * @param position the position of the argument at the definition site
    * @param name the name of the argument
    * @param defaultValue the default value of the argument
-   * @param ExecutionEnvironment the execution mode for this argument
+   * @param executionMode the execution mode for this argument
    */
   public ArgumentDefinition(
-      int position, String name, ExpressionNode defaultValue, ExecutionEnvironment ExecutionEnvironment) {
+      int position, String name, ExpressionNode defaultValue, ExecutionMode executionMode) {
     this.position = position;
     this.name = name;
     this.defaultValue = Optional.ofNullable(defaultValue);
-    this.isSuspended = ExecutionEnvironment.isSuspended();
+    this.isSuspended = executionMode.isSuspended();
   }
 
   /**

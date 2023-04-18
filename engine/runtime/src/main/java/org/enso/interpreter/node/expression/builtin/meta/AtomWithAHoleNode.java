@@ -42,8 +42,8 @@ public abstract class AtomWithAHoleNode extends Node {
   static InvokeCallableNode callWithHole() {
     return InvokeCallableNode.build(
       new CallArgumentInfo[] {new CallArgumentInfo()},
-      InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
-      InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
+      InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+      InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   @Specialization
@@ -123,8 +123,8 @@ public abstract class AtomWithAHoleNode extends Node {
     private SwapAtomFieldNode() {
       super(null);
       this.schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.NONE, new ArgumentDefinition[]{
-        new ArgumentDefinition(0, "lazy", ArgumentDefinition.ExecutionEnvironment.EXECUTE),
-        new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionEnvironment.EXECUTE)
+        new ArgumentDefinition(0, "lazy", ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
         true, false
       }, new CallArgumentInfo[0], new Annotation[0]);

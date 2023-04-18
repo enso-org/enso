@@ -8,8 +8,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionEnvironment;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionEnvironment;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -68,8 +68,8 @@ public abstract class HashCallbackNode extends Node {
   static InvokeFunctionNode buildInvokeNodeWithAtomArgument() {
     return InvokeFunctionNode.build(
         new CallArgumentInfo[] {new CallArgumentInfo("self"), new CallArgumentInfo("atom")},
-        DefaultsExecutionEnvironment.EXECUTE,
-        ArgumentsExecutionEnvironment.EXECUTE);
+        DefaultsExecutionMode.EXECUTE,
+        ArgumentsExecutionMode.EXECUTE);
   }
 
   @TruffleBoundary

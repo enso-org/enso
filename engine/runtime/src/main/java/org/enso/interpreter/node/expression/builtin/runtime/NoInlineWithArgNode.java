@@ -23,8 +23,8 @@ public class NoInlineWithArgNode extends Node {
     invokeCallableNode =
         InvokeCallableNode.build(
             new CallArgumentInfo[] {new CallArgumentInfo()},
-            InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionEnvironment.EXECUTE);
+            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
     invokeCallableNode.setTailStatus(TailStatus.NOT_TAIL);
   }
 
