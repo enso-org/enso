@@ -76,7 +76,7 @@ public final class FunctionSchema {
 
     this.hasAnyPreApplied = hasAnyPreApplied;
     this.hasOversaturatedArguments = this.oversaturatedArguments.length > 0;
-    this.isFullyApplied = isFullyApplied(InvokeCallableNode.DefaultsExecutionMode.EXECUTE);
+    this.isFullyApplied = isFullyApplied(InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE);
   }
 
   /**
@@ -242,14 +242,14 @@ public final class FunctionSchema {
   /**
    * Checks whether the function is already fully applied.
    *
-   * @param defaultsExecutionMode should defaulted arguments be taken as applied or not.
+   * @param defaultsExecutionEnvironment should defaulted arguments be taken as applied or not.
    * @return whether or not the function is fully applied.
    */
   @CompilerDirectives.TruffleBoundary
-  public boolean isFullyApplied(InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
+  public boolean isFullyApplied(InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment) {
     boolean functionIsFullyApplied = true;
     for (int i = 0; i < getArgumentsCount(); i++) {
-      boolean hasValidDefault = hasDefaultAt(i) && !defaultsExecutionMode.isIgnore();
+      boolean hasValidDefault = hasDefaultAt(i) && !defaultsExecutionEnvironment.isIgnore();
       boolean hasPreappliedArg = hasPreAppliedAt(i);
 
       if (!(hasValidDefault || hasPreappliedArg)) {

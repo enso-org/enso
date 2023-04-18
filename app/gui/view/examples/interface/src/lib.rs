@@ -257,8 +257,8 @@ fn init(app: &Application) {
     // === Execution Modes ===
 
     graph_editor.set_available_execution_environments(vec![
-        "development".to_string().into(),
-        "production".to_string().into(),
+        "Live".to_string().into(),
+        "Design".to_string().into(),
     ]);
 
 

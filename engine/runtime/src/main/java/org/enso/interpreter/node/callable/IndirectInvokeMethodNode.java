@@ -43,8 +43,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition);
 
@@ -56,8 +56,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary dispatch,
@@ -70,8 +70,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
         state,
         arguments,
         schema,
-        defaultsExecutionMode,
-        argumentsExecutionMode,
+        defaultsExecutionEnvironment,
+        argumentsExecutionEnvironment,
         isTail);
   }
 
@@ -83,8 +83,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       DataflowError self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @Cached MethodResolverNode methodResolverNode,
@@ -101,8 +101,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
           state,
           arguments,
           schema,
-          defaultsExecutionMode,
-          argumentsExecutionMode,
+          defaultsExecutionEnvironment,
+          argumentsExecutionEnvironment,
           isTail);
     }
   }
@@ -115,8 +115,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       WithWarnings self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @Cached IndirectInvokeMethodNode childDispatch) {
@@ -130,8 +130,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
             self.getValue(),
             arguments,
             schema,
-            defaultsExecutionMode,
-            argumentsExecutionMode,
+            defaultsExecutionEnvironment,
+            argumentsExecutionEnvironment,
             isTail,
             thisArgumentPosition);
     return WithWarnings.prependTo(result, warnings);
@@ -145,8 +145,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       PanicSentinel self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition) {
     throw self;
@@ -166,8 +166,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary methods,
@@ -200,8 +200,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary methods,
@@ -221,8 +221,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
           state,
           arguments,
           schema,
-          defaultsExecutionMode,
-          argumentsExecutionMode,
+          defaultsExecutionEnvironment,
+          argumentsExecutionEnvironment,
           isTail);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
@@ -243,8 +243,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @Cached MethodResolverNode methodResolverNode,
@@ -259,8 +259,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
         state,
         arguments,
         schema,
-        defaultsExecutionMode,
-        argumentsExecutionMode,
+        defaultsExecutionEnvironment,
+        argumentsExecutionEnvironment,
         isTail);
   }
 }

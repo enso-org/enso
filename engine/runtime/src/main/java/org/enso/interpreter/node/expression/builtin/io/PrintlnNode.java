@@ -28,8 +28,8 @@ public abstract class PrintlnNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode =
       InvokeCallableNode.build(
           new CallArgumentInfo[] {new CallArgumentInfo()},
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+          InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+          InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
 
   abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message);
 
@@ -79,8 +79,8 @@ public abstract class PrintlnNode extends Node {
   InvokeCallableNode buildInvokeCallableNode() {
     return InvokeCallableNode.build(
         new CallArgumentInfo[] {new CallArgumentInfo()},
-        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+        InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
   }
 
   static PrintlnNode build() {

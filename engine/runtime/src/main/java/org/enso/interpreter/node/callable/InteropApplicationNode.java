@@ -54,8 +54,8 @@ public abstract class InteropApplicationNode extends Node {
     CallArgumentInfo[] args = buildSchema(length);
     return InvokeFunctionNode.build(
         args,
-        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+        InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
   }
 
   EnsoContext getContext() {
@@ -96,8 +96,8 @@ public abstract class InteropApplicationNode extends Node {
         state,
         args,
         buildSchema(arguments.length),
-        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED,
         BaseNode.TailStatus.NOT_TAIL);
   }
 }

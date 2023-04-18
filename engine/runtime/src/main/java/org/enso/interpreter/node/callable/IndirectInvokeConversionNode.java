@@ -37,8 +37,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       Object that,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition);
 
@@ -51,8 +51,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       Object that,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary dispatch,
@@ -70,8 +70,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
         state,
         arguments,
         schema,
-        defaultsExecutionMode,
-        argumentsExecutionMode,
+        defaultsExecutionEnvironment,
+        argumentsExecutionEnvironment,
         isTail);
   }
 
@@ -84,8 +84,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       DataflowError that,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary dispatch,
@@ -103,8 +103,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
           state,
           arguments,
           schema,
-          defaultsExecutionMode,
-          argumentsExecutionMode,
+          defaultsExecutionEnvironment,
+          argumentsExecutionEnvironment,
           isTail);
     } else {
       return that;
@@ -120,8 +120,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       PanicSentinel that,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition) {
     throw that;
@@ -136,8 +136,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       WithWarnings that,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
       @Cached IndirectInvokeConversionNode childDispatch) {
@@ -152,8 +152,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
             that.getValue(),
             arguments,
             schema,
-            defaultsExecutionMode,
-            argumentsExecutionMode,
+            defaultsExecutionEnvironment,
+            argumentsExecutionEnvironment,
             isTail,
             thatArgumentPosition);
     return WithWarnings.prependTo(result, warnings);
@@ -168,8 +168,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       Object that,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary methods,
@@ -192,8 +192,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
           state,
           arguments,
           schema,
-          defaultsExecutionMode,
-          argumentsExecutionMode,
+          defaultsExecutionEnvironment,
+          argumentsExecutionEnvironment,
           isTail);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");

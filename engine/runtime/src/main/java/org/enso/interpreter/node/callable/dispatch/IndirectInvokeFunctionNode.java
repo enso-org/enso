@@ -33,8 +33,8 @@ public abstract class IndirectInvokeFunctionNode extends Node {
    * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code function}
    * @param schema the names and ordering of arguments for this call site
-   * @param defaultsExecutionMode whether defaults are suspended for this call.
-   * @param argumentsExecutionMode whether arguments are preexecuted for this call.
+   * @param defaultsExecutionEnvironment whether defaults are suspended for this call.
+   * @param argumentsExecutionEnvironment whether arguments are preexecuted for this call.
    * @param isTail is the call happening in a tail position.
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
@@ -44,8 +44,8 @@ public abstract class IndirectInvokeFunctionNode extends Node {
       Object state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail);
 
   @Specialization
@@ -55,8 +55,8 @@ public abstract class IndirectInvokeFunctionNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode,
@@ -68,7 +68,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
         mappingNode.execute(
             function.getSchema(),
             argumentMapping,
-            argumentsExecutionMode,
+            argumentsExecutionEnvironment,
             function,
             state,
             arguments);
@@ -87,8 +87,8 @@ public abstract class IndirectInvokeFunctionNode extends Node {
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
         argumentMapping.getPostApplicationSchema(),
-        defaultsExecutionMode,
-        argumentsExecutionMode,
+        defaultsExecutionEnvironment,
+        argumentsExecutionEnvironment,
         isTail);
   }
 }

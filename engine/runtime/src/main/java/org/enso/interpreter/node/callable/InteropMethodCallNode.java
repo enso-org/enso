@@ -9,8 +9,8 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode.TailStatus;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionEnvironment;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionEnvironment;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -56,8 +56,8 @@ public abstract class InteropMethodCallNode extends Node {
     CallArgumentInfo[] args = buildSchema(length);
     return InvokeMethodNode.build(
         args,
-        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED,
         0);
   }
 
@@ -104,8 +104,8 @@ public abstract class InteropMethodCallNode extends Node {
         args[0],
         args,
         buildSchema(arguments.length),
-        DefaultsExecutionMode.EXECUTE,
-        ArgumentsExecutionMode.PRE_EXECUTED,
+        DefaultsExecutionEnvironment.EXECUTE,
+        ArgumentsExecutionEnvironment.PRE_EXECUTED,
         TailStatus.NOT_TAIL,
         0);
   }

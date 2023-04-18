@@ -42,8 +42,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
    * @param state current monadic state.
    * @param arguments arguments to pass to the callable.
    * @param schema names and ordering of the arguments.
-   * @param defaultsExecutionMode whether defaults are suspended for this call.
-   * @param argumentsExecutionMode whether arguments are preexecuted for this call.
+   * @param defaultsExecutionEnvironment whether defaults are suspended for this call.
+   * @param argumentsExecutionEnvironment whether arguments are preexecuted for this call.
    * @param isTail is the call happening in a tail position.
    * @return the result of executing the callable.
    */
@@ -53,8 +53,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail);
 
   /**
@@ -69,8 +69,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       @Cached IndirectInvokeCallableNode invokeCallableNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnings) {
@@ -82,8 +82,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
               state,
               arguments,
               schema,
-              defaultsExecutionMode,
-              argumentsExecutionMode,
+              defaultsExecutionEnvironment,
+              argumentsExecutionEnvironment,
               isTail);
 
       Warning[] extracted = warnings.getWarnings(warning, null);
@@ -100,8 +100,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     return invokeFunctionNode.execute(
@@ -110,8 +110,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
         state,
         arguments,
         schema,
-        defaultsExecutionMode,
-        argumentsExecutionMode,
+        defaultsExecutionEnvironment,
+        argumentsExecutionEnvironment,
         isTail);
   }
 
@@ -122,8 +122,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     return invokeFunction(
@@ -132,8 +132,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
         state,
         arguments,
         schema,
-        defaultsExecutionMode,
-        argumentsExecutionMode,
+        defaultsExecutionEnvironment,
+        argumentsExecutionEnvironment,
         isTail,
         invokeFunctionNode);
   }
@@ -145,8 +145,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail) {
     return error;
   }
@@ -158,8 +158,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail) {
     throw sentinel;
   }
@@ -171,8 +171,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       @Cached IndirectInvokeMethodNode invokeMethodNode,
       @Cached ThunkExecutorNode thisExecutor) {
@@ -181,7 +181,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
     int thisArgumentPosition = thisArg == null ? 0 : thisArg;
     if (canApplyThis) {
       Object self = arguments[thisArgumentPosition];
-      if (argumentsExecutionMode.shouldExecute()) {
+      if (argumentsExecutionEnvironment.shouldExecute()) {
         self = thisExecutor.executeThunk(self, state, BaseNode.TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = self;
       }
@@ -192,8 +192,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
           self,
           arguments,
           schema,
-          defaultsExecutionMode,
-          argumentsExecutionMode,
+          defaultsExecutionEnvironment,
+          argumentsExecutionEnvironment,
           isTail,
           thisArgumentPosition);
     } else {
@@ -209,7 +209,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
     Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);

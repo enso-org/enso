@@ -1,23 +1,26 @@
-//! This module contains the logic for the execution mode selector.
+//! This module contains the logic for the execution environment selector.
 
 use super::*;
 
 use crate::Frp;
 
-use ide_view_execution_environment_selector::ExecutionMode;
+use ide_view_execution_environment_selector::ExecutionEnvironment;
 
 
+// =============================
+// === Execution Environment ===
+// =============================
 
 fn get_next_execution_environment(
-    current: &ExecutionMode,
-    available: &[ExecutionMode],
-) -> Option<ExecutionMode> {
+    current: &ExecutionEnvironment,
+    available: &[ExecutionEnvironment],
+) -> Option<ExecutionEnvironment> {
     let index = available.iter().position(|mode| mode == current)?;
     let next_index = (index + 1) % available.len();
     Some(available[next_index].clone())
 }
 
-/// Initialise the FRP logic for the execution mode selector.
+/// Initialise the FRP logic for the execution environment selector.
 pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
     let out = &frp.private.output;
     let network = frp.network();
@@ -25,7 +28,9 @@ pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
     let execution_environment_selector = &model.execution_environment_selector;
 
     frp::extend! { network
-        // === Execution Mode Changes ===
+
+
+        // === Execution Environment Changes ===
 
         execution_environment_selector.set_available_execution_environments <+ frp.set_available_execution_environments;
         selected_execution_environment <- frp.set_execution_environment.map(|env| (*env).into());
@@ -43,6 +48,7 @@ pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
 
 
         // === Layout ===
+
         init <- source::<()>();
         size_update <- all(init,execution_environment_selector.size,inputs.space_for_window_buttons);
         eval size_update ([model]((_,size,gap_size)) {

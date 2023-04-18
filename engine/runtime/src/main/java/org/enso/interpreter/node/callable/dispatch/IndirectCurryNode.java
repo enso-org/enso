@@ -38,8 +38,8 @@ public abstract class IndirectCurryNode extends Node {
    * @param oversaturatedArguments any arguments that should be treated as candidates for an
    *     eta-expanded call.
    * @param postApplicationSchema function schema after the call.
-   * @param defaultsExecutionMode should default arguments be used for this call.
-   * @param argumentsExecutionMode are arguments pre-executed or suspended.
+   * @param defaultsExecutionEnvironment should default arguments be used for this call.
+   * @param argumentsExecutionEnvironment are arguments pre-executed or suspended.
    * @param isTail is the call happening in a tail position.
    * @return the result of executing the {@code function}.
    */
@@ -51,8 +51,8 @@ public abstract class IndirectCurryNode extends Node {
       Object[] arguments,
       Object[] oversaturatedArguments,
       FunctionSchema postApplicationSchema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail);
 
   @Specialization
@@ -64,18 +64,18 @@ public abstract class IndirectCurryNode extends Node {
       Object[] arguments,
       Object[] oversaturatedArguments,
       FunctionSchema postApplicationSchema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       BaseNode.TailStatus isTail,
       @Cached ExecuteCallNode directCall,
       @Cached LoopingCallOptimiserNode loopingCall,
       @Cached IndirectInvokeCallableNode oversaturatedCallableNode) {
-    boolean appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionMode);
+    boolean appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionEnvironment);
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         var value =
             doCall(function, callerInfo, state, arguments, isTail, directCall, loopingCall);
-        if (defaultsExecutionMode.isExecute()
+        if (defaultsExecutionEnvironment.isExecute()
             && (value instanceof Function || (value instanceof AtomConstructor cons
               && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           return oversaturatedCallableNode.execute(
@@ -84,8 +84,8 @@ public abstract class IndirectCurryNode extends Node {
               state,
               new Object[0],
               new CallArgumentInfo[0],
-              defaultsExecutionMode,
-              argumentsExecutionMode,
+              defaultsExecutionEnvironment,
+              argumentsExecutionEnvironment,
               isTail);
         } else {
           return value;
@@ -99,8 +99,8 @@ public abstract class IndirectCurryNode extends Node {
             state,
             oversaturatedArguments,
             postApplicationSchema.getOversaturatedArguments(),
-            defaultsExecutionMode,
-            argumentsExecutionMode,
+            defaultsExecutionEnvironment,
+            argumentsExecutionEnvironment,
             isTail);
       }
     } else {

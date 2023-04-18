@@ -25,7 +25,7 @@ public abstract class Builtin {
               .mapToObj(
                   i ->
                       new ArgumentDefinition(
-                          i, params.get(i), ArgumentDefinition.ExecutionMode.EXECUTE))
+                          i, params.get(i), ArgumentDefinition.ExecutionEnvironment.EXECUTE))
               .toArray(ArgumentDefinition[]::new));
       return res;
     }

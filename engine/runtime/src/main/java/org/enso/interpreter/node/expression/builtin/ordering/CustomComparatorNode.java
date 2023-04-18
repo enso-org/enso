@@ -4,8 +4,8 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionEnvironment;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionEnvironment;
 import org.enso.interpreter.node.callable.InvokeConversionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
@@ -59,6 +59,6 @@ public abstract class CustomComparatorNode extends Node {
     argSchema[0] = new CallArgumentInfo();
     argSchema[1] = new CallArgumentInfo();
 
-    return InvokeConversionNode.build(argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE, 1);
+    return InvokeConversionNode.build(argSchema, DefaultsExecutionEnvironment.EXECUTE, ArgumentsExecutionEnvironment.EXECUTE, 1);
   }
 }

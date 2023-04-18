@@ -320,7 +320,7 @@ impl Handle {
         self.graph.borrow().disconnect(connection, self)
     }
 
-    /// Set the execution mode.
+    /// Set the execution environment.
     pub async fn set_mode(&self, mode: ExecutionEnvironment) -> FallibleResult {
         self.execution_ctx.set_mode(mode).await?;
         Ok(())

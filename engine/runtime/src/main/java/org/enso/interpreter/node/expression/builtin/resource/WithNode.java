@@ -21,8 +21,8 @@ public abstract class WithNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode =
       InvokeCallableNode.build(
           new CallArgumentInfo[] {new CallArgumentInfo()},
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+          InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+          InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
 
   static WithNode build() {
     return WithNodeGen.create();

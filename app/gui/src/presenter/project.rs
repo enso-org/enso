@@ -282,13 +282,13 @@ impl Model {
 
     fn execution_environment_changed(
         &self,
-        mode: &ide_view::execution_environment_selector::ExecutionMode,
+        mode: &ide_view::execution_environment_selector::ExecutionEnvironment,
     ) {
         if let Ok(mode) = mode.as_str().try_into() {
             let graph_controller = self.graph_controller.clone_ref();
             executor::global::spawn(async move {
                 if let Err(err) = graph_controller.set_mode(mode).await {
-                    error!("Error setting execution mode: {err}");
+                    error!("Error setting execution environment: {err}");
                 }
             });
         } else {
@@ -403,7 +403,7 @@ impl Project {
             .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
     }
 
-    /// Initialises execution modes.
+    /// Initialises execution environment.
     fn init_execution_environments(self) -> Self {
         let graph = &self.model.view.graph();
         let entries = Rc::new(ExecutionEnvironment::list_all_as_imstrings());

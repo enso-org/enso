@@ -20,8 +20,8 @@ public class ApplicationOperator extends Node {
     invokeCallableNode =
         InvokeCallableNode.build(
             new CallArgumentInfo[] {new CallArgumentInfo()},
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+            InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+            InvokeCallableNode.ArgumentsExecutionEnvironment.EXECUTE);
     invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 

@@ -23,15 +23,15 @@ public class ArgumentSorterNode extends BaseNode {
   private final FunctionSchema postApplicationSchema;
   private final ArgumentMapping mapping;
   private @Children ThunkExecutorNode[] executors;
-  private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
+  private final InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment;
 
   private ArgumentSorterNode(
       FunctionSchema preApplicationSchema,
       FunctionSchema postApplicationSchema,
       ArgumentMapping mapping,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment) {
     this.preApplicationSchema = preApplicationSchema;
-    this.argumentsExecutionMode = argumentsExecutionMode;
+    this.argumentsExecutionEnvironment = argumentsExecutionEnvironment;
     this.mapping = mapping;
     this.postApplicationSchema = postApplicationSchema;
   }
@@ -42,16 +42,16 @@ public class ArgumentSorterNode extends BaseNode {
    * @param preApplicationSchema the schema of all functions passed to the {@link #execute(Function,
    *     Object, Object[])} method of this node.
    * @param mapping the argument mapping generated for current application site.
-   * @param argumentsExecutionMode lazy arguments handling mode for this node.
+   * @param argumentsExecutionEnvironment lazy arguments handling mode for this node.
    * @return a sorter node for the arguments in {@code schema} being passed to a function with the
    *     {@code preApplicationSchema}.
    */
   public static ArgumentSorterNode build(
       FunctionSchema preApplicationSchema,
       ArgumentMapping mapping,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment) {
     return new ArgumentSorterNode(
-        preApplicationSchema, mapping.getPostApplicationSchema(), mapping, argumentsExecutionMode);
+        preApplicationSchema, mapping.getPostApplicationSchema(), mapping, argumentsExecutionEnvironment);
   }
 
   private void initArgumentExecutors() {
@@ -95,7 +95,7 @@ public class ArgumentSorterNode extends BaseNode {
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
   public MappedArguments execute(Function function, State state, Object[] arguments) {
-    if (argumentsExecutionMode.shouldExecute()) {
+    if (argumentsExecutionEnvironment.shouldExecute()) {
       executeArguments(arguments, state);
     }
     Object[] mappedAppliedArguments =

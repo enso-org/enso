@@ -62,26 +62,26 @@ public abstract class InvokeMethodNode extends BaseNode {
    * Creates a new node for method invocation.
    *
    * @param schema a description of the arguments being applied to the callable
-   * @param defaultsExecutionMode the defaulted arguments handling mode for this call
-   * @param argumentsExecutionMode the arguments execution mode for this call
+   * @param defaultsExecutionEnvironment the defaulted arguments handling mode for this call
+   * @param argumentsExecutionEnvironment the arguments execution mode for this call
    * @return a new invoke method node
    */
   public static InvokeMethodNode build(
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       int thisArgumentPosition) {
     return InvokeMethodNodeGen.create(
-        schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition);
+        schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment, thisArgumentPosition);
   }
 
   InvokeMethodNode(
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       int thisArgumentPosition) {
     this.invokeFunctionNode =
-        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+        InvokeFunctionNode.build(schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment);
     this.argumentCount = schema.length;
     this.thisArgumentPosition = thisArgumentPosition;
   }
@@ -201,8 +201,8 @@ public abstract class InvokeMethodNode extends BaseNode {
     schema[0] = new CallArgumentInfo();
     return InvokeFunctionNode.build(
         schema,
-        invokeFunctionNode.getDefaultsExecutionMode(),
-        invokeFunctionNode.getArgumentsExecutionMode());
+        invokeFunctionNode.getDefaultsExecutionEnvironment(),
+        invokeFunctionNode.getArgumentsExecutionEnvironment());
   }
 
   @Specialization(
@@ -260,8 +260,8 @@ public abstract class InvokeMethodNode extends BaseNode {
               insert(
                   build(
                       invokeFunctionNode.getSchema(),
-                      invokeFunctionNode.getDefaultsExecutionMode(),
-                      invokeFunctionNode.getArgumentsExecutionMode(),
+                      invokeFunctionNode.getDefaultsExecutionEnvironment(),
+                      invokeFunctionNode.getArgumentsExecutionEnvironment(),
                       thisArgumentPosition));
           childDispatch.setTailStatus(getTailStatus());
           childDispatch.setId(invokeFunctionNode.getId());

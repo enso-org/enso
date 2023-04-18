@@ -36,14 +36,14 @@ public abstract class BracketNode extends Node {
   private @Child InvokeCallableNode invokeDestructorNode =
       InvokeCallableNode.build(
           new CallArgumentInfo[] {new CallArgumentInfo()},
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+          InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+          InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
 
   private @Child InvokeCallableNode invokeActionNode =
       InvokeCallableNode.build(
           new CallArgumentInfo[] {new CallArgumentInfo()},
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+          InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+          InvokeCallableNode.ArgumentsExecutionEnvironment.PRE_EXECUTED);
 
   static BracketNode build() {
     return BracketNodeGen.create();

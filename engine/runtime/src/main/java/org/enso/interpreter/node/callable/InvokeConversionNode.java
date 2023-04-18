@@ -34,26 +34,26 @@ public abstract class InvokeConversionNode extends BaseNode {
    * Creates a new node for method invocation.
    *
    * @param schema a description of the arguments being applied to the callable
-   * @param defaultsExecutionMode the defaulted arguments handling mode for this call
-   * @param argumentsExecutionMode the arguments execution mode for this call
+   * @param defaultsExecutionEnvironment the defaulted arguments handling mode for this call
+   * @param argumentsExecutionEnvironment the arguments execution mode for this call
    * @return a new invoke method node
    */
   public static InvokeConversionNode build(
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       int thatArgumentPosition) {
     return InvokeConversionNodeGen.create(
-        schema, defaultsExecutionMode, argumentsExecutionMode, thatArgumentPosition);
+        schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment, thatArgumentPosition);
   }
 
   InvokeConversionNode(
       CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      InvokeCallableNode.DefaultsExecutionEnvironment defaultsExecutionEnvironment,
+      InvokeCallableNode.ArgumentsExecutionEnvironment argumentsExecutionEnvironment,
       int thatArgumentPosition) {
     this.invokeFunctionNode =
-        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+        InvokeFunctionNode.build(schema, defaultsExecutionEnvironment, argumentsExecutionEnvironment);
     this.thatArgumentPosition = thatArgumentPosition;
   }
 
@@ -160,8 +160,8 @@ public abstract class InvokeConversionNode extends BaseNode {
               insert(
                   build(
                       invokeFunctionNode.getSchema(),
-                      invokeFunctionNode.getDefaultsExecutionMode(),
-                      invokeFunctionNode.getArgumentsExecutionMode(),
+                      invokeFunctionNode.getDefaultsExecutionEnvironment(),
+                      invokeFunctionNode.getArgumentsExecutionEnvironment(),
                       thatArgumentPosition));
           childDispatch.setTailStatus(getTailStatus());
           childDispatch.setId(invokeFunctionNode.getId());

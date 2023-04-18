@@ -584,8 +584,8 @@ ensogl::define_endpoints_2! {
 
         // TODO(#5930): Temporary shortcut for testing different execution environments
         toggle_execution_environment(),
-        /// Set the execution modes available to the graph.
-        set_available_execution_environments          (Rc<Vec<execution_environment_selector::ExecutionMode>>),
+        /// Set the execution environmenta available to the graph.
+        set_available_execution_environments          (Rc<Vec<execution_environment_selector::ExecutionEnvironment>>),
         set_execution_environment                     (ExecutionEnvironment),
 
 
@@ -759,9 +759,9 @@ ensogl::define_endpoints_2! {
         default_y_gap_between_nodes (f32),
         min_x_spacing_for_new_nodes (f32),
 
-        /// The selected execution mode.
-        execution_environment (execution_environment_selector::ExecutionMode),
-        /// A press of the execution mode selector play button.
+        /// The selected environment mode.
+        execution_environment (execution_environment_selector::ExecutionEnvironment),
+        /// A press of the execution environment selector play button.
         execution_environment_play_button_pressed (),
     }
 }
@@ -1784,7 +1784,7 @@ pub struct GraphEditorModel {
     profiling_button: component::profiling::Button,
     styles_frp: StyleWatchFrp,
     selection_controller: selection::Controller,
-    execution_environment_selector: execution_environment_selector::ExecutionModeSelector,
+    execution_environment_selector: execution_environment_selector::ExecutionEnvironmentSelector,
 }
 
 
@@ -1803,7 +1803,7 @@ impl GraphEditorModel {
         let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
         let execution_environment_selector =
-            execution_environment_selector::ExecutionModeSelector::new(app);
+            execution_environment_selector::ExecutionEnvironmentSelector::new(app);
 
         let app = app.clone_ref();
         let frp = frp.clone_ref();

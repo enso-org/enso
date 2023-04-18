@@ -505,7 +505,7 @@ pub trait API: Debug {
     /// Adjust method pointers after the project rename action.
     fn rename_method_pointers(&self, old_project_name: String, new_project_name: String);
 
-    /// Set the execution mode of the context.
+    /// Set the execution environment of the context.
     #[allow(clippy::needless_lifetimes)]
     fn set_mode<'a>(&'a self, mode: ExecutionEnvironment) -> BoxFuture<'a, FallibleResult>;
 }

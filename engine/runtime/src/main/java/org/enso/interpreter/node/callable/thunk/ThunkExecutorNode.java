@@ -93,8 +93,8 @@ public abstract class ThunkExecutorNode extends Node {
     var node =
         InvokeFunctionNode.build(
             new CallArgumentInfo[0],
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+            InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+            InvokeCallableNode.ArgumentsExecutionEnvironment.EXECUTE);
     node.setTailStatus(tailStatus);
     return node;
   }
@@ -129,8 +129,8 @@ public abstract class ThunkExecutorNode extends Node {
         state,
         new Object[0],
         new CallArgumentInfo[0],
-        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.EXECUTE,
+        InvokeCallableNode.DefaultsExecutionEnvironment.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionEnvironment.EXECUTE,
         isTail);
   }
 

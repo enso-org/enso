@@ -206,7 +206,7 @@ trait API {
     #[MethodInput=VcsRestoreInput, rpc_name="vcs/restore"]
     fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> response::RestoreVcs;
 
-    /// Set the execution mode of the context for future evaluations.
+    /// Set the execution environment of the context for future evaluations.
     #[MethodInput=SetModeInput, rpc_name="executionContext/setExecutionEnvironment"]
     fn set_execution_environment(&self, context_id: ContextId, execution_environment: ExecutionEnvironment) -> ();
 
