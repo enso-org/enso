@@ -218,7 +218,7 @@ impl {
     pub fn update(&mut self) {
         debug_span!("Updating.").in_scope(|| {
             if self.used_size * 2 < self.size() {
-                // FIXME
+                // FIXME (#6340)
                 //self.shrink_to_fit();
             }
             if self.shape_dirty.check() {
