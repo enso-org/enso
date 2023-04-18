@@ -157,7 +157,7 @@ class Main {
             } else {
                 if (
                     (contentConfig.OPTIONS.options.authentication.value ||
-                    contentConfig.OPTIONS.options.newDashboard.value) &&
+                        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) &&
                     contentConfig.OPTIONS.groups.startup.options.entry.value ===
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
@@ -182,7 +182,9 @@ class Main {
                      * where it will be called only once. */
                     let appInstanceRan = false
                     const onAuthenticated = () => {
-                        if (!contentConfig.OPTIONS.options.newDashboard.value) {
+                        if (
+                            !contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+                        ) {
                             hideAuth()
                             if (!appInstanceRan) {
                                 appInstanceRan = true
@@ -194,7 +196,8 @@ class Main {
                         logger,
                         platform,
                         projectManager: projectManager.ProjectManager.default(),
-                        showDashboard: contentConfig.OPTIONS.options.newDashboard.value,
+                        showDashboard:
+                            contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
                         onAuthenticated,
                     })
                 } else {

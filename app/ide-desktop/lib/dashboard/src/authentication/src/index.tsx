@@ -43,8 +43,10 @@ export function run(props: app.AppProps) {
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
     } else {
-        // FIXME[sb]: This is a temporary workaround and will be fixed
-        // when IDE support is properly integrated into the dashboard.
+        // FIXME: https://github.com/enso-org/cloud-v2/issues/386
+        // Temporary workaround on hiding the Enso root element preventing it from
+        // rendering next to authentication templates. We are uncovering this once the
+        // authentication library sets the user session.
         const ide = document.getElementById(IDE_ELEMENT_ID)
         if (ide != null) {
             ide.style.display = 'none'

@@ -4,10 +4,6 @@
       "value": false,
       "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
     },
-    "newDashboard": {
-      "value": false,
-      "description": "Determines whether the dashboard (containing the directory listing) is enabled."
-    },
     "dataCollection": {
       "value": true,
       "description": "Determines whether anonymous usage data is to be collected.",
@@ -123,6 +119,10 @@
           "value": false,
           "description": "Show Vector Editor widget on nodes.",
           "primary": false
+        },
+        "newDashboard": {
+          "value": false,
+          "description": "Determines whether the new dashboard with cloud integration is enabled."
         }
       }
     },
