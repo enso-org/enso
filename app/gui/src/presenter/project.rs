@@ -202,7 +202,8 @@ impl Model {
     fn toggle_read_only(&self) {
         let read_only = self.controller.model.read_only();
         self.controller.model.set_read_only(!read_only);
-        info!("New read only state: {}.", self.controller.model.read_only());
+        self.view.frp.set_read_only(!read_only);
+        error!("New read only state: {}.", self.controller.model.read_only());
     }
 
     fn restore_project_snapshot(&self) {
