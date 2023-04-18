@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.runtime.data.ManagedResource;
 
@@ -9,8 +10,12 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** Allows the context to attach garbage collection hooks on the removal of certain objects. */
 public class ResourceManager {
@@ -124,7 +129,7 @@ public class ResourceManager {
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
-      workerThread = context.getEnvironment().createThread(worker);
+      workerThread = context.getEnvironment().createSystemThread(worker);
       workerThread.start();
     }
     ManagedResource resource = new ManagedResource(object);
@@ -234,14 +239,23 @@ public class ResourceManager {
      * @param context current execution context
      */
     public void doFinalize(EnsoContext context) {
-      Object p = context.getThreadManager().enter();
-      try {
-        InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
-      } catch (Exception e) {
-        context.getErr().println("Exception in finalizer: " + e.getMessage());
-      } finally {
-        context.getThreadManager().leave(p);
-      }
+      var futureToCancel = new AtomicReference<Future<Void>>(null);
+      var performFinalizer = new ThreadLocalAction(false, false, true) {
+        @Override
+        protected void perform(ThreadLocalAction.Access access) {
+          var tmp = futureToCancel.getAndSet(null);
+          if (tmp == null) {
+            return;
+          }
+          tmp.cancel(false);
+          try {
+            InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
+          } catch (Exception e) {
+            context.getErr().println("Exception in finalizer: " + e.getMessage());
+          }
+        }
+      };
+      futureToCancel.set(context.getEnvironment().submitThreadLocal(null, performFinalizer));
     }
 
     /**
