@@ -238,7 +238,9 @@ public abstract class EqualsNode extends Node {
       Object self,
       Object other,
       @Cached EqualsComplexNode equalsComplex,
-      @Cached IsSameObjectNode isSameObjectNode) {
+      @Cached IsSameObjectNode isSameObjectNode,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "5") WarningsLibrary warnings) {
     return isSameObjectNode.execute(self, other) || equalsComplex.execute(self, other);
   }
 
