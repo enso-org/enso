@@ -2521,7 +2521,7 @@ class RuntimeServerTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -2572,7 +2572,8 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All())
+          Some(Api.InvalidatedExpressions.All()),
+          None
         )
       )
     )
@@ -2638,7 +2639,8 @@ class RuntimeServerTest
           contextId,
           Some(
             Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
-          )
+          ),
+          None
         )
       )
     )
@@ -2648,6 +2650,77 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "recompute expressions changing an execution environment" in {
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // recompute
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All()),
+          Some(Api.ExecutionEnvironment.Live())
+        )
+      )
+    )
+    context.receiveN(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.pending(
+        contextId,
+        context.Main.idMainX,
+        context.Main.idMainY,
+        context.Main.idMainZ,
+        context.Main.idFooY,
+        context.Main.idFooZ
+      ),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
   }
 
   it should "return error when module not found" in {
@@ -2846,7 +2919,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected a function, but got 42 (Integer).",
+              "Not_Invokable.Error",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 19))),
               None,
@@ -2856,6 +2929,76 @@ class RuntimeServerTest
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(0, 7), model.Position(0, 19))
+                  ),
+                  None
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return error not invocable (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """from Standard.Base.Errors.Common import all
+        |main = bar 40 2 123
+        |
+        |bar x y = x + y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Type error: expected a function, but got 42 (Integer).",
+              Some(mainFile),
+              Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
+              None,
+              Vector(
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(1, 7), model.Position(1, 19))
                   ),
                   None
                 )
@@ -2915,7 +3058,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `+` of x (Unresolved_Symbol) could not be found.",
+              "No_Such_Method.Error",
               Some(mainFile),
               Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
               None,
@@ -2933,6 +3076,84 @@ class RuntimeServerTest
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(0, 7), model.Position(0, 16))
+                  ),
+                  None
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return error unresolved symbol (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """from Standard.Base.Errors.Common import all
+        |main = bar .x .y
+        |
+        |bar one two = one + two
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Method `+` of x (Unresolved_Symbol) could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
+              None,
+              Vector(
+                Api.StackTraceElement(
+                  "Main.bar",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(3, 14), model.Position(3, 23))
+                  ),
+                  None
+                ),
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(1, 7), model.Position(1, 16))
                   ),
                   None
                 )
@@ -2985,19 +3206,17 @@ class RuntimeServerTest
       )
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected `str` to be Text, but got 2 (Integer).",
-              None,
-              None,
+              "Type_Error.Error",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
               None,
               Vector(
-                Api.StackTraceElement("Text.+", None, None, None),
                 Api.StackTraceElement(
                   "Main.bar",
                   Some(mainFile),
@@ -3019,6 +3238,85 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return error unexpected type (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """from Standard.Base.Errors.Common import all
+        |main = bar "one" 2
+        |
+        |bar x y = x + y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Type error: expected `str` to be Text, but got Integer.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
+              None,
+              Vector(
+                Api.StackTraceElement(
+                  "Main.bar",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(3, 10), model.Position(3, 15))
+                  ),
+                  None
+                ),
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(1, 7), model.Position(1, 18))
+                  ),
+                  None
+                )
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       context.executionComplete(contextId)
     )
   }
@@ -3071,7 +3369,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `pi` of Number could not be found.",
+              "No_Such_Method.Error",
               Some(mainFile),
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
               None,
@@ -3081,6 +3379,77 @@ class RuntimeServerTest
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(2, 7), model.Position(2, 16))
+                  ),
+                  None
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return error method does not exist (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Standard.Base.Data.Numbers import Number
+        |from Standard.Base.Errors.Common import No_Such_Method
+        |
+        |main = Number.pi
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Method `pi` of Number could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
+              None,
+              Vector(
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(3, 7), model.Position(3, 16))
                   ),
                   None
                 )
@@ -3143,19 +3512,17 @@ class RuntimeServerTest
       )
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected `that` to be Number, but got quux (Unresolved_Symbol).",
-              None,
-              None,
+              "Type_Error.Error",
+              Some(mainFile),
+              Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
               None,
               Vector(
-                Api.StackTraceElement("Small_Integer.+", None, None, None),
                 Api.StackTraceElement(
                   "Main.baz",
                   Some(mainFile),
@@ -3193,6 +3560,111 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return error with a stack trace (pretty print)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Standard.Base.Errors.Common import all
+        |main =
+        |    foo
+        |
+        |foo =
+        |    x = bar
+        |    x
+        |bar =
+        |    x = baz
+        |    x
+        |baz =
+        |    x = 1 + .quux
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Type error: expected `that` to be Number, but got Function.",
+              Some(mainFile),
+              Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
+              None,
+              Vector(
+                Api.StackTraceElement(
+                  "Main.baz",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(11, 8), model.Position(11, 17))
+                  ),
+                  None
+                ),
+                Api.StackTraceElement(
+                  "Main.bar",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(8, 8), model.Position(8, 11))
+                  ),
+                  None
+                ),
+                Api.StackTraceElement(
+                  "Main.foo",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(5, 8), model.Position(5, 11))
+                  ),
+                  None
+                ),
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(2, 4), model.Position(2, 7))
+                  ),
+                  None
+                )
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(Api.BackgroundJobsStartedNotification()),
       context.executionComplete(contextId)
     )
   }
@@ -3438,8 +3910,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error.Error 'Unexpected expression.'))",
-      "(Syntax_Error.Error 'Unexpected expression.')"
+      "(Error: (Syntax_Error.Error 'Unexpected expression'))",
+      "(Syntax_Error.Error 'Unexpected expression')"
     )
   }
 
@@ -3604,7 +4076,7 @@ class RuntimeServerTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -3688,7 +4160,7 @@ class RuntimeServerTest
 
     // recompute existing stack
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -3701,7 +4173,8 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All())
+          Some(Api.InvalidatedExpressions.All()),
+          None
         )
       )
     )
@@ -4214,6 +4687,82 @@ class RuntimeServerTest
       TestMessages.update(contextId, res, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "set execution environment" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idX      = metadata.addItem(46, 14)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = "Hello World!"
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idX, ConstantsGen.TEXT),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
+
+    // set execution environment
+    context.send(
+      Api.Request(
+        requestId,
+        Api.SetExecutionEnvironmentRequest(
+          contextId,
+          Api.ExecutionEnvironment.Live()
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId)),
+      TestMessages.update(contextId, idX, ConstantsGen.TEXT),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Live()
+      .name
   }
 
 }

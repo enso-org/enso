@@ -117,7 +117,7 @@ invert_range_selection ranges length needs_sorting =
    Empty subranges are discarded.
 sort_and_merge_ranges : Vector Range -> Vector Range
 sort_and_merge_ranges ranges =
-    sorted = ranges.filter (range-> range.is_empty.not) . sort on=(.start)
+    sorted = ranges.filter (range-> range.is_empty.not) . sort on=(_.start)
     if sorted.is_empty then [] else
         current_ref = Ref.new sorted.first
         builder = Vector.new_builder

@@ -1,13 +1,13 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
+import * as react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as common from './common'
-import * as hooks from '../../hooks'
-import * as icons from '../../components/svg'
-import * as utils from '../../utils'
+import * as svg from '../../components/svg'
+import Input from './input'
+import SvgIcon from './svgIcon'
 
 // ====================
 // === Registration ===
@@ -15,9 +15,9 @@ import * as utils from '../../utils'
 
 function Registration() {
     const { signUp } = auth.useAuth()
-    const [email, bindEmail] = hooks.useInput('')
-    const [password, bindPassword] = hooks.useInput('')
-    const [confirmPassword, bindConfirmPassword] = hooks.useInput('')
+    const [email, setEmail] = react.useState('')
+    const [password, setPassword] = react.useState('')
+    const [confirmPassword, setConfirmPassword] = react.useState('')
 
     const handleSubmit = () => {
         /** The password & confirm password fields must match. */
@@ -41,7 +41,12 @@ function Registration() {
                     Create new account
                 </div>
 
-                <form onSubmit={utils.handleEvent(handleSubmit)}>
+                <form
+                    onSubmit={async event => {
+                        event.preventDefault()
+                        await handleSubmit()
+                    }}
+                >
                     <div className="flex flex-col mb-4">
                         <label
                             htmlFor="email"
@@ -50,14 +55,15 @@ function Registration() {
                             E-Mail Address:
                         </label>
                         <div className="relative">
-                            <common.SvgIcon data={icons.PATHS.at} />
+                            <SvgIcon svg={svg.AT} />
 
-                            <common.Input
-                                {...bindEmail}
+                            <Input
                                 id="email"
                                 type="email"
                                 name="email"
                                 placeholder="E-Mail Address"
+                                value={email}
+                                setValue={setEmail}
                             />
                         </div>
                     </div>
@@ -69,14 +75,15 @@ function Registration() {
                             Password:
                         </label>
                         <div className="relative">
-                            <common.SvgIcon data={icons.PATHS.lock} />
+                            <SvgIcon svg={svg.LOCK} />
 
-                            <common.Input
-                                {...bindPassword}
+                            <Input
                                 id="password"
                                 type="password"
                                 name="password"
                                 placeholder="Password"
+                                value={password}
+                                setValue={setPassword}
                             />
                         </div>
                     </div>
@@ -88,14 +95,15 @@ function Registration() {
                             Confirm Password:
                         </label>
                         <div className="relative">
-                            <common.SvgIcon data={icons.PATHS.lock} />
+                            <SvgIcon svg={svg.LOCK} />
 
-                            <common.Input
-                                {...bindConfirmPassword}
+                            <Input
                                 id="password_confirmation"
                                 type="password"
                                 name="password_confirmation"
                                 placeholder="Confirm Password"
+                                value={confirmPassword}
+                                setValue={setConfirmPassword}
                             />
                         </div>
                     </div>
@@ -110,9 +118,7 @@ function Registration() {
                             }
                         >
                             <span className="mr-2 uppercase">Register</span>
-                            <span>
-                                <icons.Svg data={icons.PATHS.createAccount} />
-                            </span>
+                            <span>{svg.CREATE_ACCOUNT}</span>
                         </button>
                     </div>
                 </form>
@@ -125,9 +131,7 @@ function Registration() {
                         'text-sm text-center'
                     }
                 >
-                    <span>
-                        <icons.Svg data={icons.PATHS.goBack} />
-                    </span>
+                    <span>{svg.GO_BACK}</span>
                     <span className="ml-2">Already have an account?</span>
                 </router.Link>
             </div>

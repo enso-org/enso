@@ -41,6 +41,7 @@ pub mod window_control_buttons;
 
 pub use ide_view_component_browser as component_browser;
 pub use ide_view_documentation as documentation;
+pub use ide_view_execution_mode_selector as execution_mode_selector;
 pub use ide_view_graph_editor as graph_editor;
 pub use welcome_screen;
 

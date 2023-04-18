@@ -76,6 +76,7 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
+use ide_view_execution_mode_selector as execution_mode_selector;
 
 
 // ===============
@@ -109,6 +110,8 @@ const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
 const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
+/// Space between items in the top bar.
+const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let platform_str = ARGS.groups.startup.options.platform.value.as_str();
@@ -117,10 +120,9 @@ fn traffic_lights_gap_width() -> f32 {
     if is_macos && !ARGS.groups.window.options.frame.value {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
-        0.0
+        TOP_BAR_ITEM_MARGIN
     }
 }
-
 
 
 // =================
@@ -576,6 +578,13 @@ ensogl::define_endpoints_2! {
         toggle_profiling_mode(),
 
 
+        // === Execution Environment ===
+
+        set_execution_environment(ExecutionEnvironment),
+        // TODO(#5930): Temporary shortcut for testing different execution environments
+        toggle_execution_environment(),
+
+
         // === Debug ===
 
         /// Enable or disable debug-only features.
@@ -616,6 +625,9 @@ ensogl::define_endpoints_2! {
         edit_node_expression         ((NodeId, text::Range<text::Byte>, ImString)),
         set_node_skip                ((NodeId,bool)),
         set_node_freeze              ((NodeId,bool)),
+        /// Set whether the output context is explicitly enabled for a node: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_node_context_switch      ((NodeId, Option<bool>)),
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
@@ -639,6 +651,9 @@ ensogl::define_endpoints_2! {
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
+
+        /// Set the execution modes available to the graph.
+        set_available_execution_modes          (Rc<Vec<execution_mode_selector::ExecutionMode>>),
 
     }
 
@@ -690,26 +705,27 @@ ensogl::define_endpoints_2! {
         // === Other ===
         // FIXME: To be refactored
 
-        node_added                (NodeId, Option<NodeSource>, bool),
-        node_removed              (NodeId),
-        nodes_collapsed           ((Vec<NodeId>, NodeId)),
-        node_hovered              (Option<Switch<NodeId>>),
-        node_selected             (NodeId),
-        node_deselected           (NodeId),
-        node_position_set         ((NodeId,Vector2)),
-        node_position_set_batched ((NodeId,Vector2)),
-        node_expression_set       ((NodeId,ImString)),
-        node_expression_span_set  ((NodeId, span_tree::Crumbs, ImString)),
-        node_expression_edited    ((NodeId,ImString,Vec<Selection<text::Byte>>)),
-        node_comment_set          ((NodeId,String)),
-        node_entered              (NodeId),
-        node_exited               (),
-        node_editing_started      (NodeId),
-        node_editing_finished     (NodeId),
-        node_action_freeze        ((NodeId, bool)),
-        node_action_skip          ((NodeId, bool)),
-        node_edit_mode            (bool),
-        nodes_labels_visible      (bool),
+        node_added                 (NodeId, Option<NodeSource>, bool),
+        node_removed               (NodeId),
+        nodes_collapsed            ((Vec<NodeId>, NodeId)),
+        node_hovered               (Option<Switch<NodeId>>),
+        node_selected              (NodeId),
+        node_deselected            (NodeId),
+        node_position_set          ((NodeId,Vector2)),
+        node_position_set_batched  ((NodeId,Vector2)),
+        node_expression_set        ((NodeId,ImString)),
+        node_expression_span_set   ((NodeId, span_tree::Crumbs, ImString)),
+        node_expression_edited     ((NodeId,ImString,Vec<Selection<text::Byte>>)),
+        node_comment_set           ((NodeId,String)),
+        node_entered               (NodeId),
+        node_exited                (),
+        node_editing_started       (NodeId),
+        node_editing_finished      (NodeId),
+        node_action_context_switch ((NodeId, bool)),
+        node_action_freeze         ((NodeId, bool)),
+        node_action_skip           ((NodeId, bool)),
+        node_edit_mode             (bool),
+        nodes_labels_visible       (bool),
 
 
         /// `None` value as a visualization path denotes a disabled visualization.
@@ -738,6 +754,11 @@ ensogl::define_endpoints_2! {
         default_x_gap_between_nodes (f32),
         default_y_gap_between_nodes (f32),
         min_x_spacing_for_new_nodes (f32),
+
+        /// The selected execution mode.
+        execution_mode (execution_mode_selector::ExecutionMode),
+        /// A press of the execution mode selector play button.
+        execution_mode_play_button_pressed (),
     }
 }
 
@@ -1621,6 +1642,10 @@ impl GraphEditorModelWithNetwork {
 
             // === Actions ===
 
+            model.frp.private.output.node_action_context_switch <+ node.view.context_switch.map(
+                f!([] (active) (node_id, *active))
+            );
+
             eval node.view.freeze ((is_frozen) {
                 model.frp.private.output.node_action_freeze.emit((node_id,*is_frozen));
             });
@@ -1685,6 +1710,11 @@ impl GraphEditorModelWithNetwork {
             let profiling_max_duration              = &self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration <+ self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration(profiling_max_duration.value());
+
+
+            // === Execution Environment ===
+
+            node.set_execution_environment <+ self.model.frp.set_execution_environment;
         }
 
 
@@ -1732,24 +1762,25 @@ impl GraphEditorModelWithNetwork {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
-    pub display_object:   display::object::Instance,
-    pub app:              Application,
-    pub breadcrumbs:      component::Breadcrumbs,
-    pub cursor:           cursor::Cursor,
-    pub nodes:            Nodes,
-    pub edges:            Edges,
-    pub vis_registry:     visualization::Registry,
-    pub drop_manager:     ensogl_drop_manager::Manager,
-    pub navigator:        Navigator,
-    pub add_node_button:  Rc<component::add_node_button::AddNodeButton>,
-    tooltip:              Tooltip,
-    touch_state:          TouchState,
-    visualisations:       Visualisations,
-    frp:                  Frp,
-    profiling_statuses:   profiling::Statuses,
-    profiling_button:     component::profiling::Button,
-    styles_frp:           StyleWatchFrp,
-    selection_controller: selection::Controller,
+    pub display_object:      display::object::Instance,
+    pub app:                 Application,
+    pub breadcrumbs:         component::Breadcrumbs,
+    pub cursor:              cursor::Cursor,
+    pub nodes:               Nodes,
+    pub edges:               Edges,
+    pub vis_registry:        visualization::Registry,
+    pub drop_manager:        ensogl_drop_manager::Manager,
+    pub navigator:           Navigator,
+    pub add_node_button:     Rc<component::add_node_button::AddNodeButton>,
+    tooltip:                 Tooltip,
+    touch_state:             TouchState,
+    visualisations:          Visualisations,
+    frp:                     Frp,
+    profiling_statuses:      profiling::Statuses,
+    profiling_button:        component::profiling::Button,
+    styles_frp:              StyleWatchFrp,
+    selection_controller:    selection::Controller,
+    execution_mode_selector: execution_mode_selector::ExecutionModeSelector,
 }
 
 
@@ -1767,6 +1798,8 @@ impl GraphEditorModel {
         let visualisations = default();
         let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
+        let execution_mode_selector = execution_mode_selector::ExecutionModeSelector::new(app);
+
         let app = app.clone_ref();
         let frp = frp.clone_ref();
         let navigator = Navigator::new(scene, &scene.camera());
@@ -1804,17 +1837,19 @@ impl GraphEditorModel {
             add_node_button,
             styles_frp,
             selection_controller,
+            execution_mode_selector,
         }
         .init()
     }
 
     fn init(self) -> Self {
-        self.add_child(&self.breadcrumbs);
         let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
-        let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER + component::breadcrumbs::HEIGHT / 2.0;
+
+        self.add_child(&self.execution_mode_selector);
+
+        self.add_child(&self.breadcrumbs);
         self.breadcrumbs.set_x(x_offset);
-        self.breadcrumbs.set_y(y_offset);
-        self.breadcrumbs.gap_width(traffic_lights_gap_width());
+
         self.scene().add_child(&self.tooltip);
         self.add_child(&self.profiling_button);
         self.add_child(&*self.add_node_button);
@@ -1995,6 +2030,13 @@ impl GraphEditorModel {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.set_freeze_macro(*freeze);
+        }
+    }
+
+    fn set_node_context_switch(&self, node_id: impl Into<NodeId>, context_switch: &Option<bool>) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_context_switch(*context_switch);
         }
     }
 
@@ -2670,6 +2712,8 @@ impl application::View for GraphEditor {
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
+            // TODO(#5930): Temporary shortcut for testing different execution environments
+            (Press, "", "cmd shift c", "toggle_execution_environment"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
@@ -2717,12 +2761,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let out = &frp.private.output;
     let selection_controller = &model.selection_controller;
 
-    // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-    // system (#795)
-    let styles = StyleWatch::new(&scene.style_sheet);
-
-
-
     // ========================
     // === Scene Navigation ===
     // ========================
@@ -2749,17 +2787,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ===================
 
     frp::extend! { network
-        // === Layout ===
-        eval inputs.space_for_window_buttons([model](size) {
-            // The breadcrumbs apply their own spacing next to the gap, so we need to omit padding.
-            let width         = size.x;
-            let path          = theme::application::window_control_buttons::padding::right;
-            let right_padding = styles.get_number(path);
-            model.breadcrumbs.gap_width.emit(width - right_padding)
-        });
-
 
         // === Debugging ===
+
         eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.debug_push_breadcrumb.emit(None));
         eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.debug_pop_breadcrumb.emit(()));
     }
@@ -3182,11 +3212,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }
 
 
-    // === Set Node SKIP and FREEZE macros ===
+    // === Set Node SKIP/FREEZE macros and context switch expression ===
 
     frp::extend! { network
         eval inputs.set_node_skip(((id, skip)) model.set_node_skip(id, skip));
         eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(id, freeze));
+        eval inputs.set_node_context_switch(((id, context_switch))
+            model.set_node_context_switch(id, context_switch)
+        );
     }
 
 
@@ -3843,6 +3876,35 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp.private.output.min_x_spacing_for_new_nodes.emit(min_x_spacing.value());
 
 
+    // ================================
+    // === Execution Mode Selection ===
+    // ================================
+
+    let execution_mode_selector = &model.execution_mode_selector;
+    frp::extend! { network
+
+        execution_mode_selector.set_available_execution_modes <+ frp.set_available_execution_modes;
+        out.execution_mode <+ execution_mode_selector.selected_execution_mode;
+        out.execution_mode_play_button_pressed <+ execution_mode_selector.play_press;
+
+        // === Layout ===
+        init <- source::<()>();
+        size_update <- all(init,execution_mode_selector.size,inputs.space_for_window_buttons);
+        eval size_update ([model]((_,size,gap_size)) {
+            let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
+            let traffic_light_width = traffic_lights_gap_width();
+
+            let execution_mode_selector_x = gap_size.x + traffic_light_width;
+            model.execution_mode_selector.set_x(execution_mode_selector_x);
+            let breadcrumb_gap_width = execution_mode_selector_x + size.x + TOP_BAR_ITEM_MARGIN;
+            model.breadcrumbs.gap_width(breadcrumb_gap_width);
+
+            model.execution_mode_selector.set_y(y_offset + size.y / 2.0);
+            model.breadcrumbs.set_y(y_offset + component::breadcrumbs::HEIGHT / 2.0);
+        });
+    }
+    init.emit(());
+
 
     // ==================
     // === Debug Mode ===
@@ -3869,6 +3931,47 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 impl display::Object for GraphEditor {
     fn display_object(&self) -> &display::object::Instance {
         self.model.display_object()
+    }
+}
+
+
+
+// =============================
+// === Execution Environment ===
+// =============================
+
+// TODO(#5930): Move me once we synchronise the execution environment with the language server.
+/// The execution environment which controls the global execution of functions with side effects.
+///
+/// For more information, see
+/// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
+#[derive(Debug, Clone, CloneRef, Copy, Default)]
+pub enum ExecutionEnvironment {
+    /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
+    /// changes.
+    #[default]
+    Design,
+    /// Unrestricted, live editing of data.
+    Live,
+}
+
+impl ExecutionEnvironment {
+    /// Returns whether the output context is enabled for this execution environment.
+    pub fn output_context_enabled(&self) -> bool {
+        match self {
+            Self::Design => false,
+            Self::Live => true,
+        }
+    }
+}
+
+impl Display for ExecutionEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match self {
+            Self::Design => "design",
+            Self::Live => "live",
+        };
+        write!(f, "{name}")
     }
 }
 

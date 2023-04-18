@@ -10,6 +10,7 @@ use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::shape::StyleWatchFrp;
 use std::rc::Rc;
 
 
@@ -130,10 +131,18 @@ impl View {
         let model = Model::new(app);
         let frp = Frp::new();
         let network = &frp.network;
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let offset_y = style.get_number(ensogl_hardcoded_theme::application::status_bar::offset_y);
+
         frp::extend! { network
+            init <- source::<()>();
+
             eval_ frp.switch_view_to_project(model.switch_view_to_project());
             eval_ frp.switch_view_to_welcome_screen(model.switch_view_to_welcome_screen());
+            offset_y <- all(&init,&offset_y)._1();
+            eval offset_y ((offset_y) model.status_bar.set_y(*offset_y));
         }
+        init.emit(());
         Self { model, frp }
     }
 

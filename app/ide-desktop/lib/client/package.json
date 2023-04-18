@@ -38,17 +38,16 @@
     "electron-builder": "^22.14.13",
     "electron-notarize": "1.2.2",
     "enso-common": "^1.0.0",
-    "enso-copy-plugin": "^1.0.0",
-    "esbuild": "^0.17.0",
+    "esbuild": "^0.17.15",
     "fast-glob": "^3.2.12",
     "portfinder": "^1.0.32",
     "tsx": "^3.12.6"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11",
-    "@esbuild/darwin-x64": "^0.17.0",
-    "@esbuild/linux-x64": "^0.17.0",
-    "@esbuild/windows-x64": "^0.17.0"
+    "@esbuild/darwin-x64": "^0.17.15",
+    "@esbuild/linux-x64": "^0.17.15",
+    "@esbuild/windows-x64": "^0.17.15"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
