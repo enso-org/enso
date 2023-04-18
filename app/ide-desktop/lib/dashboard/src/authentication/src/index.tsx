@@ -43,8 +43,12 @@ export function run(props: app.AppProps) {
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
     } else {
-        // This element is re-added by the `Ide` component.
-        document.getElementById(IDE_ELEMENT_ID)?.remove()
+        // FIXME[sb]: This is a temporary workaround and will be fixed
+        // when IDE support is properly integrated into the dashboard.
+        const ide = document.getElementById(IDE_ELEMENT_ID)
+        if (ide != null) {
+            ide.style.display = 'none'
+        }
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }
