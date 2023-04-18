@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 from Standard.Table import Aggregate_Column
+from Standard.Table import Value_Type
 
 import project.Connection.Connection.Connection
 import project.Data.Dialect

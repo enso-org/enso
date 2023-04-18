@@ -162,7 +162,6 @@ type Operation_Type_Helpers
     find_common_type_for_arguments self arguments =
         types = arguments.map self.find_argument_type . filter Filter_Condition.Not_Nothing
         case types.is_empty of
-            # TODO [RW] what to do with `x.iif Nothing Nothing`?
             True -> Nothing
             False -> case find_common_type types strict=True of
                 common_type : Value_Type -> common_type

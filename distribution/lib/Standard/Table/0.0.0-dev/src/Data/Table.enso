@@ -1188,7 +1188,9 @@ type Table
         resolved = case column of
             _ : Text -> self.compute column on_problems
             _ : Column -> column
-        renamed = if new_name.is_nothing then resolved else resolved.rename new_name
+        renamed = case new_name of
+           Nothing -> resolved
+           _ : Text -> resolved.rename new_name
         to_add = case set_mode of
             Set_Mode.Add_Or_Update -> True
             Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else

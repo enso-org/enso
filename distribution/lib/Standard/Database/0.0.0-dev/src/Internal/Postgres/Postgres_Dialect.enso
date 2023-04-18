@@ -6,7 +6,9 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Connection.Connection.Connection
 import project.Data.Dialect
@@ -160,6 +162,25 @@ type Postgres_Dialect
        this situations and overrides the type to make it correct.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
+        needs_char_length_override_check = case approximate_result_type of
+            Value_Type.Char _ _ -> True
+            _ -> False
+        case needs_char_length_override_check of
+            True ->
+                type_mapping = self.get_type_mapping
+                db_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+                case db_type of
+                    Value_Type.Char _ _ -> case db_type == approximate_result_type of
+                        True -> column
+                        False ->
+                            type_override = type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
+                            type_override.catch Inexact_Type_Coercion _->
+                                Panic.throw <|
+                                    Illegal_State.Error "The target type ("+db_type.to_display_text+") that we need to cast to seems to not be supported by the Dialect. This is not expected. It is a bug in the Database library."
+                            self.make_cast column type_override infer_result_type_from_database_callback
+                    _ -> Panic.throw <|
+                        Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
+            False -> column
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement

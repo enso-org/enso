@@ -561,6 +561,23 @@ spec =
             problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should infer correct return type" <|
+            t = Table.new [["texts", ["foo", "bar"]]]
+
+            t1 = t.replace_text "texts" "a" "---"
+            t1.at "texts" . to_vector . should_equal ["foo", "b---r"]
+            t1.at "texts" . value_type . should_equal Value_Type.Char
+
+        # TODO just merge with above once enabled
+        Test.specify "should infer correct return type (2)" pending="TODO: requires Table.cast and fixed-length strings - #6112 and #5159"<|
+            t = Table.new [["texts", ["foo", "bar"]]]
+
+            t2 = t.cast "texts" (Value_Type.Char size=2 variable_length=False)
+            t3 = t2.replace_text "texts" "a" "---"
+
+            t3.at "texts" . to_vector . should_equal ["fo", "b---"]
+            t3.at "texts" . value_type . should_equal Value_Type.Char
+
     Test.group "[In-Memory] Table.aggregate" <|
         Test.specify "should return columns with correct types" <|
             dates = ["dates", [Date.new 1999, Date.new 2000, Date.new 2000, Date.new 2000]]

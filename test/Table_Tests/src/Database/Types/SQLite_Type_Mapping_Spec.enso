@@ -50,8 +50,8 @@ spec =
             c2 = t.compute "[a] && False"
             c2 . value_type . should_equal Value_Type.Boolean
 
-            #c3 = t.compute "[a] && 10"
-            #c3.should_fail_with Invalid_Value_Type
+            c3 = t.compute "[a] && 10"
+            c3.should_fail_with Invalid_Value_Type
 
         Test.specify "should correctly handle types through operations" <|
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
