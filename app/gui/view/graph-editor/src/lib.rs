@@ -2257,17 +2257,10 @@ impl GraphEditorModel {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             if node.view.model().output.whole_expr_id().contains(&ast_id) {
-                // TODO[ao]: we must update root output port according to the whole expression type
-                //     due to a bug in engine https://github.com/enso-org/enso/issues/1038.
-                let crumbs = span_tree::Crumbs::default();
-                node.view.model().output.set_expression_usage_type(crumbs, maybe_type.clone());
                 let enso_type = maybe_type.as_ref().map(|tp| enso::Type::new(&tp.0));
                 node.view.model().visualization.frp.set_vis_input_type(enso_type);
             }
-            let crumbs = node.view.model().get_crumbs_by_id(ast_id);
-            if let Some(crumbs) = crumbs {
-                node.view.set_expression_usage_type.emit((crumbs, maybe_type));
-            }
+            node.view.set_expression_usage_type.emit((ast_id, maybe_type));
         }
     }
 

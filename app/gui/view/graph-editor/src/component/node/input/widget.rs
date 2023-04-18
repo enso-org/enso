@@ -390,14 +390,8 @@ impl Tree {
 
     /// Set usage type for given span tree node. The usage type is used to determine the widget
     /// appearance and default inferred widget metadata.
-    pub fn set_usage_type(
-        &self,
-        tree_node: &span_tree::node::Ref,
-        usage_type: Option<crate::Type>,
-    ) {
-        if let Some(pointer) = self.model.get_port_widget_pointer(tree_node) {
-            self.model.set_usage_type(pointer, usage_type);
-        }
+    pub fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) {
+        self.model.set_usage_type(ast_id, usage_type);
     }
 
     /// Set connection status for given span tree node. The connected nodes will be highlighted
@@ -501,7 +495,7 @@ struct TreeModel {
     widgets_map:    RefCell<HashMap<WidgetTreePointer, TreeNode>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
     connected_map:  Rc<RefCell<HashMap<WidgetTreePointer, ConnectionData>>>,
-    usage_type_map: Rc<RefCell<HashMap<WidgetTreePointer, crate::Type>>>,
+    usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     disabled:       AtomicBool,
     tree_dirty:     AtomicBool,
 }
@@ -549,10 +543,9 @@ impl TreeModel {
     }
 
     /// Set the usage type of an expression. It may cause the tree to be marked as dirty.
-    fn set_usage_type(&self, pointer: WidgetTreePointer, usage_type: Option<crate::Type>) {
+    fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) {
         let mut map = self.usage_type_map.borrow_mut();
-        warn!("Setting usage type of {:?} to {:?}", pointer, usage_type);
-        let dirty = map.synchronize_entry(pointer, usage_type);
+        let dirty = map.synchronize_entry(ast_id, usage_type);
         if dirty {
             self.tree_dirty.store(true, Ordering::Release);
         }
@@ -675,22 +668,48 @@ impl TreeModel {
     }
 }
 
+/// State of a node in the widget tree. Provides additional information about the node's current
+/// state, such as its depth in the widget tree, if it's connected, disabled, etc.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub(super) struct NodeState {
+    /// Widget tree node depth, as provided by the parent node. This does not necessarily
+    /// correspond to the depth in the view hierarchy or span tree, but instead is treated as a
+    /// logical nesting level in the expressions. It is fully determined by the chain of parent
+    /// widgets, and thus is more or less independent from the true depth of the widget tree data
+    /// structure.
     pub depth:              usize,
+    /// Connection status of the node. Only present at the exact node that is connected, not at
+    /// any of its parents.
     pub connection:         ConnectionStatus,
+    /// Connection status of the node's subtree. Contains the status of this node's connection, or
+    /// it's first parent that is connected. This is the same as `connection` for nodes that
+    /// are directly connected.
     pub subtree_connection: ConnectionStatus,
+    /// Whether the node is disabled, i.e. its expression is not currently used in the computation.
+    /// Widgets of disabled nodes are usually grayed out.
     pub disabled:           bool,
+    /// Expression's usage type, as opposed to its definition type stored in the span tree. The
+    /// usage type represents the type of the expression as it is used in the computation, which
+    /// may differ from the definition type. For example, the definition type of a variable may be
+    /// `Number`, but its usage type may be `Vector`, if it is used as a vector component.
     pub usage_type:         Option<crate::Type>,
 }
 
+/// A collection of common data used by all widgets and ports in the widget tree during
+/// configuration. Provides the main widget's interface to the tree builder, allowing for creating
+/// child widgets.
 #[derive(Debug)]
 pub struct ConfigContext<'a, 'b> {
     builder:                   &'a mut WidgetTreeBuilder<'b>,
-    /// Display mode of the widget built with this context.
-    #[allow(dead_code)] // currently unused, but will be used in the future
-    pub(super) display: Display,
+    /// Display mode of the widget.
+    /// TODO [PG]: Consider handling display modes in the widget tree builder directly, instead of
+    /// passing it to the widgets. Right now it has not effect at all.
+    #[allow(dead_code)]
+    pub(super) display:        Display,
+    /// The span tree node corresponding to the widget being configured.
     pub(super) span_tree_node: span_tree::node::Ref<'a>,
+    /// Additional state associated with configured widget tree node, such as its depth, connection
+    /// status or parent node information.
     pub(super) state:          NodeState,
 }
 
@@ -744,7 +763,7 @@ struct WidgetTreeBuilder<'a> {
     styles:          &'a StyleWatch,
     metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
     connected_map:   &'a HashMap<WidgetTreePointer, ConnectionData>,
-    usage_type_map:  &'a HashMap<WidgetTreePointer, crate::Type>,
+    usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
     old_widgets:     HashMap<WidgetTreePointer, TreeNode>,
     new_widgets:     HashMap<WidgetTreePointer, TreeNode>,
     parent_ast_id:   Option<ast::Id>,
@@ -828,7 +847,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         let old_node = self.old_widgets.remove(&tree_ptr);
         let is_placeholder = span_tree_node.is_expected_argument();
         let sibling_offset = span_tree_node.sibling_offset.as_usize();
-        let usage_type = self.usage_type_map.get(&tree_ptr).cloned();
+        let usage_type = tree_ptr.id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Get widget metadata. There are three potential sources for metadata, that are used in
         // order, whichever is available first:

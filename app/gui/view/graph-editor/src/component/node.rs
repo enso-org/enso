@@ -378,7 +378,7 @@ ensogl::define_endpoints_2! {
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
-        set_expression_usage_type         (Crumbs,Option<Type>),
+        set_expression_usage_type         (ast::Id, Option<Type>),
         update_widgets                    (WidgetUpdates),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
@@ -627,13 +627,6 @@ impl NodeModel {
     }
 
     #[profile(Debug)]
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
-        let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
-        input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
-    }
-
-    #[profile(Debug)]
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
         self
@@ -699,12 +692,9 @@ impl NodeModel {
     }
 
     #[profile(Debug)]
-    fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
-        warn!("set_expression_usage_type: {:?} {:?}", crumbs, tp);
-        match crumbs.endpoint {
-            Endpoint::Input => self.input.set_expression_usage_type(&crumbs.crumbs, tp),
-            Endpoint::Output => self.output.set_expression_usage_type(&crumbs.crumbs, tp),
-        }
+    fn set_expression_usage_type(&self, id: ast::Id, tp: &Option<Type>) {
+        self.input.set_expression_usage_type(id, tp);
+        self.output.set_expression_usage_type(id, tp);
     }
 
     #[profile(Debug)]
@@ -826,7 +816,7 @@ impl Node {
             filtered_usage_type <- input.set_expression_usage_type.filter(
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
-            eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+            eval filtered_usage_type   (((a,b)) model.set_expression_usage_type(*a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
             model.input.edit_expression <+ input.edit_expression;
             out.on_expression_modified  <+ model.input.frp.on_port_code_update;

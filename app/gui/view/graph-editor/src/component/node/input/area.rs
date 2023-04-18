@@ -146,7 +146,6 @@ pub struct Model {
     display_object:  display::object::Instance,
     edit_mode_label: text::Text,
     expression:      RefCell<InputExpression>,
-    id_crumbs_map:   RefCell<HashMap<ast::Id, Crumbs>>,
     styles:          StyleWatch,
     styles_frp:      StyleWatchFrp,
     widget_tree:     widget::Tree,
@@ -166,22 +165,12 @@ impl Model {
         let display_object = display::object::Instance::new();
 
         let edit_mode_label = app.new_view::<text::Text>();
-        let id_crumbs_map = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let widget_tree = widget::Tree::new(&app);
-        Self {
-            app,
-            display_object,
-            edit_mode_label,
-            expression,
-            id_crumbs_map,
-            styles,
-            styles_frp,
-            widget_tree,
-        }
-        .init()
+        Self { app, display_object, edit_mode_label, expression, styles, styles_frp, widget_tree }
+            .init()
     }
 
     /// React to edit mode change. Shows and hides appropriate child views according to current
@@ -230,7 +219,6 @@ impl Model {
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.edit_mode_label.add_to_scene_layer(layer);
-        // self.ports_label.add_to_scene_layer(layer);
     }
 
     /// Set connection status of the given port.
@@ -241,10 +229,8 @@ impl Model {
     }
 
     /// Set usage type of the given port.
-    fn set_expression_usage_type(&self, crumbs: &Crumbs, usage_type: Option<Type>) {
-        let expr = self.expression.borrow();
-        let port = expr.span_tree.get_node(crumbs).ok();
-        port.map(|port| self.widget_tree.set_usage_type(&port, usage_type));
+    fn set_expression_usage_type(&self, id: ast::Id, usage_type: Option<Type>) {
+        self.widget_tree.set_usage_type(id, usage_type);
     }
 
     fn hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
@@ -362,7 +348,7 @@ ensogl::define_endpoints! {
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
-        set_expression_usage_type (Crumbs,Option<Type>),
+        set_expression_usage_type (ast::Id,Option<Type>),
     }
 
     Output {
@@ -536,7 +522,7 @@ impl Area {
 
             eval frp.update_widgets((a) model.apply_widget_updates(a));
             eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
-            eval frp.set_expression_usage_type(((cr,tp)) model.set_expression_usage_type(cr,tp.clone()));
+            eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
             widget_tree_invalidated <- any_(...);
             widget_tree_invalidated <+ frp.update_widgets;
@@ -588,11 +574,6 @@ impl Area {
             .get_descendant(crumbs)
             .ok()
             .and_then(|t| t.tp().map(|t| Type(t.into())))
-    }
-
-    /// A crumb by AST ID.
-    pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
-        self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 
     /// Set a scene layer for text rendering.
