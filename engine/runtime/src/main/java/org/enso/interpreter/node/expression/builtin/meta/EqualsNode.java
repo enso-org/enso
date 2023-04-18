@@ -22,7 +22,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(
     type = "Any",
     name = "==",
-    description = """
+    description =
+        """
       Compares self with other object and returns True iff `self` is exactly the same as
       the other object, including all its transitively accessible properties or fields,
       False otherwise.
@@ -32,9 +33,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
       Does not throw dataflow errors or panics.
 
       Note that this is different than `Meta.is_same_object`, which checks whether two
-      references point to the same object on the heap.
-      """
-)
+      references point to the same object on the heap. However `Any.==` implies
+      `Meta.is_same_object` for all object with the exception of `Number.nan`.
+      """)
 @GenerateUncached
 public abstract class EqualsNode extends Node {
 
@@ -44,11 +45,7 @@ public abstract class EqualsNode extends Node {
 
   public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
 
-  /**
-   * Primitive values
-   **/
-
-
+  /** Primitive values */
   @Specialization
   boolean equalsBoolBool(boolean self, boolean other) {
     return self == other;
@@ -166,10 +163,7 @@ public abstract class EqualsNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-    "selfText.is_normalized()",
-    "otherText.is_normalized()"
-  })
+  @Specialization(guards = {"selfText.is_normalized()", "otherText.is_normalized()"})
   boolean equalsTextText(Text selfText, Text otherText) {
     return selfText.toString().compareTo(otherText.toString()) == 0;
   }
@@ -199,13 +193,14 @@ public abstract class EqualsNode extends Node {
    * normalization. See {@code Text_Utils.compare_to}.
    */
   @TruffleBoundary
-  @Specialization(guards = {
-      "selfInterop.isString(selfString)",
-      "otherInterop.isString(otherString)"
-  }, limit = "3")
-  boolean equalsStrings(Object selfString, Object otherString,
-                        @CachedLibrary("selfString") InteropLibrary selfInterop,
-                        @CachedLibrary("otherString") InteropLibrary otherInterop) {
+  @Specialization(
+      guards = {"selfInterop.isString(selfString)", "otherInterop.isString(otherString)"},
+      limit = "3")
+  boolean equalsStrings(
+      Object selfString,
+      Object otherString,
+      @CachedLibrary("selfString") InteropLibrary selfInterop,
+      @CachedLibrary("otherString") InteropLibrary otherInterop) {
     String selfJavaString;
     String otherJavaString;
     try {
@@ -230,8 +225,12 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  boolean equalsAtoms(Atom self, Atom other, @Cached EqualsAtomNode equalsNode) {
-    return self == other || equalsNode.execute(self, other);
+  boolean equalsAtoms(
+      Atom self,
+      Atom other,
+      @Cached EqualsAtomNode equalsNode,
+      @Cached IsSameObjectNode isSameObjectNode) {
+    return isSameObjectNode.execute(self, other) || equalsNode.execute(self, other);
   }
 
   @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")
@@ -239,9 +238,8 @@ public abstract class EqualsNode extends Node {
       Object self,
       Object other,
       @Cached EqualsComplexNode equalsComplex,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings) {
-    return self == other || equalsComplex.execute(self, other);
+      @Cached IsSameObjectNode isSameObjectNode) {
+    return isSameObjectNode.execute(self, other) || equalsComplex.execute(self, other);
   }
 
   static boolean isNotPrimitive(
