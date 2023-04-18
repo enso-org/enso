@@ -738,6 +738,7 @@ ensogl::define_endpoints_2! {
         node_edit_mode             (bool),
         nodes_labels_visible       (bool),
         node_incoming_edge_updates (NodeId),
+        node_outgoing_edge_updates (NodeId),
 
 
         /// `None` value as a visualization path denotes a disabled visualization.
@@ -1612,7 +1613,12 @@ impl GraphEditorModelWithNetwork {
                 (_) model.frp.private.output.node_incoming_edge_updates.emit(node_id)
             );
 
+            eval node_model.input.frp.width(
+                (_) model.frp.private.output.node_outgoing_edge_updates.emit(node_id)
+            );
+
             let neutral_color = model.styles_frp.get_color(theme::code::types::any::selection);
+
             _eval <- node_model.output.frp.on_port_type_change.map2(&neutral_color,
                 f!(((crumbs,_),neutral_color)
                     model.with_output_edge_id(node_id,crumbs,|id|
@@ -2027,9 +2033,6 @@ impl GraphEditorModel {
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.set_expression.emit(expr);
         }
-        for edge_id in self.node_out_edges(node_id) {
-            self.refresh_edge_source_size(edge_id);
-        }
     }
 
     fn edit_node_expression(
@@ -2101,9 +2104,7 @@ impl GraphEditorModel {
                 node.out_edges.insert(edge_id);
                 edge.set_source(target);
                 edge.view.frp.source_attached.emit(true);
-                // FIXME: both lines require edge to refresh. Let's make it more efficient.
                 self.refresh_edge_position(edge_id);
-                self.refresh_edge_source_size(edge_id);
             }
         }
     }
@@ -2116,9 +2117,7 @@ impl GraphEditorModel {
                     edge.view.frp.source_attached.emit(false);
                     let first_detached = self.edges.detached_source.is_empty();
                     self.edges.detached_source.insert(edge_id);
-                    // FIXME: both lines require edge to refresh. Let's make it more efficient.
                     self.refresh_edge_position(edge_id);
-                    self.refresh_edge_source_size(edge_id);
                     if first_detached {
                         self.frp.private.output.on_some_edges_sources_unset.emit(());
                     }
@@ -2300,23 +2299,13 @@ impl GraphEditorModel {
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn refresh_edge_source_size(&self, edge_id: EdgeId) {
-        if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
-            if let Some(edge_source) = edge.source() {
-                if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
-                    edge.view.frp.source_width.emit(node.model().width());
-                    edge.view.frp.source_height.emit(node.model().height());
-                    edge.view.frp.redraw.emit(());
-                }
-            }
-        };
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn refresh_edge_color(&self, edge_id: EdgeId, neutral_color: color::Lcha) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             let color = self.edge_color(edge_id, neutral_color);
             edge.view.frp.set_color.emit(color);
+            if let Some(target) = edge.target() {
+                self.set_input_connected(&target, node::ConnectionStatus::connected(color));
+            }
         };
     }
 
@@ -2334,12 +2323,24 @@ impl GraphEditorModel {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
-                    let new_position =
-                        node.position().xy() + Vector2::new(node.model().width() / 2.0, 0.0);
+                    let node_width = node.model().width();
+                    let node_height = node.model().height();
+                    let new_position = node.position().xy() + Vector2::new(node_width / 2.0, 0.0);
+                    let prev_width = edge.source_width.get();
+                    let prev_height = edge.source_height.get();
                     let prev_position = edge.position().xy();
+
                     if prev_position != new_position {
                         redraw = true;
                         edge.set_xy(new_position);
+                    }
+                    if prev_width != node_width {
+                        redraw = true;
+                        edge.view.frp.source_width.emit(node_width);
+                    }
+                    if prev_height != node_height {
+                        redraw = true;
+                        edge.view.frp.source_height.emit(node_height);
                     }
                 }
             }
@@ -2363,8 +2364,34 @@ impl GraphEditorModel {
         redraw
     }
 
-    /// Refresh the positions of all edges connected to the given node. This is useful when we know
-    /// that the node ports has been updated, but we don't track which exact edges are affected.
+    /// Refresh the positions of all outgoing edges connected to the given node. Returns `true` if
+    /// at least one edge has been changed.
+    pub fn refresh_outgoing_edge_positions(&self, node_ids: &[NodeId]) -> bool {
+        let mut updated = false;
+        for node_id in node_ids {
+            for edge_id in self.node_out_edges(node_id) {
+                updated |= self.refresh_edge_position(edge_id);
+            }
+        }
+        updated
+    }
+
+    /// Refresh the positions of all incoming edges connected to the given node. This is useful when
+    /// we know that the node ports has been updated, but we don't track which exact edges are
+    /// affected. Returns `true` if at least one edge has been changed.
+    pub fn refresh_incoming_edge_positions(&self, node_ids: &[NodeId]) -> bool {
+        let mut updated = false;
+        for node_id in node_ids {
+            for edge_id in self.node_in_edges(node_id) {
+                updated |= self.refresh_edge_position(edge_id);
+            }
+        }
+        updated
+    }
+
+    /// Force layout update of the graph UI elements. Because display objects track changes made to
+    /// them, only objects modified since last update will have layout recomputed. Using this
+    /// function is still discouraged, because changes
     ///
     /// Because edge positions are computed based on the node positions, it is usually done after
     /// the layout has been updated. In order to avoid edge flickering, we have to update their
@@ -2372,16 +2399,8 @@ impl GraphEditorModel {
     ///
     /// FIXME: Find a better solution to fix this issue. We either need a layout that can depend on
     /// other arbitrary position, or we need the layout update to be multi-stage.
-    pub fn refresh_incoming_edge_positions_and_relayout(&self, node_ids: &[NodeId]) {
-        let mut updated = false;
-        for node_id in node_ids {
-            for edge_id in self.node_in_edges(node_id) {
-                updated |= self.refresh_edge_position(edge_id);
-            }
-        }
-        if updated {
-            self.display_object().update(self.scene());
-        }
+    pub fn force_update_layout(&self) {
+        self.display_object().update(self.scene());
     }
 
     fn map_node<T>(&self, id: NodeId, f: impl FnOnce(Node) -> T) -> Option<T> {
@@ -2776,6 +2795,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let vis_registry = &model.vis_registry;
     let out = &frp.private.output;
     let selection_controller = &model.selection_controller;
+    let neutral_color = model.model.styles_frp.get_color(theme::code::types::any::selection);
 
 
 
@@ -3072,10 +3092,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         edge_to_remove <- any(edge_to_remove_without_targets,edge_to_remove_without_sources);
         eval edge_to_remove ((id) model.remove_edge(id));
 
-        incoming_edge_updates_batch <- out.node_incoming_edge_updates.batch();
-        eval incoming_edge_updates_batch (
-            (nodes) model.refresh_incoming_edge_positions_and_relayout(nodes)
-        );
+        incoming_batch <- out.node_incoming_edge_updates.batch();
+        outgoing_batch <- out.node_outgoing_edge_updates.batch();
+        incoming_dirty <- incoming_batch.map(f!((n) model.refresh_incoming_edge_positions(n)));
+        outgoing_dirty <- outgoing_batch.map(f!((n) model.refresh_outgoing_edge_positions(n)));
+        any_edges_dirty <- incoming_dirty || outgoing_dirty;
+        force_update_layout <- any_edges_dirty.on_true().debounce();
+        eval force_update_layout((_) model.force_update_layout());
     }
 
     // === Adding Node ===
@@ -3400,10 +3423,11 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         model.set_node_expression_usage_type(*node_id,*ast_id,maybe_type.clone());
         *node_id
     }));
-    edges_to_refresh <= node_to_refresh.map(f!([nodes](node_id)
-         nodes.get_cloned_ref(node_id).map(|node| node.all_edges())
-    )).unwrap();
-    eval edges_to_refresh ((edge) model.refresh_edge_position(*edge));
+    edges_to_refresh <= node_to_refresh.map(
+        f!((node_id) nodes.get_cloned_ref(node_id).map(|node| node.all_edges()))
+    ).unwrap();
+    eval edges_to_refresh ([model, neutral_color] (edge)
+        model.refresh_edge_color(*edge, neutral_color.value().into()));
     eval inputs.update_node_widgets(((node, updates)) model.update_node_widgets(*node, updates));
     }
 
@@ -3661,8 +3685,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ==================
 
     // === Source / Target ===
-
-    let neutral_color = model.model.styles_frp.get_color(theme::code::types::any::selection);
 
     eval out.on_edge_source_set   (((id,tgt)) model.set_edge_source(*id,tgt));
     eval out.on_edge_target_set   (((id,tgt)) model.set_edge_target(*id,tgt));

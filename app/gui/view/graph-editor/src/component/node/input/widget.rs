@@ -1,7 +1,5 @@
 //! Definition of all hardcoded node widget variants and common widget FRP API.
 
-mod debug;
-
 use crate::prelude::*;
 
 use crate::component::node::input::area::NODE_HEIGHT;
@@ -80,7 +78,7 @@ pub trait SpanWidget {
     /// Root display object of a widget. It is returned to the parent widget for positioning.
     fn root_object(&self) -> &display::object::Instance;
     /// Create a new widget with given configuration.
-    fn new(config: &Self::Config, app: &Application, frp: &WidgetsFrp) -> Self;
+    fn new(config: &Self::Config, ctx: &ConfigContext) -> Self;
     /// Update configuration for existing widget.
     fn configure(&mut self, config: &Self::Config, ctx: ConfigContext);
 }
@@ -138,10 +136,10 @@ macro_rules! define_widget_modules(
                 }
             }
 
-            fn new(config: &Config, app: &Application, frp: &WidgetsFrp) -> Self {
+            fn new(config: &Config, ctx: &ConfigContext) -> Self {
                 match config {
                     $(
-                        Config::$name(config) => DynWidget::$name(SpanWidget::new(config, app, frp)),
+                        Config::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),
                     )*
                 }
             }
@@ -152,7 +150,7 @@ macro_rules! define_widget_modules(
                         SpanWidget::configure(model, config, ctx);
                     },)*
                     (this, _) => {
-                        *this = SpanWidget::new(config, ctx.app(), ctx.frp());
+                        *this = SpanWidget::new(config, &ctx);
                         this.configure(config, ctx)
                     },
                 }
@@ -340,7 +338,7 @@ pub struct Tree {
 
 impl display::Object for Tree {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object.outer
+        &self.model.display_object
     }
 }
 
@@ -357,11 +355,12 @@ impl Tree {
         frp::extend! { network
             set_ports_visible <- frp.set_ports_visible.sampler();
             set_view_mode     <- frp.set_view_mode.sampler();
+            on_port_hover     <- any(...);
+            frp.private.output.on_port_hover <+ on_port_hover;
         }
 
         let value_changed = frp.private.output.value_changed.clone_ref();
         let request_import = frp.private.output.request_import.clone_ref();
-        let on_port_hover = frp.private.output.on_port_hover.clone_ref();
         let on_port_press = frp.private.output.on_port_press.clone_ref();
         let pointer_style = frp.private.output.pointer_style.clone_ref();
         let connected_port_updated = frp.private.output.connected_port_updated.clone_ref();
@@ -398,7 +397,7 @@ impl Tree {
     /// with a different color, and the widgets might change behavior depending on the connection
     /// status.
     pub fn set_connected(&self, tree_node: &span_tree::node::Ref, status: ConnectionStatus) {
-        if let Some(pointer) = self.model.get_port_widget_pointer(tree_node) {
+        if let Some(pointer) = self.model.get_node_widget_pointer(tree_node) {
             self.model.set_connected(pointer, status);
         }
     }
@@ -436,14 +435,13 @@ impl Tree {
         self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles)
     }
 
-    /// Get the root display object of the widget port for given span tree node. Not all widgets
-    /// have a port, so the returned value might be `None` even if a widget exist for given span
-    /// tree node.
-    pub fn get_port_display_object(
+    /// Get the root display object of the widget port for given span tree node. Not all nodes must
+    /// have a distinct widget, so the returned value might be `None`.
+    pub fn get_widget_display_object(
         &self,
         tree_node: &span_tree::node::Ref,
     ) -> Option<display::object::Instance> {
-        let pointer = self.model.get_port_widget_pointer(tree_node)?;
+        let pointer = self.model.get_node_widget_pointer(tree_node)?;
         self.model.with_node(&pointer, |w| w.display_object().clone())
     }
 }
@@ -464,15 +462,6 @@ pub(super) enum TreeNode {
     Widget(DynWidget),
 }
 
-impl TreeNode {
-    fn port_mut(&mut self) -> Option<&mut Port> {
-        match self {
-            TreeNode::Port(port) => Some(port),
-            TreeNode::Widget(_) => None,
-        }
-    }
-}
-
 impl display::Object for TreeNode {
     fn display_object(&self) -> &display::object::Instance {
         match self {
@@ -491,7 +480,7 @@ impl display::Object for TreeNode {
 #[derive(Debug)]
 struct TreeModel {
     app:            Application,
-    display_object: debug::InstanceWithBg,
+    display_object: display::object::Instance,
     widgets_map:    RefCell<HashMap<WidgetTreePointer, TreeNode>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
     connected_map:  Rc<RefCell<HashMap<WidgetTreePointer, ConnectionData>>>,
@@ -505,12 +494,12 @@ impl TreeModel {
     /// argument info.
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let display_object = debug::InstanceWithBg::gray();
-        display_object.inner.use_auto_layout();
-        display_object.inner.set_children_alignment_left_center().justify_content_center_y();
-        display_object.inner.set_size_y(NODE_HEIGHT);
-        display_object.inner.set_padding_left(TEXT_OFFSET);
-        display_object.inner.set_padding_right(TEXT_OFFSET);
+        let display_object = display::object::Instance::new();
+        display_object.use_auto_layout();
+        display_object.set_children_alignment_left_center().justify_content_center_y();
+        display_object.set_size_y(NODE_HEIGHT);
+        display_object.set_padding_left(TEXT_OFFSET);
+        display_object.set_padding_right(TEXT_OFFSET);
 
         Self {
             app,
@@ -591,7 +580,7 @@ impl TreeModel {
         };
 
         let child = builder.child_widget(tree.root_ref(), 0);
-        self.display_object.inner.replace_children(&[child]);
+        self.display_object.replace_children(&[child]);
         self.widgets_map.replace(builder.new_widgets);
     }
 
@@ -599,7 +588,7 @@ impl TreeModel {
     /// has a unique representation in the form of a widget tree pointer, which is more stable
     /// across changes in the span tree than [`span_tree::Crumbs`]. The pointer is used to identify
     /// the widgets or ports in the widget tree.
-    pub fn get_port_widget_pointer(
+    pub fn get_node_widget_pointer(
         &self,
         tree_node: &span_tree::node::Ref,
     ) -> Option<WidgetTreePointer> {
@@ -643,28 +632,6 @@ impl TreeModel {
         f: impl FnOnce(&TreeNode) -> T,
     ) -> Option<T> {
         self.widgets_map.borrow().get(pointer).map(f)
-    }
-
-    /// Perform an operation on a mutable reference to a tree node under given pointer. When there
-    /// is no node under provided pointer, the operation will not be performed and `None` will be
-    /// returned.
-    pub fn with_node_mut<T>(
-        &self,
-        pointer: &WidgetTreePointer,
-        f: impl FnOnce(&mut TreeNode) -> T,
-    ) -> Option<T> {
-        self.widgets_map.borrow_mut().get_mut(pointer).map(f)
-    }
-
-    /// Perform an operation on a mutable reference to a widget port under given pointer. When there
-    /// is no node under provided pointer, or when the found node has no port, the operation will
-    /// not be performed and `None` will be returned.
-    pub fn with_port_mut<T>(
-        &self,
-        pointer: &WidgetTreePointer,
-        f: impl FnOnce(&mut Port) -> T,
-    ) -> Option<T> {
-        self.widgets_map.borrow_mut().get_mut(pointer).and_then(TreeNode::port_mut).map(f)
     }
 }
 
@@ -901,7 +868,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             let mut port = match old_node {
                 Some(TreeNode::Port(port)) => port,
                 Some(TreeNode::Widget(widget)) => Port::new(widget, app, frp),
-                None => Port::new(DynWidget::new(&meta.config, app, frp), app, frp),
+                None => Port::new(DynWidget::new(&meta.config, &ctx), app, frp),
             };
             port.configure(&meta.config, ctx);
             TreeNode::Port(port)
@@ -909,7 +876,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             let mut widget = match old_node {
                 Some(TreeNode::Port(port)) => port.into_widget(),
                 Some(TreeNode::Widget(widget)) => widget,
-                None => DynWidget::new(&meta.config, app, frp),
+                None => DynWidget::new(&meta.config, &ctx),
             };
             widget.configure(&meta.config, ctx);
             TreeNode::Widget(widget)

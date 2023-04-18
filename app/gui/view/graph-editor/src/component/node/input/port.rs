@@ -100,8 +100,6 @@ impl PortHoverLayers {
 pub(super) struct Port {
     #[allow(dead_code)]
     on_cleanup:      frp::DropSource,
-    #[allow(dead_code)]
-    network:         frp::Network,
     crumbs:          Rc<RefCell<span_tree::Crumbs>>,
     port_root:       display::object::Instance,
     widget_root:     display::object::Instance,
@@ -147,7 +145,8 @@ impl Port {
             port_root.add_child(&hover_shape);
         }
 
-        frp::new_network! { network
+        let network = &port_root.network;
+        frp::extend! { network
             on_cleanup <- on_drop();
             hovering <- bool(&mouse_leave, &mouse_enter);
             cleanup_hovering <- on_cleanup.constant(false);
@@ -180,7 +179,6 @@ impl Port {
             widget,
             widget_root,
             port_root,
-            network,
             crumbs,
             is_primary: false,
             last_node_depth: 0,

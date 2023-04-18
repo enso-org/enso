@@ -2,9 +2,7 @@
 
 use crate::prelude::*;
 
-use super::debug::InstanceWithBg;
 use crate::component::node::input::area::TEXT_SIZE;
-use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::object;
 use ensogl_component::text;
@@ -30,7 +28,7 @@ ensogl::define_endpoints_2! {
 #[derive(Clone, Debug)]
 pub struct Widget {
     frp:   Frp,
-    root:  InstanceWithBg,
+    root:  object::Instance,
     #[allow(dead_code)]
     label: text::Text,
 }
@@ -39,31 +37,32 @@ impl super::SpanWidget for Widget {
     type Config = Config;
 
     fn root_object(&self) -> &object::Instance {
-        &self.root.outer
+        &self.root
     }
 
-    fn new(_: &Config, app: &Application, widgets_frp: &super::WidgetsFrp) -> Self {
+    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
         // Embed the label in a vertically centered fixed height container, so that the label's
         // baseline is properly aligned to center and lines up with other labels in the line.
-
-        let layers = &app.display.default_scene.layers;
-        let root = InstanceWithBg::magenta();
-        root.inner.set_size_y(TEXT_SIZE);
+        let app = ctx.app();
+        let widgets_frp = ctx.frp();
+        let layers = &ctx.app().display.default_scene.layers;
+        let root = object::Instance::new();
+        root.set_size_y(TEXT_SIZE);
         let label = text::Text::new(app);
         label.set_property_default(text::Size(TEXT_SIZE));
         label.set_y(TEXT_SIZE);
         layers.above_nodes_text.add(&label);
-        root.inner.add_child(&label);
+        root.add_child(&label);
         let frp = Frp::new();
         let network = &frp.network;
 
-        let inner = root.inner.clone_ref();
 
         frp::extend! { network
             color_change <- frp.text_color.on_change();
             parent_port_hovered <- widgets_frp.on_port_hover.map2(&frp.crumbs, |h, crumbs| {
                 h.on().map_or(false, |h| crumbs.starts_with(h))
             });
+            trace parent_port_hovered;
             label_color <- color_change.map2(&parent_port_hovered, |color, hovered| {
                 if *hovered { color::Lcha::white() } else { *color }
             });
@@ -74,9 +73,8 @@ impl super::SpanWidget for Widget {
                 label.set_content(content);
             });
 
-
             width <- label.width.on_change();
-            eval width((w) { inner.set_size_x(*w); });
+            eval width((w) root.set_size_x(*w); );
         }
 
         Self { frp, root, label }

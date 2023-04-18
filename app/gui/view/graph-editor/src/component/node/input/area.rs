@@ -237,11 +237,13 @@ impl Model {
         let crumbs = hovered.on()?;
         let expr = self.expression.borrow();
         let port = expr.span_tree.get_node(crumbs).ok()?;
-        let display_object = self.widget_tree.get_port_display_object(&port)?;
+        let display_object = self.widget_tree.get_widget_display_object(&port)?;
         let tp = port.tp().map(|t| Type(t.into()));
         let color = tp.as_ref().map(|tp| type_coloring::compute(tp, &self.styles));
         let pad_x = node::input::port::PORT_PADDING_X * 2.0;
-        let size = display_object.computed_size() + Vector2(pad_x, 0.0);
+        let min_y = node::input::port::BASE_PORT_HEIGHT;
+        let computed_size = display_object.computed_size();
+        let size = Vector2(computed_size.x + pad_x, computed_size.y.max(min_y));
         let radius = size.y / 2.0;
         Some(cursor::Style::new_highlight(display_object, size, radius, color))
     }
@@ -558,7 +560,7 @@ impl Area {
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         let node = expr.get_node(crumbs).ok()?;
-        let instance = self.model.widget_tree.get_port_display_object(&node)?;
+        let instance = self.model.widget_tree.get_widget_display_object(&node)?;
         let pos = instance.global_position();
         let node_pos = self.model.display_object.global_position();
         let size = instance.computed_size();

@@ -2,11 +2,9 @@
 
 use crate::prelude::*;
 
-use super::debug::InstanceWithBg;
 use crate::component::node::input::area::TEXT_SIZE;
 use crate::component::node::input::widget::Entry;
 use enso_frp as frp;
-use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
@@ -91,7 +89,7 @@ ensogl::define_endpoints_2! {
 #[allow(dead_code)]
 pub struct Widget {
     config_frp:       Frp,
-    display_object:   InstanceWithBg,
+    display_object:   display::object::Instance,
     content_wrapper:  display::object::Instance,
     dropdown_wrapper: display::object::Instance,
     label_wrapper:    display::object::Instance,
@@ -105,10 +103,12 @@ impl super::SpanWidget for Widget {
     type Config = Config;
 
     fn root_object(&self) -> &display::object::Instance {
-        &self.display_object.outer
+        &self.display_object
     }
 
-    fn new(_: &Config, app: &Application, widgets_frp: &super::WidgetsFrp) -> Self {
+    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
+        let app = ctx.app();
+        let widgets_frp = ctx.frp();
         //  ╭─display_object─────────────────────────────────────╮
         //  │╭─content_wrapper──────────────────────────────────╮│
         //  ││╭ shape ╮ ╭ label_wrapper ────╮ ╭ args_wrapper ─╮ ││
@@ -137,18 +137,17 @@ impl super::SpanWidget for Widget {
         dropdown.set_max_open_size(DROPDOWN_MAX_SIZE);
         dropdown.allow_deselect_all(true);
 
-        let display_object = InstanceWithBg::magenta();
-        let content_wrapper = display_object.inner.new_child();
+        let display_object = display::object::Instance::new();
+        let content_wrapper = display_object.new_child();
         content_wrapper.add_child(&activation_shape);
         let label_wrapper = content_wrapper.new_child();
         label_wrapper.add_child(&label);
         let args_wrapper = content_wrapper.new_child();
-        let dropdown_wrapper = display_object.inner.new_child();
+        let dropdown_wrapper = display_object.new_child();
         dropdown_wrapper.add_child(&dropdown);
 
 
         display_object
-            .inner
             .use_auto_layout()
             .set_column_flow()
             .set_children_alignment_left_center()
@@ -173,7 +172,7 @@ impl super::SpanWidget for Widget {
         let network = &config_frp.network;
         let input = &config_frp.private.input;
 
-        let focus_receiver = display_object.inner.clone_ref();
+        let focus_receiver = display_object.clone_ref();
 
         frp::extend! { network
             init <- source::<()>();

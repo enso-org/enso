@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use ensogl::application::Application;
 use ensogl::display::object;
 
 
@@ -29,7 +28,7 @@ impl super::SpanWidget for Widget {
         &self.root
     }
 
-    fn new(_: &Config, _: &Application, _: &super::WidgetsFrp) -> Self {
+    fn new(_: &Config, _: &super::ConfigContext) -> Self {
         let root = object::Instance::new();
         Self { root }
     }

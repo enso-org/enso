@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 
-use ensogl::application::Application;
 use ensogl::display::object;
 
 // =================
@@ -18,20 +17,20 @@ pub struct Config;
 /// Hierarchy widget. This widget expands each child of its span tree into a new widget.
 #[derive(Clone, Debug)]
 pub struct Widget {
-    display_object: super::debug::InstanceWithBg,
+    display_object: object::Instance,
 }
 
 impl super::SpanWidget for Widget {
     type Config = Config;
 
     fn root_object(&self) -> &object::Instance {
-        &self.display_object.outer
+        &self.display_object
     }
 
-    fn new(_: &Config, _: &Application, _: &super::WidgetsFrp) -> Self {
-        let display_object = super::debug::InstanceWithBg::olive();
-        display_object.inner.use_auto_layout();
-        display_object.inner.set_children_alignment_left_center().justify_content_center_y();
+    fn new(_: &Config, _: &super::ConfigContext) -> Self {
+        let display_object = object::Instance::new();
+        display_object.use_auto_layout();
+        display_object.set_children_alignment_left_center().justify_content_center_y();
         Self { display_object }
     }
 
@@ -44,6 +43,6 @@ impl super::SpanWidget for Widget {
             .children_iter()
             .map(|node| ctx.builder.child_widget(node, next_depth))
             .collect_vec();
-        self.display_object.inner.replace_children(&children);
+        self.display_object.replace_children(&children);
     }
 }
