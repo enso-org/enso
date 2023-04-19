@@ -21,7 +21,8 @@ interface Props {
 }
 
 /** Container that launches the IDE. */
-function Ide({ project, backendService }: Props) {
+function Ide(props: Props) {
+    const { project, backendService } = props
     const [ideElement] = react.useState(() => document.querySelector(IDE_ELEMENT_ID))
     const [[loaded, resolveLoaded]] = react.useState((): [Promise<void>, () => void] => {
         let resolve!: () => void
@@ -63,6 +64,9 @@ function Ide({ project, backendService }: Props) {
 
     react.useEffect(() => {
         void (async () => {
+            while (ideElement?.firstChild) {
+                ideElement.removeChild(ideElement.firstChild)
+            }
             const ideVersion = (
                 await backendService.listVersions({
                     versionType: service.VersionType.ide,

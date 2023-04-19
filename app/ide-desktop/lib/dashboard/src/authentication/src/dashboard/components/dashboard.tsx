@@ -587,12 +587,14 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className="select-none text-primary text-xs min-h-screen"
+            className={`select-none text-primary text-xs min-h-screen ${
+                tab === Tab.dashboard ? '' : 'hidden'
+            }`}
             onClick={unsetModal}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
-            <div className={tab === Tab.dashboard ? '' : 'hidden'}>
+            <div>
                 <TopBar
                     projectName={project?.name ?? null}
                     tab={tab}
@@ -932,9 +934,7 @@ function Dashboard(props: DashboardProps) {
                 </div>
             ) : null}
             {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
-            <div className={tab === Tab.ide ? '' : 'hidden'}>
-                {project ? <Ide backendService={backendService} project={project} /> : <></>}
-            </div>
+            {project && <Ide backendService={backendService} project={project} />}
             {modal && <>{modal}</>}
         </div>
     )
