@@ -36,14 +36,14 @@ pub fn main() {
     let mut rng = rand::thread_rng();
     let root = display::object::Instance::new();
     world.add_child(&root);
-    let main = &world.default_scene.layers.main;
+    let main = world.default_scene.layers.main.clone();
     let red = main.create_symbol_partition::<rectangle::Shape>("red");
     let green = main.create_symbol_partition::<rectangle::Shape>("green");
     let blue = main.create_symbol_partition::<rectangle::Shape>("blue");
     let layers = vec![
-        (red.clone(), color::Rgba::new(1.0, 0.5, 0.5, 0.9), color::Rgba::new(1.0, 0.0, 0.0, 1.0)),
-        (green.clone(), color::Rgba::new(0.5, 1.0, 0.5, 0.9), color::Rgba::new(0.0, 1.0, 0.0, 1.0)),
-        (blue.clone(), color::Rgba::new(0.5, 0.5, 1.0, 0.9), color::Rgba::new(0.0, 0.0, 1.0, 1.0)),
+        (red, color::Rgba::new(1.0, 0.5, 0.5, 0.9), color::Rgba::new(1.0, 0.0, 0.0, 1.0)),
+        (green, color::Rgba::new(0.5, 1.0, 0.5, 0.9), color::Rgba::new(0.0, 1.0, 0.0, 1.0)),
+        (blue, color::Rgba::new(0.5, 0.5, 1.0, 0.9), color::Rgba::new(0.0, 0.0, 1.0, 1.0)),
     ];
     let mut shapes = vec![];
     shapes.resize(128, default());
@@ -63,9 +63,7 @@ pub fn main() {
         layer.add(&new);
         let t = rng.gen_range(0.0..std::f32::consts::PI * 2.0);
         let (old, _, _, _) = mem::replace(&mut shapes[i], (new, -256.0, x, t));
-        red.remove(&old);
-        green.remove(&old);
-        blue.remove(&old);
+        main.remove(&old);
         i += 1;
         if i == shapes.len() {
             i = 0;

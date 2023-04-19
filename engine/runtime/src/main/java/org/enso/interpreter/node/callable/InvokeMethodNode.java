@@ -20,15 +20,18 @@ import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.EnsoDuration;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -51,6 +54,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
   private @Child InvokeMethodNode childDispatch;
+
   private final int argumentCount;
   private final int thisArgumentPosition;
 
@@ -80,6 +84,10 @@ public abstract class InvokeMethodNode extends BaseNode {
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.argumentCount = schema.length;
     this.thisArgumentPosition = thisArgumentPosition;
+  }
+
+  InvokeFunctionNode getInvokeFunctionNode() {
+    return invokeFunctionNode;
   }
 
   @Override
@@ -134,13 +142,113 @@ public abstract class InvokeMethodNode extends BaseNode {
     throw self;
   }
 
-  @Specialization
+  /**
+   * Resolves symbol to a Warning method, if possible.
+   *
+   * <p>A regular method dispatch logic will extract/append warnings of `self` before invoking the
+   * actual method dispatch logic. This allows for ignoring complexity related to the presence of
+   * warnings but prevents us from manipulating warnings directly in the Enso code (they have just
+   * been removed). `resolveWarningFunction` will attempt to resolve the symbol in the Warning type
+   * scope, if possible. Additionally, we check if under the non-warning `self`, the symbol would
+   * resolve to `Any`. If not, it means that we should employ a regular method dispatch logic, due
+   * to a method name clash. E.g. if some collection type Foo defines a `has_warnings` method, we
+   * should dispatch the call to `Foo`'s `has_warning` rather than to a `Warning` or `Any`'s `one.
+   *
+   * @param self `self` argument that has some warnings
+   * @param symbol symbol to be resolved
+   * @param types TypesLibrary instance
+   * @param warnings WarningsLibrary instance
+   * @return resolved Warning method to be called
+   */
+  Function resolveWarningFunction(
+      Object self, UnresolvedSymbol symbol, TypesLibrary types, WarningsLibrary warnings) {
+    Object selfWithoutWarnings;
+    try {
+      selfWithoutWarnings = warnings.removeWarnings(self);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(
+          "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
+          e);
+    }
+
+    Type typeOfSymbol = symbol.resolveDeclaringType(types.getType(selfWithoutWarnings));
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
+    if (typeOfSymbol == builtins.any()) {
+      return symbol
+          .getScope()
+          .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());
+    }
+
+    return null;
+  }
+
+  Object[] argumentsWithExplicitSelf(FunctionSchema cachedSchema, Object[] arguments) {
+    Object[] arguments1;
+    if (!cachedSchema.isFullyApplied()) {
+      arguments1 = new Object[cachedSchema.getArgumentsCount()];
+      System.arraycopy(arguments, 0, arguments1, 1, arguments.length);
+      arguments1[0] = arguments[0];
+    } else {
+      arguments1 = arguments;
+    }
+    return arguments1;
+  }
+
+  public InvokeFunctionNode buildInvokeFunctionWithSelf() {
+    int length = invokeFunctionNode.getSchema().length;
+    CallArgumentInfo[] schema = new CallArgumentInfo[length + 1];
+    System.arraycopy(invokeFunctionNode.getSchema(), 0, schema, 1, length);
+    schema[0] = new CallArgumentInfo();
+    return InvokeFunctionNode.build(
+        schema,
+        invokeFunctionNode.getDefaultsExecutionMode(),
+        invokeFunctionNode.getArgumentsExecutionMode());
+  }
+
+  @Specialization(
+      guards = {
+        "warnings.hasWarnings(self)",
+        "resolvedFunction != null",
+        "resolvedFunction.getSchema() == cachedSchema"
+      })
+  Object doWarningsCustom(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Cached("resolveWarningFunction(self, symbol, types, warnings)") Function resolvedFunction,
+      @Cached("resolvedFunction.getSchema()") FunctionSchema cachedSchema,
+      @Cached("buildInvokeFunctionWithSelf()") InvokeFunctionNode warningFunctionNode) {
+    // Warning's builtin type methods are static meaning that they have a synthetic `self`
+    // parameter. However, the constructed `InvokeFunctionNode` is missing that
+    // information and the function, if called with `arguments`, will not be fully applied.
+    // Hence, the synthetic construction of a new `InvokeFunctionNode` with the updated schema
+    // and call including an additional, dummy, argument.
+    Object[] arguments1 = argumentsWithExplicitSelf(cachedSchema, arguments);
+    return warningFunctionNode.execute(resolvedFunction, frame, state, arguments1);
+  }
+
+  @Specialization(guards = "warnings.hasWarnings(self)")
   Object doWarning(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
-      WithWarnings self,
-      Object[] arguments) {
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+    Object selfWithoutWarnings;
+    Warning[] arrOfWarnings;
+    try {
+      selfWithoutWarnings = warnings.removeWarnings(self);
+      arrOfWarnings = warnings.getWarnings(self, this);
+    } catch (UnsupportedMessageException e) {
+      // Can't throw `CompilerDirectives.shouldNotReachHere` as it crashes native-image build
+      throw new IllegalStateException(e);
+    }
+
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
     if (childDispatch == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -164,15 +272,16 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
     }
 
-    arguments[thisArgumentPosition] = self.getValue();
-    ArrayRope<Warning> warnings = self.getReassignedWarnings(this);
-    Object result = childDispatch.execute(frame, state, symbol, self.getValue(), arguments);
-    return WithWarnings.prependTo(result, warnings);
+    arguments[thisArgumentPosition] = selfWithoutWarnings;
+
+    Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
+    return WithWarnings.prependTo(result, arrOfWarnings);
   }
 
   @ExplodeLoop
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "polyglotCallType.isInteropLibrary()",
@@ -225,6 +334,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
@@ -237,6 +347,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     try {
       var str = interop.asString(self);
@@ -253,6 +364,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY",
@@ -265,6 +377,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     var arrayType = ctx.getBuiltins().array();
@@ -275,6 +388,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_HASH_MAP",
@@ -287,6 +401,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     var hashMapType = ctx.getBuiltins().map();
@@ -297,6 +412,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE"
@@ -309,6 +425,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -325,6 +442,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE_TIME"
@@ -337,6 +455,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -355,6 +474,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DURATION"
@@ -367,6 +487,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -393,6 +514,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_ZONED_DATE_TIME"
@@ -405,6 +527,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -423,6 +546,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_ZONE"
@@ -435,6 +559,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -451,6 +576,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_OF_DAY"
@@ -463,6 +589,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -479,6 +606,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
+        "!warnings.hasWarnings(self)",
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
@@ -491,6 +619,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode anyResolverNode) {
     var ctx = EnsoContext.get(this);
     Function function = anyResolverNode.expectNonNull(self, ctx.getBuiltins().any(), symbol);

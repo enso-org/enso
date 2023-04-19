@@ -370,9 +370,7 @@ impl ActionBar {
             eval_ frp.hide_icons ( model.hide() );
             eval_ frp.show_icons ( model.show() );
 
-            eval frp.input.set_selected_visualization ((vis){
-                visualization_chooser.input.set_selected.emit(vis);
-            });
+            visualization_chooser.input.set_selected <+ frp.input.set_selected_visualization;
 
 
             // === Mouse Interactions ===

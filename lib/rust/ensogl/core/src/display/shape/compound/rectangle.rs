@@ -21,7 +21,8 @@ pub use shape::Shape;
 // === Shape ===
 // =============
 
-mod shape {
+/// Shape definition.
+pub mod shape {
     use super::*;
     crate::shape! {
         (

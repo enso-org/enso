@@ -51,8 +51,9 @@ pub const HEIGHT: f32 = VERTICAL_MARGIN
     + VERTICAL_MARGIN;
 
 // This should be as large as the shadow around the background.
-const MAGIC_SHADOW_MARGIN: f32 = 40.0;
-
+const MAGIC_SHADOW_MARGIN: f32 = 25.0;
+/// Text offset to make the text appear more centered.
+const TEXT_Y_OFFSET: f32 = 2.0;
 
 
 // ========================
@@ -207,7 +208,7 @@ impl BreadcrumbsModel {
         let background = background::View::new();
         let gap_width = default();
 
-        scene.layers.panel.add(&background);
+        scene.layers.panel_background.add(&background);
 
         Self {
             display_object,
@@ -267,6 +268,8 @@ impl BreadcrumbsModel {
 
         self.project_name.set_x(gap_width);
         self.breadcrumbs_container.set_x(gap_width + project_name_width);
+        self.project_name.set_y(TEXT_Y_OFFSET);
+        self.breadcrumbs_container.set_y(TEXT_Y_OFFSET);
 
         let width = gap_width + project_name_width + self.breadcrumbs_container_width();
         let background_width = width + 2.0 * BACKGROUND_PADDING;

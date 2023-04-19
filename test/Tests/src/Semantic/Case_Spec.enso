@@ -301,4 +301,9 @@ spec = Test.group "Pattern Matches" <|
             _ : Any -> Nothing
             _ -> Test.fail "Expected to match on Any."
 
+    Test.specify "should allow for pattern matching on unresolved symbol" <|
+        case (.name) of
+            _ : Function -> Nothing
+            _ -> Test.fail "Expected to match on Function type."
+
 main = Test_Suite.run_main spec

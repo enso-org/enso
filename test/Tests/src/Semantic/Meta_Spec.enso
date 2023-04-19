@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Function import Function
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Errors.Common import Uninitialized_State
@@ -302,8 +303,13 @@ spec =
                 n : Number -> Test.fail "Shouldn't be number yet: "+n
                 _ -> Nothing
 
+            tpe_of_bar = Meta.type_of atom.bar
+            tpe_of_bar.is_error . should_equal True
+
             fill 2
             atom.bar . should_equal 2
+            tpe_of_bar_after_fill = Meta.type_of atom.bar
+            tpe_of_bar_after_fill . should_equal Integer
 
             fill 10 # no change
             atom.bar . should_equal 2
@@ -353,5 +359,10 @@ spec =
             case atom.bar of
                 n : Number -> Test.fail "Not changed to number: "+n
                 _ -> Nothing
-
+    Test.group "Unresolved symbol"
+        Test.specify "should be treated as a Function" <|
+            (_.is_nothing) . is_a Function . should_equal True
+            (.is_nothing) . is_a Function . should_equal True
+            Meta.type_of (_.is_nothing) . should_equal Function
+            Meta.type_of (.is_nothing) . should_equal Function
 main = Test_Suite.run_main spec

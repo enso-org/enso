@@ -1,0 +1,214 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
+import Standard.Test.Extensions
+
+from Standard.Table import Table
+from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, No_Such_Column
+from Standard.Test import Test, Test_Suite, Problems
+from project.Util import all
+
+spec =
+    Test.group "Table.split" <|
+        Test.specify "can do split_to_columns" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, "gh", "ij", "u"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.split_to_columns "bar" "b"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do split_to_rows" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [2, "gh"], [2, "ij"], [2, "u"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.split_to_rows "bar" "b"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do split_to_columns with some Nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["abc", "cbdbef", Nothing, "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, Nothing, Nothing, Nothing], [3, "gh", "ij", "u"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.split_to_columns "bar" "b"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do split_to_rows with some Nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["abc", "cbdbef", Nothing, "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [3, "gh"], [3, "ij"], [3, "u"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.split_to_rows "bar" "b"
+            t2.should_equal_verbose expected
+
+    Test.group "Table.tokenize" <|
+        Test.specify "can do tokenize_to_columns" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12", "34", "5"], [1, "23", Nothing, Nothing], [2, "2", "4", "55"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.tokenize_to_columns "bar" "\d+"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_rows" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12"], [0, "34"], [0, "5"], [1, "23"], [2, "2"], [2, "4"], [2, "55"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows "bar" "\d+"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_columns with some nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["a12b34r5", Nothing, "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12", "34", "5"], [1, Nothing, Nothing, Nothing], [2, "23", Nothing, Nothing], [3, "2", "4", "55"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.tokenize_to_columns "bar" "\d+"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_rows with some Nothings" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["a12b34r5", Nothing, "23", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12"], [0, "34"], [0, "5"], [2, "23"], [3, "2"], [3, "4"], [3, "55"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows "bar" "\d+"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_rows with some rows that have no matches" <|
+            cols = [["foo", [0, 1, 2, 3]], ["bar", ["a12b34r5", "23", "q", "2r4r55"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12"], [0, "34"], [0, "5"], [1, "23"], [3, "2"], [3, "4"], [3, "55"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows "bar" "\d+"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_columns with groups" <|
+            cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a1", "b12", "d50"], [1, "b10", "c20", Nothing]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.tokenize_to_columns "bar" "([a-z]).(\d+)"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_rows with groups" <|
+            cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a1"], [0, "b12"], [0, "d50"], [1, "b10"], [1, "c20"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows "bar" "([a-z]).(\d+)"
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_columns case-insensitively" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["aBqcE", "qcBr", "cCb"]]]
+            t = Table.new cols
+            expected_rows = [[0, "B", "c", Nothing], [1, "c", "B", Nothing], [2, "c", "C", "b"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2"] expected_rows
+            t2 = t.tokenize_to_columns "bar" "[bc]" case_sensitivity=Case_Sensitivity.Insensitive
+            t2.should_equal_verbose expected
+
+        Test.specify "can do tokenize_to_rows case-insensitively" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["aBqcE", "qcBr", "cCb"]]]
+            t = Table.new cols
+            expected_rows = [[0, "B"], [0, "c"], [1, "c"], [1, "B"], [2, "c"], [2, "C"], [2, "b"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_rows "bar" "[bc]" case_sensitivity=Case_Sensitivity.Insensitive
+            t2.should_equal_verbose expected
+
+    Test.group "Table.split/tokenize column count" <|
+        Test.specify "should generate extra empty columns if column_count is set" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing, Nothing], [1, "c", "d", "ef", Nothing], [2, "gh", "ij", "u", Nothing]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2", "bar_3"] expected_rows
+            t2 = t.split_to_columns "bar" "b" column_count=4
+            t2.should_equal_verbose expected
+            t2.at "bar_3" . value_type . is_text . should_be_true
+
+        Test.specify "split should limit columns and return problems when exceeding the column limit" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c"], [1, "c", "d"], [2, "gh", "ij"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1"] expected_rows
+            action = t.split_to_columns "bar" "b" column_count=2 on_problems=_
+            tester = t-> t.should_equal_verbose expected
+            problems = [Column_Count_Exceeded.Error 2 3]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "tokenize should limit columns and return problems when exceeding the column limit" <|
+            cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a1", "b12", "d50"], [1, "b10", "c20", Nothing]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1"] expected_rows
+            action = t.tokenize_to_columns "bar" "([a-z]).(\d+)" column_count=2 on_problems=_
+            tester = t-> t.should_equal_verbose expected
+            problems = [Column_Count_Exceeded.Error 2 3]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should generate extra empty columns if column_count is set (with rows in a different order)" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["ghbijbu", "cbdbef", "abc"]]]
+            t = Table.new cols
+            expected_rows = [[0, "gh", "ij", "u", Nothing], [1, "c", "d", "ef", Nothing], [2, "a", "c", Nothing, Nothing]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2", "bar_3"] expected_rows
+            t2 = t.split_to_columns "bar" "b" column_count=4
+            t2.should_equal_verbose expected
+            t2.at "bar_3" . value_type . is_text . should_be_true
+
+    Test.group "Table.split/tokenize errors" <|
+        Test.specify "won't work on a non-text column" <|
+            cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
+            t = Table.new cols
+            t.split_to_columns "foo" "x" . should_fail_with Invalid_Value_Type
+            t.split_to_rows "foo" "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_columns "foo" "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_rows "foo" "x" . should_fail_with Invalid_Value_Type
+
+        Test.specify "won't work on a mixed column" <|
+            cols = [["foo", [0, 1]], ["bar", [500, "ab-10:bc-20c"]]]
+            t = Table.new cols
+            t.split_to_columns "bar" "x" . should_fail_with Invalid_Value_Type
+            t.split_to_rows "bar" "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_columns "bar" "x" . should_fail_with Invalid_Value_Type
+            t.tokenize_to_rows "bar" "x" . should_fail_with Invalid_Value_Type
+
+        Test.specify "*_to_columns handles missing input column" <|
+            cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
+            t = Table.new cols
+            t.tokenize_to_columns "invalid_name" "([a-z]).(\d+)" . should_fail_with No_Such_Column
+
+        Test.specify "*_to_rows handles missing input column" <|
+            cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
+            t = Table.new cols
+            t.tokenize_to_rows "invalid_name" "([a-z]).(\d+)" . should_fail_with No_Such_Column
+
+    Test.group "Table.split/tokenize name conflicts" <|
+        Test.specify "split will make column names unique" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]], ["bar_1", ["a", "b", "c"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing, "a"], [1, "c", "d", "ef", "b"], [2, "gh", "ij", "u", "c"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1_1", "bar_2", "bar_1"] expected_rows
+            action = t.split_to_columns "bar" "b" on_problems=_
+            tester = t-> t.should_equal_verbose expected
+            problems = [Duplicate_Output_Column_Names.Error ["bar_1"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "tokenize will make column names unique" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]], ["bar_1", ["a", "b", "c"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12", "34", "5", "a"], [1, "23", Nothing, Nothing, "b"], [2, "2", "4", "55", "c"]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1_1", "bar_2", "bar_1"] expected_rows
+            action = t.tokenize_to_columns "bar" "\d+"  on_problems=_
+            tester = t-> t.should_equal_verbose expected
+            problems = [Duplicate_Output_Column_Names.Error ["bar_1"]]
+            Problems.test_problem_handling action problems tester
+
+    Test.group "Table.split/tokenize column order" <|
+        Test.specify "preserves column order" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]], ["baz", [1, 2, 3]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing, 1], [1, "c", "d", "ef", 2], [2, "gh", "ij", "u", 3]]
+            expected = Table.from_rows ["foo", "bar_0", "bar_1", "bar_2", "baz"] expected_rows
+            t2 = t.split_to_columns "bar" "b"
+            t2.should_equal_verbose expected
+
+main = Test_Suite.run_main spec

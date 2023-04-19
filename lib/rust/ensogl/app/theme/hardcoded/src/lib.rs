@@ -442,6 +442,7 @@ define_themes! { [light:0, dark:1]
             }
         }
         status_bar {
+            offset_y = -30.0, -30.0;
             text = text, text;
             background = graph_editor::node::background , graph_editor::node::background;
             background {
@@ -536,6 +537,11 @@ define_themes! { [light:0, dark:1]
                 button {
                     non_toggled = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
                     toggled     = Lcha(0.0,0.0,0.0,0.7)  , Lcha(1.0,0.0,0.0,0.7);
+                    hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
+                }
+                context_switch {
+                    non_toggled = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
+                    toggled     = Lcha(0.58, 0.67, 0.0825, 1.0), Lcha(0.58, 0.67, 0.0825, 1.0);
                     hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
                 }
             }
@@ -652,6 +658,19 @@ define_themes! { [light:0, dark:1]
                 background = Rgba(0.62, 0.62, 1.0, 1.0), Rgba(0.62, 0.62, 1.0, 1.0);
                 color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
             }
+        }
+        execution_mode_selector {
+            background = Rgb::from_base_255(100.0, 181.0, 38.0), Rgb::from_base_255(100.0, 181.0, 38.0);
+            divider = Rgba::black_with_alpha(0.12), Rgba::black_with_alpha(0.12);
+            triangle = Rgba::white_with_alpha(0.75), Rgba::white_with_alpha(0.75);
+            play_button_size = 10.0,  10.0;
+            play_button_offset = 15.0, 15.0;
+            play_button_padding = 10.0, 10.0;
+            divider_offset = 32.5, 32.5;
+            divider_padding = 10.0, 10.0;
+            dropdown_width = 95.0, 95.0;
+            height = 24.0, 24.0;
+            menu_offset = 20.0, 20.0;
         }
     }
     widget {

@@ -44,8 +44,6 @@ public class CurriedFunctionBenchmarks {
 
     var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
     var code = """
-        import Standard.Base.Any.Any
-        
         avg fn len =
             sum acc i = if i == len then acc else
                 sum (acc + fn i) i+1
