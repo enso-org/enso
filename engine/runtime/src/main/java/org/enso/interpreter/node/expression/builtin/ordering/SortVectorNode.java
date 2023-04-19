@@ -683,7 +683,7 @@ public abstract class SortVectorNode extends Node {
 
   private final class CompareFromFunction extends Compare {
 
-    private Function function;
+    private final Function function;
 
     private CompareFromFunction(Function function) {
       this.function = function;
@@ -710,7 +710,7 @@ public abstract class SortVectorNode extends Node {
     private final MethodResolverNode methodResolverNode;
     private final TypesLibrary typesLibrary;
 
-    private Function resolvedFunction;
+    private @CompilerDirectives.CompilationFinal Function resolvedFunction;
 
     private CompareFromUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
                                         MethodResolverNode methodResolvedNode,
