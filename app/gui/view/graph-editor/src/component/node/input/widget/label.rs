@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::component::node::input::area::TEXT_SIZE;
 use ensogl::data::color;
 use ensogl::display::object;
+use ensogl::display::shape::StyleWatch;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 
@@ -19,7 +20,8 @@ pub struct Config;
 ensogl::define_endpoints_2! {
     Input {
         content(ImString),
-        text_color(color::Lcha),
+        text_color(ColorState),
+        text_weight(text::Weight),
         crumbs(span_tree::Crumbs),
     }
 }
@@ -51,24 +53,27 @@ impl super::SpanWidget for Widget {
         let label = text::Text::new(app);
         label.set_property_default(text::Size(TEXT_SIZE));
         label.set_y(TEXT_SIZE);
-        layers.above_nodes_text.add(&label);
+        layers.label.add(&label);
         root.add_child(&label);
         let frp = Frp::new();
         let network = &frp.network;
 
-        let hover_color: color::Lcha = ctx.styles().get_color(theme::code::types::selected).into();
-
+        let styles = ctx.styles();
         frp::extend! { network
-            color_change <- frp.text_color.on_change();
             parent_port_hovered <- widgets_frp.on_port_hover.map2(&frp.crumbs, |h, crumbs| {
                 h.on().map_or(false, |h| crumbs.starts_with(h))
             });
-            label_color <- color_change.all_with(&parent_port_hovered, move |color, hovered| {
-                if *hovered { hover_color } else { *color }
-            });
+            label_color <- frp.text_color.all_with4(
+                &parent_port_hovered, &widgets_frp.set_view_mode, &widgets_frp.set_profiling_status,
+                f!([styles](state, hovered, mode, status) {
+                    state.to_color(*hovered, *mode, *status, &styles)
+                })
+            );
 
             label_color <- label_color.on_change();
+            label_weight <- frp.text_weight.on_change();
             eval label_color((color) label.set_property_default(color));
+            eval label_weight((weight) label.set_property_default(weight));
             content_change <- frp.content.on_change();
             eval content_change((content) label.set_content(content));
 
@@ -88,21 +93,82 @@ impl super::SpanWidget for Widget {
             ctx.expression_at(ctx.span_tree_node.span())
         };
 
-        let text_color: color::Lcha = if ctx.state.subtree_connection.is_connected() {
-            ctx.styles().get_color(theme::code::types::selected).into()
+        let color_state: ColorState = if ctx.state.subtree_connection.is_connected() {
+            ColorState::Connected
         } else if ctx.state.disabled {
-            ctx.styles().get_color(theme::code::syntax::disabled).into()
+            ColorState::Disabled
         } else if is_placeholder {
-            ctx.styles().get_color(theme::code::syntax::expected).into()
+            ColorState::Placeholder
         } else {
             let ty = ctx.state.usage_type.clone();
             let ty = ty.or_else(|| ctx.span_tree_node.kind.tp().map(|t| crate::Type(t.into())));
-            crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles())
+            let color = crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles());
+            ColorState::FromType(color)
         };
 
+        let ext = ctx.get_extension::<Extension>().copied().unwrap_or_default();
+        let text_weight = if ext.bold { text::Weight::Bold } else { text::Weight::Normal };
         let input = &self.frp.public.input;
         input.content.emit(content);
-        input.text_color.emit(text_color);
+        input.text_color.emit(color_state);
+        input.text_weight(text_weight);
         input.crumbs.emit(ctx.span_tree_node.crumbs.clone());
+    }
+}
+
+
+
+// =================
+// === Extension ===
+// =================
+
+/// Label extension data that can be set by any of the parent widgets.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Extension {
+    /// Display all descendant labels with bold text weight.
+    pub bold: bool,
+}
+
+
+
+// ==================
+// === ColorState ===
+// ==================
+
+/// Configured color state of a label widget.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Default)]
+pub enum ColorState {
+    #[default]
+    Connected,
+    Disabled,
+    Placeholder,
+    FromType(color::Lcha),
+}
+
+impl ColorState {
+    fn to_color(
+        &self,
+        is_hovered: bool,
+        view_mode: crate::view::Mode,
+        status: crate::node::profiling::Status,
+        styles: &StyleWatch,
+    ) -> color::Lcha {
+        use theme::code::syntax;
+        let profiling_mode = view_mode.is_profiling();
+        let profiled = profiling_mode && status.is_finished();
+        let color_path = match self {
+            _ if is_hovered => theme::code::types::selected,
+            ColorState::Connected => theme::code::types::selected,
+            ColorState::Disabled if profiled => syntax::profiling::disabled,
+            ColorState::Placeholder if profiled => syntax::profiling::expected,
+            ColorState::Disabled => syntax::disabled,
+            ColorState::Placeholder => syntax::expected,
+            ColorState::FromType(_) if profiled => syntax::profiling::base,
+            ColorState::FromType(_) if profiling_mode => syntax::base,
+            ColorState::FromType(typed) => return *typed,
+        };
+
+        styles.get_color(color_path).into()
     }
 }

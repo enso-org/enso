@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::component::node::input::area::TEXT_SIZE;
 use crate::component::node::input::widget::Entry;
 use enso_frp as frp;
 use ensogl::control::io::mouse;
@@ -10,7 +9,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
-use ensogl_component::text;
 
 
 
@@ -77,7 +75,6 @@ pub struct Config {
 ensogl::define_endpoints_2! {
     Input {
         set_entries(Rc<Vec<Entry>>),
-        content(ImString),
         current_value(Option<ImString>),
         current_crumbs(span_tree::Crumbs),
     }
@@ -93,9 +90,8 @@ pub struct Widget {
     content_wrapper:  display::object::Instance,
     dropdown_wrapper: display::object::Instance,
     label_wrapper:    display::object::Instance,
-    args_wrapper:     display::object::Instance,
-    dropdown:         Dropdown<Entry>,
-    label:            text::Text,
+    dropdown:         Rc<RefCell<LazyDropdown>>,
+    label:            super::label::Widget,
     activation_shape: triangle::View,
 }
 
@@ -109,42 +105,27 @@ impl super::SpanWidget for Widget {
     fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
         let app = ctx.app();
         let widgets_frp = ctx.frp();
-        //  ╭─display_object─────────────────────────────────────╮
-        //  │╭─content_wrapper──────────────────────────────────╮│
-        //  ││╭ shape ╮ ╭ label_wrapper ────╮ ╭ args_wrapper ─╮ ││
-        //  │││       │ │                   │ │               │ ││
-        //  │││       │ │                   │ │               │ ││
-        //  ││╰───────╯ ╰───────────────────╯ ╰───────────────╯ ││
-        //  │╰──────────────────────────────────────────────────╯│
-        //  ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-        //  │ ◎ dropdown_wrapper size=0                          │
-        //  ╰────────────────────────────────────────────────────╯
+        //  ╭─display_object────────────────────╮
+        //  │╭─content_wrapper─────────────────╮│
+        //  ││ ╭ shape ╮ ╭ label_wrapper ────╮ ││
+        //  ││ │       │ │                   │ ││
+        //  ││ │       │ │                   │ ││
+        //  ││ ╰───────╯ ╰───────────────────╯ ││
+        //  │╰─────────────────────────────────╯│
+        //  ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+        //  │ ◎ dropdown_wrapper size=0         │
+        //  ╰───────────────────────────────────╯
 
-        let layers = &app.display.default_scene.layers;
         let dot_color = color::Rgba::from(ACTIVATION_SHAPE_COLOR.with_alpha(1.0)).into();
         let activation_shape = triangle::View::new();
         activation_shape.color.set(dot_color);
         activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
 
-        let label = text::Text::new(app);
-        layers.above_nodes_text.add(&label);
-        label.set_property_default(text::Size(TEXT_SIZE));
-        label.set_y(TEXT_SIZE);
-
-        let dropdown = app.new_view::<Dropdown<Entry>>();
-        layers.above_nodes.add(&dropdown);
-        dropdown.set_y(DROPDOWN_Y_OFFSET);
-        dropdown.set_max_open_size(DROPDOWN_MAX_SIZE);
-        dropdown.allow_deselect_all(true);
-
         let display_object = display::object::Instance::new();
         let content_wrapper = display_object.new_child();
         content_wrapper.add_child(&activation_shape);
         let label_wrapper = content_wrapper.new_child();
-        label_wrapper.add_child(&label);
-        let args_wrapper = content_wrapper.new_child();
         let dropdown_wrapper = display_object.new_child();
-        dropdown_wrapper.add_child(&dropdown);
 
 
         display_object
@@ -158,15 +139,14 @@ impl super::SpanWidget for Widget {
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
-        args_wrapper
+        label_wrapper
             .use_auto_layout()
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
         dropdown_wrapper.set_size((0.0, 0.0)).set_alignment_left_top();
-        label_wrapper.set_size_y(TEXT_SIZE);
 
-
+        let label = super::label::Widget::new(&default(), ctx);
 
         let config_frp = Frp::new();
         let network = &config_frp.network;
@@ -176,9 +156,11 @@ impl super::SpanWidget for Widget {
 
         frp::extend! { network
             init <- source::<()>();
+            initialize_dropdown <- any_(...);
 
             let focus_in = focus_receiver.on_event::<event::FocusIn>();
             let focus_out = focus_receiver.on_event::<event::FocusOut>();
+            initialize_dropdown <+ focus_in;
             is_open <- bool(&focus_out, &focus_in);
 
             let dot_mouse_down = activation_shape.on_event::<mouse::Down>();
@@ -189,56 +171,65 @@ impl super::SpanWidget for Widget {
                 false => focus_receiver.blur(),
             });
 
+            current_value     <- input.current_value.on_change();
+            entries           <- input.set_entries.on_change();
+            entries_and_value <- all(&entries, &current_value);
+            entries_and_value <- entries_and_value.debounce();
+            dropdown_set_open          <- is_open.on_change();
+            dropdown_set_all_entries   <- entries_and_value.map(|(e, _)| e.deref().clone());
+            entries_and_value <- entries_and_value.buffered_gate(&is_open);
+
+            // sources from dropdown, lazily initialized
+            dropdown_user_select_action <- any(...);
+            dropdown_selected_entries <- any(...);
+
             // Close the dropdown after a short delay after selection. Because the dropdown
             // value application triggers operations that can introduce a few dropped frames,
             // we want to delay the dropdown closing animation after that is handled.
             // Otherwise the animation finishes within single frame, which looks bad.
             let close_after_selection_timer = frp::io::timer::Timeout::new(network);
-            close_after_selection_timer.restart <+ dropdown.user_select_action.constant(1);
+            close_after_selection_timer.restart <+ dropdown_user_select_action.constant(1);
             eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
 
-            current_value     <- input.current_value.on_change();
-            entries           <- input.set_entries.on_change();
-            entries_and_value <- all(&entries, &current_value);
-            entries_and_value <- entries_and_value.debounce();
-            entries_and_value <- entries_and_value.buffered_gate(&is_open);
-
-            dropdown.set_all_entries <+ entries_and_value.map(|(rc, _)| rc.deref().clone());
-            dropdown.set_open <+ is_open.on_change();
-
             selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
-            dropdown.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
+            dropdown_set_selected_entries <- selected_entry.map(|e| e.iter().cloned().collect());
 
-            dropdown_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
+            dropdown_entry <- dropdown_selected_entries.map(|e: &HashSet<Entry>| e.iter().next().cloned());
             // Emit the output value only after actual user action. This prevents the
             // dropdown from emitting its initial value when it is opened, which can
             // represent slightly different version of code than actually written.
-            submitted_entry <- dropdown_entry.sample(&dropdown.user_select_action);
+            submitted_entry <- dropdown_entry.sample(&dropdown_user_select_action);
             dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Entry::value));
             dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
-
-            label.set_content <+ input.content.on_change();
-            label_width <- label.width.on_change();
-            eval label_width((w) { label_wrapper.set_size_x(*w); });
-
-            has_value <- current_value.map(|v| v.is_some());
-            has_value <- all(&has_value, &init)._0();
-            eval has_value([label] (&has_value) {
-                let color = if has_value {
-                    color::Lcha::new(0.0, 0.0, 0.0, 1.0)
-                } else {
-                    color::Lcha::new(0.5, 0.0, 0.0, 1.0)
-                };
-                let weight = if has_value { text::Weight::Bold } else { text::Weight::Normal };
-                label.set_property_default(color);
-                label.set_property_default(weight);
-            });
 
             widgets_frp.request_import <+ dropdown_out_import.unwrap();
             widgets_frp.value_changed <+ dropdown_out_value.map2(&input.current_crumbs,
                 move |t: &Option<ImString>, crumbs: &span_tree::Crumbs| (crumbs.clone(), t.clone())
             );
         };
+
+        frp::extend! { network
+            dropdown_set_all_entries <- dropdown_set_all_entries.sampler();
+            dropdown_set_selected_entries <- dropdown_set_selected_entries.sampler();
+            dropdown_set_open <- dropdown_set_open.sampler();
+        }
+
+        let dropdown = LazyDropdown {
+            app:                  app.clone_ref(),
+            set_all_entries:      dropdown_set_all_entries,
+            set_selected_entries: dropdown_set_selected_entries,
+            set_open:             dropdown_set_open,
+            selected_entries:     dropdown_selected_entries,
+            user_select_action:   dropdown_user_select_action,
+            dropdown:             None,
+        };
+        let dropdown = Rc::new(RefCell::new(dropdown));
+
+        frp::extend! { network
+            eval initialize_dropdown([dropdown, dropdown_wrapper](_) {
+                dropdown.borrow_mut().init(&dropdown_wrapper);
+            });
+        }
 
         init.emit(());
 
@@ -248,14 +239,13 @@ impl super::SpanWidget for Widget {
             content_wrapper,
             dropdown_wrapper,
             label_wrapper,
-            args_wrapper,
             dropdown,
             activation_shape,
             label,
         }
     }
 
-    fn configure(&mut self, config: &Config, ctx: super::ConfigContext) {
+    fn configure(&mut self, config: &Config, mut ctx: super::ConfigContext) {
         let input = &self.config_frp.public.input;
 
         let has_value = !ctx.span_tree_node.is_insertion_point();
@@ -266,31 +256,24 @@ impl super::SpanWidget for Widget {
         input.current_value(current_value);
         input.set_entries(config.entries.clone());
 
-
-        let mut label_expr_span = ctx.span_tree_node.span();
-
-        if ctx.span_tree_node.is_chained() {
-            let mut chain = ctx.span_tree_node.clone().chain_children_iter();
-            if let Some(first_child) = chain.next() {
-                label_expr_span = first_child.span();
-            };
-
-            // Do not increment the depth. If the dropdown is displayed, it should also display
-            // its arguments.
-            let children =
-                chain.map(|child| ctx.builder.child_widget(child, ctx.state.depth)).collect_vec();
-            self.args_wrapper.replace_children(&children);
-        } else {
-            self.args_wrapper.remove_all_children();
+        if has_value {
+            ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
         }
 
-        let content: ImString = has_value
-            .then(|| ctx.expression_at(label_expr_span).into())
-            .or_else(|| config.label.clone())
-            .or_else(|| ctx.span_tree_node.kind.argument_name().map(Into::into))
-            .unwrap_or_default();
-
-        input.content(content);
+        if ctx.span_tree_node.children.is_empty() {
+            self.label.configure(&default(), ctx);
+            self.label_wrapper.replace_children(&[self.label.root_object()]);
+        } else {
+            // let mut chain = ctx.span_tree_node.clone().chain_children_iter();
+            // Do not increment the depth. If the dropdown is displayed, it should also display
+            // its arguments.
+            let children = ctx
+                .span_tree_node
+                .children_iter()
+                .map(|child| ctx.builder.child_widget(child, ctx.state.depth + 1))
+                .collect_vec();
+            self.label_wrapper.replace_children(&children);
+        }
     }
 }
 
@@ -319,4 +302,46 @@ fn entry_for_current_value(
     let with_fallback =
         with_partial_match.cloned().unwrap_or_else(|| Entry::from_value(current_value.clone()));
     Some(with_fallback)
+}
+
+#[derive(Debug)]
+struct LazyDropdown {
+    app:                  ensogl::application::Application,
+    set_all_entries:      frp::Sampler<Vec<Entry>>,
+    set_selected_entries: frp::Sampler<HashSet<Entry>>,
+    set_open:             frp::Sampler<bool>,
+    selected_entries:     frp::Any<HashSet<Entry>>,
+    user_select_action:   frp::Any<()>,
+    dropdown:             Option<Dropdown<Entry>>,
+}
+
+impl LazyDropdown {
+    fn init(&mut self, parent: &display::object::Instance) {
+        if self.dropdown.is_some() {
+            return;
+        }
+
+        let dropdown = self.app.new_view::<Dropdown<Entry>>();
+        let dropdown = self.dropdown.insert(dropdown);
+
+        parent.add_child(dropdown);
+        let layers = &self.app.display.default_scene.layers;
+        layers.above_nodes.add(&*dropdown);
+        dropdown.set_y(DROPDOWN_Y_OFFSET);
+        dropdown.set_max_open_size(DROPDOWN_MAX_SIZE);
+        dropdown.allow_deselect_all(true);
+
+        frp::extend! { _network
+            dropdown.set_all_entries <+ self.set_all_entries;
+            dropdown.set_selected_entries <+ self.set_selected_entries;
+            dropdown.set_open <+ self.set_open;
+            self.selected_entries <+ dropdown.selected_entries;
+            self.user_select_action <+ dropdown.user_select_action;
+        }
+
+
+        dropdown.set_all_entries.emit(self.set_all_entries.value().clone());
+        dropdown.set_selected_entries.emit(self.set_selected_entries.value().clone());
+        dropdown.set_open.emit(self.set_open.value().clone());
+    }
 }

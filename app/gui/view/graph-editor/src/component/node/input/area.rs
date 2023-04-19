@@ -516,7 +516,6 @@ impl Area {
                 (default(), e.into())
             });
 
-            model.widget_tree.set_view_mode <+ frp.set_view_mode;
             widget_code_update <- model.widget_tree.value_changed.map(|(crumbs, value)| {
                 let expression = value.clone().unwrap_or_default();
                 (crumbs.clone(), expression)
@@ -546,6 +545,9 @@ impl Area {
             in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
             finished          <- frp.set_profiling_status.map(|s| s.is_finished());
             profiled          <- in_profiling_mode && finished;
+
+            model.widget_tree.set_view_mode <+ frp.set_view_mode;
+            model.widget_tree.set_profiling_status <+ frp.set_profiling_status;
 
             use theme::code::syntax;
             let std_selection_color      = model.styles_frp.get_color(syntax::selection);

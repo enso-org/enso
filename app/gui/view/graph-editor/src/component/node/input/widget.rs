@@ -37,9 +37,10 @@ pub const WIDGET_SPACING_PER_OFFSET: f32 = 7.224_609_4;
 
 ensogl::define_endpoints_2! {
     Input {
-        set_ports_visible (bool),
-        set_view_mode     (crate::view::Mode),
-        set_disabled      (bool),
+        set_ports_visible    (bool),
+        set_view_mode        (crate::view::Mode),
+        set_profiling_status (crate::node::profiling::Status),
+        set_disabled         (bool),
     }
     Output {
         value_changed    (span_tree::Crumbs, Option<ImString>),
@@ -311,6 +312,7 @@ impl DropdownValue for Entry {
 pub struct WidgetsFrp {
     pub(super) set_ports_visible:      frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
+    pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
     pub(super) value_changed:          frp::Any<(span_tree::Crumbs, Option<ImString>)>,
     pub(super) request_import:         frp::Any<ImString>,
     pub(super) on_port_hover:          frp::Any<Switch<span_tree::Crumbs>>,
@@ -351,20 +353,25 @@ impl Tree {
         let network = &frp.network;
 
         frp::extend! { network
-            set_ports_visible <- frp.set_ports_visible.sampler();
-            set_view_mode     <- frp.set_view_mode.sampler();
-            on_port_hover     <- any(...);
+            set_ports_visible    <- frp.set_ports_visible.sampler();
+            set_view_mode        <- frp.set_view_mode.sampler();
+            set_profiling_status <- frp.set_profiling_status.sampler();
+
+            on_port_hover        <- any(...);
+            on_port_press        <- any(...);
+            trace on_port_hover;
             frp.private.output.on_port_hover <+ on_port_hover;
+            frp.private.output.on_port_press <+ on_port_press;
         }
 
         let value_changed = frp.private.output.value_changed.clone_ref();
         let request_import = frp.private.output.request_import.clone_ref();
-        let on_port_press = frp.private.output.on_port_press.clone_ref();
         let pointer_style = frp.private.output.pointer_style.clone_ref();
         let connected_port_updated = frp.private.output.connected_port_updated.clone_ref();
         let widgets_frp = WidgetsFrp {
             set_ports_visible,
             set_view_mode,
+            set_profiling_status,
             value_changed,
             request_import,
             on_port_hover,
@@ -440,6 +447,7 @@ impl Tree {
         tree_node: &span_tree::node::Ref,
     ) -> Option<display::object::Instance> {
         let pointer = self.model.get_node_widget_pointer(tree_node)?;
+        warn!("get_widget_display_object pointer: {:?}", pointer);
         self.model.with_node(&pointer, |w| w.display_object().clone())
     }
 
@@ -594,6 +602,7 @@ impl TreeModel {
             parent_ast_id: default(),
             parent_crumbs: default(),
             parent_state: default(),
+            extensions: default(),
         };
 
         let child = builder.child_widget(tree.root_ref(), 0);
@@ -622,7 +631,7 @@ impl TreeModel {
             let (_, ast_parent_data) = tree_node.crumbs.into_iter().enumerate().fold(
                 (root, root_ast_data),
                 |(node, last_seen), (index, crumb)| {
-                    let ast_data = node.node.ast_id.map(|id| (id, index + 1)).or(last_seen);
+                    let ast_data = node.node.ast_id.map(|id| (id, index)).or(last_seen);
                     (node.child(*crumb).expect("Node ref must be valid"), ast_data)
                 },
             );
@@ -695,6 +704,9 @@ pub struct ConfigContext<'a, 'b> {
     /// Additional state associated with configured widget tree node, such as its depth, connection
     /// status or parent node information.
     pub(super) state:          NodeState,
+    /// The length of tree extensions vector before the widget was configured. Used to determine
+    /// which extensions were added by the widget parents, and which are new.
+    parent_extensions_len:     usize,
 }
 
 impl<'a, 'b> ConfigContext<'a, 'b> {
@@ -717,6 +729,61 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
     /// Get the `StyleWatch` used by this node.
     pub fn styles(&self) -> &StyleWatch {
         self.builder.styles
+    }
+
+    /// Set an extension object of specified type at the current tree position. Any descendant
+    /// widget will be able to access it, as long as it can name its type. This allows for
+    /// configure-time communication between any widgets inside the widget tree.
+    pub fn set_extension<T: Any>(&mut self, val: T) {
+        let id = std::any::TypeId::of::<T>();
+        match self.self_extension_index_by_type(id) {
+            Some(idx) => *self.builder.extensions[idx].downcast_mut().unwrap() = val,
+            None => {
+                self.builder.extensions.push(Box::new(val));
+            }
+        }
+    }
+
+    /// Get an extension object of specified type at the current tree position. The extension object
+    /// must have been created by any parent widget up in the hierarchy. If it does not exist, this
+    /// method will return `None`.
+    pub fn get_extension<T: Any>(&self) -> Option<&T> {
+        self.any_extension_index_by_type(std::any::TypeId::of::<T>())
+            .map(|idx| self.builder.extensions[idx].downcast_ref().unwrap())
+    }
+
+    /// Modify an extension object of specified type at the current tree position. The modification
+    /// will only be visible to the descendants of this widget, even if the extension was added
+    /// by one of its parents.
+    pub fn modify_extension<T>(&mut self, f: impl FnOnce(&mut T))
+    where T: Any + Default + Clone {
+        match self.any_extension_index_by_type(std::any::TypeId::of::<T>()) {
+            // This extension has been created by this widget, so we can modify it directly.
+            Some(idx) if idx >= self.parent_extensions_len => {
+                f(self.builder.extensions[idx].downcast_mut().unwrap());
+            }
+            // The extension exist, but has been created by one of the parents. We need to clone it.
+            Some(idx) => {
+                let mut val: T = self.builder.extensions[idx].downcast_mut::<T>().unwrap().clone();
+                f(&mut val);
+                self.builder.extensions.push(Box::new(val));
+            }
+            // The extension does not exist yet, so we need to create it from scratch.
+            None => {
+                let mut val = T::default();
+                f(&mut val);
+                self.builder.extensions.push(Box::new(val));
+            }
+        }
+    }
+
+    fn any_extension_index_by_type(&self, id: std::any::TypeId) -> Option<usize> {
+        self.builder.extensions.iter().rposition(|ext| ext.deref().type_id() == id)
+    }
+
+    fn self_extension_index_by_type(&self, id: std::any::TypeId) -> Option<usize> {
+        let self_extensions = &self.builder.extensions[self.parent_extensions_len..];
+        self_extensions.iter().rposition(|ext| ext.deref().type_id() == id)
     }
 }
 
@@ -753,6 +820,7 @@ struct WidgetTreeBuilder<'a> {
     parent_ast_id:   Option<ast::Id>,
     parent_crumbs:   span_tree::Crumbs,
     parent_state:    NodeState,
+    extensions:      Vec<Box<dyn Any>>,
 }
 
 impl<'a> WidgetTreeBuilder<'a> {
@@ -870,8 +938,14 @@ impl<'a> WidgetTreeBuilder<'a> {
         let state = NodeState { depth, connection, subtree_connection, disabled, usage_type };
         let state_to_restore = std::mem::replace(&mut self.parent_state, state.clone());
 
-        let ctx =
-            ConfigContext { builder: &mut *self, display: meta.display, span_tree_node, state };
+        let parent_extensions_len = self.extensions.len();
+        let ctx = ConfigContext {
+            builder: &mut *self,
+            display: meta.display,
+            span_tree_node,
+            state,
+            parent_extensions_len,
+        };
         let app = ctx.app();
         let frp = ctx.frp();
 
@@ -905,6 +979,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             self.parent_ast_id = id;
             self.parent_crumbs = crumbs;
         }
+        self.extensions.truncate(parent_extensions_len);
 
 
         // Apply left margin to the widget, based on its offset relative to the previous sibling.
