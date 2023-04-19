@@ -18,7 +18,7 @@ public class RuntimeWithEnabledContextNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
 
-  Object execute(State state, Atom context, @Suspend Object action, Object env_name) {
+  Object execute(State state, Atom context, Object env_name, @Suspend Object action) {
     String envName = expectStringNode.execute(env_name);
     return thunkExecutorNode.executeThunk(
         action, state.withContextEnabledIn(context, envName), BaseNode.TailStatus.NOT_TAIL);
