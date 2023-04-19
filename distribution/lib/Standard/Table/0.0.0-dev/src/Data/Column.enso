@@ -1072,10 +1072,6 @@ type Column
          - If some values in the column did not match the expected datatype
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
-         - If parsing a numeric column and the selected format does not allow
-           leading zeros (the default) and such cells are found, a
-           `Leading_Zeros` problem is reported. These cells are replaced with
-           `Nothing`.
 
        > Example
          Parse dates in a column in the format `yyyy-MM-dd` (the default format).

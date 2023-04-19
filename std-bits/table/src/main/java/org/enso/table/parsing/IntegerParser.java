@@ -30,7 +30,6 @@ public class IntegerParser extends IncrementalDatatypeParser {
       long value = Long.parseLong(replaced);
 
       if (!leadingZerosAllowed && hasLeadingZeros(replaced)) {
-        problemAggregator.reportLeadingZeroes(text);
         return null;
       }
 

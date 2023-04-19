@@ -67,7 +67,6 @@ public class DecimalParser extends IncrementalDatatypeParser {
     }
 
     if (!leadingZerosAllowed && hasLeadingZeros(replaced)) {
-      problemAggregator.reportLeadingZeroes(text);
       return null;
     }
 

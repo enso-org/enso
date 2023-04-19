@@ -38,14 +38,9 @@ type Data_Formatter
        Arguments:
        - trim_values: Trim whitespace before parsing.
        - allow_leading_zeros: Specifies how to treat numeric values starting with
-         leading zeroes. Defaults to `False`, because converting such
-         values to numbers is a lossy operation - after converting such a number
-         back to text the leading zeroes will get lost. If leading zeroes are not
-         allowed and the column contains any values with leading zeroes, it will not
-         get automatically converted to numbers, remaining as text. However, if the
-         column is specifically requested to be converted to a numeric column, only
-         a warning will be issued indicating that some leading zeroes were present,
-         but the conversion will proceed.
+         leading zeroes when detecting the type of a column automatically. If set
+         to `False` (the default), then if found values will be left as text. If
+         the type is set to a number then these will be parsed.
        - decimal_point: The character used to separate the integer part from the
          fractional part of a number. If `Auto` then the format for numbers will
          be guessed automatically. Can be changed for example to ',' to allow
@@ -182,14 +177,14 @@ type Data_Formatter
             WhitespaceStrippingParser.new base_parser
 
     ## PRIVATE
-    make_integer_parser self allow_currency=True =
-        if self.decimal_point == Auto then AutoNumberParser.new False allow_currency else
+    make_integer_parser self auto_mode=False =
+        if self.decimal_point == Auto then AutoNumberParser.new False auto_mode (auto_mode.not || self.allow_leading_zeros) False else
             self.wrap_base_parser <|
                 IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
 
     ## PRIVATE
-    make_decimal_parser self allow_currency=True =
-        if self.decimal_point == Auto then AutoNumberParser.new True allow_currency else
+    make_decimal_parser self auto_mode=False =
+        if self.decimal_point == Auto then AutoNumberParser.new True auto_mode (auto_mode.not || self.allow_leading_zeros) self.allow_exponential_notation else
             self.wrap_base_parser <|
                 DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
 
@@ -246,7 +241,7 @@ type Data_Formatter
 
     ## PRIVATE
     get_specific_type_parsers self =
-        [self.make_integer_parser False, self.make_decimal_parser False, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
+        [self.make_integer_parser True, self.make_decimal_parser True, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
 
     ## PRIVATE
     make_auto_parser self =

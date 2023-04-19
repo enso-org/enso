@@ -20,11 +20,6 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
   }
 
   @Override
-  public void reportLeadingZeroes(String cell) {
-    leadingZerosCells.add(cell);
-  }
-
-  @Override
   public void reportMismatchedQuote(String cellText) {
     throw new MismatchedQuote(cellText);
   }
@@ -40,10 +35,6 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
 
     if (!invalidFormatCells.isEmpty()) {
       problems.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
-    }
-
-    if (!leadingZerosCells.isEmpty()) {
-      problems.add(new LeadingZeros(relatedColumnName, leadingZerosCells));
     }
 
     assert problems.isEmpty() == !hasProblems();

@@ -16,12 +16,17 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
     private final static String SIGN = "(?<sign>[-+])?\\s*";
     private final static String BRACKETS = "(?<sign>\\((?=.*\\)\\s*$))\\s*";
     private final static String BRACKET_CLOSE = "\\)\\s*";
-    private final static String CCY = "(?<ccy>\\D+)?\\s*";
+    private final static String CCY = "(?<ccy>[^0-9+-]+)?\\s*";
+    private final static String EXP = "(?<exp>[eE][+-]?\\d+)?";
     private final static String[] SEPARATORS = new String[] {",.", ".,", " ,", "',"};
 
     private final static Map<String, Pattern> PATTERNS = new HashMap<>();
 
-    private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, int index) {
+    private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, int index) {
+        if (allowScientific && !allowDecimal) {
+            throw new IllegalArgumentException("Scientific notation requires decimal numbers.");
+        }
+
         int allowedSet = allowCurrency ? 6 : 2;
         int separatorsIndex = index / allowedSet;
         int patternIndex = index % allowedSet;
@@ -32,8 +37,8 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
 
         var separators = SEPARATORS[separatorsIndex];
 
-        var INTEGER = "(?<integer>(\\d+)|(\\d{1,3}([" + separators.charAt(0) + "]\\d{3})*))";
-        var NUMBER = INTEGER + (allowDecimal ? "(?<decimal>[" + separators.charAt(1) + "]\\d+)?" : "") + "\\s*";
+        var INTEGER = "(?<integer>(\\d*)|(\\d{1,3}([" + separators.charAt(0) + "]\\d{3})*))";
+        var NUMBER = INTEGER + (allowDecimal ? "(?<decimal>[" + separators.charAt(1) + "]\\d*)?" : "") + (allowScientific ? EXP : "") + "\\s*";
 
         var pattern = switch (patternIndex) {
             case 0 -> SIGN + NUMBER;
@@ -50,16 +55,20 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
 
     private final boolean allowDecimal;
     private final boolean allowCurrency;
+    private final boolean allowLeadingZeros;
+    private final boolean allowScientific;
 
-    public AutoNumberParser(boolean allowDecimal, boolean allowCurrency) {
+    public AutoNumberParser(boolean allowDecimal, boolean allowCurrency, boolean allowLeadingZeros, boolean allowScientific) {
         this.allowDecimal = allowDecimal;
         this.allowCurrency = allowCurrency;
+        this.allowLeadingZeros = allowLeadingZeros;
+        this.allowScientific = allowScientific;
     }
 
     @Override
     protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
         int index = 0;
-        var pattern = getPattern(allowDecimal, allowCurrency, index);
+        var pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
         while (pattern != null) {
             var value = innerParseSingleValue(text, pattern);
             if (value != null) {
@@ -67,7 +76,7 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
             }
 
             index++;
-            pattern = getPattern(allowDecimal, allowCurrency, index);
+            pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
         }
 
         problemAggregator.reportInvalidFormat(text);
@@ -77,7 +86,7 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
     @Override
     public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
         int index = 0;
-        var pattern = getPattern(allowDecimal, allowCurrency, index);
+        var pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
 
         int bestIndex = 0;
         int bestCount = -1;
@@ -94,12 +103,12 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
             }
 
             index++;
-            pattern = getPattern(allowDecimal, allowCurrency, index);
+            pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
         }
 
         Builder fallback = makeBuilderWithCapacity(sourceStorage.size());
         ProblemAggregator aggregator = new ProblemAggregatorImpl(columnName);
-        parseColumnWithPattern(getPattern(allowDecimal, allowCurrency, bestIndex), sourceStorage, fallback, aggregator);
+        parseColumnWithPattern(getPattern(allowDecimal, allowCurrency, allowScientific, bestIndex), sourceStorage, fallback, aggregator);
         return new WithProblems<>(fallback.seal(), aggregator.getAggregatedProblems());
     }
 
@@ -107,7 +116,7 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
         for (int i = 0; i < sourceStorage.size(); i++) {
             var text = sourceStorage.getItemBoxed(i);
             if (text == null) {
-                sourceStorage.appendNulls(1);
+                builder.appendNulls(1);
             } else {
                 var value = innerParseSingleValue(text, pattern);
                 if (value != null) {
@@ -115,9 +124,10 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
                 } else {
                     if (aggregator == null) {
                         return i;
-                    } else {
-                        aggregator.reportInvalidFormat(text);
                     }
+
+                    aggregator.reportInvalidFormat(text);
+                    builder.appendNulls(1);
                 }
             }
         }
@@ -142,13 +152,35 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
             var sign_value = sign != null && !sign.equals("+") ? -1 : 1;
 
             var integer = parsed.group("integer").replaceAll("\\D", "");
+
+            if (!allowLeadingZeros && integer.length() > 1 && integer.charAt(0) == '0') {
+                return null;
+            }
+
             if (allowDecimal) {
                 var decimal = parsed.group("decimal");
                 var decimalPrepared = decimal == null ? "" : ("." + decimal.substring(1));
+
+                if (integer.equals("") && decimalPrepared.equals("")) {
+                    return null;
+                }
+
+                integer = integer.equals("") ? "0" : integer;
+
+                if (allowScientific) {
+                    var exp = parsed.group("exp");
+                    if (exp != null) {
+                        if (integer.length() > 1) {
+                            return null;
+                        }
+                    }
+                    decimalPrepared = decimalPrepared + exp;
+                }
+
                 return sign_value * Double.parseDouble(integer + decimalPrepared);
             }
 
-            return sign_value * Long.parseLong(integer);
+            return integer.equals("") ? null : sign_value * Long.parseLong(integer);
         } catch (NumberFormatException e) {
             return null;
         }
