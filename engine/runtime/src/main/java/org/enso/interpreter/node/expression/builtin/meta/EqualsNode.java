@@ -33,8 +33,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
       Does not throw dataflow errors or panics.
 
       Note that this is different than `Meta.is_same_object`, which checks whether two
-      references point to the same object on the heap. However `Any.==` implies
-      `Meta.is_same_object` for all object with the exception of `Number.nan`.
+      references point to the same object on the heap. Moreover, `Meta.is_same_object`
+      implies `Any.==` for all object with the exception of `Number.nan`.
       """)
 @GenerateUncached
 public abstract class EqualsNode extends Node {
