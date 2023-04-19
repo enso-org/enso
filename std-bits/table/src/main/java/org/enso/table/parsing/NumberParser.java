@@ -14,9 +14,9 @@ import java.util.regex.Pattern;
 
 public class NumberParser extends IncrementalDatatypeParser {
     private final static String SIGN = "(?<sign>[-+])?";
-    private final static String BRACKETS = "(?<sign>\\((?=.*\\)\\s*$))\\s*";
-    private final static String BRACKET_CLOSE = "\\)";
-    private final static String CCY = "(?<ccy>[^0-9+-]+)?";
+    private final static String BRACKETS = "(?<sign>\\((?=.*\\)\\s*$))?\\s*";
+    private final static String BRACKET_CLOSE = "\\)?";
+    private final static String CCY = "(?<ccy>[^0-9(),. '+-]+)?";
     private final static String EXP = "(?<exp>[eE][+-]?\\d+)?";
     private final static String SPACE = "\\s*";
     private final static String[] SEPARATORS = new String[] {",.", ".,", " ,", "',"};
@@ -264,8 +264,8 @@ public class NumberParser extends IncrementalDatatypeParser {
                         if (integer.length() > 1) {
                             return null;
                         }
+                        decimalPrepared = decimalPrepared + exp;
                     }
-                    decimalPrepared = decimalPrepared + exp;
                 }
 
                 return sign_value * Double.parseDouble(integer + decimalPrepared);
