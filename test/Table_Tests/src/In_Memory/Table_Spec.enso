@@ -364,13 +364,6 @@ spec =
             r1.at "Y" . to_vector . to_text . should_equal "[, Nothing, NaN]"
             r1.at "X" . to_vector . should_equal [1, 2, 4]
 
-            # TODO this could be moved to Common_Table_Operations once replace_text is implemented for Database too
-            t2 = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Nothing, ""]], ["Z", ["", "---", "-1", "", "foobar"]]]
-            r2 = t2.replace_text (Column_Selector.Blank_Columns when_any=True) "-" "A"
-            r2.at "X" . to_vector . should_equal [1, 2, 3, 4, 5]
-            r2.at "Y" . to_vector . should_equal ["", Nothing, Nothing, Nothing, ""]
-            r2.at "Z" . to_vector . should_equal ["", "AAA", "A1", "", "foobar"]
-
     Test.group "Info" <|
         Test.specify "should return Table information" <|
             a = ["strs", ["a", "b", Nothing, "a"]]

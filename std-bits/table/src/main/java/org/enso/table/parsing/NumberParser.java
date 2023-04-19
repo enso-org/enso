@@ -12,21 +12,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class AutoNumberParser extends IncrementalDatatypeParser {
-    private final static String SIGN = "(?<sign>[-+])?\\s*";
+public class NumberParser extends IncrementalDatatypeParser {
+    private final static String SIGN = "(?<sign>[-+])?";
     private final static String BRACKETS = "(?<sign>\\((?=.*\\)\\s*$))\\s*";
-    private final static String BRACKET_CLOSE = "\\)\\s*";
-    private final static String CCY = "(?<ccy>[^0-9+-]+)?\\s*";
+    private final static String BRACKET_CLOSE = "\\)";
+    private final static String CCY = "(?<ccy>[^0-9+-]+)?";
     private final static String EXP = "(?<exp>[eE][+-]?\\d+)?";
+    private final static String SPACE = "\\s*";
     private final static String[] SEPARATORS = new String[] {",.", ".,", " ,", "',"};
 
     private final static Map<String, Pattern> PATTERNS = new HashMap<>();
 
-    private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, int index) {
-        if (allowScientific && !allowDecimal) {
-            throw new IllegalArgumentException("Scientific notation requires decimal numbers.");
-        }
-
+    private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int index) {
         int allowedSet = allowCurrency ? 6 : 2;
         int separatorsIndex = index / allowedSet;
         int patternIndex = index % allowedSet;
@@ -36,9 +33,22 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
         }
 
         var separators = SEPARATORS[separatorsIndex];
+        return getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, patternIndex, separators);
+    }
 
-        var INTEGER = "(?<integer>(\\d*)|(\\d{1,3}([" + separators.charAt(0) + "]\\d{3})*))";
-        var NUMBER = INTEGER + (allowDecimal ? "(?<decimal>[" + separators.charAt(1) + "]\\d*)?" : "") + (allowScientific ? EXP : "") + "\\s*";
+    private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int patternIndex, String separators) {
+        if (allowScientific && !allowDecimal) {
+            throw new IllegalArgumentException("Scientific notation requires decimal numbers.");
+        }
+
+        if (patternIndex >= (allowCurrency ? 6 : 2)) {
+            return null;
+        }
+
+        var INTEGER = "(?<integer>(\\d*)" + (separators.length() == 1 ? "" : "|(\\d{1,3}([" + separators.charAt(0) + "]\\d{3})*)") + ")";
+
+        var decimalPoint = (separators.length() == 1 ? separators : separators.charAt(1));
+        var NUMBER = INTEGER + (allowDecimal ? "(?<decimal>[" + decimalPoint + "]\\d*)?" : "") + (allowScientific ? EXP : "");
 
         var pattern = switch (patternIndex) {
             case 0 -> SIGN + NUMBER;
@@ -50,25 +60,93 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
             default -> throw new IllegalArgumentException("Invalid pattern index: " + patternIndex);
         };
 
-        return PATTERNS.computeIfAbsent(pattern, Pattern::compile);
+        if (trimValues) {
+            pattern = SPACE + pattern + SPACE;
+        }
+
+        return PATTERNS.computeIfAbsent("^" + pattern + "$", Pattern::compile);
     }
 
     private final boolean allowDecimal;
     private final boolean allowCurrency;
     private final boolean allowLeadingZeros;
     private final boolean allowScientific;
+    private final boolean trimValues;
+    private final String separators;
 
-    public AutoNumberParser(boolean allowDecimal, boolean allowCurrency, boolean allowLeadingZeros, boolean allowScientific) {
-        this.allowDecimal = allowDecimal;
+    /**
+     * Creates a new integer instance of this parser.
+     *
+     * @param allowCurrency whether to allow currency symbols
+     * @param allowLeadingZeros whether to allow leading zeros
+     * @param trimValues whether to trim the input values
+     * @param thousandSeparator the thousand separator to use
+     */
+    public NumberParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, String thousandSeparator) {
         this.allowCurrency = allowCurrency;
         this.allowLeadingZeros = allowLeadingZeros;
+        this.trimValues = trimValues;
+
+        this.allowDecimal = false;
+        this.allowScientific = false;
+
+        this.separators = thousandSeparator == null ? null : (thousandSeparator + '_');
+    }
+
+    /**
+     * Creates a new decimal instance of this parser.
+     *
+     * @param allowCurrency whether to allow currency symbols
+     * @param allowLeadingZeros whether to allow leading zeros
+     * @param trimValues whether to trim the input values
+     * @param allowScientific whether to allow scientific notation
+     */
+    public NumberParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific) {
+        this.allowCurrency = allowCurrency;
+        this.allowLeadingZeros = allowLeadingZeros;
+        this.trimValues = trimValues;
+
+        this.allowDecimal = true;
         this.allowScientific = allowScientific;
+
+        this.separators = null;
+    }
+
+    /**
+     * Creates a new decimal instance of this parser.
+     *
+     * @param allowCurrency whether to allow currency symbols
+     * @param allowLeadingZeros whether to allow leading zeros
+     * @param trimValues whether to trim the input values
+     * @param allowScientific whether to allow scientific notation
+     * @param thousandSeparator the thousand separator to use
+     * @param decimalSeparator the decimal separator to use
+     */
+    public NumberParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String thousandSeparator, String decimalSeparator) {
+        if (decimalSeparator.length() != 1) {
+            throw new IllegalArgumentException("Decimal separator must be a single character.");
+        }
+
+        this.allowCurrency = allowCurrency;
+        this.allowLeadingZeros = allowLeadingZeros;
+        this.trimValues = trimValues;
+
+        this.allowDecimal = true;
+        this.allowScientific = allowScientific;
+
+        this.separators = thousandSeparator + decimalSeparator;
+    }
+
+    private Pattern patternForIndex(int index) {
+        return separators == null
+            ? getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, index)
+            : getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, index, separators);
     }
 
     @Override
     protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
         int index = 0;
-        var pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
+        var pattern = patternForIndex(index);
         while (pattern != null) {
             var value = innerParseSingleValue(text, pattern);
             if (value != null) {
@@ -76,7 +154,7 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
             }
 
             index++;
-            pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
+            pattern = patternForIndex(index);
         }
 
         problemAggregator.reportInvalidFormat(text);
@@ -86,7 +164,7 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
     @Override
     public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
         int index = 0;
-        var pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
+        var pattern = patternForIndex(index);
 
         int bestIndex = 0;
         int bestCount = -1;
@@ -103,12 +181,12 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
             }
 
             index++;
-            pattern = getPattern(allowDecimal, allowCurrency, allowScientific, index);
+            pattern = patternForIndex(index);
         }
 
         Builder fallback = makeBuilderWithCapacity(sourceStorage.size());
         ProblemAggregator aggregator = new ProblemAggregatorImpl(columnName);
-        parseColumnWithPattern(getPattern(allowDecimal, allowCurrency, allowScientific, bestIndex), sourceStorage, fallback, aggregator);
+        parseColumnWithPattern(patternForIndex(bestIndex), sourceStorage, fallback, aggregator);
         return new WithProblems<>(fallback.seal(), aggregator.getAggregatedProblems());
     }
 
@@ -142,6 +220,19 @@ public class AutoNumberParser extends IncrementalDatatypeParser {
     }
 
     private Object innerParseSingleValue(String text, Pattern pattern) {
+        if (allowDecimal) {
+            var trimmed = trimValues ? text.trim() : text;
+            if (trimmed.equals("NaN")) {
+                return Double.NaN;
+            }
+            if (trimmed.equals("Infinity")) {
+                return Double.POSITIVE_INFINITY;
+            }
+            if (trimmed.equals("-Infinity")) {
+                return Double.NEGATIVE_INFINITY;
+            }
+        }
+
         var parsed = pattern.matcher(text);
         if (!parsed.matches()) {
             return null;

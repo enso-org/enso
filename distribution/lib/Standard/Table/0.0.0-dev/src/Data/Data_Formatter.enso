@@ -4,8 +4,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Parse_Values_Helper
 from project.Data.Type.Value_Type import Value_Type, Auto, Bits
 
-polyglot java import org.enso.table.parsing.IntegerParser
-polyglot java import org.enso.table.parsing.DecimalParser
 polyglot java import org.enso.table.parsing.BooleanParser
 polyglot java import org.enso.table.parsing.DateParser
 polyglot java import org.enso.table.parsing.TimeOfDayParser
@@ -13,7 +11,7 @@ polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
-polyglot java import org.enso.table.parsing.AutoNumberParser
+polyglot java import org.enso.table.parsing.NumberParser
 
 polyglot java import org.enso.table.formatting.AnyObjectFormatter
 polyglot java import org.enso.table.formatting.BooleanFormatter
@@ -178,15 +176,13 @@ type Data_Formatter
 
     ## PRIVATE
     make_integer_parser self auto_mode=False =
-        if self.decimal_point == Auto then AutoNumberParser.new False auto_mode (auto_mode.not || self.allow_leading_zeros) False else
-            self.wrap_base_parser <|
-                IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
+        separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
+        NumberParser.new auto_mode (auto_mode.not || self.allow_leading_zeros) self.trim_values separator
 
     ## PRIVATE
     make_decimal_parser self auto_mode=False =
-        if self.decimal_point == Auto then AutoNumberParser.new True auto_mode (auto_mode.not || self.allow_leading_zeros) self.allow_exponential_notation else
-            self.wrap_base_parser <|
-                DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
+        if self.decimal_point == Auto then NumberParser.new auto_mode (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation else
+            NumberParser.new auto_mode (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation self.thousand_separator self.decimal_point
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|
