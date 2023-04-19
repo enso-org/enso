@@ -50,10 +50,10 @@ export function importProjectFromPath(openedPath: string): string {
         // Otherwise, we need to install it first.
         if (rootPath == null) {
             const message = `File '${openedPath}' does not belong to the ${common.PRODUCT_NAME} project.`
-            // eslint-disable-next-line no-restricted-syntax
             throw new Error(message)
+        } else {
+            return importDirectory(rootPath)
         }
-        return importDirectory(rootPath)
     }
 }
 

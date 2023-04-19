@@ -8,6 +8,18 @@ import * as contentConfig from 'enso-content-config'
 
 const logger = contentConfig.logger
 
+// ============================
+// === Protocol Association ===
+// ============================
+
+/** Register the application as a handler for our [deep link scheme]{@link common.DEEP_LINK_SCHEME}.
+ *
+ * This method is no-op when used under the Electron dev mode, as it requires special handling to
+ * set up the process.
+ *
+ * It is also no-op on macOS, as the OS handles the URL opening by passing the `open-url` event to
+ * the application, thanks to the information baked in our application by the `electron-builder`.
+ */
 export function registerAssociations() {
     if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
         if (electronIsDev) {
@@ -24,6 +36,10 @@ export function registerAssociations() {
     }
 }
 
+// ====================
+// === URL handling ===
+// ====================
+
 /**
  * Check if the given list of application startup arguments denotes an attempt to open a URL.
  *
@@ -38,7 +54,7 @@ export function registerAssociations() {
 export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
     const arg = clientArgs[0]
     let result: URL | null = null
-    logger.log(`Checking if '${clientArgs.toString()}' denote a URL to open.`)
+    logger.log(`Checking if '${clientArgs.toString()}' denotes a URL to open.`)
     // Check if the first argument parses as a URL using our deep link scheme.
     if (clientArgs.length === 1 && typeof arg !== 'undefined') {
         try {
@@ -114,6 +130,10 @@ export function registerUrlCallback(callback: (url: URL) => void) {
         }
     })
 }
+
+// ===============================
+// === Temporary handler setup ===
+// ===============================
 
 /** Make this application instance the recipient of URL callbacks.
  *

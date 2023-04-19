@@ -145,8 +145,9 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
 export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
     logger.log(`Received 'open-url' event for '${url.toString()}'.`)
     if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
-        logger.error(`${url.toString()} is not a deep link, ignoring.`)
+        logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
     } else {
+        logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
         window().webContents.send(ipc.Channel.openDeepLink, url.toString())
     }
 }
