@@ -266,7 +266,6 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
         /// Push a new element to the end of the list.
         push(Weak<T>),
 
-        /// WARNING: not working yet, use `push` instead.
         insert((Index, Weak<T>)),
 
         /// Remove the element at the given index. If the index is invalid, nothing will happen.
@@ -279,7 +278,9 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
     }
     Output {
         /// Fires whenever a new element was added to the list.
-        on_new_item(Response<(Index, Weak<T>)>),
+        on_item_added(Response<(Index, Weak<T>)>),
+
+        // on_item_removed(Response<(Index, Weak<T>)>),
 
         /// Request new item to be inserted at the provided index. In most cases, this happens after
         /// clicking a "plus" icon to add new element to the list. As a response, you should use the
@@ -389,7 +390,14 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
                 item.upgrade().map(|t| model.borrow_mut().push((*t).clone()))
             ));
             on_item_pushed <- frp.push.map2(&push_item_index, |item, ix| Response::api((*ix, item.clone())));
-            frp.private.output.on_new_item <+ on_item_pushed;
+            frp.private.output.on_item_added <+ on_item_pushed;
+
+            insert_item_index <= frp.insert.map(f!([model] ((index, item))
+                item.upgrade().map(|t| model.borrow_mut().insert(*index, (*t).clone()))
+            ));
+            on_item_inserted <- frp.insert.map2(&insert_item_index, |(_,item), ix| Response::api((*ix, item.clone())));
+            frp.private.output.on_item_added <+ on_item_inserted;
+
 
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
@@ -423,6 +431,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
 
             // Re-parent the dragged element.
             eval target_on_start([model, cursor] (t) model.borrow_mut().start_item_drag(&cursor, t));
+            // frp.private.output.on_item_removed <+ on_item_inserted;
 
             pos_non_trash <- pos_on_move.gate_not(&is_trashing);
             insert_index <- pos_non_trash.map(f!((pos) model.borrow().insert_index(pos.x))).on_change();
@@ -558,11 +567,11 @@ impl<T: display::Object + 'static> Model<T> {
         self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0.into())
     }
 
-    // fn item_or_placeholder_index_to_index(&mut self, ix: ItemOrPlaceholderIndex) -> Option<Index>
-    // {     self.items.iter().enumerate().filter(|(_, item)| item.is_item()).position(|t| t.0
-    // == *ix) }
+    fn item_or_placeholder_index_to_index(&mut self, ix: ItemOrPlaceholderIndex) -> Option<Index> {
+        self.items.iter().enumerate().filter(|(_, item)| item.is_item()).position(|t| t.0 == *ix)
+    }
 
-    fn push(&mut self, item: T) -> usize {
+    fn push(&mut self, item: T) -> Index {
         let index = self.len();
         let item = Item::new(item);
         self.items.push(item.into());
@@ -570,15 +579,17 @@ impl<T: display::Object + 'static> Model<T> {
         index
     }
 
-    // fn insert(&mut self, index: Index, item: T) -> usize {
-    //     if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
-    //         let item = Item::new(item);
-    //         self.items.insert(index2, item.into());
-    //         index
-    //     } else {
-    //         self.push(item)
-    //     }
-    // }
+    fn insert(&mut self, index: Index, item: T) -> Index {
+        let index = if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
+            let item = Item::new(item);
+            self.items.insert(index2, item.into());
+            index
+        } else {
+            self.push(item)
+        };
+        self.reposition_items();
+        index
+    }
 
     /// Remove all items and add them again, in order of their current position.
     fn reposition_items(&mut self) {
@@ -689,12 +700,19 @@ impl<T: display::Object + 'static> Model<T> {
     /// be reused and scaled to cover the size of the dragged element.
     ///
     /// See docs of [`Self::start_item_drag_at`] for more information.
-    fn start_item_drag(&mut self, cursor: &Cursor, target: &display::object::Instance) {
-        if let Some(index) = self.item_index_of(target) {
+    fn start_item_drag(
+        &mut self,
+        cursor: &Cursor,
+        target: &display::object::Instance,
+    ) -> Option<Index> {
+        let index = self.item_index_of(target);
+        if let Some(index) = index {
             self.start_item_drag_at(cursor, index);
         } else {
             warn!("Requested to drag a non-existent item.")
         }
+        // Fixme: this could break easily during refactoring.
+        index.and_then(|t| self.item_or_placeholder_index_to_index(t))
     }
 
     /// Remove the selected item from the item list and mark it as an element being dragged. In the
