@@ -208,23 +208,36 @@ impl Metadata {
         Self::always(vector_editor::Config { item_editor: None, item_default: "_".into() })
     }
 
-    fn from_kind(
-        kind: &span_tree::node::Kind,
-        _usage_type: Option<crate::Type>,
-        has_children: bool,
+    fn from_node(
+        node: &span_tree::node::Ref,
+        usage_type: Option<crate::Type>,
+        expression: &str,
     ) -> Self {
         use span_tree::node::Kind;
 
+        let kind = &node.kind;
+        let has_children = !node.children.is_empty();
+
         const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
         let is_array_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
+        let is_vector = |arg: &span_tree::node::Argument| {
+            let type_matches = usage_type
+                .as_ref()
+                .map(|t| t.as_str())
+                .or(arg.tp.as_deref())
+                .map_or(false, |tp| tp.contains(VECTOR_TYPE));
+            if type_matches {
+                let node_expr = &expression[node.span()];
+                node_expr.starts_with('[') && node_expr.ends_with(']')
+            } else {
+                false
+            }
+        };
 
         match kind {
             Kind::Argument(arg) if !arg.tag_values.is_empty() =>
                 Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Argument(arg)
-                if is_array_enabled
-                    && arg.tp.as_ref().map_or(false, |tp| tp.contains(VECTOR_TYPE)) =>
-                Self::vector_editor(),
+            Kind::Argument(arg) if is_array_enabled && is_vector(arg) => Self::vector_editor(),
             Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
                 if !arg.tag_values.is_empty() {
                     Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
@@ -911,7 +924,6 @@ impl<'a> WidgetTreeBuilder<'a> {
         // type and whether it has children.
         let mut meta_fallback = None;
         let kind = &span_tree_node.kind;
-        let has_children = !span_tree_node.children.is_empty();
         let meta = set_metadata
             .as_ref()
             .or_else(|| {
@@ -925,7 +937,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             })
             .unwrap_or_else(|| {
                 meta_fallback.get_or_insert_with(|| {
-                    Metadata::from_kind(kind, usage_type.clone(), has_children)
+                    Metadata::from_node(&span_tree_node, usage_type.clone(), self.node_expression)
                 })
             });
 

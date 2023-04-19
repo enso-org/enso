@@ -4,12 +4,12 @@
 //! Currently the view is a simle [`Elements`] component, which will be replaced with a rich
 //! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
 
-use crate::component::node::input::widget::Metadata;
 use crate::prelude::*;
 
 use crate::component::node::input::widget::single_choice::triangle;
 use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_COLOR;
 use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_SIZE;
+use crate::component::node::input::widget::Metadata;
 
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
