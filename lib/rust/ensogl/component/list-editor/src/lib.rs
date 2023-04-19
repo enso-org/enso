@@ -384,19 +384,25 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             is_down <- bool(&on_up, &on_down);
             on_move_down <- on_move.gate(&is_down);
             glob_pos_on_down <- on_down.map(|event| event.client_centered());
-            glob_pos_on_move <- on_move_down.map(|event| event.client_centered());
-            pos_on_down <- glob_pos_on_down.map(f!([model] (p) model.screen_to_object_space(*p)));
-            pos_on_move <- glob_pos_on_move.map(f!([model] (p) model.screen_to_object_space(*p)));
-            pos_diff_on_move <- pos_on_move.map2(&pos_on_down, |a, b| a - b);
+            glob_pos_on_move_down <- on_move_down.map(|event| event.client_centered());
+            glob_pos_on_move <- on_move.map(|event| event.client_centered());
+            pos_on_down <- glob_pos_on_down.map(f!((p) model.screen_to_object_space(*p)));
+            pos_on_move_down <- glob_pos_on_move_down.map(f!((p) model.screen_to_object_space(*p)));
+            pos_on_move <- glob_pos_on_move.map(f!((p) model.screen_to_object_space(*p)));
+            pos_diff_on_move <- pos_on_move_down.map2(&pos_on_down, |a, b| a - b);
             pos_diff_on_down <- on_down.constant(Vector2(0.0, 0.0));
             pos_diff_on_up <- on_up_cleaning_phase.constant(Vector2(0.0, 0.0));
             pos_diff <- any3(&pos_diff_on_move, &pos_diff_on_down, &pos_diff_on_up);
+
+            in_gap <- pos_on_move.map(f!((p) model.gaps().iter().any(|g| g.contains(&p.x))));
+            cursor.frp.set_style <+ in_gap.default_or(cursor::Style::plus());
+            trace in_gap;
         }
 
         self.init_add_and_remove();
         let drag_diff = self.init_dragging(&on_up, &on_down, &target, &pos_diff);
         let is_trashing = self.init_trashing(cursor, &on_up, &drag_diff);
-        self.init_insertion_points(&on_up, &pos_on_move, &is_trashing);
+        self.init_insertion_points(&on_up, &pos_on_move_down, &is_trashing);
         self
     }
 
@@ -577,6 +583,10 @@ impl<T: display::Object + CloneRef + 'static> SharedModel<T> {
 
     fn insert_index(&self, x: f32) -> ItemOrPlaceholderIndex {
         self.borrow().insert_index(x)
+    }
+
+    fn gaps(&self) -> Vec<RangeInclusive<f32>> {
+        self.borrow().gaps()
     }
 }
 
@@ -925,6 +935,20 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
             current += size2;
         }
         centers
+    }
+
+    fn gaps(&self) -> Vec<RangeInclusive<f32>> {
+        let mut gaps = Vec::new();
+        gaps.push(f32::NEG_INFINITY..=0.0);
+        let mut current = 0.0;
+        for item in &self.items {
+            let start = current;
+            current += item.margin_left();
+            gaps.push(start..=current);
+            current += item.target_size2();
+        }
+        gaps.push(current..=f32::INFINITY);
+        gaps
     }
 
     /// The insertion point of the given vertical offset.
