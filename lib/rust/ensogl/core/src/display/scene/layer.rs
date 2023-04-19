@@ -807,8 +807,8 @@ impl LayerModel {
     fn remove_from_parent(&self) {
         // Borrow `self.parent` only within the scope of this line. Note that if this expression
         // were used directly as the matched expression of the `if let`, the `RefMut` would not be
-        // dropped until the end of the body block, even though it is a temporary value within the
-        // subexpression with `take`.
+        // dropped until the end of the `if let` block, even though it is a temporary value within
+        // the subexpression with `take`.
         let parent = self.parent.borrow_mut().take();
         if let Some(parent) = parent {
             parent.borrow_mut().remove(self.id());
