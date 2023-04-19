@@ -188,6 +188,14 @@ type SQLite_Dialect
         Average _ _ -> True
         Median _ _ -> unsupported "Median"
 
+    ## PRIVATE
+       Checks if an operation is supported by the dialect.
+    is_supported : Text -> Boolean
+    is_supported self operation =
+        self.internal_generator_dialect.is_supported operation
+
+
+
 ## PRIVATE
 make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
