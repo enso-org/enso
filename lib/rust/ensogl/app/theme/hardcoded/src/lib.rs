@@ -110,6 +110,7 @@ macro_rules! _define_theme_wrapper_and_literals {
         pub mod $name {
             use super::*;
             use ensogl_core::application::Application;
+            use ensogl_core::data::color::Lch;
             use ensogl_core::data::color::Lcha;
             use ensogl_core::data::color::Rgb;
             use ensogl_core::data::color::Rgba;
@@ -662,15 +663,22 @@ define_themes! { [light:0, dark:1]
         execution_mode_selector {
             background = Rgb::from_base_255(100.0, 181.0, 38.0), Rgb::from_base_255(100.0, 181.0, 38.0);
             divider = Rgba::black_with_alpha(0.12), Rgba::black_with_alpha(0.12);
-            triangle = Rgba::white_with_alpha(0.75), Rgba::white_with_alpha(0.75);
-            play_button_size = 10.0,  10.0;
-            play_button_offset = 15.0, 15.0;
-            play_button_padding = 10.0, 10.0;
             divider_offset = 32.5, 32.5;
             divider_padding = 10.0, 10.0;
             dropdown_width = 95.0, 95.0;
             height = 24.0, 24.0;
             menu_offset = 20.0, 20.0;
+            play_button {
+                color = Rgba::white_with_alpha(0.75), Rgba::white_with_alpha(0.75);
+                triangle_size = 10.0, 10.0;
+                offset = 15.0, 15.0;
+                padding_x = 5.0, 5.0;
+                padding_y = 7.0, 7.0;
+                spinner {
+                    color = Lch(0.8, 0.0, 0.0), Lch(0.8, 0.0, 0.0);
+                    speed = 0.003, 0.003; // Radians/ms
+                }
+            }
         }
     }
     widget {
