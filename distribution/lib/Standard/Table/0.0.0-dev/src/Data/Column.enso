@@ -719,7 +719,7 @@ type Column
 
              import Standard.Examples
 
-             example_is_missing = Examples.decimal_column.is_nothing
+             example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing : Column
     is_nothing self =
         new_name = Naming_Helpers.to_expression_text self + " is null"
@@ -1278,9 +1278,9 @@ type Column
 
              import Standard.Examples
 
-             example_count_missing = Examples.text_column_2.count_missing
-    count_missing : Integer
-    count_missing self = self.java_column.getStorage.countMissing
+             example_count_nothing = Examples.text_column_2.count_nothing
+    count_nothing : Integer
+    count_nothing self = self.java_column.getStorage.countMissing
 
     ## Returns the number of non-null items in this column.
 
@@ -1291,7 +1291,7 @@ type Column
 
              example_count = Examples.text_column_2.count
     count : Integer
-    count self = self.length - self.count_missing
+    count self = self.length - self.count_nothing
 
     ## Returns the value contained in this column at the given index.
 

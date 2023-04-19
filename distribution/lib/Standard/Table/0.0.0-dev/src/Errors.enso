@@ -400,8 +400,8 @@ type Invalid_Value_Type
     to_display_text : Text
     to_display_text self =
         prefix = case self.related_column of
-            Nothing -> "Expected "
             column_name : Text -> "Expected " + column_name + " column to have "
+            _ -> "Expected "
         expected_type = case self.expected of
             msg : Text -> msg
             other -> other.to_display_text
@@ -451,8 +451,8 @@ type No_Common_Type
         types = self.types.map .to_display_text . join ", "
         prefix = "No common type could have been found for the types: "+types
         infix = case self.related_column_name of
-            Nothing -> "."
             column_name : Text -> " when unifying the column ["+column_name+"]."
+            _ -> "."
         suffix = "If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
         prefix + infix + suffix
 

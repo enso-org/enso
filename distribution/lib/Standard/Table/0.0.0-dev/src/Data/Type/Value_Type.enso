@@ -190,13 +190,15 @@ type Value_Type
        Specifies if values of the given type can be compared for ordering.
     has_ordering : Boolean
     has_ordering self = case self of
-        Value_Type.Integer _ -> True
-        Value_Type.Float _ -> True
+        Value_Type.Integer _   -> True
+        Value_Type.Float _     -> True
         Value_Type.Decimal _ _ -> True
-        Value_Type.Char _ _ -> True
-        Value_Type.Date -> True
+        Value_Type.Byte        -> True
+        Value_Type.Char _ _    -> True
+        Value_Type.Boolean     -> True
+        Value_Type.Date        -> True
         Value_Type.Date_Time _ -> True
-        Value_Type.Time -> True
+        Value_Type.Time        -> True
         ## Not all mixed types are ordered, but some can, so we allow ordering
            for mixed columns.
         Value_Type.Mixed -> True
@@ -207,7 +209,7 @@ type Value_Type
     are_comparable : Value_Type -> Value_Type -> Boolean
     are_comparable type_1 type_2 =
         find_bucket typ = typ.if_not_error <|
-            buckets = [["Integer", "Float", "Decimal"], ["Char"], ["Date"], ["Date_Time"], ["Time"], ["Mixed"]]
+            buckets = [["Integer", "Byte", "Float", "Decimal"], ["Char"], ["Date"], ["Date_Time"], ["Time"], ["Boolean"], ["Mixed"]]
             ## TODO [RW] workaround for the bug #6258:
             cleared_typ = Warning.clear typ
             ctor_name = Meta.meta cleared_typ . constructor . name
@@ -225,9 +227,13 @@ type Value_Type
        Checks that both types can be compared for ordering and runs the
        following action or reports an error.
 
-       The second argument may be `Nothing` if the type represents null values.
-       `Nothing` is assumed to be comparable with any ordered type (yielding
-       `Nothing` as a result).
+       The `type_2` may be `Nothing` in which case the method will accept the
+       pair of types if `type_1` has an ordering. `Nothing` indicates that a
+       column of all-null values without an assigned type is being compared and
+       that should be accepted.
+
+       TODO [RW] The `Nothing` should just be replaced with `Value_Type.Null`,
+       once #6281 is implemented.
     expect_comparable : Value_Type -> Value_Type | Nothing -> (Any -> Any) -> Any ! Illegal_Argument
     expect_comparable type_1 type_2 ~action =
         ## TODO these errors do not fit `Invalid_Value_Type` mold, but Illegal_Argument seems too generic.

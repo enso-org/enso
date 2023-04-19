@@ -206,7 +206,7 @@ spec setup =
             ints_filled.should_fail_with No_Common_Type
 
             c = ints.coalesce [42.0, False]
-            c.to_vector . should_fail_with No_Common_Type
+            c.should_fail_with No_Common_Type
 
             table.at "Y" . fill_nothing 42 . should_fail_with No_Common_Type
             table.at "Z" . fill_nothing True . should_fail_with No_Common_Type

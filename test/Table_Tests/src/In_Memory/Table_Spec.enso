@@ -196,7 +196,7 @@ spec =
 
             x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
             y = Column.from_vector 'b' [0, 0, 0, 0]
-            r = x.zip y skip_missing=False x-> y-> if x == 1 then x else y
+            r = x.zip y skip_nothing=False x-> y-> if x == 1 then x else y
             r.to_vector.should_equal [1, 0, 0, 0]
             r.value_type . should_equal Value_Type.Integer
 
@@ -295,7 +295,7 @@ spec =
             col = Column.from_vector 'x' [1, Nothing, 2]
             col.length . should_equal 3
             col.count . should_equal 2
-            col.count_missing . should_equal 1
+            col.count_nothing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
         Test.specify "should correctly handle NaNs with mixed type columns" <|
@@ -569,7 +569,7 @@ spec =
             t1.at "texts" . value_type . should_equal Value_Type.Char
 
         # TODO just merge with above once enabled
-        Test.specify "should infer correct return type (2)" pending="TODO: requires Table.cast and fixed-length strings - #6112 and #5159"<|
+        Test.specify "should infer correct return type (2)" pending="TODO: requires Table.cast and fixed-length strings - #6112 and #5159" <|
             t = Table.new [["texts", ["foo", "bar"]]]
 
             t2 = t.cast "texts" (Value_Type.Char size=2 variable_length=False)

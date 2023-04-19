@@ -43,8 +43,8 @@ spec setup =
             c6 = t.at "X" . iif Nothing Nothing
             c6.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
-            t.at "X" . iif 22.0 False . to_vector . should_fail_with No_Common_Type
-            t.at "X" . iif 22 "0" . to_vector . should_fail_with No_Common_Type
+            t.at "X" . iif 22.0 False . should_fail_with No_Common_Type
+            t.at "X" . iif 22 "0" . should_fail_with No_Common_Type
 
         Test.specify "iif on Columns" <|
             t1 = table_builder [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.0, 3.5, 4.0]]]
@@ -58,8 +58,8 @@ spec setup =
             c2.value_type . is_floating_point . should_be_true
 
             t3 = table_builder [["X", [True, False]], ["Y", [10, 20]], ["Z", [False, True]]]
-            t3.at "X" . iif (t3.at "Y") (t3.at "Z") . to_vector . should_fail_with No_Common_Type
-            t3.at "X" . iif (t3.at "Y") "<NA>" . to_vector . should_fail_with No_Common_Type
+            t3.at "X" . iif (t3.at "Y") (t3.at "Z") . should_fail_with No_Common_Type
+            t3.at "X" . iif (t3.at "Y") "<NA>" . should_fail_with No_Common_Type
 
         Test.specify "iif should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
@@ -106,16 +106,16 @@ spec setup =
         Test.specify "should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [True, False, Nothing]]]
 
-            ((t.at "X") && (t.at "Z")) . to_vector . should_fail_with Invalid_Value_Type
-            ((t.at "Z") && (t.at "X")) . to_vector . should_fail_with Invalid_Value_Type
-            ((t.at "Y") && True) . to_vector . should_fail_with Invalid_Value_Type
+            ((t.at "X") && (t.at "Z")) . should_fail_with Invalid_Value_Type
+            ((t.at "Z") && (t.at "X")) . should_fail_with Invalid_Value_Type
+            ((t.at "Y") && True) . should_fail_with Invalid_Value_Type
 
-            ((t.at "X") || (t.at "Z")) . to_vector . should_fail_with Invalid_Value_Type
-            ((t.at "Z") || (t.at "X")) . to_vector . should_fail_with Invalid_Value_Type
-            ((t.at "Y") || True) . to_vector . should_fail_with Invalid_Value_Type
+            ((t.at "X") || (t.at "Z")) . should_fail_with Invalid_Value_Type
+            ((t.at "Z") || (t.at "X")) . should_fail_with Invalid_Value_Type
+            ((t.at "Y") || True) . should_fail_with Invalid_Value_Type
 
-            ((t.at "X") . not) . to_vector . should_fail_with Invalid_Value_Type
-            ((t.at "Y") . iif 10 20) . to_vector . should_fail_with Invalid_Value_Type
+            ((t.at "X") . not) . should_fail_with Invalid_Value_Type
+            ((t.at "Y") . iif 10 20) . should_fail_with Invalid_Value_Type
 
     t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]]
     x = t2.at "x"
@@ -230,6 +230,19 @@ spec setup =
                 op (t.at "X") (t.at "Y") . to_vector . should_succeed
                 op (t.at "X") "abc" . to_vector . should_succeed
 
+        Test.specify "should allow to compare booleans" <|
+            t = table_builder [["X", [True, False, True]], ["Y", [False, True, True]]]
+
+            ((t.at "X") < (t.at "Y")).to_vector . should_equal [False, True, False]
+            ((t.at "X") >= (t.at "Y")).to_vector . should_equal [True, False, True]
+            ((t.at "X") <= (t.at "Y")).to_vector . should_equal [False, True, True]
+            ((t.at "X") > (t.at "Y")).to_vector . should_equal [True, False, False]
+
+            ((t.at "X") < True).to_vector . should_equal [False, True, False]
+            ((t.at "X") >= True).to_vector . should_equal [True, False, True]
+            ((t.at "X") <= True).to_vector . should_equal [True, True, True]
+            ((t.at "X") > True).to_vector . should_equal [False, False, False]
+
         Test.specify "should report error if incomparable types are compared" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
 
@@ -237,7 +250,9 @@ spec setup =
                 op (t.at "X") (t.at "Y") . should_fail_with Illegal_Argument
                 op (t.at "X") "FOO" . should_fail_with Illegal_Argument
                 op (t.at "Y") 42 . should_fail_with Illegal_Argument
-                op (t.at "Z") False . should_fail_with Illegal_Argument
+                op (t.at "Y") False . should_fail_with Illegal_Argument
+                op (t.at "Z") 32 . should_fail_with Illegal_Argument
+                op (t.at "Z") (t.at "X") . should_fail_with Illegal_Argument
 
         Test.specify "Between should return null if any of the values are null" pending="TODO" <|
             a = [2, 3, Nothing, 7,       5,       Nothing]
@@ -314,7 +329,7 @@ spec setup =
             Test.specify "should support is_nan" <|
                 t = table_builder [["X", [1.5, 2, Number.nan]], ["Y", [1, 2, 3]]]
                 t.at "X" . is_nan . to_vector . should_equal [False, False, True]
-                t.at "Y" . is_nan . to_vector . should_fail_with Invalid_Value_Type
+                t.at "Y" . is_nan . should_fail_with Invalid_Value_Type
         Test.specify "should support is_blank" <|
             t = table_builder [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
             t.at "X" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, False, True, True]
@@ -457,18 +472,18 @@ spec setup =
             t4 = table_builder [["str", ['a', 'b']], ["int", [1, 2]]]
             str = t4.at "str"
             int = t4.at "int"
-            str.starts_with int . to_vector . should_fail_with Invalid_Value_Type
-            str.ends_with int . to_vector . should_fail_with Invalid_Value_Type
-            str.contains int . to_vector . should_fail_with Invalid_Value_Type
-            str.like int . to_vector . should_fail_with Invalid_Value_Type
-            int.starts_with str . to_vector . should_fail_with Invalid_Value_Type
-            int.ends_with str . to_vector . should_fail_with Invalid_Value_Type
-            int.contains str . to_vector . should_fail_with Invalid_Value_Type
-            int.like str . to_vector . should_fail_with Invalid_Value_Type
-            str.starts_with 42 . to_vector . should_fail_with Invalid_Value_Type
-            str.ends_with 42 . to_vector . should_fail_with Invalid_Value_Type
-            str.contains 42 . to_vector . should_fail_with Invalid_Value_Type
-            str.like 42 . to_vector . should_fail_with Invalid_Value_Type
+            str.starts_with int . should_fail_with Invalid_Value_Type
+            str.ends_with int . should_fail_with Invalid_Value_Type
+            str.contains int . should_fail_with Invalid_Value_Type
+            str.like int . should_fail_with Invalid_Value_Type
+            int.starts_with str . should_fail_with Invalid_Value_Type
+            int.ends_with str . should_fail_with Invalid_Value_Type
+            int.contains str . should_fail_with Invalid_Value_Type
+            int.like str . should_fail_with Invalid_Value_Type
+            str.starts_with 42 . should_fail_with Invalid_Value_Type
+            str.ends_with 42 . should_fail_with Invalid_Value_Type
+            str.contains 42 . should_fail_with Invalid_Value_Type
+            str.like 42 . should_fail_with Invalid_Value_Type
 
             # Mixing text and integers should not be allowed
             (str + int) . should_fail_with Illegal_Argument
@@ -550,6 +565,14 @@ spec setup =
             c8.to_vector . should_equal [4.5, 5.5, 6.5]
             c8.value_type.is_floating_point . should_be_true
 
+            c9 = (t.at "d").min False
+            c9.to_vector . should_equal [False, False, False]
+            c9.value_type.is_boolean . should_be_true
+
+            c10 = (t.at "d").max False
+            c10.to_vector . should_equal [True, False, True]
+            c10.value_type.is_boolean . should_be_true
+
         Test.specify "should check types" <|
             [(.min), (.max)].each op->
                 op a c . should_fail_with Illegal_Argument
@@ -557,7 +580,6 @@ spec setup =
                 op a [1, Nothing, c, Nothing] . should_fail_with Illegal_Argument
                 op c 1 . should_fail_with Illegal_Argument
                 op a True . should_fail_with Illegal_Argument
-                op (t.at "d") True . should_fail_with Illegal_Argument
 
     Test.group prefix+"Column Operations - Text Replace" <|
         if setup.is_database.not then

@@ -134,9 +134,9 @@ spec detailed setup =
         Test.specify "a null column may fail typechecks that expect a concrete type" <|
             t = table_builder [["X", [1, 2, 3]]]
             c = t.compute "null"
-            (c + c).to_vector . should_fail_with Illegal_Argument
-            (c - c).to_vector . should_fail_with Invalid_Value_Type
-            (c.starts_with "X").to_vector . should_fail_with Invalid_Value_Type
+            (c + c) . should_fail_with Illegal_Argument
+            (c - c) . should_fail_with Invalid_Value_Type
+            (c.starts_with "X") . should_fail_with Invalid_Value_Type
             c.not . should_fail_with Invalid_Value_Type
 
             t.compute "not(Nothing)" . should_fail_with Invalid_Value_Type

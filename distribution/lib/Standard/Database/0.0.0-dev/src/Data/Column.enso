@@ -175,8 +175,8 @@ type Column
     ## UNSTABLE
 
        Returns the number of missing items in this column.
-    count_missing : Integer
-    count_missing self =
+    count_nothing : Integer
+    count_nothing self =
         self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
     ## UNSTABLE
@@ -1079,7 +1079,7 @@ type Column
        - that: The column to zip with `self`.
        - function: A binary function that is applied to corresponding pairs of
          elements of `self` and `that` to produce a value.
-       - skip_missing: controls whether missing values should be passed to the
+       - skip_nothing: controls whether missing values should be passed to the
          `function`. The default value of `True` will skip the rows for which
          the value in either column is missing and automatically append
          `Nothing` to the result table. If set to `False`, every pair of values
@@ -1093,8 +1093,8 @@ type Column
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
-    zip self that function skip_missing=True =
-        _ = [that, function, skip_missing]
+    zip self that function skip_nothing=True =
+        _ = [that, function, skip_nothing]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.zip` is not supported in the Database backends."
 
     ## PRIVATE

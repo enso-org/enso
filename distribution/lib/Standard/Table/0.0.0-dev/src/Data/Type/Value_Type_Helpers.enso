@@ -74,9 +74,14 @@ find_common_type types strict =
 
 type Operation_Type_Helpers
     ## PRIVATE
+       A set of helpers for checking input types of column operations.
+
+       Distinct instances are used for in-memory and Database backends, as they
+       rely on different `Column` types.
 
        Arguments:
-       - is_column: a function that checks if the provided value is a column.
+       - is_column: a function that checks if the provided value is a column of
+         the current backend.
     Instance (is_column : Any -> Boolean)
 
     ## PRIVATE
@@ -99,12 +104,20 @@ type Operation_Type_Helpers
             Enso_Types.most_specific_value_type value use_smallest=True
 
     ## PRIVATE
-       A helper that can be used to check the argument value type, while allowing
-       `Nothing` values too.
+       A helper that can be used to check the argument value type, while
+       allowing `Nothing` values too.
+
+       If a `Nothing` value is provided, it is accepted as-is.
+       For any other value, its value type is computed and it is passed to the
+       `type_check` operation along with the action to be executed and a related
+       column parameter. The `type_check` operation should return the result of
+       the action or a dataflow error if the type was incorrect. In general the
+       `type_check`, should be one of the `Value_Type.expect_*` operations.
 
        > Example
 
          type_helpers.check_argument_type other Value_Type.expect_text <| operation
+    check_argument_type : Any -> (Value_Type -> Text -> Any -> Any) -> Any -> Any
     check_argument_type self value type_check ~action =
         typ = self.find_argument_type value
         if typ.is_nothing then action else
@@ -126,18 +139,29 @@ type Operation_Type_Helpers
                         "Cannot perform addition on a pair of values of types " + self_type.to_display_text + " and " + other_type.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
 
     ## PRIVATE
+       Checks that both provided arguments have numeric type and runs the action
+       if they do.
     check_binary_numeric_op self arg1 arg2 ~action =
         self.check_argument_type arg1 Value_Type.expect_numeric <|
             self.check_argument_type arg2 Value_Type.expect_numeric <|
                 action
 
     ## PRIVATE
+       Checks that both provided arguments have boolean type and runs the action
+       if they do.
     check_binary_boolean_op self arg1 arg2 ~action =
         self.check_argument_type arg1 Value_Type.expect_boolean <|
             self.check_argument_type arg2 Value_Type.expect_boolean <|
                 action
 
     ## PRIVATE
+       Checks that all provided argument are comparable with the provided
+       column.
+
+       Arguments:
+       - column: the column to compare the arguments to.
+       - arg_or_args: a single value or column or a vector of values or columns.
+       - action: the action to run if the arguments are compatible.
     check_multi_argument_comparable_op self column arg_or_args ~action =
         column_type = column.value_type
         args = Vector.unify_vector_or_element arg_or_args
