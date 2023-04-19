@@ -103,7 +103,7 @@ use placeholder::StrongPlaceholder;
 // =================
 
 // FIXME: to be parametrized
-const GAP: f32 = 20.0;
+const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
@@ -293,18 +293,19 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
 #[derivative(Clone(bound = ""))]
 pub struct ListEditor<T: 'static> {
     #[deref]
-    pub frp:       Frp<T>,
-    root:          display::object::Instance,
-    model:         SharedModel<T>,
-    add_elem_icon: Rectangle,
+    pub frp: Frp<T>,
+    root:    display::object::Instance,
+    model:   SharedModel<T>,
 }
 
 #[derive(Debug)]
 pub struct Model<T> {
-    cursor: Cursor,
-    items:  VecIndexedBy<ItemOrPlaceholder<T>, ItemOrPlaceholderIndex>,
-    root:   display::object::Instance,
-    layout: display::object::Instance,
+    cursor:              Cursor,
+    items:               VecIndexedBy<ItemOrPlaceholder<T>, ItemOrPlaceholderIndex>,
+    root:                display::object::Instance,
+    layout:              display::object::Instance,
+    layout_with_buttons: display::object::Instance,
+    add_elem_button:     Rectangle,
 }
 
 impl<T> Model<T> {
@@ -314,9 +315,21 @@ impl<T> Model<T> {
         let items = default();
         let root = display::object::Instance::new();
         let layout = display::object::Instance::new();
+        let layout_with_buttons = display::object::Instance::new();
         layout.use_auto_layout();
-        root.add_child(&layout);
-        Self { cursor, items, root, layout }
+        layout_with_buttons.use_auto_layout();
+        root.add_child(&layout_with_buttons);
+        layout_with_buttons.add_child(&layout);
+        let add_elem_button = Rectangle().build(|t| {
+            t.set_size(Vector2(20.0, 20.0))
+                .set_corner_radius_max()
+                .set_margin_left(GAP)
+                .set_color(color::Rgba::new(1.0, 0.0, 0.0, 0.00001))
+                .set_inset_border(2.0)
+                .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
+        });
+        layout_with_buttons.add_child(&add_elem_button);
+        Self { cursor, items, root, layout, layout_with_buttons, add_elem_button }
     }
 }
 
@@ -338,17 +351,8 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         let frp = Frp::new();
         let model = Model::new(cursor);
         let root = model.root.clone_ref();
-        let add_elem_icon = Rectangle().build(|t| {
-            t.set_size(Vector2(20.0, 20.0))
-                .set_color(color::Rgba::new(0.0, 1.0, 0.0, 1.0))
-                .set_inset_border(2.0)
-                .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
-        });
-
-        add_elem_icon.set_y(-30.0);
-        root.add_child(&add_elem_icon);
         let model = model.into();
-        Self { frp, root, model, add_elem_icon }.init(cursor).init_frp_values()
+        Self { frp, root, model }.init(cursor).init_frp_values()
     }
 
     fn init(self, cursor: &Cursor) -> Self {
@@ -357,13 +361,14 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         let network = self.frp.network();
         let model = &self.model;
 
-        let add_elem_icon_down = self.add_elem_icon.on_event::<mouse::Down>();
+        let add_elem_button_down = model.borrow().add_elem_button.on_event::<mouse::Down>();
         let on_down = model.borrow().layout.on_event_capturing::<mouse::Down>();
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
 
         frp::extend! { network
-            frp.private.output.request_new_item <+ add_elem_icon_down.map(f!([model] (_) {
+            trace add_elem_button_down;
+            frp.private.output.request_new_item <+ add_elem_button_down.map(f!([model] (_) {
                 let index = model.borrow_mut().items.len();
                 Response::gui(index)
             }));
@@ -388,45 +393,14 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             pos_diff <- any3(&pos_diff_on_move, &pos_diff_on_down, &pos_diff_on_up);
         }
 
-        let drag_diff = self.init_drag(&on_up, &on_down, &target, &pos_diff);
-        let is_trashing = self.init_trashing(cursor, &on_up, &drag_diff);
         self.init_add_and_remove();
+        let drag_diff = self.init_dragging(&on_up, &on_down, &target, &pos_diff);
+        let is_trashing = self.init_trashing(cursor, &on_up, &drag_diff);
         self.init_insertion_points(&on_up, &pos_on_move, &is_trashing);
         self
     }
 
-    fn init_insertion_points(
-        &self,
-        on_up: &frp::Stream<Event<mouse::Up>>,
-        pos_on_move: &frp::Stream<Vector2>,
-        is_trashing: &frp::Stream<bool>,
-    ) {
-        let pos_on_move = pos_on_move.clone_ref();
-        let is_trashing = is_trashing.clone_ref();
-
-        let model = &self.model;
-        let frp = &self.frp;
-        let network = self.frp.network();
-
-        frp::extend! { network
-            pos_non_trash <- pos_on_move.gate_not(&is_trashing);
-            insert_index <- pos_non_trash.map(f!((pos) model.insert_index(pos.x))).on_change();
-            insert_index_on_drop <- insert_index.sample(on_up).gate_not(&is_trashing);
-
-            on_not_trashing <- is_trashing.on_false();
-            insert_index_on_not_trashing <- insert_index.sample(&on_not_trashing);
-            update_insert_index <- any(&insert_index, &insert_index_on_not_trashing);
-            eval update_insert_index ((i) model.borrow_mut().add_insertion_point(*i));
-
-            let on_item_added = &frp.private.output.on_item_added;
-            eval insert_index_on_drop ([model, on_item_added] (index)
-                if let Some((index, item)) = model.borrow_mut().place_dragged_item(*index) {
-                    on_item_added.emit(Response::gui((index, Rc::new(item).downgrade())));
-                }
-            );
-        }
-    }
-
+    /// Implementation of adding and removing items logic.
     fn init_add_and_remove(&self) {
         let model = &self.model;
         let frp = &self.frp;
@@ -451,7 +425,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
     }
 
     /// Implementation of item dragging logic. See docs of this crate to learn more.
-    fn init_drag(
+    fn init_dragging(
         &self,
         on_up: &frp::Stream<Event<mouse::Up>>,
         on_down: &frp::Stream<Event<mouse::Down>>,
@@ -522,6 +496,40 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             eval_ perform (model.borrow_mut().trash_dragged_item());
         }
         status
+    }
+
+    /// Implementation of insertion points logic. When an item is being dragged, the insertion point
+    /// is an empty place where the item will be placed when dropped.
+    fn init_insertion_points(
+        &self,
+        on_up: &frp::Stream<Event<mouse::Up>>,
+        pos_on_move: &frp::Stream<Vector2>,
+        is_trashing: &frp::Stream<bool>,
+    ) {
+        let pos_on_move = pos_on_move.clone_ref();
+        let is_trashing = is_trashing.clone_ref();
+
+        let model = &self.model;
+        let frp = &self.frp;
+        let network = self.frp.network();
+
+        frp::extend! { network
+            pos_non_trash <- pos_on_move.gate_not(&is_trashing);
+            insert_index <- pos_non_trash.map(f!((pos) model.insert_index(pos.x))).on_change();
+            insert_index_on_drop <- insert_index.sample(on_up).gate_not(&is_trashing);
+
+            on_not_trashing <- is_trashing.on_false();
+            insert_index_on_not_trashing <- insert_index.sample(&on_not_trashing);
+            update_insert_index <- any(&insert_index, &insert_index_on_not_trashing);
+            eval update_insert_index ((i) model.borrow_mut().add_insertion_point(*i));
+
+            let on_item_added = &frp.private.output.on_item_added;
+            eval insert_index_on_drop ([model, on_item_added] (index)
+                if let Some((index, item)) = model.borrow_mut().place_dragged_item(*index) {
+                    on_item_added.emit(Response::gui((index, Rc::new(item).downgrade())));
+                }
+            );
+        }
     }
 
     /// Initializes default FRP values. See docs of this crate to learn more.
