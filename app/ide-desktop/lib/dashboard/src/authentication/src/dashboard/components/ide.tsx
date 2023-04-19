@@ -7,6 +7,8 @@ import * as service from '../service'
 // === Constants ===
 // =================
 
+/** The `id` attribute of the element that the IDE will be rendered into. */
+const IDE_ELEMENT_ID = 'root'
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
 
 // =================
@@ -20,6 +22,7 @@ interface Props {
 
 /** Container that launches the IDE. */
 function Ide({ project, backendService }: Props) {
+    const [ideElement] = react.useState(() => document.querySelector(IDE_ELEMENT_ID))
     const [[loaded, resolveLoaded]] = react.useState((): [Promise<void>, () => void] => {
         let resolve!: () => void
         const promise = new Promise<void>(innerResolve => {
@@ -27,6 +30,13 @@ function Ide({ project, backendService }: Props) {
         })
         return [promise, resolve]
     })
+
+    react.useEffect(() => {
+        document.getElementById(IDE_ELEMENT_ID)?.classList.remove('hidden')
+        return () => {
+            document.getElementById(IDE_ELEMENT_ID)?.classList.add('hidden')
+        }
+    }, [])
 
     react.useEffect(() => {
         void (async () => {
@@ -86,7 +96,7 @@ function Ide({ project, backendService }: Props) {
         })()
     }, [project])
 
-    return <div id="root" />
+    return <></>
 }
 
 export default Ide

@@ -43,8 +43,7 @@ export function run(props: app.AppProps) {
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
     } else {
-        // This element is re-added by the `Ide` component.
-        document.getElementById(IDE_ELEMENT_ID)?.remove()
+        document.getElementById(IDE_ELEMENT_ID)?.classList.add('hidden')
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }
