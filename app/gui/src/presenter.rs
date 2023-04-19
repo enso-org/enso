@@ -36,7 +36,8 @@ pub use searcher::Searcher;
 // =================
 
 /// We don't know how long the project opening will take, but we still want to show a fake progress
-/// indicator for the user. This constant represents a progress percentage that will be displayed.
+/// indicator for the user. This constant represents the fixed progress percentage that will be
+/// displayed.
 const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 
 
@@ -112,7 +113,7 @@ impl Model {
                     error!("Cannot open project by name: {err}.");
                 }
             } else {
-                warn!("Project opening failed: no ProjectManagingAPI available.");
+                warn!("Project Manager API not available, cannot open project.");
             }
         }));
     }
@@ -136,7 +137,7 @@ impl Model {
                         }
                     }
                 } else {
-                    warn!("Project creation failed: no ProjectManagingAPI available.");
+                    warn!("Project Manager API not available, cannot create project.");
                 }
             }))
         } else if let Some(template) = template {
@@ -151,10 +152,10 @@ impl Model {
         crate::executor::global::spawn(with_progress_indicator(|| async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(error) = managing_api.open_or_create_project(project).await {
-                    error!("Cannot open or create project: {error}.");
+                    error!("Cannot open or create project: {error}");
                 }
             } else {
-                warn!("Project opening failed: no ProjectManagingAPI available.");
+                warn!("Project Manager API not available, cannot open or create project.");
             }
         }));
     }
@@ -165,6 +166,7 @@ async fn with_progress_indicator<F, T>(f: F)
 where
     F: FnOnce() -> T,
     T: Future<Output = ()>, {
+    // TODO: Use a safer variant of getting the JS app.
     let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
     app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
     f().await;

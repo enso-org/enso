@@ -107,8 +107,6 @@ pub struct FailedIde {
     pub view: ide_view::root::View,
 }
 
-
-
 /// The Path of the module initially opened after opening project in IDE.
 pub fn initial_module_path(project: &model::Project) -> model::module::Path {
     project.main_module_path()

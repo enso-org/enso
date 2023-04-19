@@ -50,10 +50,10 @@ impl Handle {
     /// Create IDE controller.
     pub fn new(project_manager: Rc<dyn project_manager::API>) -> FallibleResult<Self> {
         Ok(Self {
-            current_project: Rc::new(CloneCell::new(None)),
-            project_manager: project_manager.clone_ref(),
+            current_project: default(),
+            project_manager,
             status_notifications: default(),
-            parser: Parser::new(),
+            parser: default(),
             notifications: default(),
             component_browser_private_entries_visibility_flag: default(),
         })

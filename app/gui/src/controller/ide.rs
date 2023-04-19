@@ -170,7 +170,7 @@ pub trait ManagingProjectAPI {
                 Ok(project_id) => self.open_project(project_id).await,
                 Err(error) =>
                     if let ProjectToOpen::Name(name) = project_to_open {
-                        info!("Attempting to create project with name {}", name);
+                        info!("Attempting to create project with name {}.", name);
                         self.create_new_project(Some(name.to_string()), None).await
                     } else {
                         Err(error)
@@ -181,10 +181,10 @@ pub trait ManagingProjectAPI {
     }
 
     /// Find a project by name or ID.
-    fn find_project<'a, 'b: 'a>(
+    fn find_project<'a: 'c, 'b: 'c, 'c>(
         &'a self,
         project_to_open: &'b ProjectToOpen,
-    ) -> BoxFuture<FallibleResult<Uuid>> {
+    ) -> BoxFuture<'c, FallibleResult<Uuid>> {
         async move {
             self.list_projects()
                 .await?

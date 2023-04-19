@@ -84,7 +84,7 @@ impl Initializer {
                 if let Some(project) = &self.config.project_to_open {
                     ide.open_or_create_project(project.clone());
                 }
-                info!("Setup done.");
+                info!("IDE was successfully initialized.");
                 Ok(ide)
             }
             Err(error) => {
