@@ -15,12 +15,26 @@ use web::dom::Shape;
 // =============
 
 /// Mouse event wrapper.
-#[derive(Debug, Clone, Derivative)]
+#[derive(Clone, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Event<EventType, JsEvent> {
     js_event:   Option<JsEvent>,
     shape:      Shape,
     event_type: PhantomData<EventType>,
+}
+
+impl<EventType, JsEvent> Debug for Event<EventType, JsEvent>
+where
+    EventType: TypeDisplay,
+    JsEvent: AsRef<web::MouseEvent>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(&type_display::<EventType>())
+            .field("button", &self.button())
+            .field("client_x", &self.client_x())
+            .field("client_y", &self.client_y())
+            .finish()
+    }
 }
 
 /// Trait allowing extracting the phantom type of [`Event`].
@@ -64,15 +78,58 @@ where JsEvent: AsRef<web::MouseEvent>
             - self.js_event.as_ref().map(|t| t.as_ref().client_y()).unwrap_or_default()
     }
 
+    /// The coordinate within the application's viewport at which the event occurred (as opposed to
+    /// the coordinate within the page).
+    ///
+    /// For example, clicking on the bottom edge of the viewport will always result in a mouse event
+    /// with a [`client`] value of (0,0), regardless of whether the page is scrolled horizontally.
+    pub fn client(&self) -> Vector2<i32> {
+        Vector2(self.client_x(), self.client_y())
+    }
+
+    /// The coordinate within the application's viewport at which the event occurred (as opposed to
+    /// the coordinate within the page), measured from the center of the viewport.
+    pub fn client_centered(&self) -> Vector2 {
+        let x = self.client_x() as f32 - self.shape.width / 2.0;
+        let y = self.client_y() as f32 - self.shape.height / 2.0;
+        Vector2(x, y)
+    }
+
     /// The horizontal coordinate (offset) of the mouse pointer in global (screen) coordinates.
-    pub fn screen_x(&self) -> i32 {
-        self.js_event.as_ref().map(|t| t.as_ref().screen_x()).unwrap_or_default()
+    pub fn screen_x(&self) -> f32 {
+        self.js_event.as_ref().map(|t| t.as_ref().screen_x()).unwrap_or_default() as f32
     }
 
     /// The vertical coordinate (offset) of the mouse pointer in global (screen) coordinates.
-    pub fn screen_y(&self) -> i32 {
-        self.shape.height as i32
-            - self.js_event.as_ref().map(|t| t.as_ref().screen_y()).unwrap_or_default()
+    pub fn screen_y(&self) -> f32 {
+        self.shape.height
+            - self.js_event.as_ref().map(|t| t.as_ref().screen_y()).unwrap_or_default() as f32
+    }
+
+    /// The coordinate (offset) of the mouse pointer in global (screen) coordinates.
+    pub fn screen(&self) -> Vector2 {
+        Vector2(self.screen_x(), self.screen_y())
+    }
+
+    /// The difference in the X coordinate of the mouse pointer between the given event and the
+    /// previous mousemove event. In other words, the value of the property is computed like this:
+    /// `current_event.movement_x = current_event.screen_x() - previous_event.screen_x()`.
+    pub fn movement_x(&self) -> i32 {
+        self.js_event.as_ref().map(|t| t.as_ref().movement_x()).unwrap_or_default()
+    }
+
+    /// The difference in the Y coordinate of the mouse pointer between the given event and the
+    /// previous mousemove event. In other words, the value of the property is computed like this:
+    /// `current_event.movement_y = current_event.screen_y() - previous_event.screen_y()`.
+    pub fn movement_y(&self) -> i32 {
+        -self.js_event.as_ref().map(|t| t.as_ref().movement_y()).unwrap_or_default()
+    }
+
+    /// The difference in the coordinate of the mouse pointer between the given event and the
+    /// previous mousemove event. In other words, the value of the property is computed like this:
+    /// `current_event.movement = current_event.screen() - previous_event.screen()`.
+    pub fn movement(&self) -> Vector2<i32> {
+        Vector2(self.movement_x(), self.movement_y())
     }
 
     /// Indicates which button was pressed on the mouse to trigger the event.
@@ -145,6 +202,12 @@ macro_rules! define_events {
             $(#$meta)*
             #[derive(Copy, Clone, Debug, Default)]
             pub struct [<Phantom $name>];
+
+            impl TypeDisplay for [<Phantom $name>] {
+                fn type_display() -> String {
+                    stringify!($name).to_string()
+                }
+            }
 
             $(#$meta)*
             pub type $name = Event<[<Phantom $name>], web::$js_event>;

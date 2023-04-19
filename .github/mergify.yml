@@ -18,6 +18,5 @@ pull_request_rules:
     conditions:
       - or:
           - "label=CI: Keep up to date"
-          - "label=CI: Ready to merge"
     actions:
       update:

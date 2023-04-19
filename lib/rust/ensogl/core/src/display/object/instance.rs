@@ -78,7 +78,7 @@
 //!
 //! ## Automatic creation of columns and rows.
 //! Each display object can be asked to automatically place its children by using the Grid layout.
-//! The layout is divided into columns and rows. Every Grid has at leas one column and one row. To
+//! The layout is divided into columns and rows. Every Grid has at least one column and one row. To
 //! enable the Grid layout, use the [`use_auto_layout`] method. Here is an example of a display
 //! object with an empty Grid layout:
 //!
@@ -1111,7 +1111,6 @@ use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
-use data::opt_vec::OptVec;
 use enso_types::Dim;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
@@ -1410,7 +1409,7 @@ impl ParentBind {
 impl Drop for ParentBind {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
-            if let Some(weak_child) = parent.children.borrow_mut().remove(*self.child_index) {
+            if let Some(weak_child) = parent.children.borrow_mut().remove(&self.child_index) {
                 parent.dirty.modified_children.unset(&self.child_index);
                 if let Some(child) = weak_child.upgrade() {
                     child.dirty.new_parent.set();
@@ -1556,15 +1555,12 @@ pub mod dirty {
 // === Hierarchy FRP ===
 // =====================
 
-// FIXME[WD]: We should probably not expose these FRP endpoints publicly. They are tricky to use
-//   (see the #WARNING doc section).
-
 /// FRP endpoints relate to display object hierarchy modification.
 ///
-/// # WARNING!
-/// Do not change the hierarchy of display objects in response to these FRP signals. They are
-/// emitted during display object hierarchy update and changing the hierarchy during this update may
-/// lead to undefined behavior.
+/// # Order of evaluation
+/// The events are batched and will be streamed after all display objects have been updated. This
+/// prevents a situation where one would like to update the hierarchy of display objects in response
+/// to an event. Without batching, the events would be emitted in the middle of the update process.
 #[derive(Debug)]
 pub struct HierarchyFrp {
     /// Fires when the display object is shown. It will fire during the first scene refresh if this
@@ -1583,16 +1579,19 @@ pub struct HierarchyFrp {
     )>,
     /// Fires during the first scene refresh if this object needed an update and the update was
     /// performed.
-    pub on_updated:         frp::Stream<()>,
+    pub on_transformed:     frp::Stream<()>,
+    /// Fires during the scene refresh if this object was resized due to auto-layout rules.
+    pub on_resized:         frp::Sampler<Vector2>,
     on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     on_hide_source:         frp::Source<Option<Scene>>,
+    on_transformed_source:  frp::Source<()>,
+    on_resized_source:      frp::Source<Vector2>,
     on_layer_change_source: frp::Source<(
         Option<Scene>,
         Option<WeakLayer>,
         Option<WeakLayer>,
         Option<AnySymbolPartition>,
     )>,
-    on_updated_source:      frp::Source<()>,
 }
 
 impl HierarchyFrp {
@@ -1601,21 +1600,25 @@ impl HierarchyFrp {
             on_show_source <- source();
             on_hide_source <- source();
             on_layer_change_source <- source();
-            on_updated_source <- source();
+            on_transformed_source <- source();
+            on_resized_source <- source();
+            on_show <- on_show_source.batch().iter();
+            on_hide <- on_hide_source.batch().iter();
+            on_layer_change <- on_layer_change_source.batch().iter();
+            on_transformed <- on_transformed_source.batch().iter();
+            on_resized <- on_resized_source.batch().iter().sampler();
         }
-        let on_show = on_show_source.clone_ref().into();
-        let on_hide = on_hide_source.clone_ref().into();
-        let on_layer_change = on_layer_change_source.clone_ref().into();
-        let on_updated = on_updated_source.clone_ref().into();
         Self {
             on_show_source,
             on_hide_source,
             on_layer_change_source,
-            on_updated_source,
+            on_transformed_source,
+            on_resized_source,
             on_show,
             on_hide,
             on_layer_change,
-            on_updated,
+            on_transformed,
+            on_resized,
         }
     }
 }
@@ -1630,16 +1633,18 @@ impl HierarchyFrp {
 #[derive(Debug, Deref)]
 pub struct HierarchyModel {
     #[deref]
-    frp:            HierarchyFrp,
-    visible:        Cell<bool>,
-    transformation: RefCell<CachedTransformation>,
-    parent_bind:    SharedParentBind,
-    children:       RefCell<OptVec<WeakInstance>>,
+    frp:              HierarchyFrp,
+    visible:          Cell<bool>,
+    transformation:   RefCell<CachedTransformation>,
+    parent_bind:      SharedParentBind,
+    next_child_index: Cell<ChildIndex>,
+    // We are using [`BTreeMap`] here in order to preserve the child insertion order.
+    children:         RefCell<BTreeMap<ChildIndex, WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer: RefCell<Option<LayerAssignment>>,
+    assigned_layer:   RefCell<Option<LayerAssignment>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:          RefCell<Option<LayerAssignment>>,
-    dirty:          dirty::Flags,
+    layer:            RefCell<Option<LayerAssignment>>,
+    dirty:            dirty::Flags,
 }
 
 impl HierarchyModel {
@@ -1648,11 +1653,22 @@ impl HierarchyModel {
         let visible = default();
         let transformation = default();
         let parent_bind = default();
+        let next_child_index = default();
         let children = default();
         let assigned_layer = default();
         let layer = default();
         let dirty = dirty::Flags::new(&parent_bind);
-        Self { frp, visible, transformation, parent_bind, children, assigned_layer, layer, dirty }
+        Self {
+            frp,
+            visible,
+            transformation,
+            parent_bind,
+            next_child_index,
+            children,
+            assigned_layer,
+            layer,
+            dirty,
+        }
     }
 }
 
@@ -1710,7 +1726,7 @@ impl Model {
 
 impl Model {
     fn children(&self) -> Vec<Instance> {
-        self.children.borrow().iter().filter_map(|t| t.upgrade()).collect()
+        self.children.borrow().values().filter_map(|t| t.upgrade()).collect()
     }
 
     /// Checks whether the object is visible.
@@ -1735,7 +1751,7 @@ impl Model {
             self.on_hide_source.emit(scene.cloned());
             self.children
                 .borrow()
-                .iter()
+                .values()
                 .filter_map(|t| t.upgrade())
                 .for_each(|t| t.set_vis_false(scene));
         }
@@ -1751,7 +1767,7 @@ impl Model {
             self.on_show_source.emit((scene.cloned(), new_layer.cloned()));
             self.children
                 .borrow()
-                .iter()
+                .values()
                 .filter_map(|t| t.upgrade())
                 .for_each(|t| t.set_vis_true(scene, new_layer));
         }
@@ -1810,7 +1826,7 @@ impl Model {
     /// Removes all children of this display object and returns them.
     pub fn remove_all_children(&self) -> Vec<Instance> {
         let children: Vec<Instance> =
-            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
+            self.children.borrow().values().filter_map(|weak| weak.upgrade()).collect();
         for child in &children {
             child.unset_parent();
         }
@@ -1902,14 +1918,14 @@ impl Model {
                 self.dirty.modified_children.unset_all();
                 if origin_changed {
                     trace!("Self origin changed.");
+                    self.on_transformed_source.emit(());
                 } else {
                     trace!("Self origin did not change, but the layers did.");
                 }
-                self.on_updated_source.emit(());
                 if !self.children.borrow().is_empty() {
                     debug_span!("Updating all children.").in_scope(|| {
                         let children = self.children.borrow().clone();
-                        children.iter().for_each(|weak_child| {
+                        children.values().for_each(|weak_child| {
                             weak_child.upgrade().for_each(|child| {
                                 child.update_with_origin(
                                     scene,
@@ -1927,17 +1943,14 @@ impl Model {
 
                 if self.dirty.computed_size.check() {
                     trace!("Computed size changed.");
-                    self.on_updated_source.emit(());
+                    self.on_transformed_source.emit(());
                 }
 
                 if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
-                            self.children
-                                .borrow()
-                                .safe_index(**ix)
-                                .and_then(|t| t.upgrade())
-                                .for_each(|child| {
+                            self.children.borrow().get(ix).and_then(|t| t.upgrade()).for_each(
+                                |child| {
                                     child.update_with_origin(
                                         scene,
                                         new_origin,
@@ -1945,13 +1958,17 @@ impl Model {
                                         layer_changed,
                                         new_layer,
                                     )
-                                })
+                                },
+                            )
                         });
                     })
                 }
             }
         });
         self.dirty.transformation.unset();
+        if self.dirty.computed_size.check() {
+            self.on_resized_source.emit(self.layout.computed_size.get());
+        }
         self.dirty.computed_size.unset();
         self.dirty.new_parent.unset();
     }
@@ -2033,7 +2050,9 @@ impl InstanceDef {
     }
 
     fn register_child(&self, child: &InstanceDef) -> ChildIndex {
-        let index = ChildIndex(self.children.borrow_mut().insert(child.downgrade()));
+        let index = self.next_child_index.get();
+        self.next_child_index.set(ChildIndex(*index + 1));
+        self.children.borrow_mut().insert(index, child.downgrade());
         self.dirty.modified_children.set(index);
         index
     }
@@ -3153,7 +3172,8 @@ impl Model {
             self.reset_size_to_static_values(Y, 0.0);
             self.refresh_layout_internal(X, PassConfig::Default);
             self.refresh_layout_internal(Y, PassConfig::Default);
-            if old_size != self.layout.computed_size.get() {
+            let new_size = self.layout.computed_size.get();
+            if old_size != new_size {
                 self.dirty.computed_size.set();
             }
         }
@@ -3182,17 +3202,24 @@ where
 
 trait ResolutionDimImpl {
     fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool;
+    fn last_pass(self) -> bool;
 }
 
 impl ResolutionDimImpl for X {
     fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool {
         matches! { flow, AutoLayoutFlow::Row }
     }
+    fn last_pass(self) -> bool {
+        false
+    }
 }
 
 impl ResolutionDimImpl for Y {
     fn matches_flow_direction(self, flow: AutoLayoutFlow) -> bool {
         matches! { flow, AutoLayoutFlow::Column }
+    }
+    fn last_pass(self) -> bool {
+        true
     }
 }
 
@@ -3229,11 +3256,18 @@ impl Model {
     /// The main entry point from the recursive auto-layout algorithm.
     fn refresh_layout_internal<Dim>(&self, x: Dim, pass_cfg: PassConfig)
     where Dim: ResolutionDim {
+        // let old_size = self.layout.computed_size.get();
         if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
-                self.refresh_grid_layout(x, layout);
+            self.refresh_grid_layout(x, layout);
         } else {
-                self.refresh_manual_layout(x, pass_cfg);
+            self.refresh_manual_layout(x, pass_cfg);
         }
+        // if x.last_pass() {
+        //     let new_size = self.layout.computed_size.get();
+        //     if old_size != new_size {
+        //         self.on_resized_source.emit(new_size);
+        //     }
+        // }
     }
 
     /// # Meaning of the function parameters.
@@ -4058,7 +4092,13 @@ impl<T: Object + ?Sized> GenericLayoutApi for T {}
 mod hierarchy_tests {
     use super::*;
     use crate::display::world::World;
+    use enso_frp::microtasks;
     use std::f32::consts::PI;
+
+    fn update(node: &Instance, scene: &Scene) {
+        node.update(scene);
+        microtasks::flush_microtasks();
+    }
 
     #[test]
     fn hierarchy_test() {
@@ -4069,10 +4109,10 @@ mod hierarchy_tests {
         assert_eq!(node2.my_index(), Some(ChildIndex(0)));
 
         node1.add_child(&node2);
-        assert_eq!(node2.my_index(), Some(ChildIndex(0)));
+        assert_eq!(node2.my_index(), Some(ChildIndex(1)));
 
         node1.add_child(&node3);
-        assert_eq!(node3.my_index(), Some(ChildIndex(1)));
+        assert_eq!(node3.my_index(), Some(ChildIndex(2)));
 
         node1.remove_child(&node3);
         assert_eq!(node3.my_index(), None);
@@ -4103,7 +4143,7 @@ mod hierarchy_tests {
         assert_eq!(node2.global_position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(0.0, 0.0, 0.0));
 
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.position(), Vector3::new(0.0, 0.0, 0.0));
@@ -4112,25 +4152,25 @@ mod hierarchy_tests {
         assert_eq!(node3.global_position(), Vector3::new(7.0, 0.0, 0.0));
 
         node2.modify_position(|t| t.y += 5.0);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 5.0, 0.0));
 
         node3.modify_position(|t| t.x += 1.0);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(8.0, 5.0, 0.0));
 
         node2.modify_rotation(|t| t.z += PI / 2.0);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
 
         node1.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node3.global_position(), Vector3::new(8.0, 0.0, 0.0));
 
         node1.remove_child(&node3);
@@ -4138,11 +4178,11 @@ mod hierarchy_tests {
         assert_eq!(node3.global_position(), Vector3::new(1.0, 0.0, 0.0));
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
 
         node1.remove_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.update(scene);
         node3.update(scene);
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
@@ -4231,34 +4271,34 @@ mod hierarchy_tests {
         let node3 = TestedNode::new();
         node1.show();
         node3.check_if_still_hidden();
-        node3.update(scene);
+        update(&node3, scene);
         node3.check_if_still_hidden();
 
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_shown();
 
         node3.unset_parent();
         node3.check_if_still_shown();
 
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_hidden();
 
         node1.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_shown();
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_still_shown();
 
         node3.unset_parent();
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_hidden();
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node3.check_if_was_shown();
     }
 
@@ -4270,14 +4310,14 @@ mod hierarchy_tests {
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         node1.check_if_still_hidden();
-        node1.update(scene);
+        update(&node1, scene);
         node1.check_if_still_hidden();
         node1.show();
-        node1.update(scene);
+        update(&node1, scene);
         node1.check_if_was_shown();
 
         node1.add_child(&node2);
-        node1.update(scene);
+        update(&node1, scene);
         node1.check_if_still_shown();
         node2.check_if_was_shown();
     }
@@ -4293,13 +4333,13 @@ mod hierarchy_tests {
         node1.show();
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_shown();
         node3.check_if_was_shown();
 
         node3.unset_parent();
         node3.add_child(&node2);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_hidden();
         node3.check_if_was_hidden();
     }
@@ -4316,21 +4356,21 @@ mod hierarchy_tests {
         node1.show();
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_shown();
         node3.check_if_was_shown();
         node4.check_if_still_hidden();
 
         node2.unset_parent();
         node1.add_child(&node2);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_still_shown();
         node3.check_if_still_shown();
         node4.check_if_still_hidden();
 
         node1.add_child(&node4);
         node4.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_still_shown();
         // TODO[ao]: This assertion fails, see https://github.com/enso-org/ide/issues/1405
         // node3.check_if_still_shown();
@@ -4339,13 +4379,13 @@ mod hierarchy_tests {
 
         node4.unset_parent();
         node2.unset_parent();
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_was_hidden();
         node3.check_if_was_hidden();
         node4.check_if_was_hidden();
 
         node2.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         node2.check_if_still_hidden();
         node3.check_if_still_hidden();
         node4.check_if_still_hidden();
@@ -4439,19 +4479,19 @@ mod hierarchy_tests {
         let node3 = Instance::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.display_layer(), None);
         assert_eq!(node2.display_layer(), None);
         assert_eq!(node3.display_layer(), None);
 
         node1.add_to_display_layer(&layer1);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.display_layer().as_ref(), Some(&layer1));
         assert_eq!(node2.display_layer().as_ref(), Some(&layer1));
         assert_eq!(node3.display_layer().as_ref(), Some(&layer1));
 
         node2.add_to_display_layer(&layer2);
-        node1.update(scene);
+        update(&node1, scene);
         assert_eq!(node1.display_layer().as_ref(), Some(&layer1));
         assert_eq!(node2.display_layer().as_ref(), Some(&layer2));
         assert_eq!(node3.display_layer().as_ref(), Some(&layer1));
@@ -4685,6 +4725,7 @@ mod hierarchy_tests {
 mod layout_tests {
     use super::*;
     use crate::display::world::World;
+    use enso_frp::microtasks;
 
 
     // === Utils ===
@@ -4726,7 +4767,10 @@ mod layout_tests {
                 }
 
                 fn run(&self, assertions: impl Fn()) -> &Self {
-                    let update = || self.world.display_object().update(&self.world.default_scene);
+                    let update = || {
+                        self.world.display_object().update(&self.world.default_scene);
+                        microtasks::flush_microtasks();
+                    };
                     update();
                     assertions();
                     // Nothing should change if nothing happened.
@@ -5902,8 +5946,8 @@ mod layout_tests {
         test.root.add_child(&test.node1);
         test.run(|| {
             test.assert_root_computed_size(20.0, 10.0)
-                .assert_node1_position(0.0, 0.0)
-                .assert_node2_position(10.0, 0.0);
+                .assert_node2_position(0.0, 0.0)
+                .assert_node1_position(10.0, 0.0);
         });
 
         let node3 = Instance::new();
@@ -5911,8 +5955,8 @@ mod layout_tests {
         test.root.add_child(&node3);
         test.run(|| {
             test.assert_root_computed_size(32.0, 10.0)
-                .assert_node1_position(0.0, 0.0)
-                .assert_node2_position(10.0, 0.0);
+                .assert_node2_position(0.0, 0.0)
+                .assert_node1_position(10.0, 0.0);
         });
         assert_eq!(node3.position().xy(), Vector2(20.0, 0.0));
     }

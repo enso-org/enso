@@ -62,6 +62,23 @@ impl Network {
         self.register(OwnedProfile::new(label, src))
     }
 
+    /// An identity function. Passes every incoming value to the output. It can be used to branch
+    /// the event stream into multiple paths that can be evaluated in different times. For example:
+    /// ```text
+    /// mouse_on_up_source <- mouse.on_up();
+    /// mouse_on_up <- mouse_on_up_source.id();
+    /// mouse_on_up_cleaning_phase <- mouse_on_up_source.id();
+    /// eval_ mouse_on_up_cleaning_phase (println!("Mouse on up late"));
+    /// ```
+    /// Now, we can safely attach any events to `mouse_on_up` and we can be sure that all these
+    /// events will be handled before events attached to `mouse_on_up_cleaning_phase`.
+    pub fn identity<T, V>(&self, label: Label, t: &T) -> Stream<V>
+    where
+        T: EventOutput<Output = V>,
+        V: Data, {
+        self.map(label, t, |v| v.clone())
+    }
+
     /// Emits `true`, `false`, `true`, `false`, ... on every incoming event. Initialized with false
     /// value.
     pub fn toggle<T: EventOutput>(&self, label: Label, src: &T) -> Stream<bool> {
@@ -366,6 +383,22 @@ impl Network {
             t3,
             |check, t1, t2| if *check { t2.clone() } else { t1.clone() },
         )
+    }
+
+    /// On every `true` event from the first input, emit the second parameter. On every `false`
+    /// event from the first input, emit the third parameter.
+    pub fn switch_constant<Cond, T>(&self, label: Label, check: &Cond, t1: T, t2: T) -> Stream<T>
+    where
+        Cond: EventOutput<Output = bool>,
+        T: Data, {
+        self.map(label, check, move |check| if !check { t1.clone() } else { t2.clone() })
+    }
+
+    pub fn default_or<Cond, T>(&self, label: Label, check: &Cond, t: T) -> Stream<T>
+    where
+        Cond: EventOutput<Output = bool>,
+        T: Data, {
+        self.switch_constant(label, check, default(), t)
     }
 
 
@@ -1793,8 +1826,8 @@ impl<T: EventOutput> OwnedTrace<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        debug!("[FRP] {}: {:?}", self.label(), event);
-        debug!("[FRP] {}", stack);
+        console_log!("[FRP] {}: {:?}", self.label(), event);
+        // warn!("[FRP] {}", stack);
         self.emit_event(stack, event);
     }
 }

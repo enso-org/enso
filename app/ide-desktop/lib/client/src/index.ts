@@ -206,7 +206,6 @@ class App {
                     preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
                     backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
-                    devTools: argGroups.debug.options.devTools.value,
                     enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,

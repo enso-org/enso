@@ -102,6 +102,14 @@ impl ExecutionContextsRegistry {
     pub fn insert(&self, context: Rc<execution_context::Synchronized>) {
         self.0.borrow_mut().insert(context.id(), context);
     }
+
+    /// Adjust execution contexts after renaming the project.
+    pub fn rename_project(&self, old_name: impl Str, new_name: impl Str) {
+        self.0.borrow().iter().for_each(|(_, execution_context)| {
+            execution_context
+                .rename_method_pointers(old_name.as_ref().to_owned(), new_name.as_ref().to_owned());
+        });
+    }
 }
 
 
@@ -695,12 +703,14 @@ impl model::project::API for Project {
 
     fn rename_project(&self, name: String) -> BoxFuture<FallibleResult> {
         async move {
-            let referent_name = name.as_str().try_into()?;
+            let old_name = self.properties.borrow_mut().name.project.clone_ref();
+            let referent_name = name.to_im_string();
             let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
             let project_id = self.properties.borrow().id;
             let project_name = ProjectName::new_unchecked(name);
             project_manager.rename_project(&project_id, &project_name).await?;
-            self.properties.borrow_mut().name.project = referent_name;
+            self.properties.borrow_mut().name.project = referent_name.clone_ref();
+            self.execution_contexts.rename_project(old_name, referent_name);
             Ok(())
         }
         .boxed_local()
