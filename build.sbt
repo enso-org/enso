@@ -1074,16 +1074,17 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
+    commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
-      "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
-      "io.circe"                   %% "circe-literal"        % circeVersion,
-      "dev.zio"                    %% "zio"                  % zioVersion,
-      "io.methvin"                  % "directory-watcher"    % directoryWatcherVersion,
-      "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
-      "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
-      "commons-io"                  % "commons-io"           % commonsIoVersion,
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe" %% "circe-generic-extras" % circeGenericExtrasVersion,
+      "io.circe" %% "circe-literal" % circeVersion,
+      "dev.zio" %% "zio" % zioVersion,
+      "io.methvin" % "directory-watcher" % directoryWatcherVersion,
+      "com.beachape" %% "enumeratum-circe" % enumeratumCirceVersion,
+      "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
+      "commons-io" % "commons-io" % commonsIoVersion,
       akkaTestkit                   % Test,
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
