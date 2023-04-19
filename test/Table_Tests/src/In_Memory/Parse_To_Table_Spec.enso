@@ -50,10 +50,10 @@ spec =
 
         Test.specify "parsing on, with a mixed column" <|
             expected = Table.from_rows ["Column 1", "Column 2"]
-                                       [["ab", 12], ["bt", 100], ["c", "012"], ["d", 20]]
+                                       [["ab", "12"], ["bt", "100"], ["c", "012"], ["d", "20"]]
             actual = "a 7 ab-12 bt-100 c-012d-20q q8 12".parse_to_table "([a-z]+)-(\d*)"
             actual.should_equal_verbose expected
-            actual.columns.map .value_type . should_equal [Value_Type.Char Nothing True, Value_Type.Mixed]
+            actual.columns.map .value_type . should_equal [Value_Type.Char Nothing True, Value_Type.Char Nothing True]
 
         Test.specify "parsing off" <|
             expected = Table.from_rows ["Column 1", "Column 2"]

@@ -28,20 +28,12 @@ parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Se
     pattern = Regex.compile pattern_string case_insensitive=case_insensitive
     matches = pattern.match_all text
 
-    data_formatter = case parse_values of
-        True -> Data_Formatter.Value
-        False -> Nothing
-
-    parse_maybe = case parse_values of
-        True -> v-> data_formatter.parse v on_problems=on_problems
-        False -> identity
-
     columns = case pattern.group_count == 1 of
         True ->
             ## No match groups; each row is a single value consisting of the
                entire match
             column_name = "Column"
-            column_values = matches.map (match-> match.text 0) . map parse_maybe
+            column_values = matches.map (match-> match.text 0)
             [Column.from_vector column_name column_values]
         False ->
             unique = Unique_Name_Strategy.new
@@ -52,13 +44,14 @@ parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Se
                row. Group 0 is not included.
             nums_to_names = pattern.group_nums_to_names
             1.up_to pattern.group_count . map group_num->
-                column_values = matches.map (match-> match.at group_num) . map parse_maybe
+                column_values = matches.map (match-> match.at group_num)
                 column_name = case nums_to_names.contains_key group_num of
                     True -> nums_to_names.at group_num
                     False -> unique.make_unique <| "Column " + group_num.to_text
                 Column.from_vector column_name column_values
 
-    Table.new columns
+    table = Table.new columns
+    if parse_values then table.parse on_problems=on_problems else table
 
 ## PRIVATE
    Assert that `value` is of type `typ`, then call the action.
