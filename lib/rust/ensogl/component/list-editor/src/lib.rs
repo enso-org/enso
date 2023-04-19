@@ -386,7 +386,7 @@ impl<T: display::Object + frp::node::Data> ListEditor<T> {
             frp.remove <+ remove_elem_icon_down.constant(0);
 
             push_item_index <= frp.push.map(f!([model] (item)
-                item.upgrade().map(|t| model.borrow_mut().push_item((*t).clone()))
+                item.upgrade().map(|t| model.borrow_mut().push((*t).clone()))
             ));
             on_item_pushed <- frp.push.map2(&push_item_index, |item, ix| Response::api((*ix, item.clone())));
             frp.private.output.on_new_item <+ on_item_pushed;
@@ -544,12 +544,40 @@ impl<T: display::Object + 'static> Model<T> {
         (inv_object_matrix * world_space).xy()
     }
 
-    fn push_item(&mut self, item: T) -> usize {
-        let index = self.items.len();
+    fn len(&self) -> usize {
+        self.items.iter().filter(|t| t.is_item()).count()
+    }
+
+    /// Find an element by the provided display object reference.
+    fn item_index_of(&mut self, obj: &display::object::Instance) -> Option<ItemOrPlaceholderIndex> {
+        self.items.iter().enumerate().find(|t| t.1.cmp_item_display_object(obj)).map(|t| t.0.into())
+    }
+
+    /// Convert the item index to item or placeholder index.
+    fn index_to_item_or_placeholder_index(&mut self, ix: Index) -> Option<ItemOrPlaceholderIndex> {
+        self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0.into())
+    }
+
+    fn item_or_placeholder_index_to_index(&mut self, ix: ItemOrPlaceholderIndex) -> Option<Index> {
+        self.items.iter().enumerate().filter(|(_, item)| item.is_item()).position(|t| t.0 == *ix)
+    }
+
+    fn push(&mut self, item: T) -> usize {
+        let index = self.len();
         let item = Item::new(item);
         self.items.push(item.into());
         self.reposition_items();
         index
+    }
+
+    fn insert(&mut self, index: Index, item: T) -> usize {
+        if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
+            let item = Item::new(item);
+            self.items.insert(index2, item.into());
+            index
+        } else {
+            self.push(item)
+        }
     }
 
     /// Remove all items and add them again, in order of their current position.
@@ -594,16 +622,6 @@ impl<T: display::Object + 'static> Model<T> {
     /// Retain only items and placeholders that did not collapse yet (both strong and weak ones).
     fn retain_non_collapsed_items(&mut self) {
         self.items.retain(|item| item.exists());
-    }
-
-    /// Find an element by the provided display object reference.
-    fn item_index_of(&mut self, obj: &display::object::Instance) -> Option<ItemOrPlaceholderIndex> {
-        self.items.iter().enumerate().find(|t| t.1.cmp_item_display_object(obj)).map(|t| t.0.into())
-    }
-
-    /// Convert the item index to item or placeholder index.
-    fn index_to_item_or_placeholder_index(&mut self, ix: Index) -> Option<ItemOrPlaceholderIndex> {
-        self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0.into())
     }
 
     /// Convert all placeholders to their weak versions and start the collapse animation. The
