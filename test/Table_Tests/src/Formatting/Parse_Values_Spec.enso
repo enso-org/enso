@@ -402,6 +402,43 @@ spec =
             c3.to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
             Problems.assume_no_problems c3
 
+        Test.specify "should correctly parse integers in US formats" <|
+            cUS = Column.from_vector "ints" ["1", "000123", "-1234", "1234567", "123e456"]
+            pUS = cUS.parse type=Value_Type.Integer
+            pUS.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["123e456"]) pUS
+
+            cUS2 = Column.from_vector "ints" ["1", "000123", "-1,234", "1,234,567", "12,34,56"]
+            pUS2 = cUS2.parse type=Value_Type.Integer
+            pUS2.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["12,34,56"]) pUS2
+
+            cUS3 = Column.from_vector "ints" ["1", "(000,123)", "-1,234", "1,234,567", "12,34,56"]
+            pUS3 = cUS3.parse type=Value_Type.Integer
+            pUS3.to_vector . should_equal [1, -123, Nothing, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["-1,234", "12,34,56"]) pUS3
+
+            cUS4 = Column.from_vector "ints" ["$1234", "$1,234", "$1,234,567","-$1,234", "($1,234,567)"]
+            pUS4 = cUS4.parse type=Value_Type.Integer
+            pUS4.to_vector . should_equal [1234, 1234, 1234567, -1234, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["($1,234,567)"]) pUS4
+
+        Test.specify "should correctly parse integers in European formats" <|
+            cDE = Column.from_vector "ints" ["1", "000123", "-1.234", "1.234.567", "12.34.56"]
+            pDE = cDE.parse type=Value_Type.Integer
+            pDE.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["12.34.56"]) pDE
+
+            cFR = Column.from_vector "ints" ["€1", "€000123", "€-1 234", "€   1 234 567", "€ 12 34 56"]
+            pFR = cFR.parse type=Value_Type.Integer
+            pFR.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["€ 12 34 56"]) pFR
+
+            cSW = Column.from_vector "ints" ["1", "000123", "-1'234", "1'234'567", "(123'456)"]
+            pSW = cSW.parse type=Value_Type.Integer
+            pSW.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["(123'456)"]) pSW
+
         Test.specify "should correctly parse decimals" <|
             c1 = Column.from_vector "ints" ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]
             c2 = c1.parse Value_Type.Float

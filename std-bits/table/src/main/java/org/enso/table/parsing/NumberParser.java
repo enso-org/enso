@@ -16,7 +16,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     private final static String SIGN = "(?<sign>[-+])?";
     private final static String BRACKETS = "(?<sign>\\((?=.*\\)\\s*$))?\\s*";
     private final static String BRACKET_CLOSE = "\\)?";
-    private final static String CCY = "(?<ccy>[^0-9(),. '+-]+)?";
+    private final static String CCY = "(?<ccy>[^0-9(),. '+-]+)";
     private final static String EXP = "(?<exp>[eE][+-]?\\d+)?";
     private final static String SPACE = "\\s*";
     private final static String[] SEPARATORS = new String[] {",.", ".,", " ,", "',"};
@@ -53,10 +53,10 @@ public class NumberParser extends IncrementalDatatypeParser {
         var pattern = switch (patternIndex) {
             case 0 -> SIGN + NUMBER;
             case 1 -> BRACKETS + NUMBER + BRACKET_CLOSE;
-            case 2 -> SIGN + CCY + NUMBER;
-            case 3 -> CCY + SIGN + NUMBER;
+            case 2 -> SIGN + CCY + SPACE + NUMBER;
+            case 3 -> CCY + SPACE + SIGN + NUMBER;
             case 4 -> SIGN + NUMBER + CCY;
-            case 5 -> BRACKETS + CCY + NUMBER + BRACKET_CLOSE;
+            case 5 -> BRACKETS + CCY + SPACE + NUMBER + BRACKET_CLOSE;
             default -> throw new IllegalArgumentException("Invalid pattern index: " + patternIndex);
         };
 
