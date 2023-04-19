@@ -558,9 +558,9 @@ impl<T: display::Object + 'static> Model<T> {
         self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0.into())
     }
 
-    fn item_or_placeholder_index_to_index(&mut self, ix: ItemOrPlaceholderIndex) -> Option<Index> {
-        self.items.iter().enumerate().filter(|(_, item)| item.is_item()).position(|t| t.0 == *ix)
-    }
+    // fn item_or_placeholder_index_to_index(&mut self, ix: ItemOrPlaceholderIndex) -> Option<Index>
+    // {     self.items.iter().enumerate().filter(|(_, item)| item.is_item()).position(|t| t.0
+    // == *ix) }
 
     fn push(&mut self, item: T) -> usize {
         let index = self.len();
@@ -570,15 +570,15 @@ impl<T: display::Object + 'static> Model<T> {
         index
     }
 
-    fn insert(&mut self, index: Index, item: T) -> usize {
-        if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
-            let item = Item::new(item);
-            self.items.insert(index2, item.into());
-            index
-        } else {
-            self.push(item)
-        }
-    }
+    // fn insert(&mut self, index: Index, item: T) -> usize {
+    //     if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
+    //         let item = Item::new(item);
+    //         self.items.insert(index2, item.into());
+    //         index
+    //     } else {
+    //         self.push(item)
+    //     }
+    // }
 
     /// Remove all items and add them again, in order of their current position.
     fn reposition_items(&mut self) {
