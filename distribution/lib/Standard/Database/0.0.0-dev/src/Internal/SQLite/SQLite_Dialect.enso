@@ -269,14 +269,13 @@ concat_ops =
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
-
 ## PRIVATE
 trim_ops =
     make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
             Nothing -> Builder.code fn_name+"(" ++ input ++ ")"
             _ : Text -> Builder.code fn_name+"(" ++ input ++ ", " ++ (Builder.interpolation chars) ++ ")"
             _ -> Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
-    [make_fn "TRIM", make_fn "LTRIM"]
+    [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
