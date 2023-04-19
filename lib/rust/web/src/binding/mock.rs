@@ -601,6 +601,8 @@ mock_data! { MouseEvent => Event
     fn offset_y(&self) -> i32;
     fn screen_x(&self) -> i32;
     fn screen_y(&self) -> i32;
+    fn movement_x(&self) -> i32;
+    fn movement_y(&self) -> i32;
 }
 
 

@@ -28,12 +28,10 @@ pub type AnimationSimulator<T> = inertia::DynSimulator<mix::Repr<T>>;
 /// Default animation precision.
 ///
 /// This value defines the threshold of how close the current animation value should be to the
-/// target value so that the animation is considered finished.
-/// FIXME[WD]: The precision should should be increased in all simulators
-///            that work with pixels. The reason is that by default the simulator should
-///            give nice results for animations in the range of 0 .. 1, while it should not
-///            make too many steps when animating bigger values (like pixels).
-pub const DEFAULT_PRECISION: f32 = 0.001;
+/// target value so that the animation is considered finished. The value is set to 1.0 because in
+/// most cases the animation is used for pixel values, where 1 pixel distance from target is small
+/// enough to be snapped.
+pub const DEFAULT_PRECISION: f32 = 1.0;
 
 /// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
 /// is computed, it is emitted via the endpoint.
@@ -41,15 +39,17 @@ pub const DEFAULT_PRECISION: f32 = 0.001;
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct Animation<T: mix::Mixable + frp::Data> {
-    pub target:     frp::Any<T>,
-    pub precision:  frp::Any<f32>,
-    pub skip:       frp::Any,
-    pub set_spring: frp::Any<inertia::Spring>,
-    pub set_mass:   frp::Any<inertia::Mass>,
-    pub set_drag:   frp::Any<inertia::Drag>,
-    pub value:      frp::Stream<T>,
-    pub on_end:     frp::Stream<()>,
-    pub simulator:  AnimationSimulator<T>,
+    pub target:       frp::Any<T>,
+    pub precision:    frp::Any<f32>,
+    pub skip:         frp::Any,
+    pub set_spring:   frp::Any<inertia::Spring>,
+    pub set_mass:     frp::Any<inertia::Mass>,
+    pub set_drag:     frp::Any<inertia::Drag>,
+    pub set_velocity: frp::Any<T>,
+    pub set_value:    frp::Any<T>,
+    pub value:        frp::Stream<T>,
+    pub on_end:       frp::Stream<()>,
+    pub simulator:    AnimationSimulator<T>,
 }
 
 #[allow(missing_docs)]
@@ -68,22 +68,38 @@ where mix::Repr<T>: inertia::Value
         let simulator = AnimationSimulator::<T>::new(on_step, (), on_end);
         simulator.set_precision(DEFAULT_PRECISION);
         frp::extend! { network
-            target     <- any_mut::<T>();
-            precision  <- any_mut::<f32>();
-            skip       <- any_mut::<()>();
+            target <- any_mut::<T>();
+            precision <- any_mut::<f32>();
+            skip <- any_mut::<()>();
             set_spring <- any_mut::<inertia::Spring>();
-            set_mass   <- any_mut::<inertia::Mass>();
-            set_drag   <- any_mut::<inertia::Drag>();
-            eval target     ((t) simulator.set_target_value(mix::into_space(t.clone())));
-            eval precision  ((t) simulator.set_precision(*t));
-            eval_ skip      (simulator.skip());
+            set_mass <- any_mut::<inertia::Mass>();
+            set_drag <- any_mut::<inertia::Drag>();
+            set_velocity <- any_mut::<T>();
+            set_value <- any_mut::<T>();
+            eval target ((t) simulator.set_target_value(mix::into_space(t.clone())));
+            eval precision ((t) simulator.set_precision(*t));
+            eval_ skip (simulator.skip());
             eval set_spring ((s) simulator.set_spring(*s));
-            eval set_mass   ((m) simulator.set_mass(*m));
-            eval set_drag   ((d) simulator.set_drag(*d));
+            eval set_mass ((m) simulator.set_mass(*m));
+            eval set_drag ((d) simulator.set_drag(*d));
+            eval set_velocity ((t) simulator.set_velocity(mix::into_space(t.clone())));
+            eval set_value ((t) simulator.set_value(mix::into_space(t.clone())));
         }
         let value = value_src.into();
         let on_end = on_end_src.into();
-        Self { target, precision, skip, set_spring, set_mass, set_drag, value, on_end, simulator }
+        Self {
+            target,
+            precision,
+            skip,
+            set_spring,
+            set_mass,
+            set_drag,
+            set_value,
+            set_velocity,
+            value,
+            on_end,
+            simulator,
+        }
     }
 
     /// Constructor. The initial value is provided explicitly.

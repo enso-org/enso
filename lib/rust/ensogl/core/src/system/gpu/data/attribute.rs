@@ -114,7 +114,6 @@ shared! { AttributeScope
 /// geometry instances respectively. Also, the "point" [`AttributeScope`] can contain such buffers
 /// as "color", while "instance" [`AttributeScope`] can be created with a "position" buffer to allow
 /// controlling placement of each instance separately.
-
 #[derive(Debug)]
 pub struct AttributeScopeData {
     buffers         : OptVec<AnyBuffer>,
