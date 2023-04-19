@@ -52,10 +52,3 @@ parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Se
 
     table = Table.new columns
     if parse_values then table.parse on_problems=on_problems else table
-
-## PRIVATE
-   Assert that `value` is of type `typ`, then call the action.
-expect_type : Any -> Any -> Any -> Any ! Type_Error
-expect_type typ value ~action = case Meta.type_of value == typ of
-    True -> action
-    False -> Error.throw (Type_Error.Error typ (Meta.type_of value) "")
