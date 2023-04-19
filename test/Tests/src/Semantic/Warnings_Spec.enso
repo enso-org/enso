@@ -6,7 +6,7 @@ polyglot java import java.lang.Long
 polyglot java import java.util.function.Function as Java_Function
 polyglot java import org.enso.base_test_helpers.CallbackHelper
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 type My_Warning
@@ -84,12 +84,6 @@ throw_a_bar =
     Panic.throw "bar"
 
 Any.is_static_nothing self x = x.is_nothing
-
-extract_warnings_or_errors result =
-    case result.is_error of
-        True  -> result.catch
-        False -> Warning.get_all result . map .value
-
 
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|
@@ -385,14 +379,14 @@ spec = Test.group "Dataflow Warnings" <|
         condition_1 x y = if x then y else 42
         condition_2 x y = if x then y + 100 else 42
 
-        (extract_warnings_or_errors <| condition_1 False x1) . should_equal []
-        (extract_warnings_or_errors <| condition_2 False x1) . should_equal []
+        Problems.assume_no_problems <| condition_1 False x1
+        Problems.assume_no_problems <| condition_2 False x1
 
-        (extract_warnings_or_errors <| condition_1 False x2) . should_equal []
-        (extract_warnings_or_errors <| condition_2 False x2) . should_equal []
+        Problems.assume_no_problems <| condition_1 False x2
+        Problems.assume_no_problems <| condition_2 False x2
 
-        (extract_warnings_or_errors <| condition_1 False x3) . should_equal []
-        (extract_warnings_or_errors <| condition_2 False x3) . should_equal []
+        Problems.assume_no_problems <| condition_1 False x3
+        Problems.assume_no_problems <| condition_2 False x3
 
 
 main = Test_Suite.run_main spec
