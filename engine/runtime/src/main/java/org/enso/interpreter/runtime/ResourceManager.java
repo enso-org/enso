@@ -63,7 +63,7 @@ public class ResourceManager {
       return;
     }
     it.getParkedCount().decrementAndGet();
-    tryFinalize(it);
+    scheduleFinalizationAtSafepoint(it);
   }
 
   /**
@@ -79,7 +79,7 @@ public class ResourceManager {
       return;
     }
     // Unconditional finalization – user controls the resource manually.
-    it.scheduleFinalizeAtSafepoint(context);
+    it.finalizeNow(context);
   }
 
   /**
@@ -93,7 +93,7 @@ public class ResourceManager {
     items.remove(resource.getPhantomReference());
   }
 
-  private void tryFinalize(Item it) {
+  private void scheduleFinalizationAtSafepoint(Item it) {
     if (it.isFlaggedForFinalization().get()) {
       if (it.getParkedCount().get() == 0) {
         // We already know that isFlaggedForFinalization was true at some
@@ -105,8 +105,21 @@ public class ResourceManager {
         // no further attempts are made.
         boolean continueFinalizing = it.isFlaggedForFinalization().compareAndSet(true, false);
         if (continueFinalizing) {
-          it.scheduleFinalizeAtSafepoint(context);
-          items.remove(it.reference);
+          var futureToCancel = new AtomicReference<Future<Void>>(null);
+          var performFinalizeNow =
+              new ThreadLocalAction(false, false, true) {
+                @Override
+                protected void perform(ThreadLocalAction.Access access) {
+                  var tmp = futureToCancel.getAndSet(null);
+                  if (tmp == null) {
+                    return;
+                  }
+                  tmp.cancel(false);
+                  it.finalizeNow(context);
+                  items.remove(it.reference);
+                }
+              };
+          futureToCancel.set(context.getEnvironment().submitThreadLocal(null, performFinalizeNow));
         }
       }
     }
@@ -162,7 +175,7 @@ public class ResourceManager {
       Item it = items.remove(key);
       if (it != null) {
         // Finalize unconditionally – all other threads are dead by now.
-        it.scheduleFinalizeAtSafepoint(context);
+        it.finalizeNow(context);
       }
     }
   }
@@ -185,7 +198,7 @@ public class ResourceManager {
               continue;
             }
             it.isFlaggedForFinalization().set(true);
-            tryFinalize(it);
+            scheduleFinalizationAtSafepoint(it);
           }
           if (killed) {
             return;
@@ -233,30 +246,17 @@ public class ResourceManager {
     }
 
     /**
-     * Unconditionally performs the finalization action of this resource when a {@link
-     * TruffleSafepoint} is hit.
+     * Performs the finalization action of this resource right now. The thread must be inside of a
+     * context.
      *
      * @param context current execution context
      */
-    public void scheduleFinalizeAtSafepoint(EnsoContext context) {
-      var futureToCancel = new AtomicReference<Future<Void>>(null);
-      var performFinalizer =
-          new ThreadLocalAction(false, false, true) {
-            @Override
-            protected void perform(ThreadLocalAction.Access access) {
-              var tmp = futureToCancel.getAndSet(null);
-              if (tmp == null) {
-                return;
-              }
-              tmp.cancel(false);
-              try {
-                InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
-              } catch (Exception e) {
-                context.getErr().println("Exception in finalizer: " + e.getMessage());
-              }
-            }
-          };
-      futureToCancel.set(context.getEnvironment().submitThreadLocal(null, performFinalizer));
+    public void finalizeNow(EnsoContext context) {
+      try {
+        InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
+      } catch (Exception e) {
+        context.getErr().println("Exception in finalizer: " + e.getMessage());
+      }
     }
 
     /**
