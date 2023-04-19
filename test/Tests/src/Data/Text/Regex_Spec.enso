@@ -26,6 +26,9 @@ spec =
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             Regex.compile "ab(c(((((((" . should_fail_with Regex_Syntax_Error
 
+        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (space in capture group name)" <|
+            Regex.compile "(?<dot s>..)" . should_fail_with Regex_Syntax_Error
+
         Test.specify "should disallow empty patterns in `compile`" <|
             Regex.compile "" . should_fail_with Illegal_Argument
 
