@@ -92,7 +92,12 @@ public class TypeMembersTest {
   public void ensureNonBuiltinMembersArePresent() throws Exception {
     final URI uri = new URI("memory://how_long.enso");
     final Source src = Source.newBuilder("enso", """
-    from Standard.Base.Errors.Common import Compile_Error
+    @Builtin_Type
+    type Compile_Error
+        Error message
+        
+        to_display_text self = "Compile error: "+self.message
+        
     v = Compile_Error.Error "foo"
     """, "to_display_text.enso")
             .uri(uri)
