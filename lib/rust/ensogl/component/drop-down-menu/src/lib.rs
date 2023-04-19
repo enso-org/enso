@@ -431,17 +431,6 @@ impl DropDownMenu {
         self.model.selection_menu.set_label_layer(layer);
         self.model.label.add_to_scene_layer(layer);
     }
-
-    /// Set the correct order for the shapes. To be sued after moving the component to a different
-    /// layer. Workaround for #6241.
-    pub fn restore_shape_constraints(&self, app: &Application) {
-        let scene = &app.display.default_scene;
-        shapes_order_dependencies! {
-            scene => {
-                 arrow -> chooser_hover_area;
-            }
-        }
-    }
 }
 
 impl display::Object for DropDownMenu {
