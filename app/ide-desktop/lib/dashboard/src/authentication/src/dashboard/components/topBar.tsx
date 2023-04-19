@@ -23,6 +23,8 @@ interface TopBarProps {
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
+    backendPlatform: platformModule.Platform
+    setBackendPlatform: (backendPlatform: platformModule.Platform) => void
     searchVal: string
     setSearchVal: (searchVal: string) => void
 }
@@ -32,12 +34,20 @@ interface TopBarProps {
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { platform, projectName, tab, toggleTab, searchVal, setSearchVal } = props
+    const {
+        platform,
+        projectName,
+        tab,
+        toggleTab,
+        backendPlatform,
+        setBackendPlatform,
+        searchVal,
+        setSearchVal,
+    } = props
     const { accessToken } = authProvider.useFullUserSession()
     const logger = loggerProvider.useLogger()
     const { setBackend } = backendProvider.useSetBackend()
     const { setModal } = modalProvider.useSetModal()
-    const [backendPlatform, setBackendPlatform] = react.useState(platformModule.Platform.cloud)
 
     return (
         <div className="flex m-2 h-8">

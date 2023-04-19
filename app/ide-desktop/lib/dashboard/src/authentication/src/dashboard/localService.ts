@@ -6,12 +6,25 @@ import * as cloudService from './cloudService'
 import * as newtype from '../newtype'
 import * as projectManager from './projectManager'
 
+// =================
+// === Constants ===
+// =================
+
+/** The scene name to open a project, instead of a debug scene. */
+const PROJECT_SCENE_NAME = 'Project_root'
+
 // ===============
 // === Backend ===
 // ===============
 
+interface CurrentlyOpenProjectInfo {
+    id: projectManager.ProjectId
+    project: projectManager.OpenProject
+}
+
 export class Backend implements Partial<cloudService.Backend> {
     private readonly projectManager = projectManager.ProjectManager.default
+    private currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
 
     async listDirectory(): Promise<cloudService.Asset[]> {
         const result = await this.projectManager.listProjects({})
@@ -30,11 +43,12 @@ export class Backend implements Partial<cloudService.Backend> {
             name: project.name,
             organizationId: '',
             projectId: project.id,
-            packageName: '',
+            packageName: PROJECT_SCENE_NAME,
             state: {
                 type: cloudService.ProjectState.created,
             },
-            address: newtype.asNewtype<cloudService.Address>(''),
+            jsonAddress: null,
+            binaryAddress: null,
         }))
     }
 
@@ -50,7 +64,7 @@ export class Backend implements Partial<cloudService.Backend> {
             name: body.projectName,
             organizationId: '',
             projectId: result.result.projectId,
-            packageName: '',
+            packageName: PROJECT_SCENE_NAME,
             state: {
                 type: cloudService.ProjectState.created,
             },
@@ -59,43 +73,55 @@ export class Backend implements Partial<cloudService.Backend> {
 
     async closeProject(projectId: cloudService.ProjectId): Promise<void> {
         await this.projectManager.closeProject({ projectId })
+        this.currentlyOpenProject = null
     }
 
-    async getProjectDetails(projectId: cloudService.ProjectId): Promise<cloudService.Project> {
-        // FIXME[sb]: It is a mistake for `getProjectDetails` to open a project,
-        // however this appears to be unavoidable for now
-        // due to the project manager having a different API.
-        const result = await this.projectManager.openProject({
-            projectId,
-            missingComponentAction: projectManager.MissingComponentAction.install,
-        })
-        const project = result.result
-        console.log(result, project)
-        return {
-            name: project.projectName,
-            engineVersion: {
-                lifecycle: cloudService.VersionLifecycle.stable,
-                value: project.engineVersion,
-            },
-            ideVersion: {
-                lifecycle: cloudService.VersionLifecycle.stable,
-                value: project.engineVersion,
-            },
-            address: newtype.asNewtype<cloudService.Address>(''),
-            organizationId: '',
-            packageName: '',
-            projectId,
-            state: {
-                type: cloudService.ProjectState.opened,
-            },
+    getProjectDetails(projectId: cloudService.ProjectId): Promise<cloudService.Project> {
+        if (this.currentlyOpenProject == null) {
+            throw new Error('Cannot get details of a project that is not currently open.')
+        } else if (projectId !== this.currentlyOpenProject.id) {
+            throw new Error('Only one project can be open at a time.')
+        } else {
+            const project = this.currentlyOpenProject.project
+            return Promise.resolve<cloudService.Project>({
+                name: project.projectName,
+                engineVersion: {
+                    lifecycle: cloudService.VersionLifecycle.stable,
+                    value: project.engineVersion,
+                },
+                ideVersion: {
+                    lifecycle: cloudService.VersionLifecycle.stable,
+                    value: project.engineVersion,
+                },
+                jsonAddress: newtype.asNewtype<cloudService.Address>(
+                    project.languageServerJsonAddress.host +
+                        ':' +
+                        String(project.languageServerJsonAddress.port)
+                ),
+                binaryAddress: newtype.asNewtype<cloudService.Address>(
+                    project.languageServerBinaryAddress.host +
+                        ':' +
+                        String(project.languageServerBinaryAddress.port)
+                ),
+                organizationId: '',
+                packageName: PROJECT_SCENE_NAME,
+                projectId,
+                state: {
+                    type: cloudService.ProjectState.opened,
+                },
+            })
         }
     }
 
     async openProject(projectId: cloudService.ProjectId): Promise<void> {
-        await this.projectManager.openProject({
+        const result = await this.projectManager.openProject({
             projectId,
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
+        this.currentlyOpenProject = {
+            id: projectId,
+            project: result.result,
+        }
     }
 }
 

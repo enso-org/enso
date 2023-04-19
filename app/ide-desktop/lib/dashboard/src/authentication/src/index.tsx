@@ -19,10 +19,8 @@ import App, * as app from './components/app'
 // === Constants ===
 // =================
 
-/** The `id` attribute of the root element that the app will be rendered into. */
+/** The `id` attribute of the root element into which the app will be rendered. */
 const ROOT_ELEMENT_ID = 'enso-dashboard'
-/** The `id` attribute of the element that the IDE will be rendered into. */
-const IDE_ELEMENT_ID = 'root'
 
 // ===========
 // === run ===
@@ -43,8 +41,6 @@ export function run(props: app.AppProps) {
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
     } else {
-        // This element is re-added by the `Ide` component.
-        document.getElementById(IDE_ELEMENT_ID)?.remove()
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }

@@ -189,10 +189,10 @@ function Dashboard(props: DashboardProps) {
 
     const { accessToken, organization } = auth.useFullUserSession()
     const { backend } = backendProvider.useBackend()
-
     const { modal } = modalProvider.useModal()
     const { unsetModal } = modalProvider.useSetModal()
 
+    const [backendPlatform, setBackendPlatform] = react.useState(platformModule.Platform.cloud)
     const [searchVal, setSearchVal] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
@@ -298,8 +298,11 @@ function Dashboard(props: DashboardProps) {
     }, [accessToken, directoryId, backend])
 
     return (
-        <div className="text-primary text-xs" onClick={unsetModal}>
-            <div className={tab === Tab.dashboard ? '' : 'hidden'}>
+        <div
+            className={`text-primary text-xs ${tab === Tab.dashboard ? '' : 'hidden'}`}
+            onClick={unsetModal}
+        >
+            <div>
                 <TopBar
                     platform={platform}
                     projectName={project?.name ?? null}
@@ -311,6 +314,8 @@ function Dashboard(props: DashboardProps) {
                             setTab(Tab.dashboard)
                         }
                     }}
+                    backendPlatform={backendPlatform}
+                    setBackendPlatform={setBackendPlatform}
                     searchVal={searchVal}
                     setSearchVal={setSearchVal}
                 />
@@ -480,16 +485,14 @@ function Dashboard(props: DashboardProps) {
                     />
                 </table>
             </div>
-            <div className={tab === Tab.ide ? '' : 'hidden'}>
-                {project && (
-                    <Ide
-                        platform={platform}
-                        backendService={backend}
-                        project={project}
-                        setTab={setTab}
-                    />
-                )}
-            </div>
+            {project && (
+                <Ide
+                    platform={platform}
+                    backendService={backend}
+                    project={project}
+                    setTab={setTab}
+                />
+            )}
             {modal && <>{modal}</>}
         </div>
     )

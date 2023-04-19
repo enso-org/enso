@@ -1,6 +1,10 @@
 /** @file This module defines the Project Manager endpoint. */
 import * as newtype from '../newtype'
 
+// =================
+// === Constants ===
+// =================
+
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 
 // =============
@@ -22,7 +26,7 @@ export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
 export type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
 
-interface ProjectMetadata {
+export interface ProjectMetadata {
     name: ProjectName
     namespace: string
     id: ProjectId
@@ -30,20 +34,20 @@ interface ProjectMetadata {
     lastOpened: UTCDateTime | null
 }
 
-interface IpWithSocket {
+export interface IpWithSocket {
     host: string
     port: number
 }
 
-interface ProjectList {
+export interface ProjectList {
     projects: ProjectMetadata[]
 }
 
-interface CreateProject {
+export interface CreateProject {
     projectId: ProjectId
 }
 
-interface OpenProject {
+export interface OpenProject {
     engineVersion: string
     languageServerJsonAddress: IpWithSocket
     languageServerBinaryAddress: IpWithSocket
