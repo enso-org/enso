@@ -190,7 +190,7 @@ type SQLite_Dialect
 
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [decimal_div, mod_op]
@@ -261,6 +261,14 @@ concat_ops =
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
+
+## PRIVATE
+trim_ops =
+    make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
+            Nothing -> Builder.code fn_name+"(" ++ input ++ ")"
+            _ : Text -> Builder.code fn_name+"(" ++ input ++ ", " ++ (Builder.interpolation chars) ++ ")"
+            _ -> Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+    [make_fn "TRIM", make_fn "LTRIM"]
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
