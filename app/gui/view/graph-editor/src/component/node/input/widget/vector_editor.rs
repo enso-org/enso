@@ -4,6 +4,7 @@
 //! Currently the view is a simle [`Elements`] component, which will be replaced with a rich
 //! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
 
+use crate::component::node::input::widget::Metadata;
 use crate::prelude::*;
 
 use crate::component::node::input::widget::single_choice::triangle;

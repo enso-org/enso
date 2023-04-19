@@ -50,6 +50,12 @@ fn map_config(inner: response::WidgetSpecific) -> widget::Config {
             entries: Rc::new(map_entries(&values)),
         }
         .into(),
+        response::WidgetSpecific::VectorEditor { item_editor, item_default } =>
+            widget::vector_editor::Config {
+                item_editor:  Some(Rc::new(map_metadata(*item_editor))),
+                item_default: item_default.into(),
+            }
+            .into(),
         _ => widget::label::Config::default().into(),
     }
 }

@@ -97,11 +97,11 @@ impl super::SpanWidget for Widget {
         } else {
             let ty = ctx.state.usage_type.clone();
             let ty = ty.or_else(|| ctx.span_tree_node.kind.tp().map(|t| crate::Type(t.into())));
-            crate::type_coloring::compute_for_code(ty.as_ref(), &ctx.styles())
+            crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles())
         };
 
         let input = &self.frp.public.input;
-        input.content.emit(content.clone());
+        input.content.emit(content);
         input.text_color.emit(text_color);
         input.crumbs.emit(ctx.span_tree_node.crumbs.clone());
     }

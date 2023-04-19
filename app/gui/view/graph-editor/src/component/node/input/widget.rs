@@ -15,8 +15,6 @@ use ensogl::display;
 use ensogl::display::shape::StyleWatch;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
 use text::index::Byte;
 
 
@@ -107,7 +105,7 @@ macro_rules! define_widget_modules(
         /// widget of new kind will be created and the old one will be dropped.
         #[derive(Debug)]
         #[allow(missing_docs)]
-        pub(super) enum DynWidget {
+        pub enum DynWidget {
             $(
                 $(#[$meta])*
                 $name($module::Widget)
@@ -201,12 +199,12 @@ impl Metadata {
     /// Widget metadata for static dropdown, based on the tag values provided by suggestion
     /// database.
     fn static_dropdown(label: Option<ImString>, tag_values: &[span_tree::TagValue]) -> Metadata {
-        let entries = Rc::new(tag_values.into_iter().map(Entry::from).collect());
+        let entries = Rc::new(tag_values.iter().map(Entry::from).collect());
         Self::always(single_choice::Config { label, entries })
     }
 
     fn vector_editor() -> Metadata {
-        Self::always(vector_editor::Config::default())
+        Self::always(vector_editor::Config { item_editor: None, item_default: "_".into() })
     }
 
     fn from_kind(
@@ -417,7 +415,7 @@ impl Tree {
         node_expression: &str,
         styles: &StyleWatch,
     ) {
-        if self.model.tree_dirty.load(Ordering::Acquire) {
+        if self.model.tree_dirty.get() {
             self.rebuild_tree(tree, node_expression, styles);
         }
     }
@@ -444,6 +442,16 @@ impl Tree {
         let pointer = self.model.get_node_widget_pointer(tree_node)?;
         self.model.with_node(&pointer, |w| w.display_object().clone())
     }
+
+    /// Get hover shapes for all ports in the tree. Used for testing to simulate mouse events.
+    pub fn port_hover_shapes(&self) -> Vec<super::port::hover_shape::View> {
+        self.model
+            .nodes_map
+            .borrow()
+            .values()
+            .filter_map(|n| Some(n.port()?.hover_shape().clone_ref()))
+            .collect_vec()
+    }
 }
 
 
@@ -460,6 +468,15 @@ pub(super) enum TreeNode {
     Port(Port),
     /// A tree node without a port, directly containing a widget.
     Widget(DynWidget),
+}
+
+impl TreeNode {
+    fn port(&self) -> Option<&Port> {
+        match self {
+            TreeNode::Port(port) => Some(port),
+            TreeNode::Widget(_) => None,
+        }
+    }
 }
 
 impl display::Object for TreeNode {
@@ -481,12 +498,12 @@ impl display::Object for TreeNode {
 struct TreeModel {
     app:            Application,
     display_object: display::object::Instance,
-    widgets_map:    RefCell<HashMap<WidgetTreePointer, TreeNode>>,
+    nodes_map:      RefCell<HashMap<WidgetTreePointer, TreeNode>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
     connected_map:  Rc<RefCell<HashMap<WidgetTreePointer, ConnectionData>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
-    disabled:       AtomicBool,
-    tree_dirty:     AtomicBool,
+    disabled:       Cell<bool>,
+    tree_dirty:     Cell<bool>,
 }
 
 impl TreeModel {
@@ -505,7 +522,7 @@ impl TreeModel {
             app,
             display_object,
             disabled: default(),
-            widgets_map: default(),
+            nodes_map: default(),
             metadata_map: default(),
             connected_map: default(),
             usage_type_map: default(),
@@ -518,7 +535,7 @@ impl TreeModel {
         let mut map = self.metadata_map.borrow_mut();
         let dirty = map.synchronize_entry(pointer, meta);
         if dirty {
-            self.tree_dirty.store(true, Ordering::Release);
+            self.tree_dirty.set(true);
         }
     }
 
@@ -527,7 +544,7 @@ impl TreeModel {
         let mut map = self.connected_map.borrow_mut();
         let dirty = map.synchronize_entry(pointer, status.data());
         if dirty {
-            self.tree_dirty.store(true, Ordering::Release);
+            self.tree_dirty.set(true);
         }
     }
 
@@ -536,15 +553,15 @@ impl TreeModel {
         let mut map = self.usage_type_map.borrow_mut();
         let dirty = map.synchronize_entry(ast_id, usage_type);
         if dirty {
-            self.tree_dirty.store(true, Ordering::Release);
+            self.tree_dirty.set(true);
         }
     }
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
     fn set_disabled(&self, disabled: bool) {
-        let prev_disabled = self.disabled.swap(disabled, Ordering::AcqRel);
+        let prev_disabled = self.disabled.replace(disabled);
         if prev_disabled != disabled {
-            self.tree_dirty.store(true, Ordering::Release);
+            self.tree_dirty.set(true);
         }
     }
 
@@ -556,13 +573,13 @@ impl TreeModel {
         node_expression: &str,
         styles: &StyleWatch,
     ) {
-        self.tree_dirty.store(false, Ordering::Release);
+        self.tree_dirty.set(false);
         let app = self.app.clone();
         let metadata_map = self.metadata_map.borrow();
         let connected_map = self.connected_map.borrow();
         let usage_type_map = self.usage_type_map.borrow();
-        let old_widgets = self.widgets_map.take();
-        let node_disabled = self.disabled.load(Ordering::Acquire);
+        let old_nodes = self.nodes_map.take();
+        let node_disabled = self.disabled.get();
         let mut builder = WidgetTreeBuilder {
             app,
             frp,
@@ -572,8 +589,8 @@ impl TreeModel {
             metadata_map: &metadata_map,
             connected_map: &connected_map,
             usage_type_map: &usage_type_map,
-            old_widgets,
-            new_widgets: default(),
+            old_nodes,
+            new_nodes: default(),
             parent_ast_id: default(),
             parent_crumbs: default(),
             parent_state: default(),
@@ -581,7 +598,7 @@ impl TreeModel {
 
         let child = builder.child_widget(tree.root_ref(), 0);
         self.display_object.replace_children(&[child]);
-        self.widgets_map.replace(builder.new_widgets);
+        self.nodes_map.replace(builder.new_nodes);
     }
 
     /// Convert span tree node to a corresponding widget tree pointer. Every node in the span tree
@@ -631,7 +648,7 @@ impl TreeModel {
         pointer: &WidgetTreePointer,
         f: impl FnOnce(&TreeNode) -> T,
     ) -> Option<T> {
-        self.widgets_map.borrow().get(pointer).map(f)
+        self.nodes_map.borrow().get(pointer).map(f)
     }
 }
 
@@ -731,8 +748,8 @@ struct WidgetTreeBuilder<'a> {
     metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
     connected_map:   &'a HashMap<WidgetTreePointer, ConnectionData>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
-    old_widgets:     HashMap<WidgetTreePointer, TreeNode>,
-    new_widgets:     HashMap<WidgetTreePointer, TreeNode>,
+    old_nodes:       HashMap<WidgetTreePointer, TreeNode>,
+    new_nodes:       HashMap<WidgetTreePointer, TreeNode>,
     parent_ast_id:   Option<ast::Id>,
     parent_crumbs:   span_tree::Crumbs,
     parent_state:    NodeState,
@@ -811,7 +828,7 @@ impl<'a> WidgetTreeBuilder<'a> {
                 WidgetTreePointer { id, crumbs }
             }
         };
-        let old_node = self.old_widgets.remove(&tree_ptr);
+        let old_node = self.old_nodes.remove(&tree_ptr);
         let is_placeholder = span_tree_node.is_expected_argument();
         let sibling_offset = span_tree_node.sibling_offset.as_usize();
         let usage_type = tree_ptr.id.and_then(|id| self.usage_type_map.get(&id)).cloned();
@@ -898,7 +915,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             child_root.set_margin_left(left_margin);
         }
 
-        self.new_widgets.insert(tree_ptr.clone(), child_node);
+        self.new_nodes.insert(tree_ptr.clone(), child_node);
         child_root
     }
 }

@@ -193,7 +193,7 @@ impl super::SpanWidget for Widget {
             // value application triggers operations that can introduce a few dropped frames,
             // we want to delay the dropdown closing animation after that is handled.
             // Otherwise the animation finishes within single frame, which looks bad.
-            let close_after_selection_timer = frp::io::timer::Timeout::new(&network);
+            let close_after_selection_timer = frp::io::timer::Timeout::new(network);
             close_after_selection_timer.restart <+ dropdown.user_select_action.constant(1);
             eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
 

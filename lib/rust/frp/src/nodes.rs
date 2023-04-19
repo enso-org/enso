@@ -2334,18 +2334,20 @@ where
         self.gate.is_dropped()
     }
 
-    fn on_event_if_exists(&self, stack: CallStack, is_active: &bool) -> bool {
+    fn on_event_if_exists(&self, stack: CallStack, new_active: &bool) -> bool {
         if let Some(gate) = self.gate.upgrade() {
-            let new_state = match is_active {
-                true => BufferedGateState::Active,
-                false => BufferedGateState::Inactive,
-            };
-            match gate.state.replace(new_state) {
-                BufferedGateState::Active => {}
-                BufferedGateState::Inactive => {}
-                BufferedGateState::Buffered => {
+            match (gate.state.get(), new_active) {
+                (BufferedGateState::Active, false) => {
+                    gate.state.set(BufferedGateState::Inactive);
+                }
+                (BufferedGateState::Inactive, true) => {
+                    gate.state.set(BufferedGateState::Active);
+                }
+                (BufferedGateState::Buffered, true) => {
+                    gate.state.set(BufferedGateState::Active);
                     gate.event.with(|value| gate.emit_event(stack, value));
                 }
+                _ => (),
             }
             true
         } else {
@@ -4723,9 +4725,7 @@ impl HasOutput for DropSource {
 }
 
 impl ValueProvider for DropSource {
-    fn value(&self) -> () {
-        ()
-    }
+    fn value(&self) {}
 
     fn with<T>(&self, _: impl FnOnce(&()) -> T) -> Option<T>
     where Self: Sized {

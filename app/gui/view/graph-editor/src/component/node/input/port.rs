@@ -38,11 +38,23 @@ pub const PRIMARY_PORT_MAX_DEPTH: usize = 0;
 
 
 
-// ============
-// === Port ===
-// ============
+// =============
+// === Shape ===
+// =============
 
-/// Visible shape of connected ports.
+/// Shapes the port is build from. It consist of the `hover_shape`, which represents a hover area of
+/// a height dependent on logical widget depth, and the `shape`, which is a nice, visual highlight
+/// representation with padding extending out of the widget bounding box. Both shapes are children
+/// of `Port`'s `port_root` display object:
+///
+/// ```text
+///     hover_shape (appears when hovering over the node while dragging an edge)
+///      ◄──────►
+/// ╭───┬────────┬──┄
+/// │   │╭──────╮│▼ shape
+/// │   │╰──────╯│▲
+/// ╰───┴────────┴──┄
+/// ```
 pub mod shape {
     use super::*;
     ensogl::shape! {
@@ -64,26 +76,28 @@ pub mod hover_shape {
         (style:Style) {
             let size = Var::canvas_size();
             let transparent = Var::<color::Rgba>::from("srgba(1.0,1.0,1.0,0.00001)");
-            let hover_shape = Rect(&size).fill(transparent);
+            let hover_shape = Rect(size).fill(transparent);
             hover_shape.into()
         }
     }
 }
 
+/// An scene extension that holds the partitions of hover shapes for all ports. This is used to
+/// visually sort the ports based on port depth in the widget tree.
 #[derive(Clone, CloneRef)]
-struct PortHoverLayers {
+struct HoverLayers {
     hover_layer:      display::scene::Layer,
     hover_partitions: Rc<RefCell<Vec<LayerSymbolPartition<hover_shape::Shape>>>>,
 }
 
-impl display::scene::Extension for PortHoverLayers {
+impl display::scene::Extension for HoverLayers {
     fn init(scene: &display::Scene) -> Self {
         let hover_layer = scene.layers.main.clone_ref();
         Self { hover_layer, hover_partitions: default() }
     }
 }
 
-impl PortHoverLayers {
+impl HoverLayers {
     fn add_to_partition(&self, object: &display::object::Instance, depth: usize) {
         let mut hover_partitions = self.hover_partitions.borrow_mut();
         if hover_partitions.len() <= depth {
@@ -96,8 +110,13 @@ impl PortHoverLayers {
 }
 
 
+// ============
+// === Port ===
+// ============
+
+/// A port on the node side. It can be connected to other ports.
 #[derive(Debug)]
-pub(super) struct Port {
+pub struct Port {
     #[allow(dead_code)]
     on_cleanup:      frp::DropSource,
     crumbs:          Rc<RefCell<span_tree::Crumbs>>,
@@ -106,11 +125,13 @@ pub(super) struct Port {
     widget:          DynWidget,
     port_shape:      shape::View,
     hover_shape:     hover_shape::View,
-    last_node_depth: usize,
-    is_primary:      bool,
+    current_depth:   usize,
+    current_primary: bool,
 }
 
 impl Port {
+    /// Create a new port for given widget. The widget will be placed as a child of the port's
+    /// `port_root` display object, and its layout size will be used to determine the port's size.
     pub fn new(widget: DynWidget, app: &Application, frp: &WidgetsFrp) -> Self {
         let port_root = display::object::Instance::new();
         let widget_root = widget.root_object().clone_ref();
@@ -132,7 +153,7 @@ impl Port {
             .set_margin_right(-PORT_PADDING_X)
             .set_alignment_left_center();
 
-        let layers = app.display.default_scene.extension::<PortHoverLayers>();
+        let layers = app.display.default_scene.extension::<HoverLayers>();
         layers.add_to_partition(hover_shape.display_object(), 0);
 
         let mouse_enter = hover_shape.on_event::<mouse::Enter>();
@@ -180,11 +201,12 @@ impl Port {
             widget_root,
             port_root,
             crumbs,
-            is_primary: false,
-            last_node_depth: 0,
+            current_primary: false,
+            current_depth: 0,
         }
     }
 
+    /// Configure the port and its attached widget.
     pub fn configure(&mut self, config: &Config, ctx: ConfigContext) {
         self.crumbs.replace(ctx.span_tree_node.crumbs.clone());
         self.set_connected(ctx.state.connection);
@@ -193,7 +215,9 @@ impl Port {
         self.update_root();
     }
 
-    pub fn set_connected(&self, status: ConnectionStatus) {
+    /// Update connection status of this port. Changing the connection status will add or remove the
+    /// port's visible shape from the display hierarchy.
+    fn set_connected(&self, status: ConnectionStatus) {
         match status {
             ConnectionStatus::Connected(data) => {
                 self.port_root.add_child(&self.port_shape);
@@ -216,23 +240,31 @@ impl Port {
 
     fn set_port_layout(&mut self, ctx: &ConfigContext) {
         let node_depth = ctx.span_tree_node.crumbs.len();
-        if self.last_node_depth != node_depth {
-            self.last_node_depth = node_depth;
-            let layers = ctx.app().display.default_scene.extension::<PortHoverLayers>();
+        if self.current_depth != node_depth {
+            self.current_depth = node_depth;
+            let layers = ctx.app().display.default_scene.extension::<HoverLayers>();
             layers.add_to_partition(self.hover_shape.display_object(), node_depth);
         }
 
+        #[allow(clippy::absurd_extreme_comparisons)]
         let is_primary = ctx.state.depth <= PRIMARY_PORT_MAX_DEPTH;
-        if self.is_primary != is_primary {
-            self.is_primary = is_primary;
+        if self.current_primary != is_primary {
+            self.current_primary = is_primary;
             let margin = if is_primary { -PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };
             self.hover_shape.set_margin_top(margin);
             self.hover_shape.set_margin_bottom(margin);
         }
     }
 
-    pub fn into_widget(self) -> DynWidget {
+    /// Extract the widget out of the port, dropping the port specific display objects. The widget
+    /// can be reinserted into the display hierarchy of widget tree.
+    pub(super) fn into_widget(self) -> DynWidget {
         self.widget
+    }
+
+    /// Get the port's hover shape. Used for testing to simulate mouse events.
+    pub fn hover_shape(&self) -> &hover_shape::View {
+        &self.hover_shape
     }
 }
 

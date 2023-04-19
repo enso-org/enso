@@ -4160,9 +4160,9 @@ mod tests {
         // Connecting edge.
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true, None);
-        let port = node_2.model().input_port_shape().expect("No input port.");
-        port.hover.events_deprecated.emit_mouse_down(PrimaryButton);
-        port.hover.events_deprecated.emit_mouse_up(PrimaryButton);
+        let port_hover = node_2.model().input_port_shape().expect("No input port.");
+        port_hover.events_deprecated.emit_mouse_down(PrimaryButton);
+        port_hover.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }

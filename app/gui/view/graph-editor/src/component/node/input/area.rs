@@ -224,8 +224,8 @@ impl Model {
     /// Set connection status of the given port.
     fn set_connected(&self, crumbs: &Crumbs, status: node::ConnectionStatus) {
         let expr = self.expression.borrow();
-        let port = expr.span_tree.get_node(crumbs).ok();
-        port.map(|port| self.widget_tree.set_connected(&port, status));
+        let Ok(port) = expr.span_tree.get_node(crumbs) else { return };
+        self.widget_tree.set_connected(&port, status);
     }
 
     /// Set usage type of the given port.
@@ -294,6 +294,11 @@ impl Model {
 
         self.request_widgets_metadata(&new_expression, area_frp);
         *self.expression.borrow_mut() = new_expression;
+    }
+
+    /// Get hover shapes for all input ports of a node. Used for testing to simulate mouse events.
+    pub fn port_hover_shapes(&self) -> Vec<super::port::hover_shape::View> {
+        self.widget_tree.port_hover_shapes()
     }
 }
 

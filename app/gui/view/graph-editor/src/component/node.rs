@@ -1191,10 +1191,8 @@ pub mod test_utils {
         }
 
         fn input_port_shape(&self) -> Option<input::port::hover_shape::View> {
-            // let ports = self.input.model.ports();
-            // let port = ports.first()?;
-            // port.shape.as_ref().map(CloneRef::clone_ref)
-            None // TODO
+            let shapes = self.input.model.port_hover_shapes();
+            shapes.into_iter().next()
         }
     }
 }

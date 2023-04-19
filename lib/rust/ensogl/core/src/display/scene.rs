@@ -1221,7 +1221,7 @@ impl Scene {
     /// this frame.
     #[profile(Debug)]
     pub fn early_update(&self, time: animation::TimeInfo) -> UpdateStatus {
-        if let Some(_) = &*self.context.borrow() {
+        if self.context.borrow().is_some() {
             debug_span!("Early update.").in_scope(|| {
                 let mut scene_was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());

@@ -537,7 +537,8 @@ fn generate_node_for_prefix_chain<T: Payload>(
     let app_base = ApplicationBase::from_prefix_chain(this);
 
     // If actual method arguments are not resolved, we still want to assign correct call ID to all
-    // argument spans. This is required for correct handling of 
+    // argument spans. This is required for correct handling of span tree actions, as it is used to
+    // determine correct reinsertion point for removed span.
     let fallback_call_id = app_base.call_id;
     let mut application = app_base.resolve(context);
 
