@@ -32,10 +32,13 @@ object NativeImage {
     *                      on Linux)
     * @param additionalOptions additional options for the Native Image build
     *                          tool
-    * @param memoryLimitMegabytes a memory limit for the build tool, in
+    * @param buildMemoryLimitMegabytes a memory limit for the build tool, in
     *                             megabytes; it is good to set this limit to
     *                             make GC more aggressive thus allowing it to
     *                             build successfully even with limited memory
+    * @param runtimeThreadStackMegabytes the runtime thread stack size; the
+    *                             minimum for ZIO to work is higher than the
+    *                             default value on some systems
     * @param initializeAtRuntime a list of classes that should be initialized at
     *                            run time - useful to set exceptions if build
     *                            time initialization is set to default
@@ -43,12 +46,12 @@ object NativeImage {
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
-    additionalOptions: Seq[String]          = Seq.empty,
-    memoryLimitMegabytes: Option[Int]       = Some(15608),
-    memoryThreadStackMegabytes: Option[Int] = Some(16),
-    initializeAtRuntime: Seq[String]        = Seq.empty,
-    mainClass: Option[String]               = None,
-    cp: Option[String]                      = None
+    additionalOptions: Seq[String]           = Seq.empty,
+    buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
+    runtimeThreadStackMegabytes: Option[Int] = Some(2),
+    initializeAtRuntime: Seq[String]         = Seq.empty,
+    mainClass: Option[String]                = None,
+    cp: Option[String]                       = None
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -101,9 +104,11 @@ object NativeImage {
       val quickBuildOption =
         if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
 
-      val memoryLimitOptions =
-        memoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M") ++
-        memoryThreadStackMegabytes.map(megs => s"-J-Xss${megs}M")
+      val buildMemoryLimitOptions =
+        buildMemoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
+
+      val runtimeMemoryOptions =
+        runtimeThreadStackMegabytes.map(megs => s"-R:StackSize=${megs}M").toSeq
 
       val initializeAtRuntimeOptions =
         if (initializeAtRuntime.isEmpty) Seq()
@@ -119,7 +124,8 @@ object NativeImage {
         Seq("--no-fallback", "--no-server") ++
         Seq("--initialize-at-build-time=") ++
         initializeAtRuntimeOptions ++
-        memoryLimitOptions ++
+        buildMemoryLimitOptions ++
+        runtimeMemoryOptions ++
         additionalOptions
 
       if (mainClass.isEmpty) {

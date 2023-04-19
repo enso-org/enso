@@ -171,10 +171,9 @@ class Runner(
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
       val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
-      val memoryOpts         = Seq("-Xss16M")
 
       val jvmArguments =
-        memoryOpts ++ manifestOptions ++ environmentOptions ++ commandLineOptions ++
+        manifestOptions ++ environmentOptions ++ commandLineOptions ++
         Seq("-jar", runnerJar)
 
       val loggingConnectionArguments =
