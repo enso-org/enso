@@ -72,11 +72,12 @@
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
 
-import * as electron from 'electron'
-import opener from 'opener'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
+
+import * as electron from 'electron'
+import opener from 'opener'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -158,15 +159,15 @@ function initSaveAccessTokenListener() {
         /** System agnostic credentials directory home path. */
         const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
 
-        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, err => {
-            if (err) {
+        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, error => {
+            if (error) {
                 logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
             } else {
                 fs.writeFile(
                     path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
                     accessToken,
-                    err => {
-                        if (err) {
+                    innerError => {
+                        if (innerError) {
                             logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
                         }
                     }
