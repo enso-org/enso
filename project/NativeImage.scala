@@ -1,7 +1,7 @@
 import java.io.File
 import java.nio.file.Path
 
-import sbt.{Def, File, _}
+import sbt._
 import sbt.Keys._
 import sbt.internal.util.ManagedLogger
 import sbtassembly.AssemblyKeys.assembly
@@ -43,11 +43,12 @@ object NativeImage {
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
-    additionalOptions: Seq[String]    = Seq.empty,
-    memoryLimitMegabytes: Option[Int] = Some(15608),
-    initializeAtRuntime: Seq[String]  = Seq.empty,
-    mainClass: Option[String]         = None,
-    cp: Option[String]                = None
+    additionalOptions: Seq[String]          = Seq.empty,
+    memoryLimitMegabytes: Option[Int]       = Some(15608),
+    memoryThreadStackMegabytes: Option[Int] = Some(2),
+    initializeAtRuntime: Seq[String]        = Seq.empty,
+    mainClass: Option[String]               = None,
+    cp: Option[String]                      = None
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -101,7 +102,8 @@ object NativeImage {
         if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
 
       val memoryLimitOptions =
-        memoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
+        memoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M") ++
+        memoryThreadStackMegabytes.map(megs => s"-J-Xss${megs}M")
 
       val initializeAtRuntimeOptions =
         if (initializeAtRuntime.isEmpty) Seq()
@@ -118,7 +120,7 @@ object NativeImage {
         Seq("--initialize-at-build-time=") ++
         initializeAtRuntimeOptions ++
         memoryLimitOptions ++
-        additionalOptions;
+        additionalOptions
 
       if (mainClass.isEmpty) {
         cmd = cmd ++
