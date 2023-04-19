@@ -445,18 +445,9 @@ define_themes! { [light:0, dark:1]
         status_bar {
             offset_y = -30.0, -30.0;
             text = text, text;
-            background = graph_editor::node::background , graph_editor::node::background;
             background {
+                color = graph_editor::node::background , graph_editor::node::background;
                 corner_radius = 14.0 , 14.0;
-                shadow = shadow , shadow;
-                shadow {
-                    size     = shadow::size     , shadow::size;
-                    spread   = shadow::spread   , shadow::spread;
-                    fading   = shadow::fading   , shadow::fading;
-                    exponent = shadow::exponent , shadow::exponent;
-                    offset_x = shadow::offset_x , shadow::offset_x;
-                    offset_y = shadow::offset_y , shadow::offset_y;
-                }
             }
         }
     }
@@ -617,18 +608,9 @@ define_themes! { [light:0, dark:1]
                     right = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
                 }
             }
-            background = application::background , application::background;
             background {
+                color = application::background , application::background;
                 corner_radius = 8.0 , 8.0;
-                shadow = shadow , shadow;
-                shadow {
-                    size     = shadow::size     , shadow::size;
-                    spread   = shadow::spread   , shadow::spread;
-                    fading   = shadow::fading   , shadow::fading;
-                    exponent = shadow::exponent , shadow::exponent;
-                    offset_x = shadow::offset_x , shadow::offset_x;
-                    offset_y = shadow::offset_y , shadow::offset_y;
-                }
             }
         }
         edge {

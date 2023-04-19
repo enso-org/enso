@@ -7,6 +7,10 @@ use crate::prelude::*;
 
 use crate::data::color;
 use crate::display;
+use crate::display::shape::StyleWatchFrp;
+use crate::display::style::data::DataMatch;
+use crate::display::style::Path;
+
 
 
 // ==============
@@ -25,6 +29,7 @@ pub use shape::Shape;
 pub mod shape {
     use super::*;
     crate::shape! {
+        pointer_events_instanced = true,
         (
             style: Style,
             color: Vector4,
@@ -157,6 +162,15 @@ impl Rectangle {
         self.modify_view(|view| view.border_color.set(color.into()))
     }
 
+    /// Set whether the shape interacts with the mouse.
+    pub fn set_pointer_events(&self, enabled: bool) -> &Self {
+        let disabled = match enabled {
+            true => 0.0,
+            false => 1.0,
+        };
+        self.modify_view(|view| view.disable_pointer_events.set(disabled))
+    }
+
     /// Set clipping of the shape. The clipping is normalized, which means, that the value of 0.5
     /// means that we are clipping 50% of the shape. For positive clip values, the clipping is
     /// performed always on the left and on the bottom of the shape. For negative clip values, the
@@ -204,6 +218,22 @@ impl Rectangle {
     /// Keep only the top left quarter of the shape.
     pub fn keep_top_left_quarter(&self) -> &Self {
         self.set_clip(Vector2(-0.5, 0.5))
+    }
+
+    /// Set the style properties from the given [`StyleWatchFrp`].
+    pub fn set_style(&self, path: impl Into<Path>, style: &StyleWatchFrp) {
+        let path = path.into();
+        macro_rules! set_property {
+            ($name:ident: $ty:ident) => {{
+                let value = style.get(path.sub(stringify!($name))).value();
+                let value = value.and_then(|value| value.$ty());
+                if let Some(value) = value {
+                    self.view.$name.set(value.into());
+                }
+            }};
+        }
+        set_property!(corner_radius: number);
+        set_property!(color: color);
     }
 }
 

@@ -203,8 +203,6 @@ impl component::Model for Model {
         scene.layers.panel.add(&divider);
 
         dropdown.set_label_layer(&scene.layers.panel_text);
-        dropdown.restore_shape_constraints(app);
-
 
         Self { display_object, background, play_button, dropdown, inner_root, divider }
     }

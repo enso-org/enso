@@ -641,7 +641,7 @@ impl LayerModel {
     /// Consume all dirty flags and update the ordering of elements if needed. Returns [`true`] if
     /// the layer or its sub-layers were modified during this call.
     pub fn update(&self) -> bool {
-        self.update_internal(None)
+        self.update_internal(default(), default())
     }
 
     /// Consume all dirty flags and update the ordering of elements if needed.
@@ -649,10 +649,11 @@ impl LayerModel {
     pub(crate) fn update_internal(
         &self,
         global_element_depth_order: Option<&DependencyGraph<LayerItem>>,
+        parent_depth_order_changed: bool,
     ) -> bool {
         let mut was_dirty = false;
 
-        if self.depth_order_dirty.check() {
+        if self.depth_order_dirty.check() || parent_depth_order_changed {
             was_dirty = true;
             self.depth_order_dirty.unset();
             self.depth_sort(global_element_depth_order);
@@ -662,11 +663,13 @@ impl LayerModel {
             was_dirty = true;
             self.sublayers.element_depth_order_dirty.unset();
             self.for_each_sublayer(|layer| {
-                layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
+                let global_order = self.global_element_depth_order.borrow();
+                layer.update_internal(Some(&*global_order), true);
             });
             if let Some(layer) = &*self.mask.borrow() {
                 if let Some(layer) = layer.upgrade() {
-                    layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
+                    let global_order = self.global_element_depth_order.borrow();
+                    layer.update_internal(Some(&*global_order), true);
                 }
             }
         }
@@ -777,7 +780,7 @@ impl LayerModel {
     fn remove_all_sublayers(&self) {
         for layer in self.sublayers.borrow().layers.iter() {
             if let Some(layer) = layer.upgrade() {
-                layer.remove_parent()
+                layer.unset_parent()
             }
         }
         mem::take(&mut *self.sublayers.model.borrow_mut());
@@ -788,15 +791,24 @@ impl LayerModel {
         if self.flags.contains(LayerFlags::INHERIT_PARENT_CAMERA) {
             self.set_camera(parent.camera());
         }
+        // Parent's `global_element_depth_order` is an input to depth order computation.
+        self.depth_order_dirty.set();
     }
 
-    fn remove_parent(&self) {
+    /// Clear the parent field. Note that this doesn't remove the layer from its parent's sublayer
+    /// list.
+    fn unset_parent(&self) {
         *self.parent.borrow_mut() = None;
+        // Recompute depth order, in case removing a parent resolved a cycle.
+        self.depth_order_dirty.set();
     }
 
+    /// Clear the parent field and remove the layer from its parent's sublayer list.
     fn remove_from_parent(&self) {
-        if let Some(sublayers) = self.parent.borrow_mut().take() {
-            sublayers.borrow_mut().remove(self.id());
+        if let Some(parent) = self.parent.borrow_mut().take() {
+            parent.borrow_mut().remove(self.id());
+            // Recompute depth order, in case removing a parent resolved a cycle.
+            self.depth_order_dirty.set();
         }
     }
 
