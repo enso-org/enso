@@ -112,7 +112,7 @@ public final class Array implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return new WithWarnings(v, extracted);
+      return WithWarnings.wrap(v, extracted);
     }
     return v;
   }
