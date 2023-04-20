@@ -154,7 +154,7 @@ impl Model {
             eval non_empty_value ((val) elements.set_elements(Self::parse_array_code(val.as_str())));
             eval empty_value ((()) elements.clear_elements());
 
-            widget_size <- display_object.on_updated.map(f!((()) display_object.computed_size())).on_change();
+            widget_size <- display_object.on_transformed.map(f!((()) display_object.computed_size())).on_change();
             port_and_widget_size <- all(&set_port_size, &widget_size);
             eval port_and_widget_size ([display_object]((port_sz, sz)) {
                 display_object.set_x(port_sz.x() / 2.0 - sz.x() / 2.0);

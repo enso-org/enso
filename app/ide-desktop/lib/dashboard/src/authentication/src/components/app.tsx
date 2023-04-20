@@ -38,11 +38,16 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
-import * as authProvider from '../authentication/providers/auth'
+import * as projectManagerModule from 'enso-content/src/project_manager'
+
 import * as authService from '../authentication/service'
-import * as loggerProvider from '../providers/logger'
 import * as platformModule from '../platform'
-import * as session from '../authentication/providers/session'
+
+import * as authProvider from '../authentication/providers/auth'
+import * as loggerProvider from '../providers/logger'
+import * as modalProvider from '../providers/modal'
+import * as sessionProvider from '../authentication/providers/session'
+
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
 import Dashboard from '../dashboard/components/dashboard'
 import ForgotPassword from '../authentication/components/forgotPassword'
@@ -74,13 +79,25 @@ export const SET_USERNAME_PATH = '/set-username'
 // === App ===
 // ===========
 
-/** Global configuration for the `App` component. */
-export interface AppProps {
-    /** Logger to use for logging. */
+interface BaseAppProps {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
+    /** Whether the dashboard should be rendered. */
+    showDashboard: boolean
     onAuthenticated: () => void
 }
+
+interface DesktopAppProps extends BaseAppProps {
+    platform: platformModule.Platform.desktop
+    projectManager: projectManagerModule.ProjectManager
+}
+
+interface OtherAppProps extends BaseAppProps {
+    platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
+}
+
+/** Global configuration for the `App` component. */
+export type AppProps = DesktopAppProps | OtherAppProps
 
 /** Component called by the parent module, returning the root React component for this
  * package.
@@ -115,7 +132,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, onAuthenticated } = props
+    const { logger, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
@@ -124,9 +141,32 @@ function AppRouter(props: AppProps) {
     }, [navigate, props])
     const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito)
     const registerAuthEventListener = memoizedAuthService.registerAuthEventListener
+    const routes = (
+        <router.Routes>
+            <react.Fragment>
+                {/* Login & registration pages are visible to unauthenticated users. */}
+                <router.Route element={<authProvider.GuestLayout />}>
+                    <router.Route path={REGISTRATION_PATH} element={<Registration />} />
+                    <router.Route path={LOGIN_PATH} element={<Login />} />
+                </router.Route>
+                {/* Protected pages are visible to authenticated users. */}
+                <router.Route element={<authProvider.ProtectedLayout />}>
+                    <router.Route
+                        path={DASHBOARD_PATH}
+                        element={showDashboard && <Dashboard {...props} />}
+                    />
+                    <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
+                </router.Route>
+                {/* Other pages are visible to unauthenticated and authenticated users. */}
+                <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
+                <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
+                <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
+            </react.Fragment>
+        </router.Routes>
+    )
     return (
         <loggerProvider.LoggerProvider logger={logger}>
-            <session.SessionProvider
+            <sessionProvider.SessionProvider
                 mainPageUrl={mainPageUrl}
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
@@ -135,32 +175,9 @@ function AppRouter(props: AppProps) {
                     authService={memoizedAuthService}
                     onAuthenticated={onAuthenticated}
                 >
-                    <router.Routes>
-                        <react.Fragment>
-                            {/* Login & registration pages are visible to unauthenticated users. */}
-                            <router.Route element={<authProvider.GuestLayout />}>
-                                <router.Route path={REGISTRATION_PATH} element={<Registration />} />
-                                <router.Route path={LOGIN_PATH} element={<Login />} />
-                            </router.Route>
-                            {/* Protected pages are visible to authenticated users. */}
-                            <router.Route element={<authProvider.ProtectedLayout />}>
-                                <router.Route path={DASHBOARD_PATH} element={<Dashboard />} />
-                                <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
-                            </router.Route>
-                            {/* Other pages are visible to unauthenticated and authenticated users. */}
-                            <router.Route
-                                path={CONFIRM_REGISTRATION_PATH}
-                                element={<ConfirmRegistration />}
-                            />
-                            <router.Route
-                                path={FORGOT_PASSWORD_PATH}
-                                element={<ForgotPassword />}
-                            />
-                            <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
-                        </react.Fragment>
-                    </router.Routes>
+                    <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
                 </authProvider.AuthProvider>
-            </session.SessionProvider>
+            </sessionProvider.SessionProvider>
         </loggerProvider.LoggerProvider>
     )
 }

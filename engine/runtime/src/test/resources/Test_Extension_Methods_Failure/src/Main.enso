@@ -1,5 +1,6 @@
 import project.Atom.Foo
 from project.Atom.Foo import A
+from Standard.Base.Errors.Common import all
 
 main =
     1.foo 41

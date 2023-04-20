@@ -19,8 +19,10 @@ use crate::types::unit2::Duration;
 /// (1-dimensional simulation), or `Vector3<f32>` (3-dimensional simulation).
 pub trait Value = 'static
     + Copy
+    + Debug
     + Default
     + PartialEq
+    + PartialOrd
     + Normalize
     + Magnitude<Output = f32>
     + Add<Output = Self>
@@ -519,6 +521,13 @@ impl<T: Value> SimulationDataCell<T> {
         });
     }
 
+    pub fn update_value<F: FnOnce(T) -> T>(&self, f: F) {
+        self.data.update(|mut sim| {
+            sim.update_value(f);
+            sim
+        });
+    }
+
     pub fn set_target_value(&self, target_value: T) {
         self.data.update(|mut sim| {
             sim.set_target_value(target_value);
@@ -569,7 +578,6 @@ pub trait Callback1<T> = 'static + Fn1<T>;
 #[derivative(Debug(bound = "T:Copy+Debug"))]
 pub struct SimulatorData<T, OnStep, OnStart, OnEnd> {
     simulation: SimulationDataCell<T>,
-    frame_rate: Cell<f32>,
     #[derivative(Debug = "ignore")]
     on_step:    OnStep,
     #[derivative(Debug = "ignore")]
@@ -589,8 +597,7 @@ impl<T: Value, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd> 
     /// Constructor.
     pub fn new(on_step: OnStep, on_start: OnStart, on_end: OnEnd) -> Self {
         let simulation = SimulationDataCell::new();
-        let frame_rate = Cell::new(60.0);
-        Self { simulation, frame_rate, on_step, on_start, on_end }
+        Self { simulation, on_step, on_start, on_end }
     }
 }
 
@@ -601,11 +608,12 @@ where
 {
     /// Proceed with the next simulation step for the given time delta.
     pub fn step(&self, delta_seconds: Duration) -> bool {
-        let is_active = self.simulation.active();
-        if is_active {
+        if self.simulation.active() {
             self.simulation.step(delta_seconds);
             self.on_step.call(self.simulation.value());
-        } else {
+        };
+        let is_active = self.simulation.active();
+        if !is_active {
             self.on_end.call(EndStatus::Normal);
         }
         is_active
@@ -675,6 +683,11 @@ where
         self.start();
     }
 
+    pub fn update_value<F: FnOnce(T) -> T>(&self, f: F) {
+        self.simulation.update_value(f);
+        self.start();
+    }
+
     pub fn set_target_value(&self, target_value: T) {
         if target_value != self.target_value() {
             self.simulation.set_target_value(target_value);
@@ -705,14 +718,8 @@ where
     /// Starts the simulation and attaches it to an animation loop.
     fn start(&self) {
         if self.animation_loop.get().is_none() {
-            let frame_rate = self.frame_rate.get();
             let step = step(self);
-            let on_too_many_frames_skipped = on_too_many_frames_skipped(self);
-            let animation_loop = animation::Loop::new_with_fixed_frame_rate(
-                frame_rate,
-                step,
-                on_too_many_frames_skipped,
-            );
+            let animation_loop = animation::Loop::new_animation(step);
             self.animation_loop.set(Some(animation_loop));
             self.on_start.call();
         }
@@ -829,7 +836,7 @@ impl WeakAnimationLoopSlot {
 
 /// Callback for an animation step.
 pub type Step<T: Value, OnStep: Callback1<T>, OnStart: Callback0, OnEnd: Callback1<EndStatus>> =
-    impl Fn(animation::TimeInfo);
+    impl Fn(animation::FixedFrameRateStep<animation::TimeInfo>);
 
 fn step<T, OnStep, OnStart, OnEnd>(
     simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
@@ -840,36 +847,17 @@ where
     OnStart: Callback0,
     OnEnd: Callback1<EndStatus>, {
     let weak_simulator = simulator.downgrade();
-    move |time: animation::TimeInfo| {
+    move |time: animation::FixedFrameRateStep<animation::TimeInfo>| {
         if let Some(simulator) = weak_simulator.upgrade() {
-            let delta_seconds = time.previous_frame / 1000.0;
-            if !simulator.step(delta_seconds) {
-                simulator.animation_loop.set(None)
+            match time {
+                animation::FixedFrameRateStep::Normal(time) => {
+                    let delta_seconds = time.previous_frame / 1000.0;
+                    if !simulator.step(delta_seconds) {
+                        simulator.animation_loop.set(None)
+                    }
+                }
+                animation::FixedFrameRateStep::TooManyFramesSkipped => simulator.skip(),
             }
-        }
-    }
-}
-
-/// Callback for an animation step.
-pub type OnTooManyFramesSkipped<
-    T: Value,
-    OnStep: Callback1<T>,
-    OnStart: Callback0,
-    OnEnd: Callback1<EndStatus>,
-> = impl Fn();
-
-fn on_too_many_frames_skipped<T, OnStep, OnStart, OnEnd>(
-    simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
-) -> OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd>
-where
-    T: Value,
-    OnStep: Callback1<T>,
-    OnStart: Callback0,
-    OnEnd: Callback1<EndStatus>, {
-    let weak_simulator = simulator.downgrade();
-    move || {
-        if let Some(simulator) = weak_simulator.upgrade() {
-            simulator.skip()
         }
     }
 }

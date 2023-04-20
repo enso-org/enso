@@ -35,7 +35,7 @@ class LiveExecutionEnvironmentTest extends InterpreterTest {
           |input_action : Integer -> Integer
           |input_action i = Input.if_enabled i environment="live"
           |
-          |main = Panic.catch Any (Runtime.with_disabled_context Input (input_action 2)) p-> p.payload.to_text
+          |main = Panic.catch Any (Runtime.with_disabled_context Input action=(input_action 2)) p-> p.payload.to_text
           |""".stripMargin
       eval(code) shouldEqual "(Forbidden_Operation.Error 'Input')"
     }
@@ -63,7 +63,7 @@ class LiveExecutionEnvironmentTest extends InterpreterTest {
           |input_action : Integer -> Integer
           |input_action i = Input.if_enabled i environment="live"
           |
-          |main = Runtime.with_enabled_context Input (input_action 2)
+          |main = Runtime.with_enabled_context Input action=(input_action 2)
           |""".stripMargin
       eval(code) shouldEqual 2
     }

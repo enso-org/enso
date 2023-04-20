@@ -1,13 +1,13 @@
 /** @file Container responsible for rendering and interactions in first half of forgot password
  * flow. */
+import * as react from 'react'
 import * as router from 'react-router-dom'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as common from './common'
-import * as hooks from '../../hooks'
-import * as icons from '../../components/svg'
-import * as utils from '../../utils'
+import * as svg from '../../components/svg'
+import Input from './input'
+import SvgIcon from './svgIcon'
 
 // ======================
 // === ForgotPassword ===
@@ -16,7 +16,7 @@ import * as utils from '../../utils'
 function ForgotPassword() {
     const { forgotPassword } = auth.useAuth()
 
-    const [email, bindEmail] = hooks.useInput('')
+    const [email, setEmail] = react.useState('')
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -31,9 +31,10 @@ function ForgotPassword() {
                 </div>
                 <div className="mt-10">
                     <form
-                        onSubmit={utils.handleEvent(async () => {
+                        onSubmit={async event => {
+                            event.preventDefault()
                             await forgotPassword(email)
-                        })}
+                        }}
                     >
                         <div className="flex flex-col mb-6">
                             <label
@@ -43,14 +44,15 @@ function ForgotPassword() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <common.SvgIcon data={icons.PATHS.at} />
+                                <SvgIcon svg={svg.AT} />
 
-                                <common.Input
-                                    {...bindEmail}
+                                <Input
                                     id="email"
                                     type="email"
                                     name="email"
                                     placeholder="E-Mail Address"
+                                    value={email}
+                                    setValue={setEmail}
                                 />
                             </div>
                         </div>
@@ -64,9 +66,7 @@ function ForgotPassword() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Send link</span>
-                                <span>
-                                    <icons.Svg data={icons.PATHS.rightArrow} />
-                                </span>
+                                <span>{svg.RIGHT_ARROW}</span>
                             </button>
                         </div>
                     </form>
@@ -79,9 +79,7 @@ function ForgotPassword() {
                             'text-center'
                         }
                     >
-                        <span>
-                            <icons.Svg data={icons.PATHS.goBack} />
-                        </span>
+                        <span>{svg.GO_BACK}</span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
                 </div>

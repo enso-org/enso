@@ -35,6 +35,7 @@
   "scripts": {
     "watch": "npm run watch --workspace enso-content",
     "watch-dashboard": "npm run watch --workspace enso-dashboard",
-    "build-dashboard": "npm run build --workspace enso-dashboard"
+    "build-dashboard": "npm run build --workspace enso-dashboard",
+    "typecheck": "npm run typecheck --workspace enso; npm run typecheck --workspace enso-content; npm run typecheck --workspace enso-dashboard; npm run typecheck --workspace enso-authentication"
   }
 }

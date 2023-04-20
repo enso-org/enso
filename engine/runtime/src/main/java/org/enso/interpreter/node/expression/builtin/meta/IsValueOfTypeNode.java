@@ -12,6 +12,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -64,6 +65,12 @@ public abstract class IsValueOfTypeNode extends Node {
   boolean doBigIntegerCheck(Type expectedType, EnsoBigInteger value) {
     var numbers = EnsoContext.get(this).getBuiltins().number();
     return checkParentTypes(numbers.getBigInteger(), expectedType);
+  }
+
+  @Specialization
+  boolean doUresolvedSymbol(Type expectedType, UnresolvedSymbol value) {
+    var funTpe = EnsoContext.get(this).getBuiltins().function();
+    return expectedType == funTpe;
   }
 
   @ExplodeLoop

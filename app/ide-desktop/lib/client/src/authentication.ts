@@ -74,6 +74,9 @@
 
 import * as electron from 'electron'
 import opener from 'opener'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -104,6 +107,7 @@ const OPEN_URL_EVENT = 'open-url'
 export function initModule(window: () => electron.BrowserWindow) {
     initIpc()
     initOpenUrlListener(window)
+    initSaveAccessTokenListener()
 }
 
 /** Registers an Inter-Process Communication (IPC) channel between the Electron application and the
@@ -137,5 +141,39 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
         } else {
             window().webContents.send(ipc.Channel.openDeepLink, url)
         }
+    })
+}
+
+/** Registers a listener that fires a callback for `save-access-token` events.
+ *
+ * This listener is used to save given access token to credentials file to be later used by enso backend.
+ *
+ * Credentials file is placed in users home directory in `.enso` subdirectory in `credentials` file. */
+function initSaveAccessTokenListener() {
+    electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string) => {
+        /** Enso home directory for credentials file.  */
+        const ensoCredentialsDirectoryName = '.enso'
+        /** Enso credentials file. */
+        const ensoCredentialsFileName = 'credentials'
+        /** System agnostic credentials directory home path. */
+        const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
+
+        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, err => {
+            if (err) {
+                logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
+            } else {
+                fs.writeFile(
+                    path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
+                    accessToken,
+                    err => {
+                        if (err) {
+                            logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
+                        }
+                    }
+                )
+            }
+        })
+
+        event.preventDefault()
     })
 }

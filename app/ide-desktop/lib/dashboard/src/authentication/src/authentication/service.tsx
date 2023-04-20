@@ -133,6 +133,7 @@ function loadAmplifyConfig(
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
     let urlOpener = null
+    let accessTokenSaver = null
     if (platform === platformModule.Platform.desktop) {
         /** If we're running on the desktop, we want to override the default URL opener for OAuth
          * flows.  This is because the default URL opener opens the URL in the desktop app itself,
@@ -144,6 +145,10 @@ function loadAmplifyConfig(
          * we avoid unnecessary reloads/refreshes caused by redirects. */
         urlOpener = openUrlWithExternalBrowser
 
+        /** When running on destop we want to have option to save access token to a file,
+         * so it can be later reuse when issuing requests to Cloud API. */
+        accessTokenSaver = saveAccessToken
+
         /** To handle redirects back to the application from the system browser, we also need to
          * register a custom URL handler. */
         setDeepLinkHandler(logger, navigate)
@@ -154,11 +159,16 @@ function loadAmplifyConfig(
         ...baseConfig,
         ...platformConfig,
         urlOpener,
+        accessTokenSaver,
     }
 }
 
 function openUrlWithExternalBrowser(url: string) {
     window.authenticationApi.openUrlInSystemBrowser(url)
+}
+
+function saveAccessToken(accessToken: string) {
+    window.authenticationApi.saveAccessToken(accessToken)
 }
 
 /** Set the callback that will be invoked when a deep link to the application is opened.
