@@ -688,6 +688,8 @@
 - [One can define lazy atom fields][6151]
 - [Replace IOContexts with Execution Environment and generic Context][6171]
 - [Vector.sort handles incomparable types][5998]
+- [Removing need for asynchronous thread to execute ResourceManager
+  finalizers][6335]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -794,6 +796,7 @@
 [6151]: https://github.com/enso-org/enso/pull/6151
 [6171]: https://github.com/enso-org/enso/pull/6171
 [5998]: https://github.com/enso-org/enso/pull/5998
+[6335]: https://github.com/enso-org/enso/pull/6335
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
