@@ -13,6 +13,7 @@ use enso_frp as frp;
 use ensogl::system::js;
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;
+use std::time::Duration;
 
 
 // ==============
@@ -35,10 +36,12 @@ pub use searcher::Searcher;
 // === Constants ===
 // =================
 
-/// We don't know how long the project opening will take, but we still want to show a fake progress
-/// indicator for the user. This constant represents the fixed progress percentage that will be
-/// displayed.
-const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
+/// We don't know how long opening the project will take, but we still want to show a fake
+/// progress indicator for the user. This constant represents how long the spinner will run for in
+/// milliseconds.
+const OPEN_PROJECT_SPINNER_TIME_MS: u64 = 5_000;
+/// The interval in milliseconds at which we should increase the spinner
+const OPEN_PROJECT_SPINNER_UPDATE_PERIOD_MS: u64 = 10;
 
 
 
@@ -170,8 +173,32 @@ where
     // it to a type, etc. Somewhere in EnsoGL we might already have some logic for getting the JS
     // app and throwing an error if it's not defined.
     let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
-    app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
+    app.show_progress_indicator(0.0);
+
+    let (finished_tx, finished_rx) = futures::channel::oneshot::channel();
+    let spinner_progress = futures::stream::unfold(0, |time| async move {
+        enso_web::sleep(Duration::from_millis(OPEN_PROJECT_SPINNER_UPDATE_PERIOD_MS)).await;
+        let new_time = time + OPEN_PROJECT_SPINNER_UPDATE_PERIOD_MS;
+        if new_time < OPEN_PROJECT_SPINNER_TIME_MS {
+            let progress = new_time as f32 / OPEN_PROJECT_SPINNER_TIME_MS as f32;
+            Some((progress, new_time))
+        } else {
+            None
+        }
+    })
+    .take_until(finished_rx);
+    executor::global::spawn(spinner_progress.for_each(|progress| async move {
+        let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
+        app.show_progress_indicator(progress);
+    }));
+
     f().await;
+
+    // This fails when the spinner progressed until the end before the function got completed
+    // and therefore the receiver got dropped, so we'll ignore the result.
+    let _ = finished_tx.send(());
+
+    let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
     app.hide_progress_indicator();
 }
 
