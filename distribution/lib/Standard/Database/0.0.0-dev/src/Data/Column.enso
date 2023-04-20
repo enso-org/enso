@@ -817,8 +817,8 @@ type Column
        Arguments:
        - where: The location of where to trim the input. By default, this
          function trims both ends of the input.
-       - what: A `Text` containing characters that should be removed. By
-         default, all whitespace is removed.
+       - what: A `Text` (or text `Column`) containing characters that should be
+         removed. By default, spaces, tabs, returns and new lines are removed.
     trim : Location -> Column | Text -> Column
     trim self where=Location.Both what='' = Value_Type.expect_text self.value_type <| check_text_argument what "what" <|
         new_name = self.naming_helpers.function_name "trim" [self]

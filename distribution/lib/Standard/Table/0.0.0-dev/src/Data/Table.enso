@@ -790,25 +790,48 @@ type Table
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
 
-         > Example
-           Parse the first and last columns containing Yes/No values as booleans.
+       ? Number Formats
 
-               table.parse columns=[0, -1] type=Boolean format="Yes|No"
+         If parsing a column to a number, by default, the parser will attempt
+         to find the most appropriate format for the column. This is done by
+         finding the format that parses the longest set without an issue from
+         the first record.
 
-         > Example
-           Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+         It will try the following separators in British, German, French and
+         Swiss order.
 
-               table.parse "birthday" Date
+         - Thousand separators must be followed by groups of 3 numbers.
+         - Scientific notation is only allowed on decimals and must be on a
+           value between -10 and 10. The notation is an `E` followed by an
+           integer and must be enabled on the `Data_Formatter`,
 
-         > Example
-           Parse dates in a column in the format `dd/MM/yyyy`.
+         The following formats are supported:
+         - Sign (+/-) followed by Number (e.g. +1,234.56)
+         - Using brackets to indicate a negative number (e.g. (1,234.56))
+         - Currency symbols (if not in Auto mode) can be placed before or after
+           the sign and number.
+         - If using brackets, the currency symbol must be placed after the
+           opening bracket.
 
-               table.parse "birthday" Date 'dd/MM/yyyy'
+       > Example
+         Parse the first and last columns containing Yes/No values as booleans.
 
-         > Example
-           Parse all columns inferring their types, using `,` as the decimal point for numbers.
+             table.parse columns=[0, -1] type=Boolean format="Yes|No"
 
-               table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+       > Example
+         Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+
+             table.parse "birthday" Date
+
+       > Example
+         Parse dates in a column in the format `dd/MM/yyyy`.
+
+             table.parse "birthday" Date 'dd/MM/yyyy'
+
+       > Example
+         Parse all columns inferring their types, using `,` as the decimal point for numbers.
+
+             table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
     parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of

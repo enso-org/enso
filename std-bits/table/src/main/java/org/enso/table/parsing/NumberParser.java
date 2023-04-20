@@ -297,7 +297,7 @@ public class NumberParser extends IncrementalDatatypeParser {
 
             return integer.equals("") ? null : sign_value * Long.parseLong(integer);
         } catch (NumberFormatException e) {
-            return null;
+            throw new IllegalStateException("Java parse failed to parse number: " + text, e);
         }
     }
 }
