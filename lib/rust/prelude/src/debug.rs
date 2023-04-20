@@ -139,7 +139,10 @@ pub mod leak_detector {
 
     thread_local! {
         /// The structure mapping the existing tracking copies with [`Trace`] structure to their
-        /// creation backtraces. You can print
+        /// creation backtraces.
+        ///
+        /// You may check/print it at various points where you expect no traced objects should
+        /// persist.
         pub static TRACKED_OBJECTS: RefCell<HashMap<u64, String>> = default();
     }
 
