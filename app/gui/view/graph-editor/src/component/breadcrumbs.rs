@@ -81,12 +81,6 @@ ensogl::define_endpoints! {
         /// Signalizes a mouse press happened outside the breadcrumb panel. It's used to finish
         /// project renaming, committing the name in text field.
         outside_press               (),
-        /// Signalizes we want to cancel project name renaming, bringing back the project name
-        /// before editing.
-        cancel_project_name_editing (),
-        /// Signalizes we want to start editing the project name. Adds a cursor to the text edit
-        /// field at the mouse position.
-        start_project_name_editing (),
         /// Sets the project name.
         project_name                (String),
         /// Select the breadcrumb by its index.
@@ -475,7 +469,6 @@ impl Breadcrumbs {
             eval frp.input.project_name((name) model.project_name.set_name.emit(name));
             frp.source.project_name <+ model.project_name.output.name;
 
-            eval_ frp.input.start_project_name_editing( model.project_name.start_editing.emit(()) );
             eval frp.ide_text_edit_mode((value) model.project_name.ide_text_edit_mode.emit(value) );
 
             frp.source.project_name_hovered <+ model.project_name.is_hovered;
@@ -486,7 +479,6 @@ impl Breadcrumbs {
             // === User Interaction ===
 
             eval_ model.project_name.frp.output.mouse_down(frp.select_breadcrumb.emit(0));
-            eval_ frp.cancel_project_name_editing(model.project_name.frp.cancel_editing.emit(()));
             eval_ frp.outside_press(model.project_name.frp.outside_press.emit(()));
 
             popped_count <= frp.output.breadcrumb_select.map(|selected| (0..selected.0).collect_vec());
