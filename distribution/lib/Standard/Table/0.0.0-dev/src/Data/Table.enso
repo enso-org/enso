@@ -1756,7 +1756,7 @@ type Table
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
-            index  = self.java_table.indexFromColumns java_key_columns.to_array
+            index = self.java_table.indexFromColumns java_key_columns.to_array
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else
