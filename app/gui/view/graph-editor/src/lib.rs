@@ -4055,6 +4055,7 @@ impl Display for ExecutionEnvironment {
 mod tests {
     use super::*;
     use application::test_utils::ApplicationExt;
+    use ensogl::control::io::mouse;
     use ensogl::control::io::mouse::PrimaryButton;
     use ensogl::display::scene::test_utils::MouseExt;
     use node::test_utils::NodeModelExt;
@@ -4161,8 +4162,10 @@ mod tests {
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true, None);
         let port_hover = node_2.model().input_port_shape().expect("No input port.");
-        port_hover.events_deprecated.emit_mouse_down(PrimaryButton);
-        port_hover.events_deprecated.emit_mouse_up(PrimaryButton);
+
+        // Input ports already use new event API.
+        port_hover.emit_event(mouse::Down::default());
+        port_hover.emit_event(mouse::Up::default());
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }
