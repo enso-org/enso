@@ -19,8 +19,10 @@ import App, * as app from './components/app'
 // === Constants ===
 // =================
 
-/** The `id` attribute of the root element into which the app will be rendered. */
+/** The `id` attribute of the root element that the app will be rendered into. */
 const ROOT_ELEMENT_ID = 'enso-dashboard'
+/** The `id` attribute of the element that the IDE will be rendered into. */
+const IDE_ELEMENT_ID = 'root'
 
 // ===========
 // === run ===
@@ -38,9 +40,13 @@ export function run(props: app.AppProps) {
     logger.log('Starting authentication/dashboard UI.')
     /** The root element that the authentication/dashboard app will be rendered into. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
+    const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
+    } else if (ideElement == null) {
+        logger.error(`Could not find IDE element with ID '${IDE_ELEMENT_ID}'.`)
     } else {
+        ideElement.style.display = 'none'
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }

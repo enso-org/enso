@@ -76,11 +76,38 @@ export class Backend implements Partial<cloudService.Backend> {
         this.currentlyOpenProject = null
     }
 
-    getProjectDetails(projectId: cloudService.ProjectId): Promise<cloudService.Project> {
-        if (this.currentlyOpenProject == null) {
-            throw new Error('Cannot get details of a project that is not currently open.')
-        } else if (projectId !== this.currentlyOpenProject.id) {
-            throw new Error('Only one project can be open at a time.')
+    async getProjectDetails(projectId: cloudService.ProjectId): Promise<cloudService.Project> {
+        if (projectId !== this.currentlyOpenProject?.id) {
+            const projects = await this.projectManager.listProjects({})
+            const project = projects.result.projects.find(
+                listedProject => listedProject.id === projectId
+            )
+            const engineVersion = project?.engineVersion
+            if (project == null) {
+                throw new Error(`The project ID '${projectId}' is invalid.`)
+            } else if (engineVersion == null) {
+                throw new Error(`The project '${projectId}' does not have an engine version.`)
+            } else {
+                return Promise.resolve<cloudService.Project>({
+                    name: project.name,
+                    engineVersion: {
+                        lifecycle: cloudService.VersionLifecycle.stable,
+                        value: engineVersion,
+                    },
+                    ideVersion: {
+                        lifecycle: cloudService.VersionLifecycle.stable,
+                        value: engineVersion,
+                    },
+                    jsonAddress: null,
+                    binaryAddress: null,
+                    organizationId: '',
+                    packageName: PROJECT_SCENE_NAME,
+                    projectId,
+                    state: {
+                        type: cloudService.ProjectState.closed,
+                    },
+                })
+            }
         } else {
             const project = this.currentlyOpenProject.project
             return Promise.resolve<cloudService.Project>({

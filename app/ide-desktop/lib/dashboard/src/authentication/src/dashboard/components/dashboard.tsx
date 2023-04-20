@@ -315,7 +315,13 @@ function Dashboard(props: DashboardProps) {
                         }
                     }}
                     backendPlatform={backendPlatform}
-                    setBackendPlatform={setBackendPlatform}
+                    setBackendPlatform={newBackendPlatform => {
+                        setBackendPlatform(newBackendPlatform)
+                        setProjectAssets([])
+                        setDirectoryAssets([])
+                        setSecretAssets([])
+                        setFileAssets([])
+                    }}
                     searchVal={searchVal}
                     setSearchVal={setSearchVal}
                 />
@@ -450,49 +456,48 @@ function Dashboard(props: DashboardProps) {
                             render: renderer(column, cloudService.AssetType.project),
                         }))}
                     />
-                    <tr className="h-8" />
-                    <Rows<cloudService.Asset<cloudService.AssetType.directory>>
-                        items={directoryAssets}
-                        getKey={proj => proj.id}
-                        placeholder={<>This directory does not contain any subdirectories.</>}
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                            id: column,
-                            name: columnName(column, cloudService.AssetType.directory),
-                            render: renderer(column, cloudService.AssetType.directory),
-                        }))}
-                    />
-                    <tr className="h-8" />
-                    <Rows<cloudService.Asset<cloudService.AssetType.secret>>
-                        items={secretAssets}
-                        getKey={proj => proj.id}
-                        placeholder={<>This directory does not contain any secrets.</>}
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                            id: column,
-                            name: columnName(column, cloudService.AssetType.secret),
-                            render: renderer(column, cloudService.AssetType.secret),
-                        }))}
-                    />
-                    <tr className="h-8" />
-                    <Rows<cloudService.Asset<cloudService.AssetType.file>>
-                        items={fileAssets}
-                        getKey={proj => proj.id}
-                        placeholder={<>This directory does not contain any files.</>}
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                            id: column,
-                            name: columnName(column, cloudService.AssetType.file),
-                            render: renderer(column, cloudService.AssetType.file),
-                        }))}
-                    />
+                    {backendPlatform === platformModule.Platform.cloud && (
+                        <>
+                            <tr className="h-8" />
+                            <Rows<cloudService.Asset<cloudService.AssetType.directory>>
+                                items={directoryAssets}
+                                getKey={proj => proj.id}
+                                placeholder={
+                                    <>This directory does not contain any subdirectories.</>
+                                }
+                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                    id: column,
+                                    name: columnName(column, cloudService.AssetType.directory),
+                                    render: renderer(column, cloudService.AssetType.directory),
+                                }))}
+                            />
+                            <tr className="h-8" />
+                            <Rows<cloudService.Asset<cloudService.AssetType.secret>>
+                                items={secretAssets}
+                                getKey={proj => proj.id}
+                                placeholder={<>This directory does not contain any secrets.</>}
+                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                    id: column,
+                                    name: columnName(column, cloudService.AssetType.secret),
+                                    render: renderer(column, cloudService.AssetType.secret),
+                                }))}
+                            />
+                            <tr className="h-8" />
+                            <Rows<cloudService.Asset<cloudService.AssetType.file>>
+                                items={fileAssets}
+                                getKey={proj => proj.id}
+                                placeholder={<>This directory does not contain any files.</>}
+                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                    id: column,
+                                    name: columnName(column, cloudService.AssetType.file),
+                                    render: renderer(column, cloudService.AssetType.file),
+                                }))}
+                            />
+                        </>
+                    )}
                 </table>
             </div>
-            {project && (
-                <Ide
-                    platform={platform}
-                    backendService={backend}
-                    project={project}
-                    setTab={setTab}
-                />
-            )}
+            {project && <Ide platform={platform} backendService={backend} project={project} />}
             {modal && <>{modal}</>}
         </div>
     )

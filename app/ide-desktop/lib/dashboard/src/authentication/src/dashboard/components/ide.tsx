@@ -2,10 +2,9 @@
 import * as react from 'react'
 
 import * as cloudService from '../cloudService'
-import * as dashboard from './dashboard'
+// import * as history from '../../history'
 import * as platformModule from '../../platform'
 import * as projectManagerService from '../localService'
-import * as svg from '../../components/svg'
 
 // =================
 // === Constants ===
@@ -23,19 +22,29 @@ interface Props {
     platform: platformModule.Platform
     project: cloudService.Project
     backendService: cloudService.Backend | projectManagerService.Backend
-    setTab: (tab: dashboard.Tab) => void
 }
 
 /** Container that launches the IDE. */
 function Ide(props: Props) {
-    const { project, backendService, setTab } = props
+    const { project, backendService } = props
+
+    react.useEffect(() => {
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.display = ''
+        }
+        return () => {
+            const ideElementDuringUnmount = document.getElementById(IDE_ELEMENT_ID)
+            if (ideElementDuringUnmount) {
+                ideElementDuringUnmount.style.display = 'none'
+            }
+        }
+    }, [])
 
     react.useEffect(() => {
         void (async () => {
-            // This is safe; this element exists in `index.html`.
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const ideElement = document.getElementById(IDE_ELEMENT_ID)!
-            while (ideElement.firstChild) {
+            const ideElement = document.getElementById(IDE_ELEMENT_ID)
+            while (ideElement?.firstChild) {
                 ideElement.removeChild(ideElement.firstChild)
             }
             const ideVersion =
@@ -66,8 +75,14 @@ function Ide(props: Props) {
             } else if (binaryAddress == null) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
+                window.addEventListener('popstate', alert)
                 script.src = `${IDE_CDN_URL}/${engineVersion}/index.js.gz`
                 script.onload = async () => {
+                    document.body.removeChild(script)
+                    const originalUrl = window.location.href
+                    // The URL query contains commandline options when running in the desktop,
+                    // which will break the entrypoint for opening a fresh IDE instance.
+                    history.replaceState(null, '', new URL('.', originalUrl))
                     await window.enso.main({
                         loader: {
                             assetsUrl: `${IDE_CDN_URL}/${ideVersion}/dynamic-assets`,
@@ -83,6 +98,7 @@ function Ide(props: Props) {
                             project: project.packageName,
                         },
                     })
+                    history.replaceState(null, '', originalUrl)
                 }
                 document.body.appendChild(script)
                 return
@@ -90,19 +106,7 @@ function Ide(props: Props) {
         })()
     }, [project])
 
-    return (
-        <>
-            <div id="root" />
-            <button
-                onClick={() => {
-                    setTab(dashboard.Tab.dashboard)
-                }}
-                className="fixed top-4 right-8 z-10"
-            >
-                {svg.CLOSE_ICON}
-            </button>
-        </>
-    )
+    return <></>
 }
 
 export default Ide
