@@ -30,7 +30,7 @@ spec setup =
     test_selection = setup.aggregate_test_selection
 
     expect_column_names names table =
-        table.columns . map .name . should_equal names frames_to_skip=2
+        table.columns . map .name . should_equal names frames_to_skip=3
 
     find_row key table (columns=Nothing) =
         table_columns = if columns.is_nothing then table.columns else columns.map x->(table.columns.at x)
@@ -1305,7 +1305,7 @@ spec setup =
             err4.name.should_equal "[MISSING]*[MISSING]"
             err4.expression_error.should_equal (No_Such_Column.Error "MISSING")
 
-    Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling) <|
+    Test.group prefix+"Table.aggregate should raise warnings when there are issues" <|
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3]]
@@ -1407,6 +1407,20 @@ spec setup =
             tester = expect_column_names ["X"]
             Problems.test_problem_handling action problems tester
 
+        case test_selection.advanced_stats of
+            True ->
+                Test.specify "should warn if computing an aggregation relying on floating point equality" <|
+                    t = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
+                    action = t.aggregate [Mode "X"] on_problems=_
+                    problems = [Floating_Point_Equality.Error "Mode X"]
+                    tester = expect_column_names ["Mode X"]
+                    Problems.test_problem_handling action problems tester
+            False ->
+                Test.specify "should error if unsupported operations are selected" <|
+                    t1 = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
+                    t2 = t1.aggregate [Mode "X"] on_problems=Problem_Behavior.Ignore
+                    t2.should_fail_with No_Output_Columns
+
         Test.specify "should check types" <|
             table = table_builder [["Text", ["a", "b"]], ["Int", [1, 2]], ["Float", [1.1, 2.2]]]
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
@@ -1416,7 +1430,7 @@ spec setup =
                     err.should_fail_with Invalid_Value_Type
                     err.catch.related_column.should_equal "Text"
 
-                non_texts = [Shortest "Int", Longest "Int", Concatenate "Int", Count_Empty "Int"]
+                non_texts = [Shortest "Int", Longest "Int", Concatenate "Int", Count_Empty "Int", Count_Not_Empty "Int"]
                 non_texts.each agg-> Test.with_clue "Aggregation="+agg.to_text+" " <|
                     err = table.aggregate [agg] on_problems=pb
                     err.should_fail_with Invalid_Value_Type
@@ -1454,20 +1468,21 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) <|
-        table =
-            col1 = ["Key", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]]
-            col2 = ["Value", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]]
-            col3 = ["Float", col2.second.map x->(1.5*x)]
-            Table.new [col1, col2, col3]
-
         Test.specify "should merge Invalid Aggregation warnings" <|
-            new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
-            err = new_table.catch
-            err . should_be_a Invalid_Aggregation.Error
-            err.column . should_equal "Concatenate Value"
-            err.rows . length . should_equal 15
+            table = table_builder [["X", (0.up_to 16).map (_-> ",")]]
+            new_table = table.aggregate [Concatenate "X" separator=","]
+            problems = Problems.get_attached_warnings new_table
+            warning = problems.first
+            warning . should_be_a Unquoted_Delimiter.Error
+            warning.column . should_equal "Concatenate X"
+            warning.rows . length . should_equal 16
 
         Test.specify "should merge Floating Point Grouping warnings" <|
+            table =
+                col1 = ["Key", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]]
+                col2 = ["Value", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]]
+                col3 = ["Float", col2.second.map x->(1.5*x)]
+                table_builder [col1, col2, col3]
             new_table = table.aggregate [Group_By "Float", Count]
             problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
