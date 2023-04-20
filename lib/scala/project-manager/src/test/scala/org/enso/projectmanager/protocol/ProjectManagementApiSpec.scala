@@ -7,17 +7,14 @@ import org.apache.commons.io.FileUtils
 import org.enso.editions.SemVerJson._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
-import org.scalatest.Ignore
 
 import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
+
 import scala.concurrent.duration._
 import scala.io.Source
 
-// TODO [DB] The suite became quite flaky and frequently fails the CI.
-// Disabled until #479 is implemented.
-@Ignore
 class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
@@ -120,7 +117,7 @@ class ProjectManagementApiSpec
     }
 
     "fail when the project with the same name exists" in {
-      val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/create",
@@ -130,12 +127,13 @@ class ProjectManagementApiSpec
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 1,
             "result" : {
-              "projectId" : $getGeneratedUUID,
+              "projectId" : $projectId,
               "projectName" : "Foo"
             }
           }
@@ -159,14 +157,18 @@ class ProjectManagementApiSpec
             }
           }
           """)
+
+      //teardown
+      deleteProject(projectId)
+
     }
 
     "create project structure" in {
       val projectName = "Foo"
 
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
-      createProject(projectName)
+      val projectId = createProject(projectName)
 
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
@@ -176,14 +178,18 @@ class ProjectManagementApiSpec
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
       meta shouldBe Symbol("file")
+
+      //teardown
+      deleteProject(projectId)
     }
 
     "create project from default template" in {
       val projectName = "Foo"
 
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
-      createProject(projectName, projectTemplate = Some("default"))
+      val projectId =
+        createProject(projectName, projectTemplate = Some("default"))
 
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
@@ -193,14 +199,18 @@ class ProjectManagementApiSpec
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
       meta shouldBe Symbol("file")
+
+      //teardown
+      deleteProject(projectId)
     }
 
     "create project from orders template" in {
       val projectName = "Foo"
 
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
-      createProject(projectName, projectTemplate = Some("orders"))
+      val projectId =
+        createProject(projectName, projectTemplate = Some("orders"))
 
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
@@ -213,14 +223,18 @@ class ProjectManagementApiSpec
       mainEnso shouldBe Symbol("file")
       storeDataXlsx shouldBe Symbol("file")
       meta shouldBe Symbol("file")
+
+      //teardown
+      deleteProject(projectId)
     }
 
     "create project from restaurants template" in {
       val projectName = "Foo"
 
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
-      createProject(projectName, projectTemplate = Some("restaurants"))
+      val projectId =
+        createProject(projectName, projectTemplate = Some("restaurants"))
 
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
@@ -236,14 +250,18 @@ class ProjectManagementApiSpec
       laDistrictsCsv shouldBe Symbol("file")
       restaurantsCsv shouldBe Symbol("file")
       meta shouldBe Symbol("file")
+
+      //teardown
+      deleteProject(projectId)
     }
 
     "create project from stargazers template" in {
       val projectName = "Foo"
 
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
-      createProject(projectName, projectTemplate = Some("stargazers"))
+      val projectId =
+        createProject(projectName, projectTemplate = Some("stargazers"))
 
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
@@ -253,15 +271,19 @@ class ProjectManagementApiSpec
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
       meta shouldBe Symbol("file")
+
+      //teardown
+      deleteProject(projectId)
     }
 
     "find a name when project is created from template" in {
       val projectName = "Foo"
 
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
-      createProject(projectName, projectTemplate = Some("default"))
-      createProject(
+      val projectId1 =
+        createProject(projectName, projectTemplate = Some("default"))
+      val projectId2 = createProject(
         projectName,
         projectTemplate = Some("default"),
         nameSuffix      = Some(1)
@@ -271,10 +293,14 @@ class ProjectManagementApiSpec
       val packageFile = new File(projectDir, "package.yaml")
 
       Files.readAllLines(packageFile.toPath) contains "name: Foo_1"
+
+      //teardown
+      deleteProject(projectId1)
+      deleteProject(projectId2)
     }
 
     "create project with specific version" in {
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/create",
@@ -285,16 +311,20 @@ class ProjectManagementApiSpec
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 1,
             "result" : {
-              "projectId" : $getGeneratedUUID,
+              "projectId" : $projectId,
               "projectName" : "Foo"
             }
           }
           """)
+
+      //teardown
+      deleteProject(projectId)
     }
 
     "create a project dir with a suffix if a directory is taken" in {
@@ -305,11 +335,14 @@ class ProjectManagementApiSpec
       val packageFile           = new File(projectDirWithSuffix2, "package.yaml")
       projectDir.mkdirs()
       projectDirWithSuffix1.mkdirs()
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
-      createProject(projectName)
+      val projectId = createProject(projectName)
       projectDirWithSuffix2.isDirectory shouldBe true
       packageFile.isFile shouldBe true
+
+      //teardown
+      deleteProject(projectId)
     }
 
   }
@@ -341,9 +374,9 @@ class ProjectManagementApiSpec
     }
 
     "fail when project is running" taggedAs Flaky in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject("Foo")
+      val projectId = createProject("Foo")
       openProject(projectId)
       //when
       client.send(json"""
@@ -373,11 +406,11 @@ class ProjectManagementApiSpec
     }
 
     "remove project structure" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      val projectName     = "To_Remove"
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject(projectName)
-      val projectDir      = new File(userProjectDir, projectName)
+      val projectName = "To_Remove"
+      val projectId   = createProject(projectName)
+      val projectDir  = new File(userProjectDir, projectName)
       projectDir shouldBe Symbol("directory")
       //when
       client.send(json"""
@@ -406,9 +439,10 @@ class ProjectManagementApiSpec
   "project/open" must {
 
     "open a project" taggedAs Flaky in {
-      val projectName                   = "Test_Project"
       implicit val client: WsTestClient = new WsTestClient(address)
-      val projectId                     = createProject(projectName)
+
+      val projectName = "Test_Project"
+      val projectId   = createProject(projectName)
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/open",
@@ -421,6 +455,8 @@ class ProjectManagementApiSpec
       val result = openProjectData
       result.projectName shouldEqual projectName
       result.engineVersion shouldEqual SemVer("0.0.1").get
+
+      // teardown
       closeProject(projectId)
       deleteProject(projectId)
     }
@@ -481,10 +517,10 @@ class ProjectManagementApiSpec
     }
 
     "start the Language Server if not running" taggedAs Flaky in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      val projectName     = "To_Remove"
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject(projectName)
+      val projectName = "To_Remove"
+      val projectId   = createProject(projectName)
       //when
       val socket = openProject(projectId)
       val languageServerClient =
@@ -548,10 +584,10 @@ class ProjectManagementApiSpec
     }
 
     "start the Language Server after moving the directory" taggedAs Flaky in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      val projectName     = "Foo"
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject(projectName)
+      val projectName = "Foo"
+      val projectId   = createProject(projectName)
 
       val newName       = "bar"
       val newProjectDir = new File(userProjectDir, newName)
@@ -600,14 +636,13 @@ class ProjectManagementApiSpec
     }
 
     "deduplicate project ids" taggedAs Flaky in {
-      val projectName1 = "Foo"
-
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
       // given
-      val projectId1  = createProject(projectName1)
-      val projectDir1 = new File(userProjectDir, projectName1)
-      val projectDir2 = new File(userProjectDir, "Test")
+      val projectName1 = "Foo"
+      val projectId1   = createProject(projectName1)
+      val projectDir1  = new File(userProjectDir, projectName1)
+      val projectDir2  = new File(userProjectDir, "Test")
       FileUtils.copyDirectory(projectDir1, projectDir2)
 
       // when
@@ -683,10 +718,10 @@ class ProjectManagementApiSpec
     }
 
     "close project when the requester is the only client" taggedAs Flaky in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject("Foo")
-      val socket          = openProject(projectId)
+      val projectId = createProject("Foo")
+      val socket    = openProject(projectId)
       val languageServerClient =
         new WsTestClient(s"ws://${socket.host}:${socket.port}")
       languageServerClient.send("test")
@@ -715,7 +750,7 @@ class ProjectManagementApiSpec
   "project/list" must {
 
     "return a list sorted by creation time if none of projects was opened" in {
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val fooId = createProject("Foo")
       testClock.moveTimeForward()
@@ -768,7 +803,7 @@ class ProjectManagementApiSpec
     }
 
     "return a list of projects even if editions of some of them cannot be resolved" taggedAs Retry in {
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val fooId = createProject("Foo")
       testClock.moveTimeForward()
@@ -819,7 +854,7 @@ class ProjectManagementApiSpec
     }
 
     "returned sorted list of recently opened projects" in {
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val fooId = createProject("Foo")
       val barId = createProject("Bar")
@@ -882,14 +917,13 @@ class ProjectManagementApiSpec
     }
 
     "resolve clashing ids" taggedAs Flaky in {
-      val projectName1 = "Foo"
-
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
 
       // given
-      val projectId1  = createProject(projectName1)
-      val projectDir1 = new File(userProjectDir, projectName1)
-      val projectDir2 = new File(userProjectDir, "Test")
+      val projectName1 = "Foo"
+      val projectId1   = createProject(projectName1)
+      val projectDir1  = new File(userProjectDir, projectName1)
+      val projectDir2  = new File(userProjectDir, "Test")
       FileUtils.copyDirectory(projectDir1, projectDir2)
 
       // when
@@ -938,7 +972,7 @@ class ProjectManagementApiSpec
   "project/rename" must {
 
     "rename a project and move project dir" in {
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val newProjectName = "Bar"
       val projectId      = createProject("Foo")
@@ -972,10 +1006,10 @@ class ProjectManagementApiSpec
     }
 
     "create a project dir with a suffix if a directory is taken" taggedAs Flaky in {
-      val oldProjectName  = "Foobar"
-      val newProjectName  = "Foo"
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
+      val oldProjectName    = "Foobar"
+      val newProjectName    = "Foo"
       val projectId         = createProject(oldProjectName)
       val primaryProjectDir = new File(userProjectDir, newProjectName)
       primaryProjectDir.mkdirs()
@@ -1009,8 +1043,8 @@ class ProjectManagementApiSpec
     }
 
     "reply with an error when the project with the same name exists" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      implicit val client   = new WsTestClient(address)
       val oldProjectName    = "Foo"
       val newProjectName    = "Bar"
       val projectId         = createProject(oldProjectName)
@@ -1044,7 +1078,7 @@ class ProjectManagementApiSpec
 
     "reply with an error when the project doesn't exist" in {
       //given
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -1069,9 +1103,9 @@ class ProjectManagementApiSpec
     }
 
     "check if project name is not empty" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject("Foo")
+      val projectId = createProject("Foo")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -1095,9 +1129,9 @@ class ProjectManagementApiSpec
     }
 
     "validate project name for forbidden characters" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject("Foo")
+      val projectId = createProject("Foo")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -1124,9 +1158,9 @@ class ProjectManagementApiSpec
     }
 
     "validate project name should start with a capital letter" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject("Foo")
+      val projectId = createProject("Foo")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -1153,9 +1187,9 @@ class ProjectManagementApiSpec
     }
 
     "validate project name should be in upper snake case" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject("Foo")
+      val projectId = createProject("Foo")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -1180,6 +1214,5 @@ class ProjectManagementApiSpec
       //teardown
       deleteProject(projectId)
     }
-
   }
 }
