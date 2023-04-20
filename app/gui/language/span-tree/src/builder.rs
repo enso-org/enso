@@ -19,13 +19,10 @@ pub trait Builder<T: Payload>: Sized {
     /// Reference to currently built  node.
     fn node_being_built(&mut self) -> &mut Node<T>;
 
-    /// The total length of the tree built so far.
-    fn current_end_offset(&self) -> usize;
-
     /// Add new AST-type child to node. Returns the child's builder which may be used to further
     /// extend this branch of the tree.
     fn add_child(
-        self,
+        mut self,
         offset: usize,
         len: usize,
         kind: impl Into<node::Kind>,
@@ -33,7 +30,9 @@ pub trait Builder<T: Payload>: Sized {
     ) -> ChildBuilder<Self, T> {
         let kind = kind.into();
         let node = Node::<T>::new().with_kind(kind).with_size(len.into());
-        let sibling_offset = offset.saturating_sub(self.current_end_offset());
+        let prev_child = self.node_being_built().children.last();
+        let prev_child_end = prev_child.map_or(0, |c| (c.offset + c.node.size).as_usize());
+        let sibling_offset = offset.saturating_sub(prev_child_end);
         let child = node::Child {
             node,
             offset: offset.into(),
@@ -55,16 +54,8 @@ pub trait Builder<T: Payload>: Sized {
     }
 
     /// Add an Empty-type child to node.
-    fn add_empty_child(mut self, offset: usize, kind: impl Into<node::Kind>) -> Self {
-        let sibling_offset = offset.saturating_sub(self.current_end_offset());
-        let child = node::Child {
-            node:           Node::<T>::new().with_kind(kind),
-            offset:         offset.into(),
-            sibling_offset: sibling_offset.into(),
-            ast_crumbs:     vec![],
-        };
-        self.node_being_built().children.push(child);
-        self
+    fn add_empty_child(self, offset: usize, kind: impl Into<node::Kind>) -> Self {
+        self.add_leaf(offset, 0, kind, ast::crumbs![])
     }
 
     /// Set expression id for this node.
@@ -106,9 +97,6 @@ impl<T: Payload> Builder<T> for TreeBuilder<T> {
     fn node_being_built(&mut self) -> &mut Node<T> {
         &mut self.built
     }
-    fn current_end_offset(&self) -> usize {
-        self.built.size.as_usize()
-    }
 }
 
 
@@ -132,8 +120,5 @@ impl<Parent: Builder<T>, T: Payload> ChildBuilder<Parent, T> {
 impl<Parent, T: Payload> Builder<T> for ChildBuilder<Parent, T> {
     fn node_being_built(&mut self) -> &mut Node<T> {
         &mut self.built.node
-    }
-    fn current_end_offset(&self) -> usize {
-        self.built.offset.as_usize() + self.built.node.size.as_usize()
     }
 }
