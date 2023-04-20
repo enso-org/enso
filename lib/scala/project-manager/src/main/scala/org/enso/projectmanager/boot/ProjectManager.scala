@@ -85,7 +85,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def tryReadLine: ZIO[ZAny, Nothing, String] =
     readLine.catchAll { err =>
       ZIO
-        .succeed { logger.warn("Failed to readLine.", err) }
+        .succeed { logger.warn("Failed to read line.", err) }
         .as("")
     }
 
