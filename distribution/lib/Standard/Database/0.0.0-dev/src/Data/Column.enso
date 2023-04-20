@@ -811,6 +811,58 @@ type Column
         new_name = self.naming_helpers.binary_operation_name "like" self pattern
         self.make_binary_op "LIKE" pattern new_name
 
+    ## This function removes the specified characters, by default any
+       whitespace, from the start, the end, or both ends of the input.
+
+       Arguments:
+       - where: The location of where to trim the input. By default, this
+         function trims both ends of the input.
+       - what: A `Text` (or text `Column`) containing characters that should be
+         removed. By default, spaces, tabs, returns and new lines are removed.
+    trim : Location -> Column | Text -> Column
+    trim self where=Location.Both what='' = Value_Type.expect_text self.value_type <| check_text_argument what "what" <|
+        new_name = self.naming_helpers.function_name "trim" [self]
+        operator = case where of
+            Location.Both -> "TRIM"
+            Location.Start -> "LTRIM"
+            Location.End -> "RTRIM"
+        if self.connection.dialect.is_supported operator then self.make_binary_op operator what new_name else
+            Error.throw (Unsupported_Database_Operation.Error ("`Column.trim "+where.to_text+"` is not supported by this connection."))
+
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       row. If `term` is empty, the function returns the table unchanged.
+
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
+
+       Arguments:
+       - term: The term to find.
+       - replacement: The text to replace matches with.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - only_first: If True, only replace the first match.
+       - use_regex: If true, the term is used as a regular expression.
+
+       > Example
+         Replace dashes with underscores.
+
+             column.replace "-" "_"
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.replace "^\s*(.*?)\s*$" "$1" use_regex=True
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+             column.replace '"(.*?)"' '($1)' use_regex=True
+    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
+        _ = [term, new_text, case_sensitivity, only_first, use_regex]
+        msg = "`Column.replace` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation.Error msg)
+
     ## Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1089,3 +1141,9 @@ make_equality_check_with_floating_point_handling column other op =
     result = column.make_binary_op op other
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+check_text_argument val field ~action = case val of
+    _ : Text -> action
+    _ : Column -> Value_Type.expect_text val.value_type <| action
+    _ -> Error.throw (Illegal_Argument.Error "The `"+field+"` must be Text or a Text Column.")

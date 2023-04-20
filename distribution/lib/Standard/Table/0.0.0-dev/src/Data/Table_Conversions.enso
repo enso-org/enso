@@ -4,6 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
+import project.Data.Match_Columns.Match_Columns
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Errors.Invalid_JSON_Format
 import project.Internal.Delimited_Reader
@@ -89,3 +90,31 @@ Table.from_objects value fields=Nothing =
             Table.new (used_fields.zip used_values)
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
         _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
+
+
+## PRIVATE
+   ADVANCED
+   Implements the `Table.write` for this `JSON_File`.
+
+    Arguments:
+    - file: The file to write to.
+    - table: The table to write.
+    - on_existing_file: What to do if the file already exists.
+    - match_columns: How to match columns between the table and the file.
+      Not used for JSON.
+    - on_problems: What to do if there are problems reading the file.
+JSON_File.write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
+JSON_File.write_table self file table on_existing_file match_columns on_problems =
+    _ = [match_columns, on_problems]
+    if file.exists.not then table.to_json.write file else
+        case on_existing_file of
+            Existing_File_Behavior.Append ->
+                ## Special handling - Need to remove the closing bracket and append.
+                old_text = file.read_text.trim
+                case old_text.ends_with "]" && old_text.starts_with "[" of
+                    True ->
+                        new_text = old_text.drop (Last 1) + "," + table.to_json.drop (First 1)
+                        new_text.write file on_existing_file=Existing_File_Behavior.Overwrite on_problems=on_problems
+                    False ->
+                        Error.throw (Invalid_JSON_Format.Error old_text "File already exists and is not a JSON array.")
+            _ -> table.to_json.write file on_existing_file=on_existing_file on_problems=on_problems

@@ -19,6 +19,7 @@ component-groups:
     - Standard.Base.Select:
         exports:
           - Standard.Table.Data.Table.Table.at
+          - Standard.Table.Data.Table.Table.get
           - Standard.Table.Data.Table.Table.select_columns
           - Standard.Table.Data.Table.Table.remove_columns
           - Standard.Table.Data.Table.Table.reorder_columns
