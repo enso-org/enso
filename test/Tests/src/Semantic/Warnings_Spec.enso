@@ -389,10 +389,18 @@ spec = Test.group "Dataflow Warnings" <|
         Problems.assume_no_problems <| condition_2 False x3
 
     Test.specify "should only report unique warnings" <|
-        x = 1
-        y = Warning.attach "Foo!" x
-        z = Warning.attach "Bar!" y
-        result = y + z
-        Warning.get_all result . length . should_equal 2
+        a = 1
+        b = Warning.attach "Foo!" a
+        c = Warning.attach "Bar!" b
+        d = Warning.attach "Foo!" b
+
+        result_1 = b + c
+        Warning.get_all result_1 . map (x-> x.value.to_text) . should_equal ["Bar!", "Foo!"]
+
+        result_2 = b + b + b
+        Warning.get_all result_2 . length . should_equal 1
+
+        result_3 = b + b + d
+        Warning.get_all result_3 . map (x-> x.value.to_text) . should_equal ["Foo!", "Foo!"]
 
 main = Test_Suite.run_main spec
