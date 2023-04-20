@@ -115,7 +115,7 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
      x | 12 34 56  |   y    ===>
    ... | ...       | ...
 
-   foo | bar_1 | bar_2 | baz
+   foo | bar 0 | bar 1 | baz
    ----+-------+-------+----
      x |     1 |     2 |   y
      x |     3 |     4 |   y
