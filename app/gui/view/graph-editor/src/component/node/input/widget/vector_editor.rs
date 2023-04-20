@@ -5,7 +5,6 @@
 //! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
 
 use crate::prelude::*;
-use enso_text::text;
 
 use crate::component::node::input::widget::triangle;
 use crate::component::node::input::widget::SampledFrp;
@@ -18,46 +17,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl_component::list_editor::ListEditor;
 use ensogl_component::text::Text;
-
-
-
-// ===============
-// === Element ===
-// ===============
-
-/// A wrapper for [`Text`] widget allowing default value.
-///
-/// Because [`Text`] does not implement [`Default`] which in turn is required to be used in the
-/// [`ListEditor`], we use such wrapper with a default `Empty` variant.
-#[derive(Clone, Debug)]
-enum Element {
-    Empty { display_object: display::object::Instance },
-    SubWidget { widget: Text },
-}
-
-impl Default for Element {
-    fn default() -> Self {
-        Self::Empty { display_object: default() }
-    }
-}
-
-impl Element {
-    fn content(&self) -> text::Rope {
-        match self {
-            Self::Empty { .. } => default(),
-            Self::SubWidget { widget } => widget.content.value(),
-        }
-    }
-}
-
-impl display::Object for Element {
-    fn display_object(&self) -> &display::object::Instance {
-        match self {
-            Element::Empty { display_object } => display_object,
-            Element::SubWidget { widget } => widget.display_object(),
-        }
-    }
-}
 
 
 
@@ -79,7 +38,7 @@ pub struct Model {
     display_object:    display::object::Instance,
     list_container:    display::object::Instance,
     activation_shape:  triangle::View,
-    list:              ListEditor<Element>,
+    list:              ListEditor<Text>,
     /// FRP input informing about the port size.
     pub set_port_size: frp::Source<Vector2>,
 }
@@ -188,24 +147,24 @@ impl Model {
         self
     }
 
-    fn clear_list(list: &ListEditor<Element>) {
+    fn clear_list(list: &ListEditor<Text>) {
         for _ in 0..list.items().len() {
             list.remove(0);
         }
     }
 
-    fn update_list(app: &Application, code: &str, list: &ListEditor<Element>) {
+    fn update_list(app: &Application, code: &str, list: &ListEditor<Text>) {
         let mut codes = Self::parse_array_code(code).fuse();
         let mut widgets_kept = 0;
-        for element in list.items() {
-            match (codes.next(), element) {
-                (Some(code), Element::SubWidget { widget }) => {
+        for widget in list.items() {
+            match codes.next() {
+                Some(code) => {
                     widgets_kept += 1;
                     if widget.content.value().to_string() != code {
                         widget.set_content(ImString::new(code));
                     }
                 }
-                (None, _) | (_, Element::Empty { .. }) => {
+                None => {
                     list.remove(widgets_kept);
                 }
             }
@@ -214,19 +173,19 @@ impl Model {
             let widget = Text::new(app);
             widget.set_content(ImString::new(code));
             app.display.default_scene.layers.label.add(&widget);
-            list.push(Element::SubWidget { widget });
+            list.push(widget);
         }
     }
 
-    fn push_new_element(app: &Application, list: &ListEditor<Element>) {
+    fn push_new_element(app: &Application, list: &ListEditor<Text>) {
         let widget = Text::new(app);
         widget.set_content("_");
-        list.push(Element::SubWidget { widget });
+        list.push(widget);
     }
 
-    fn construct_code(list: &ListEditor<Element>) -> String {
+    fn construct_code(list: &ListEditor<Text>) -> String {
         let subwidgets = list.items().into_iter();
-        let mut subwidgets_codes = subwidgets.map(|sub| sub.content().to_string());
+        let mut subwidgets_codes = subwidgets.map(|sub| sub.content.value().to_string());
         format!("[{}]", subwidgets_codes.join(","))
     }
 
