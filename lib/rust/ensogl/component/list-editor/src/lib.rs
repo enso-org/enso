@@ -103,7 +103,7 @@ use placeholder::StrongPlaceholder;
 // =================
 
 // FIXME: to be parametrized
-const GAP: f32 = 10.0;
+// const GAP: f32 = 10.0;
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
@@ -271,6 +271,8 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
         /// Remove the element at the given index. If the index is invalid, nothing will happen.
         remove(Index),
 
+        gap(f32),
+
         secondary_axis_drag_threshold(f32),
         primary_axis_no_drag_threshold(f32),
         primary_axis_no_drag_threshold_decay_time(f32),
@@ -302,12 +304,11 @@ pub struct ListEditor<T: 'static> {
 
 #[derive(Debug)]
 pub struct Model<T> {
-    cursor:              Cursor,
-    items:               VecIndexedBy<ItemOrPlaceholder<T>, ItemOrPlaceholderIndex>,
-    root:                display::object::Instance,
-    layout:              display::object::Instance,
-    layout_with_buttons: display::object::Instance,
-    add_elem_button:     Rectangle,
+    cursor: Cursor,
+    items:  VecIndexedBy<ItemOrPlaceholder<T>, ItemOrPlaceholderIndex>,
+    root:   display::object::Instance,
+    layout: display::object::Instance,
+    gap:    f32,
 }
 
 impl<T> Model<T> {
@@ -317,21 +318,10 @@ impl<T> Model<T> {
         let items = default();
         let root = display::object::Instance::new();
         let layout = display::object::Instance::new();
-        let layout_with_buttons = display::object::Instance::new();
+        let gap = default();
         layout.use_auto_layout();
-        layout_with_buttons.use_auto_layout();
-        root.add_child(&layout_with_buttons);
-        layout_with_buttons.add_child(&layout);
-        let add_elem_button = Rectangle().build(|t| {
-            t.set_size(Vector2(20.0, 20.0))
-                .set_corner_radius_max()
-                .set_margin_left(GAP)
-                .set_color(color::Rgba::new(1.0, 0.0, 0.0, 0.00001))
-                .set_inset_border(2.0)
-                .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
-        });
-        layout_with_buttons.add_child(&add_elem_button);
-        Self { cursor, items, root, layout, layout_with_buttons, add_elem_button }
+        root.add_child(&layout);
+        Self { cursor, items, root, layout, gap }
     }
 }
 
@@ -363,20 +353,13 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         let network = self.frp.network();
         let model = &self.model;
 
-        let add_elem_button_down = model.borrow().add_elem_button.on_event::<mouse::Down>();
         let on_down = model.borrow().layout.on_event_capturing::<mouse::Down>();
-        let scene_on_down = scene.on_event::<mouse::Down>();
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
 
         let model_borrowed = model.borrow();
 
         frp::extend! { network
-            trace add_elem_button_down;
-            frp.private.output.request_new_item <+ add_elem_button_down.map(f!([model] (_) {
-                let index = model.borrow_mut().items.len();
-                Response::gui(index)
-            }));
 
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
@@ -399,20 +382,46 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             pos_diff_on_up <- on_up_cleaning_phase.constant(Vector2(0.0, 0.0));
             pos_diff <- any3(&pos_diff_on_move, &pos_diff_on_down, &pos_diff_on_up);
 
-
+            eval frp.gap((t) model.borrow_mut().set_gap(*t));
         }
 
         self.init_add_and_remove();
         let (is_dragging, drag_diff) = self.init_dragging(&on_up, &on_down, &target, &pos_diff);
-        let (is_trashing, trashing_pointer_style) = self.init_trashing(cursor, &on_up, &drag_diff);
-        self.init_insertion_points(&on_up, &pos_on_move_down, &is_trashing);
+        let (is_trashing, trashing_pointer_style) = self.init_trashing(&on_up, &drag_diff);
+        self.init_dropping(&on_up, &pos_on_move_down, &is_trashing);
+        let insertion_pointer_style =
+            self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
-        let OFF = 10.0;
+        frp::extend! { network
+
+
+            pointer_style <- all [insertion_pointer_style, trashing_pointer_style].fold();
+            cursor.frp.set_style <+ pointer_style;
+        }
+        mem::drop(model_borrowed);
+        self
+    }
+
+    fn init_insertion_points(
+        &self,
+        on_up: &frp::Stream<Event<mouse::Up>>,
+        pos_on_move: &frp::Stream<Vector2>,
+        is_dragging: &frp::Stream<bool>,
+    ) -> frp::Stream<cursor::Style> {
+        let on_up = on_up.clone_ref();
+        let pos_on_move = pos_on_move.clone_ref();
+        let is_dragging = is_dragging.clone_ref();
+
+        let frp = &self.frp;
+        let network = self.frp.network();
+        let model = &self.model;
+        let model_borrowed = model.borrow();
+
         frp::extend! { network
             gaps <- model_borrowed.layout.on_resized.map(f_!(model.gaps()));
             gaps_len <- gaps.map(|t| t.len());
-            is_close <- all_with(&pos_on_move, &model.borrow().layout.on_resized, move |p, s| {
-                p.x > 0.0 - OFF && p.x < s.x + OFF && p.y > 0.0 - OFF && p.y < s.y + OFF
+            is_close <- all_with3(&frp.gap, &pos_on_move, &model.borrow().layout.on_resized, move |gap, p, s| {
+                p.x > 0.0 - gap && p.x < s.x + gap && p.y > 0.0 - gap && p.y < s.y + gap
             });
             opt_gap <- pos_on_move.map2(&gaps, |p, g| g.find(p.x));
             gap <= opt_gap;
@@ -426,17 +435,13 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
                     *in_gap && (*enable_all || (*enable_last && *last_gap))
             ).on_change();
 
-            insertion_pointer_style <- enabled.default_or(cursor::Style::plus());
+            pointer_style <- enabled.default_or(cursor::Style::plus());
 
-            scene_on_down_in_gap <- scene_on_down.gate(&enabled);
-            insert_in_gap <- gap_index.sample(&scene_on_down_in_gap);
+            on_up_in_gap <- on_up.gate(&enabled);
+            insert_in_gap <- gap_index.sample(&on_up_in_gap);
             frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
-
-            pointer_style <- all [insertion_pointer_style, trashing_pointer_style].fold();
-            cursor.frp.set_style <+ pointer_style;
         }
-        mem::drop(model_borrowed);
-        self
+        pointer_style
     }
 
     /// Implementation of adding and removing items logic.
@@ -511,7 +516,6 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
     /// Implementation of item trashing logic. See docs of this crate to learn more.
     fn init_trashing(
         &self,
-        cursor: &Cursor,
         on_up: &frp::Stream<Event<mouse::Up>>,
         drag_diff: &frp::Stream<Vector2>,
     ) -> (frp::Stream<bool>, frp::Stream<cursor::Style>) {
@@ -537,9 +541,9 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         (status, cursor_style)
     }
 
-    /// Implementation of insertion points logic. When an item is being dragged, the insertion point
-    /// is an empty place where the item will be placed when dropped.
-    fn init_insertion_points(
+    /// Implementation of dropping items logic, including showing empty placeholders when the item
+    /// is dragged over a place where it could be dropped.
+    fn init_dropping(
         &self,
         on_up: &frp::Stream<Event<mouse::Up>>,
         pos_on_move: &frp::Stream<Vector2>,
@@ -576,6 +580,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
 
     /// Initializes default FRP values. See docs of this crate to learn more.
     fn init_frp_values(self) -> Self {
+        self.frp.gap(10.0);
         self.frp.secondary_axis_drag_threshold(4.0);
         self.frp.primary_axis_no_drag_threshold(4.0);
         self.frp.primary_axis_no_drag_threshold_decay_time(1000.0);
@@ -665,6 +670,11 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
         self.items.iter().filter(|t| t.is_item()).count()
     }
 
+    fn set_gap(&mut self, gap: f32) {
+        self.gap = gap;
+        self.recompute_margins();
+    }
+
     /// Find an element by the provided display object reference.
     fn item_index_of(
         &mut self,
@@ -740,7 +750,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
                 ItemOrPlaceholder::Placeholder(Placeholder::Weak(_)) => {}
                 ItemOrPlaceholder::Placeholder(Placeholder::Strong(_)) => first_elem = false,
                 ItemOrPlaceholder::Item(t) => {
-                    t.set_margin_left(if first_elem { 0.0 } else { GAP });
+                    t.set_margin_left(if first_elem { 0.0 } else { self.gap });
                     first_elem = false;
                 }
             }
@@ -755,7 +765,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// Get the margin at the given insertion point. If the insertion point is before the first
     /// item, the margin will be 0.
     fn margin_at(&self, index: ItemOrPlaceholderIndex) -> f32 {
-        self.first_item_index().map_or(0.0, |i| if index <= i { 0.0 } else { GAP })
+        self.first_item_index().map_or(0.0, |i| if index <= i { 0.0 } else { self.gap })
     }
 
     /// Retain only items and placeholders that did not collapse yet (both strong and weak ones).
