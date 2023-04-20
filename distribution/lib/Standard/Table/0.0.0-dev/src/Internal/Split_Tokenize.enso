@@ -83,6 +83,11 @@ fan_out_to_columns table input_column_id function column_count=Nothing on_proble
      to multiple values.
 fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Problem_Behavior -> Table
 fan_out_to_rows table input_column_id function on_problems=Report_Error =
+    ## Treat as a special case of fan_out_to_rows_and_columns with one column.
+       Wrap the provided function to convert each value to a singleton `Vector`.
+    wrapped_function x = function x . map y-> [y]
+    column_namer = _-> input_column_id
+    fan_out_to_rows_and_columns table input_column_id wrapped_function namer on_problems
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -120,9 +125,23 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Problem_Behavior -> Table
-fan_out_to_rows_and_columns table input_column_id function on_problems=Report_Error =
+   - column_namer: A function to name output columns. If Nothing, uses the
+     default namer, which appends an column index to the input column name. If
+     the provided namer returns Nothing, then the default namer is used in that
+     case as well.
+   - on_problems: Specifies the behavior when a problem occurs.
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector Any) -> (Integer -> String) -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing on_problems=Report_Error =
     problem_builder = Problem_Builder.new
+
+    # Integer -> String
+    effective_column_namer = case namer of
+        # Use the default namer for all columns.
+        Nothing -> default_column_namer input_column_id
+        # Use the default if the provided namer returns Nothing
+        _ -> i-> case namer i of
+            Nothing -> default_column_namer input_column_id
+            name -> name
 
     input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
@@ -145,7 +164,7 @@ fan_out_to_rows_and_columns table input_column_id function on_problems=Report_Er
         output_values = function input_value
         # Append each value.
         output_values.each row_unchecked->
-            row = uniform_length row_unchecked problem_builder
+            row = uniform_length num_output_columns row_unchecked problem_builder
             row.each_with_index i-> v-> output_column_builders.at i . append v
         # Append n copies of the input row position, n = # of output values.
         repeat_each output_values.length <| order_mask_positions.append i
@@ -153,7 +172,7 @@ fan_out_to_rows_and_columns table input_column_id function on_problems=Report_Er
     # Build the output column
     output_storages = output_column_builders map .seal
     output_columns = output_storages.map_with_index i-> output_storage->
-        column_name = column_namer input_column_id i
+        column_name = effective_column_namer input_column_id i
         Column.from_storage name output_storage
 
     # Build the order mask.
@@ -247,7 +266,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
 
     # Build Columns.
     builders.map .seal . map_with_index i-> storage->
-        name = input_column.name + "_" + i.to_text
+        name = default_column_namer input_column.name i
         Column.from_storage name storage
 
 ## PRIVATE
@@ -286,3 +305,27 @@ handle_nothing function = x-> case x of
 ## PRIVATE
    Repeat a computation n times.
 repeat_each n ~action = 0.up_to n . each _-> action
+
+## PRIVATE
+   Name a column by appending an integer to a base column name
+default_column_namer : Text -> Integer -> Text
+default_column_namer base_name i = base_name + " " + i.to_text
+
+## PRIVATE
+   Pad or truncate a vector to be a specified length; if altered, report
+   it as a Column_Count_Mismatch warning.
+uniform_length : Integer -> Vector Any -> Problem_Builder -> Vector Any
+uniform_length target_length v problem_builder = if v.length == target_length then v else
+    problem = Column_Count_Mismatch.Error target_length v.length
+    problem_builder.report_other_warning problem
+    case v.length < target_length of
+        True ->
+            # Pad.
+            num_paddings = target_length - v.length
+            new_v = Vector.new_builder
+            new_v.append_vector_range v
+            num_paddings.each _-> new_v.append Nothing
+            new_v.to_vector
+        False ->
+            # Truncate.
+            v.take target_length
