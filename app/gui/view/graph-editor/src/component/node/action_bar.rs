@@ -443,22 +443,21 @@ impl ActionBar {
             );
         }
 
+        use theme::graph_editor::node::actions;
         let color_scheme = toggle_button::ColorScheme {
-            non_toggled: Some(
-                model
-                    .styles
-                    .get_color(theme::graph_editor::node::actions::button::non_toggled)
-                    .into(),
-            ),
-            toggled: Some(
-                model.styles.get_color(theme::graph_editor::node::actions::button::toggled).into(),
-            ),
-            hovered: Some(
-                model.styles.get_color(theme::graph_editor::node::actions::button::hovered).into(),
-            ),
+            non_toggled: Some(model.styles.get_color(actions::button::non_toggled).into()),
+            toggled: Some(model.styles.get_color(actions::button::toggled).into()),
+            hovered: Some(model.styles.get_color(actions::button::hovered).into()),
+            ..default()
+        };
+        let context_switch_color_scheme = toggle_button::ColorScheme {
+            non_toggled: Some(model.styles.get_color(actions::context_switch::non_toggled).into()),
+            toggled: Some(model.styles.get_color(actions::context_switch::toggled).into()),
+            hovered: Some(model.styles.get_color(actions::context_switch::hovered).into()),
             ..default()
         };
         model.icons.set_color_scheme(&color_scheme);
+        model.icons.context_switch.set_color_scheme(&context_switch_color_scheme);
 
         frp.show_on_hover.emit(true);
         visibility_init.emit(false);

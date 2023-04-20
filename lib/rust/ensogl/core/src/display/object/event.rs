@@ -96,21 +96,35 @@ impl Default for SomeEvent {
 /// https://developer.mozilla.org/en-US/docs/Web/API/Event.
 #[derive(Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = "T: Debug"))]
 #[derivative(Default(bound = "T: Default"))]
 pub struct Event<T> {
     data: Rc<EventData<T>>,
 }
 
+impl<T: Debug> Debug for Event<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.data, f)
+    }
+}
+
 /// Internal representation of [`Event`].
+#[allow(missing_docs)]
 #[derive(Deref, Derivative)]
-#[derivative(Debug(bound = "T: Debug"))]
 #[derivative(Default(bound = "T: Default"))]
 pub struct EventData<T> {
     #[deref]
-    payload: T,
-    target:  Option<WeakInstance>,
-    state:   Rc<Cell<State>>,
+    pub payload: T,
+    target:      Option<WeakInstance>,
+    state:       Rc<Cell<State>>,
+}
+
+impl<T: Debug> Debug for EventData<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Event")
+            .field("payload", &self.payload)
+            .field("state", &self.state.get())
+            .finish()
+    }
 }
 
 impl<T> Event<T> {

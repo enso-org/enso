@@ -82,7 +82,7 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static WithWarnings attach(EnsoContext ctx, Object value, Object warning, Object origin) {
-    return new WithWarnings(value, new Warning(warning, origin, ctx.clockTick()));
+    return WithWarnings.wrap(value, new Warning(warning, origin, ctx.clockTick()));
   }
 
   @Builtin.Method(
@@ -144,7 +144,7 @@ public final class Warning implements TruffleObject {
       for (int i = 0; i < warningsCast.length; i++) {
         warningsCast[i] = (Warning) interop.readArrayElement(warnings, i);
       }
-      return new WithWarnings(value, warningsCast);
+      return WithWarnings.wrap(value, warningsCast);
     } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);

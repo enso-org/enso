@@ -123,7 +123,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type SystemData: CustomSystemData<Self>;
     type ShapeData: Debug;
     fn definition_path() -> &'static str;
-    fn pointer_events() -> bool;
+    fn pointer_events() -> PointerEvents;
     /// The alignment of the drawn shape's origin position. When set to `center`, the shape's
     /// origin will be at the center of its bounding box. The default value is `left_bottom`.
     fn default_alignment() -> alignment::Dim2 {
@@ -158,6 +158,17 @@ pub trait CustomSystemData<S: Shape> {
 
 impl<S: Shape> CustomSystemData<S> for () {
     fn new(_data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {}
+}
+
+/// Specifies whether pointer events are enabled for a shader's instances.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum PointerEvents {
+    /// Enable pointer events for all instances.
+    Enabled,
+    /// Disable pointer events for all instances.
+    Disabled,
+    /// An instance attribute enables or disables pointer events.
+    PerInstance,
 }
 
 
@@ -348,7 +359,7 @@ pub struct ShapeSystemModel {
     /// Enables or disables pointer events on this shape system. All shapes of a shape system which
     /// have pointer events disabled will be completely transparent for the mouse (they will pass
     /// through all mouse events to shapes behind them).
-    pub pointer_events: Immutable<bool>,
+    pub pointer_events: Immutable<PointerEvents>,
     /// Do not use the provided shape definition to generate material's body. It is rarely needed,
     /// when a custom material is provided that does not require any additional shape definition
     /// code. For example, the text system uses this field, as its material fully describes how to
@@ -363,7 +374,7 @@ impl ShapeSystemModel {
     pub fn new(
         shape: def::AnyShape,
         alignment: alignment::Dim2,
-        pointer_events: bool,
+        pointer_events: PointerEvents,
         definition_path: &'static str,
     ) -> Self {
         let sprite_system = SpriteSystem::new(definition_path, alignment);
@@ -478,8 +489,17 @@ impl ShapeSystemModel {
                 warn!("No precompiled shader found for '{path}'. This will affect performance.");
             }
             if !self.do_not_use_shape_definition.get() {
+                let disable_pointer_events: Cow<_> = match *self.pointer_events {
+                    PointerEvents::Enabled => "0.0".into(),
+                    PointerEvents::Disabled => "1.0".into(),
+                    PointerEvents::PerInstance => {
+                        let var = "disable_pointer_events";
+                        self.material.borrow_mut().add_input_def::<f32>(var);
+                        format!("input_{var}").into()
+                    }
+                };
                 let code =
-                    shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
+                    shader::builder::Builder::run(&*self.shape.borrow(), &disable_pointer_events);
                 self.material.borrow_mut().set_code(code);
             }
         }
@@ -618,6 +638,56 @@ macro_rules! shape {
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
+    // Recognize `pointer_events_instanced = true`; in addition to passing it to `_shape!`, insert
+    // a suitable instance attribute into the list of GPU parameters.
+    (
+        $(type SystemData = $system_data:ident;)?
+        $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
+        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
+        pointer_events_instanced = true,
+        $(alignment = $alignment:tt;)?
+        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
+    ) => {
+        $crate::_shape! {
+            $(SystemData($system_data))?
+            $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
+            $(alignment = $alignment;)?
+            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
+            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
+            pointer_events_instanced = true;
+            [$style] (disable_pointer_events : f32$(,$gpu_param : $gpu_param_type)*){$($body)*}
+        }
+    };
+    // Recognize `pointer_events_instanced = false`. Only `true` and `false` are allowed, because
+    // if it were a computed value, we wouldn't know during macro expansion whether to create an
+    // instance parameter for it.
+    (
+        $(type SystemData = $system_data:ident;)?
+        $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
+        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
+        pointer_events_instanced = false,
+        $(alignment = $alignment:tt;)?
+        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
+    ) => {
+        $crate::_shape! {
+            $(SystemData($system_data))?
+            $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
+            $(alignment = $alignment;)?
+            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
+            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
+            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
+        }
+    };
 }
 
 // FIXME[WD]: This macro was left in the code because glyphs are not able to use the shader
@@ -708,10 +778,14 @@ macro_rules! _shape_old {
                     root_call_path!()
                 }
 
-                fn pointer_events() -> bool {
+                fn pointer_events() -> $crate::display::shape::primitive::system::PointerEvents {
+                    use $crate::display::shape::primitive::system::PointerEvents;
                     let _out = true;
                     $(let _out = $pointer_events;)?
-                    _out
+                    match _out {
+                        true => PointerEvents::Enabled,
+                        false => PointerEvents::Disabled,
+                    }
                 }
 
                 fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
@@ -818,6 +892,7 @@ macro_rules! _shape {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(pointer_events_instanced = $pointer_events_instanced:tt;)?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -869,10 +944,17 @@ macro_rules! _shape {
                     root_call_path!()
                 }
 
-                fn pointer_events() -> bool {
-                    let _out = true;
-                    $(let _out = $pointer_events;)?
-                    _out
+                fn pointer_events() -> $crate::display::shape::primitive::system::PointerEvents {
+                    use $crate::display::shape::primitive::system::PointerEvents;
+                    let _blanket = true;
+                    $(let _blanket = $pointer_events;)?
+                    let _instanced = false;
+                    $(let _instanced = $pointer_events_instanced;)?
+                    match (_blanket, _instanced) {
+                        (_, true) => PointerEvents::PerInstance,
+                        (true, false) => PointerEvents::Enabled,
+                        (false, false) => PointerEvents::Disabled,
+                    }
                 }
 
                 $(fn default_alignment() -> $crate::display::layout::alignment::Dim2 {
