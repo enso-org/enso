@@ -210,9 +210,7 @@ type Value_Type
     are_comparable type_1 type_2 =
         find_bucket typ = typ.if_not_error <|
             buckets = [["Integer", "Byte", "Float", "Decimal"], ["Char"], ["Date"], ["Date_Time"], ["Time"], ["Boolean"], ["Mixed"]]
-            ## TODO [RW] workaround for the bug #6258:
-            cleared_typ = Warning.clear typ
-            ctor_name = Meta.meta cleared_typ . constructor . name
+            ctor_name = Meta.meta typ . constructor . name
             buckets.index_of bucket->
                 bucket.contains ctor_name
 
