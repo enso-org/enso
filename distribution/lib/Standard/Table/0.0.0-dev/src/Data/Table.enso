@@ -14,6 +14,8 @@ import project.Data.Column.Column
 import project.Data.Column as Column_Module
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Expression.Expression
+import project.Data.Expression.Expression_Error
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
@@ -23,6 +25,8 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
+import project.Data.Table_Conversions
+import project.Delimited.Delimited_Format.Delimited_Format
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -34,9 +38,6 @@ import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Internal.Widget_Helpers
-import project.Data.Expression.Expression
-import project.Data.Expression.Expression_Error
-import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Internal.Rows_View import Rows_View
@@ -788,30 +789,49 @@ type Table
          - If some values in a column did not match the expected datatype
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
-         - If parsing a numeric column and the selected format does not allow
-           leading zeros (the default) and such cells are found, a
-           `Leading_Zeros` problem is reported. These cells are replaced with
-           `Nothing`.
 
-         > Example
-           Parse the first and last columns containing Yes/No values as booleans.
+       ? Number Formats
 
-               table.parse columns=[0, -1] type=Boolean format="Yes|No"
+         If parsing a column to a number, by default, the parser will attempt
+         to find the most appropriate format for the column. This is done by
+         finding the format that parses the longest set without an issue from
+         the first record.
 
-         > Example
-           Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+         It will try the following separators in British, German, French and
+         Swiss order.
 
-               table.parse "birthday" Date
+         - Thousand separators must be followed by groups of 3 numbers.
+         - Scientific notation is only allowed on decimals and must be on a
+           value between -10 and 10. The notation is an `E` followed by an
+           integer and must be enabled on the `Data_Formatter`,
 
-         > Example
-           Parse dates in a column in the format `dd/MM/yyyy`.
+         The following formats are supported:
+         - Sign (+/-) followed by Number (e.g. +1,234.56)
+         - Using brackets to indicate a negative number (e.g. (1,234.56))
+         - Currency symbols (if not in Auto mode) can be placed before or after
+           the sign and number.
+         - If using brackets, the currency symbol must be placed after the
+           opening bracket.
 
-               table.parse "birthday" Date 'dd/MM/yyyy'
+       > Example
+         Parse the first and last columns containing Yes/No values as booleans.
 
-         > Example
-           Parse all columns inferring their types, using `,` as the decimal point for numbers.
+             table.parse columns=[0, -1] type=Boolean format="Yes|No"
 
-               table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+       > Example
+         Parse dates in a column in the format `yyyy-MM-dd` (the default format).
+
+             table.parse "birthday" Date
+
+       > Example
+         Parse dates in a column in the format `dd/MM/yyyy`.
+
+             table.parse "birthday" Date 'dd/MM/yyyy'
+
+       > Example
+         Parse all columns inferring their types, using `,` as the decimal point for numbers.
+
+             table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
     parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
@@ -846,78 +866,6 @@ type Table
 
             parse_problem_builder.attach_problems_before on_problems <|
                 Table.new new_columns
-
-    ## Replaces the first, or all occurrences of `term` with `new_text` in each
-       text row of selected columns.
-       If `term` is empty, the function returns the table unchanged.
-
-       This method follows the exact replacement semantics of the
-       `Text.replace` method.
-
-       Arguments:
-       - columns: Column selection criteria or a column name or index.
-       - term: The term to find.
-       - new_text: The new text to replace occurrences of `term` with.
-         If use_regex is true, `new_text` can include replacement patterns
-         (such as `$<n>`) for a marked group.
-       - case_insensitive: Enables or disables case-insensitive matching. Case
-         insensitive matching behaves as if it normalises the case of all input
-         text before matching on it.
-       - only_first: If True, only replace the first match.
-       - use_regex: If true, the term is used as a regular expression.
-       - on_problems: Specifies how to handle if a problem occurs, raising as a
-         warning by default.
-
-         The following problems can occur:
-         - If a column in columns is not in the input table, a `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If a column in columns does not have a storage type of `Text`, or `Any`,
-           thus it is guaranteed that it can't contain any text values, a
-           `Invalid_Value_Type`.
-
-       > Example
-         Replace dashes with underscores in a column named "variable_names".
-
-             table.replace_text "variable_names" "-" "_"
-
-       > Example
-         Remove leading and trailing spaces from cells in multiple columns.
-
-             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" use_regex=True
-
-       > Example
-         Replace texts in quotes with parentheses in column at index 1.
-
-             table.replace_text 1 '"(.*?)"' '($1)' use_regex=True
-    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Table
-    replace_text self columns=[0] term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
-        problem_builder = Problem_Builder.new
-
-        selection = self.columns_helper.select_columns_helper columns reorder=False problem_builder
-        selected_names = Map.from_vector (selection.map column-> [column.name, True])
-
-        ## TODO [RW] we should inherit the parent type here, but extend fixed length strings to varied length
-           To be done in #6106.
-        map_preserve_name column f = column.map f . rename column.name
-        do_replace = _.replace term new_text case_sensitivity=case_sensitivity only_first=only_first use_regex=use_regex
-        do_replace_only_text = case _ of
-                item : Text -> do_replace item
-                item -> item
-
-        transform column = case column.value_type of
-            Value_Type.Char _ _ -> map_preserve_name column do_replace
-            Value_Type.Mixed -> map_preserve_name column do_replace_only_text
-            _ ->
-                problem = Invalid_Value_Type.Error Value_Type.Char column.value_type
-                problem_builder.report_other_warning problem
-                column
-
-        new_columns = self.columns.map column->
-            is_selected = selected_names.get column.name False
-            if is_selected then transform column else column
-
-        result = Table.new new_columns
-        problem_builder.attach_problems_after on_problems result
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.
@@ -1792,26 +1740,6 @@ type Table
     reverse self =
         mask = OrderBuilder.buildReversedMask self.row_count
         Table.Value <| self.java_table.applyMask mask
-
-    ## ALIAS Write JSON
-       UNSTABLE
-
-       Writes this table to a specified file, serialized into JSON. The JSON
-       serialization is such that the result is an array, in which every entry
-       is an object representing a single row, with column names as keys.
-
-       Arguments:
-       - file: the file to write data to. If the file exists, it will be
-         overwritten.
-
-       > Example
-         Write a table to a JSON file.
-
-             import Standard.Examples
-
-             example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
-    write_json : File -> Nothing
-    write_json self file = self.to_json.write file
 
     ## This function writes a table from memory into a file.
 
