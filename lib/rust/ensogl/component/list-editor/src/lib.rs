@@ -275,6 +275,8 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
         primary_axis_no_drag_threshold(f32),
         primary_axis_no_drag_threshold_decay_time(f32),
         thrashing_offset_ratio(f32),
+        enable_all_insertion_points(bool),
+        enable_last_insertion_point(bool),
     }
     Output {
         /// Fires whenever a new element was added to the list.
@@ -363,8 +365,11 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
 
         let add_elem_button_down = model.borrow().add_elem_button.on_event::<mouse::Down>();
         let on_down = model.borrow().layout.on_event_capturing::<mouse::Down>();
+        let scene_on_down = scene.on_event::<mouse::Down>();
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
+
+        let model_borrowed = model.borrow();
 
         frp::extend! { network
             trace add_elem_button_down;
@@ -394,15 +399,43 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             pos_diff_on_up <- on_up_cleaning_phase.constant(Vector2(0.0, 0.0));
             pos_diff <- any3(&pos_diff_on_move, &pos_diff_on_down, &pos_diff_on_up);
 
-            in_gap <- pos_on_move.map(f!((p) model.gaps().iter().any(|g| g.contains(&p.x))));
-            cursor.frp.set_style <+ in_gap.default_or(cursor::Style::plus());
-            trace in_gap;
+
         }
 
         self.init_add_and_remove();
-        let drag_diff = self.init_dragging(&on_up, &on_down, &target, &pos_diff);
-        let is_trashing = self.init_trashing(cursor, &on_up, &drag_diff);
+        let (is_dragging, drag_diff) = self.init_dragging(&on_up, &on_down, &target, &pos_diff);
+        let (is_trashing, trashing_pointer_style) = self.init_trashing(cursor, &on_up, &drag_diff);
         self.init_insertion_points(&on_up, &pos_on_move_down, &is_trashing);
+
+        let OFF = 10.0;
+        frp::extend! { network
+            gaps <- model_borrowed.layout.on_resized.map(f_!(model.gaps()));
+            gaps_len <- gaps.map(|t| t.len());
+            is_close <- all_with(&pos_on_move, &model.borrow().layout.on_resized, move |p, s| {
+                p.x > 0.0 - OFF && p.x < s.x + OFF && p.y > 0.0 - OFF && p.y < s.y + OFF
+            });
+            opt_gap <- pos_on_move.map2(&gaps, |p, g| g.find(p.x));
+            gap <= opt_gap;
+            last_gap <- gap.map2(&gaps_len, |g, l| **g == l - 1);
+            gap_index <= gap.map(f!((t) model.borrow().item_or_placeholder_index_to_index(*t)));
+            in_gap <- opt_gap.map(|g| g.is_some());
+            in_gap_not_drag <- all_with3(&in_gap, &is_close, &is_dragging, |a, b, c| *a && *b && !c);
+
+            enabled <- in_gap_not_drag.map4(&last_gap, &frp.enable_all_insertion_points, &frp.enable_last_insertion_point,
+                |in_gap, last_gap, enable_all, enable_last|
+                    *in_gap && (*enable_all || (*enable_last && *last_gap))
+            ).on_change();
+
+            insertion_pointer_style <- enabled.default_or(cursor::Style::plus());
+
+            scene_on_down_in_gap <- scene_on_down.gate(&enabled);
+            insert_in_gap <- gap_index.sample(&scene_on_down_in_gap);
+            frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
+
+            pointer_style <- all [insertion_pointer_style, trashing_pointer_style].fold();
+            cursor.frp.set_style <+ pointer_style;
+        }
+        mem::drop(model_borrowed);
         self
     }
 
@@ -437,7 +470,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         on_down: &frp::Stream<Event<mouse::Down>>,
         target: &frp::Stream<display::object::Instance>,
         pos_diff: &frp::Stream<Vector2>,
-    ) -> frp::Stream<Vector2> {
+    ) -> (frp::Stream<bool>, frp::Stream<Vector2>) {
         let model = &self.model;
         let on_up = on_up.clone_ref();
         let on_down = on_down.clone_ref();
@@ -472,7 +505,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
                 }
             });
         }
-        drag_diff
+        (status, drag_diff)
     }
 
     /// Implementation of item trashing logic. See docs of this crate to learn more.
@@ -481,7 +514,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         cursor: &Cursor,
         on_up: &frp::Stream<Event<mouse::Up>>,
         drag_diff: &frp::Stream<Vector2>,
-    ) -> frp::Stream<bool> {
+    ) -> (frp::Stream<bool>, frp::Stream<cursor::Style>) {
         let on_up = on_up.clone_ref();
         let drag_diff = drag_diff.clone_ref();
         let model = &self.model;
@@ -495,13 +528,13 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             status <- drag_diff.map2(&required_offset, |t, m| t.y.abs() >= *m).on_change();
             status_on_up <- on_up.constant(false);
             status_cleaning_phase <- any(&status, &status_on_up).on_change();
-            cursor.frp.set_style <+ status_cleaning_phase.default_or(cursor::Style::trash());
+            cursor_style <- status_cleaning_phase.default_or(cursor::Style::trash());
             on <- status.on_true();
             perform <- on_up.gate(&status);
             eval_ on (model.collapse_all_placeholders());
             eval_ perform (model.borrow_mut().trash_dragged_item());
         }
-        status
+        (status, cursor_style)
     }
 
     /// Implementation of insertion points logic. When an item is being dragged, the insertion point
@@ -518,15 +551,18 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         let model = &self.model;
         let frp = &self.frp;
         let network = self.frp.network();
+        let model_borrowed = model.borrow();
 
         frp::extend! { network
-            pos_non_trash <- pos_on_move.gate_not(&is_trashing);
-            insert_index <- pos_non_trash.map(f!((pos) model.insert_index(pos.x))).on_change();
+            center_points <- model_borrowed.layout.on_resized.map(f_!(model.center_points()));
+            insert_index <- pos_on_move.map2(&center_points, f!((p, c) model.insert_index(p.x, c)));
+            insert_index <- insert_index.on_change();
             insert_index_on_drop <- insert_index.sample(on_up).gate_not(&is_trashing);
+            insert_index_not_trashing <- insert_index.gate_not(&is_trashing);
 
-            on_not_trashing <- is_trashing.on_false();
-            insert_index_on_not_trashing <- insert_index.sample(&on_not_trashing);
-            update_insert_index <- any(&insert_index, &insert_index_on_not_trashing);
+            on_stop_trashing <- is_trashing.on_false();
+            insert_index_on_stop_trashing <- insert_index.sample(&on_stop_trashing);
+            update_insert_index <- any(&insert_index_not_trashing, &insert_index_on_stop_trashing);
             eval update_insert_index ((i) model.borrow_mut().add_insertion_point(*i));
 
             let on_item_added = &frp.private.output.on_item_added;
@@ -544,6 +580,8 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         self.frp.primary_axis_no_drag_threshold(4.0);
         self.frp.primary_axis_no_drag_threshold_decay_time(1000.0);
         self.frp.thrashing_offset_ratio(1.0);
+        self.frp.enable_all_insertion_points(true);
+        self.frp.enable_last_insertion_point(false);
         self
     }
 
@@ -581,12 +619,27 @@ impl<T: display::Object + CloneRef + 'static> SharedModel<T> {
         item.upgrade().map(|item| self.insert(index, (*item).clone_ref()))
     }
 
-    fn insert_index(&self, x: f32) -> ItemOrPlaceholderIndex {
-        self.borrow().insert_index(x)
+    fn insert_index(&self, x: f32, center_points: &[f32]) -> ItemOrPlaceholderIndex {
+        self.borrow().insert_index(x, center_points)
     }
 
-    fn gaps(&self) -> Vec<RangeInclusive<f32>> {
+    fn gaps(&self) -> Gaps {
         self.borrow().gaps()
+    }
+
+    fn center_points(&self) -> Vec<f32> {
+        self.borrow().center_points()
+    }
+}
+
+#[derive(Clone, Debug, Default, Deref)]
+pub struct Gaps {
+    gaps: Vec<RangeInclusive<f32>>,
+}
+
+impl Gaps {
+    pub fn find(&self, x: f32) -> Option<ItemOrPlaceholderIndex> {
+        self.gaps.iter().position(|gap| gap.contains(&x)).map(|t| t.into())
     }
 }
 
@@ -628,15 +681,24 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     /// Convert the item index to item or placeholder index.
-    fn index_to_item_or_placeholder_index(&mut self, ix: Index) -> Option<ItemOrPlaceholderIndex> {
+    fn index_to_item_or_placeholder_index(&self, ix: Index) -> Option<ItemOrPlaceholderIndex> {
         self.items.iter().enumerate().filter(|(_, item)| item.is_item()).nth(ix).map(|t| t.0.into())
     }
 
-    fn item_or_placeholder_index_to_index(&mut self, ix: ItemOrPlaceholderIndex) -> Option<Index> {
-        self.items.iter().enumerate().filter(|(_, item)| item.is_item()).position(|t| t.0 == *ix)
+    fn item_or_placeholder_index_to_index(&self, ix: ItemOrPlaceholderIndex) -> Option<Index> {
+        if *ix == self.items.len() {
+            Some(self.len())
+        } else {
+            self.items
+                .iter()
+                .enumerate()
+                .filter(|(_, item)| item.is_item())
+                .position(|t| t.0 == *ix)
+        }
     }
 
     fn push(&mut self, item: T) -> Index {
+        console_log!("push");
         let index = self.len();
         let item = Item::new(item);
         self.items.push(item.into());
@@ -645,6 +707,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     fn insert(&mut self, index: Index, item: T) -> Index {
+        console_log!("insert, items count: {}", self.items.len());
         let index = if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
             let item = Item::new(item);
             self.items.insert(index2, item.into());
@@ -697,6 +760,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
 
     /// Retain only items and placeholders that did not collapse yet (both strong and weak ones).
     fn retain_non_collapsed_items(&mut self) {
+        console_log!("!!!! RETAIN");
         self.items.retain(|item| item.exists());
     }
 
@@ -822,6 +886,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     fn replace_item_with_placeholder(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {
+        console_log!("replace_item_with_placeholder");
         match self.items.remove(index) {
             ItemOrPlaceholder::Item(item) => {
                 self.collapse_all_placeholders_no_margin_update();
@@ -846,6 +911,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// Prepare place for the dragged item by creating or reusing a placeholder and growing it to
     /// the dragged object size.
     fn add_insertion_point(&mut self, index: ItemOrPlaceholderIndex) {
+        console_log!("add_insertion_point");
         if let Some(item) =
             self.cursor.with_dragged_item_if_is::<T, _>(|t| t.display_object().clone())
         {
@@ -867,6 +933,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// [`Item`] object, will handles its animation. See the documentation of
     /// [`ItemOrPlaceholder`] to learn more.
     fn place_dragged_item(&mut self, index: ItemOrPlaceholderIndex) -> Option<(Index, T)> {
+        console_log!("place_dragged_item");
         if let Some(item) = self.cursor.stop_drag_if_is::<T>() {
             self.collapse_all_placeholders_no_margin_update();
             if let Some((index, placeholder)) = self.get_indexed_merged_placeholder_at(index) {
@@ -891,6 +958,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     pub fn trash_item(&mut self, item: T) {
+        console_log!("trash_item");
         self.root.add_child(&Trash::new(item));
         self.reposition_items();
     }
@@ -937,23 +1005,27 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
         centers
     }
 
-    fn gaps(&self) -> Vec<RangeInclusive<f32>> {
+    fn gaps(&self) -> Gaps {
         let mut gaps = Vec::new();
         gaps.push(f32::NEG_INFINITY..=0.0);
+        let mut fist_gap = true;
         let mut current = 0.0;
         for item in &self.items {
             let start = current;
             current += item.margin_left();
-            gaps.push(start..=current);
+            if !fist_gap {
+                gaps.push(start..=current);
+            }
+            fist_gap = false;
             current += item.target_size2();
         }
         gaps.push(current..=f32::INFINITY);
-        gaps
+        Gaps { gaps }
     }
 
     /// The insertion point of the given vertical offset.
-    fn insert_index(&self, x: f32) -> ItemOrPlaceholderIndex {
-        self.center_points().iter().position(|t| x < *t).unwrap_or(self.items.len()).into()
+    fn insert_index(&self, x: f32, center_points: &[f32]) -> ItemOrPlaceholderIndex {
+        center_points.iter().position(|t| x < *t).unwrap_or(self.items.len()).into()
     }
 }
 
@@ -1081,8 +1153,8 @@ pub fn main() {
             });
             Rc::new(shape)
         });
-        vector_editor.push <+ vector_editor.request_new_item.map2(&new_item, |_, item|
-            item.downgrade()
+        vector_editor.insert <+ vector_editor.request_new_item.map2(&new_item, |index, item|
+            (**index, item.downgrade())
         );
     }
 
