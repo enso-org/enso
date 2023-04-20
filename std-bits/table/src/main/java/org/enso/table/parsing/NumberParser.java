@@ -20,6 +20,19 @@ import java.util.regex.Pattern;
  *
  * If parsing a column it will select the format that parses the longest set
  * without an issue from the top and then apply this format to all the rows.
+ *
+ * The separators will be tried in British, German, French and Swiss order.
+ * - Thousand separator must be followed by groups of 3 numbers.
+ * - Scientific notation is only allowed on decimals and must be on a value
+ *   between -10 and 10. The notation is an `E` followed by an integer.
+ *
+ * The following formats are supported:
+ * - Sign (+/-) followed by Number (e.g. +1,234.56)
+ * - Using brackets to indicate a negative number (e.g. (1,234.56))
+ * - Currency symbols (if enabled) can be placed before or after the sign and
+ *   number.
+ * - If using brackets, the currency symbol must be placed after the opening
+ *   bracket.
  * */
 public class NumberParser extends IncrementalDatatypeParser {
     private final static String SIGN = "(?<sign>[-+])?";
