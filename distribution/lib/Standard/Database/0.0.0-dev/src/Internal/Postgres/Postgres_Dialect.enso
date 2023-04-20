@@ -272,10 +272,17 @@ concat_ops =
 
 ## PRIVATE
 trim_ops =
+    whitespace = "' ' || CHR(9) || CHR(10) || CHR(13)"
     make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
-            Nothing -> Builder.code fn_name+"(" ++ input ++ ")"
-            _ : Text -> Builder.code fn_name+"(" ++ input ++ ", " ++ (Builder.interpolation chars) ++ ")"
-            _ -> Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+            Nothing -> Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
+            _ ->
+                case chars.is_constant of
+                    True ->
+                        const = chars.fragments.vec.first.object
+                        if const.is_nothing || const.is_empty then Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
+                            Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+                    False ->
+                        Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " = '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
 ## PRIVATE

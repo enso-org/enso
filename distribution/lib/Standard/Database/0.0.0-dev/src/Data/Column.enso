@@ -820,7 +820,7 @@ type Column
        - what: A `Text` containing characters that should be removed. By
          default, all whitespace is removed.
     trim : Location -> Column | Text -> Column
-    trim self where=Location.Both what='' =
+    trim self where=Location.Both what='' = Value_Type.expect_text self.value_type <| check_text_argument what "what" <|
         new_name = self.naming_helpers.function_name "trim" [self]
         operator = case where of
             Location.Both -> "TRIM"
@@ -1107,3 +1107,9 @@ make_equality_check_with_floating_point_handling column other op =
     result = column.make_binary_op op other
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+check_text_argument val field ~action = case val of
+    _ : Text -> action
+    _ : Column -> Value_Type.expect_text val.value_type <| action
+    _ -> Error.throw (Illegal_Argument.Error "The `"+field+"` must be Text or a Text Column.")
