@@ -340,7 +340,9 @@ pub struct WidgetsFrp {
 // === Widget ===
 // ==============
 
-/// The node widget tree view. Contains all widgets created from the node's span tree.
+/// The node widget tree view. Contains all widgets created from the node's span tree, as well as
+/// all input ports of a node. The tree is initialized to empty state, waiting for first
+/// `rebuild_tree` call to build appropriate view hierarchy.
 #[derive(Debug, Deref, Clone, CloneRef)]
 pub struct Tree {
     #[deref]
@@ -455,13 +457,12 @@ impl Tree {
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
     /// have a distinct widget, so the returned value might be `None`.
-    pub fn get_widget_display_object(
+    pub fn get_port_display_object(
         &self,
         tree_node: &span_tree::node::Ref,
     ) -> Option<display::object::Instance> {
         let pointer = self.model.get_node_widget_pointer(tree_node)?;
-        warn!("get_widget_display_object pointer: {:?}", pointer);
-        self.model.with_node(&pointer, |w| w.display_object().clone())
+        self.model.with_port(pointer, |w| w.display_object().clone())
     }
 
     /// Get hover shapes for all ports in the tree. Used for testing to simulate mouse events.
@@ -519,9 +520,10 @@ impl display::Object for TreeNode {
 struct TreeModel {
     app:            Application,
     display_object: display::object::Instance,
-    nodes_map:      RefCell<HashMap<WidgetTreePointer, TreeNode>>,
+    nodes_map:      RefCell<HashMap<WidgetIdentity, TreeNode>>,
+    ports_map:      RefCell<HashMap<MainWidgetPointer, usize>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
-    connected_map:  Rc<RefCell<HashMap<WidgetTreePointer, ConnectionData>>>,
+    connected_map:  Rc<RefCell<HashMap<MainWidgetPointer, ConnectionData>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     disabled:       Cell<bool>,
     tree_dirty:     Cell<bool>,
@@ -544,6 +546,7 @@ impl TreeModel {
             display_object,
             disabled: default(),
             nodes_map: default(),
+            ports_map: default(),
             metadata_map: default(),
             connected_map: default(),
             usage_type_map: default(),
@@ -561,7 +564,7 @@ impl TreeModel {
     }
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
-    fn set_connected(&self, pointer: WidgetTreePointer, status: ConnectionStatus) {
+    fn set_connected(&self, pointer: MainWidgetPointer, status: ConnectionStatus) {
         let mut map = self.connected_map.borrow_mut();
         let dirty = map.synchronize_entry(pointer, status.data());
         if dirty {
@@ -611,9 +614,10 @@ impl TreeModel {
             connected_map: &connected_map,
             usage_type_map: &usage_type_map,
             old_nodes,
+            pointer_usage: default(),
             new_nodes: default(),
-            parent_ast_id: default(),
-            parent_crumbs: default(),
+            last_ast_id: default(),
+            last_crumbs_len: default(),
             parent_state: default(),
             extensions: default(),
         };
@@ -621,6 +625,11 @@ impl TreeModel {
         let child = builder.child_widget(tree.root_ref(), 0);
         self.display_object.replace_children(&[child]);
         self.nodes_map.replace(builder.new_nodes);
+        let mut ports_map_borrow = self.ports_map.borrow_mut();
+        ports_map_borrow.clear();
+        ports_map_borrow.extend(
+            builder.pointer_usage.into_iter().filter_map(|(k, v)| Some((k, v.port_index?))),
+        );
     }
 
     /// Convert span tree node to a corresponding widget tree pointer. Every node in the span tree
@@ -630,10 +639,10 @@ impl TreeModel {
     pub fn get_node_widget_pointer(
         &self,
         tree_node: &span_tree::node::Ref,
-    ) -> Option<WidgetTreePointer> {
+    ) -> Option<MainWidgetPointer> {
         if let Some(id) = tree_node.node.ast_id {
             // This span represents an AST node, return a pointer directly to it.
-            Some(WidgetTreePointer { id: Some(id), crumbs: default() })
+            Some(MainWidgetPointer::new(Some(id), &[]))
         } else {
             let root = tree_node.span_tree.root_ref();
             let root_ast_data = root.ast_id.map(|id| (id, 0));
@@ -653,24 +662,25 @@ impl TreeModel {
                 // Parent AST node found, return a pointer relative to it.
                 Some((ast_id, ast_parent_index)) => {
                     let crumb_slice = &tree_node.crumbs[ast_parent_index..];
-                    let crumbs = span_tree::Crumbs::new(crumb_slice.to_vec());
-                    Some(WidgetTreePointer { id: Some(ast_id), crumbs })
+                    Some(MainWidgetPointer::new(Some(ast_id), crumb_slice))
                 }
                 // No parent AST node found. Return a pointer from root.
-                None => Some(WidgetTreePointer { id: None, crumbs: tree_node.crumbs.clone() }),
+                None => Some(MainWidgetPointer::new(None, &tree_node.crumbs)),
             }
         }
     }
 
-    /// Perform an operation on a shared reference to a tree node under given pointer. When there is
-    /// no node under provided pointer, the operation will not be performed and `None` will be
+    /// Perform an operation on a shared reference to a tree port under given pointer. When there is
+    /// no port under provided pointer, the operation will not be performed and `None` will be
     /// returned.
-    pub fn with_node<T>(
+    pub fn with_port<T>(
         &self,
-        pointer: &WidgetTreePointer,
-        f: impl FnOnce(&TreeNode) -> T,
+        pointer: MainWidgetPointer,
+        f: impl FnOnce(&Port) -> T,
     ) -> Option<T> {
-        self.nodes_map.borrow().get(pointer).map(f)
+        let index = *self.ports_map.borrow().get(&pointer)?;
+        let unique_ptr = WidgetIdentity { main: pointer, index };
+        self.nodes_map.borrow().get(&unique_ptr).and_then(TreeNode::port).map(f)
     }
 }
 
@@ -800,12 +810,48 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct WidgetTreePointer {
+/// A pointer to main widget of specific node in the span tree. Determines the base of a widget
+/// stable identity, and allows widgets to be reused when rebuilding the tree. The pointer is
+/// composed of two parts:
+/// - `id` is the AST ID of either the node itself, or the closest ancestor node which has one. It
+///   can be `None` if there is no such parent, e.g. for a tree Root node.
+/// - `crumbs_hash` is a hash of remaining crumbs since last node with stable AST ID, or since the
+///   root node if there is no such parent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct MainWidgetPointer {
     /// The latest set ast::Id in the span tree.
-    id:     Option<ast::Id>,
-    /// Remaining crumbs to the widget, starting from the node with the latest set ast::Id.
-    crumbs: span_tree::Crumbs,
+    id:          Option<ast::Id>,
+    /// A hash of remaining crumbs to the widget, starting from the node with the latest set
+    /// ast::Id. We store a hash instead of the crumbs directly, so the type can be trivially
+    /// copied. The collision is extremely unlikely due to commonly having very short lists of
+    /// crumbs to store here and u64 being comparatively extremely large hash space.
+    crumbs_hash: u64,
+}
+
+/// An unique identity of a widget in the widget tree. It is a combination of a `WidgetTreePointer`
+/// and a sequential index of the widget assigned to the same span tree node. Any widget is allowed
+/// to create a child widget on the same span tree node, so we need to be able to distinguish
+/// between them. Note that only the first widget created for a given span tree node will be able to
+/// receive a port and thus be directly connected.
+///
+/// For all widgets with identity that shares the same `WidgetTreePointer`, at most one of them
+/// will be able to receive a port. The port is assigned to the first widget created for a given
+/// node that wants to receive it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct WidgetIdentity {
+    /// The pointer to the main widget of this widget's node.
+    main:  MainWidgetPointer,
+    /// The sequential index of a widget assigned to the same span tree node.
+    index: usize,
+}
+
+impl MainWidgetPointer {
+    fn new(id: Option<ast::Id>, crumbs: &[span_tree::Crumb]) -> Self {
+        let mut hasher = DefaultHasher::new();
+        crumbs.hash(&mut hasher);
+        let crumbs_hash = hasher.finish();
+        Self { id, crumbs_hash }
+    }
 }
 
 
@@ -826,14 +872,24 @@ struct WidgetTreeBuilder<'a> {
     node_expression: &'a str,
     styles:          &'a StyleWatch,
     metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
-    connected_map:   &'a HashMap<WidgetTreePointer, ConnectionData>,
+    connected_map:   &'a HashMap<MainWidgetPointer, ConnectionData>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
-    old_nodes:       HashMap<WidgetTreePointer, TreeNode>,
-    new_nodes:       HashMap<WidgetTreePointer, TreeNode>,
-    parent_ast_id:   Option<ast::Id>,
-    parent_crumbs:   span_tree::Crumbs,
+    old_nodes:       HashMap<WidgetIdentity, TreeNode>,
+    new_nodes:       HashMap<WidgetIdentity, TreeNode>,
+    pointer_usage:   HashMap<MainWidgetPointer, PointerUsage>,
+    last_ast_id:     Option<ast::Id>,
+    last_crumbs_len: usize,
     parent_state:    NodeState,
     extensions:      Vec<Box<dyn Any>>,
+}
+
+/// Additional information about the usage of a widget pointer while building a tree. This is used
+/// to determine which widget should receive a port, and to assign sequential indices to widgets
+/// created for the same span tree node.
+#[derive(Debug, Default)]
+struct PointerUsage {
+    next_index: usize,
+    port_index: Option<usize>,
 }
 
 impl<'a> WidgetTreeBuilder<'a> {
@@ -890,29 +946,29 @@ impl<'a> WidgetTreeBuilder<'a> {
         // Figure out the widget tree pointer for the current node. That pointer determines the
         // widget identity, allowing it to maintain internal state. If the previous tree already
         // contained a widget for this pointer, we have to reuse it.
-        let tree_ptr = match span_tree_node.ast_id {
+        let main_ptr = match span_tree_node.ast_id {
             Some(ast_id) => {
-                let parent_ast_id = self.parent_ast_id.replace(ast_id);
+                let last_ast_id = self.last_ast_id.replace(ast_id);
                 let parent_tail_crumbs =
-                    std::mem::replace(&mut self.parent_crumbs, span_tree_node.crumbs.clone());
-                ast_data_to_restore = Some((parent_ast_id, parent_tail_crumbs));
-                WidgetTreePointer { id: Some(ast_id), crumbs: default() }
+                    std::mem::replace(&mut self.last_crumbs_len, span_tree_node.crumbs.len());
+                ast_data_to_restore = Some((last_ast_id, parent_tail_crumbs));
+                MainWidgetPointer::new(Some(ast_id), &[])
             }
             None => {
                 let this_crumbs = &span_tree_node.crumbs;
-                // We should always be in a child node since last ast ID. Verify that.
-                let is_in_ast_subtree = this_crumbs.starts_with(&self.parent_crumbs);
-                assert!(is_in_ast_subtree, "Not in AST child node.");
-                let id = self.parent_ast_id;
-                let crumbs_since_id = &this_crumbs[self.parent_crumbs.len()..];
-                let crumbs = span_tree::Crumbs::new(crumbs_since_id.to_vec());
-                WidgetTreePointer { id, crumbs }
+                let id = self.last_ast_id;
+                let crumbs_since_id = &this_crumbs[self.last_crumbs_len..];
+                MainWidgetPointer::new(id, crumbs_since_id)
             }
         };
-        let old_node = self.old_nodes.remove(&tree_ptr);
+
+        let ptr_usage = self.pointer_usage.entry(main_ptr).or_default();
+        let unique_ptr = WidgetIdentity { main: main_ptr, index: ptr_usage.next_index };
+
+        let old_node = self.old_nodes.remove(&unique_ptr);
         let is_placeholder = span_tree_node.is_expected_argument();
         let sibling_offset = span_tree_node.sibling_offset.as_usize();
-        let usage_type = tree_ptr.id.and_then(|id| self.usage_type_map.get(&id)).cloned();
+        let usage_type = main_ptr.id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Get widget metadata. There are three potential sources for metadata, that are used in
         // order, whichever is available first:
@@ -941,10 +997,17 @@ impl<'a> WidgetTreeBuilder<'a> {
                 })
             });
 
+        let widget_has_port = match (meta.has_port, &mut ptr_usage.port_index) {
+            (true, port_index @ None) => {
+                *port_index = Some(unique_ptr.index);
+                true
+            }
+            _ => false,
+        };
 
         // Once we have the metadata and potential old widget to reuse, we have to apply the
         // configuration to the widget.
-        let connection: ConnectionStatus = self.connected_map.get(&tree_ptr).copied().into();
+        let connection: ConnectionStatus = self.connected_map.get(&main_ptr).copied().into();
         let subtree_connection = connection.or(self.parent_state.subtree_connection);
         let disabled = self.node_disabled;
         let state = NodeState { depth, connection, subtree_connection, disabled, usage_type };
@@ -967,7 +1030,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         // state to reflect the correct parent node. We need to restore the state after the
         // `configure` call has been done, so that the next sibling node will receive correct parent
         // data.
-        let child_node = if meta.has_port {
+        let child_node = if widget_has_port {
             let mut port = match old_node {
                 Some(TreeNode::Port(port)) => port,
                 Some(TreeNode::Widget(widget)) => Port::new(widget, app, frp),
@@ -987,9 +1050,9 @@ impl<'a> WidgetTreeBuilder<'a> {
 
         // After visiting child node, restore previous layer's parent data.
         self.parent_state = state_to_restore;
-        if let Some((id, crumbs)) = ast_data_to_restore {
-            self.parent_ast_id = id;
-            self.parent_crumbs = crumbs;
+        if let Some((id, crumbs_len)) = ast_data_to_restore {
+            self.last_ast_id = id;
+            self.last_crumbs_len = crumbs_len;
         }
         self.extensions.truncate(parent_extensions_len);
 
@@ -1002,7 +1065,7 @@ impl<'a> WidgetTreeBuilder<'a> {
             child_root.set_margin_left(left_margin);
         }
 
-        self.new_nodes.insert(tree_ptr.clone(), child_node);
+        self.new_nodes.insert(unique_ptr, child_node);
         child_root
     }
 }

@@ -37,17 +37,6 @@ pub const TEXT_OFFSET: f32 = 10.0;
 /// Total height of the node input area.
 pub const NODE_HEIGHT: f32 = 18.0;
 
-/// Width of a single glyph
-// TODO: avoid using hardcoded value. See https://www.pivotaltracker.com/story/show/183567623.
-pub const GLYPH_WIDTH: f32 = 7.224_609_4;
-
-/// Enable visual port debug mode and additional port creation logging.
-pub const DEBUG: bool = false;
-
-/// Visual port offset for debugging purposes. Applied hierarchically. Applied only when `DEBUG` is
-/// set to `true`.
-pub const DEBUG_PORT_OFFSET: f32 = 5.0;
-
 /// Text size used for input area text.
 pub const TEXT_SIZE: f32 = 12.0;
 
@@ -237,7 +226,7 @@ impl Model {
         let crumbs = hovered.on()?;
         let expr = self.expression.borrow();
         let port = expr.span_tree.get_node(crumbs).ok()?;
-        let display_object = self.widget_tree.get_widget_display_object(&port)?;
+        let display_object = self.widget_tree.get_port_display_object(&port)?;
         let tp = port.tp().map(|t| Type(t.into()));
         let color = tp.as_ref().map(|tp| type_coloring::compute(tp, &self.styles));
         let pad_x = node::input::port::PORT_PADDING_X * 2.0;
@@ -567,7 +556,7 @@ impl Area {
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         let node = expr.get_node(crumbs).ok()?;
-        let instance = self.model.widget_tree.get_widget_display_object(&node)?;
+        let instance = self.model.widget_tree.get_port_display_object(&node)?;
         let pos = instance.global_position();
         let node_pos = self.model.display_object.global_position();
         let size = instance.computed_size();

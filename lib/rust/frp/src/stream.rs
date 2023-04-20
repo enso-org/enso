@@ -245,7 +245,7 @@ pub struct NodeData<Out = ()> {
     /// is borrowed mutable. You should always borrow it only if `during_call` is false. Otherwise,
     /// if you want to register new outputs during a call, use `new_targets` field instead. It will
     /// be merged into `targets` directly after the call.
-    targets:             RefCell<Vec<EventInput<Out>>>,
+    targets:             RefCell<SmallVec<[EventInput<Out>; 1]>>,
     new_targets:         RefCell<Vec<EventInput<Out>>>,
     value_cache:         RefCell<Out>,
     ongoing_evaluations: Cell<usize>,
@@ -293,12 +293,18 @@ impl<Out: Data> EventEmitter for NodeData<Out> {
             if self.use_caching() {
                 *self.value_cache.borrow_mut() = value.clone();
             }
-            if let Ok(mut targets) = self.targets.try_borrow_mut() {
-                targets.retain(|target| !target.data.is_dropped());
-            }
+            let mut cleanup = false;
             for target in self.targets.borrow().iter() {
-                target.data.on_event_if_exists(&new_stack, value);
+                let exists = target.data.on_event_if_exists(&new_stack, value);
+                cleanup |= !exists;
             }
+
+            if cleanup {
+                if let Ok(mut targets) = self.targets.try_borrow_mut() {
+                    targets.retain(|target| !target.data.is_dropped());
+                }
+            }
+
             let mut new_targets = self.new_targets.borrow_mut();
             if !new_targets.is_empty() {
                 if let Ok(mut targets) = self.targets.try_borrow_mut() {
