@@ -8,7 +8,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project import Value_Type
-from project.Errors import Column_Count_Exceeded, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
+from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.mask.OrderMask
@@ -87,7 +87,7 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
        Wrap the provided function to convert each value to a singleton `Vector`.
     wrapped_function x = function x . map y-> [y]
     column_namer = _-> input_column_id
-    fan_out_to_rows_and_columns table input_column_id wrapped_function namer on_problems
+    fan_out_to_rows_and_columns table input_column_id wrapped_function column_namer on_problems
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -103,7 +103,9 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
      value is used to determine the length, and the other output values must
      have the same length. If a value is too short, it will be padded with
      Nothing, and if it is too long, it will be truncated. In either case,
-     Column_Count_Mismatch will be added as a warning.
+     Column_Count_Mismatch will be added as a warning. (It is expected that the
+     caller of this private method will ensure that the provided function will
+     produce inner vectors of the same length, but we check for it anyway.)
 
    > Example
    f("12 34 56") -> [[1, 2], [3, 4], [5, 6]]
@@ -130,17 +132,17 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
      the provided namer returns Nothing, then the default namer is used in that
      case as well.
    - on_problems: Specifies the behavior when a problem occurs.
-fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector Any) -> (Integer -> String) -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector Any) -> (Integer -> Text) -> Problem_Behavior -> Table
 fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing on_problems=Report_Error =
     problem_builder = Problem_Builder.new
 
     # Integer -> String
-    effective_column_namer = case namer of
+    effective_column_namer = case column_namer of
         # Use the default namer for all columns.
         Nothing -> default_column_namer input_column_id
         # Use the default if the provided namer returns Nothing
-        _ -> i-> case namer i of
-            Nothing -> default_column_namer input_column_id
+        _ -> i-> case column_namer i of
+            Nothing -> default_column_namer input_column_id i
             name -> name
 
     input_column = table.at input_column_id
@@ -148,9 +150,11 @@ fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing 
     num_input_rows = input_storage.size
 
     num_output_columns = if input_column.length == 0 then 0 else
-        function (input_column.at 0) . length
-    IO.println "NOC"
-    IO.println num_output_columns
+        output_value = function (input_column.at 0)
+        case output_value.is_empty of
+            # If there are no output values, treat the column count as 0
+            0 -> 0
+            _ -> output_value.at 0 . length
 
     # Guess that most of the time, we'll get at least one value for each input.
     initial_size = input_column.length
@@ -170,10 +174,10 @@ fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing 
         repeat_each output_values.length <| order_mask_positions.append i
 
     # Build the output column
-    output_storages = output_column_builders map .seal
+    output_storages = output_column_builders.map .seal
     output_columns = output_storages.map_with_index i-> output_storage->
-        column_name = effective_column_namer input_column_id i
-        Column.from_storage name output_storage
+        column_name = effective_column_namer i
+        Column.from_storage column_name output_storage
 
     # Build the order mask.
     order_mask = OrderMask.new (order_mask_positions.to_vector)
@@ -324,7 +328,7 @@ uniform_length target_length v problem_builder = if v.length == target_length th
             num_paddings = target_length - v.length
             new_v = Vector.new_builder
             new_v.append_vector_range v
-            num_paddings.each _-> new_v.append Nothing
+            repeat_each num_paddings <| new_v.append Nothing
             new_v.to_vector
         False ->
             # Truncate.
