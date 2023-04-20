@@ -936,7 +936,6 @@ type Column
             mapped = self_vec.map_with_index i->t-> trim_fn t (trim_get i)
             Column.from_vector new_name mapped
 
-
     ## Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the table unchanged.
 

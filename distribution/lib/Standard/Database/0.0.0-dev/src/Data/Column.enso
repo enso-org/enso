@@ -829,6 +829,40 @@ type Column
         if self.connection.dialect.is_supported operator then self.make_binary_op operator what new_name else
             Error.throw (Unsupported_Database_Operation.Error ("`Column.trim "+where.to_text+"` is not supported by this connection."))
 
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       row. If `term` is empty, the function returns the table unchanged.
+
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
+
+       Arguments:
+       - term: The term to find.
+       - replacement: The text to replace matches with.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - only_first: If True, only replace the first match.
+       - use_regex: If true, the term is used as a regular expression.
+
+       > Example
+         Replace dashes with underscores.
+
+             column.replace "-" "_"
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.replace "^\s*(.*?)\s*$" "$1" use_regex=True
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+             column.replace '"(.*?)"' '($1)' use_regex=True
+    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
+        _ = [term, new_text, case_sensitivity, only_first, use_regex]
+        msg = "`Column.replace` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation.Error msg)
+
     ## Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
