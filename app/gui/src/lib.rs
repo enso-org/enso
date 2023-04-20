@@ -201,8 +201,5 @@ pub fn drop() {
     IDE.with(RefCell::take);
     EXECUTOR.with(RefCell::take);
     // warn!("Graphs: {:#?}", ide_view::graph_editor::VALGRIND.with(|v| v.take()));
-    warn!(
-        "Networks: {:#?}",
-        enso_frp::network::VALGRIND.with(|v| v.take().creation_backtraces.into_iter().next())
-    );
+    warn!("Networks: {:#?}", enso_frp::network::VALGRIND.with(|v| v.take().creation_backtraces));
 }
