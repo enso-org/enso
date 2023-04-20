@@ -93,10 +93,8 @@ public final class Warning implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib);
-    Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
-    Object[] result = new Object[warnings.length];
-    System.arraycopy(warnings, 0, result, 0, warnings.length);
-    return new Array(result);
+    Object[] unique = uniqueWarnings(warnings);
+    return new Array(unique);
   }
 
   @Builtin.Method(
@@ -107,7 +105,7 @@ public final class Warning implements TruffleObject {
   public static Array getAll(Object value, WarningsLibrary warnings) {
     if (warnings.hasWarnings(value)) {
       try {
-        return new Array((Object[]) warnings.getWarnings(value, null));
+        return new Array((Object[]) uniqueWarnings(warnings.getWarnings(value, null)));
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
@@ -205,5 +203,30 @@ public final class Warning implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().warning();
+  }
+
+  private static Warning[] uniqueWarnings(Warning[] warnings) {
+    int uniqueLen = 0;
+    Warning last = null;
+    Warning[] tmp = new Warning[warnings.length];
+    System.arraycopy(warnings, 0, tmp, 0, warnings.length);
+    Arrays.sort(tmp, Comparator.comparing(Warning::getCreationTime).reversed());
+    for (int i = 0; i < tmp.length; i++) {
+      if (last == null || tmp[i].getCreationTime() != last.getCreationTime()) {
+        last = tmp[i];
+        uniqueLen += 1;
+      }
+    }
+    Warning[] unique = new Warning[uniqueLen];
+    int lastUniqueIndex = 0;
+    last = null;
+    for (int i = 0; i < tmp.length; i++) {
+      if (last == null || tmp[i].getCreationTime() != last.getCreationTime()) {
+        last = tmp[i];
+        unique[lastUniqueIndex] = tmp[i];
+        lastUniqueIndex += 1;
+      }
+    }
+    return unique;
   }
 }
