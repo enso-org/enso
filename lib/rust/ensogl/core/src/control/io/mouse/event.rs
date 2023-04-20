@@ -54,6 +54,7 @@ where JsEvent: AsRef<web::MouseEvent>
 {
     /// Constructor.
     pub fn new(js_event: JsEvent, shape: Shape) -> Self {
+        js_event.as_ref().prevent_default();
         let js_event = Some(js_event);
         let event_type = default();
         Self { js_event, shape, event_type }
@@ -174,11 +175,6 @@ where JsEvent: AsRef<web::MouseEvent>
         self.js_event.as_ref().map(|t| t.as_ref().ctrl_key()).unwrap_or_default()
     }
 
-    /// Prevent the default action of the event.
-    pub fn prevent_default(&self) {
-        self.js_event.as_ref().map(|t| t.as_ref().prevent_default());
-    }
-
     /// Convert the event to a different type. No checks will be performed during this action.
     pub fn unchecked_convert_to<NewEventType: IsEvent>(
         self,
@@ -229,6 +225,13 @@ define_events! {
     // - https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseover_event
     // - https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseup_event
     // - https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event
+    //
+    // ## Preventing default
+    //
+    // To avoid triggerring any builtin bevavior of the browser, we call [`preventDefault`] on all
+    // mouse events.
+    //
+    // [`preventDefault`]: https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault
 
     /// The [`Down`] event is fired at an element when a button on a pointing device (such as a
     /// mouse or trackpad) is pressed while the pointer is inside the element.
