@@ -201,6 +201,32 @@ spec setup =
             t1.at '\n\n' . to_vector . should_equal [1]
             t1.at " " . to_vector . should_equal [1]
 
+        Test.specify "should report Floating_Point_Equality if the group or name column is floating point" <|
+            t = table_builder [["X", [1.5, 2.5, 2.5, 1.5]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "b", "b", "b"]]]
+            t1 = t.cross_tab
+            Problems.expect_warning Floating_Point_Equality t1
+            t1.column_names . should_equal ["1.5", "2.5"]
+            t1.row_count . should_equal 1
+            t1.at "1.5" . to_vector . should_equal [2]
+            t1.at "2.5" . to_vector . should_equal [2]
+
+            t2 = t.cross_tab ["X"] "Z"
+            Problems.expect_warning Floating_Point_Equality t2
+            t2.column_names . should_equal ["X", "a", "b"]
+            t2.row_count . should_equal 2
+            t2.at "X" . to_vector . should_equal [1.5, 2.5]
+            t2.at "a" . to_vector . should_equal [1, 0]
+            t2.at "b" . to_vector . should_equal [1, 2]
+
+        Test.specify "should check types of aggregates" <|
+            t = table_builder [["Key", ["a", "a", "b", "b"]], ["ints", [1, 2, 3, 4]], ["texts", ["a", "b", "c", "d"]]]
+            t1 = t.cross_tab [] "Key" values=[Average "texts"]
+            t1.should_fail_with Invalid_Value_Type
+            t2 = t.cross_tab [] "Key" values=[Sum "texts"]
+            t2.should_fail_with Invalid_Value_Type
+            t3 = t.cross_tab [] "Key" values=[Concatenate "ints"]
+            t3.should_fail_with Invalid_Value_Type
+
         Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
             table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r1 = table.cross_tab

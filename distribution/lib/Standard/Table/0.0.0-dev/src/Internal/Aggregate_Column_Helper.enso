@@ -128,6 +128,8 @@ all_same_column aggregates =
    indices or column references potentially from a different table) are
    replaced with column references from the provided table.
 
+   It also verifies that the columns have the right types.
+
    `Sort_Column`s are replaced with column references of matched columns coming
    from the provided table.
 
