@@ -90,7 +90,7 @@ public abstract class BuiltinRootNode extends RootNode implements InlineableRoot
 
     @Override
     public final CallTarget getClonedCallTarget() {
-      return null;
+      return getRootNode().getCallTarget();
     }
   }
 }

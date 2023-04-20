@@ -128,9 +128,17 @@ final class JobExecutionEngine(
   }
 
   /** @inheritdoc */
-  override def abortAllJobs(): Unit = {
-    val allJobs         = runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
-    val cancellableJobs = allJobs.filter(_.job.isCancellable)
+  override def abortAllJobs(): Unit =
+    abortAllExcept()
+
+  /** @inheritdoc */
+  override def abortAllExcept(ignoredJobs: Class[_ <: Job[_]]*): Unit = {
+    val allJobs = runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+    val cancellableJobs = allJobs
+      .filter { runningJob =>
+        runningJob.job.isCancellable &&
+        !ignoredJobs.contains(runningJob.job.getClass)
+      }
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
     }

@@ -39,7 +39,7 @@ public abstract class CoerceNothing extends Node {
     if (nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {
       try {
         Warning[] attachedWarnings = warningsLibrary.getWarnings(value, null);
-        return new WithWarnings(nothing, attachedWarnings);
+        return WithWarnings.wrap(nothing, attachedWarnings);
       } catch (UnsupportedMessageException e) {
         return nothing;
       }

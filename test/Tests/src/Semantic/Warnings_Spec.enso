@@ -1,11 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 polyglot java import java.lang.Long
 polyglot java import java.util.function.Function as Java_Function
 polyglot java import org.enso.base_test_helpers.CallbackHelper
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 type My_Warning
@@ -369,6 +370,23 @@ spec = Test.group "Dataflow Warnings" <|
         b.has_warnings . should_equal False
         a.remove_warnings . should_equal 42
         b.remove_warnings . should_equal 42
+
+    Test.specify "should not automatically propagate from suspended arguments" <|
+        x1 = 33
+        x2 = Warning.attach "WARN" 44
+        x3 = Error.throw (Illegal_State.Error "ERR")
+
+        condition_1 x y = if x then y else 42
+        condition_2 x y = if x then y + 100 else 42
+
+        Problems.assume_no_problems <| condition_1 False x1
+        Problems.assume_no_problems <| condition_2 False x1
+
+        Problems.assume_no_problems <| condition_1 False x2
+        Problems.assume_no_problems <| condition_2 False x2
+
+        Problems.assume_no_problems <| condition_1 False x3
+        Problems.assume_no_problems <| condition_2 False x3
 
 
 main = Test_Suite.run_main spec

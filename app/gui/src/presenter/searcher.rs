@@ -134,7 +134,7 @@ impl Model {
         match self.suggestion_for_entry_id(entry_id) {
             Ok(suggestion) =>
                 if let Err(error) = self.controller.preview_suggestion(suggestion) {
-                    warn!("Failed to preview suggestion {entry_id:?} because of error: {error:?}.");
+                    warn!("Failed to preview suggestion {entry_id:?} because of error: {error}.");
                 },
             Err(err) => warn!("Error while previewing suggestion: {err}."),
         }

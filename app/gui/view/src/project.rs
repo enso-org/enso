@@ -103,6 +103,7 @@ ensogl::define_endpoints! {
         execution_context_interrupt(),
         /// Restart the program execution.
         execution_context_restart(),
+        toggle_read_only(),
     }
 
     Output {
@@ -689,6 +690,8 @@ impl application::View for View {
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd shift t", "execution_context_interrupt"),
             (Press, "", "cmd shift r", "execution_context_restart"),
+            // TODO(#6179): Remove this temporary shortcut when Play button is ready.
+            (Press, "", "ctrl shift b", "toggle_read_only"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
