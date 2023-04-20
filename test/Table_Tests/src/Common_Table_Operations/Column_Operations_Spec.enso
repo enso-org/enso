@@ -616,6 +616,27 @@ spec setup =
                 a.replace d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
                 a.replace d "#" use_regex=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 
+            Test.specify "should infer correct return type" <|
+                c = table_builder [["texts", ["foo", "bar"]]] . at "texts"
+
+                c1 = c.replace "a" "---"
+                c1.to_vector . should_equal ["foo", "b---r"]
+                vt1 = c1.value_type
+                Test.with_clue "c1.value_type="+vt1.to_display_text+": " <|
+                    vt1.should_be_a (Value_Type.Char ...)
+                    vt1.variable_length.should_be_true
+
+            Test.specify "should infer correct return type (2)" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+                c = table_builder [["texts", ["foo", "bar"]]] . at "texts"
+                c2 = c.cast (Value_Type.Char size=2 variable_length=False)
+                c3 = c2.replace "a" "---"
+
+                c3.to_vector . should_equal ["fo", "b---"]
+                vt3 = c3.value_type
+                Test.with_clue "c3.value_type="+vt3.to_display_text+": " <|
+                    vt3.should_be_a (Value_Type.Char ...)
+                    vt3.variable_length.should_be_true
+
     Test.group prefix+"Column Operations - Text Trim" <|
         t5 = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]]
         a = t5.at "A"

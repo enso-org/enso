@@ -1113,7 +1113,6 @@ type Column
     ## PRIVATE
     naming_helpers self = self.connection.dialect.get_naming_helpers
 
-
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Array

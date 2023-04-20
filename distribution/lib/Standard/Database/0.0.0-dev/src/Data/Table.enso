@@ -1518,53 +1518,6 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## Replaces the first, or all occurrences of `term` with `new_text` in each
-       text row of selected columns.
-       If `term` is empty, the function returns the table unchanged.
-
-       This method follows the exact replacement semantics of the
-       `Text.replace` method.
-
-       Arguments:
-       - columns: Column selection criteria or a column name or index.
-       - term: The term to find.
-       - new_text: The new text to replace occurrences of `term` with.
-         If use_regex is true, `new_text` can include replacement patterns
-         (such as `$<n>`) for a marked group.
-       - case_insensitive: Enables or disables case-insensitive matching. Case
-         insensitive matching behaves as if it normalises the case of all input
-         text before matching on it.
-       - only_first: If True, only replace the first match.
-       - use_regex: If true, the term is used as a regular expression.
-       - on_problems: Specifies how to handle if a problem occurs, raising as a
-         warning by default.
-
-         The following problems can occur:
-         - If a column in columns is not in the input table, a `Missing_Input_Columns`.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If a column in columns does not have a storage type of `Text`, or `Any`,
-           thus it is guaranteed that it can't contain any text values, a
-           `Invalid_Value_Type`.
-
-       > Example
-         Replace dashes with underscores in a column named "variable_names".
-
-             table.replace_text "variable_names" "-" "_"
-
-       > Example
-         Remove leading and trailing spaces from cells in multiple columns.
-
-             table.replace_text By_Name ["foo", "bar"] "^\s*(.*?)\s*$" "$1" use_regex=True
-
-       > Example
-         Replace texts in quotes with parentheses in column at index 1.
-
-             table.replace_text 1 '"(.*?)"' '($1)' use_regex=True
-    replace_text : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Table
-    replace_text self columns=[0] term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False on_problems=Problem_Behavior.Report_Warning =
-        _ = [columns, term, new_text, case_sensitivity, only_first, use_regex, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "`Table.replace_text` is currently not supported in the Database backend.")
-
     ## ALIAS dropna
        ALIAS drop_missing_rows
        Remove rows which are all blank or containing blank values.
