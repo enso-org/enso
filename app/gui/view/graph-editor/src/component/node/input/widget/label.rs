@@ -148,7 +148,7 @@ pub enum ColorState {
 
 impl ColorState {
     fn to_color(
-        &self,
+        self,
         is_hovered: bool,
         view_mode: crate::view::Mode,
         status: crate::node::profiling::Status,
@@ -166,7 +166,7 @@ impl ColorState {
             ColorState::Placeholder => syntax::expected,
             ColorState::FromType(_) if profiled => syntax::profiling::base,
             ColorState::FromType(_) if profiling_mode => syntax::base,
-            ColorState::FromType(typed) => return *typed,
+            ColorState::FromType(typed) => return typed,
         };
 
         styles.get_color(color_path).into()

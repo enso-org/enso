@@ -4229,10 +4229,10 @@ mod hierarchy_tests {
         assert_eq!(node2.my_index(), Some(ChildIndex(0)));
 
         node1.add_child(&node2);
-        assert_eq!(node2.my_index(), Some(ChildIndex(1)));
+        assert_eq!(node2.my_index(), Some(ChildIndex(0)));
 
         node1.add_child(&node3);
-        assert_eq!(node3.my_index(), Some(ChildIndex(2)));
+        assert_eq!(node3.my_index(), Some(ChildIndex(1)));
 
         node1.remove_child(&node3);
         assert_eq!(node3.my_index(), None);

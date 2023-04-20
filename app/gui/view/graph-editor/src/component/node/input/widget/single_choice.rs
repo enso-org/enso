@@ -340,8 +340,8 @@ impl LazyDropdown {
         }
 
 
-        dropdown.set_all_entries.emit(self.set_all_entries.value().clone());
-        dropdown.set_selected_entries.emit(self.set_selected_entries.value().clone());
-        dropdown.set_open.emit(self.set_open.value().clone());
+        dropdown.set_all_entries.emit(self.set_all_entries.value());
+        dropdown.set_selected_entries.emit(self.set_selected_entries.value());
+        dropdown.set_open.emit(self.set_open.value());
     }
 }
