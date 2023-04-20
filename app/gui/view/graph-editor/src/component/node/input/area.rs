@@ -222,7 +222,15 @@ impl Model {
         self.widget_tree.set_usage_type(id, usage_type);
     }
 
-    fn hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
+    fn body_hover_pointer_style(&self, hovered: &bool) -> cursor::Style {
+        if *hovered {
+            cursor::Style::cursor()
+        } else {
+            default()
+        }
+    }
+
+    fn port_hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
         let crumbs = hovered.on()?;
         let expr = self.expression.borrow();
         let port = expr.span_tree.get_node(crumbs).ok()?;
@@ -276,10 +284,6 @@ impl Model {
             &new_expression.code,
             &self.styles,
         );
-
-        // TODO streams to handle:
-        // pointer_style        (cursor::Style), <- handle edit mode cursor change
-        // view_mode            (view::Mode), <- frp into widgets to change label color
 
         self.request_widgets_metadata(&new_expression, area_frp);
         *self.expression.borrow_mut() = new_expression;
@@ -456,13 +460,15 @@ impl Area {
 
             label_hovered <- reacts_to_hover && frp.output.body_hover;
             model.edit_mode_label.set_hover <+ label_hovered && set_editing;
+            hovered_body_pointer <- label_hovered.map(f!((t) model.body_hover_pointer_style(t)));
 
             // === Port Hover ===
 
             hovered_port_pointer <- model.widget_tree.on_port_hover.map(
-                f!((t) model.hover_pointer_style(t).unwrap_or_default())
+                f!((t) model.port_hover_pointer_style(t).unwrap_or_default())
             );
             pointer_style <- all[
+                hovered_body_pointer,
                 model.widget_tree.pointer_style,
                 hovered_port_pointer
             ].fold();
