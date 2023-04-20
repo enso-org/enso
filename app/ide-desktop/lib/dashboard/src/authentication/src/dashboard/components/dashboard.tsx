@@ -3,12 +3,14 @@
 import * as react from 'react'
 
 import * as cloudService from '../cloudService'
+import * as localService from '../localService'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import Label, * as label from './label'
@@ -51,6 +53,9 @@ enum Column {
 // =================
 // === Constants ===
 // =================
+
+/** The `id` attribute of the element into which the IDE will be rendered. */
+const IDE_ELEMENT_ID = 'root'
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<cloudService.AssetType, string> = {
@@ -187,8 +192,10 @@ export interface DashboardProps {
 function Dashboard(props: DashboardProps) {
     const { platform } = props
 
+    const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
     const { backend } = backendProvider.useBackend()
+    const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -238,6 +245,10 @@ function Dashboard(props: DashboardProps) {
                     openIde={async () => {
                         setTab(Tab.ide)
                         setProject(await backend.getProjectDetails(projectAsset.id))
+                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                        if (ideElement) {
+                            ideElement.style.display = ''
+                        }
                     }}
                 />
                 <span className="px-2">{projectAsset.title}</span>
@@ -310,8 +321,16 @@ function Dashboard(props: DashboardProps) {
                     toggleTab={() => {
                         if (project && tab === Tab.dashboard) {
                             setTab(Tab.ide)
+                            const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                            if (ideElement) {
+                                ideElement.style.display = ''
+                            }
                         } else {
                             setTab(Tab.dashboard)
+                            const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                            if (ideElement) {
+                                ideElement.style.display = 'none'
+                            }
                         }
                     }}
                     backendPlatform={backendPlatform}
@@ -321,6 +340,14 @@ function Dashboard(props: DashboardProps) {
                         setDirectoryAssets([])
                         setSecretAssets([])
                         setFileAssets([])
+                        switch (newBackendPlatform) {
+                            case platformModule.Platform.desktop:
+                                setBackend(localService.createBackend())
+                                break
+                            case platformModule.Platform.cloud:
+                                setBackend(cloudService.createBackend(accessToken, logger))
+                                break
+                        }
                     }}
                     searchVal={searchVal}
                     setSearchVal={setSearchVal}
@@ -497,7 +524,9 @@ function Dashboard(props: DashboardProps) {
                     )}
                 </table>
             </div>
-            {project && <Ide platform={platform} backendService={backend} project={project} />}
+            {project && (
+                <Ide backendPlatform={backendPlatform} backendService={backend} project={project} />
+            )}
             {modal && <>{modal}</>}
         </div>
     )

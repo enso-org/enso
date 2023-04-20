@@ -1,15 +1,8 @@
 /** @file The top-bar of dashboard. */
-import * as react from 'react'
-
-import * as cloudService from '../cloudService'
 import * as dashboard from './dashboard'
-import * as localService from '../localService'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
-import * as authProvider from '../../authentication/providers/auth'
-import * as backendProvider from '../../providers/backend'
-import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import UserMenu from './userMenu'
@@ -44,9 +37,6 @@ function TopBar(props: TopBarProps) {
         searchVal,
         setSearchVal,
     } = props
-    const { accessToken } = authProvider.useFullUserSession()
-    const logger = loggerProvider.useLogger()
-    const { setBackend } = backendProvider.useSetBackend()
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -57,7 +47,6 @@ function TopBar(props: TopBarProps) {
                         <button
                             onClick={() => {
                                 setBackendPlatform(platformModule.Platform.desktop)
-                                setBackend(localService.createBackend())
                             }}
                             className={`${
                                 backendPlatform === platformModule.Platform.desktop
@@ -70,7 +59,6 @@ function TopBar(props: TopBarProps) {
                         <button
                             onClick={() => {
                                 setBackendPlatform(platformModule.Platform.cloud)
-                                setBackend(cloudService.createBackend(accessToken, logger))
                             }}
                             className={`${
                                 backendPlatform === platformModule.Platform.cloud
