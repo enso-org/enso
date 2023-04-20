@@ -126,3 +126,72 @@ impl Drop for TraceCopies {
         }
     }
 }
+
+
+
+// ====================
+// === LeakDetector ===
+// ====================
+
+/// A module containing an utility for detecting leaks.
+pub mod leak_detector {
+    use crate::*;
+
+    thread_local! {
+        /// The structure mapping the existing tracking copies with [`Trace`] structure to their
+        /// creation backtraces. You can print
+        pub static TRACKED_OBJECTS: RefCell<HashMap<u64, String>> = default();
+    }
+
+    /// A utility for tracing all copies of CloneRef-able entity and keeping list of existing ones.
+    ///
+    /// This is a wrapper for [`TraceCopies`] which also register creation of each copy in
+    /// [`TRACKED_OBJECTS`] global variable. The variable may be then checked for leaks in moments
+    /// when we expect it to be empty.
+    #[derive(Debug)]
+    pub struct Trace {
+        instance: TraceCopies,
+    }
+
+    impl Trace {
+        /// Create enabled structure with appointed entity name (shared between all copies).
+        pub fn enabled(name: impl Into<ImString>) -> Self {
+            let instance = TraceCopies::enabled(name);
+            Self::register_tracked_object(&instance);
+            Self { instance }
+        }
+
+        /// Assign a name to the entity (shared between all copies), start printing logs and
+        /// register its creation backtrace.
+        pub fn enable(&self, name: impl Into<ImString>) {
+            self.instance.enable(name);
+            Self::register_tracked_object(&self.instance);
+        }
+
+        fn register_tracked_object(instance: &TraceCopies) {
+            let id = instance.clone_id;
+            let bt = backtrace();
+            TRACKED_OBJECTS.with(|objs| objs.borrow_mut().insert(id, bt));
+        }
+    }
+
+    impl Clone for Trace {
+        fn clone(&self) -> Self {
+            let instance = self.instance.clone();
+            let enabled = instance.handle.borrow().is_some();
+            if enabled {
+                Self::register_tracked_object(&instance);
+            }
+            Self { instance }
+        }
+    }
+
+    impl_clone_ref_as_clone!(Trace);
+
+    impl Drop for Trace {
+        fn drop(&mut self) {
+            let id = self.instance.clone_id;
+            TRACKED_OBJECTS.with(|objs| objs.borrow_mut().remove(&id));
+        }
+    }
+}

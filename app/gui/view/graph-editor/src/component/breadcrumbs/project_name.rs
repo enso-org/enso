@@ -9,7 +9,6 @@ use crate::component::breadcrumbs::TEXT_SIZE;
 use crate::component::breadcrumbs::VERTICAL_MARGIN;
 
 use enso_frp as frp;
-use enso_frp::TheGuardian;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -239,9 +238,8 @@ impl display::Object for ProjectNameModel {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct ProjectName {
-    model:    Rc<ProjectNameModel>,
-    pub frp:  Frp,
-    guardian: TheGuardian,
+    model:   Rc<ProjectNameModel>,
+    pub frp: Frp,
 }
 
 impl ProjectName {
@@ -367,9 +365,7 @@ impl ProjectName {
         frp.deselect();
         frp.input.set_name.emit(UNINITIALIZED_PROJECT_NAME.to_string());
 
-        let guardian = TheGuardian::new("ProjectName");
-        // guardian.enable();
-        Self { model, frp, guardian }
+        Self { model, frp }
     }
 }
 

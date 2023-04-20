@@ -196,10 +196,18 @@ pub fn main() {
 // === IDE Drop ===
 // ================
 
+/// Drop all structure created so far.
+///
+/// All connections will be closed and all visuals will be removed.
 #[wasm_bindgen]
 pub fn drop() {
     IDE.with(RefCell::take);
     EXECUTOR.with(RefCell::take);
-    // warn!("Graphs: {:#?}", ide_view::graph_editor::VALGRIND.with(|v| v.take()));
-    warn!("Networks: {:#?}", enso_frp::network::VALGRIND.with(|v| v.take().creation_backtraces));
+    leak_detector::TRACKED_OBJECTS.with(|objects| {
+        let objects = objects.borrow();
+        if !objects.is_empty() {
+            error!("Tracked objects leaked after dropping entire application!");
+            error!("{objects:#?}");
+        }
+    })
 }

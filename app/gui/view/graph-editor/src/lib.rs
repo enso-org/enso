@@ -48,7 +48,6 @@ use crate::component::node;
 use crate::component::type_coloring;
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
-use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
@@ -124,61 +123,6 @@ fn traffic_lights_gap_width() -> f32 {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Valgrind {
-    creation_backtraces: HashMap<usize, String>,
-    next_id:             usize,
-}
-
-thread_local! {
-    pub static VALGRIND: RefCell<Valgrind> = default();
-}
-
-#[derive(Debug)]
-struct TheGuardian {
-    name:        &'static str,
-    instance_id: usize,
-}
-
-impl TheGuardian {
-    fn new(name: &'static str) -> Self {
-        warn!("CREATED \"{name}\"");
-        let bt = backtrace();
-        let instance_id = VALGRIND.with(move |v| {
-            let mut v = v.borrow_mut();
-            let id = v.next_id;
-            v.next_id += 1;
-            v.creation_backtraces.insert(id, bt);
-            id
-        });
-        Self { name, instance_id }
-    }
-}
-
-impl Clone for TheGuardian {
-    fn clone(&self) -> Self {
-        let bt = backtrace();
-        let instance_id = VALGRIND.with(move |v| {
-            let mut v = v.borrow_mut();
-            let id = v.next_id;
-            v.next_id += 1;
-            v.creation_backtraces.insert(id, bt);
-            id
-        });
-        Self { name: self.name, instance_id }
-    }
-}
-
-impl_clone_ref_as_clone!(TheGuardian);
-
-impl Drop for TheGuardian {
-    fn drop(&mut self) {
-        warn!("DROPPING \"{}\"", self.name);
-        VALGRIND.with(|v| {
-            v.borrow_mut().creation_backtraces.remove(&self.instance_id);
-        })
-    }
-}
 
 
 // =================
@@ -1450,9 +1394,8 @@ pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> boo
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModelWithNetwork {
-    pub model:    GraphEditorModel,
-    pub network:  frp::WeakNetwork,
-    the_guardian: TheGuardian,
+    pub model:   GraphEditorModel,
+    pub network: frp::WeakNetwork,
 }
 
 impl Deref for GraphEditorModelWithNetwork {
@@ -1468,7 +1411,7 @@ impl GraphEditorModelWithNetwork {
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network().clone_ref().downgrade();
         let model = GraphEditorModel::new(app, cursor, frp);
-        Self { model, network, the_guardian: TheGuardian::new("GraphEditorModelWithNetwork") }
+        Self { model, network }
     }
 
     fn is_node_connected_at_input(&self, node_id: NodeId, crumbs: &span_tree::Crumbs) -> bool {
@@ -1844,7 +1787,6 @@ pub struct GraphEditorModel {
     styles_frp:              StyleWatchFrp,
     selection_controller:    selection::Controller,
     execution_mode_selector: execution_mode_selector::ExecutionModeSelector,
-    the_guardian:            TheGuardian,
 }
 
 
@@ -1874,7 +1816,7 @@ impl GraphEditorModel {
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller = selection::Controller::new(
-            &frp,
+            frp,
             &app.cursor,
             &scene.mouse.frp_deprecated,
             &touch_state,
@@ -1902,7 +1844,6 @@ impl GraphEditorModel {
             styles_frp,
             selection_controller,
             execution_mode_selector,
-            the_guardian: TheGuardian::new("GraphEditorModel"),
         }
         .init()
     }
@@ -2685,9 +2626,8 @@ impl display::Object for GraphEditorModel {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditor {
-    pub model:    GraphEditorModelWithNetwork,
-    pub frp:      Frp,
-    the_guardian: TheGuardian,
+    pub model: GraphEditorModelWithNetwork,
+    pub frp:   Frp,
 }
 
 impl GraphEditor {
@@ -2816,7 +2756,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let scene = &world.default_scene;
     let cursor = &app.cursor;
     let frp = Frp::new();
-    frp.network().guardian.enable();
     let model = GraphEditorModelWithNetwork::new(app, cursor.clone_ref(), &frp);
     let network = frp.network();
     let nodes = &model.nodes;
@@ -3978,7 +3917,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp.edit_mode_off.emit(());
     frp.set_debug_mode.emit(false);
 
-    GraphEditor { model, frp, the_guardian: TheGuardian::new("GraphEditor") }
+    GraphEditor { model, frp }
 }
 
 

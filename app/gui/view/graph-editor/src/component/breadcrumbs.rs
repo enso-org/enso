@@ -9,7 +9,6 @@ use crate::LocalCall;
 
 use engine_protocol::language_server::MethodPointer;
 use enso_frp as frp;
-use enso_frp::TheGuardian;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
@@ -414,9 +413,8 @@ impl display::Object for BreadcrumbsModel {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Breadcrumbs {
-    model:    BreadcrumbsModel,
-    frp:      Frp,
-    guardian: TheGuardian,
+    model: BreadcrumbsModel,
+    frp:   Frp,
 }
 
 impl Breadcrumbs {
@@ -424,7 +422,6 @@ impl Breadcrumbs {
     pub fn new(app: Application) -> Self {
         let scene = app.display.default_scene.clone_ref();
         let frp = Frp::new();
-        frp.network().guardian.enable();
         let model = BreadcrumbsModel::new(app, &frp);
         let network = &frp.network;
 
@@ -525,9 +522,7 @@ impl Breadcrumbs {
 
         }
 
-        let guardian = TheGuardian::new("Breadcrumbs");
-        // guardian.enable();
-        Self { model, frp, guardian }
+        Self { model, frp }
     }
 }
 
