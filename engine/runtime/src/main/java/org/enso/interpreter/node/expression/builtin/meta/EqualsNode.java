@@ -45,7 +45,6 @@ public abstract class EqualsNode extends Node {
 
   public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
 
-  /** Primitive values */
   @Specialization
   boolean equalsBoolBool(boolean self, boolean other) {
     return self == other;

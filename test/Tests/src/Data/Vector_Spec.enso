@@ -22,6 +22,16 @@ type T_Comparator
 
 Comparable.from (_:T) = T_Comparator
 
+## Type that violates reflexivity
+type My_Nan
+    Value value
+
+type My_Nan_Comparator
+    compare _ _ = Nothing
+    hash _ = 0
+
+Comparable.from (_:My_Nan) = My_Nan_Comparator
+
 type My_Error
     Value a
 
@@ -665,6 +675,9 @@ type_spec name alter = Test.group name <|
         alter [1, Number.nan] . distinct . to_text . should_equal "[1, NaN]"
         alter [Number.nan, 1, Number.nan] . distinct . to_text . should_equal "[NaN, 1]"
         alter [1, Number.nan, 1] . distinct . to_text . should_equal "[1, NaN]"
+        alter [Number.nan, My_Nan.Value 42, My_Nan.Value 23] . distinct . to_text . should_equal "[NaN, (My_Nan.Value 42), (My_Nan.Value 23)]"
+        my_nan = My_Nan.Value 42
+        alter [my_nan, Number.nan, my_nan] . distinct . to_text . should_equal "[(My_Nan.Value 42), NaN]"
 
     Test.specify "should correctly handle distinct with types that have custom comparators" <|
         alter [T.Value 1 2, T.Value 3 3, T.Value 1 2] . distinct . should_equal [T.Value 1 2, T.Value 3 3]
