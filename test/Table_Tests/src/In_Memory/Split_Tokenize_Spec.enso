@@ -211,4 +211,11 @@ spec =
             t2 = t.split_to_columns "bar" "b"
             t2.should_equal_verbose expected
 
+    Test.group "Table.parse_to_columns" <|
+        Test.specify "can parse to columns" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
+            expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] [["x", "1", "2", "y"], ["x", "3", "4", "y"], ["x", "5", "6", "y"], ["xx", "4", "8", "yy"], ["xx", "5", "9", "yy"]]
+            actual = t.parse_to_columns "bar" "(\d)(\d)"
+            actual.should_equal_verbose expected
+
 main = Test_Suite.run_main spec

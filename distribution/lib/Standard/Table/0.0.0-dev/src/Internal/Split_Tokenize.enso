@@ -6,6 +6,8 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Pattern.Pattern
 
 from project import Value_Type
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
@@ -50,6 +52,39 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
     column = table.at input_column_id
     Value_Type.expect_text (column.value_type) related_column=column <|
         fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
+
+parse_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    pat = Regex.compile pattern case_insensitive=case_insensitive
+
+    fun = handle_nothing (parse_to_vectors pat)
+    column_namer = regex_to_column_namer pat
+
+    column = table.at input_column_id
+    Value_Type.expect_text (column.value_type) related_column=column <|
+        fan_out_to_rows_and_columns table input_column_id fun column_namer on_problems
+
+## PRIVATE
+   Create a parser of a `Text` to a nested `Vector. Each match becomes an element outer
+   vector; each group (or the whole match, if there aren o groups) because an
+   element of the inner vectors.
+parse_to_vectors : Pattern -> (Text -> Vector (Vector (Text | Any)))
+parse_to_vectors pattern =
+    input->
+        matches = pattern.match_all input
+        matches.map match-> case pattern.group_count of
+            0 -> [match.text]
+            _ -> match.groups . drop 1
+
+## PRIVATE
+   Create a column namer that uses regex group names, if any.
+regex_to_column_namer : Pattern -> (Integer -> Text | Nothing)
+regex_to_column_namer pattern =
+    group_nums_to_names = pattern.group_nums_to_names
+    i-> case group_nums_to_names.contains_key i of
+        True -> group_nums_to_names.at i
+        False -> Nothing
 
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
@@ -132,7 +167,7 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
      the provided namer returns Nothing, then the default namer is used in that
      case as well.
    - on_problems: Specifies the behavior when a problem occurs.
-fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector Any) -> (Integer -> Text) -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector Any) -> (Integer -> Text | Nothing) -> Problem_Behavior -> Table
 fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing on_problems=Report_Error =
     problem_builder = Problem_Builder.new
 

@@ -319,6 +319,12 @@ type Pattern
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.keys
 
+    ## Return a map from group number to group name. Only includes named groups.
+    group_nums_to_names : Map Integer Text
+    group_nums_to_names self =
+        map = polyglot_map_to_map self.internal_regex_object.groups
+        map.transform k-> v-> [v, k]
+
 ## PRIVATE
 
     Performs the regex match, and iterates through the results. Yields both
