@@ -23,6 +23,69 @@ pub struct NetworkId(usize);
 // === Network ===
 // ===============
 
+#[derive(Debug, Default)]
+pub struct Valgrind {
+    pub creation_backtraces: HashMap<usize, String>,
+    pub next_id:             usize,
+}
+
+thread_local! {
+    pub static VALGRIND: RefCell<Valgrind> = default();
+}
+
+#[derive(Debug)]
+pub struct TheGuardian {
+    name:        &'static str,
+    instance_id: Cell<Option<usize>>,
+}
+
+impl TheGuardian {
+    pub fn new(name: &'static str) -> Self {
+        Self { name, instance_id: default() }
+    }
+
+    pub fn enable(&self) {
+        let bt = backtrace();
+        let instance_id = VALGRIND.with(move |v| {
+            let mut v = v.borrow_mut();
+            let id = v.next_id;
+            v.next_id += 1;
+            v.creation_backtraces.insert(id, bt);
+            id
+        });
+        self.instance_id.set(Some(instance_id));
+    }
+}
+
+impl Clone for TheGuardian {
+    fn clone(&self) -> Self {
+        let instance_id = self.instance_id.get().is_some().then(|| {
+            let bt = backtrace();
+            let instance_id = VALGRIND.with(move |v| {
+                let mut v = v.borrow_mut();
+                let id = v.next_id;
+                v.next_id += 1;
+                v.creation_backtraces.insert(id, bt);
+                id
+            });
+            instance_id
+        });
+        Self { name: self.name, instance_id: Cell::new(instance_id) }
+    }
+}
+
+impl_clone_ref_as_clone!(TheGuardian);
+
+impl Drop for TheGuardian {
+    fn drop(&mut self) {
+        VALGRIND.with(|v| {
+            if let Some(instance_id) = self.instance_id.get() {
+                v.borrow_mut().creation_backtraces.remove(&instance_id);
+            }
+        })
+    }
+}
+
 // === Definition ===
 
 /// Network manages lifetime of set of FRP nodes. FRP networks are designed to be static. You can
@@ -30,7 +93,8 @@ pub struct NetworkId(usize);
 /// Moreover, you should not grow the FRP network after it is constructed.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Network {
-    data: Rc<NetworkData>,
+    data:         Rc<NetworkData>,
+    pub guardian: TheGuardian,
 }
 
 /// Weak version of `Network`.
@@ -86,7 +150,8 @@ impl Network {
     /// Non-generic constructor.
     fn new_with_string(label: String) -> Self {
         let data = Rc::new(NetworkData::new(label));
-        Self { data }
+        let guardian = TheGuardian::new("Network");
+        Self { data, guardian }
     }
 
     /// Get the weak version.
@@ -166,7 +231,8 @@ impl Network {
 impl WeakNetwork {
     /// Upgrade to strong reference.
     pub fn upgrade(&self) -> Option<Network> {
-        self.data.upgrade().map(|data| Network { data })
+        let guardian = TheGuardian::new("UpgradedNetwork");
+        self.data.upgrade().map(|data| Network { data, guardian })
     }
 
     /// Upgrade to string reference, printing warning if returning `None`. To be used in places
