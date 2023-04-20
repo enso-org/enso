@@ -35,19 +35,19 @@ type Data_Formatter
 
        Arguments:
        - trim_values: Trim whitespace before parsing.
-       - allow_leading_zeros: Specifies how to treat numeric values starting with
-         leading zeroes when detecting the type of a column automatically. If set
-         to `False` (the default), then if found values will be left as text. If
-         the type is set to a number then these will be parsed.
+       - allow_leading_zeros: Specifies how to treat numeric values starting
+         with leading zeroes when detecting the type of a column automatically.
+         If set to `False` (the default), then if found values will be left as
+         text. If the type is a number then leading zeroes are accepted
+         regardless of this setting.
        - decimal_point: The character used to separate the integer part from the
          fractional part of a number. If `Auto` then the format for numbers will
          be guessed automatically. Can be changed for example to ',' to allow
          for European format.
-       - thousand_separator: A separator that can be used to separate groups of digits in numbers.
-       - allow_exponential_notation: Specifies if exponential notation is allowed.
        - thousand_separator: A separator that can be used to separate groups of
-         digits in numbers. For example, it can be set to ',' to allow for notation
-         like '1,000,000.0'.
+         digits in numbers (must be in groups of 3 digits).
+       - allow_exponential_notation: Specifies if exponential notation is
+         allowed.
        - datetime_formats: Expected datetime formats.
        - date_formats: Expected date formats.
        - time_formats: Expected time formats.
@@ -177,12 +177,12 @@ type Data_Formatter
     ## PRIVATE
     make_integer_parser self auto_mode=False =
         separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
-        NumberParser.new auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values separator
+        NumberParser.createIntegerParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values separator
 
     ## PRIVATE
     make_decimal_parser self auto_mode=False =
-        if self.decimal_point == Auto then NumberParser.new auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation else
-            NumberParser.new auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation self.thousand_separator self.decimal_point
+        if self.decimal_point == Auto then NumberParser.createAutoDecimalParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation else
+            NumberParser.createFixedDecimalParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation self.thousand_separator self.decimal_point
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|

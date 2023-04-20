@@ -12,6 +12,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/** A parser for numbers.
+ *
+ * This parser will attempt to work out what the decimal point and thousand
+ * separators used in the input. It will try various ways of formatting a number
+ * and can be set to allow for scientific notation, currency symbols.
+ *
+ * If parsing a column it will select the format that parses the longest set
+ * without an issue from the top and then apply this format to all the rows.
+ * */
 public class NumberParser extends IncrementalDatatypeParser {
     private final static String SIGN = "(?<sign>[-+])?";
     private final static String BRACKETS = "(?<sign>\\((?=.*\\)\\s*$))?\\s*";
@@ -24,7 +33,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     private final static Map<String, Pattern> PATTERNS = new HashMap<>();
 
     private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int index) {
-        int allowedSet = allowCurrency ? 6 : 2;
+        int allowedSet = (allowCurrency ? ALLOWED_CCY_PATTERNS : ALLOWED_NON_CCY_PATTERNS);
         int separatorsIndex = index / allowedSet;
         int patternIndex = index % allowedSet;
 
@@ -36,12 +45,18 @@ public class NumberParser extends IncrementalDatatypeParser {
         return getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, patternIndex, separators);
     }
 
+    /** The number of patterns that are allowed for non-currency numbers. */
+    private static final int ALLOWED_NON_CCY_PATTERNS = 2;
+
+    /** The number of patterns that are allowed for currency numbers. */
+    private static final int ALLOWED_CCY_PATTERNS = 6;
+
     private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int patternIndex, String separators) {
         if (allowScientific && !allowDecimal) {
             throw new IllegalArgumentException("Scientific notation requires decimal numbers.");
         }
 
-        if (patternIndex >= (allowCurrency ? 6 : 2)) {
+        if (patternIndex >= (allowCurrency ? ALLOWED_CCY_PATTERNS : ALLOWED_NON_CCY_PATTERNS)) {
             return null;
         }
 
@@ -82,15 +97,9 @@ public class NumberParser extends IncrementalDatatypeParser {
      * @param trimValues whether to trim the input values
      * @param thousandSeparator the thousand separator to use
      */
-    public NumberParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, String thousandSeparator) {
-        this.allowCurrency = allowCurrency;
-        this.allowLeadingZeros = allowLeadingZeros;
-        this.trimValues = trimValues;
-
-        this.allowDecimal = false;
-        this.allowScientific = false;
-
-        this.separators = thousandSeparator == null ? null : (thousandSeparator + '_');
+    public static NumberParser createIntegerParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, String thousandSeparator) {
+        var separator = thousandSeparator == null ? null : (thousandSeparator + '_');
+        return new NumberParser(false, allowCurrency, allowLeadingZeros, trimValues, false, separator);
     }
 
     /**
@@ -101,15 +110,8 @@ public class NumberParser extends IncrementalDatatypeParser {
      * @param trimValues whether to trim the input values
      * @param allowScientific whether to allow scientific notation
      */
-    public NumberParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific) {
-        this.allowCurrency = allowCurrency;
-        this.allowLeadingZeros = allowLeadingZeros;
-        this.trimValues = trimValues;
-
-        this.allowDecimal = true;
-        this.allowScientific = allowScientific;
-
-        this.separators = null;
+    public static NumberParser createAutoDecimalParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific) {
+        return new NumberParser(true, allowCurrency, allowLeadingZeros, trimValues, allowScientific, null);
     }
 
     /**
@@ -122,21 +124,30 @@ public class NumberParser extends IncrementalDatatypeParser {
      * @param thousandSeparator the thousand separator to use
      * @param decimalSeparator the decimal separator to use
      */
-    public NumberParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String thousandSeparator, String decimalSeparator) {
-        if (decimalSeparator.length() != 1) {
+    public static NumberParser createFixedDecimalParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String thousandSeparator, String decimalSeparator) {
+        if (decimalSeparator == null || decimalSeparator.length() != 1) {
             throw new IllegalArgumentException("Decimal separator must be a single character.");
         }
 
+        thousandSeparator = thousandSeparator == null ? "" : thousandSeparator;
+        return new NumberParser(true, allowCurrency, allowLeadingZeros, trimValues, allowScientific, thousandSeparator + decimalSeparator);
+    }
+
+    private NumberParser(boolean allowDecimal, boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String separators) {
+        this.allowDecimal = allowDecimal;
         this.allowCurrency = allowCurrency;
         this.allowLeadingZeros = allowLeadingZeros;
         this.trimValues = trimValues;
-
-        this.allowDecimal = true;
         this.allowScientific = allowScientific;
-
-        this.separators = thousandSeparator + decimalSeparator;
+        this.separators = separators;
     }
 
+    /**
+     * Creates a Pattern for the given index.
+     * The index will be decoded into a specific set of separators (unless fixed
+     * separators are used) and then paired with on of the valid patterns for
+     * the given parser.
+     */
     private Pattern patternForIndex(int index) {
         return separators == null
             ? getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, index)
