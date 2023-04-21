@@ -392,7 +392,7 @@ class IrToTruffle(
             val builtinNameElements = fullMethodName.text.split('.')
             if (builtinNameElements.length != 2) {
               throw new CompilerError(
-                s"Unknwon builtin method ${fullMethodName.text}"
+                s"Unknown builtin method ${fullMethodName.text}, probably should be '$fullMethodDefName?'"
               )
             }
             val methodName      = builtinNameElements(1)
