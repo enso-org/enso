@@ -162,15 +162,19 @@ pub enum SliderLimit {
 
 /// Adaptive upper limit adjustment.
 fn adapt_upper_limit(
-    &(value, min, max, max_ext, upper_limit): &(f32, f32, f32, f32, SliderLimit),
+    value: f32,
+    min: f32,
+    max: f32,
+    max_ext: f32,
+    upper_limit: SliderLimit,
 ) -> f32 {
     if upper_limit == SliderLimit::Adaptive && value > max {
         let range = max_ext - min;
         let extend = value > max_ext;
         let shrink = value < min + range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let max_ext = match (extend, shrink) {
-            (true, _) => adapt_upper_limit(&(value, min, max, min + range * 2.0, upper_limit)),
-            (_, true) => adapt_upper_limit(&(value, min, max, min + range * 0.5, upper_limit)),
+            (true, _) => adapt_upper_limit(value, min, max, min + range * 2.0, upper_limit),
+            (_, true) => adapt_upper_limit(value, min, max, min + range * 0.5, upper_limit),
             _ => max_ext,
         };
         max_ext.max(max) // Do no set extended limit below original `max`.
@@ -181,15 +185,19 @@ fn adapt_upper_limit(
 
 /// Adaptive lower limit adjustment.
 fn adapt_lower_limit(
-    &(value, min, max, min_ext, lower_limit): &(f32, f32, f32, f32, SliderLimit),
+    value: f32,
+    min: f32,
+    max: f32,
+    min_ext: f32,
+    lower_limit: SliderLimit,
 ) -> f32 {
     if lower_limit == SliderLimit::Adaptive && value < min {
         let range = max - min_ext;
         let extend = value < min_ext;
         let shrink = value > max - range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let min_ext = match (extend, shrink) {
-            (true, _) => adapt_lower_limit(&(value, min, max, max - range * 2.0, lower_limit)),
-            (_, true) => adapt_lower_limit(&(value, min, max, max - range * 0.5, lower_limit)),
+            (true, _) => adapt_lower_limit(value, min, max, max - range * 2.0, lower_limit),
+            (_, true) => adapt_lower_limit(value, min, max, max - range * 0.5, lower_limit),
             _ => min_ext,
         };
         min_ext.min(min) // Do no set extended limit above original `min`.
@@ -359,9 +367,10 @@ impl Slider {
 
     fn init(self) -> Self {
         self.init_value_update();
-        self.init_value_editing();
         self.init_limit_handling();
         self.init_value_display();
+
+        self.init_value_editing();
         self.init_precision_popup();
         self.init_information_tooltip();
         self.init_component_layout();
@@ -516,29 +525,28 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            min_value <- all5(
+            min_value <- all_with5(
                 &output.value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.min_value,
                 &input.set_lower_limit_type,
-            );
-            min_value <- min_value.map(adapt_lower_limit).on_change();
+                |a,b,c,d,e| adapt_lower_limit(*a,*b,*c,*d,*e)
+            ).on_change();
             output.min_value <+ min_value;
-            max_value<- all5(
+
+            max_value <- all_with5(
                 &output.value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.max_value,
                 &input.set_upper_limit_type,
-            );
-            max_value <- max_value.map(adapt_upper_limit).on_change();
+                |a,b,c,d,e|adapt_upper_limit(*a,*b,*c,*d,*e)
+            ).on_change();
             output.max_value <+ max_value;
 
-            overflow_lower <- all2(&output.value, &output.min_value).map(|(val, min)| val < min );
-            overflow_upper <- all2(&output.value, &output.max_value).map(|(val, max)| val > max );
-            overflow_lower <- overflow_lower.on_change();
-            overflow_upper <- overflow_upper.on_change();
+            overflow_lower <- all_with(&output.value, &min_value, |v, min| v < min).on_change();
+            overflow_upper <- all_with(&output.value, &max_value, |v, max| v > max).on_change();
             eval overflow_lower((v) model.set_overflow_lower_visible(*v));
             eval overflow_upper((v) model.set_overflow_upper_visible(*v));
         };
