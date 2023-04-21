@@ -63,12 +63,12 @@ parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensiti
     pat = Regex.compile pattern case_insensitive=case_insensitive
 
     fun = handle_nothing (regex_parse_to_vectors pat)
-    column_namer = regex_to_column_namer pat input_column_id
+    column_names = regex_to_column_names pat input_column_id
 
     column = table.at input_column_id
 
     new_table = Value_Type.expect_text column <|
-        fan_out_to_rows_and_columns table input_column_id fun column_namer on_problems
+        fan_out_to_rows_and_columns table input_column_id fun column_names on_problems
     if parse_values then new_table.parse on_problems=on_problems else new_table
 
 ## PRIVATE
@@ -84,16 +84,29 @@ regex_parse_to_vectors pattern =
             _ -> matches.map match-> match.groups . drop 1
 
 ## PRIVATE
-   Create a column namer that uses regex group names, if any.
-   If the regex has no explicit groups, it returns the original column name
-   unchanged.
-regex_to_column_namer : Pattern -> Text -> (Integer -> Text | Nothing)
-regex_to_column_namer pattern original_column_name =
+   Generate column names for the output columns from a regex match.
+   If the regex has no explicit groups, it uses the original column name
+   unchanged; otherwise, it uses the group name if it exists, or the original
+   column name with a number.
+regex_to_column_names : Pattern -> Text -> Vector Text
+regex_to_column_names pattern original_column_name =
     case pattern.group_count of
-        1 -> _-> original_column_name
+        1 ->
+            [original_column_name]
         _ ->
             group_nums_to_names = pattern.group_nums_to_names
-            i-> group_nums_to_names.get (i+1)  # explicit groups start at 1
+
+            unnamed_group_numbers = 1.up_to pattern.group_count . filter i-> group_nums_to_names.contains_key i . not
+            group_number_to_column_name_suffix = Map.from_vector <| unnamed_group_numbers.zip (0.up_to unnamed_group_numbers.length)
+
+            Vector.new (pattern.group_count-1) i->
+                # explicit groups start at 1
+                case group_nums_to_names.get (i+1) of
+                    Nothing ->
+                        suffix = group_number_to_column_name_suffix.at (i+1)
+                        default_column_namer original_column_name suffix
+                    name : Text ->
+                        name
 
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
@@ -131,8 +144,8 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
        column. Wrap the provided function to convert each value to a singleton
        `Vector`.
     wrapped_function x = function x . map y-> [y]
-    column_namer = _-> input_column_id
-    fan_out_to_rows_and_columns table input_column_id wrapped_function column_namer on_problems
+    column_names = [input_column_id]
+    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names on_problems
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -144,13 +157,13 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
 
    ! Error Conditions
 
-     The inner vectors must all have the same number of values. The first output
-     value is used to determine the length, and the other output values must
-     have the same length. If a value is too short, it will be padded with
-     Nothing, and if it is too long, it will be truncated. In either case,
-     Column_Count_Mismatch will be added as a warning. (It is expected that the
-     caller of this private method will ensure that the provided function will
-     produce inner vectors of the same length, but we check for it anyway.)
+     The inner vectors should all have the same number of values, which should
+     match the provided `column_names`. If a value is too short, it will be
+     padded with Nothing, and if it is too long, it will be truncated. In either
+     case, Column_Count_Mismatch will be added as a warning. (It is expected
+     that the caller of this private method will ensure that the provided
+     function will produce inner vectors of the correct length, but we check for
+     it anyway.)
 
    > Example
    f("12 34 56") -> [[1, 2], [3, 4], [5, 6]]
@@ -172,32 +185,18 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to a `Vector` of `Vector` of values.
-   - column_namer: A function to name output columns. If it is Nothing, uses the
-     default namer, which appends an column index to the input column name. If
-     the provided namer returns Nothing, then the default namer is used in that
-     case as well.
+   - column_names: The names for the generated columns.
    - on_problems: Specifies the behavior when a problem occurs.
-fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> (Integer -> Text | Nothing) -> Problem_Behavior -> Table
-fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing on_problems=Report_Error =
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns table input_column_id function column_names on_problems=Report_Error =
     problem_builder = Problem_Builder.new
     unique = Unique_Name_Strategy.new
-
-    # Integer -> String
-    effective_column_namer = case column_namer of
-        # Use the default namer for all columns.
-        Nothing -> default_column_namer input_column_id
-        # Use the default if the provided namer returns Nothing
-        _ -> i-> case column_namer i of
-            Nothing -> default_column_namer input_column_id i
-            name -> name
 
     input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size
 
-    num_output_columns = if input_column.length == 0 then 0 else
-        output_value = function (input_column.at 0)
-        if output_value.is_empty then 0 else output_value.at 0 . length
+    num_output_columns = column_names.length
 
     # Guess that most of the time, we'll get at least one value for each input.
     initial_size = input_column.length
@@ -223,7 +222,7 @@ fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing 
     # Build the output column
     output_storages = output_column_builders.map .seal
     output_columns = output_storages.map_with_index i-> output_storage->
-        column_name = unique.make_unique <| effective_column_namer i
+        column_name = unique.make_unique <| column_names.at i
         Column.from_storage column_name output_storage
 
     # Build the order mask.

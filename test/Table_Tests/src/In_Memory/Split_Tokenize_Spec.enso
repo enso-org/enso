@@ -248,12 +248,6 @@ spec =
             actual = t.parse_to_columns "bar" "(\d)(\d)" parse_values=False
             actual.should_equal_verbose expected
 
-        Test.specify "no matches" <|
-            t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
-            expected = Table.from_rows ["foo", "baz"] []
-            actual = t.parse_to_columns "bar" "asdf"
-            actual.should_equal_verbose expected
-
         Test.specify "column name clash" <|
             t = Table.from_rows ["foo", "bar", "bar 1"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
             expected = Table.from_rows ["foo", "bar 0", "bar 1_1", "bar 1"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
@@ -264,6 +258,24 @@ spec =
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "123", "y"]]
             expected = Table.from_rows ["foo", "bar", "baz_1", "quux", "baz"] [["x", 1, 2, 3, "y"]]
             actual = t.parse_to_columns "bar" "(?<bar>\d)(?<baz>\d)(?<quux>\d)"
+            actual.should_equal_verbose expected
+
+        Test.specify "input with no matches" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
+            expected = Table.from_rows ["foo", "bar", "baz"] []
+            actual = t.parse_to_columns "bar" "\d+"
+            actual.should_equal_verbose expected
+
+        Test.specify "input with no matches, with regex groups" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
+            expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] []
+            actual = t.parse_to_columns "bar" "(\d)(\d)"
+            actual.should_equal_verbose expected
+
+        Test.specify "input with no matches, with named and unnamed regex groups" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
+            expected = Table.from_rows ["foo", "quux", "bar 0", "foo_1", "bar 1", "baz"] []
+            actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal_verbose expected
 
 main = Test_Suite.run_main spec
