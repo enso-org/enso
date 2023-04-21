@@ -264,10 +264,7 @@ impl component::Frp<Model> for Frp {
             output.selected_execution_environment <+ selected_entry;
 
             eval selected_entry ([model] (execution_mode) {
-                let play_button_visibility = match execution_mode.to_lowercase().as_str() {
-                    "design" => true,
-                    _ => false,
-                };
+                let play_button_visibility = matches!(execution_mode.to_lowercase().as_str(), "design");
                 model.set_play_button_visibility(play_button_visibility);
             });
             play_button.reset <+ selected_entry.constant(());
