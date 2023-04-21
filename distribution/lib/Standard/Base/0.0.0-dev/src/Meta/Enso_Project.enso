@@ -48,3 +48,7 @@ type Project_Description
              enso_project.namespace
     namespace : Text
     namespace self = self.prim_config.namespace
+
+## Returns the Enso project description.
+enso_project : Project_Description
+enso_project = @Builtin_Method "Project_Description.enso_project"
