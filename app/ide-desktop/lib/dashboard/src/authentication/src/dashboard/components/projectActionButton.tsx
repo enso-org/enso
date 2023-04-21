@@ -52,6 +52,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             const projectDetails = await backend.getProjectDetails(project.id)
             setState(projectDetails.state.type)
             if (projectDetails.state.type === cloudService.ProjectState.openInProgress) {
+                setSpinnerState(SpinnerState.initial)
                 setCheckStatusInterval(
                     window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
                 )
