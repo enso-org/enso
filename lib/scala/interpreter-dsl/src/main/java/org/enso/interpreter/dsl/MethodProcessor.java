@@ -54,7 +54,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       for (Element elt : annotatedElements) {
         if (elt.getKind() == ElementKind.CLASS) {
           try {
-            handleTypeELement((TypeElement) elt, roundEnv);
+            handleTypeElement((TypeElement) elt, roundEnv);
           } catch (IOException e) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
           }
@@ -71,7 +71,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     return true;
   }
 
-  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv)
+  private void handleTypeElement(TypeElement element, RoundEnvironment roundEnv)
       throws IOException {
     ExecutableElement executeMethod =
         element.getEnclosedElements().stream()
