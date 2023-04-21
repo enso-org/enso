@@ -134,3 +134,4 @@ broken and require further investigation.
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>enter</kbd>              | Push a hardcoded breadcrumb without navigating.                                                                                |
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>arrow up</kbd>           | Pop a breadcrumb without navigating.                                                                                           |
 | <kbd>cmd</kbd> + <kbd>i</kbd>                                      | Reload visualizations. To see the effect in the currently shown visualizations, you need to switch to another and switch back. |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>b</kbd>   |              | Toggle read-only mode.
