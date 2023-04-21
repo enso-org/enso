@@ -28,7 +28,7 @@ export class Backend implements Partial<cloudService.Backend> {
 
     async listDirectory(): Promise<cloudService.Asset[]> {
         const result = await this.projectManager.listProjects({})
-        return result.result.projects.map(project => ({
+        return result.projects.map(project => ({
             type: cloudService.AssetType.project,
             title: project.name,
             id: project.id,
@@ -39,7 +39,7 @@ export class Backend implements Partial<cloudService.Backend> {
 
     async listProjects(): Promise<cloudService.ListedProject[]> {
         const result = await this.projectManager.listProjects({})
-        return result.result.projects.map(project => ({
+        return result.projects.map(project => ({
             name: project.name,
             organizationId: '',
             projectId: project.id,
@@ -55,7 +55,7 @@ export class Backend implements Partial<cloudService.Backend> {
     async createProject(
         body: cloudService.CreateProjectRequestBody
     ): Promise<cloudService.CreatedProject> {
-        const result = await this.projectManager.createProject({
+        const project = await this.projectManager.createProject({
             name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
             projectTemplate: body.projectTemplateName ?? '',
             missingComponentAction: projectManager.MissingComponentAction.install,
@@ -63,7 +63,7 @@ export class Backend implements Partial<cloudService.Backend> {
         return {
             name: body.projectName,
             organizationId: '',
-            projectId: result.result.projectId,
+            projectId: project.projectId,
             packageName: PROJECT_SCENE_NAME,
             state: {
                 type: cloudService.ProjectState.created,
@@ -78,10 +78,8 @@ export class Backend implements Partial<cloudService.Backend> {
 
     async getProjectDetails(projectId: cloudService.ProjectId): Promise<cloudService.Project> {
         if (projectId !== this.currentlyOpenProject?.id) {
-            const projects = await this.projectManager.listProjects({})
-            const project = projects.result.projects.find(
-                listedProject => listedProject.id === projectId
-            )
+            const result = await this.projectManager.listProjects({})
+            const project = result.projects.find(listedProject => listedProject.id === projectId)
             const engineVersion = project?.engineVersion
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
@@ -141,14 +139,11 @@ export class Backend implements Partial<cloudService.Backend> {
     }
 
     async openProject(projectId: cloudService.ProjectId): Promise<void> {
-        const result = await this.projectManager.openProject({
+        const project = await this.projectManager.openProject({
             projectId,
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
-        this.currentlyOpenProject = {
-            id: projectId,
-            project: result.result,
-        }
+        this.currentlyOpenProject = { id: projectId, project }
     }
 }
 
