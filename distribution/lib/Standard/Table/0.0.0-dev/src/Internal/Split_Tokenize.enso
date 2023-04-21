@@ -368,5 +368,6 @@ uniform_length target_length v problem_builder = if v.length == target_length th
             new_v.append_vector_range v
             repeat_each num_paddings <| new_v.append Nothing
             new_v.to_vector
-        False -> # Truncate.
+		# Truncate.
+        False -> 
             v.take target_length
