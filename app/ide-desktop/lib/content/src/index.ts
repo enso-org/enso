@@ -155,8 +155,8 @@ class Main {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    (contentConfig.OPTIONS.groups.cloud.options.authentication.value ||
-                        contentConfig.OPTIONS.groups.cloud.options.dashboard.value) &&
+                    (contentConfig.OPTIONS.options.authentication.value ||
+                        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) &&
                     contentConfig.OPTIONS.groups.startup.options.entry.value ===
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
@@ -181,7 +181,9 @@ class Main {
                      * where it will be called only once. */
                     let appInstanceRan = false
                     const onAuthenticated = () => {
-                        if (!contentConfig.OPTIONS.groups.cloud.options.dashboard.value) {
+                        if (
+                            !contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+                        ) {
                             hideAuth()
                             if (!appInstanceRan) {
                                 appInstanceRan = true
@@ -192,8 +194,8 @@ class Main {
                     authentication.run({
                         logger,
                         platform,
-                        showDashboard: contentConfig.OPTIONS.groups.cloud.options.dashboard.value,
-                        ide: appInstance,
+                        showDashboard:
+                            contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
                         onAuthenticated,
                     })
                 } else {

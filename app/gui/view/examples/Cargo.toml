@@ -14,6 +14,7 @@ debug-scene-icons = { path = "icons" }
 debug-scene-interface = { path = "interface" }
 debug-scene-text-grid-visualization = { path = "text-grid-visualization" }
 debug-scene-visualization = { path = "visualization" }
+debug-scene-execution-mode-dropdown = { path = "execution-mode-dropdown" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
 [package.metadata.wasm-pack.profile.release]

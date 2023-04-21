@@ -205,6 +205,7 @@ spec setup =
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
         s1 = t3.at "s1"
         s2 = t3.at "s2"
+
         Test.specify "should handle basic Text operations" <|
             s1.starts_with s2 . to_vector . should_equal [True, False, False, False, Nothing]
             s1.starts_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, False, False, True, Nothing]
@@ -224,7 +225,67 @@ spec setup =
             s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
             s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]
 
-    Test.group prefix+"Colum Operations - Names" <|
+    Test.group prefix+"Column Operations - Text Replace" <|
+        if setup.is_database.not then
+            t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]]
+            a = t4.at "A"
+            b = t4.at "B"
+            c = t4.at "C"
+            d = t4.at "D"
+
+            Test.specify "should allow simple replacing" <|
+                a.replace "a" "#" . to_vector . should_equal ["Alph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+                a.replace "o" "#" . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtr#t"]
+                a.replace b "#" . to_vector . should_equal ["#lpha", "Bravo", "Ch#rlie", "Delta", "Ech#", "Foxtrot"]
+                a.replace "o" "#" only_first=True . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtrot"]
+                a.replace "a" "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
+                a.replace b "#" Case_Sensitivity.Insensitive . to_vector . should_equal ["#lph#", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtr#t"]
+                a.replace b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
+
+            Test.specify "should allow regex based replacing" <|
+                a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                a.replace "([aeiou])(.*?)[aeiou]" "$1$2$1" use_regex=True . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+
+            Test.specify "should only allow replace on Text columns" <|
+                c.replace "a" "#" . should_fail_with Invalid_Value_Type
+                a.replace 1 "#" . should_fail_with Illegal_Argument
+                a.replace c "#" . should_fail_with Invalid_Value_Type
+                a.replace "a" 1 . should_fail_with Illegal_Argument
+                a.replace "a" c . should_fail_with Invalid_Value_Type
+
+            Test.specify "should not replace if Empty term" <|
+                a.replace '' "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+                a.replace '' "#" use_regex=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+                a.replace d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+                a.replace d "#" use_regex=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
+
+    Test.group prefix+"Column Operations - Text Trim" <|
+        t5 = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]]
+        a = t5.at "A"
+        b = t5.at "B"
+        c = t5.at "C"
+
+        Test.specify "should trim whitespace by default" <|
+            a.trim . to_vector . should_equal ["A", "A", "xxxAxx"]
+            a.trim Location.Start . to_vector . should_equal ["A ", 'A\r\n\t ', "xxxAxx"]
+            a.trim Location.End . to_vector . should_equal [" A", ' \t\n\rA', "xxxAxx"]
+
+       Test.specify "should trim custom characters" <|
+            a.trim what='x' . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "A"]
+            a.trim what='x' Location.Start . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "Axx"]
+            a.trim what='x' Location.End . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "xxxA"]
+            a.trim what=' ' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]
+            a.trim what=' \t' . to_vector . should_equal ["A", '\n\rA\r\n', "xxxAxx"]
+            a.trim what=' \r' . to_vector . should_equal ["A", '\t\n\rA\r\n\t', "xxxAxx"]
+            a.trim what=b . to_vector . should_equal ["A", '\n\rA\r\n', "A"]
+
+        Test.specify "should only allow trim on Text columns" <|
+            c.trim what="a" . should_fail_with Invalid_Value_Type
+            a.trim what=1 . should_fail_with Illegal_Argument
+            a.trim what=c . should_fail_with Invalid_Value_Type
+
+    Test.group prefix+"Column Operations - Names" <|
         t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
         Test.specify "arithmetic" <|
             ((t.at "a") + 42) . name . should_equal "[a] + 42"

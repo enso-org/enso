@@ -364,13 +364,6 @@ spec =
             r1.at "Y" . to_vector . to_text . should_equal "[, Nothing, NaN]"
             r1.at "X" . to_vector . should_equal [1, 2, 4]
 
-            # TODO this could be moved to Common_Table_Operations once replace_text is implemented for Database too
-            t2 = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Nothing, ""]], ["Z", ["", "---", "-1", "", "foobar"]]]
-            r2 = t2.replace_text (Column_Selector.Blank_Columns when_any=True) "-" "A"
-            r2.at "X" . to_vector . should_equal [1, 2, 3, 4, 5]
-            r2.at "Y" . to_vector . should_equal ["", Nothing, Nothing, Nothing, ""]
-            r2.at "Z" . to_vector . should_equal ["", "AAA", "A1", "", "foobar"]
-
     Test.group "Info" <|
         Test.specify "should return Table information" <|
             a = ["strs", ["a", "b", Nothing, "a"]]
@@ -607,58 +600,6 @@ spec =
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
             problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
-            Problems.test_problem_handling action problems tester
-
-    Test.group "Table.replace_text" <|
-        Test.specify "should replace text in full-text table columns" <|
-            bools = ["bools", [False, False, True, True, False]]
-            texts = ["texts", ["foo", "foo", "bar", "baz", "spam"]]
-            table = Table.new [bools, texts]
-            actual = table.replace_text "texts" "a" "o"
-            actual.at "bools" . to_vector . should_equal [False, False, True, True, False]
-            actual.at "texts" . to_vector . should_equal ["foo", "foo", "bor", "boz", "spom"]
-            Problems.assume_no_problems actual
-
-        Test.specify "should replace text in mixed columns" <|
-            bools = ["bools", [False, False, True, True, False]]
-            mixed = ["mixed", ["foo", 5, "bar", False, "spam"]]
-            table = Table.new [bools, mixed]
-            actual = table.replace_text "mixed" "a" "o"
-            actual.at "bools" . to_vector . should_equal [False, False, True, True, False]
-            actual.at "mixed" . to_vector . should_equal ["foo", 5, "bor", False, "spom"]
-            Problems.assume_no_problems actual
-
-        Test.specify "should support operating on multiple columns at once" <|
-            bools = ["bools", [False, False, True]]
-            texts1 = ["texts1", ["foo", "bar", "baz"]]
-            texts2 = ["texts2", ["baz", "quux", "spam"]]
-            table = Table.new [bools, texts1, texts2]
-            actual = table.replace_text ["texts1", "texts2"] "a" "o"
-            actual.at "bools"  . to_vector . should_equal [False, False, True]
-            actual.at "texts1" . to_vector . should_equal ["foo", "bor", "boz"]
-            actual.at "texts2" . to_vector . should_equal ["boz", "quux", "spom"]
-            Problems.assume_no_problems actual
-
-        Test.specify "should support regex replacement" <|
-            bools = ["bools", [False, False, True, True]]
-            texts = ["texts", ["foo", "bar", "baz", "spam"]]
-            table = Table.new [bools, texts]
-            actual = table.replace_text "texts" "(a|o)" "$1e" use_regex=True
-            actual.at "texts" . to_vector . should_equal ["foeoe", "baer", "baez", "spaem"]
-            Problems.assume_no_problems actual
-
-        Test.specify 'should return warnings and errors when passed a non-existent column' <|
-            table = Table.new [["bools", [False, True]], ["texts", ["foo", "bar"]]]
-            action = table.replace_text "invalid_name" "a" "b" on_problems=_
-            tester = _.should_equal table
-            problems = [Missing_Input_Columns.Error ['invalid_name']]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should return warnings and errors when selected non-text column" <|
-            table = Table.new [["bools", [False, True]], ["texts", ["foo", "bar"]]]
-            action = table.replace_text "bools" "a" "b" on_problems=_
-            tester = _.should_equal table
-            problems = [Invalid_Value_Type.Error Value_Type.Char Value_Type.Boolean]
             Problems.test_problem_handling action problems tester
 
     Test.group "[In-Memory] Table.aggregate" <|

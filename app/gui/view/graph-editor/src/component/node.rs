@@ -728,7 +728,7 @@ impl Node {
 
             // Hook up the display object position updates to the node's FRP. Required to calculate
             // the bounding box.
-            out.position <+ display_object.on_updated.map(f_!(display_object.position().xy()));
+            out.position <+ display_object.on_transformed.map(f_!(display_object.position().xy()));
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
