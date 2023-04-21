@@ -29,6 +29,7 @@ use ensogl_core::application::Application;
 use ensogl_core::application::View;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_slider as slider;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -58,17 +59,22 @@ fn make_slider(app: &Application) -> slider::Slider {
 #[derive(Debug, Clone, CloneRef)]
 pub struct Model {
     /// Vector that holds example sliders until they are dropped.
-    sliders: Rc<RefCell<Vec<slider::Slider>>>,
-    app:     Application,
-    root:    display::object::Instance,
+    sliders:   Rc<RefCell<Vec<slider::Slider>>>,
+    app:       Application,
+    root:      display::object::Instance,
+    navigator: Navigator,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
+        let world = app.display.clone();
+        let scene = &world.default_scene;
+        let camera = scene.camera().clone_ref();
+        let navigator = Navigator::new(scene, &camera);
         let sliders = Rc::new(RefCell::new(Vec::new()));
         let root = display::object::Instance::new();
-        let model = Self { app, sliders, root };
+        let model = Self { app, sliders, root, navigator };
         model.init_sliders();
         model
     }

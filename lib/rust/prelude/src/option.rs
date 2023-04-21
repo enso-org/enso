@@ -13,6 +13,10 @@ pub trait OptionOps {
     where
         U: Default,
         F: FnOnce(Self::Item) -> U;
+    fn if_some_or_default<U, F>(self, f: F) -> U
+    where
+        U: Default,
+        F: FnOnce() -> U;
     fn map_ref_or_default<U, F>(&self, f: F) -> U
     where
         U: Default,
@@ -49,6 +53,13 @@ impl<T> OptionOps for Option<T> {
         U: Default,
         F: FnOnce(Self::Item) -> U, {
         self.map_or_else(U::default, f)
+    }
+
+    fn if_some_or_default<U, F>(self, f: F) -> U
+    where
+        U: Default,
+        F: FnOnce() -> U, {
+        self.map_or_else(U::default, |_| f())
     }
 
     fn map_ref_or_default<U, F>(&self, f: F) -> U

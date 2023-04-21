@@ -27,10 +27,12 @@ use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::Animation;
 use ensogl_text::formatting;
+
 
 
 // ==============
@@ -363,7 +365,7 @@ impl Slider {
         self.init_precision_popup();
         self.init_information_tooltip();
         self.init_component_layout();
-        self.init_component_colors();
+        // self.init_component_colors();
         self.init_slider_defaults();
         self
     }
@@ -377,157 +379,113 @@ impl Slider {
         let scene = &self.app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
         let keyboard = &scene.keyboard.frp;
-        let component_events = &model.background.events_deprecated;
+
+        let ptr_down_any = model.background.on_event::<mouse::Down>();
+        let ptr_up_any = model.background.on_event::<mouse::Up>();
+        let ptr_out = model.background.on_event::<mouse::Out>();
+        let ptr_over = model.background.on_event::<mouse::Over>();
 
         frp::extend! { network
 
-            // === User input ===
 
-            component_click <- component_events.mouse_down_primary
-                .gate_not(&input.set_slider_disabled);
-            component_click <- component_click.gate_not(&output.editing);
-            slider_disabled_is_true <- input.set_slider_disabled.on_true();
-            slider_editing_is_true <- output.editing.on_true();
-            component_release <- any3(
-                &component_events.mouse_release_primary,
-                &slider_disabled_is_true,
-                &slider_editing_is_true,
+            pos <- mouse.position.map(
+                f!([scene, model] (p) scene.screen_to_object_space(&model.background, *p))
             );
-            component_drag <- bool(&component_release, &component_click);
-            component_drag <- component_drag.gate_not(&input.set_slider_disabled);
-            component_drag <- component_drag.gate_not(&keyboard.is_control_down);
-            component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
-            drag_start_pos <- mouse.position.sample(&component_click);
-            drag_end_pos <- mouse.position.gate(&component_drag);
+
+            ptr_down <- ptr_down_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
+            ptr_up <- ptr_up_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
+
+            value_on_ptr_down <- output.value.sample(&ptr_down);
+
+
+            ptr_down <- ptr_down.gate_not(&input.set_slider_disabled);
+            ptr_down <- ptr_down.gate_not(&output.editing);
+            on_disabled <- input.set_slider_disabled.on_true();
+            on_editing <- output.editing.on_true();
+            drag_start <- ptr_down.gate_not(&keyboard.is_control_down);
+            drag_stop <- any3(&ptr_up, &on_disabled, &on_editing);
+            dragging <- bool(&drag_stop, &drag_start);
+            drag_start_pos <- pos.sample(&drag_start);
+            drag_end_pos <- pos.gate(&dragging);
             drag_end_pos <- any2(&drag_end_pos, &drag_start_pos);
-            drag_delta <- all2(&drag_end_pos, &drag_start_pos).map(|(end, start)| end - start);
-            drag_delta_primary <- all2(&drag_delta, &input.set_orientation);
-            drag_delta_primary <- drag_delta_primary.map( |(delta, orientation)|
+            drag_delta_xy <- all2(&drag_end_pos, &drag_start_pos).map(|(end, start)| end - start);
+            drag_delta <- all_with(&drag_delta_xy, &input.set_orientation, |delta, orientation|
+                // FIXME: use X/Y abstraction
                 match orientation {
                     SliderOrientation::Horizontal => delta.x,
                     SliderOrientation::Vertical => delta.y,
                 }
             ).on_change();
-            mouse_position_click <- mouse.position.sample(&component_click);
-            mouse_position_drag <- mouse.position.gate(&component_drag);
-            mouse_position_click_or_drag <- any2(&mouse_position_click, &mouse_position_drag);
-            mouse_local <- mouse_position_click_or_drag.map(
-                f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos))
-            );
-            mouse_local_secondary <- all2(&mouse_local, &input.set_orientation);
-            mouse_local_secondary <- mouse_local_secondary.map( |(offset, orientation)|
+
+            precision_delta <- all_with(&drag_end_pos, &input.set_orientation, |delta, orientation|
+                // FIXME: use X/Y abstraction
                 match orientation {
-                    SliderOrientation::Horizontal => offset.y,
-                    SliderOrientation::Vertical => offset.x,
+                    SliderOrientation::Horizontal => delta.y,
+                    SliderOrientation::Vertical => delta.x,
                 }
-            );
-            output.hovered <+ bool(&component_events.mouse_out, &component_events.mouse_over);
-            output.dragged <+ component_drag;
+            ).on_change();
 
-
-            // === Get slider value on drag start ===
-
-            value_reset <- input.set_default_value.sample(&component_ctrl_click);
-            value_on_click <- output.value.sample(&component_click);
-            value_on_click <- any2(&value_reset, &value_on_click);
+            output.hovered <+ bool(&ptr_out, &ptr_over);
+            output.dragged <+ dragging;
 
 
             // === Precision calculation ===
 
-            slider_length <- all3(&input.set_orientation, &input.set_width, &input.set_height);
-            slider_length <- slider_length.map( |(orientation, width, height)|
+            // FIXME: this should be done from display object size
+            length <- all_with3(&input.set_orientation, &input.set_width, &input.set_height,
+                |orientation, width, height|
                 match orientation {
                     SliderOrientation::Horizontal => *width,
                     SliderOrientation::Vertical => *height,
                 }
             );
-            slider_length <- all3(
-                &slider_length,
-                &input.set_value_indicator,
-                &input.set_thumb_size
+
+            width <- all_with3(&input.set_orientation, &input.set_width, &input.set_height,
+                |orientation, width, height|
+                match orientation {
+                    SliderOrientation::Horizontal => *height,
+                    SliderOrientation::Vertical => *width,
+                }
             );
-            slider_length <- slider_length.map(|(length, indicator, thumb_size)|
+
+            empty_space <- all_with3(&length, &input.set_value_indicator, &input.set_thumb_size,
+                |length, indicator, thumb_size|
                 match indicator {
                     ValueIndicator::Thumb => length * (1.0 - thumb_size),
                     ValueIndicator::Track => *length,
                 }
             );
-            min_value_on_click <- output.min_value.sample(&component_click);
-            min_value_on_click <- any2(&min_value_on_click, &input.set_min_value);
-            max_value_on_click <- output.max_value.sample(&component_click);
-            max_value_on_click <- any2(&max_value_on_click, &input.set_max_value);
-            slider_range <- all2(&min_value_on_click, &max_value_on_click);
-            slider_range <- slider_range.map(|(min, max)| max - min);
-            prec_at_mouse_speed <- all2(&slider_length, &slider_range).map(|(l, r)| r / l);
 
-            output.precision <+ prec_at_mouse_speed.sample(&component_click);
-            precision_adjustment_margin <- all4(
-                &input.set_width,
-                &input.set_height,
+            slider_range <- all_with(&output.max_value, &output.min_value, |max, min| *max - *min);
+            native_precision <- all2(&empty_space, &slider_range).map(|(l, r)| r / l);
+
+            non_native_precision <- all_with5(
+                &width,
                 &input.set_precision_adjustment_margin,
-                &input.set_orientation,
-            );
-            precision_adjustment_margin <- precision_adjustment_margin.map(
-                |(width, height, margin, orientation)| match orientation {
-                    SliderOrientation::Horizontal => height / 2.0 + margin,
-                    SliderOrientation::Vertical => width / 2.0 + margin,
-                }
-            );
-            precision_offset_steps <- all3(
-                &mouse_local_secondary,
-                &precision_adjustment_margin,
+                &precision_delta,
                 &input.set_precision_adjustment_step_size,
-            );
-            precision_offset_steps <- precision_offset_steps.map(
-                |(offset, margin, step_size)| {
-                    let sign = offset.signum();
-                    // Calculate mouse y-position offset beyond margin.
-                    let offset = offset.abs() - margin;
-                    if offset < 0.0 { return None } // No adjustment if offset is within margin.
-                    // Calculate number of steps and direction of the precision adjustment.
-                    let steps = (offset / step_size).ceil() * sign;
-                    match steps {
-                        // Step 0 is over the component, which returns early. Make step 0 be the
-                        // first adjustment step above the component (precision = 1.0).
-                        steps if steps > 0.0 => Some(steps - 1.0),
-                        steps => Some(steps),
-                    }
+                &input.set_max_precision_adjustment_steps,
+            |width, margin, precision_delta, step_size, max_steps| {
+                    let prec_margin = width / 2.0 + margin;
+                    let sign = precision_delta.signum() as i32;
+                    let offset = precision_delta.abs() - prec_margin;
+                    let level = min(*max_steps as i32, (offset / step_size).ceil() as i32) * sign;
+                    (level != 0).as_some_from(|| {
+                        let exp = if level > 0 { level - 1 } else { level };
+                        let precision = 10.0_f32.powf(exp as f32);
+                        precision
+                    })
                 }
             ).on_change();
-            precision_offset_steps <- all2(
-                &precision_offset_steps,
-                &input.set_max_precision_adjustment_steps,
-            );
-            precision_offset_steps <- precision_offset_steps.map(|(step, max_step)|
-                step.map(|step| step.clamp(- (*max_step as f32), *max_step as f32))
-            );
-            precision <- all4(
-                &prec_at_mouse_speed,
-                &input.set_default_precision,
-                &precision_offset_steps,
-                &input.set_precision_adjustment_disabled,
-            );
-            precision <- precision.map(
-                |(mouse_prec, step_prec, offset, disabled)| match (offset, disabled) {
-                    // Adjust the precision by the number of offset steps.
-                    (Some(offset), false) =>
-                        *step_prec * (PRECISION_ADJUSTMENT_STEP_BASE).pow(*offset),
-                    // Set the precision for 1:1 track movement to mouse movement.
-                    _ => *mouse_prec,
-                }
-            );
+            precision <- all_with(&non_native_precision, &native_precision, |t,s| t.unwrap_or(*s));
+            output.precision <+ precision;
 
 
             // === Value calculation ===
 
-            update_value <- bool(&component_release, &value_on_click);
-            value <- all3(&value_on_click, &precision, &drag_delta_primary);
-            value <- value.gate(&update_value);
-            value <- value.map(|(value, precision, delta)| value + delta * precision);
+            value <- drag_delta.map3(&value_on_ptr_down, &precision,
+                |delta, value, precision| value + delta * precision);
             value <- any2(&input.set_value, &value);
-            // Snap the slider's value to the nearest precision increment.
-            value <- all2(&value, &precision);
-            value <- value.map(|(value, precision)| (value / precision).round() * precision);
             value <- all5(
                 &value,
                 &input.set_min_value,
@@ -536,17 +494,17 @@ impl Slider {
                 &input.set_upper_limit_type,
             ).map(value_limit_clamp);
             output.value <+ value;
-            output.precision <+ precision;
 
-            model.value_animation.target <+ value;
-            small_value_step <- all2(&precision, &prec_at_mouse_speed);
-            small_value_step <- small_value_step.map(|(prec, threshold)| prec <= threshold);
-            value_adjust <- drag_delta_primary.map(|x| *x != 0.0);
-            prec_adjust <- precision.on_change();
-            prec_adjust <- bool(&value_adjust, &prec_adjust);
-            skip_value_anim <- value.constant(()).gate(&small_value_step);
-            skip_value_anim <- skip_value_anim.gate(&value_adjust).gate_not(&prec_adjust);
-            model.value_animation.skip <+ skip_value_anim;
+
+            // === Value Reset ===
+
+            reset_value <- ptr_down.gate(&keyboard.is_control_down);
+            value_on_reset <- input.set_default_value.sample(&reset_value);
+            output.value <+ value_on_reset;
+
+
+            // === Value Animation ===
+            model.value_animation.target <+ output.value;
         };
     }
 

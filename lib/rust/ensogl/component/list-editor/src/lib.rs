@@ -357,8 +357,6 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
 
-        let model_borrowed = model.borrow();
-
         frp::extend! { network
 
             // Do not pass events to children, as we don't know whether we are about to drag
@@ -387,18 +385,13 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
 
         self.init_add_and_remove();
         let (is_dragging, drag_diff) = self.init_dragging(&on_up, &on_down, &target, &pos_diff);
-        let (is_trashing, trashing_pointer_style) = self.init_trashing(&on_up, &drag_diff);
+        let (is_trashing, trash_pointer_style) = self.init_trashing(&on_up, &drag_diff);
         self.init_dropping(&on_up, &pos_on_move_down, &is_trashing);
-        let insertion_pointer_style =
-            self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
+        let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
         frp::extend! { network
-
-
-            pointer_style <- all [insertion_pointer_style, trashing_pointer_style].fold();
-            cursor.frp.set_style <+ pointer_style;
+            cursor.frp.set_style <+ all [insert_pointer_style, trash_pointer_style].fold();
         }
-        mem::drop(model_borrowed);
         self
     }
 
@@ -419,26 +412,32 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
 
         frp::extend! { network
             gaps <- model_borrowed.layout.on_resized.map(f_!(model.gaps()));
-            gaps_len <- gaps.map(|t| t.len());
-            is_close <- all_with3(&frp.gap, &pos_on_move, &model.borrow().layout.on_resized, move |gap, p, s| {
-                p.x > 0.0 - gap && p.x < s.x + gap && p.y > 0.0 - gap && p.y < s.y + gap
-            });
-            opt_gap <- pos_on_move.map2(&gaps, |p, g| g.find(p.x));
-            gap <= opt_gap;
-            last_gap <- gap.map2(&gaps_len, |g, l| **g == l - 1);
-            gap_index <= gap.map(f!((t) model.borrow().item_or_placeholder_index_to_index(*t)));
-            in_gap <- opt_gap.map(|g| g.is_some());
-            in_gap_not_drag <- all_with3(&in_gap, &is_close, &is_dragging, |a, b, c| *a && *b && !c);
-
-            enabled <- in_gap_not_drag.map4(&last_gap, &frp.enable_all_insertion_points, &frp.enable_last_insertion_point,
-                |in_gap, last_gap, enable_all, enable_last|
-                    *in_gap && (*enable_all || (*enable_last && *last_gap))
-            ).on_change();
-
-            pointer_style <- enabled.default_or(cursor::Style::plus());
-
+            opt_index <- all_with7(
+                &frp.gap,
+                &gaps,
+                &pos_on_move,
+                &model.borrow().layout.on_resized,
+                &is_dragging,
+                &frp.enable_all_insertion_points,
+                &frp.enable_last_insertion_point,
+                f!([model] (gap, gaps, pos, size, is_dragging, enable_all, enable_last) {
+                    let is_close_x = pos.x > -gap && pos.x < size.x + gap;
+                    let is_close_y = pos.y > -gap && pos.y < size.y + gap;
+                    let is_close = is_close_x && is_close_y;
+                    let opt_gap = gaps.find(pos.x);
+                    opt_gap.and_then(|gap| {
+                        let last_gap = *gap == gaps.len() - 1;
+                        let enabled = is_close && !is_dragging;
+                        let enabled = enabled && (*enable_all || (*enable_last && last_gap));
+                        enabled.and_option_from(|| model.item_or_placeholder_index_to_index(gap))
+                    })
+                })
+            );
+            index <= opt_index;
+            enabled <- opt_index.is_some();
+            pointer_style <- opt_index.map(|t| t.if_some_or_default(|| cursor::Style::plus()));
             on_up_in_gap <- on_up.gate(&enabled);
-            insert_in_gap <- gap_index.sample(&on_up_in_gap);
+            insert_in_gap <- index.sample(&on_up_in_gap);
             frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
         }
         pointer_style
@@ -586,7 +585,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         self.frp.primary_axis_no_drag_threshold_decay_time(1000.0);
         self.frp.thrashing_offset_ratio(1.0);
         self.frp.enable_all_insertion_points(true);
-        self.frp.enable_last_insertion_point(false);
+        self.frp.enable_last_insertion_point(true);
         self
     }
 
@@ -634,6 +633,10 @@ impl<T: display::Object + CloneRef + 'static> SharedModel<T> {
 
     fn center_points(&self) -> Vec<f32> {
         self.borrow().center_points()
+    }
+
+    fn item_or_placeholder_index_to_index(&self, ix: ItemOrPlaceholderIndex) -> Option<Index> {
+        self.borrow().item_or_placeholder_index_to_index(ix)
     }
 }
 
