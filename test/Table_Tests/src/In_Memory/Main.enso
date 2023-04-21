@@ -7,6 +7,7 @@ import project.In_Memory.Builders_Spec
 import project.In_Memory.Column_Spec
 import project.In_Memory.Common_Spec
 import project.In_Memory.Join_Performance_Spec
+import project.In_Memory.Parse_To_Table_Spec
 import project.In_Memory.Split_Tokenize_Spec
 import project.In_Memory.Table_Spec
 import project.In_Memory.Table_Date_Spec
@@ -24,5 +25,6 @@ spec =
     Builders_Spec.spec
     Join_Performance_Spec.spec
     Split_Tokenize_Spec.spec
+    Parse_To_Table_Spec.spec
 
 main = Test_Suite.run_main spec
