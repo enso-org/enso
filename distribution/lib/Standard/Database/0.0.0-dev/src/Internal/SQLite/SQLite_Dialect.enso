@@ -188,9 +188,17 @@ type SQLite_Dialect
         Average _ _ -> True
         Median _ _ -> unsupported "Median"
 
+    ## PRIVATE
+       Checks if an operation is supported by the dialect.
+    is_supported : Text -> Boolean
+    is_supported self operation =
+        self.internal_generator_dialect.is_supported operation
+
+
+
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [decimal_div, mod_op]
@@ -261,6 +269,20 @@ concat_ops =
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
+## PRIVATE
+trim_ops =
+    whitespace = "' ' || CHAR(9) || CHAR(10) || CHAR(13)"
+    make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
+            Nothing -> Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
+            _ ->
+                case chars.is_constant of
+                    True ->
+                        const = chars.fragments.vec.first.object
+                        if const.is_nothing || const.is_empty then Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
+                            Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+                    False ->
+                        Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " == '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
+    [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of

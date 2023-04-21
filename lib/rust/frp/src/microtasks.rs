@@ -100,9 +100,9 @@ const MAX_RECURSIVE_MICROTASKS: usize = 1000;
 
 
 
-/// =================
+/// ======================
 /// === next_microtask ===
-/// =================
+/// ======================
 
 /// Schedules a callback for evaluation during next microtask. This is useful for scheduling tasks
 /// that should be performed right after current JS event loop iteration, but before animation

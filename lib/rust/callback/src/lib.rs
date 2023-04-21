@@ -127,16 +127,17 @@ impl<F: ?Sized> Registry<F> {
         self.model.is_empty()
     }
 
-    /// Fires all registered callbacks and removes the ones which got dropped. The implementation
-    /// is safe - you are allowed to change the registry while a callback is running.
+    /// Fires all registered callbacks and removes the ones which got dropped. If new callbacks are
+    /// registered during running of existing callbacks, they will be run after all existing
+    /// callbacks are fired.
     fn run_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
     where F: FnMut<Args> {
         self.model.run_impl(args)
     }
 
-    /// Fires all registered callbacks once and removes them. You are allowed to change the registry
-    /// while a callback is running. The callbacks registered during this run will be executed next
-    /// time `run_once_impl` is called.
+    /// Fires all registered callbacks once and removes them. If new callbacks are registered during
+    /// running of existing callbacks, they will be run after all existing callbacks are fired and
+    /// will also be removed.
     fn run_once_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
     where F: FnOnce<Args> {
         self.model.run_once_impl(args)
@@ -167,18 +168,26 @@ impl<F: ?Sized> RegistryModel<F> {
             error!("Trying to run callback manager while it's already running, ignoring.");
             return;
         }
+        let run_callbacks = |callback_list: &mut Vec<(Guard, Box<F>)>| {
+            callback_list.retain_mut(|(guard, callback)| {
+                let is_valid = !guard.is_expired();
+                if is_valid {
+                    callback.call_mut(args);
+                }
+                is_valid
+            });
+        };
         self.is_running.set(true);
-        self.callback_list.borrow_mut().retain_mut(|(guard, callback)| {
-            let is_valid = !guard.is_expired();
-            if is_valid {
-                callback.call_mut(args);
-            }
-            is_valid
-        });
+        run_callbacks(&mut self.callback_list.borrow_mut());
         let mut callback_list_during_run = self.callback_list_during_run.borrow_mut();
         if !callback_list_during_run.is_empty() {
             self.callback_list.borrow_mut().extend(mem::take(&mut *callback_list_during_run));
         }
+        // while !self.callback_list_during_run.borrow().is_empty() {
+        //     let mut new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
+        //     run_callbacks(&mut new_callbacks);
+        //     self.callback_list.borrow_mut().extend(new_callbacks);
+        // }
         self.is_running.set(false);
     }
 
@@ -198,6 +207,14 @@ impl<F: ?Sized> RegistryModel<F> {
         if !callback_list_during_run.is_empty() {
             self.callback_list.borrow_mut().extend(mem::take(&mut *callback_list_during_run));
         }
+        // while !self.callback_list_during_run.borrow().is_empty() {
+        //     let new_callbacks = mem::take(&mut *self.callback_list_during_run.borrow_mut());
+        //     for (guard, callback) in new_callbacks {
+        //         if !guard.is_expired() {
+        //             callback.call_once(args);
+        //         }
+        //     }
+        // }
         self.is_running.set(false);
     }
 }

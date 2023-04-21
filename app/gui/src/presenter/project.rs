@@ -199,6 +199,12 @@ impl Model {
         self.ide_controller.set_component_browser_private_entries_visibility(!visibility);
     }
 
+    fn toggle_read_only(&self) {
+        let read_only = self.controller.model.read_only();
+        self.controller.model.set_read_only(!read_only);
+        info!("New read only state: {}.", self.controller.model.read_only());
+    }
+
     fn restore_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
@@ -374,6 +380,8 @@ impl Project {
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 
             eval_ view.execution_context_restart(model.execution_context_restart());
+
+            eval_ view.toggle_read_only(model.toggle_read_only());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
@@ -388,7 +396,7 @@ impl Project {
     /// implementation of #5930.
     fn init_execution_modes(self) -> Self {
         let graph = &self.model.view.graph();
-        let entries = Rc::new(vec!["development".to_string(), "production".to_string()]);
+        let entries = Rc::new(vec!["design".to_string(), "live".to_string()]);
         graph.set_available_execution_modes(entries);
         self
     }

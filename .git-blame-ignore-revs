@@ -1,3 +1,5 @@
 # .git-blame-ignore-revs
 # Fix prettier config; run prettier
 0aa7d7ee4d969ec8e8f9d376e72741dca324fdf6
+# Update code style to use rust fmt (#3131)
+c822256e6c531e56e894f9f92654654f63cfd6bc

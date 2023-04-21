@@ -4167,6 +4167,7 @@ mod tests {
         displacement: Vector2,
         add_node_at: impl Fn(&GraphEditor, Vector2),
     ) {
+        enso_frp::microtasks::flush_microtasks();
         let unaligned_pos = aligned_pos + displacement;
         let add_node_unaligned = |editor: &GraphEditor| add_node_at(editor, unaligned_pos);
         let (_, node) = graph_editor.add_node_by(&add_node_unaligned);
