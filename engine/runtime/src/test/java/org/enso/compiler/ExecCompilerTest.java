@@ -68,8 +68,12 @@ public class ExecCompilerTest {
 
   @Test
   public void testInvalidEnsoProjectRef() throws Exception {
-    var module = ctx.eval("enso", """
+    var module =
+        ctx.eval(
+            "enso",
+            """
     from Standard.Base.Errors.Common import all
+    from Standard.Base.Meta.Enso_Project import enso_project
     run dummy =
         _ = dummy
         (enso_project.data / "foo").to_display_text
