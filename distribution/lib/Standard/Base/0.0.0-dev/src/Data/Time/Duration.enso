@@ -4,6 +4,7 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
+import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
@@ -268,4 +269,4 @@ type Duration
     to_display_text : Text
     to_display_text self =
         seconds = self.seconds + self.nanoseconds/1000000000
-        self.hours.to_text + "h" + self.minutes.format "00" + "m" + self.seconds.format "00.0#########"
+        self.hours.to_text + "h" + self.minutes.format "00" + "m" + seconds.format "00.0#########"

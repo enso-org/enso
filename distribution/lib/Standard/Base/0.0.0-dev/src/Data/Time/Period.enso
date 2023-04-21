@@ -139,6 +139,6 @@ type Period
         months = self.months % 12
         m = if months = 0 then "" else months.to_text + "M"
 
-        d = if days = 0 then "" else days.to_text + "D"
+        d = if self.days = 0 then "" else self.days.to_text + "D"
 
         y + m + d
