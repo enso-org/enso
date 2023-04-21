@@ -121,21 +121,24 @@ type Column
          is always passed as the first argument).
        - new_name: The name of the resulting column.
     make_op self op_kind operands new_name =
-        type_mapping = self.connection.dialect.get_type_mapping
-        prepare_operand operand = case operand of
-            other_column : Column ->
-                if Helpers.check_integrity self other_column then other_column.expression else
-                    Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
-            constant ->
-                SQL_Expression.Constant constant
+        checked_support = if self.connection.dialect.is_supported op_kind then True else
+            Error.throw (Unsupported_Database_Operation.Error "The operation "+op_kind+" is not supported by this backend.")
+        checked_support.if_not_error <|
+            type_mapping = self.connection.dialect.get_type_mapping
+            prepare_operand operand = case operand of
+                other_column : Column ->
+                    if Helpers.check_integrity self other_column then other_column.expression else
+                        Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
+                constant ->
+                    SQL_Expression.Constant constant
 
-        expressions = operands.map prepare_operand
-        new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
+            expressions = operands.map prepare_operand
+            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
 
-        infer_from_database_callback expression =
-            SQL_Type_Reference.new self.connection self.context expression
-        new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [self]+operands new_expr
-        Column.Value new_name self.connection new_type_ref new_expr self.context
+            infer_from_database_callback expression =
+                SQL_Type_Reference.new self.connection self.context expression
+            new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [self]+operands new_expr
+            Column.Value new_name self.connection new_type_ref new_expr self.context
 
     ## PRIVATE
 

@@ -137,7 +137,7 @@ operations_map =
     ## We actually re-use the logic from the in-memory backend, since the
        SQLite types essentially implement a very simple subset of our types.
     find_a_common_type arguments =
-        inputs_types = arguments.map find_type
+        types = arguments.map find_type
         unified = Value_Type_Helpers.find_common_type types strict=False
         # We remap Mixed to Char, to be consistent with our main mapping.
         result = if unified == Value_Type.Mixed then default_text else unified
@@ -148,14 +148,17 @@ operations_map =
             Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
         find_a_common_type (arguments.drop 1)
 
-    always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
+    handle_cast _ =
+        Panic.throw (Illegal_State.Error "Cast relies on its own type inference logic, so this code should never be reached. This is a bug in the Database library.")
+
+    always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_EMPTY", "LIKE", "IS_IN", "IS_IN_COLUMN", "starts_with", "ends_with", "contains", "BOOL_OR"]
     always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP"]
     always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM"]
     always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
-    merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL", "COALESCE"]
-    others = [["IIF", handle_iif]]
-    mapping = Map.from_vector <|
+    merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]
+    others = [["IIF", handle_iif], ["CAST", handle_cast]]
+    Map.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]
         v3 = always_integer_ops.map [_, const SQLite_Types.integer]
