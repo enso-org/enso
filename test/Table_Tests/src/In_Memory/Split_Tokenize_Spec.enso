@@ -248,4 +248,10 @@ spec =
             actual = t.parse_to_columns "bar" "(\d)(\d)" parse_values=False
             actual.should_equal_verbose expected
 
+        Test.specify "no matches" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
+            expected = Table.from_rows ["foo", "baz"] []
+            actual = t.parse_to_columns "bar" "asdf"
+            actual.should_equal_verbose expected
+
 main = Test_Suite.run_main spec
