@@ -3,5 +3,4 @@ from Standard.Table import all
 from Standard.Database import all
 
 main =
-    operator1 = 0.up_to 100 . to_vector . map .noise
-    operator2 = operator1.sort
+    operator1 = "Press TAB key to create a new node"

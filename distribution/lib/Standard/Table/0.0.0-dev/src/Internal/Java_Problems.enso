@@ -11,7 +11,6 @@ polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
-polyglot java import org.enso.table.parsing.problems.LeadingZeros
 polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.util.problems.DuplicateNames
@@ -41,8 +40,6 @@ translate_problem p = case p of
         Invalid_Output_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
     _ : InvalidFormat ->
         Panic.throw (Illegal_Argument.Error "InvalidFormat should be translated using the Parse_Values_Helper.translate_parsing_problem instead. This is a bug in the Table library.")
-    _ : LeadingZeros ->
-        Panic.throw (Illegal_Argument.Error "LeadingZeros should be translated using the Parse_Values_Helper.translate_parsing_problem instead. This is a bug in the Table library.")
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
 

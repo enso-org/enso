@@ -1,0 +1,16 @@
+[package]
+name = "debug-scene-execution-mode-dropdown"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ensogl = { path = "../../../../../lib/rust/ensogl" }
+ensogl-drop-down-menu = { path = "../../../../../lib/rust/ensogl/component/drop-down-menu" }
+ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
+ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
+ide-view-execution-mode-selector = { path = "../../execution-mode-selector" }

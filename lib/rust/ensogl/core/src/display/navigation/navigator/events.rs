@@ -239,10 +239,6 @@ impl NavigatorEvents {
         let listener = self.mouse_manager.on_wheel.add(move |event: &mouse::Wheel| {
             if let Some(data) = data.upgrade() {
                 if event.ctrl_key() {
-                    // Prevent zoom event to be handed to the browser. This avoids browser scaling
-                    // being applied to the whole IDE, thus we need to do this always when ctrl is
-                    // pressed.
-                    event.prevent_default();
                     let position = data.mouse_position();
                     let zoom_speed = data.zoom_speed();
                     let movement = Vector2::new(event.delta_x() as f32, -event.delta_y() as f32);
@@ -267,9 +263,6 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_down.add(move |event: &mouse::Down| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
                 match event.button() {
                     mouse::MiddleButton => data.set_movement_type(Some(MovementType::Pan)),
                     mouse::SecondaryButton => {
@@ -285,22 +278,16 @@ impl NavigatorEvents {
 
     fn initialize_mouse_end_event(&mut self) {
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_up.add(move |event: &mouse::Up| {
+        let listener = self.mouse_manager.on_up.add(move |_: &mouse::Up| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
                 data.set_movement_type(None);
             }
         });
         self.mouse_up = Some(listener);
 
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_leave.add(move |event: &mouse::Leave| {
+        let listener = self.mouse_manager.on_leave.add(move |_: &mouse::Leave| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
                 data.set_movement_type(None);
             }
         });

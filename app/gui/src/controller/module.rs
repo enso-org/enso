@@ -173,7 +173,7 @@ impl Handle {
     ) -> FallibleResult<Self> {
         let ast = parser.parse(code.to_string(), id_map).try_into()?;
         let metadata = default();
-        let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
+        let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository, default()));
         Ok(Handle { model, language_server, parser })
     }
 

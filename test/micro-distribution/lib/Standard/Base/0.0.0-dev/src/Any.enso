@@ -6,7 +6,7 @@ type Any
     to_text self = @Builtin_Method "Any.to_text"
     to_display_text self = @Builtin_Method "Any.to_display_text"
     is_error self = False
-    == self other = Comparable.equals_builtin self other
+    == self other = @Builtin_Method "Any.=="
     != self other = (self == other).not
     < self other = Comparable.less_than_builtin self other
     <= self other = Comparable.less_than_builtin self other || Comparable.equals_builtin self other

@@ -71,7 +71,6 @@ public class EqualsBenchmarks {
     var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
     var codeBuilder = new StringBuilder("""
         import Standard.Base.Data.Range.Extensions
-        import Standard.Base.Any.Any
         
         type Node
             C1 f1

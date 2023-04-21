@@ -4,8 +4,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Parse_Values_Helper
 from project.Data.Type.Value_Type import Value_Type, Auto, Bits
 
-polyglot java import org.enso.table.parsing.IntegerParser
-polyglot java import org.enso.table.parsing.DecimalParser
 polyglot java import org.enso.table.parsing.BooleanParser
 polyglot java import org.enso.table.parsing.DateParser
 polyglot java import org.enso.table.parsing.TimeOfDayParser
@@ -13,6 +11,7 @@ polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.parsing.NumberParser
 
 polyglot java import org.enso.table.formatting.AnyObjectFormatter
 polyglot java import org.enso.table.formatting.BooleanFormatter
@@ -36,30 +35,26 @@ type Data_Formatter
 
        Arguments:
        - trim_values: Trim whitespace before parsing.
-       - allow_leading_zeros: Specifies how to treat numeric values starting with
-         leading zeroes. Defaults to `False`, because converting such
-         values to numbers is a lossy operation - after converting such a number
-         back to text the leading zeroes will get lost. If leading zeroes are not
-         allowed and the column contains any values with leading zeroes, it will not
-         get automatically converted to numbers, remaining as text. However, if the
-         column is specifically requested to be converted to a numeric column, only
-         a warning will be issued indicating that some leading zeroes were present,
-         but the conversion will proceed.
+       - allow_leading_zeros: Specifies how to treat numeric values starting
+         with leading zeroes when detecting the type of a column automatically.
+         If set to `False` (the default), then if found values will be left as
+         text. If the type is a number then leading zeroes are accepted
+         regardless of this setting.
        - decimal_point: The character used to separate the integer part from the
-         fractional part of a number. Defaults to '.'. Can be changed for example to
-         ',' to allow for European format.
-       - thousand_separator: A separator that can be used to separate groups of digits in numbers.
-       - allow_exponential_notation: Specifies if exponential notation is allowed.
+         fractional part of a number. If `Auto` then the format for numbers will
+         be guessed automatically. Can be changed for example to ',' to allow
+         for European format.
        - thousand_separator: A separator that can be used to separate groups of
-         digits in numbers. For example, it can be set to ',' to allow for notation
-         like '1,000,000.0'.
+         digits in numbers (must be in groups of 3 digits).
+       - allow_exponential_notation: Specifies if exponential notation is
+         allowed.
        - datetime_formats: Expected datetime formats.
        - date_formats: Expected date formats.
        - time_formats: Expected time formats.
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["ISO_LOCAL_DATE"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
+    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text|Auto=Auto thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Text)=["ENSO_ZONED_DATE_TIME"] date_formats:(Vector Text)=["ISO_LOCAL_DATE"] time_formats:(Vector Text)=["ISO_LOCAL_TIME"] datetime_locale:Locale=Locale.default true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
 
     ## PRIVATE
        ADVANCED
@@ -180,12 +175,14 @@ type Data_Formatter
             WhitespaceStrippingParser.new base_parser
 
     ## PRIVATE
-    make_integer_parser self = self.wrap_base_parser <|
-        IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
+    make_integer_parser self auto_mode=False =
+        separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
+        NumberParser.createIntegerParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values separator
 
     ## PRIVATE
-    make_decimal_parser self = self.wrap_base_parser <|
-        DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
+    make_decimal_parser self auto_mode=False =
+        if self.decimal_point == Auto then NumberParser.createAutoDecimalParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation else
+            NumberParser.createFixedDecimalParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation self.thousand_separator self.decimal_point
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|
@@ -240,7 +237,7 @@ type Data_Formatter
 
     ## PRIVATE
     get_specific_type_parsers self =
-        [self.make_integer_parser, self.make_decimal_parser, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
+        [self.make_integer_parser True, self.make_decimal_parser True, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
 
     ## PRIVATE
     make_auto_parser self =
@@ -253,7 +250,8 @@ type Data_Formatter
 
     ## PRIVATE
     make_decimal_formatter self =
-        DecimalFormatter.new self.get_thousand_separator self.decimal_point
+        decimal_point = if self.decimal_point == Auto then '.'  else self.decimal_point
+        DecimalFormatter.new self.get_thousand_separator decimal_point
 
     ## PRIVATE
     make_date_formatter self =

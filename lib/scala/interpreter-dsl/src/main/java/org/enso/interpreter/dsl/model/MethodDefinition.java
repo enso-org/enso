@@ -549,11 +549,11 @@ public class MethodDefinition {
     }
 
     public boolean shouldCheckErrors() {
-      return isPositional() && !isSelf() && !acceptsError();
+      return isPositional() && !isSelf() && !acceptsError() && !isSuspended();
     }
 
     public boolean shouldCheckWarnings() {
-      return isPositional() && !isSelf() && !acceptsWarning();
+      return isPositional() && !isSelf() && !acceptsWarning() && !isSuspended();
     }
 
     public boolean isImplicit() {

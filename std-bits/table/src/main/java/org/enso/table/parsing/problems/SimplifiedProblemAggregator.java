@@ -14,11 +14,6 @@ public class SimplifiedProblemAggregator implements ProblemAggregator {
   }
 
   @Override
-  public void reportLeadingZeroes(String cell) {
-    hasProblems = true;
-  }
-
-  @Override
   public void reportMismatchedQuote(String cellText) {
     hasProblems = true;
   }
