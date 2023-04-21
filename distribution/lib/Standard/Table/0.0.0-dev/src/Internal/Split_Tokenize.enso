@@ -62,8 +62,10 @@ parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensiti
     column_namer = regex_to_column_namer pat
 
     column = table.at input_column_id
-    Value_Type.expect_text (column.value_type) related_column=column <|
+
+    new_table = Value_Type.expect_text (column.value_type) related_column=column <|
         fan_out_to_rows_and_columns table input_column_id fun column_namer on_problems
+    if parse_values then new_table.parse on_problems=on_problems else new_table
 
 ## PRIVATE
    Create a parser of a `Text` to a nested `Vector. Each match becomes an element outer
