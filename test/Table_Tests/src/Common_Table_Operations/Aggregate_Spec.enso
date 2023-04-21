@@ -1436,6 +1436,22 @@ spec setup =
                     err.should_fail_with Invalid_Value_Type
                     err.catch.related_column.should_equal "Int"
 
+        Test.specify "should return predictable types" <|
+            table = table_builder [["Text", ["a", "b"]], ["Int", [1, 2]], ["Float", [1.1, 2.2]]]
+
+            t1 = table.aggregate [Group_By "Text", Group_By "Int", Group_By "Float"]
+            t1.at "Text" . value_type . is_text . should_be_true
+            t1.at "Int" . value_type . is_integer . should_be_true
+            t1.at "Float" . value_type . is_floating_point . should_be_true
+
+            t2 = table.aggregate [Count, Count_Not_Empty "Text", Sum "Int", Sum "Float", Average "Int", Concatenate "Text"]
+            t2.at "Count" . value_type . is_integer . should_be_true
+            t2.at "Count Not Empty Text" . value_type . is_integer . should_be_true
+            t2.at "Sum Int" . value_type . is_numeric . should_be_true
+            t2.at "Sum Float" . value_type . is_floating_point . should_be_true
+            t2.at "Average Int" . value_type . is_floating_point . should_be_true
+            t2.at "Concatenate Text" . value_type . is_text . should_be_true
+
     Test.group prefix+"Table.aggregate should raise warnings when there are issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) <|
         table =
             col1 = ["Index", [1, 2, 3]]

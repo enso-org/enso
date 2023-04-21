@@ -209,6 +209,21 @@ spec setup =
                 t3 = t.cross_tab [] "Key" values=[Concatenate "ints"] on_problems=pb
                 t3.should_fail_with Invalid_Value_Type
 
+        Test.specify "should return predictable types" <|
+            table = table_builder [["Text", ["a", "b"]], ["Int", [1, 2]], ["Float", [1.1, 2.2]]]
+            t1 = table.cross_tab ["Int"] "Text"
+            t1.column_names . should_equal ["Int", "a", "b"]
+            t1.at "Int" . value_type . is_integer . should_be_true
+            t1.at "a" . value_type . is_integer . should_be_true
+            t1.at "b" . value_type . is_integer . should_be_true
+
+            t2 = table.cross_tab [] "Int" values=[Average "Float", Concatenate "Text"] . sort_columns
+            t2.column_names . should_equal ["1 Average Float", "1 Concatenate Text", "2 Average Float", "2 Concatenate Text"]
+            t2.at "1 Average Float" . value_type . is_floating_point . should_be_true
+            t2.at "1 Concatenate Text" . value_type . is_text . should_be_true
+            t2.at "2 Average Float" . value_type . is_floating_point . should_be_true
+            t2.at "2 Concatenate Text" . value_type . is_text . should_be_true
+
         Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
             table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r1 = table.cross_tab
