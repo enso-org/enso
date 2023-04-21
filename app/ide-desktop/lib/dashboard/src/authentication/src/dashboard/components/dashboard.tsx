@@ -511,9 +511,6 @@ function Dashboard(props: DashboardProps) {
         )
     }
 
-    // FIXME[sb]: There is a race condition between the initial `directoryId`
-    // and the `directoryId` saved in `localStorage`.
-
     // The purpose of this effect is to enable search action.
     react.useEffect(() => {
         setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
@@ -537,8 +534,9 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
     }
 
-    react.useEffect(() => {
-        void (async (): Promise<void> => {
+    hooks.useAsyncEffect(
+        null,
+        async signal => {
             let assets: backend.Asset[]
 
             switch (platform) {
@@ -564,9 +562,12 @@ function Dashboard(props: DashboardProps) {
                     break
                 }
             }
-            setAssets(assets)
-        })()
-    }, [accessToken, directoryId, refresh])
+            if (!signal.aborted) {
+                setAssets(assets)
+            }
+        },
+        [accessToken, directoryId, refresh]
+    )
 
     react.useEffect(() => {
         function onBlur() {
