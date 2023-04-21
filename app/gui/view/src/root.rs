@@ -6,12 +6,12 @@
 
 use ensogl::prelude::*;
 
+use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
 use ensogl::display;
 use std::rc::Rc;
-use uuid::Uuid;
 
 
 
@@ -107,8 +107,8 @@ ensogl::define_endpoints! {
         switch_view_to_welcome_screen(),
     }
     Output {
-        /// The name and ID of the selected project in the project list
-        selected_project (Option<(ImString, Uuid)>),
+        /// The selected project in the project list
+        selected_project (Option<ProjectMetadata>),
     }
 }
 

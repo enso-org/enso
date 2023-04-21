@@ -4,6 +4,7 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
+use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
@@ -16,7 +17,6 @@ use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::project_list as theme;
 use ensogl_text as text;
-use uuid::Uuid;
 
 
 
@@ -203,12 +203,12 @@ mod background {
 
 ensogl::define_endpoints! {
     Input {
-        /// A list of projects (name, ID) to choose from
-        set_projects (Vec<(ImString, Uuid)>),
+        /// This is a list of projects to choose from.
+        project_list (Vec<ProjectMetadata>),
     }
     Output {
-        /// The name and ID of the selected project
-        selected_project (Option<(ImString, Uuid)>),
+        /// This is the selected project.
+        selected_project (Option<ProjectMetadata>),
     }
 }
 
@@ -294,29 +294,24 @@ impl ProjectList {
             grid_y <- all_with3(&content_size, &bar_height, &paddings, |s,h,p| s.y / 2.0 - *h - *p);
             _eval <- all_with(&grid_x, &grid_y, f!((x, y) grid.set_xy(Vector2(*x, *y))));
 
-            grid.reset_entries <+ frp.input.set_projects.map(|projects| {
-                let cols = 1;
-                let rows = projects.len();
-                (rows, cols)
-            });
-            grid.model_for_entry <+ grid.model_for_entry_needed.map2(
-                &frp.input.set_projects,
+            grid.reset_entries <+ frp.input.project_list.map(|projects| (projects.len(), 1));
+            grid_model_for_entry <= grid.model_for_entry_needed.map2(
+                &frp.input.project_list,
                 |(row, col), projects| {
-                    let (project_name, _) = projects.get(*row)?;
-                    Some((*row, *col, project_name.clone_ref()))
+                    let project = projects.get(*row)?;
+                    Some((*row, *col, project.name.clone().into()))
                 }
-            ).filter_map(|entry| entry.clone());
+            );
+            grid.model_for_entry <+ grid_model_for_entry;
 
             frp.source.selected_project <+ grid.entry_selected.map2(
-                &frp.input.set_projects,
+                &frp.input.project_list,
                 |selected_entry, projects| {
                     let (row, _) = (*selected_entry)?;
                     projects.get(row).cloned()
                 }
             );
-            some_project_selected <- frp.output.selected_project
-                .filter_map(|selection| selection.clone());
-            grid.select_entry <+ some_project_selected.constant(None);
+            grid.select_entry <+ frp.output.selected_project.filter_map(|s| s.as_ref().map(|_| None));
         }
         style.init.emit(());
         init.emit(());

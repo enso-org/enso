@@ -155,7 +155,7 @@ impl Model {
         crate::executor::global::spawn(with_progress_indicator(|| async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(error) = managing_api.open_or_create_project(project).await {
-                    error!("Cannot open or create project: {error}");
+                    error!("Cannot open or create project. {error}");
                 }
             } else {
                 warn!("Project Manager API not available, cannot open or create project.");
@@ -235,9 +235,9 @@ impl Presenter {
             root_frp.switch_view_to_project <+ welcome_view_frp.open_project.constant(());
 
             eval root_frp.selected_project ([model] (project) {
-                if let Some((name, _)) = project {
+                if let Some(project) = project {
                     model.close_project();
-                    model.open_project(name.to_string());
+                    model.open_project(project.name.to_string());
                 }
             });
         }

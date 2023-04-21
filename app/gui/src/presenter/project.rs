@@ -7,6 +7,7 @@ use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
 
+use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::project::SearcherParams;
@@ -33,7 +34,7 @@ struct Model {
     graph:              presenter::Graph,
     code:               presenter::Code,
     searcher:           RefCell<Option<presenter::Searcher>>,
-    available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
+    available_projects: Rc<RefCell<Vec<ProjectMetadata>>>,
 }
 
 impl Model {
@@ -229,8 +230,6 @@ impl Model {
         executor::global::spawn(async move {
             if let Ok(api) = controller.manage_projects() {
                 if let Ok(projects) = api.list_projects().await {
-                    let projects = projects.into_iter();
-                    let projects = projects.map(|p| (p.name.clone().into(), p.id)).collect_vec();
                     *projects_list.borrow_mut() = projects;
                     project_list_ready.emit(());
                 }
@@ -282,7 +281,7 @@ impl Project {
 
         frp::extend! { network
             project_list_ready <- source_();
-            project_list.set_projects <+ project_list_ready.map(
+            project_list.project_list <+ project_list_ready.map(
                 f_!(model.available_projects.borrow().clone())
             );
             open_project_list <- view.project_list_shown.on_true();
