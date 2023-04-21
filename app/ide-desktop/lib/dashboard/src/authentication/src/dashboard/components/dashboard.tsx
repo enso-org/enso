@@ -3,6 +3,7 @@
 import * as react from 'react'
 
 import * as cloudService from '../cloudService'
+import * as hooks from '../../hooks'
 import * as localService from '../localService'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
@@ -292,21 +293,27 @@ function Dashboard(props: DashboardProps) {
         }
     }, [searchVal])
 
-    react.useEffect(() => {
-        void (async (): Promise<void> => {
+    hooks.useAsyncEffect(
+        null,
+        async signal => {
             const assets = await backend.listDirectory({
                 parentId: directoryId,
             })
-            setProjectAssets(
-                assets.filter(cloudService.assetIsType(cloudService.AssetType.project))
-            )
-            setDirectoryAssets(
-                assets.filter(cloudService.assetIsType(cloudService.AssetType.directory))
-            )
-            setSecretAssets(assets.filter(cloudService.assetIsType(cloudService.AssetType.secret)))
-            setFileAssets(assets.filter(cloudService.assetIsType(cloudService.AssetType.file)))
-        })()
-    }, [accessToken, directoryId, backend])
+            if (!signal.aborted) {
+                setProjectAssets(
+                    assets.filter(cloudService.assetIsType(cloudService.AssetType.project))
+                )
+                setDirectoryAssets(
+                    assets.filter(cloudService.assetIsType(cloudService.AssetType.directory))
+                )
+                setSecretAssets(
+                    assets.filter(cloudService.assetIsType(cloudService.AssetType.secret))
+                )
+                setFileAssets(assets.filter(cloudService.assetIsType(cloudService.AssetType.file)))
+            }
+        },
+        [accessToken, directoryId, backend]
+    )
 
     return (
         <div

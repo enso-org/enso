@@ -66,7 +66,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setState(response.state.type)
 
         if (response.state.type === cloudService.ProjectState.opened) {
-            console.log(checkStatusInterval)
             setCheckStatusInterval(null)
             if (checkStatusInterval != null) {
                 clearInterval(checkStatusInterval)

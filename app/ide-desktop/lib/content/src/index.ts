@@ -189,7 +189,6 @@ if (
     contentConfig.OPTIONS.groups.startup.options.entry.value ===
         contentConfig.OPTIONS.groups.startup.options.entry.default
 ) {
-    console.log('aaaaa')
     window.runProject = runProject
     const hideAuth = () => {
         const auth = document.getElementById('dashboard')
