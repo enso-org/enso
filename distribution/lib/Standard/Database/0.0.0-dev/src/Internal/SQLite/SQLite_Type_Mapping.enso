@@ -85,22 +85,15 @@ type SQLite_Type_Mapping
     sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
 
     ## PRIVATE
-       The SQLite type mapping takes special measures to keep boolean columns
-       boolean even if the Database will say that they are numeric.
-
-       To do so, any operation that returns booleans will override its return
-       type to boolean, and operations that return the same type as inputs will
-       also ensure to override to the boolean type if the input was boolean. In
-       particular, if the operations accept multiple arguments, they will
-       override the return type to boolean if all the input arguments had
-       boolean type.
+       The SQL type mapping uses the same logic as the in-memory backend, just
+       simplified to only the types that it supports. It does not rely on the
+       Database to tell the expected types, because it has been found to be
+       unreliable in more complex expressions.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
-    infer_return_type infer_from_database_callback op_name arguments expression =
+    infer_return_type _ op_name arguments _ =
         return value_type =
             sql_type = SQLite_Type_Mapping.value_type_to_sql value_type Problem_Behavior.Ignore
             SQL_Type_Reference.from_constant sql_type
-        infer_default_type =
-            infer_from_database_callback expression
 
         find_type arg = case arg of
             column : Column -> column.value_type
@@ -126,17 +119,24 @@ type SQLite_Type_Mapping
                 Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
             inputs_types = arguments.drop 1 . map find_type
             return (reconcile_types inputs_types)
-
+        # TODO rewrite this to construct map at top level
+        # TODO add test if all ops are handled!
         always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
-        always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED"]
-        merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL"]
+        always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM"]
+        merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL", "COALESCE"]
+        arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
+        always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS"]
+        always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP"]
         others = [["IIF", handle_iif]]
         mapping = Map.from_vector <|
             v1 = always_boolean_ops.map [_, const (return Value_Type.Boolean)]
             v2 = merge_input_types_ops.map [_, find_a_common_type]
             v3 = always_text_ops.map [_, const (return default_text)]
-            v1 + v2 + v3 + others
-        handler = mapping.get op_name (_ -> infer_default_type)
+            v4 = arithmetic_ops.map [_, find_a_common_type]
+            v5 = always_floating_ops.map [_, const (return default_float)]
+            v6 = always_integer_ops.map [_, const (return default_integer)]
+            v1 + v2 + v3 + v4 + v5 + v6 + others
+        handler = mapping.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
         handler Nothing
 
     ## PRIVATE
@@ -159,10 +159,10 @@ type SQLite_Type_Mapping
    For types like dates - we map them to unsupported type, because date
    operations in SQLite are currently not supported due to their weird storage.
 simple_types_map = Map.from_vector <|
-    ints = [Types.TINYINT, Types.SMALLINT, Types.BIGINT, Types.INTEGER] . map x-> [x, Value_Type.Integer Bits.Bits_64]
-    floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, Value_Type.Float Bits.Bits_64]
+    ints = [Types.TINYINT, Types.SMALLINT, Types.BIGINT, Types.INTEGER] . map x-> [x, default_integer]
+    floats = [Types.DOUBLE, Types.REAL, Types.FLOAT] . map x-> [x, default_float]
     # We treat numeric as a float, since that is what really sits in SQLite under the hood.
-    numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, Value_Type.Float Bits.Bits_64]
+    numerics = [Types.DECIMAL, Types.NUMERIC] . map x-> [x, default_float]
     strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, default_text]
     blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
@@ -191,3 +191,9 @@ type SQLite_Types
 
 ## PRIVATE
 default_text = Value_Type.Char size=Nothing variable_length=True
+
+## PRIVATE
+default_float = Value_Type.Float Bits.Bits_64
+
+## PRIVATE
+default_integer = Value_Type.Integer Bits.Bits_64

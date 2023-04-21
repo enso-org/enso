@@ -140,8 +140,7 @@ type SQLite_Dialect
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        _ = infer_result_type_from_database_callback
+    make_cast self column target_type _ =
         mapping = self.get_type_mapping
         sql_type_text = mapping.sql_type_to_text target_type
         new_expression = SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
