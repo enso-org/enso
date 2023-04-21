@@ -408,19 +408,17 @@ impl Tree {
         self.model.set_metadata(pointer, meta);
     }
 
-    /// Set usage type for given span tree node. The usage type is used to determine the widget
-    /// appearance and default inferred widget metadata.
+    /// Set usage type for given AST node. The usage type is used to determine the widget appearance
+    /// and default inferred widget metadata.
     pub fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) {
         self.model.set_usage_type(ast_id, usage_type);
     }
 
-    /// Set connection status for given span tree node. The connected nodes will be highlighted
-    /// with a different color, and the widgets might change behavior depending on the connection
+    /// Set connection status for given span crumbs. The connected nodes will be highlighted with a
+    /// different color, and the widgets might change behavior depending on the connection
     /// status.
-    pub fn set_connected(&self, tree_node: &span_tree::node::Ref, status: ConnectionStatus) {
-        if let Some(pointer) = self.model.get_node_widget_pointer(tree_node) {
-            self.model.set_connected(pointer, status);
-        }
+    pub fn set_connected(&self, crumbs: &span_tree::Crumbs, status: ConnectionStatus) {
+        self.model.set_connected(crumbs, status);
     }
 
     /// Set disabled status for given span tree node. The disabled nodes will be grayed out.
@@ -463,7 +461,7 @@ impl Tree {
         &self,
         tree_node: &span_tree::node::Ref,
     ) -> Option<display::object::Instance> {
-        let pointer = self.model.get_node_widget_pointer(tree_node)?;
+        let pointer = self.model.get_node_widget_pointer(tree_node);
         self.model.with_port(pointer, |w| w.display_object().clone())
     }
 
@@ -548,7 +546,7 @@ struct TreeModel {
     hierarchy:      RefCell<Vec<NodeHierarchy>>,
     ports_map:      RefCell<HashMap<MainWidgetPointer, usize>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
-    connected_map:  Rc<RefCell<HashMap<MainWidgetPointer, ConnectionData>>>,
+    connected_map:  Rc<RefCell<HashMap<span_tree::Crumbs, ConnectionData>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
     tree_dirty:     Cell<bool>,
@@ -590,9 +588,9 @@ impl TreeModel {
     }
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
-    fn set_connected(&self, pointer: MainWidgetPointer, status: ConnectionStatus) {
+    fn set_connected(&self, crumbs: &span_tree::Crumbs, status: ConnectionStatus) {
         let mut map = self.connected_map.borrow_mut();
-        let dirty = map.synchronize_entry(pointer, status.data());
+        let dirty = map.synchronize_entry(crumbs.clone(), status.data());
         if dirty {
             self.tree_dirty.set(true);
         }
@@ -704,13 +702,10 @@ impl TreeModel {
     /// has a unique representation in the form of a widget tree pointer, which is more stable
     /// across changes in the span tree than [`span_tree::Crumbs`]. The pointer is used to identify
     /// the widgets or ports in the widget tree.
-    pub fn get_node_widget_pointer(
-        &self,
-        tree_node: &span_tree::node::Ref,
-    ) -> Option<MainWidgetPointer> {
+    pub fn get_node_widget_pointer(&self, tree_node: &span_tree::node::Ref) -> MainWidgetPointer {
         if let Some(id) = tree_node.node.ast_id {
             // This span represents an AST node, return a pointer directly to it.
-            Some(MainWidgetPointer::new(Some(id), &[]))
+            MainWidgetPointer::new(Some(id), &[])
         } else {
             let root = tree_node.span_tree.root_ref();
             let root_ast_data = root.ast_id.map(|id| (id, 0));
@@ -730,10 +725,10 @@ impl TreeModel {
                 // Parent AST node found, return a pointer relative to it.
                 Some((ast_id, ast_parent_index)) => {
                     let crumb_slice = &tree_node.crumbs[ast_parent_index..];
-                    Some(MainWidgetPointer::new(Some(ast_id), crumb_slice))
+                    MainWidgetPointer::new(Some(ast_id), crumb_slice)
                 }
                 // No parent AST node found. Return a pointer from root.
-                None => Some(MainWidgetPointer::new(None, &tree_node.crumbs)),
+                None => MainWidgetPointer::new(None, &tree_node.crumbs),
             }
         }
     }
@@ -882,6 +877,12 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
     }
 }
 
+
+
+/// ==========================================
+/// === MainWidgetPointer / WidgetIdentity ===
+/// ==========================================
+
 /// A pointer to main widget of specific node in the span tree. Determines the base of a widget
 /// stable identity, and allows widgets to be reused when rebuilding the tree. The pointer is
 /// composed of two parts:
@@ -917,12 +918,9 @@ impl MainWidgetPointer {
 /// An unique identity of a widget in the widget tree. It is a combination of a `MainWidgetPointer`
 /// and a sequential index of the widget assigned to the same span tree node. Any widget is allowed
 /// to create a child widget on the same span tree node, so we need to be able to distinguish
-/// between them. Note that only the first widget created for a given span tree node will be able to
-/// receive a port and thus be directly connected.
-///
-/// For all widgets with identity that shares the same `MainWidgetPointer`, at most one of them
-/// will be able to receive a port. The port is assigned to the first widget created for a given
-/// node that wants to receive it.
+/// between them. Note that only one widget created for a given span tree node will be able to
+/// receive a port. The port is assigned to the first widget created for a given node that wants to
+/// receive it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WidgetIdentity {
     /// The pointer to the main widget of this widget's node.
@@ -936,34 +934,6 @@ impl WidgetIdentity {
     fn is_first(&self) -> bool {
         self.index == 0
     }
-}
-
-
-/// =========================
-/// === WidgetTreeBuilder ===
-/// =========================
-
-/// A builder for the widget tree. Maintains transient state necessary during the tree construction,
-/// and provides methods for creating child nodes of the tree. Maintains a map of all widgets
-/// created so far, and is able to reuse existing widgets under the same location in the tree, only
-/// updating their configuration as necessary.
-#[derive(Debug)]
-struct WidgetTreeBuilder<'a> {
-    app:             Application,
-    frp:             WidgetsFrp,
-    node_disabled:   bool,
-    node_expression: &'a str,
-    styles:          &'a StyleWatch,
-    metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
-    connected_map:   &'a HashMap<MainWidgetPointer, ConnectionData>,
-    usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
-    old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
-    new_nodes:       HashMap<WidgetIdentity, TreeEntry>,
-    hierarchy:       Vec<NodeHierarchy>,
-    pointer_usage:   HashMap<MainWidgetPointer, PointerUsage>,
-    parent_state:    Option<NodeState>,
-    last_ast_depth:  usize,
-    extensions:      Vec<Box<dyn Any>>,
 }
 
 /// Additional information about the usage of a widget pointer while building a tree. This is used
@@ -991,6 +961,35 @@ impl PointerUsage {
             false
         }
     }
+}
+
+
+
+/// =========================
+/// === WidgetTreeBuilder ===
+/// =========================
+
+/// A builder for the widget tree. Maintains transient state necessary during the tree construction,
+/// and provides methods for creating child nodes of the tree. Maintains a map of all widgets
+/// created so far, and is able to reuse existing widgets under the same location in the tree, only
+/// updating their configuration as necessary.
+#[derive(Debug)]
+struct WidgetTreeBuilder<'a> {
+    app:             Application,
+    frp:             WidgetsFrp,
+    node_disabled:   bool,
+    node_expression: &'a str,
+    styles:          &'a StyleWatch,
+    metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
+    connected_map:   &'a HashMap<span_tree::Crumbs, ConnectionData>,
+    usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
+    old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
+    new_nodes:       HashMap<WidgetIdentity, TreeEntry>,
+    hierarchy:       Vec<NodeHierarchy>,
+    pointer_usage:   HashMap<MainWidgetPointer, PointerUsage>,
+    parent_state:    Option<NodeState>,
+    last_ast_depth:  usize,
+    extensions:      Vec<Box<dyn Any>>,
 }
 
 impl<'a> WidgetTreeBuilder<'a> {
@@ -1108,7 +1107,8 @@ impl<'a> WidgetTreeBuilder<'a> {
 
         // Once we have the metadata and potential old widget to reuse, we have to apply the
         // configuration to the widget.
-        let connection: ConnectionStatus = self.connected_map.get(&main_ptr).copied().into();
+        let connection: ConnectionStatus =
+            self.connected_map.get(&span_tree_node.crumbs).copied().into();
         let subtree_connection = match self.parent_state.as_ref().map(|s| s.subtree_connection) {
             Some(parent_connection) => connection.or(parent_connection),
             None => connection,

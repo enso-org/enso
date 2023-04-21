@@ -213,9 +213,7 @@ impl Model {
 
     /// Set connection status of the given port.
     fn set_connected(&self, crumbs: &Crumbs, status: node::ConnectionStatus) {
-        let expr = self.expression.borrow();
-        let Ok(port) = expr.span_tree.get_node(crumbs) else { return };
-        self.widget_tree.set_connected(&port, status);
+        self.widget_tree.set_connected(crumbs, status);
     }
 
     /// Set usage type of the given port.
