@@ -174,6 +174,10 @@ type No_Such_Field
        - field_name: The name of the field that was being accessed.
     Error value field_name
 
+    ## PRIVATE
+       Convert the No_Such_Method error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Field `"+self.field_name+"` of "+self.value.to_display_text+" could not be found."
 
 @Builtin_Type
 type Module_Not_In_Package_Error
@@ -214,7 +218,7 @@ type Incomparable_Values
     to_display_text : Text
     to_display_text self =
         case self.left.is_nothing && self.right.is_nothing of
-            True -> "Incomparable_Values.Error"
+            True -> "Incomparable_Values"
             False -> "Cannot compare `" + self.left.to_text + "` with `" + self.right.to_text + "`"
 
     ## PRIVATE
@@ -297,6 +301,11 @@ type Invalid_Conversion_Target
        Arguments:
        - target: the type trying to be converted to.
     Error target
+
+    ## PRIVATE
+       Convert the No_Such_Conversion error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Cannot convert to `"+self.target.to_display_text+"`."
 
 @Builtin_Type
 type No_Such_Conversion
