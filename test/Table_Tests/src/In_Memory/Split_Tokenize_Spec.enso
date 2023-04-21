@@ -218,13 +218,31 @@ spec =
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal_verbose expected
 
-        Test.specify "can parse to columns, with no regex groups" <|
+        Test.specify "no regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
             expected = Table.from_rows ["foo", "bar", "baz"] [["x", 12, "y"], ["x", 34, "y"], ["x", 56, "y"], ["xx", 48, "yy"], ["xx", 59, "yy"]]
             actual = t.parse_to_columns "bar" "\d\d"
             actual.should_equal_verbose expected
 
-        Test.specify "can parse to columns (no post-parsing)" <|
+        Test.specify "named groups" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
+            expected = Table.from_rows ["foo", "xomt", "biff", "baz"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
+            actual = t.parse_to_columns "bar" "(?<xomt>\d)(?<biff>\d)"
+            actual.should_equal_verbose expected
+
+        Test.specify "non-participating groups" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "q1", "y"], ["xx", "qp", "yy"]]
+            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2", "baz"] [["x", "1", 1, Nothing, "y"], ["xx", "p", Nothing, "p", "yy"]]
+            actual = t.parse_to_columns "bar" "q((\d)|([a-z]))"
+            actual.should_equal_verbose expected
+
+        Test.specify "case-insensitive" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "qq", "y"], ["xx", "qQ", "yy"]]
+            expected = Table.from_rows ["foo", "bar 0", "baz"] [["x", "q", "y"], ["xx", "Q", "yy"]]
+            actual = t.parse_to_columns "bar" "q(q)" case_sensitivity=Case_Sensitivity.Insensitive
+            actual.should_equal_verbose expected
+
+        Test.specify "no post-parsing" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
             expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] [["x", "1", "2", "y"], ["x", "3", "4", "y"], ["x", "5", "6", "y"], ["xx", "4", "8", "yy"], ["xx", "5", "9", "yy"]]
             actual = t.parse_to_columns "bar" "(\d)(\d)" parse_values=False
