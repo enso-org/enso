@@ -63,10 +63,10 @@ ensogl::define_endpoints_2! {
     }
 }
 
-/// Information associated with widget metadata which describes which uniquely identifies the
-/// widget to reconfigure.
+/// A key used for overriding widget configuration. Allows locating the widget that should be
+/// configured using provided external data.
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
-pub struct MetadataPointer {
+pub struct OverrideKey {
     /// The function call associated with the widget.
     pub call_id:       ast::Id,
     /// The name of function argument at which the widget is located.
@@ -90,6 +90,7 @@ pub trait SpanWidget {
     fn configure(&mut self, config: &Self::Config, ctx: ConfigContext);
 }
 
+
 /// Generate implementation for [`DynWidget`] enum and its associated [`Config`] enum. Those enums
 /// are used to represent any possible widget kind and its configuration.
 macro_rules! define_widget_modules(
@@ -102,14 +103,14 @@ macro_rules! define_widget_modules(
         /// A widget configuration that determines the widget kind.
         #[derive(Debug, Clone, PartialEq)]
         #[allow(missing_docs)]
-        pub enum Config {
+        pub enum DynConfig {
             $($name(<$module::Widget as SpanWidget>::Config),)*
         }
 
         /// The node widget view. Represents one widget of any kind on the node input area. Can
-        /// change its appearance and behavior depending on the widget metadata updates, without
-        /// being recreated. New widget can be created using the `new` method, while the existing
-        /// widget can be reconfigured using the `configure` method.
+        /// change its appearance and behavior depending on the widget configuration updates,
+        /// without being recreated. New widget can be created using the `new` method, while the
+        /// existing widget can be reconfigured using the `configure` method.
         ///
         /// When a new configuration is applied, the existing widget will handle the update using
         /// its `configure` method. If the new configuration requires a different widget kind, the
@@ -124,7 +125,7 @@ macro_rules! define_widget_modules(
         }
 
         $(
-            impl const From<<$module::Widget as SpanWidget>::Config> for Config {
+            impl const From<<$module::Widget as SpanWidget>::Config> for DynConfig {
                 fn from(config: <$module::Widget as SpanWidget>::Config) -> Self {
                     Self::$name(config)
                 }
@@ -138,22 +139,22 @@ macro_rules! define_widget_modules(
         )*
 
         impl SpanWidget for DynWidget {
-            type Config = Config;
+            type Config = DynConfig;
             fn root_object(&self) -> &display::object::Instance {
                 match self {
                     $(DynWidget::$name(inner) => inner.root_object(),)*
                 }
             }
 
-            fn new(config: &Config, ctx: &ConfigContext) -> Self {
+            fn new(config: &DynConfig, ctx: &ConfigContext) -> Self {
                 match config {
-                    $(Config::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),)*
+                    $(DynConfig::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),)*
                 }
             }
 
-            fn configure(&mut self, config: &Config, ctx: ConfigContext) {
+            fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
                 match (self, config) {
-                    $((DynWidget::$name(model), Config::$name(config)) => {
+                    $((DynWidget::$name(model), DynConfig::$name(config)) => {
                         SpanWidget::configure(model, config, ctx);
                     },)*
                     (this, _) => {
@@ -189,17 +190,22 @@ define_widget_modules! {
 /// indicate that they are connected.
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
-pub struct Metadata {
-    /// The placeholder text value. By default, the parameter name is used.
+pub struct Configuration {
+    /// Display mode of the widget: determines whether or not the widget should be displayed
+    /// depending on current tree display mode.
     pub display:  Display,
-    pub config:   Config,
+    /// Whether or not the widget can receive a port. If `true`, the widget can be wrapped in a
+    /// [`Port`] struct, but it is not guaranteed. If multiple widgets created at single span node
+    /// declare themselves as wanting a port, only one of them will actually have one.
     pub has_port: bool,
+    /// Configuration specific to given widget kind.
+    pub kind:     DynConfig,
 }
 
-impl Metadata {
-    /// Derive widget metadata from the expression, node data in span tree and inferred value type.
-    /// When no metadata is provided by language server, the metadata returned from this function
-    /// will be used to create a default widget.
+impl Configuration {
+    /// Derive widget configuration from the expression, node data in span tree and inferred value
+    /// type. When no metadata is provided by language server, the metadata returned from this
+    /// function will be used to create a default widget.
     fn from_node(span_node: &SpanRef, usage_type: Option<crate::Type>, expression: &str) -> Self {
         use span_tree::node::Kind;
 
@@ -240,25 +246,28 @@ impl Metadata {
         }
     }
 
-    const fn always<C>(config: C) -> Self
-    where C: ~const Into<Config> {
-        Self { display: Display::Always, config: config.into(), has_port: true }
+    const fn always<C>(kind: C) -> Self
+    where C: ~const Into<DynConfig> {
+        Self { display: Display::Always, kind: kind.into(), has_port: true }
     }
 
-    const fn inert<C>(config: C) -> Self
-    where C: ~const Into<Config> {
-        Self { display: Display::Always, config: config.into(), has_port: false }
+    const fn inert<C>(kind: C) -> Self
+    where C: ~const Into<DynConfig> {
+        Self { display: Display::Always, kind: kind.into(), has_port: false }
     }
 
-    /// Widget metadata for static dropdown, based on the tag values provided by suggestion
+    /// Widget configuration for static dropdown, based on the tag values provided by suggestion
     /// database.
-    fn static_dropdown(label: Option<ImString>, tag_values: &[span_tree::TagValue]) -> Metadata {
+    fn static_dropdown(
+        label: Option<ImString>,
+        tag_values: &[span_tree::TagValue],
+    ) -> Configuration {
         let entries = Rc::new(tag_values.iter().map(Entry::from).collect());
         Self::always(single_choice::Config { label, entries })
     }
 
-    fn list_editor() -> Metadata {
-        Self::always(list_editor::Config { item_editor: None, item_default: "_".into() })
+    fn list_editor() -> Configuration {
+        Self::always(list_editor::Config { item_widget: None, item_default: "_".into() })
     }
 }
 
@@ -409,17 +418,17 @@ impl Tree {
         Self { frp, widgets_frp, model }
     }
 
-    /// Override widget metadata. The metadata is used to determine the widget appearance and
-    /// behavior. By default, the widget metadata will be inferred from its span tree kind and type.
-    /// However, in some cases, we want to change the selected widget for a given span tree node,
-    /// and it can be done by calling this method. The set metadata is persistent, and will be
-    /// applied to any future widget of this node that matches given pointer.
-    pub fn set_metadata(&self, pointer: MetadataPointer, meta: Option<Metadata>) {
-        self.notify_dirty(self.model.set_metadata(pointer, meta));
+    /// Override widget configuration. The configuration is used to determine the widget appearance
+    /// and behavior. By default, the widget configuration will be inferred from its span tree kind
+    /// and type. However, in some cases, we want to change the selected widget for a given span
+    /// tree node, and it can be done by calling this method. The set metadata is persistent, and
+    /// will be applied to any future widget of this node that matches given pointer.
+    pub fn set_config_override(&self, pointer: OverrideKey, meta: Option<Configuration>) {
+        self.notify_dirty(self.model.set_config_override(pointer, meta));
     }
 
     /// Set usage type for given AST node. The usage type is used to determine the widget appearance
-    /// and default inferred widget metadata.
+    /// and default inferred widget configuration.
     pub fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) {
         self.notify_dirty(self.model.set_usage_type(ast_id, usage_type));
     }
@@ -439,7 +448,7 @@ impl Tree {
 
 
     /// Rebuild tree if it has been marked as dirty. The dirty flag is marked whenever more data
-    /// external to the span-tree is provided, using `set_metadata`, `set_usage_type`,
+    /// external to the span-tree is provided, using `set_config_override`, `set_usage_type`,
     /// `set_connected` or `set_disabled` methods of the widget tree.
     pub fn rebuild_tree_if_dirty(
         &self,
@@ -547,15 +556,15 @@ struct TreeEntry {
 
 
 
-// ======================
-// === ConnectionData ===
-// ======================
+// ================
+// === EdgeData ===
+// ================
 
 /// Data associated with an edge connected to a port in the tree. It is accessible to the connected
 /// port, its widget and all its descendants through `connection` and `subtree_connection` fields
 /// of  [`NodeState`].
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(super) struct ConnectionData {
+pub(super) struct EdgeData {
     /// Color of an edge connected to the port.
     pub color: color::Lcha,
     /// Span tree depth at which the connection is made.
@@ -579,7 +588,7 @@ struct TreeModel {
     /// of a node.
     hierarchy:      RefCell<Vec<NodeHierarchy>>,
     ports_map:      RefCell<HashMap<StableSpanIdentity, usize>>,
-    metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
+    override_map:   Rc<RefCell<HashMap<OverrideKey, Configuration>>>,
     connected_map:  Rc<RefCell<HashMap<span_tree::Crumbs, color::Lcha>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
@@ -605,7 +614,7 @@ impl TreeModel {
             nodes_map: default(),
             hierarchy: default(),
             ports_map: default(),
-            metadata_map: default(),
+            override_map: default(),
             connected_map: default(),
             usage_type_map: default(),
             tree_dirty: default(),
@@ -622,9 +631,9 @@ impl TreeModel {
         }
     }
 
-    /// Set the metadata under given pointer. It may cause the tree to be marked as dirty.
-    fn set_metadata(&self, pointer: MetadataPointer, meta: Option<Metadata>) -> bool {
-        let mut map = self.metadata_map.borrow_mut();
+    /// Set the configuration under given key. It may cause the tree to be marked as dirty.
+    fn set_config_override(&self, pointer: OverrideKey, meta: Option<Configuration>) -> bool {
+        let mut map = self.override_map.borrow_mut();
         let dirty = map.synchronize_entry(pointer, meta);
         self.mark_dirty_flag(dirty)
     }
@@ -694,7 +703,7 @@ impl TreeModel {
     ) {
         self.tree_dirty.set(false);
         let app = self.app.clone();
-        let metadata_map = self.metadata_map.borrow();
+        let metadata_map = self.override_map.borrow();
         let connected_map = self.connected_map.borrow();
         let usage_type_map = self.usage_type_map.borrow();
         let old_nodes = self.nodes_map.take();
@@ -796,11 +805,11 @@ pub(super) struct NodeInfo {
     pub nesting_level:      NestingLevel,
     /// Data associated with an edge connected to this node's span. Only present at the exact node
     /// that is connected, not at any of its children.
-    pub connection:         Option<ConnectionData>,
+    pub connection:         Option<EdgeData>,
     /// Data associated with an edge connected to this subtree. Contains the status of this node's
     /// connection, or its first parent that is connected. It is the same as `connection` for nodes
     /// that are directly connected.
-    pub subtree_connection: Option<ConnectionData>,
+    pub subtree_connection: Option<EdgeData>,
     /// Whether the node is disabled, i.e. its expression is not currently used in the computation.
     /// Widgets of disabled nodes are usually grayed out.
     pub disabled:           bool,
@@ -1037,7 +1046,7 @@ struct TreeBuilder<'a> {
     node_disabled:   bool,
     node_expression: &'a str,
     styles:          &'a StyleWatch,
-    metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
+    metadata_map:    &'a HashMap<OverrideKey, Configuration>,
     connected_map:   &'a HashMap<span_tree::Crumbs, color::Lcha>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
     old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
@@ -1082,7 +1091,7 @@ impl<'a> TreeBuilder<'a> {
         &mut self,
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
-        meta: Metadata,
+        meta: Configuration,
     ) -> display::object::Instance {
         self.create_child_widget(span_node, nesting_level, Some(meta))
     }
@@ -1094,7 +1103,7 @@ impl<'a> TreeBuilder<'a> {
         &mut self,
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
-        set_metadata: Option<Metadata>,
+        config_override: Option<Configuration>,
     ) -> display::object::Instance {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
@@ -1124,21 +1133,21 @@ impl<'a> TreeBuilder<'a> {
         let sibling_offset = span_node.sibling_offset.as_usize();
         let usage_type = main_ptr.id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
-        // Get widget metadata. There are three potential sources for metadata, that are used in
-        // order, whichever is available first:
-        // 1. The `set_metadata` argument, which can be set by the parent widget if it wants to
-        //   override the metadata for its child.
-        // 2. The `MetadataPointer` stored in the span tree node. This can be set by an external
-        //  source (e.g. based on language server) to override the default metadata for the node.
+        // Get widget configuration. There are three potential sources for configuration, that are
+        // used in order, whichever is available first:
+        // 1. The `config_override` argument, which can be set by the parent widget if it wants to
+        //    override the configuration for its child.
+        // 2. The override stored in the span tree node, located using `OverrideKey`. This can be
+        //    set by an external source, e.g. based on language server.
         // 3. The default metadata for the node, which is determined based on the node kind, usage
-        // type and whether it has children.
+        //    type and whether it has children.
         let mut meta_fallback = None;
         let kind = &span_node.kind;
-        let meta = set_metadata
+        let configuration = config_override
             .as_ref()
             .or_else(|| {
                 let pointer_data = kind.call_id().zip(kind.argument_name());
-                let meta_pointer = pointer_data.map(|(call_id, argument_name)| MetadataPointer {
+                let meta_pointer = pointer_data.map(|(call_id, argument_name)| OverrideKey {
                     call_id,
                     argument_name: argument_name.into(),
                 });
@@ -1147,11 +1156,11 @@ impl<'a> TreeBuilder<'a> {
             })
             .unwrap_or_else(|| {
                 meta_fallback.get_or_insert_with(|| {
-                    Metadata::from_node(&span_node, usage_type.clone(), self.node_expression)
+                    Configuration::from_node(&span_node, usage_type.clone(), self.node_expression)
                 })
             });
 
-        let widget_has_port = ptr_usage.request_port(&widget_id, meta.has_port);
+        let widget_has_port = ptr_usage.request_port(&widget_id, configuration.has_port);
 
         let insertion_index = self.hierarchy.len();
         self.hierarchy.push(NodeHierarchy {
@@ -1163,10 +1172,9 @@ impl<'a> TreeBuilder<'a> {
 
         let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
 
-        // Once we have the metadata and potential old widget to reuse, we have to apply the
-        // configuration to the widget.
+        // Prepare the widget node info and build context.
         let connection_color = self.connected_map.get(&span_node.crumbs);
-        let connection = connection_color.map(|&color| ConnectionData { color, depth });
+        let connection = connection_color.map(|&color| EdgeData { color, depth });
         let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
         let subtree_connection = connection.or(parent_connection);
 
@@ -1198,17 +1206,17 @@ impl<'a> TreeBuilder<'a> {
             let mut port = match old_node {
                 Some(TreeNode::Port(port)) => port,
                 Some(TreeNode::Widget(widget)) => Port::new(widget, app, frp),
-                None => Port::new(DynWidget::new(&meta.config, &ctx), app, frp),
+                None => Port::new(DynWidget::new(&configuration.kind, &ctx), app, frp),
             };
-            port.configure(&meta.config, ctx);
+            port.configure(&configuration.kind, ctx);
             TreeNode::Port(port)
         } else {
             let mut widget = match old_node {
                 Some(TreeNode::Port(port)) => port.into_widget(),
                 Some(TreeNode::Widget(widget)) => widget,
-                None => DynWidget::new(&meta.config, &ctx),
+                None => DynWidget::new(&configuration.kind, &ctx),
             };
-            widget.configure(&meta.config, ctx);
+            widget.configure(&configuration.kind, ctx);
             TreeNode::Widget(widget)
         };
 

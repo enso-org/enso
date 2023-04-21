@@ -1,11 +1,11 @@
 //! Widget controller.
 //!
 //! The Widget Controller is responsible for querying the language server for information about
-//! the node's widget metadata or resolving it from local cache.
+//! the node's widget configuration or resolving it from local cache.
 
 
 
-mod metadata;
+mod configuration;
 mod response;
 
 use crate::prelude::*;
@@ -67,11 +67,11 @@ define_endpoints_2! {
     }
 }
 
-/// Graph widgets controller. Handles requests for widget metadata using visualizations. Maps
+/// Graph widgets controller. Handles requests for widget configuration using visualizations. Maps
 /// response data to the relevant node Id updates, and dispatches them over the FRP output.
 /// Guarantees that each individual query eventually receives an update. It internally caches the
-/// results of the last queries, so that the metadata can be delivered to the presenter even when no
-/// visualization change is necessary.
+/// results of the last queries, so that the configuration can be delivered to the presenter even
+/// when no visualization change is necessary.
 #[derive(Debug, Deref)]
 pub struct Controller {
     #[deref]
@@ -174,7 +174,7 @@ impl Model {
     ) -> Option<(NodeId, CallWidgetsConfig)> {
         let query_data = self.widget_queries.get_mut(&target)?;
 
-        let (definitions, errors) = metadata::deserialize_widget_definitions(&data);
+        let (definitions, errors) = configuration::deserialize_widget_definitions(&data);
 
         for error in errors {
             error!("{:?}", error);

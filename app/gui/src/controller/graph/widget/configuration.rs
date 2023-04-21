@@ -30,7 +30,7 @@ pub fn deserialize_widget_definitions(
                             let msg = "Failed to deserialize widget data for argument";
                             e.context(format!("{msg} '{argument_name}'"))
                         })?;
-                    let meta = widget.map(to_metadata);
+                    let meta = widget.map(to_configuration);
                     let argument_name = argument_name.to_owned();
                     Ok(ArgumentWidgetConfig { argument_name, meta })
                 },
@@ -46,15 +46,15 @@ pub fn deserialize_widget_definitions(
     }
 }
 
-/// == Conversion to Widget Metadata IDE structs ===
+/// == Conversion to Widget Configuration IDE structs ===
 
-/// Convert a widget definition from the engine response into a IDE internal widget metadata struct.
-/// See [`widget::Metadata`] for more information.
-fn to_metadata(resp: response::WidgetDefinition) -> widget::Metadata {
-    widget::Metadata { display: resp.display, config: to_config(resp.inner), has_port: true }
+/// Convert a widget definition from the engine response into a IDE internal widget configuration
+/// struct. See [`widget::Configuration`] for more information.
+fn to_configuration(resp: response::WidgetDefinition) -> widget::Configuration {
+    widget::Configuration { display: resp.display, kind: to_kind(resp.inner), has_port: true }
 }
 
-fn to_config(inner: response::WidgetKindDefinition) -> widget::Config {
+fn to_kind(inner: response::WidgetKindDefinition) -> widget::DynConfig {
     match inner {
         response::WidgetKindDefinition::SingleChoice { label, values } =>
             widget::single_choice::Config {
@@ -62,9 +62,9 @@ fn to_config(inner: response::WidgetKindDefinition) -> widget::Config {
                 entries: Rc::new(to_entries(&values)),
             }
             .into(),
-        response::WidgetKindDefinition::ListEditor { item_editor, item_default } =>
+        response::WidgetKindDefinition::ListEditor { item_widget, item_default } =>
             widget::list_editor::Config {
-                item_editor:  Some(Rc::new(to_metadata(*item_editor))),
+                item_widget:  Some(Rc::new(to_configuration(*item_widget))),
                 item_default: item_default.into(),
             }
             .into(),

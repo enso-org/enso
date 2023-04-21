@@ -8,7 +8,7 @@ use ensogl::display::traits::*;
 use crate::component::type_coloring;
 use crate::node;
 use crate::node::input::widget;
-use crate::node::input::widget::MetadataPointer;
+use crate::node::input::widget::OverrideKey;
 use crate::node::profiling;
 use crate::view;
 use crate::CallWidgetsConfig;
@@ -238,13 +238,16 @@ impl Model {
         Some(cursor::Style::new_highlight(display_object, size, radius, color))
     }
 
-    /// Apply widget configuration to widgets in this input area.
-    fn set_widget_configuration(&self, config: &CallWidgetsConfig) {
+    /// Configure widgets associated with single Enso call expression, overriding default widgets
+    /// generated from span tree. The provided widget configuration is merged with configurations
+    /// already present in the widget tree. Setting a widget configuration to `None` will remove
+    /// an override, and a default widget will be used.
+    fn apply_widget_configuration(&self, config: &CallWidgetsConfig) {
         let CallWidgetsConfig { call_id, definitions } = config;
         for definition in definitions.iter() {
             let argument_name = definition.argument_name.clone().into();
-            let meta_pointer = MetadataPointer { call_id: *call_id, argument_name };
-            self.widget_tree.set_metadata(meta_pointer, definition.meta.clone());
+            let override_key = OverrideKey { call_id: *call_id, argument_name };
+            self.widget_tree.set_config_override(override_key, definition.meta.clone());
         }
     }
 
@@ -327,7 +330,7 @@ ensogl::define_endpoints! {
         /// contains the color of connected edge.
         set_connected (Crumbs, Option<color::Lcha>),
 
-        /// Update widget metadata for widgets already present in this input area.
+        /// Update widget configuration for widgets already present in this input area.
         update_widgets   (CallWidgetsConfig),
 
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
@@ -514,7 +517,7 @@ impl Area {
 
             // === Widgets ===
 
-            eval frp.update_widgets((a) model.set_widget_configuration(a));
+            eval frp.update_widgets((a) model.apply_widget_configuration(a));
             eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));

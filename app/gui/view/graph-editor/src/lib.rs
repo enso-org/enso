@@ -1134,9 +1134,9 @@ pub struct CallWidgetsConfig {
 pub struct ArgumentWidgetConfig {
     /// The function argument name that this widget is for.
     pub argument_name: String,
-    /// Widget metadata queried from the language server. When this is `None`, the widget metadata
-    /// should be inferred automatically.
-    pub meta:          Option<node::input::widget::Metadata>,
+    /// Widget configuration queried from the language server. When this is `None`, the widget
+    /// configuration should be inferred automatically.
+    pub meta:          Option<node::input::widget::Configuration>,
 }
 
 

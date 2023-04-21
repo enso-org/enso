@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-use crate::component::node::input::widget::Config;
 use crate::component::node::input::widget::ConfigContext;
-use crate::component::node::input::widget::ConnectionData;
+use crate::component::node::input::widget::DynConfig;
 use crate::component::node::input::widget::DynWidget;
+use crate::component::node::input::widget::EdgeData;
 use crate::component::node::input::widget::SpanWidget;
 use crate::component::node::input::widget::WidgetsFrp;
 
@@ -213,7 +213,7 @@ impl Port {
     }
 
     /// Configure the port and its attached widget.
-    pub fn configure(&mut self, config: &Config, ctx: ConfigContext) {
+    pub fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
         self.crumbs.replace(ctx.span_node.crumbs.clone());
         self.set_connected(ctx.info.connection);
         self.set_port_layout(&ctx);
@@ -223,7 +223,7 @@ impl Port {
 
     /// Update connection status of this port. Changing the connection status will add or remove the
     /// port's visible shape from the display hierarchy.
-    fn set_connected(&self, status: Option<ConnectionData>) {
+    fn set_connected(&self, status: Option<EdgeData>) {
         match status {
             Some(data) => {
                 self.port_root.add_child(&self.port_shape);

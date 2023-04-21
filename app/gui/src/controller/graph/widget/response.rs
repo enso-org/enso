@@ -77,7 +77,7 @@ pub(super) enum WidgetKindDefinition<'a> {
     ListEditor {
         /// The widget to use for editing the items.
         #[serde(borrow, alias = "item_editor")]
-        item_editor:  Box<WidgetDefinition<'a>>,
+        item_widget:  Box<WidgetDefinition<'a>>,
         /// The default value for new items inserted when the user adds a new element.
         #[serde(borrow)]
         item_default: &'a str,
