@@ -509,7 +509,7 @@ pub trait API: Debug {
     #[allow(clippy::needless_lifetimes)]
     fn set_execution_environment<'a>(
         &'a self,
-        mode: ExecutionEnvironment,
+        execution_environment: ExecutionEnvironment,
     ) -> BoxFuture<'a, FallibleResult>;
 }
 

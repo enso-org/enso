@@ -287,7 +287,9 @@ impl Model {
         if let Ok(execution_environment) = execution_environment.as_str().try_into() {
             let graph_controller = self.graph_controller.clone_ref();
             executor::global::spawn(async move {
-                if let Err(err) = graph_controller.set_mode(execution_environment).await {
+                if let Err(err) =
+                    graph_controller.set_execution_environment(execution_environment).await
+                {
                     error!("Error setting execution environment: {err}");
                 }
             });

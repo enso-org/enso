@@ -321,8 +321,11 @@ impl Handle {
     }
 
     /// Set the execution environment.
-    pub async fn set_mode(&self, mode: ExecutionEnvironment) -> FallibleResult {
-        self.execution_ctx.set_execution_environment(mode).await?;
+    pub async fn set_execution_environment(
+        &self,
+        execution_environment: ExecutionEnvironment,
+    ) -> FallibleResult {
+        self.execution_ctx.set_execution_environment(execution_environment).await?;
         Ok(())
     }
 }
