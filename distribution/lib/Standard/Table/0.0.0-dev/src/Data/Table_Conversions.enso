@@ -98,7 +98,8 @@ Table.from_objects value fields=Nothing =
 
    If there are no marked groups, there will be a single column with the
    whole content of the match. Otherwise, each group becomes a column
-   (with group name if named in Regex).
+   (with the column name taken from the group name if the group is named in the
+   regex).
 
    Arguments:
    - pattern: The pattern used to search within the text.
