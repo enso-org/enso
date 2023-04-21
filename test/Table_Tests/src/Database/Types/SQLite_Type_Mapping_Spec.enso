@@ -4,6 +4,8 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Aggregate_Column, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
+import Standard.Database.Data.Dialect
+import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 
 from Standard.Test import Problems, Test, Test_Suite
@@ -90,5 +92,12 @@ spec =
             t2 = t.cast "b" Value_Type.Byte
             t2.at "b" . value_type . should_equal Value_Type.Integer
             Problems.expect_warning Inexact_Type_Coercion t2
+
+        Test.specify "should be able to infer types for all supported operations" <|
+            dialect = Dialect.sqlite
+            internal_mapping = dialect.internal_generator_dialect.operation_map
+            operation_type_mapping = SQLite_Type_Mapping.operations_map
+
+            operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
 
 main = Test_Suite.run_main spec

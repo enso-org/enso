@@ -91,53 +91,9 @@ type SQLite_Type_Mapping
        unreliable in more complex expressions.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type _ op_name arguments _ =
-        return value_type =
-            sql_type = SQLite_Type_Mapping.value_type_to_sql value_type Problem_Behavior.Ignore
-            SQL_Type_Reference.from_constant sql_type
-
-        find_type arg = case arg of
-            column : Column -> column.value_type
-            internal_column : Internal_Column ->
-                SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
-            enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
-
-        reconcile_types types =
-            result = Value_Type_Helpers.find_common_type types strict=False
-            # We remap Mixed to Char, to be consistent with our main mapping.
-            if result == Value_Type.Mixed then default_text else result
-
-        ## We actually re-use the logic from the in-memory backend, since the
-           SQLite types are a small subset of that and the logic for SQLite
-           essentially forms a proper sub-algebra (in the universal algebra
-           terms).
-        find_a_common_type _ =
-            inputs_types = arguments.map find_type
-            return (reconcile_types inputs_types)
-
-        handle_iif _ =
-            if arguments.length != 3 then
-                Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
-            inputs_types = arguments.drop 1 . map find_type
-            return (reconcile_types inputs_types)
-        # TODO rewrite this to construct map at top level
-        # TODO add test if all ops are handled!
-        always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
-        always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM"]
-        merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL", "COALESCE"]
-        arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
-        always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS"]
-        always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP"]
-        others = [["IIF", handle_iif]]
-        mapping = Map.from_vector <|
-            v1 = always_boolean_ops.map [_, const (return Value_Type.Boolean)]
-            v2 = merge_input_types_ops.map [_, find_a_common_type]
-            v3 = always_text_ops.map [_, const (return default_text)]
-            v4 = arithmetic_ops.map [_, find_a_common_type]
-            v5 = always_floating_ops.map [_, const (return default_float)]
-            v6 = always_integer_ops.map [_, const (return default_integer)]
-            v1 + v2 + v3 + v4 + v5 + v6 + others
-        handler = mapping.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
-        handler Nothing
+        handler = operations_map.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
+        sql_type = handler arguments
+        SQL_Type_Reference.from_constant sql_type
 
     ## PRIVATE
        SQLite `ResultSet` metadata may differ row-by-row, so we cannot rely on
@@ -167,6 +123,46 @@ simple_types_map = Map.from_vector <|
     blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
     ints + floats + numerics + strings + blobs + special_types
+
+## PRIVATE
+   Maps operation names to functions that infer its result type.
+operations_map : Map Text (Vector -> SQL_Type)
+operations_map =
+    find_type arg = case arg of
+        column : Column -> column.value_type
+        internal_column : Internal_Column ->
+            SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
+        enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
+
+    ## We actually re-use the logic from the in-memory backend, since the
+       SQLite types essentially implement a very simple subset of our types.
+    find_a_common_type arguments =
+        inputs_types = arguments.map find_type
+        unified = Value_Type_Helpers.find_common_type types strict=False
+        # We remap Mixed to Char, to be consistent with our main mapping.
+        result = if unified == Value_Type.Mixed then default_text else unified
+        SQLite_Type_Mapping.value_type_to_sql result Problem_Behavior.Ignore
+
+    handle_iif arguments =
+        if arguments.length != 3 then
+            Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
+        find_a_common_type (arguments.drop 1)
+
+    always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_NAN", "IS_EMPTY", "LIKE", "IS_IN", "starts_with", "ends_with", "contains"]
+    always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP"]
+    always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM"]
+    always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS"]
+    arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
+    merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FIRST", "LAST", "FIRST_NOT_NULL", "LAST_NOT_NULL", "FILL_NULL", "COALESCE"]
+    others = [["IIF", handle_iif]]
+    mapping = Map.from_vector <|
+        v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
+        v2 = always_floating_ops.map [_, const SQLite_Types.real]
+        v3 = always_integer_ops.map [_, const SQLite_Types.integer]
+        v4 = always_text_ops.map [_, const SQLite_Types.text]
+        v5 = arithmetic_ops.map [_, find_a_common_type]
+        v6 = merge_input_types_ops.map [_, find_a_common_type]
+        v1 + v2 + v3 + v4 + v5 + v6 + others
 
 ## PRIVATE
 type SQLite_Types
