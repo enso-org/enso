@@ -655,10 +655,6 @@ ensogl::define_endpoints_2! {
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
-
-
-
-
     }
 
     Output {
