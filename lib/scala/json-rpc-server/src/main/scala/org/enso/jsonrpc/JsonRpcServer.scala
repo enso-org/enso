@@ -1,6 +1,5 @@
 package org.enso.jsonrpc
 
-import java.util.UUID
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
@@ -10,6 +9,8 @@ import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
 import com.typesafe.scalalogging.LazyLogging
+
+import java.util.UUID
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}

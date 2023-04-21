@@ -304,34 +304,27 @@ spec setup =
 
             test result =
                 result.should_fail_with Invalid_Value_Type
-                result.catch.expected.should_equal Value_Type.Char
+                result.catch.expected.should_equal "Char"
 
             test <|
                 t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "W") on_problems=Problem_Behavior.Ignore
             test <|
                 t1.join t2 on=(Join_Condition.Equals_Ignore_Case "Y" "Z") on_problems=Problem_Behavior.Ignore
 
-        Test.specify "should report Invalid_Value_Type if incompatible types are correlated" pending="We need more advanced value type support to implement this in full-generality." <|
-            t1 = table_builder ["X", ["1", "2", "c"]]
-            t2 = table_builder ["Y", [1, 2, 3]]
+        Test.specify "should report Invalid_Value_Type if incompatible types are correlated" <|
+            t1 = table_builder [["X", ["1", "2", "c"]]]
+            t2 = table_builder [["Y", [1, 2, 3]]]
 
             r1 = t1.join t2 on_problems=Problem_Behavior.Ignore
             r1.should_fail_with Invalid_Value_Type
 
-        Test.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" pending="We need more advanced value type support to implement this in full-generality." <|
-            t1 = table_builder ["X", ["1", "2", "c"], ["Y", [1, 2, 3]]]
-            t2 = table_builder ["Z", ["1", "2", "c"], ["W", [1, 2, 3]]]
+        Test.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" <|
+            t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]
+            t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
 
-            test expected actual err =
-                err.should_fail_with Invalid_Value_Type
-                err.catch . should_equal (Invalid_Value_Type.Error expected actual)
-
-            test Value_Type.Char Value_Type.Integer <|
-                t1.join t2 on=(Join_Condition.Between "X" "W" "W")
-            test Value_Type.Integer Value_Type.Char <|
-                t1.join t2 on=(Join_Condition.Between "Y" "W" "Z")
-            test Value_Type.Integer Value_Type.Char <|
-                t1.join t2 on=(Join_Condition.Between "Y" "Z" "W")
+            t1.join t2 on=(Join_Condition.Between "X" "W" "W") . should_fail_with Invalid_Value_Type
+            t1.join t2 on=(Join_Condition.Between "Y" "W" "Z") . should_fail_with Invalid_Value_Type
+            t1.join t2 on=(Join_Condition.Between "Y" "Z" "W") . should_fail_with Invalid_Value_Type
 
         Test.specify "should warn when joining on equality of Decimal columns" <|
             t1 = table_builder [["X", [1.5, 2.0, 2.00000000001]], ["Y", [10, 20, 30]]]
