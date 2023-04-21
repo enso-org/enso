@@ -94,6 +94,11 @@ pub type ExecutionEnvironment = ImString;
 /// A list of execution environments.
 pub type ExecutionEnvironments = Rc<Vec<ExecutionEnvironment>>;
 
+/// Provide a dummy list of execution environments. Used for testing and demo scenes.
+pub fn make_dummy_execution_environments() -> ExecutionEnvironments {
+    Rc::new(vec!["Design".to_string().into(), "Live".to_string().into()])
+}
+
 ensogl::define_endpoints_2! {
     Input {
         set_available_execution_environments      (ExecutionEnvironments),

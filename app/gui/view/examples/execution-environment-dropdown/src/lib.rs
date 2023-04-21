@@ -19,17 +19,13 @@ use ensogl::prelude::*;
 use ensogl::animation;
 use ensogl::application::Application;
 use ensogl_text_msdf::run_once_initialized;
+use execution_environment_selector::make_dummy_execution_environments;
 use ide_view_execution_environment_selector as execution_environment_selector;
-use ide_view_execution_environment_selector::ExecutionEnvironments;
 
 
 // ======================
 // === Initialisation ===
 // ======================
-
-fn make_entries() -> ExecutionEnvironments {
-    Rc::new(vec!["Design".to_string().into(), "Live".to_string().into()])
-}
 
 fn init(app: &Application) {
     let app = app.clone_ref();
@@ -39,7 +35,8 @@ fn init(app: &Application) {
     let execution_environment_selector =
         execution_environment_selector::ExecutionEnvironmentSelector::new(&app);
     world.add_child(&execution_environment_selector);
-    execution_environment_selector.set_available_execution_environments(make_entries());
+    execution_environment_selector
+        .set_available_execution_environments(make_dummy_execution_environments());
 
     world
         .on
