@@ -1,4 +1,47 @@
-//! Definition of all hardcoded node widget variants and common widget FRP API.
+//! Node widgets hierarchy. This module defines a widget [`Tree`] view, which manages all widgets
+//! and edge ports for a given node. The widgets are organized in a tree structure, where each
+//! widget can create multiple child widgets and organize their display objects according to its
+//! needs. When node's expression is changed, the widget tree is rebuilt, attempting to preserve
+//! as many widgets as possible, which allows widgets to maintain internal state.
+//!
+//!
+//! # Widget Lifecycle
+//!
+//! The widget lifecycle is managed using [`SpanWidget`] trait.
+//!
+//! When a widget tree is built for the first time (or the expression has been completely changed),
+//! all widgets are created from scratch, using the [`SpanWidget::new`] method. During this phase,
+//! each widget can initialize its own view structure and create an FRP network. Immediately after
+//! the widget is created, it is configured for the first time using [`SpanWidget::configure`]
+//! method.
+//!
+//! During configuration, the widget should declare its child widgets and place them in its
+//! view structure, as well as emit its own internal FRP events to update its view's state.
+//!
+//! For each subsequent expression change or configuration update, the widget tree is rebuilt,
+//! reusing the same widgets for nodes that maintained their identity (see [`WidgetIdentity`]).
+//! When a widget is reused, the [`SpanWidget::configure`] method is called, allowing the widget to
+//! update its view and declare its child widgets again. Usually, the same children are declared,
+//! allowing the build process to propagate down the tree and reuse existing child widgets as well.
+//!
+//! Whenever a configuration change causes a widget to change its kind (e.g. from a simple label to
+//! a single choice dropdown), the widget is removed and a new one is created in its place.
+//!
+//!
+//! # Widget Configuration
+//!
+//! Each widget kind has its own configuration type, which is used to pass additional data to the
+//! widget, as inferred from the expression, or provided by external source as an override. The
+//! configuration source is determined in order:
+//! 1. If a parent widget has directly provided a configuration for its child, it is always used.
+//!    Parent widget can provide it by using [`TreeBuilder::child_widget_of_type`] method.
+//! 2. If there is a configuration override that matches given span, it is used. The configuration
+//!    overrides are defined at the whole tree level, and can be provided using
+//!    [`Tree::set_config_override`] method.
+//! 3. The default configuration for the node is created using [`Configuration::from_node`] method.
+//!    It uses the combination of span tree node kind data and type information to decide which
+//!    widget is the best fit for the node.
+
 
 use crate::prelude::*;
 
@@ -78,7 +121,8 @@ pub struct OverrideKey {
 /// === Widget modules ===
 /// ======================
 
-/// Common trait for constructing and reconfiguring all widget variants.
+/// Common trait for constructing and reconfiguring all widget variants. See "Widget Lifecycle"
+/// section of the module documentation for more details.
 pub trait SpanWidget {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
@@ -180,9 +224,9 @@ define_widget_modules! {
     Hierarchy hierarchy,
 }
 
-/// ================
-/// === Metadata ===
-/// ================
+/// =====================
+/// === Configuration ===
+/// =====================
 
 /// The configuration of a widget and its display properties. Defines how the widget should be
 /// displayed, if it should be displayed at all, and whether or not it should have a port. Widgets
@@ -204,8 +248,8 @@ pub struct Configuration {
 
 impl Configuration {
     /// Derive widget configuration from the expression, node data in span tree and inferred value
-    /// type. When no metadata is provided by language server, the metadata returned from this
-    /// function will be used to create a default widget.
+    /// type. When no configuration is provided with an override, this function will be used to
+    /// create a default configuration.
     fn from_node(span_node: &SpanRef, usage_type: Option<crate::Type>, expression: &str) -> Self {
         use span_tree::node::Kind;
 

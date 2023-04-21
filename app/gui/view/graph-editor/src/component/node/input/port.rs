@@ -96,6 +96,8 @@ impl display::scene::Extension for HoverLayers {
 }
 
 impl HoverLayers {
+    /// Add a display object to the partition at given depth, effectively setting its display order.
+    /// If the partition does not exist yet, it will be created.
     fn add_to_partition(&self, object: &display::object::Instance, depth: usize) {
         let mut hover_partitions = self.hover_partitions.borrow_mut();
         if hover_partitions.len() <= depth {
@@ -126,13 +128,17 @@ pub struct Port {
     widget:          DynWidget,
     port_shape:      shape::View,
     hover_shape:     hover_shape::View,
+    /// Last set tree depth of the port. Allows skipping layout update when the depth has not
+    /// changed during reconfiguration.
     current_depth:   usize,
+    /// Whether or not the port was configured as primary. Allows skipping layout update when the
+    /// hierarchy level has not changed significantly during reconfiguration.
     current_primary: bool,
 }
 
 impl Port {
-    /// Create a new port for given widget. The widget will be placed as a child of the port's
-    /// `port_root` display object, and its layout size will be used to determine the port's size.
+    /// Create a new port for given widget. The widget will be placed as a child of the port's root
+    /// display object, and its layout size will be used to determine the port's size.
     pub fn new(widget: DynWidget, app: &Application, frp: &WidgetsFrp) -> Self {
         let port_root = display::object::Instance::new();
         let widget_root = widget.root_object().clone_ref();
@@ -161,7 +167,7 @@ impl Port {
         let mouse_leave = hover_shape.on_event::<mouse::Leave>();
         let mouse_down = hover_shape.on_event::<mouse::Down>();
 
-        let crumbs = Rc::new(RefCell::new(span_tree::Crumbs::default()));
+        let crumbs: Rc<RefCell<span_tree::Crumbs>> = default();
 
         if frp.set_ports_visible.value() {
             port_root.add_child(&hover_shape);
@@ -212,7 +218,11 @@ impl Port {
         }
     }
 
-    /// Configure the port and its attached widget.
+    /// Configure the port and its attached widget. If the widget has changed its root object after
+    /// reconfiguration, the port display object hierarchy will be updated to use it.
+    ///
+    /// See [`crate::component::node::input::widget`] module for more information about widget
+    /// lifecycle.
     pub fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
         self.crumbs.replace(ctx.span_node.crumbs.clone());
         self.set_connected(ctx.info.connection);

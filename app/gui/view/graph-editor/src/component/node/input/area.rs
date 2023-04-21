@@ -257,9 +257,13 @@ impl Model {
         self.widget_tree.rebuild_tree_if_dirty(&expr.span_tree, &expr.code, &self.styles);
     }
 
-    /// Request widgets metadata for all method calls within the expression.
+    /// Scan node expressions for all known method calls, for which the language server can provide
+    /// widget configuration overrides. Emit a request for each such detected call, allowing the
+    /// controller to request the overrides and provide them.
+    ///
+    /// See also: [`controller::graph::widget`] module of `enso-gui` crate.
     #[profile(Debug)]
-    fn request_widgets_metadata(&self, expression: &Expression, area_frp: &FrpEndpoints) {
+    fn request_widget_config_overrides(&self, expression: &Expression, area_frp: &FrpEndpoints) {
         let call_info = CallInfoMap::scan_expression(&expression.span_tree);
         for (call_id, info) in call_info.iter() {
             if let Some(target_id) = info.target_id {
@@ -273,7 +277,7 @@ impl Model {
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let new_expression = Expression::from(new_expression.into());
-        debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
+        debug!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
 
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
@@ -281,11 +285,12 @@ impl Model {
             &self.styles,
         );
 
-        self.request_widgets_metadata(&new_expression, area_frp);
+        self.request_widget_config_overrides(&new_expression, area_frp);
         *self.expression.borrow_mut() = new_expression;
     }
 
-    /// Get hover shapes for all input ports of a node. Used for testing to simulate mouse events.
+    /// Get hover shapes for all input ports of a node. Mainly used in tests to manually dispatch
+    /// mouse events.
     pub fn port_hover_shapes(&self) -> Vec<super::port::hover_shape::View> {
         self.widget_tree.port_hover_shapes()
     }
@@ -366,7 +371,6 @@ ensogl::define_endpoints! {
         requested_widgets    (ast::Id, ast::Id),
         request_import       (ImString),
         /// A connected port within the node has been moved. Some edges might need to be updated.
-        /// This event is already debounced.
         input_edges_need_refresh (),
     }
 }
@@ -443,11 +447,11 @@ impl Area {
             // === Show / Hide Phantom Ports ===
 
             let ports_active = &frp.set_ports_active;
-            edit_or_ready   <- frp.set_edit_ready_mode || set_editing;
+            edit_or_ready <- frp.set_edit_ready_mode || set_editing;
             reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, (a, _)| *e && !a);
-            port_vis        <- all_with(&edit_or_ready, ports_active, |e, (a, _)| !e && *a);
-            frp.output.source.ports_visible     <+ port_vis;
-            frp.output.source.editing           <+ set_editing;
+            port_vis <- all_with(&edit_or_ready, ports_active, |e, (a, _)| !e && *a);
+            frp.output.source.ports_visible <+ port_vis;
+            frp.output.source.editing <+ set_editing;
             model.widget_tree.set_ports_visible <+ frp.ports_visible;
             refresh_edges <- model.widget_tree.connected_port_updated.debounce();
             frp.output.source.input_edges_need_refresh <+ refresh_edges;
@@ -521,7 +525,7 @@ impl Area {
             eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
-            eval model.widget_tree.rebuild_required((_) model.rebuild_widget_tree_if_dirty());
+            eval_ model.widget_tree.rebuild_required(model.rebuild_widget_tree_if_dirty());
 
             // === View Mode ===
 
