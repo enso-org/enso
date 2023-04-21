@@ -75,10 +75,15 @@ type Table
                  Table.new [first_column, second_column]
     new : Vector (Vector | Column) -> Table
     new columns =
+        invalid_input_shape =
+            Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column.")
         cols = columns.map c->
             case c of
-                _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
+                v : Vector ->
+                    if v.length != 2 then invalid_input_shape else
+                        Column.from_vector (v.at 0) (v.at 1) . java_column
                 Column.Value java_col -> java_col
+                _ -> invalid_input_shape
         if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
                 if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
@@ -856,7 +861,7 @@ type Table
 
             parse_problem_builder = Problem_Builder.new
             new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
-                Value_Type.expect_text column.value_type related_column=column.name <|
+                Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
                     new_storage_and_problems = parser.parseColumn column.name storage
                     new_storage = new_storage_and_problems.value
@@ -866,6 +871,62 @@ type Table
 
             parse_problem_builder.attach_problems_before on_problems <|
                 Table.new new_columns
+
+    ## PRIVATE
+       UNSTABLE
+       Cast the selected columns to a specific type.
+
+       Returns a new table in which the selected columns are replaced with
+       columns having the new types.
+
+       Arguments:
+       - columns: The selection of columns to cast.
+       - value_type: The `Value_Type` to cast the column to.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       TODO [RW] this is a prototype needed for debugging, proper implementation
+       and testing will come with #6112.
+
+       In the Database backend, this will boil down to a CAST operation.
+       In the in-memory backend, a conversion will be performed according to
+       the following rules:
+       - Anything can be cast into the `Mixed` type.
+       - Converting to a `Char` type, the elements of the column will be
+         converted to text. If it is fixed length, the texts will be trimmed or
+         padded on the right with the space character to match the desired
+         length.
+       - Conversion between numeric types will replace values exceeding the
+         range of the target type with `Nothing`.
+       - Booleans may also be converted to numbers, with `True` being converted
+         to `1` and `False` to `0`. The reverse is not supported - use `iif`
+         instead.
+       - A `Date_Time` may be converted into a `Date` or `Time` type - the
+         resulting value will be truncated to the desired type.
+       - If a `Date` is to be converted to `Date_Time`, it will be set at
+         midnight of the default system timezone.
+
+       ? Conversion Precision
+
+         In the in-memory backend, if the conversion is lossy, a
+         `Lossy_Conversion` warning will be reported. The only exception is when
+         truncating a column which is already a text column - as then the
+         truncation seems like an intended behaviour, so it is not reported. If
+         truncating needs to occur when converting a non-text column, a warning
+         will still be reported.
+
+         Currently, the warning is not reported for Database backends.
+
+       ? Inexact Target Type
+
+         If the backend does not support the requested target type, the closest
+         supported type is chosen and a `Inexact_Type_Coercion` problem is
+         reported.
+    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
+    cast self columns=[0] value_type=Value_Type.Char on_problems=Problem_Behavior.Report_Warning =
+        _ = [columns, value_type, on_problems]
+        ## TODO [RW] actual implementation in #6112
+        self
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.
@@ -1127,7 +1188,9 @@ type Table
         resolved = case column of
             _ : Text -> self.compute column on_problems
             _ : Column -> column
-        renamed = if new_name.is_nothing then resolved else resolved.rename new_name
+        renamed = case new_name of
+           Nothing -> resolved
+           _ : Text -> resolved.rename new_name
         to_add = case set_mode of
             Set_Mode.Add_Or_Update -> True
             Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
@@ -1291,29 +1354,29 @@ type Table
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         if check_table "right" right then
-                # [left_unmatched, matched, right_unmatched]
-                rows_to_keep = case join_kind of
-                    Join_Kind.Inner           -> [False, True, False]
-                    Join_Kind.Left_Outer      -> [True, True, False]
-                    Join_Kind.Right_Outer     -> [False, True, True]
-                    Join_Kind.Full            -> [True, True, True]
-                    Join_Kind.Left_Exclusive  -> [True, False, False]
-                    Join_Kind.Right_Exclusive -> [False, False, True]
+            # [left_unmatched, matched, right_unmatched]
+            rows_to_keep = case join_kind of
+                Join_Kind.Inner           -> [False, True, False]
+                Join_Kind.Left_Outer      -> [True, True, False]
+                Join_Kind.Right_Outer     -> [False, True, True]
+                Join_Kind.Full            -> [True, True, True]
+                Join_Kind.Left_Exclusive  -> [True, False, False]
+                Join_Kind.Right_Exclusive -> [False, False, True]
 
-                columns_to_keep = case join_kind of
-                    Join_Kind.Left_Exclusive  -> [True, False]
-                    Join_Kind.Right_Exclusive -> [False, True]
-                    _                         -> [True, True]
+            columns_to_keep = case join_kind of
+                Join_Kind.Left_Exclusive  -> [True, False]
+                Join_Kind.Right_Exclusive -> [False, True]
+                _                         -> [True, True]
 
-                join_resolution = make_join_helpers self right . resolve on on_problems
-                right_columns_to_drop = join_resolution.redundant_column_names
+            join_resolution = make_join_helpers self right . resolve on on_problems
+            right_columns_to_drop = join_resolution.redundant_column_names
 
-                java_conditions = join_resolution.conditions
-                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
+            java_conditions = join_resolution.conditions
+            new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
 
-                on_problems.attach_problems_after (Table.Value new_java_table) <|
-                    problems = new_java_table.getProblems
-                    Java_Problems.parse_aggregated_problems problems
+            on_problems.attach_problems_after (Table.Value new_java_table) <|
+                problems = new_java_table.getProblems
+                Java_Problems.parse_aggregated_problems problems
 
     ## ALIAS Cartesian Join
        Joins tables by pairing every row of the left table with every row of the

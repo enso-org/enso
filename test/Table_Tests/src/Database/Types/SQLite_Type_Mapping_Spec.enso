@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Aggregate_Column, Value_Type
-from Standard.Table.Errors import Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 
@@ -25,7 +25,7 @@ spec =
             t.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "real" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.at "text" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
-            t.at "blob" . value_type . should_equal Value_Type.Mixed
+            t.at "blob" . value_type . should_equal Value_Type.Binary
             # We treat numeric as a float, since that is what really sits in SQLite under the hood.
             t.at "numeric" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
@@ -33,7 +33,7 @@ spec =
             t = make_table "complex" [["a", "VARCHAR(15)"], ["b", "CHAR(10)"], ["c", "BINARY(10)"], ["d", "BIGINT"], ["e", "SMALLINT"], ["f", "TINYINT"], ["g", "FLOAT"], ["h", "DOUBLE"]]
             t.at "a" . value_type . should_equal Value_Type.Char
             t.at "b" . value_type . should_equal Value_Type.Char
-            t.at "c" . value_type . should_equal Value_Type.Mixed
+            t.at "c" . value_type . should_equal Value_Type.Binary
             t.at "d" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "e" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "f" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
@@ -50,8 +50,8 @@ spec =
             c2 = t.compute "[a] && False"
             c2 . value_type . should_equal Value_Type.Boolean
 
-            #c3 = t.compute "[a] && 10"
-            #c3.should_fail_with Invalid_Value_Type
+            c3 = t.compute "[a] && 10"
+            c3.should_fail_with Invalid_Value_Type
 
         Test.specify "should correctly handle types through operations" <|
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
@@ -80,10 +80,15 @@ spec =
             # First is not currently implemented in SQLite
             # t2.at "First c" . value_type . should_equal Value_Type.Boolean
 
-        Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
-            # TODO this will be tested once the cast operator is implemented
-            # Binary 10 variable_length=False -> Binary max_int4 variable_length=True
-            # Byte -> Integer Bits.Bits_16
-            Nothing
+        Test.specify "should approximate types to the closest supported one" <|
+            t = make_table "T" [["a", "BINARY"], ["b", "INT"]]
+
+            t1 = t.cast "a" (Value_Type.Binary 10 variable_length=True)
+            t1.at "a" . value_type . should_equal Value_Type.Binary
+            Problems.expect_warning Inexact_Type_Coercion t1
+
+            t2 = t.cast "b" Value_Type.Byte
+            t2.at "b" . value_type . should_equal Value_Type.Integer
+            Problems.expect_warning Inexact_Type_Coercion t2
 
 main = Test_Suite.run_main spec

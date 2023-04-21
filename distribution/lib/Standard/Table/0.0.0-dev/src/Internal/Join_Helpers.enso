@@ -47,9 +47,10 @@ type Join_Condition_Resolver
             left = resolve_left left_selector
             right = resolve_right right_selector
             if is_nothing left || is_nothing right then Nothing else
-                if left.name == right.name then
-                    redundant_names.append right.name
-                self.make_equals problem_builder left right
+                Value_Type.expect_comparable left right <|
+                    if left.name == right.name then
+                        redundant_names.append right.name
+                    self.make_equals problem_builder left right
         converted = conditions_vector.map condition-> case condition of
             Join_Condition.Equals left_selector right_selector ->
                 handle_equals left_selector right_selector
@@ -58,15 +59,17 @@ type Join_Condition_Resolver
                 left = resolve_left left_selector
                 right = resolve_right right_selector
                 if is_nothing left || is_nothing right then Nothing else
-                    Value_Type.expect_text left.value_type <|
-                        Value_Type.expect_text right.value_type <|
+                    Value_Type.expect_text left <|
+                        Value_Type.expect_text right <|
                             self.make_equals_ignore_case problem_builder left right locale
             Join_Condition.Between left_selector right_lower_selector right_upper_selector ->
                 left = resolve_left left_selector
                 right_lower = resolve_right right_lower_selector
                 right_upper = resolve_right right_upper_selector
                 if is_nothing left || is_nothing right_lower || is_nothing right_upper then Nothing else
-                    self.make_between problem_builder left right_lower right_upper
+                    Value_Type.expect_comparable left right_lower <|
+                        Value_Type.expect_comparable left right_upper <|
+                            self.make_between problem_builder left right_lower right_upper
         problem_builder.attach_problems_before on_problems <|
             if converted.contains Nothing then Panic.throw (Illegal_State.Error "Impossible: unresolved columns remaining in the join resolution. This should have raised a dataflow error. This is a bug in the Table library.") else
                 Join_Condition_Resolution.Result converted redundant_names.to_vector

@@ -35,4 +35,10 @@ fill_hole_default stmt i value = case value of
     _ : Decimal   -> stmt.setDouble i value
     _ : Text      -> stmt.setString i value
     _ : Date_Time -> JDBCUtils.setZonedDateTime stmt i value
-    _             -> stmt.setObject i value
+    ## Time_Of_Day and Date sometimes work ok, but sometimes are passed as
+       `org.graalvm.polyglot.Value` to the JDBC driver which is then unable to
+       infer the correct type for them. Instead, we use these helper functions
+       which ensure the type is locked to the Java class known to JDBC.
+    _ : Time_Of_Day -> JDBCUtils.setLocalTime stmt i value
+    _ : Date        -> JDBCUtils.setLocalDate stmt i value
+    _               -> stmt.setObject i value

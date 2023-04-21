@@ -42,7 +42,7 @@ public class NumericConverter {
       case Integer x -> x.longValue();
       case Short x -> x.longValue();
       case Byte x -> x.longValue();
-      default -> throw new UnsupportedOperationException();
+      default -> throw new UnsupportedOperationException("Cannot coerce " + o + " to a numeric type.");
     };
   }
 

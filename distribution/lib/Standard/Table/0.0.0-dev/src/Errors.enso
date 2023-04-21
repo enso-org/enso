@@ -392,20 +392,34 @@ type No_Index_Set_Error
 
 type Invalid_Value_Type
     ## PRIVATE
-    Error expected actual related_column=Nothing
+       Indicates that a column with an unexpected value type has been encountered.
+    Column (expected:Value_Type|Text) (actual:Value_Type) (related_column:Text)
+
+    ## PRIVATE
+       Indicates that a value with an unexpected value type has been encountered.
+    Value (expected:Value_Type|Text) (actual:Value_Type) (value:Any)
+
+    ## PRIVATE
+       Indicates that a value type does not support comparisons.
+    Not_Ordered (actual:Value_Type)
+
+    ## PRIVATE
+       Indicates that the two value types cannot be compared with each other.
+    Incomparable (type_1:Value_Type) (type_2:Value_Type)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
-    to_display_text self =
-        prefix = case self.related_column of
-            Nothing -> "Expected "
-            column_name -> "Expected " + column_name + " column to have "
-        expected_type = case self.expected of
-            msg : Text -> msg
-            other -> other.to_display_text
-        prefix + expected_type + " type, but got " + self.actual.to_display_text + "."
+    to_display_text self = case self of
+        Invalid_Value_Type.Column expected actual related_column ->
+            "Expected type "+expected.to_display_text+", but got a column ["+related_column+"] of type "+actual.to_display_text+"."
+        Invalid_Value_Type.Value expected actual value ->
+            "Expected type "+expected.to_display_text+", but got a value "+value.to_text+" of type "+actual.to_display_text+"."
+        Invalid_Value_Type.Not_Ordered actual ->
+            "Type "+actual.to_display_text+" does not support comparisons."
+        Invalid_Value_Type.Incomparable type_1 type_2 ->
+            "Types "+type_1.to_display_text+" and "+type_2.to_display_text+" cannot be compared to each other."
 
 ## UNSTABLE
 
@@ -435,16 +449,26 @@ type Column_Type_Mismatch
 
 type No_Common_Type
     ## PRIVATE
-       An error indicating that no common type could be found for the merged
-       columns.
-    Error (column_name : Text)
+       An error indicating that no common type could be found.
+
+       Arguments:
+       - types: The types that were tried to be unified.
+       - related_column_name: The name of the resulting column that was being
+         unified, if applicable.
+    Error (types : Vector Value_Type) (related_column_name : Nothing|Text)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "No common type could have been found for the columns corresponding to ["+self.column_name+"]. If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        types = self.types.map .to_display_text . join ", "
+        prefix = "No common type could have been found for the types: "+types
+        infix = case self.related_column_name of
+            column_name : Text -> " when unifying the column ["+column_name+"]."
+            _ -> "."
+        suffix = "If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        prefix + infix + suffix
 
 type Unmatched_Columns
     ## PRIVATE

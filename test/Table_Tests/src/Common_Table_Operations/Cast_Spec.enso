@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -12,6 +13,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    materialize = setup.materialize
     # TODO this spec will be expanded in #6112
     Test.group prefix+"Column.cast" pending=(if setup.is_database.not then "Cast is not implemented in the in-memory backend yet.") <|
         Test.specify "should allow to cast an integer column to text" <|
@@ -91,3 +93,13 @@ spec setup =
             t2.at "Y" . to_vector . should_equal ["4", "5", "6"]
             t2.at "Z" . to_vector . should_equal ["7", "8", "9"]
             t2.at "A" . to_vector . should_equal [True, False, True]
+
+        if setup.test_selection.fixed_length_text_columns then
+            Test.specify "should preserve the overridden types when materialized" pending="TODO: #5159 needed" <|
+                t = table_builder [["X", [1, 2, 100]], ["Y", ["a", "abcdef", "abc"]]]
+                t2 = t . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=3 variable_length=False)
+
+                t3 = materialize t2
+                t3.at "X" . value_type . should_equal (t2.at "X" . value_type)
+                t3.at "Y" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
