@@ -58,9 +58,9 @@ impl Drop for TextureBindGuard {
 /// For more background see: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texParameter
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Parameters {
-    /// Specifies the setting for the texture magnification filter (`Context::TEXTURE_MIN_FILTER`).
+    /// Specifies the setting for the texture minification filter (`Context::TEXTURE_MIN_FILTER`).
     pub min_filter: MinFilter,
-    /// Specifies the setting for the texture minification filter (`Context::TEXTURE_MAG_FILTER`).
+    /// Specifies the setting for the texture magnification filter (`Context::TEXTURE_MAG_FILTER`).
     pub mag_filter: MagFilter,
     /// Specifies the setting for the wrapping function for texture coordinate s
     /// (`Context::TEXTURE_WRAP_S`).
@@ -75,7 +75,7 @@ impl Parameters {
     pub fn apply_parameters(self, context: &Context) {
         let target = Context::TEXTURE_2D;
         context.tex_parameteri(*target, *Context::TEXTURE_MIN_FILTER, *self.min_filter as i32);
-        context.tex_parameteri(*target, *Context::TEXTURE_MIN_FILTER, *self.mag_filter as i32);
+        context.tex_parameteri(*target, *Context::TEXTURE_MAG_FILTER, *self.mag_filter as i32);
         context.tex_parameteri(*target, *Context::TEXTURE_WRAP_S, *self.wrap_s as i32);
         context.tex_parameteri(*target, *Context::TEXTURE_WRAP_T, *self.wrap_t as i32);
     }
