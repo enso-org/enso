@@ -1068,12 +1068,11 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
    whitespace, from the start, the end, or both ends of the input.
 
    Arguments:
-   - trim_characters: A Text containing characters that should be removed or a
-     predicate taking single character strings and specifying if they should be
-     removed. By default, this should be any Unicode whitespace characters and
-     all line terminator characters.
-   - from: The location of where to trim the input. By default, this function
+   - where: The location of where to trim the input. By default, this function
      trims both ends of the input.
+   - what: Either a `Text` containing characters that should be removed or a
+     predicate taking single character strings and specifying if they should be
+     removed. By default, all Unicode whitespace is removed.
 
    > Example
      Trimming whitespace from a string.

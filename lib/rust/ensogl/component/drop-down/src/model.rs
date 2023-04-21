@@ -37,27 +37,6 @@ const OPEN_ANIMATION_OFFSET: f32 = OPEN_ANIMATION_SCALE - 1.001;
 
 
 
-// =========================
-// === Shape Definition ===
-// =========================
-
-mod rounded_rect {
-    use super::*;
-    ensogl_core::shape! {
-        alignment = center;
-        (style:Style, color_rgba: Vector4<f32>, corner_radius: f32) {
-            let color = Var::<color::Rgba>::from(color_rgba);
-            let rect  = Rect(Var::canvas_size()).corners_radius(corner_radius.px());
-            let out   = rect.fill(color);
-            out.into()
-        }
-    }
-}
-
-pub type RoundedRect = rounded_rect::View;
-
-
-
 // =============
 // === Model ===
 // =============
@@ -66,7 +45,7 @@ pub type RoundedRect = rounded_rect::View;
 #[derivative(Clone(bound = ""))]
 pub struct Model<T> {
     display_object:   display::object::Instance,
-    background:       RoundedRect,
+    background:       Rectangle,
     pub grid:         Grid,
     selected_entries: Rc<RefCell<HashSet<T>>>,
     cache:            Rc<RefCell<EntryCache<T>>>,
@@ -81,7 +60,7 @@ impl<T> component::Model for Model<T> {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
 
-        let background = RoundedRect::new();
+        let background = default();
         let grid = Grid::new(app);
         display_object.add_child(&background);
         display_object.add_child(&grid);
@@ -132,7 +111,7 @@ impl<T: DropdownValue> Model<T> {
 
         self.background.set_size(outer_size);
         // align the dropdown origin to its top left corner
-        self.background.set_xy(Vector2(outer_width, -outer_height) / 2.0);
+        self.background.set_y(-outer_height);
         self.background.corner_radius.set(CORNER_RADIUS);
 
         self.grid.set_xy(Vector2(CLIP_PADDING, -CLIP_PADDING));
@@ -280,7 +259,7 @@ impl<T: DropdownValue> Model<T> {
 
     /// Set the background color of the dropdown.
     pub fn set_color(&self, color: Lcha) {
-        self.background.color_rgba.set(color::Rgba::from(color).into());
+        self.background.color.set(color::Rgba::from(color).into());
     }
 }
 

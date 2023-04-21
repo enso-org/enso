@@ -47,8 +47,8 @@ spec =
             formatter.parse "123" . should_equal 123
             formatter.parse "1_000_000" . should_equal 1000000
             formatter.parse "1_000_000_000" . should_equal (1000 * 1000 * 1000)
-            formatter.parse "100_0_0_0" . should_equal 100000
-            formatter.parse "1__00_000,0" . should_equal 100000.0
+            formatter.parse "100_0_0_0" . should_equal "100_0_0_0"
+            formatter.parse "1__00_000,0" . should_equal "1__00_000,0"
             formatter.parse "-100_000,0000" . should_equal -100000.0
             formatter.parse "0" . should_equal 0
             formatter.parse "-1,0" . should_equal -1.0

@@ -65,7 +65,7 @@ abstract class JsonRpcServerTestKit
   }
 
   override def afterEach(): Unit = {
-    val _ = binding.unbind()
+    Await.ready(binding.terminate(10.seconds.dilated), 15.seconds.dilated)
     super.afterEach()
   }
 

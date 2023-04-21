@@ -40,6 +40,12 @@ type Internal_Dialect
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
         Internal_Dialect.Value new_map self.wrap_identifier
 
+    ## PRIVATE
+       Checks if an operation is supported by the dialect.
+    is_supported : Text -> Boolean
+    is_supported self operation =
+        self.operation_map.contains_key operation
+
 ## PRIVATE
 
    A helper function to create a binary operator.

@@ -200,6 +200,12 @@ impl Model {
         self.ide_controller.set_component_browser_private_entries_visibility(!visibility);
     }
 
+    fn toggle_read_only(&self) {
+        let read_only = self.controller.model.read_only();
+        self.controller.model.set_read_only(!read_only);
+        info!("New read only state: {}.", self.controller.model.read_only());
+    }
+
     fn restore_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
@@ -395,6 +401,8 @@ impl Project {
             eval_ view.execution_context_restart(model.execution_context_restart());
 
             eval graph_view.execution_environment((mode) model.execution_environment_changed(mode));
+
+            eval_ view.toggle_read_only(model.toggle_read_only());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

@@ -379,7 +379,9 @@ impl Symbol {
             if self.is_hidden() {
                 return;
             }
-            if let Some(context) = &*self.context.borrow() {
+            let count = self.surface.point_scope().size() as i32;
+            let instance_count = self.surface.instance_scope().size() as i32;
+            if count > 0 && instance_count > 0 && let Some(context) = &*self.context.borrow() {
                 self.with_program(context, |_| {
                     for binding in &self.bindings.borrow().uniforms {
                         binding.upload(context);
@@ -391,15 +393,9 @@ impl Symbol {
 
                     let mode = Context::TRIANGLE_STRIP;
                     let first = 0;
-                    let count = self.surface.point_scope().size() as i32;
-                    let instance_count = self.surface.instance_scope().size() as i32;
 
                     self.stats.register_draw_call(self.id);
-                    if instance_count > 0 {
-                        context.draw_arrays_instanced(*mode, first, count, instance_count);
-                    } else {
-                        context.draw_arrays(*mode, first, count);
-                    }
+                    context.draw_arrays_instanced(*mode, first, count, instance_count);
                 });
             }
         })

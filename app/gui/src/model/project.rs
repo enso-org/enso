@@ -39,6 +39,15 @@ pub trait API: Debug {
     /// Project's qualified name
     fn qualified_name(&self) -> project::QualifiedName;
 
+    /// Whether the read-only mode is enabled for the project.
+    ///
+    /// Read-only mode forbids certain operations, like renaming the project or editing the code
+    /// through the IDE.
+    fn read_only(&self) -> bool;
+
+    /// Set the read-only mode for the project.
+    fn set_read_only(&self, read_only: bool);
+
     /// Get Language Server JSON-RPC Connection for this project.
     fn json_rpc(&self) -> Rc<language_server::Connection>;
 
@@ -266,5 +275,9 @@ pub mod test {
         project.expect_qualified_module_name().returning_st(move |path: &model::module::Path| {
             path.qualified_module_name(name.clone())
         });
+    }
+
+    pub fn expect_read_only(project: &mut MockAPI, read_only: Rc<Cell<bool>>) {
+        project.expect_read_only().returning_st(move || read_only.get());
     }
 }

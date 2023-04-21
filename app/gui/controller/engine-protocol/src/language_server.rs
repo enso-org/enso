@@ -113,7 +113,7 @@ trait API {
     /// have permission to edit the resources for which edits are sent. This failure may be partial,
     /// in that some edits are applied and others are not.
     #[MethodInput=ApplyTextFileEditInput, rpc_name="text/applyEdit"]
-    fn apply_text_file_edit(&self, edit: FileEdit) -> ();
+    fn apply_text_file_edit(&self, edit: FileEdit, execute: bool) -> ();
 
     /// Create a new execution context. Return capabilities executionContext/canModify and
     /// executionContext/receivesUpdates containing freshly created ContextId

@@ -27,6 +27,10 @@ use ide_view_execution_environment_selector as execution_environment_selector;
 // === Initialisation ===
 // ======================
 
+fn make_entries() -> execution_mode_selector::ExecutionModes {
+    Rc::new(vec!["design".to_string(), "live".to_string()])
+}
+
 fn init(app: &Application) {
     let app = app.clone_ref();
     let world = &app.display;

@@ -224,6 +224,11 @@ async fn update_modules_on_file_change(
 #[fail(display = "Project Manager is unavailable.")]
 pub struct ProjectManagerUnavailable;
 
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "Project renaming is not available in read-only mode.")]
+pub struct RenameInReadOnly;
+
 /// A wrapper for an error with information that user tried to open project with unsupported
 /// engine's version (which is likely the cause of the problems).
 #[derive(Debug, Fail)]
@@ -295,6 +300,7 @@ pub struct Project {
     pub parser:              Parser,
     pub notifications:       notification::Publisher<model::project::Notification>,
     pub urm:                 Rc<model::undo_redo::Manager>,
+    pub read_only:           Rc<Cell<bool>>,
 }
 
 impl Project {
@@ -339,6 +345,7 @@ impl Project {
             parser,
             notifications,
             urm,
+            read_only: default(),
         };
 
         let binary_handler = ret.binary_event_handler();
@@ -620,13 +627,13 @@ impl Project {
         &self,
         path: module::Path,
     ) -> impl Future<Output = FallibleResult<Rc<module::Synchronized>>> {
-        let language_server = self.language_server_rpc.clone_ref();
+        let ls = self.language_server_rpc.clone_ref();
         let parser = self.parser.clone_ref();
         let urm = self.urm();
-        let repository = urm.repository.clone_ref();
+        let repo = urm.repository.clone_ref();
+        let read_only = self.read_only.clone_ref();
         async move {
-            let module =
-                module::Synchronized::open(path, language_server, parser, repository).await?;
+            let module = module::Synchronized::open(path, ls, parser, repo, read_only).await?;
             urm.module_opened(module.clone());
             Ok(module)
         }
@@ -702,18 +709,23 @@ impl model::project::API for Project {
     }
 
     fn rename_project(&self, name: String) -> BoxFuture<FallibleResult> {
-        async move {
-            let old_name = self.properties.borrow_mut().name.project.clone_ref();
-            let referent_name = name.to_im_string();
-            let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
-            let project_id = self.properties.borrow().id;
-            let project_name = ProjectName::new_unchecked(name);
-            project_manager.rename_project(&project_id, &project_name).await?;
-            self.properties.borrow_mut().name.project = referent_name.clone_ref();
-            self.execution_contexts.rename_project(old_name, referent_name);
-            Ok(())
+        if self.read_only() {
+            std::future::ready(Err(RenameInReadOnly.into())).boxed_local()
+        } else {
+            async move {
+                let old_name = self.properties.borrow_mut().name.project.clone_ref();
+                let referent_name = name.to_im_string();
+                let project_manager =
+                    self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
+                let project_id = self.properties.borrow().id;
+                let project_name = ProjectName::new_unchecked(name);
+                project_manager.rename_project(&project_id, &project_name).await?;
+                self.properties.borrow_mut().name.project = referent_name.clone_ref();
+                self.execution_contexts.rename_project(old_name, referent_name);
+                Ok(())
+            }
+            .boxed_local()
         }
-        .boxed_local()
     }
 
     fn project_content_root_id(&self) -> Uuid {
@@ -726,6 +738,14 @@ impl model::project::API for Project {
 
     fn urm(&self) -> Rc<model::undo_redo::Manager> {
         self.urm.clone_ref()
+    }
+
+    fn read_only(&self) -> bool {
+        self.read_only.get()
+    }
+
+    fn set_read_only(&self, read_only: bool) {
+        self.read_only.set(read_only);
     }
 }
 
@@ -864,7 +884,7 @@ mod test {
         let write_capability = Some(write_capability);
         let open_response = response::OpenTextFile { content, current_version, write_capability };
         expect_call!(client.open_text_file(path=path.clone()) => Ok(open_response));
-        client.expect.apply_text_file_edit(|_| Ok(()));
+        client.expect.apply_text_file_edit(|_, _| Ok(()));
         expect_call!(client.close_text_file(path) => Ok(()));
     }
 

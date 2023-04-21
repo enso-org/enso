@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -15,6 +16,7 @@ import org.enso.interpreter.runtime.data.Type;
     name = "is_same_object",
     description = "Checks if the two arguments share an underlying reference.",
     autoRegister = false)
+@GenerateUncached
 public abstract class IsSameObjectNode extends Node {
 
   public static IsSameObjectNode build() {
@@ -22,6 +24,15 @@ public abstract class IsSameObjectNode extends Node {
   }
 
   public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
+
+  @Specialization
+  boolean isSameDouble(double left, double right) {
+    if (Double.isNaN(left) && Double.isNaN(right)) {
+      return true;
+    } else {
+      return left == right;
+    }
+  }
 
   @Specialization
   boolean isSameType(Type typeLeft, Type typeRight) {

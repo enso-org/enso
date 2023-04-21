@@ -299,7 +299,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       } else if (result instanceof WithWarnings withWarnings) {
         return withWarnings.prepend(extracted);
       } else {
-        return new WithWarnings(result, extracted);
+        return WithWarnings.wrap(result, extracted);
       }
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);

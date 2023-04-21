@@ -15,7 +15,7 @@ spec =
         Test.specify "should correctly parse integers" <|
             t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
             t2 = t1.parse type=Value_Type.Integer
-            t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
+            t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
 
         Test.specify "should correctly parse decimals" <|
             t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "12345", Nothing]]]
@@ -31,35 +31,34 @@ spec =
             t6 = t5.parse type=Value_Type.Float
             t6.at "floats" . to_vector . should_equal [0.0, 0.0, 1.0, 0.1, 0.123, -0.1, 0.1, 0.0, 0.1234, Nothing, 11111111.111]
 
-        Test.specify "should warn on leading zeros in numbers, if asked" <|
+        Test.specify "should parse leading zeros in numbers" <|
             t1 = Table.new [["ints", ["0", "+00", "-00", "+01", "-01", "01", "000", "0010", "12345", Nothing]]]
             t2 = Table.new [["floats", ["0.0000", ".0", "00.", "01.0", "-0010.0000", "1.0000"]]]
 
-            t1_parsed = [0, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 12345, Nothing]
-            t1_zeros = ["+00", "-00", "+01", "-01", "01", "000", "0010"]
+            t1_parsed = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
             t3 = t1.parse type=Value_Type.Integer
             t3.at "ints" . to_vector . should_equal t1_parsed
-            Problems.get_attached_warnings t3 . should_equal [Leading_Zeros.Error "ints" Value_Type.Integer t1_zeros]
+            Problems.assume_no_problems t3
 
             t4 = t1.parse type=Value_Type.Float
             t4.at "ints" . to_vector . should_equal t1_parsed
-            Problems.get_attached_warnings t4 . should_equal [Leading_Zeros.Error "ints" Value_Type.Float t1_zeros]
+            Problems.assume_no_problems t4
 
             t5 = t2.parse type=Value_Type.Float
-            t5.at "floats" . to_vector . should_equal [0.0, 0.0, Nothing, Nothing, Nothing, 1.0]
-            Problems.get_attached_warnings t5 . should_equal [Leading_Zeros.Error "floats" Value_Type.Float ["00.", "01.0", '-0010.0000']]
+            t5.at "floats" . to_vector . should_equal [0.0, 0.0, 0, 1, -10, 1.0]
+            Problems.assume_no_problems t5
 
             opts = Data_Formatter.Value allow_leading_zeros=True
             t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
-            t6 = t1.parse format=opts type=Value_Type.Integer
+            t6 = t1.parse format=opts
             t6.at "ints" . to_vector . should_equal t1_parsed_zeros
             Problems.assume_no_problems t6
 
-            t7 = t1.parse format=opts type=Value_Type.Float
+            t7 = t1.parse format=opts
             t7.at "ints" . to_vector . should_equal t1_parsed_zeros
             Problems.assume_no_problems t7
 
-            t8 = t2.parse format=opts type=Value_Type.Float
+            t8 = t2.parse format=opts
             t8.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.0, -10.0, 1.0]
             Problems.assume_no_problems t8
 
@@ -217,13 +216,13 @@ spec =
             t2 = t1.parse format=opts
             t2.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.5, -1.2, 1.0, 0.0, 10000.0, 0.0]
 
-            t3 = Table.new [["xs", ["1,2", "1.3", "_0", "0_", "1_0_0"]]]
+            t3 = Table.new [["xs", ["1,2", "1.3", "_0", "0_", "1_0_0", "1_000"]]]
             t4 = t3.parse format=opts type=Value_Type.Float
-            t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, 100.0]
-            Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "xs" Value_Type.Float ["1.3", "_0", "0_"]]
+            t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, Nothing, 1000]
+            Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "xs" Value_Type.Float ["1.3", "_0", "0_", "1_0_0"]]
             t5 = t3.parse format=opts type=Value_Type.Integer
-            t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 100]
-            Problems.get_attached_warnings t5 . should_equal [Invalid_Format.Error "xs" Value_Type.Integer ["1,2", "1.3", "_0", "0_"]]
+            t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 1000]
+            Problems.get_attached_warnings t5 . should_equal [Invalid_Format.Error "xs" Value_Type.Integer ["1,2", "1.3", "_0", "0_", "1_0_0"]]
 
         Test.specify "should allow to specify custom values for booleans" <|
             opts_1 = Data_Formatter.Value true_values=["1", "YES"] false_values=["0"]
@@ -395,22 +394,59 @@ spec =
             c1 = Column.from_vector "ints" ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]
             c2 = c1.parse type=Value_Type.Integer
             c2.name.should_equal c1.name
-            c2 . to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
+            c2 . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
             c2.value_type.should_equal Value_Type.Integer
-            Problems.expect_warning Leading_Zeros c2
+            Problems.assume_no_problems c2
 
             c3 = c1.parse type=Value_Type.Integer format=(Data_Formatter.Value.with_number_formatting allow_leading_zeros=True)
             c3.to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
             Problems.assume_no_problems c3
 
+        Test.specify "should correctly parse integers in US formats" <|
+            cUS = Column.from_vector "ints" ["1", "000123", "-1234", "1234567", "123e456"]
+            pUS = cUS.parse type=Value_Type.Integer
+            pUS.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["123e456"]) pUS
+
+            cUS2 = Column.from_vector "ints" ["1", "000123", "-1,234", "1,234,567", "12,34,56"]
+            pUS2 = cUS2.parse type=Value_Type.Integer
+            pUS2.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["12,34,56"]) pUS2
+
+            cUS3 = Column.from_vector "ints" ["1", "(000,123)", "-1,234", "1,234,567", "12,34,56"]
+            pUS3 = cUS3.parse type=Value_Type.Integer
+            pUS3.to_vector . should_equal [1, -123, Nothing, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["-1,234", "12,34,56"]) pUS3
+
+            cUS4 = Column.from_vector "ints" ["$1234", "$1,234", "$1,234,567","-$1,234", "($1,234,567)"]
+            pUS4 = cUS4.parse type=Value_Type.Integer
+            pUS4.to_vector . should_equal [1234, 1234, 1234567, -1234, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["($1,234,567)"]) pUS4
+
+        Test.specify "should correctly parse integers in European formats" <|
+            cDE = Column.from_vector "ints" ["1", "000123", "-1.234", "1.234.567", "12.34.56"]
+            pDE = cDE.parse type=Value_Type.Integer
+            pDE.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["12.34.56"]) pDE
+
+            cFR = Column.from_vector "ints" ["€1", "€000123", "€-1 234", "€   1 234 567", "€ 12 34 56"]
+            pFR = cFR.parse type=Value_Type.Integer
+            pFR.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["€ 12 34 56"]) pFR
+
+            cSW = Column.from_vector "ints" ["1", "000123", "-1'234", "1'234'567", "(123'456)"]
+            pSW = cSW.parse type=Value_Type.Integer
+            pSW.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["(123'456)"]) pSW
+
         Test.specify "should correctly parse decimals" <|
             c1 = Column.from_vector "ints" ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]
             c2 = c1.parse Value_Type.Float
             c2.name.should_equal c1.name
-            c2.to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
+            c2.to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
             c2.value_type.should_equal Value_Type.Float
-            c2.to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "Nothing", "Nothing", "12345.0", "Nothing"]
-            Problems.expect_warning Leading_Zeros c2
+            c2.to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "0.0", "10.0", "12345.0", "Nothing"]
+            Problems.assume_no_problems c2
 
             c3 = Column.from_vector "floats" ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "0.0000", "10.", "12345."]
             c4 = c3.parse Value_Type.Float
@@ -422,6 +458,43 @@ spec =
             c6 = c5.parse Value_Type.Float
             c6.to_vector . should_equal [0.0, 0.0, 1.0, 0.1, 0.123, -0.1, 0.1, 0.0, 0.1234, Nothing, 11111111.111]
             Problems.assume_no_problems c6
+
+        Test.specify "should correctly parse decimals in US formats" <|
+            cUS = Column.from_vector "floats" ["1.23", "000123", "-12.34", "123.4567", "123e456"]
+            pUS = cUS.parse type=Value_Type.Float
+            pUS.to_vector . should_equal [1.23, 123, -12.34, 123.4567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["123e456"]) pUS
+
+            cUS2 = Column.from_vector "floats" ["1.23", "000123", "-1,234.567", "1,234,567.789", "12,34.56"]
+            pUS2 = cUS2.parse type=Value_Type.Float
+            pUS2.to_vector . should_equal [1.23, 123, -1234.567, 1234567.789, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["12,34.56"]) pUS2
+
+            cUS3 = Column.from_vector "floats" ["1.23", "(000,123)", "-1,234.567", "1,234,567.789", "12,34.56"]
+            pUS3 = cUS3.parse type=Value_Type.Float
+            pUS3.to_vector . should_equal [1.23, -123, Nothing, 1234567.789, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["-1,234.567", "12,34.56"]) pUS3
+
+            cUS4 = Column.from_vector "floats" ["$12.34", "$1,234", "$1,234,567.789","-$1,234.96", "($1,234,567)"]
+            pUS4 = cUS4.parse type=Value_Type.Float
+            pUS4.to_vector . should_equal [12.34, 1234, 1234567.789, -1234.96, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["($1,234,567)"]) pUS4
+
+        Test.specify "should correctly parse decimals in European formats" <|
+            cDE = Column.from_vector "floats" ["1,23", "000123", "-1.234,567", "1.234.567,789", "12.34,56"]
+            pDE = cDE.parse type=Value_Type.Float
+            pDE.to_vector . should_equal [1.23, 123, -1234.567, 1234567.789, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["12.34,56"]) pDE
+
+            cFR = Column.from_vector "floats" ["€1,23", "€000123", "€-1 234,567", "€   1 234 567,789", "€ 12 34,56"]
+            pFR = cFR.parse type=Value_Type.Float
+            pDE.to_vector . should_equal [1.23, 123, -1234.567, 1234567.789, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["€ 12 34,56"]) pFR
+
+            cSW = Column.from_vector "floats" ["1,23", "000123", "-1'234,567", "1'234'567", "(123'456)"]
+            pSW = cSW.parse type=Value_Type.Float
+            pSW.to_vector . should_equal [1.23, 123, -1234.567, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["(123'456)"]) pSW
 
         Test.specify "should correctly parse booleans" <|
             c1 = Column.from_vector "bools" ["true", "false", "True", "TRUE", "FALSE", Nothing, "False"]
