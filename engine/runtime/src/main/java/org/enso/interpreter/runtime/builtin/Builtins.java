@@ -57,11 +57,11 @@ import java.util.stream.Collectors;
 public class Builtins {
 
   private static final List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
-  private static final Map<String, LoadedBuiltinMethod> loadedBbuiltinMethods;
+  private static final Map<String, LoadedBuiltinMethod> loadedBuiltinMethods;
 
   static {
     loadedBuiltinConstructors = readBuiltinTypes();
-    loadedBbuiltinMethods = readBuiltinMethodsMethods();
+    loadedBuiltinMethods = readBuiltinMethodsMethods();
   }
 
   public static final String PACKAGE_NAME = "Builtins";
@@ -130,7 +130,7 @@ public class Builtins {
             .collect(
                 Collectors.toMap(
                     v -> v.getType().getName(), java.util.function.Function.identity()));
-    builtinMethodNodes = readBuiltinMethodsMetadata(loadedBbuiltinMethods, scope);
+    builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scope);
     registerBuiltinMethods(scope, language);
 
     error = new Error(this, context);

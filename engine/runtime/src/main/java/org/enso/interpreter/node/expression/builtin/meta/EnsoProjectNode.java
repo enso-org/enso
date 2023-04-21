@@ -13,13 +13,8 @@ import org.enso.pkg.Package;
     type = "Project_Description",
     name = "enso_project",
     description = "Returns the description of the current Enso project",
-    autoRegister = false
-)
+    autoRegister = true)
 public final class EnsoProjectNode extends Node {
-  public static EnsoProjectNode build() {
-    return MyEnsoProjectNodeGen.create();
-  }
-
   @TruffleBoundary
   public Object execute() {
     var ctx = EnsoContext.get(this);
@@ -28,14 +23,13 @@ public final class EnsoProjectNode extends Node {
       Package<TruffleFile> pkg = mainProjectPkg.get();
       EnsoFile rootPath = new EnsoFile(pkg.root().normalize());
       Object cfg = ctx.getEnvironment().asGuestValue(pkg.config());
-      return ctx
-              .getBuiltins()
-              .getProjectDescription()
-              .getUniqueConstructor()
-              .newInstance(rootPath, cfg);
+      return ctx.getBuiltins()
+          .getProjectDescription()
+          .getUniqueConstructor()
+          .newInstance(rootPath, cfg);
     } else {
       return DataflowError.withoutTrace(
-              ctx.getBuiltins().error().makeModuleNotInPackageError(), this);
+          ctx.getBuiltins().error().makeModuleNotInPackageError(), this);
     }
   }
 }
