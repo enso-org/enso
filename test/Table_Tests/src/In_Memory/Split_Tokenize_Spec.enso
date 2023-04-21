@@ -260,4 +260,10 @@ spec =
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal_verbose expected
 
+        Test.specify "column and group name clash" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "123", "y"]]
+            expected = Table.from_rows ["foo", "bar", "baz_1", "quux", "baz"] [["x", 1, 2, 3, "y"]]
+            actual = t.parse_to_columns "bar" "(?<bar>\d)(?<baz>\d)(?<quux>\d)"
+            actual.should_equal_verbose expected
+
 main = Test_Suite.run_main spec
