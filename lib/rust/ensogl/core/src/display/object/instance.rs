@@ -1144,10 +1144,7 @@ pub struct ChildIndex(usize);
 // =============
 
 /// The main display object structure. Read the docs of [this module](self) to learn more.
-#[derive(Derivative)]
-#[derive(CloneRef, Deref, From)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Default(bound = ""))]
+#[derive(Clone, CloneRef, Default, Deref, From)]
 #[repr(transparent)]
 pub struct Instance {
     def: InstanceDef,
@@ -1163,9 +1160,7 @@ pub struct Instance {
 /// not caught by rustc yet: https://github.com/rust-lang/rust/issues/57965). This struct allows the
 /// implementation to be written as [`self.display_object().def.add_child(child)`] instead, which
 /// will fail to compile after renaming the function in [`InstanceDef`].
-#[derive(Derivative)]
-#[derive(CloneRef, Deref)]
-#[derivative(Clone(bound = ""))]
+#[derive(Clone, CloneRef, Deref)]
 #[repr(transparent)]
 pub struct InstanceDef {
     rc: Rc<Model>,
@@ -1284,9 +1279,7 @@ impl Display for InstanceDef {
 // ====================
 
 /// Weak display object instance.
-#[derive(Derivative)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
+#[derive(Debug, Clone, CloneRef)]
 pub struct WeakInstance {
     weak: Weak<Model>,
 }

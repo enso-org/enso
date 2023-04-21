@@ -168,7 +168,9 @@ impl Port {
             port_root.add_child(&hover_shape);
         }
 
+        let port_root_weak = port_root.downgrade();
         let network = &port_root.network;
+
         frp::extend! { network
             on_cleanup <- on_drop();
             hovering <- bool(&mouse_leave, &mouse_enter);
@@ -181,11 +183,13 @@ impl Port {
             );
 
             frp.on_port_press <+ mouse_down.map(f!((_) crumbs.borrow().clone()));
-            eval frp.set_ports_visible([port_root, hover_shape] (active) {
-                if *active {
-                    port_root.add_child(&hover_shape);
-                } else {
-                    port_root.remove_child(&hover_shape);
+            eval frp.set_ports_visible([port_root_weak, hover_shape] (active) {
+                if let Some(port_root) = port_root_weak.upgrade() {
+                    if *active {
+                        port_root.add_child(&hover_shape);
+                    } else {
+                        port_root.remove_child(&hover_shape);
+                    }
                 }
             });
 
