@@ -53,6 +53,10 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
     Value_Type.expect_text column
         fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
 
+## PRIVATE
+   Converts a Text column into new columns using a regular expression
+   pattern.
+   See `Table.parse_to_columns`.
 parse_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
 parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -69,9 +73,9 @@ parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensiti
 
 ## PRIVATE
    Create a parser from a regex to a nested `Vector`. Each match becomes an
-   element outer vector; each group (or the whole match, if there are no groups)
-   becomes an element of the inner vectors.
-regex_parse_to_vectors : Pattern -> (Text -> Vector (Vector (Text | Any)))
+   element of the vector; each group (or the whole match, if there are no
+   groups) becomes an element of the inner vectors.
+regex_parse_to_vectors : Pattern -> (Text -> Vector (Vector (Text | Nothing)))
 regex_parse_to_vectors pattern =
     input->
         matches = pattern.match_all input
@@ -176,6 +180,7 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
 fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> (Integer -> Text | Nothing) -> Problem_Behavior -> Table
 fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing on_problems=Report_Error =
     problem_builder = Problem_Builder.new
+    unique = Unique_Name_Strategy.new
 
     # Integer -> String
     effective_column_namer = case column_namer of
@@ -211,10 +216,14 @@ fan_out_to_rows_and_columns table input_column_id function column_namer=Nothing 
         # Append n copies of the input row position, n = # of output values.
         repeat_each output_values.length <| order_mask_positions.append i
 
+    # Reserve the non-input column names that will not be changing.
+    non_input_columns = table.columns.filter c-> c.name != input_column.name
+    unique.mark_used <| non_input_columns.map .name
+
     # Build the output column
     output_storages = output_column_builders.map .seal
     output_columns = output_storages.map_with_index i-> output_storage->
-        column_name = effective_column_namer i
+        column_name = unique.make_unique <| effective_column_namer i
         Column.from_storage column_name output_storage
 
     # Build the order mask.
@@ -362,12 +371,7 @@ uniform_length target_length v problem_builder = if v.length == target_length th
     problem = Column_Count_Mismatch.Error target_length v.length
     problem_builder.report_other_warning problem
     case v.length < target_length of
-        True -> # Pad.
-            num_paddings = target_length - v.length
-            new_v = Vector.new_builder
-            new_v.append_vector_range v
-            repeat_each num_paddings <| new_v.append Nothing
-            new_v.to_vector
+        # Pad.
+        True -> v.pad target_length Nothing
 		# Truncate.
-        False -> 
-            v.take target_length
+        False -> v.take target_length
