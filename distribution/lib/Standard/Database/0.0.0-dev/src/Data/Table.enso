@@ -1468,12 +1468,12 @@ type Table
        The values of other columns are repeated for the new rows.
 
        If there are no marked groups, a single column with whole content of
-       match. Otherwise, each group becomes a column (with group name if named
-       in Regex).
+       match is added. Otherwise, each group becomes a column (with group name
+       if named in Regex).
 
        Arguments:
        - column: The column to split the text of.
-       - pattern: The pattern used to find within the text.
+       - pattern: The pattern used to search within the text.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - parse_values: Parse any values using the default value parser.
@@ -1487,7 +1487,7 @@ type Table
        suffixing strategy.
     parse_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
-        Error.throw (Unsupported_Database_Operation.Error "Table.parse_text_to_column is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
 
     ## PRIVATE
        UNSTABLE
