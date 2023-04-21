@@ -23,7 +23,6 @@ type Case_Sensitivity
        - locale: The locale used for the comparison.
     Insensitive locale=Locale.default
 
-
     ## PRIVATE
        Convert Case_Sensitivity to a friendly string.
     to_display_text : Text
