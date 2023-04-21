@@ -8,6 +8,7 @@ use crate::component::node::input::widget::DynWidget;
 use crate::component::node::input::widget::SpanWidget;
 use crate::component::node::input::widget::WidgetsFrp;
 use crate::component::node::ConnectionStatus;
+
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
@@ -30,7 +31,7 @@ pub const BASE_PORT_HEIGHT: f32 = 18.0;
 
 /// The vertical hover padding of ports at low depth. It affects how the port hover should extend
 /// the target text boundary on both sides.
-pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = 4.0;
+pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_HEIGHT) / 2.0;
 
 /// The maximum depth of the widget port that is still considered primary. This is used to determine
 /// the hover area of the port.
@@ -58,6 +59,7 @@ pub const PRIMARY_PORT_MAX_DEPTH: usize = 0;
 pub mod shape {
     use super::*;
     ensogl::shape! {
+        below = [ensogl::gui::cursor::shape];
         pointer_events = false;
         (style:Style, color:Vector4) {
             let size = Var::canvas_size();
@@ -92,7 +94,7 @@ struct HoverLayers {
 
 impl display::scene::Extension for HoverLayers {
     fn init(scene: &display::Scene) -> Self {
-        let hover_layer = scene.layers.main.clone_ref();
+        let hover_layer = scene.layers.label.clone_ref();
         Self { hover_layer, hover_partitions: default() }
     }
 }
@@ -250,9 +252,10 @@ impl Port {
         let is_primary = ctx.state.depth <= PRIMARY_PORT_MAX_DEPTH;
         if self.current_primary != is_primary {
             self.current_primary = is_primary;
-            let margin = if is_primary { -PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };
-            self.hover_shape.set_margin_top(margin);
-            self.hover_shape.set_margin_bottom(margin);
+            let margin = if is_primary { PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };
+            self.hover_shape.set_size_y(BASE_PORT_HEIGHT + 2.0 * margin);
+            self.hover_shape.set_margin_top(-margin);
+            self.hover_shape.set_margin_bottom(-margin);
         }
     }
 

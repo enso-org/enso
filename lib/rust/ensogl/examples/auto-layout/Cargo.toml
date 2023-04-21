@@ -9,7 +9,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ensogl-core = { path = "../../core" }
-ensogl-text = { path = "../../component/text" }
 wasm-bindgen = { workspace = true }
 ensogl-hardcoded-theme = { path = "../../../ensogl/app/theme/hardcoded" }
 

@@ -3,11 +3,14 @@
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
+
 use ensogl::data::color;
 use ensogl::display::object;
 use ensogl::display::shape::StyleWatch;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
+
+
 
 // =============
 // === Label ===

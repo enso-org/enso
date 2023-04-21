@@ -7,7 +7,6 @@
 use crate::prelude::*;
 
 use crate::component::node::input::widget::single_choice::triangle;
-use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_COLOR;
 use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_SIZE;
 use crate::component::node::input::widget::Metadata;
 

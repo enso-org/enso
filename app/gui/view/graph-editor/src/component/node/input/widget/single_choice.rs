@@ -3,12 +3,14 @@
 use crate::prelude::*;
 
 use crate::component::node::input::widget::Entry;
+
 use enso_frp as frp;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
+use ensogl_hardcoded_theme as theme;
 
 
 
@@ -16,11 +18,11 @@ use ensogl_component::drop_down::Dropdown;
 /// === Constants ===
 /// =================
 
-/// Color of the activation triangle shape.
-pub const ACTIVATION_SHAPE_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
-
 /// Height of the activation triangle shape.
 pub const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
+
+/// Gap between activation shape and the dropdown widget content.
+pub const ACTIVATION_SHAPE_GAP: f32 = 5.0;
 
 /// Distance between the top of the dropdown list and the bottom of the widget.
 const DROPDOWN_Y_OFFSET: f32 = -20.0;
@@ -37,11 +39,7 @@ const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
 pub mod triangle {
     use super::*;
     ensogl::shape! {
-        above = [
-            crate::component::node::background,
-            crate::component::node::drag_area,
-            crate::component::node::input::port::shape
-        ];
+        below = [crate::component::node::input::port::hover_shape];
         alignment = left_bottom;
         (style:Style, color:Vector4) {
             let size   = Var::canvas_size();
@@ -74,9 +72,10 @@ pub struct Config {
 
 ensogl::define_endpoints_2! {
     Input {
-        set_entries(Rc<Vec<Entry>>),
-        current_value(Option<ImString>),
-        current_crumbs(span_tree::Crumbs),
+        set_entries    (Rc<Vec<Entry>>),
+        current_value  (Option<ImString>),
+        current_crumbs (span_tree::Crumbs),
+        is_connected   (bool),
     }
 }
 
@@ -91,7 +90,6 @@ pub struct Widget {
     dropdown_wrapper: display::object::Instance,
     label_wrapper:    display::object::Instance,
     dropdown:         Rc<RefCell<LazyDropdown>>,
-    label:            super::label::Widget,
     activation_shape: triangle::View,
 }
 
@@ -116,17 +114,17 @@ impl super::SpanWidget for Widget {
         //  │ ◎ dropdown_wrapper size=0         │
         //  ╰───────────────────────────────────╯
 
-        let dot_color = color::Rgba::from(ACTIVATION_SHAPE_COLOR.with_alpha(1.0)).into();
         let activation_shape = triangle::View::new();
-        activation_shape.color.set(dot_color);
         activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
+
+        let layers = &ctx.app().display.default_scene.layers;
+        layers.label.add(&activation_shape);
 
         let display_object = display::object::Instance::new();
         let content_wrapper = display_object.new_child();
         content_wrapper.add_child(&activation_shape);
         let label_wrapper = content_wrapper.new_child();
         let dropdown_wrapper = display_object.new_child();
-
 
         display_object
             .use_auto_layout()
@@ -136,6 +134,7 @@ impl super::SpanWidget for Widget {
 
         content_wrapper
             .use_auto_layout()
+            .set_gap_x(ACTIVATION_SHAPE_GAP)
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
@@ -146,22 +145,40 @@ impl super::SpanWidget for Widget {
 
         dropdown_wrapper.set_size((0.0, 0.0)).set_alignment_left_top();
 
-        let label = super::label::Widget::new(&default(), ctx);
-
         let config_frp = Frp::new();
         let network = &config_frp.network;
         let input = &config_frp.private.input;
+        let styles = ctx.styles();
 
         let focus_receiver = display_object.clone_ref();
 
         frp::extend! { network
-            init <- source::<()>();
             initialize_dropdown <- any_(...);
 
             let focus_in = focus_receiver.on_event::<event::FocusIn>();
             let focus_out = focus_receiver.on_event::<event::FocusOut>();
             initialize_dropdown <+ focus_in;
             is_open <- bool(&focus_out, &focus_in);
+
+            is_hovered <- widgets_frp.on_port_hover.map2(&input.current_crumbs, |h, crumbs| {
+                h.on().map_or(false, |h| crumbs.starts_with(h))
+            });
+            is_connected_or_hovered <- input.is_connected || is_hovered;
+            activation_shape_theme <- is_connected_or_hovered.map(|is_connected_or_hovered| {
+                if *is_connected_or_hovered {
+                    Some(theme::widget::activation_shape::connected)
+                } else {
+                    Some(theme::widget::activation_shape::base)
+                }
+            });
+            activation_shape_theme <- activation_shape_theme.on_change();
+            eval activation_shape_theme([styles, activation_shape](path) {
+                if let Some(path) = path {
+                    let color = styles.get_color(path);
+                    let rgba = color::Rgba::from(color);
+                    activation_shape.color.set(rgba.into());
+                }
+            });
 
             let dot_mouse_down = activation_shape.on_event::<mouse::Down>();
             dot_clicked <- dot_mouse_down.filter(mouse::is_primary);
@@ -231,8 +248,6 @@ impl super::SpanWidget for Widget {
             });
         }
 
-        init.emit(());
-
         Self {
             config_frp,
             display_object,
@@ -241,7 +256,6 @@ impl super::SpanWidget for Widget {
             label_wrapper,
             dropdown,
             activation_shape,
-            label,
         }
     }
 
@@ -255,18 +269,18 @@ impl super::SpanWidget for Widget {
         input.current_crumbs(ctx.span_tree_node.crumbs.clone());
         input.current_value(current_value);
         input.set_entries(config.entries.clone());
+        input.is_connected(ctx.state.subtree_connection.is_connected());
 
         if has_value {
             ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
         }
 
         if ctx.span_tree_node.children.is_empty() {
-            self.label.configure(&default(), ctx);
-            self.label_wrapper.replace_children(&[self.label.root_object()]);
+            let label_meta = super::Metadata::always(super::label::Config);
+            let child =
+                ctx.builder.child_widget_of_type(ctx.span_tree_node, ctx.state.depth, label_meta);
+            self.label_wrapper.replace_children(&[child]);
         } else {
-            // let mut chain = ctx.span_tree_node.clone().chain_children_iter();
-            // Do not increment the depth. If the dropdown is displayed, it should also display
-            // its arguments.
             let children = ctx
                 .span_tree_node
                 .children_iter()

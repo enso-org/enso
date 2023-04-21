@@ -7,6 +7,7 @@ use crate::component::node::input::area::TEXT_OFFSET;
 use crate::component::node::input::port::Port;
 use crate::component::node::ConnectionData;
 use crate::component::node::ConnectionStatus;
+
 use enso_config::ARGS;
 use enso_frp as frp;
 use enso_text as text;
@@ -899,6 +900,20 @@ pub struct MainWidgetPointer {
     crumbs_hash: u64,
 }
 
+impl MainWidgetPointer {
+    fn new(id: Option<ast::Id>, crumbs: &[span_tree::Crumb]) -> Self {
+        let mut hasher = DefaultHasher::new();
+        crumbs.hash(&mut hasher);
+        let crumbs_hash = hasher.finish();
+        Self { id, crumbs_hash }
+    }
+
+    /// Convert this pointer to a stable identity of a widget, making it unique among all widgets.
+    fn to_identity(self, usage: &mut PointerUsage) -> WidgetIdentity {
+        WidgetIdentity { main: self, index: usage.next_index() }
+    }
+}
+
 /// An unique identity of a widget in the widget tree. It is a combination of a `MainWidgetPointer`
 /// and a sequential index of the widget assigned to the same span tree node. Any widget is allowed
 /// to create a child widget on the same span tree node, so we need to be able to distinguish
@@ -916,15 +931,12 @@ pub struct WidgetIdentity {
     index: usize,
 }
 
-impl MainWidgetPointer {
-    fn new(id: Option<ast::Id>, crumbs: &[span_tree::Crumb]) -> Self {
-        let mut hasher = DefaultHasher::new();
-        crumbs.hash(&mut hasher);
-        let crumbs_hash = hasher.finish();
-        Self { id, crumbs_hash }
+impl WidgetIdentity {
+    /// Whether this widget pointer represents first created widget for its node.
+    fn is_first(&self) -> bool {
+        self.index == 0
     }
 }
-
 
 
 /// =========================
@@ -963,6 +975,22 @@ struct PointerUsage {
     next_index: usize,
     /// The pointer index of a widget on this span tree that received a port, if any exist already.
     port_index: Option<usize>,
+}
+
+impl PointerUsage {
+    fn next_index(&mut self) -> usize {
+        self.next_index += 1;
+        self.next_index - 1
+    }
+
+    fn request_port(&mut self, identity: &WidgetIdentity, wants_port: bool) -> bool {
+        if wants_port && self.port_index.is_none() {
+            self.port_index = Some(identity.index);
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl<'a> WidgetTreeBuilder<'a> {
@@ -1033,7 +1061,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         };
 
         let ptr_usage = self.pointer_usage.entry(main_ptr).or_default();
-        let unique_ptr = WidgetIdentity { main: main_ptr, index: ptr_usage.next_index };
+        let unique_ptr = main_ptr.to_identity(ptr_usage);
 
         let is_placeholder = span_tree_node.is_expected_argument();
         let sibling_offset = span_tree_node.sibling_offset.as_usize();
@@ -1066,13 +1094,7 @@ impl<'a> WidgetTreeBuilder<'a> {
                 })
             });
 
-        let widget_has_port = match (meta.has_port, &mut ptr_usage.port_index) {
-            (true, port_index @ None) => {
-                *port_index = Some(unique_ptr.index);
-                true
-            }
-            _ => false,
-        };
+        let widget_has_port = ptr_usage.request_port(&unique_ptr, meta.has_port);
 
         let self_insertion_index = self.hierarchy.len();
         self.hierarchy.push(NodeHierarchy {
@@ -1153,7 +1175,12 @@ impl<'a> WidgetTreeBuilder<'a> {
 
         // Apply left margin to the widget, based on its offset relative to the previous sibling.
         let child_root = child_node.display_object().clone();
-        let offset = sibling_offset.max(if is_placeholder { 1 } else { 0 });
+        let offset = match () {
+            _ if !unique_ptr.is_first() => 0,
+            _ if is_placeholder => 1,
+            _ => sibling_offset,
+        };
+
         let left_margin = offset as f32 * WIDGET_SPACING_PER_OFFSET;
         if child_root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
             child_root.set_margin_left(left_margin);
