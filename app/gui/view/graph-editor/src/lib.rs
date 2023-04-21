@@ -2082,6 +2082,7 @@ impl GraphEditorModel {
     }
 
     fn remove_edge_source(&self, edge_id: EdgeId) {
+        error!("remove_edge_source");
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(source) = edge.take_source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&source.node_id) {
@@ -2121,6 +2122,7 @@ impl GraphEditorModel {
     }
 
     fn remove_edge_target(&self, edge_id: EdgeId) {
+        error!("remove_edge_target");
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(target) = edge.take_target() {
                 if let Some(node) = self.nodes.get_cloned_ref(&target.node_id) {

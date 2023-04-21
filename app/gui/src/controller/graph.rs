@@ -767,12 +767,16 @@ impl Handle {
     ) -> FallibleResult<Option<span_tree::Crumbs>> {
         let _transaction_guard = self.get_or_open_transaction("Disconnect");
         let info = self.destination_info(connection, context)?;
+        error!("Disconnect: {connection:?}");
 
         let mut new_destination_crumbs = None;
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
             let port = info.port()?;
+            error!("Port: {port:?}");
             if port.is_action_available(Action::Erase) {
+                error!("Erase");
                 let (ast, crumbs) = info.erase(context)?;
+                error!("Ast, crumbs: {ast:?}, {crumbs:?}");
                 new_destination_crumbs = Some(crumbs);
                 Ok(ast)
             } else {
@@ -781,6 +785,7 @@ impl Handle {
         } else {
             info.set_ast(Ast::blank())
         }?;
+        error!("Updated expression: {updated_expression:?}");
 
         self.set_expression_ast(connection.destination.node, updated_expression)?;
         Ok(new_destination_crumbs)
@@ -1717,6 +1722,34 @@ main =
             let name = Handle::variable_name_base_for(&node_info);
             assert_eq!(&name, expected_name);
         }
+    }
+
+    #[test]
+    fn disconnect_issue_6228() {
+        let mut test = Fixture::set_up();
+        const MAIN_PREFIX: &str =
+            "main = \n    uri = \"https://example.com\"\n    headers = []\n    ";
+        test.data.code = format!("{}{}", MAIN_PREFIX, "Data.fetch uri HTTP_Method.Get headers");
+        let expected =
+            format!("{}{}", MAIN_PREFIX, "Data.fetch method=HTTP_Method.Get headers=headers");
+        let info = CalledMethodInfo {
+            parameters: vec![
+                span_tree::ArgumentInfo::named("uri"),
+                span_tree::ArgumentInfo::named("method"),
+                span_tree::ArgumentInfo::named("headers"),
+            ],
+            ..default()
+        };
+        test.run(|graph| async move {
+            let nodes = graph.nodes().unwrap();
+            let dest_node_id = nodes.last().unwrap().id();
+            let ctx = MockContext::new_single(dest_node_id, info);
+            let connections = graph.connections(&ctx).unwrap();
+            let connection = connections.connections.first().unwrap();
+            graph.disconnect(connection, &ctx).unwrap();
+            let new_main = graph.definition().unwrap().ast.repr();
+            assert_eq!(new_main, expected);
+        })
     }
 
     #[test]

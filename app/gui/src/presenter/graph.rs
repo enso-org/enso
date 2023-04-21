@@ -305,7 +305,7 @@ impl Model {
                 let ast_to_remove = update.remove_connection(id)?;
                 Some(self.controller.disconnect(&ast_to_remove).map(|target_crumbs| {
                     target_crumbs.and_then(|crumbs| {
-                        trace!(
+                        error!(
                             "Updating edge target after disconnecting it. New crumbs: {crumbs:?}"
                         );
                         // If we are still using this edge (e.g. when dragging it), we need to

@@ -114,7 +114,7 @@ pub trait Implementation {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>>;
 }
 
-impl<'a, T> Implementation for node::Ref<'a, T> {
+impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
     fn set_impl(&self) -> Option<SetOperation> {
         match &self.node.kind {
             node::Kind::InsertionPoint(ins_point) => Some(Box::new(move |root, new| {
@@ -240,6 +240,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
         if self.node.kind.removable() {
             Some(Box::new(move |root, context| {
+                error!("Erase impl");
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
@@ -287,6 +288,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         .map(|found| found.node);
 
                     while let Some(node) = next_parent {
+                        error!("Node: {node:?}");
                         next_parent = node.parent()?;
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
@@ -296,12 +298,17 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             Some(found) if found.node.is_argument() =>
                                 if let Some(arg_name) = found.node.kind.argument_name() {
                                     let def_idx = found.node.kind.definition_index();
+                                    error!("{arg_name:?}, {def_idx:?}");
                                     let need_rewrite =
                                         def_idx.map_or(false, |idx| idx > erased_definition_index);
 
                                     if need_rewrite {
                                         let arg_crumbs = &found.node.ast_crumbs;
                                         let expression = new_root.get_traversing(arg_crumbs)?;
+                                        error!(
+                                            "Expression: {expression:?} ({})",
+                                            expression.repr()
+                                        );
                                         let named_ast = Ast::named_argument(arg_name, expression);
                                         new_root =
                                             new_root.set_traversing(arg_crumbs, named_ast)?;
