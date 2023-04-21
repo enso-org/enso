@@ -4,7 +4,8 @@
 //!
 //! TODO: If similar things are needed elsewhere, refactor this to a
 //! Chooser<T:Eq+Display> (or similar) which would represent a `DropDownMenu` for specific owned
-//! values.
+//! values. It should also be refactored to use `drop_down_menu` from `ensogl_components` instead
+//! of the old list view.
 
 use crate::prelude::*;
 
@@ -60,7 +61,9 @@ struct Model {
 impl Model {
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let selection_menu = drop_down_menu::DropDownMenu::new(app);
+        selection_menu.set_label_alignment(drop_down_menu::Alignment::Right);
         app.display.default_scene.layers.above_nodes.add(&selection_menu);
+        selection_menu.set_label_layer(&app.display.default_scene.layers.above_nodes_text);
         Self { selection_menu, registry }
     }
 

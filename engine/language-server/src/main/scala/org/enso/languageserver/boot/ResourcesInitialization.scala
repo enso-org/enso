@@ -3,6 +3,7 @@ package org.enso.languageserver.boot
 import akka.event.EventStream
 import org.enso.jsonrpc.ProtocolFactory
 import org.enso.languageserver.boot.resource.{
+  AsyncResourcesInitialization,
   DirectoriesInitialization,
   InitializationComponent,
   JsonRpcInitializationComponent,
@@ -43,18 +44,19 @@ object ResourcesInitialization {
     truffleContext: Context,
     runtime: effect.Runtime
   )(implicit ec: ExecutionContext): InitializationComponent = {
-    val resources = Seq(
+    SequentialResourcesInitialization(
       new DirectoriesInitialization(directoriesConfig),
-      new JsonRpcInitializationComponent(protocolFactory),
-      new ZioRuntimeInitialization(runtime),
-      new RepoInitialization(
-        directoriesConfig,
-        eventStream,
-        sqlDatabase,
-        suggestionsRepo
-      ),
-      new TruffleContextInitialization(eventStream, truffleContext)
+      AsyncResourcesInitialization(
+        new JsonRpcInitializationComponent(protocolFactory),
+        new ZioRuntimeInitialization(runtime),
+        new RepoInitialization(
+          directoriesConfig,
+          eventStream,
+          sqlDatabase,
+          suggestionsRepo
+        ),
+        new TruffleContextInitialization(eventStream, truffleContext)
+      )
     )
-    new SequentialResourcesInitialization(resources)
   }
 }

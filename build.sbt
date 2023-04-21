@@ -479,6 +479,7 @@ val sqliteVersion           = "3.41.2.1"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
+val junitIfVersion          = "0.11"
 val netbeansApiVersion      = "RELEASE140"
 
 // ============================================================================
@@ -733,7 +734,7 @@ lazy val `logging-service` = project
       "io.circe"               %% "circe-core"      % circeVersion,
       "io.circe"               %% "circe-parser"    % circeVersion,
       "junit"                   % "junit"           % junitVersion     % Test,
-      "com.novocode"            % "junit-interface" % "0.11"           % Test exclude ("junit", "junit-dep"),
+      "com.novocode"            % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
       "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
       "org.graalvm.nativeimage" % "svm"             % graalVersion     % "provided"
     )
@@ -988,6 +989,28 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
       "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
     )
   )
+
+lazy val `interpreter-dsl-test` =
+  (project in file("engine/interpreter-dsl-test"))
+    .configs(Test)
+    .settings(
+      version := "0.1",
+      frgaalJavaCompilerSetting,
+      Test / fork := true,
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
+      commands += WithDebugCommand.withDebug,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion   % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion   % "provided",
+        "junit"               % "junit"                 % junitVersion   % Test,
+        "com.novocode"        % "junit-interface"       % junitIfVersion % Test exclude ("junit", "junit-dep")
+      )
+    )
+    .dependsOn(`interpreter-dsl`)
+    .dependsOn(`runtime`)
 
 // ============================================================================
 // === Sub-Projects ===========================================================
@@ -1310,7 +1333,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
-      "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
+      "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep")
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)

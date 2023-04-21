@@ -133,7 +133,7 @@ export class Cognito {
     constructor(
         private readonly logger: loggerProvider.Logger,
         private readonly platform: platformModule.Platform,
-        amplifyConfig: config.AmplifyConfig
+        private readonly amplifyConfig: config.AmplifyConfig
     ) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
          * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
@@ -143,6 +143,14 @@ export class Cognito {
         amplify.Auth.configure(nestedAmplifyConfig)
     }
 
+    /** Saves the access token to a file for further reuse. */
+
+    saveAccessToken(accessToken: string) {
+        if (this.amplifyConfig.accessTokenSaver) {
+            this.amplifyConfig.accessTokenSaver(accessToken)
+        }
+    }
+
     /** Returns the current {@link UserSession}, or `None` if the user is not logged in.
      *
      * Will refresh the {@link UserSession} if it has expired. */
@@ -150,7 +158,7 @@ export class Cognito {
         return userSession()
     }
 
-    /** Sign up with with username and password.
+    /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
     signUp(username: string, password: string) {
@@ -213,6 +221,16 @@ export class Cognito {
      * along with the verification code, changing the user's password. */
     forgotPasswordSubmit(email: string, code: string, password: string) {
         return forgotPasswordSubmit(email, code, password)
+    }
+
+    /** Change a password for current authenticated user.
+     *
+     * Allow users to independently modify their passwords. The user needs to provide the old
+     * password, new password, and repeat new password to change their old password to the new
+     * one. The validation of the repeated new password is handled by the `changePasswordModel`
+     * component. */
+    changePassword(oldPassword: string, newPassword: string) {
+        return changePassword(oldPassword, newPassword)
     }
 
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
@@ -278,9 +296,10 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     /** The `email` field is mandatory, so we assert that it exists and is a string. */
     if (typeof email !== 'string') {
         throw new Error('Payload does not have an email field.')
+    } else {
+        const accessToken = session.getAccessToken().getJwtToken()
+        return { email, accessToken }
     }
-    const accessToken = session.getAccessToken().getJwtToken()
-    return { email, accessToken }
 }
 
 const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
@@ -344,8 +363,14 @@ const SIGN_UP_INVALID_PARAMETER_ERROR = {
     kind: 'InvalidParameter',
 } as const
 
+const SIGN_UP_INVALID_PASSWORD_ERROR = {
+    internalCode: 'InvalidPasswordException',
+    kind: 'InvalidPassword',
+} as const
+
 type SignUpErrorKind =
     | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
+    | (typeof SIGN_UP_INVALID_PASSWORD_ERROR)['kind']
     | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
 
 export interface SignUpError {
@@ -364,6 +389,11 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
             kind: SIGN_UP_INVALID_PARAMETER_ERROR.kind,
             message: error.message,
         }
+    } else if (error.code === SIGN_UP_INVALID_PASSWORD_ERROR.internalCode) {
+        return {
+            kind: SIGN_UP_INVALID_PASSWORD_ERROR.kind,
+            message: error.message,
+        }
     } else {
         throw error
     }
@@ -376,9 +406,7 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 async function confirmSignUp(email: string, code: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.confirmSignUp(email, code)
-    })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoConfirmSignUpErrorOrThrow))
+    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow))
 }
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
@@ -441,9 +469,9 @@ async function signInWithGitHub() {
 async function signInWithPassword(username: string, password: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.signIn(username, password)
-    })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoSignInWithPasswordErrorOrThrow))
+    }).then(result =>
+        result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
+    )
 }
 
 type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
@@ -488,9 +516,7 @@ const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
 async function forgotPassword(email: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.forgotPassword(email)
-    })
-        .then(result => result.mapErr(intoAmplifyErrorOrThrow))
-        .then(result => result.mapErr(intoForgotPasswordErrorOrThrow))
+    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow))
 }
 
 type ForgotPasswordErrorKind = 'UserNotConfirmed' | 'UserNotFound'
@@ -572,5 +598,32 @@ async function signOut(logger: loggerProvider.Logger) {
         logger.error('Sign out failed', error)
     } finally {
         await amplify.Auth.signOut()
+    }
+}
+
+// ======================
+// === ChangePassword ===
+// ======================
+
+async function currentAuthenticatedUser() {
+    const result = await results.Result.wrapAsync(
+        /** The interface provided by Amplify declares that the return type is `Promise<CognitoUser | any>`,
+         * but TypeScript automatically converts it to `Promise<any>`. Therefore, it is necessary to use
+         * `as` to narrow down the type to `Promise<CognitoUser>`. */
+        // eslint-disable-next-line no-restricted-syntax
+        () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
+    )
+    return result.mapErr(intoAmplifyErrorOrThrow)
+}
+
+async function changePassword(oldPassword: string, newPassword: string) {
+    const cognitoUserResult = await currentAuthenticatedUser()
+    if (cognitoUserResult.ok) {
+        const cognitoUser = cognitoUserResult.unwrap()
+        return results.Result.wrapAsync(async () => {
+            await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+        }).then(result => result.mapErr(intoAmplifyErrorOrThrow))
+    } else {
+        return results.Err(cognitoUserResult.val)
     }
 }

@@ -50,7 +50,7 @@ pub struct InvalidVisualizationId(VisualizationId);
 #[derive(Debug)]
 pub struct ExecutionContext {
     /// A name of definition which is a root call of this context.
-    pub entry_point: MethodPointer,
+    pub entry_point: RefCell<MethodPointer>,
     /// Local call stack.
     stack: RefCell<Vec<LocalCall>>,
     /// Set of active visualizations.
@@ -65,7 +65,8 @@ pub struct ExecutionContext {
 
 impl ExecutionContext {
     /// Create new execution context
-    pub fn new(entry_point: MethodPointer) -> Self {
+    pub fn new(method_pointer: MethodPointer) -> Self {
+        let entry_point = RefCell::new(method_pointer);
         let stack = default();
         let visualizations = default();
         let computed_value_info_registry = default();
@@ -166,7 +167,7 @@ impl model::execution_context::API for ExecutionContext {
         if let Some(top_frame) = self.stack.borrow().last() {
             top_frame.definition.clone()
         } else {
-            self.entry_point.clone()
+            self.entry_point.borrow().clone()
         }
     }
 
@@ -257,6 +258,20 @@ impl model::execution_context::API for ExecutionContext {
 
     fn restart(&self) -> BoxFuture<FallibleResult> {
         futures::future::ready(Ok(())).boxed_local()
+    }
+
+    fn rename_method_pointers(&self, old_project_name: String, new_project_name: String) {
+        let update_method_pointer = |method_pointer: &mut MethodPointer| {
+            let module = method_pointer.module.replacen(&old_project_name, &new_project_name, 1);
+            let defined_on_type =
+                method_pointer.defined_on_type.replacen(&old_project_name, &new_project_name, 1);
+            let name = method_pointer.name.clone();
+            MethodPointer { module, defined_on_type, name }
+        };
+        self.entry_point.replace_with(update_method_pointer);
+        self.stack.borrow_mut().iter_mut().for_each(|local_call| {
+            local_call.definition = update_method_pointer(&mut local_call.definition)
+        });
     }
 }
 

@@ -14,6 +14,8 @@ use crate::Animation;
 use crate::DEPRECATED_Animation;
 use crate::Easing;
 
+use std::f32::consts::PI;
+
 
 
 // =================
@@ -44,13 +46,14 @@ define_style! {
     /// Host defines an object which the cursor position is bound to. It is used to implement
     /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
     /// it will inherit its position from the label instead.
-    host                 : display::object::Instance,
-    size                 : Vector2<f32>,
-    offset               : Vector2<f32>,
-    color                : color::Lcha,
-    radius               : f32,
-    press                : f32,
-    port_selection_layer : bool
+    host: display::object::Instance,
+    size: Vector2<f32>,
+    offset: Vector2<f32>,
+    color: color::Lcha,
+    radius: f32,
+    press: f32,
+    port_selection_layer : bool,
+    trash: f32,
 }
 
 
@@ -97,6 +100,12 @@ impl Style {
         let color = Some(StyleValue::new(TEXT_CURSOR_COLOR));
         Self { size, color, ..default() }
     }
+
+    /// Set the cursor to a trash icon, a red circle with "x" inside of it.
+    pub fn trash() -> Self {
+        let trash = Some(StyleValue::new(1.0));
+        Self { trash, ..default() }
+    }
 }
 
 
@@ -138,11 +147,12 @@ pub mod shape {
     use super::*;
     crate::shape! {
         pointer_events = false;
-        alignment = center;
-        ( style  : Style
-        , press  : f32
-        , radius : f32
-        , color  : Vector4
+        alignment = center; (
+            style: Style,
+            press: f32,
+            radius: f32,
+            color: Vector4,
+            trash: f32,
         ) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -152,8 +162,18 @@ pub mod shape {
             let sides_padding     = 1.px() * SIDES_PADDING;
             let width             = &width  - &press_diff * 2.0 - &sides_padding;
             let height            = &height - &press_diff * 2.0 - &sides_padding;
-            let cursor            = Rect((width,height)).corners_radius(radius);
+            let cursor            = Rect((&width,&height)).corners_radius(radius);
+
+            let color: Var<color::Rgba> = color.into();
+            let trash_color: Var<color::Rgba> = color::Rgba::new(0.91, 0.32, 0.32, 1.0).into();
+            let color = color.mix(&trash_color, &trash);
             let cursor            = cursor.fill(color);
+
+            let trash_bar1 = Rect((2.px(), (&height - 4.px()) * &trash - 1.px()));
+            let trash_bar2 = trash_bar1.rotate((PI/2.0).radians());
+            let trash_bar_x = (trash_bar1 + trash_bar2).rotate((PI/4.0).radians());
+            let trash_bar_x = trash_bar_x.fill(color::Rgba::new(1.0,1.0,1.0,0.8));
+            let cursor = cursor + trash_bar_x;
             cursor.into()
         }
     }
@@ -191,9 +211,11 @@ crate::define_endpoints_2! {
 pub struct CursorModel {
     pub scene:          Scene,
     pub display_object: display::object::Instance,
+    pub dragged_elem:   display::object::Instance,
     pub view:           shape::View,
     pub port_selection: shape::View,
     pub style:          Rc<RefCell<Style>>,
+    pub dragged_item:   Rc<RefCell<Option<Box<dyn Any>>>>,
 }
 
 impl CursorModel {
@@ -201,18 +223,21 @@ impl CursorModel {
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
         let display_object = display::object::Instance::new();
+        let dragged_elem = display::object::Instance::new();
         let view = shape::View::new();
         let port_selection = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);
         display_object.add_child(&port_selection);
+        view.add_child(&dragged_elem);
         let tgt_layer = &scene.layers.cursor;
         let port_selection_layer = &scene.layers.port_selection;
         tgt_layer.add(&view);
         port_selection_layer.add(&port_selection);
 
-        Self { scene, display_object, view, port_selection, style }
+        let dragged_item = default();
+        Self { scene, display_object, dragged_elem, view, port_selection, style, dragged_item }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
@@ -232,8 +257,8 @@ impl CursorModel {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Cursor {
-    pub frp: Frp,
-    model:   Rc<CursorModel>,
+    pub frp:   Frp,
+    pub model: Rc<CursorModel>,
 }
 
 impl Cursor {
@@ -272,6 +297,7 @@ impl Cursor {
         let host_follow_weight = DEPRECATED_Animation::<f32>::new(network);
         let host_attached_weight = Easing::new(network);
         let port_selection_layer_weight = Animation::<f32>::new(network);
+        let trash = Animation::<f32>::new(network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
@@ -289,6 +315,7 @@ impl Cursor {
                 let dim = Vector2(v.x+SIDES_PADDING,v.y+SIDES_PADDING);
                 model.for_each_view(|vw| {vw.set_size(dim);});
             });
+            eval trash.value ((v) model.for_each_view(|vw| vw.trash.set(*v)));
 
             alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);
 
@@ -360,6 +387,11 @@ impl Cursor {
                         radius.set_target_value(value);
                         if !t.animate { radius.skip() }
                     }
+                }
+
+                match &new_style.trash {
+                    None => trash.target.emit(0.0),
+                    Some(t) => trash.target.emit(t.value.unwrap_or(0.0)),
                 }
 
                 *model.style.borrow_mut() = new_style.clone();
@@ -470,6 +502,68 @@ impl Cursor {
         frp.set_style.emit(Style::default());
         let model = Rc::new(model);
         Cursor { frp, model }
+    }
+
+    /// Initialize item dragging. The provided item should implement [`display::Object`]. It will be
+    /// stored in the cursor and moved around with it. You can retrieve the item back using the
+    /// [`Self::stop_drag`] method or another similar one.
+    pub fn start_drag<T: display::Object + 'static>(&self, target: T) {
+        if self.model.dragged_item.borrow().is_some() {
+            warn!("Can't start dragging an item because another item is already being dragged.");
+        } else {
+            let object = target.display_object();
+            self.model.dragged_elem.add_child(object);
+            let target_position = object.global_position().xy();
+            let cursor_position = self.frp.scene_position.value().xy();
+            object.set_xy(target_position - cursor_position);
+
+            let scene = scene();
+            let camera = scene.camera();
+            let zoom = camera.zoom();
+            self.model.dragged_elem.set_scale_xy((zoom, zoom));
+            *self.model.dragged_item.borrow_mut() = Some(Box::new(target));
+        }
+    }
+
+    /// Remove the dragged item and return it as [`Any`]. If you want to retrieve the item if it is
+    /// of a particular type, use the [`Self::stop_drag_if_is`] method instead.
+    pub fn stop_drag(&self) -> Option<Box<dyn Any>> {
+        self.stop_drag_if_is()
+    }
+
+    /// Check whether the dragged item is of a particular type. If it is, remove and return it.
+    pub fn stop_drag_if_is<T: 'static>(&self) -> Option<T> {
+        if let Some(item) = mem::take(&mut *self.model.dragged_item.borrow_mut()) {
+            match item.downcast::<T>() {
+                Ok(item) => {
+                    let elems = self.model.dragged_elem.remove_all_children();
+                    let cursor_position = self.frp.scene_position.value().xy();
+                    for elem in &elems {
+                        elem.update_xy(|t| t + cursor_position);
+                    }
+                    Some(*item)
+                }
+                Err(item) => {
+                    *self.model.dragged_item.borrow_mut() = Some(item);
+                    None
+                }
+            }
+        } else {
+            warn!("Can't stop dragging an item because no item is being dragged.");
+            None
+        }
+    }
+
+    /// Check whether the dragged item is of a particular type.
+    pub fn dragged_item_is<T: 'static>(&self) -> bool {
+        self.model.dragged_item.borrow().as_ref().map(|item| item.is::<T>()).unwrap_or(false)
+    }
+
+    /// Check whether the dragged item is of a particular type. If it is, call the provided function
+    /// on it's reference.
+    pub fn with_dragged_item_if_is<T, Out>(&self, f: impl FnOnce(&T) -> Out) -> Option<Out>
+    where T: 'static {
+        self.model.dragged_item.borrow().as_ref().and_then(|item| item.downcast_ref::<T>().map(f))
     }
 }
 

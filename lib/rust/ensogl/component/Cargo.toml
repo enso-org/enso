@@ -13,6 +13,7 @@ ensogl-dynamic-assets = { path = "dynamic-assets" }
 ensogl-file-browser = { path = "file-browser" }
 ensogl-flame-graph = { path = "flame-graph" }
 ensogl-label = { path = "label" }
+ensogl-list-editor = { path = "list-editor" }
 ensogl-list-view = { path = "list-view" }
 ensogl-grid-view = { path = "grid-view" }
 ensogl-scroll-area = { path = "scroll-area" }

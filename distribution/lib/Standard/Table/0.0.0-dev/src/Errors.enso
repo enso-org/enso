@@ -257,22 +257,6 @@ type Invalid_Format
     to_display_text self =
         self.cells.length+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
 
-## Indicates that some values contained leading zeros even though these were not allowed.
-
-   Arguments:
-   - column: the column in which the problematic cells appeared, if applicable.
-     It may be empty if the value is parsed outside of a context of a column.
-   - datatype: The expected datatype.
-   - cells: Contents of the cells that contained leading zeros.
-type Leading_Zeros
-    ## PRIVATE
-    Error column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
-
-    ## PRIVATE
-       Pretty print the leading zeros error.
-    to_display_text : Text
-    to_display_text self = "Leading zeros in column "+self.column+" with datatype "+self.value_type.to_text+"."
-
 ## Indicates that an empty file was encountered, so no data could be loaded.
 type Empty_File_Error
     ## PRIVATE
@@ -552,3 +536,16 @@ type Invalid_Value_For_Type
     to_display_text : Text
     to_display_text self =
         "The value ["+self.value.to_text+"] is not valid for the column type ["+self.value_type.to_text+"]."
+
+type Column_Count_Exceeded
+    ## PRIVATE
+       Indicates that an operation generating new columns produced more columns
+       than allowed by the limit.
+    Error (limit : Integer) (column_count : Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The operation produced more columns than the specified limit. The limit is "+self.limit.to_text+" and the number of new columns was "+self.column_count.to_text+". The limit may be turned off by setting the `limit` option to `Nothing`."

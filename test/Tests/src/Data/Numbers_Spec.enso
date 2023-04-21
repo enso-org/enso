@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
-import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Common.Incomparable_Values
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
@@ -297,21 +297,21 @@ spec =
             (1 < 0.99).should_be_false
             (3 < hundred_factorial).should_be_true
             (3 < very_negative).should_be_false
-            (3 < Nothing).should_fail_with Type_Error
+            (3 < Nothing).should_fail_with Incomparable_Values
             (1.01 < 0.99).should_be_false
             (1.01 < 1.02).should_be_true
             (1.01 < 1).should_be_false
             (1.01 < 2).should_be_true
             (3.14 < hundred_factorial).should_be_true
             (3.14 < very_negative).should_be_false
-            (1.5 < Nothing).should_fail_with Type_Error
+            (1.5 < Nothing).should_fail_with Incomparable_Values
             (hundred_factorial < 1).should_be_false
             (hundred_factorial < 1.5).should_be_false
             (very_negative < 1).should_be_true
             (very_negative < 1.5).should_be_true
             (hundred_factorial < very_negative).should_be_false
             (very_negative < hundred_factorial).should_be_true
-            (very_negative < Nothing).should_fail_with Type_Error
+            (very_negative < Nothing).should_fail_with Incomparable_Values
 
         Test.specify "should support less than or equal to operator" <|
             (1 <= 2).should_be_true
@@ -321,21 +321,21 @@ spec =
             (1 <= 0.99).should_be_false
             (3 <= hundred_factorial).should_be_true
             (3 <= very_negative).should_be_false
-            (3 <= Nothing).should_fail_with Type_Error
+            (3 <= Nothing).should_fail_with Incomparable_Values
             (1.01 <= 0.99).should_be_false
             (1.01 <= 1.02).should_be_true
             (1.01 <= 1).should_be_false
             (1.01 <= 2).should_be_true
             (3.14 <= hundred_factorial).should_be_true
             (3.14 <= very_negative).should_be_false
-            (1.5 <= Nothing).should_fail_with Type_Error
+            (1.5 <= Nothing).should_fail_with Incomparable_Values
             (hundred_factorial <= 1).should_be_false
             (hundred_factorial <= 1.5).should_be_false
             (very_negative <= 1).should_be_true
             (very_negative <= 1.5).should_be_true
             (hundred_factorial <= very_negative).should_be_false
             (very_negative <= hundred_factorial).should_be_true
-            (very_negative <= Nothing).should_fail_with Type_Error
+            (very_negative <= Nothing).should_fail_with Incomparable_Values
 
         Test.specify "should support greater than operator" <|
             (1 > 2).should_be_false
@@ -345,21 +345,21 @@ spec =
             (1 > 0.99).should_be_true
             (3 > hundred_factorial).should_be_false
             (3 > very_negative).should_be_true
-            (3 > Nothing).should_fail_with Type_Error
+            (3 > Nothing).should_fail_with Incomparable_Values
             (1.01 > 0.99).should_be_true
             (1.01 > 1.02).should_be_false
             (1.01 > 1).should_be_true
             (1.01 > 2).should_be_false
             (3.14 > hundred_factorial).should_be_false
             (3.14 > very_negative).should_be_true
-            (1.5 > Nothing).should_fail_with Type_Error
+            (1.5 > Nothing).should_fail_with Incomparable_Values
             (hundred_factorial > 1).should_be_true
             (hundred_factorial > 1.5).should_be_true
             (very_negative > 1).should_be_false
             (very_negative > 1.5).should_be_false
             (hundred_factorial > very_negative).should_be_true
             (very_negative > hundred_factorial).should_be_false
-            (very_negative > Nothing).should_fail_with Type_Error
+            (very_negative > Nothing).should_fail_with Incomparable_Values
 
         Test.specify "should support greater than or equal to operator" <|
             (1 >= 2).should_be_false
@@ -369,21 +369,21 @@ spec =
             (1 >= 0.99).should_be_true
             (3 >= hundred_factorial).should_be_false
             (3 >= very_negative).should_be_true
-            (3 >= Nothing).should_fail_with Type_Error
+            (3 >= Nothing).should_fail_with Incomparable_Values
             (1.01 >= 0.99).should_be_true
             (1.01 >= 1.02).should_be_false
             (1.01 >= 1).should_be_true
             (1.01 >= 2).should_be_false
             (3.14 >= hundred_factorial).should_be_false
             (3.14 >= very_negative).should_be_true
-            (1.5 >= Nothing).should_fail_with Type_Error
+            (1.5 >= Nothing).should_fail_with Incomparable_Values
             (hundred_factorial >= 1).should_be_true
             (hundred_factorial >= 1.5).should_be_true
             (very_negative >= 1).should_be_false
             (very_negative >= 1.5).should_be_false
             (hundred_factorial >= very_negative).should_be_true
             (very_negative >= hundred_factorial).should_be_false
-            (very_negative >= Nothing).should_fail_with Type_Error
+            (very_negative >= Nothing).should_fail_with Incomparable_Values
 
         Test.specify "should be ordered by the default comparator" <|
             Ordering.compare 1 2 . should_equal Ordering.Less
@@ -393,21 +393,21 @@ spec =
             Ordering.compare 1 0.99 . should_equal Ordering.Greater
             Ordering.compare 3 hundred_factorial . should_equal Ordering.Less
             Ordering.compare 3 very_negative . should_equal Ordering.Greater
-            Ordering.compare 3 Nothing . should_fail_with Type_Error
+            Ordering.compare 3 Nothing . should_fail_with Incomparable_Values
             Ordering.compare 1.01 0.99 . should_equal Ordering.Greater
             Ordering.compare 1.01 1.02 . should_equal Ordering.Less
             Ordering.compare 1.01 1 . should_equal Ordering.Greater
             Ordering.compare 1.01 2 . should_equal Ordering.Less
             Ordering.compare 3.14 hundred_factorial . should_equal Ordering.Less
             Ordering.compare 3.14 very_negative . should_equal Ordering.Greater
-            Ordering.compare 1.5 Nothing . should_fail_with Type_Error
+            Ordering.compare 1.5 Nothing . should_fail_with Incomparable_Values
             Ordering.compare hundred_factorial 1 . should_equal Ordering.Greater
             Ordering.compare hundred_factorial 1.5 . should_equal Ordering.Greater
             Ordering.compare very_negative 1 . should_equal Ordering.Less
             Ordering.compare very_negative 1.5 . should_equal Ordering.Less
             Ordering.compare hundred_factorial very_negative . should_equal Ordering.Greater
             Ordering.compare very_negative hundred_factorial . should_equal Ordering.Less
-            Ordering.compare very_negative Nothing . should_fail_with Type_Error
+            Ordering.compare very_negative Nothing . should_fail_with Incomparable_Values
 
         Test.specify "should expose exponentiation operations" <|
             (3.14 ^ 2.71).should_equal 22.216689546 epsilon=eps
@@ -467,7 +467,7 @@ spec =
             Number.negative_infinity . should_equal (-Number.positive_infinity)
             Number.negative_infinity . equals (-Number.positive_infinity) . should_be_true
 
-            Number.nan . equals Number.nan . should_be_false
-            Number.nan . equals 0 . should_be_false
+            Number.nan . equals Number.nan . should_fail_with Incomparable_Values
+            Number.nan . equals 0 . should_fail_with Incomparable_Values
 
 main = Test_Suite.run_main spec
