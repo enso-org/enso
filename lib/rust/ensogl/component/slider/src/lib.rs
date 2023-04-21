@@ -32,6 +32,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::Animation;
 use ensogl_text::formatting;
+use ensogl_text::formatting::Weight;
 
 
 
@@ -249,7 +250,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the color of the text displaying the current value.
         set_value_text_color(color::Lcha),
         /// Set whether the slider's value text is hidden.
-        set_value_text_hidden(bool),
+        show_value(bool),
         /// Set the default precision at which the slider operates. The slider's precision
         /// determines by what increment the value will be changed on mouse movement. It also
         /// affects the number of digits after the decimal point displayed.
@@ -560,24 +561,43 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            eval input.set_value_text_hidden((v) model.set_value_text_hidden(*v));
-            value <- output.value.gate_not(&input.set_value_text_hidden).on_change();
-            precision <- output.precision.gate_not(&input.set_value_text_hidden).on_change();
-            value_is_default <- all2(&value, &input.set_default_value).map(|(val, def)| val==def);
-            value_is_default_true <- value_is_default.on_true();
-            value_is_default_false <- value_is_default.on_false();
-            eval_ value_is_default_true(model.set_value_text_property(formatting::Weight::Normal));
-            eval_ value_is_default_false(model.set_value_text_property(formatting::Weight::Bold));
+            eval input.show_value((v) model.show_value(*v));
 
-            value_text_left_right <- all3(&value, &precision, &input.set_max_disp_decimal_places);
-            value_text_left_right <- value_text_left_right.map(value_text_truncate_split);
-            value_text_left <- value_text_left_right._0();
-            value_text_right <- value_text_left_right._1();
-            model.value_text_left.set_content <+ value_text_left;
-            value_text_right_is_visible <- value_text_right.map(|t| t.is_some()).on_change();
-            value_text_right <- value_text_right.gate(&value_text_right_is_visible);
-            model.value_text_right.set_content <+ value_text_right.unwrap();
-            eval value_text_right_is_visible((v) model.set_value_text_right_visible(*v));
+            value <- output.value.gate(&input.show_value);
+            on_t <- input.show_value.on_true();
+            value2 <- output.value.sample(&on_t);
+            value <- any(&value, &value2);
+
+            default_value <- input.set_default_value.gate(&input.show_value);
+            on_t <- input.show_value.on_true();
+            default_value2 <- input.set_default_value.sample(&on_t);
+            default_value <- any(&default_value, &default_value2);
+
+            is_default <- all_with(&value, &default_value, |val, def| val == def);
+            text_weight <- switch_constant(&is_default, Weight::Bold, Weight::Normal);
+            eval text_weight ((v) model.set_value_text_property(*v));
+            // value_is_default_true <- is_default.on_true();
+            // value_is_default_false <- is_default.on_false();
+            // eval_ value_is_default_true(model.set_value_text_property(formatting::Weight::Normal));
+            // eval_ value_is_default_false(model.set_value_text_property(formatting::Weight::Bold));
+
+            precision <- output.precision.gate(&input.show_value);
+            on_t <- input.show_value.on_true();
+            precision2 <- output.precision.sample(&on_t);
+            precision <- any(&precision, &precision2);
+
+            max_decimal_places <- input.set_max_disp_decimal_places.gate(&input.show_value);
+            max_decimal_places2 <- input.set_max_disp_decimal_places.sample(&input.show_value);
+            max_decimal_places <- any(&max_decimal_places, &max_decimal_places2);
+
+            text <- all_with3(&value, &precision, &max_decimal_places, display_value);
+            text_left <- text._0();
+            text_right <- text._1();
+            model.value_text_left.set_content <+ text_left;
+            text_right_visible <- text_right.map(|t| t.is_some()).on_change();
+            new_text_right <= text_right.gate(&text_right_visible);
+            model.value_text_right.set_content <+ new_text_right;
+            eval text_right_visible((v) model.set_value_text_right_visible(*v));
         };
     }
 
@@ -751,7 +771,7 @@ impl Slider {
 
         frp::extend! { network
             start_editing <- input.start_value_editing.gate_not(&output.disabled);
-            start_editing <- start_editing.gate_not(&input.set_value_text_hidden);
+            start_editing <- start_editing.gate(&input.show_value);
             value_on_edit <- output.value.sample(&start_editing);
             prec_on_edit <- output.precision.sample(&start_editing);
             max_places_on_edit <-
@@ -801,6 +821,7 @@ impl Slider {
         self.frp.set_tooltip_delay(INFORMATION_TOOLTIP_DELAY);
         self.frp.set_precision_popup_duration(PRECISION_ADJUSTMENT_POPUP_DURATION);
         self.frp.set_thumb_size(THUMB_SIZE_DEFAULT);
+        self.show_value(true);
     }
 }
 
@@ -870,9 +891,7 @@ fn value_text_truncate((value, precision, max_digits): &(f32, f32, usize)) -> St
 
 /// Rounds a floating point value to a specified precision and provides two strings: one with the
 /// digits left of the decimal point, and one optional with the digits right of the decimal point.
-fn value_text_truncate_split(
-    (value, precision, max_digits): &(f32, f32, usize),
-) -> (ImString, Option<ImString>) {
+fn display_value(value: &f32, precision: &f32, max_digits: &usize) -> (ImString, Option<ImString>) {
     let text = value_text_truncate(&(*value, *precision, *max_digits));
     let mut text_iter = text.split('.');
     let text_left = text_iter.next().map(|s| s.to_im_string()).unwrap_or_default();
@@ -919,42 +938,42 @@ mod tests {
 
     #[test]
     fn test_high_precision() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.01, 8));
+        let (left, right) = display_value(&(123.4567, 0.01, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("46".to_im_string()));
     }
 
     #[test]
     fn test_low_precision() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 10.0, 8));
+        let (left, right) = display_value(&(123.4567, 10.0, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_precision_is_zero() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.0, 8));
+        let (left, right) = display_value(&(123.4567, 0.0, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("45670319".to_im_string()));
     }
 
     #[test]
     fn test_precision_is_nan() {
-        let (left, right) = value_text_truncate_split(&(123.4567, NAN, 8));
+        let (left, right) = display_value(&(123.4567, NAN, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_value_is_nan() {
-        let (left, right) = value_text_truncate_split(&(NAN, 0.01, 8));
+        let (left, right) = display_value(&(NAN, 0.01, 8));
         assert_eq!(left, "NaN".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_zero_decimal_places() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.01, 0));
+        let (left, right) = display_value(&(123.4567, 0.01, 0));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }

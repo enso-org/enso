@@ -388,15 +388,15 @@ impl Model {
     }
 
     /// Set whether the slider value text is hidden.
-    pub fn set_value_text_hidden(&self, hidden: bool) {
-        if hidden {
-            self.root.remove_child(&self.value_text_left);
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
-        } else {
+    pub fn show_value(&self, visible: bool) {
+        if visible {
             self.root.add_child(&self.value_text_left);
             self.root.add_child(&self.value_text_dot);
             self.root.add_child(&self.value_text_right);
+        } else {
+            self.root.remove_child(&self.value_text_left);
+            self.root.remove_child(&self.value_text_dot);
+            self.root.remove_child(&self.value_text_right);
         }
     }
 
