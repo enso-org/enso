@@ -7,6 +7,8 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::Animation;
 use ensogl_component::label::Label;
+use frp::stream::EventOutput;
+use frp::HasLabel;
 
 
 
@@ -26,57 +28,45 @@ const DEFAULT_DELAY_MS: f32 = 5_000.0;
 /// Text label that disappears after a predefined delay.
 #[derive(Debug, Clone, CloneRef)]
 struct Model {
-    label:           Label,
-    network:         frp::Network,
-    delay_animation: DelayedAnimation,
-    /// Show the pop-up with the given message.
-    pub show:        frp::Source<String>,
+    label:             Label,
+    opacity_animation: Animation<f32>,
+    delay_animation:   DelayedAnimation,
 }
 
 impl Model {
     /// Constructor.
-    fn new(app: &Application) -> Self {
-        let network = frp::Network::new("Popup");
+    fn new(app: &Application, network: &frp::Network) -> Self {
         let label = Label::new(app);
         label.set_opacity(0.0);
 
-        let opacity_animation = Animation::new(&network);
+        let opacity_animation = Animation::new(network);
         network.store(&opacity_animation);
-        let delay_animation = DelayedAnimation::new(&network);
+        let delay_animation = DelayedAnimation::new(network);
         delay_animation.set_delay(DEFAULT_DELAY_MS);
         delay_animation.set_duration(0.0);
         network.store(&delay_animation);
 
-        frp::extend! { network
-            show <- source::<String>();
-
-            eval show ([label, delay_animation](text) {
-                label.set_content(text);
-                delay_animation.reset();
-                delay_animation.start();
-            });
-
-            opacity_animation.target <+ show.constant(1.0);
-            opacity_animation.target <+ delay_animation.on_end.constant(0.0);
-            label.set_opacity <+ opacity_animation.value;
-        }
-
-        Self { label, network, show, delay_animation }
+        Self { label, opacity_animation, delay_animation }
     }
 
     /// Set the message.
     fn set_label(&self, content: String) {
-        self.show.emit(content);
+        self.label.set_content(content);
+        self.delay_animation.reset();
+        self.delay_animation.start();
+    }
+
+    /// Set the position of the label based on the height of the scene.
+    fn set_label_position(&self, scene_height: f32) {
+        let half_height = scene_height / 2.0;
+        let label_height = self.label.size.value().y;
+        let pos_y = half_height - PADDING_TOP - label_height / 2.0;
+        self.label.display_object().set_y(pos_y);
     }
 
     /// Set a delay in milliseconds after which the label will disappear.
     fn set_delay(&self, delay: f32) {
         self.delay_animation.set_delay(delay);
-    }
-
-    /// Return the height of the label.
-    fn label_height(&self) -> f32 {
-        self.label.size.value().y
     }
 }
 
@@ -111,21 +101,22 @@ impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(app);
         let network = &frp.network;
+        let model = Model::new(app, network);
 
         frp::extend! { network
             init <- source_();
-            let shape  = app.display.default_scene.shape();
-            _eval <- all_with(shape, &init, f!([model](scene_size, _init) {
-                let half_height = scene_size.height / 2.0;
-                let label_height = model.label_height();
-                let pos_y = half_height - PADDING_TOP - label_height / 2.0;
-                model.label.display_object().set_y(pos_y);
-            }));
+            let scene_shape = app.display.default_scene.shape();
+            _eval <- all_with(scene_shape, &init, f!([model] (scene_shape, _init)
+                model.set_label_position(scene_shape.height);
+            ));
 
-            eval frp.set_label((content) model.set_label(content.clone()));
-            eval frp.set_delay((delay) model.set_delay(*delay));
+            model.opacity_animation.target <+ frp.set_label.constant(1.0);
+            model.opacity_animation.target <+ model.delay_animation.on_end.constant(0.0);
+            model.label.set_opacity <+ model.opacity_animation.value;
+
+            eval frp.set_label ((content) model.set_label(content.clone()));
+            eval frp.set_delay ((delay) model.set_delay(*delay));
         }
         init.emit(());
 
@@ -133,8 +124,8 @@ impl View {
     }
 
     /// Get the FRP node for the content of the pop-up, for testing purposes.
-    pub fn content_frp_node(&self) -> &frp::Source<String> {
-        &self.model.show
+    pub fn content_frp_node(&self) -> impl EventOutput<Output = String> + HasLabel {
+        self.frp.set_label.clone_ref()
     }
 }
 

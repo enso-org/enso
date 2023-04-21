@@ -6,6 +6,8 @@ use crate::popup;
 
 use ensogl::application::Application;
 use ensogl::display;
+use frp::stream::EventOutput;
+use frp::HasLabel;
 
 
 
@@ -73,7 +75,7 @@ impl View {
     }
 
     /// Get the FRP node for the content of the pop-up, for testing purposes.
-    pub fn content_frp_node(&self) -> &frp::Source<String> {
+    pub fn content_frp_node(&self) -> impl EventOutput<Output = String> + HasLabel {
         self.popup.content_frp_node()
     }
 }

@@ -31,6 +31,14 @@ use parser::Parser;
 
 
 // =================
+// === Constants ===
+// =================
+
+const ERROR_CODE_PROJECT_NAME_INVALID: i64 = 4001;
+
+
+
+// =================
 // === Profiling ===
 // =================
 
@@ -717,12 +725,9 @@ impl model::project::API for Project {
             let project_name = ProjectName::new_unchecked(name);
             project_manager.rename_project(&project_id, &project_name).await.map_err(|error| {
                 match error {
-                    RpcError::RemoteError(cause) =>
-                        if cause.code == 4001 {
-                            failure::Error::from(ProjectNameInvalid { cause: cause.message })
-                        } else {
-                            RpcError::RemoteError(cause).into()
-                        },
+                    RpcError::RemoteError(cause)
+                        if cause.code == ERROR_CODE_PROJECT_NAME_INVALID =>
+                        failure::Error::from(ProjectNameInvalid { cause: cause.message }),
                     error => error.into(),
                 }
             })?;
