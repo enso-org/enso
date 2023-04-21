@@ -264,14 +264,9 @@ impl component::Frp<Model> for Frp {
             output.selected_execution_environment <+ selected_entry;
 
             eval selected_entry ([model] (execution_mode) {
-                // TODO(#5930): Revisit when connecting with externally set execution mode
-                let play_button_visibility = match execution_mode.as_str() {
+                let play_button_visibility = match execution_mode.to_lowercase().as_str() {
                     "design" => true,
-                    "live" => false,
-                    _ => {
-                        error!("Play button: invalid execution mode");
-                        false
-                    }
+                    _ => false,
                 };
                 model.set_play_button_visibility(play_button_visibility);
             });

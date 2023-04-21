@@ -718,14 +718,6 @@ impl Graph {
             }));
 
 
-            // === Execution Environment ===
-
-            // TODO(#5930): Delete me once we synchronise the execution environment with the
-            // language server.
-            view.set_execution_environment <+ view.toggle_execution_environment.map(
-                f_!(model.toggle_execution_environment()));
-
-
             // === Refreshing Nodes ===
 
             remove_node <= update_data.map(|update| update.remove_nodes());
