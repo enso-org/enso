@@ -770,6 +770,9 @@ impl<'a, T: Payload> RefMut<'a, T> {
 mod test {
     use crate::builder::Builder;
     use crate::builder::TreeBuilder;
+    use crate::generate::context::CalledMethodInfo;
+    use crate::generate::Context;
+    use crate::generate::MockContext;
     use crate::node;
     use crate::node::InsertionPoint;
     use crate::node::InsertionPointType;
@@ -777,6 +780,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::crumbs;
+    use ast::Id;
     use enso_text::index::*;
 
     #[test]
@@ -893,5 +897,41 @@ mod test {
             let result = tree.root_ref().get_descendant_by_ast_crumbs(ast_crumbs).unwrap();
             assert_eq!(result.node.crumbs, Crumbs::new(expected_crumbs.clone()));
         }
+    }
+
+    #[test]
+    fn node_lookup_issue_6228() {
+        use ast::crumbs::InfixCrumb::*;
+        use enso_prelude::*;
+        let code = "Data.fetch uri HTTP_Method.Get headers";
+        let parser = parser::Parser::new();
+        let ast = parser.parse(code, default());
+        let info = CalledMethodInfo {
+            parameters: vec![
+                crate::ArgumentInfo::named("uri"),
+                crate::ArgumentInfo::named("method"),
+                crate::ArgumentInfo::named("headers"),
+                crate::ArgumentInfo::named("parse"),
+            ],
+            ..default()
+        };
+        struct Wrapper(CalledMethodInfo);
+        impl Context for Wrapper {
+            fn call_info(&self, id: Id, name: Option<&str>) -> Option<CalledMethodInfo> {
+                eprintln!("call_info: {id}, {name:?}");
+                Some(self.0.clone())
+            }
+        }
+        let context = MockContext::new_single(default(), info);
+        let tree: SpanTree = SpanTree::new(&ast, &context).unwrap();
+        eprintln!("{dbg}", dbg = tree.debug_print(code));
+        let cases =
+            &[(crumbs!(LeftOperand), vec![0, 0, 0]), (crumbs!(RightOperand), vec![0, 0, 2])];
+
+        for (ast_crumbs, expected_crumbs) in cases {
+            let result = tree.root_ref().get_descendant_by_ast_crumbs(ast_crumbs).unwrap();
+            assert_eq!(result.node.crumbs, Crumbs::new(expected_crumbs.clone()));
+        }
+        panic!();
     }
 }

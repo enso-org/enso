@@ -1084,7 +1084,9 @@ pub mod tests {
     use crate::test::mock::data;
 
     use ast::crumbs;
+    use ast::crumbs::PrefixCrumb;
     use ast::test_utils::expect_shape;
+    use ast::Crumb;
     use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
@@ -1737,18 +1739,29 @@ main =
                 span_tree::ArgumentInfo::named("uri"),
                 span_tree::ArgumentInfo::named("method"),
                 span_tree::ArgumentInfo::named("headers"),
+                span_tree::ArgumentInfo::named("parse"),
             ],
             ..default()
         };
         test.run(|graph| async move {
             let nodes = graph.nodes().unwrap();
             let dest_node_id = nodes.last().unwrap().id();
+            let node_ast = nodes.last().unwrap().ast();
+            let code = node_ast.repr();
             let ctx = MockContext::new_single(dest_node_id, info);
-            let connections = graph.connections(&ctx).unwrap();
-            let connection = connections.connections.first().unwrap();
-            graph.disconnect(connection, &ctx).unwrap();
-            let new_main = graph.definition().unwrap().ast.repr();
-            assert_eq!(new_main, expected);
+            let span_tree = SpanTree::<()>::new(node_ast, &ctx).unwrap();
+            eprintln!("{dbg}", dbg = span_tree.debug_print(&code));
+            let argument_node = span_tree
+                .root_ref()
+                .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
+                .filter(|found| found.ast_crumbs.is_empty());
+            eprintln!("{argument_node:?}");
+            panic!();
+            // let connections = graph.connections(&ctx).unwrap();
+            // let connection = connections.connections.first().unwrap();
+            // graph.disconnect(connection, &ctx).unwrap();
+            // let new_main = graph.definition().unwrap().ast.repr();
+            // assert_eq!(new_main, expected);
         })
     }
 

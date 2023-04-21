@@ -240,7 +240,9 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
         if self.node.kind.removable() {
             Some(Box::new(move |root, context| {
-                error!("Erase impl");
+                let code = root.repr();
+                let msg = self.span_tree.debug_print(&code);
+                error!("{msg}");
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
@@ -288,11 +290,15 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
                         .map(|found| found.node);
 
                     while let Some(node) = next_parent {
-                        error!("Node: {node:?}");
+                        let code = new_root.repr();
+                        let span_tree = node.span_tree.clone();
+                        let msg = span_tree.debug_print(&code);
+                        //error!("{msg}");
                         next_parent = node.parent()?;
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());
+                        error!("Argument node: {argument_node:?}");
 
                         match argument_node {
                             Some(found) if found.node.is_argument() =>
