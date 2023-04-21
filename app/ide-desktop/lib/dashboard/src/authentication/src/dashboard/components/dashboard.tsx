@@ -1,7 +1,6 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as react from 'react'
-import * as reactDom from 'react-dom'
 
 import * as projectManagerModule from 'enso-content/src/project_manager'
 
@@ -207,7 +206,7 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [searchVal, setSearchVal] = react.useState('')
+    const [query, setQuery] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
@@ -224,6 +223,18 @@ function Dashboard(props: DashboardProps) {
         backend.Asset<backend.AssetType.secret>[]
     >([])
     const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
+    const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
+        backend.Asset<backend.AssetType.project>[]
+    >([])
+    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState<
+        backend.Asset<backend.AssetType.directory>[]
+    >([])
+    const [visibleSecretAssets, setVisibleSecretAssets] = react.useState<
+        backend.Asset<backend.AssetType.secret>[]
+    >([])
+    const [visibleFileAssets, setVisibleFileAssets] = react.useState<
+        backend.Asset<backend.AssetType.file>[]
+    >([])
 
     const [tab, setTab] = react.useState(Tab.dashboard)
     const [project, setProject] = react.useState<backend.Project | null>(null)
@@ -246,13 +257,6 @@ function Dashboard(props: DashboardProps) {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
-
-    // The purpose of this effect is to enable search action.
-    react.useEffect(() => {
-        return () => {
-            // TODO
-        }
-    }, [searchVal])
 
     react.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
@@ -509,12 +513,29 @@ function Dashboard(props: DashboardProps) {
 
     // FIXME[sb]: There is a race condition between the initial `directoryId`
     // and the `directoryId` saved in `localStorage`.
+
     // The purpose of this effect is to enable search action.
     react.useEffect(() => {
-        return () => {
-            // TODO
-        }
-    }, [searchVal])
+        setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
+        setVisibleDirectoryAssets(directoryAssets.filter(asset => asset.title.includes(query)))
+        setVisibleSecretAssets(secretAssets.filter(asset => asset.title.includes(query)))
+        setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
+    }, [query])
+
+    function setAssets(assets: backend.Asset[]) {
+        const newProjectAssets = assets.filter(backend.assetIsType(backend.AssetType.project))
+        const newDirectoryAssets = assets.filter(backend.assetIsType(backend.AssetType.directory))
+        const newSecretAssets = assets.filter(backend.assetIsType(backend.AssetType.secret))
+        const newFileAssets = assets.filter(backend.assetIsType(backend.AssetType.file))
+        setProjectAssets(newProjectAssets)
+        setDirectoryAssets(newDirectoryAssets)
+        setSecretAssets(newSecretAssets)
+        setFileAssets(newFileAssets)
+        setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
+        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
+        setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
+        setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
+    }
 
     react.useEffect(() => {
         void (async (): Promise<void> => {
@@ -543,12 +564,7 @@ function Dashboard(props: DashboardProps) {
                     break
                 }
             }
-            reactDom.unstable_batchedUpdates(() => {
-                setProjectAssets(assets.filter(backend.assetIsType(backend.AssetType.project)))
-                setDirectoryAssets(assets.filter(backend.assetIsType(backend.AssetType.directory)))
-                setSecretAssets(assets.filter(backend.assetIsType(backend.AssetType.secret)))
-                setFileAssets(assets.filter(backend.assetIsType(backend.AssetType.file)))
-            })
+            setAssets(assets)
         })()
     }, [accessToken, directoryId, refresh])
 
@@ -605,8 +621,8 @@ function Dashboard(props: DashboardProps) {
                             setTab(Tab.dashboard)
                         }
                     }}
-                    searchVal={searchVal}
-                    setSearchVal={setSearchVal}
+                    query={query}
+                    setQuery={setQuery}
                 />
                 {/* This is a placeholder. When implementing a feature,
                  * please replace it with the actual element.*/}
@@ -618,12 +634,12 @@ function Dashboard(props: DashboardProps) {
                             {directory && (
                                 <>
                                     <button className="mx-2" onClick={exitDirectory}>
-                                        {parentDirectory?.title ?? '~'}
+                                        {parentDirectory?.title ?? '/'}
                                     </button>
                                     {svg.SMALL_RIGHT_ARROW_ICON}
                                 </>
                             )}
-                            <span className="mx-2">{directory?.title ?? '~'}</span>
+                            <span className="mx-2">{directory?.title ?? '/'}</span>
                         </div>
                         <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
                             <div className="m-2">Shared with</div>
@@ -721,13 +737,13 @@ function Dashboard(props: DashboardProps) {
                 <tbody>
                     <tr className="h-8" />
                     <Rows<backend.Asset<backend.AssetType.project>>
-                        items={projectAssets}
+                        items={visibleProjectAssets}
                         getKey={proj => proj.id}
                         placeholder={
-                            <>
+                            <span className="opacity-75">
                                 You have no project yet. Go ahead and create one using the form
                                 above.
-                            </>
+                            </span>
                         }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
@@ -799,9 +815,14 @@ function Dashboard(props: DashboardProps) {
                     />
                     <tr className="h-8" />
                     <Rows<backend.Asset<backend.AssetType.directory>>
-                        items={directoryAssets}
+                        items={visibleDirectoryAssets}
                         getKey={dir => dir.id}
-                        placeholder={<>This directory does not contain any subdirectories.</>}
+                        placeholder={
+                            <span className="opacity-75">
+                                This directory does not contain any subdirectories
+                                {query ? ' matching your query' : ''}.
+                            </span>
+                        }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
                             heading: ColumnHeading(column, backend.AssetType.directory),
@@ -818,9 +839,14 @@ function Dashboard(props: DashboardProps) {
                     />
                     <tr className="h-8" />
                     <Rows<backend.Asset<backend.AssetType.secret>>
-                        items={secretAssets}
+                        items={visibleSecretAssets}
                         getKey={secret => secret.id}
-                        placeholder={<>This directory does not contain any secrets.</>}
+                        placeholder={
+                            <span className="opacity-75">
+                                This directory does not contain any secrets
+                                {query ? ' matching your query' : ''}.
+                            </span>
+                        }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
                             heading: ColumnHeading(column, backend.AssetType.secret),
@@ -855,9 +881,14 @@ function Dashboard(props: DashboardProps) {
                     />
                     <tr className="h-8" />
                     <Rows<backend.Asset<backend.AssetType.file>>
-                        items={fileAssets}
+                        items={visibleFileAssets}
                         getKey={file => file.id}
-                        placeholder={<>This directory does not contain any files.</>}
+                        placeholder={
+                            <span className="opacity-75">
+                                This directory does not contain any files
+                                {query ? ' matching your query' : ''}.
+                            </span>
+                        }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
                             heading: ColumnHeading(column, backend.AssetType.file),
