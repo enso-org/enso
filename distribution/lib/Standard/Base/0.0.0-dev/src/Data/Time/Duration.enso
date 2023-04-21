@@ -262,3 +262,10 @@ type Duration
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
         JS_Object.from_pairs b.to_vector
+
+    ## PRIVATE
+       Convert Duration to a friendly string.
+    to_display_text : Text
+    to_display_text self =
+        seconds = self.seconds + self.nanoseconds/1000000000
+        self.hours.to_text + "h" + self.minutes.format "00" + "m" + self.seconds.format "00.0#########"

@@ -540,6 +540,12 @@ type Date
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
     ## PRIVATE
+       Convert to a display representation of this Date.
+    to_display_text : Text
+    to_display_text self =
+        self.format "yyyy-MM-dd"
+
+    ## PRIVATE
        Convert to a JS_Object representing this Date.
 
        > Example
