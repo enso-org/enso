@@ -861,7 +861,7 @@ type Table
 
             parse_problem_builder = Problem_Builder.new
             new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
-                Value_Type.expect_text column.value_type related_column=column.name <|
+                Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
                     new_storage_and_problems = parser.parseColumn column.name storage
                     new_storage = new_storage_and_problems.value

@@ -58,8 +58,8 @@ type Join_Condition_Resolver
                 left = resolve_left left_selector
                 right = resolve_right right_selector
                 if is_nothing left || is_nothing right then Nothing else
-                    Value_Type.expect_text left.value_type <|
-                        Value_Type.expect_text right.value_type <|
+                    Value_Type.expect_text left <|
+                        Value_Type.expect_text right <|
                             self.make_equals_ignore_case problem_builder left right locale
             Join_Condition.Between left_selector right_lower_selector right_upper_selector ->
                 left = resolve_left left_selector

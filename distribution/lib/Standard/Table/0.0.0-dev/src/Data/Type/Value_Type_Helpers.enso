@@ -5,6 +5,7 @@ import project.Data.Column.Column
 import project.Data.Type.Enso_Types
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import Invalid_Value_Type, No_Common_Type
+from project.Internal.Table_Helpers import is_column
 
 ## PRIVATE
    Finds a type that can fit both a current type and a new type.
@@ -72,129 +73,90 @@ find_common_type types strict =
         if types.contains Value_Type.Mixed then Value_Type.Mixed else
             Nothing
 
-type Operation_Type_Helpers
-    ## PRIVATE
-       A set of helpers for checking input types of column operations.
+## PRIVATE
+   Finds the type of an argument to a column operation.
 
-       Distinct instances are used for in-memory and Database backends, as they
-       rely on different `Column` types.
+   If the argument is a column, the type of that column is returned. If it
+   is an Enso value, the smallest `Value_Type` that can fit that value will
+   be returned (but the Database is free to widen it to the closest type
+   that it supports without warning).
 
-       Arguments:
-       - is_column: a function that checks if the provided value is a column of
-         the current backend.
-    Instance (is_column : Any -> Boolean)
-
-    ## PRIVATE
-       Finds the type of an argument to a column operation.
-
-       If the argument is a column, the type of that column is returned. If it
-       is an Enso value, the smallest `Value_Type` that can fit that value will
-       be returned (but the Database is free to widen it to the closest type
-       that it supports without warning).
-
-       Since there is no special type for `Nothing` and `Nothing` technically
-       can fit any nullable type, it usually needs to be handled specially. This
-       method returns `Nothing` if the value is `Nothing` - so the caller can
-       try to treat this value as fitting any type, or accordingly to specific
-       semantics of each method.
-    find_argument_type : Any -> Value_Type | Nothing
-    find_argument_type self value = case value of
-        Nothing -> Nothing
-        _ -> if self.is_column value then value.value_type else
-            Enso_Types.most_specific_value_type value use_smallest=True
-
-    ## PRIVATE
-       A helper that can be used to check the argument value type, while
-       allowing `Nothing` values too.
-
-       If a `Nothing` value is provided, it is accepted as-is.
-       For any other value, its value type is computed and it is passed to the
-       `type_check` operation along with the action to be executed and a related
-       column parameter. The `type_check` operation should return the result of
-       the action or a dataflow error if the type was incorrect. In general the
-       `type_check`, should be one of the `Value_Type.expect_*` operations.
-
-       > Example
-
-         type_helpers.check_argument_type other Value_Type.expect_text <| operation
-    check_argument_type : Any -> (Value_Type -> Text -> Any -> Any) -> Any -> Any
-    check_argument_type self value type_check ~action =
-        typ = self.find_argument_type value
-        if typ.is_nothing then action else
-            related_column = if self.is_column value then value.name else Nothing
-            type_check typ related_column=related_column <|
-                action
-
-    ## PRIVATE
-       A helper which resolves if numeric addition or string concatenation should be
-       used when the a `+` operator is used with the two provided types.
-       It will return an error if the provided types are incompatible.
-       The `other_type` may be `Nothing` if the other operand is `Nothing`, then the
-       operation will depend only on the `self_type`.
-    resolve_addition_kind self self_type other_type =
-        if self_type.is_numeric && (other_type.is_nothing || other_type.is_numeric) then 'ADD_NUMBER' else
-            if self_type.is_text && (other_type.is_nothing || other_type.is_text) then 'ADD_TEXT' else
-                Error.throw <| Illegal_Argument.Error <|
-                    if other_type.is_nothing then "Cannot perform addition on a value of type " + self_type.to_display_text + ". Addition can only be performed if the column is of some numeric type or is text." else
-                        "Cannot perform addition on a pair of values of types " + self_type.to_display_text + " and " + other_type.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
-
-    ## PRIVATE
-       Checks that both provided arguments have numeric type and runs the action
-       if they do.
-    check_binary_numeric_op self arg1 arg2 ~action =
-        self.check_argument_type arg1 Value_Type.expect_numeric <|
-            self.check_argument_type arg2 Value_Type.expect_numeric <|
-                action
-
-    ## PRIVATE
-       Checks that both provided arguments have boolean type and runs the action
-       if they do.
-    check_binary_boolean_op self arg1 arg2 ~action =
-        self.check_argument_type arg1 Value_Type.expect_boolean <|
-            self.check_argument_type arg2 Value_Type.expect_boolean <|
-                action
-
-    ## PRIVATE
-       Checks that all provided argument are comparable with the provided
-       column.
-
-       Arguments:
-       - column: the column to compare the arguments to.
-       - arg_or_args: a single value or column or a vector of values or columns.
-       - action: the action to run if the arguments are compatible.
-    check_multi_argument_comparable_op self column arg_or_args ~action =
-        column_type = column.value_type
-        args = Vector.unify_vector_or_element arg_or_args
-        other_types = args.map self.find_argument_type
-        checked = other_types.map other_type->
-            Value_Type.expect_comparable column_type other_type <|
-                True
-        checked.if_not_error <|
-            action
-
-    ## PRIVATE
-    raise_unexpected_type self expected_type argument =
-        error = case self.is_column argument of
-            True ->
-                Invalid_Value_Type.Error expected_type argument.value_type related_column=argument.name
-            False ->
-                Invalid_Value_Type.Error expected_type (self.find_argument_type argument) related_column=Nothing
-        Error.throw error
-
-    ## PRIVATE
-    find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
-    find_common_type_for_arguments self arguments =
-        types = arguments.map self.find_argument_type . filter Filter_Condition.Not_Nothing
-        case types.is_empty of
-            True -> Nothing
-            False -> case find_common_type types strict=True of
-                common_type : Value_Type -> common_type
-                Nothing -> Error.throw <|
-                    No_Common_Type.Error types related_column_name=Nothing
-
+   Since there is no special type for `Nothing` and `Nothing` technically
+   can fit any nullable type, it usually needs to be handled specially. This
+   method returns `Nothing` if the value is `Nothing` - so the caller can
+   try to treat this value as fitting any type, or accordingly to specific
+   semantics of each method.
+find_argument_type : Any -> Value_Type | Nothing
+find_argument_type value = case value of
+    Nothing -> Nothing
+    _ -> if is_column value then value.value_type else
+        Enso_Types.most_specific_value_type value use_smallest=True
 
 ## PRIVATE
-   Type helpers for in-memory tables.
-type_helpers =
-    is_column value = value.is_a Column
-    Operation_Type_Helpers.Instance is_column
+   A helper which resolves if numeric addition or string concatenation should be
+   used when the a `+` operator is used with the two provided types.
+   It will return an error if the provided types are incompatible.
+   The `other_type` may be `Nothing` if the other operand is `Nothing`, then the
+   operation will depend only on the `self_type`.
+resolve_addition_kind self other =
+    self_type = find_argument_type self
+    other_type = find_argument_type other
+    if self_type.is_numeric && (other_type.is_nothing || other_type.is_numeric) then 'ADD_NUMBER' else
+        if self_type.is_text && (other_type.is_nothing || other_type.is_text) then 'ADD_TEXT' else
+            Error.throw <| Illegal_Argument.Error <|
+                if other_type.is_nothing then "Cannot perform addition on a value of type " + self_type.to_display_text + ". Addition can only be performed if the column is of some numeric type or is text." else
+                    "Cannot perform addition on a pair of values of types " + self_type.to_display_text + " and " + other_type.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
+
+## PRIVATE
+   Checks that both provided arguments have numeric type and runs the action
+   if they do.
+check_binary_numeric_op arg1 arg2 ~action =
+    Value_Type.expect_numeric arg1 <|
+        Value_Type.expect_numeric arg2 <|
+            action
+
+## PRIVATE
+   Checks that both provided arguments have boolean type and runs the action
+   if they do.
+check_binary_boolean_op arg1 arg2 ~action =
+    Value_Type.expect_boolean arg1 <|
+        Value_Type.expect_boolean arg2 <|
+            action
+
+## PRIVATE
+   Checks that all provided argument are comparable with the provided
+   column.
+
+   Arguments:
+   - column: the column to compare the arguments to.
+   - arg_or_args: a single value or column or a vector of values or columns.
+   - action: the action to run if the arguments are compatible.
+check_multi_argument_comparable_op column arg_or_args ~action =
+    column_type = column.value_type
+    args = Vector.unify_vector_or_element arg_or_args
+    other_types = args.map find_argument_type
+    checked = other_types.map other_type->
+        Value_Type.expect_comparable column_type other_type <|
+            True
+    checked.if_not_error <|
+        action
+
+## PRIVATE
+raise_unexpected_type expected_type argument =
+    error = case is_column argument of
+        True ->
+            Invalid_Value_Type.Column expected_type argument.value_type argument.name
+        False ->
+            Invalid_Value_Type.Value expected_type (find_argument_type argument) argument
+    Error.throw error
+
+## PRIVATE
+find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
+find_common_type_for_arguments arguments =
+    types = arguments.map find_argument_type . filter Filter_Condition.Not_Nothing
+    case types.is_empty of
+        True -> Nothing
+        False -> case find_common_type types strict=True of
+            common_type : Value_Type -> common_type
+            Nothing -> Error.throw <|
+                No_Common_Type.Error types related_column_name=Nothing

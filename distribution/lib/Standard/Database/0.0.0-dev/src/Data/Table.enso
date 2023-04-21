@@ -17,6 +17,7 @@ import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
@@ -43,7 +44,6 @@ import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
-from project.Internal.Database_Type_Helpers import type_helpers
 
 import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
@@ -664,7 +664,7 @@ type Table
         get_column name = self.at name
         type_mapping = self.connection.dialect.get_type_mapping
         make_constant value =
-            argument_value_type = type_helpers.find_argument_type value
+            argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of
                 Nothing -> SQL_Type.null
                 _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore

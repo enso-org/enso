@@ -21,7 +21,6 @@ import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Data.Table import Table, freshen_columns
-from project.Internal.Database_Type_Helpers import type_helpers
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
@@ -230,8 +229,8 @@ type Column
        `other`.
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
-        type_helpers.check_argument_type self Value_Type.expect_text <|
-            type_helpers.check_argument_type other Value_Type.expect_text <|
+        Value_Type.expect_text self <|
+            Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
                     new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
                     self.make_binary_op "equals_ignore_case" other new_name
@@ -280,7 +279,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     >= : Column | Any -> Column
-    >= self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    >= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">=" other
 
     ## UNSTABLE
@@ -294,7 +293,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     <= : Column | Any -> Column
-    <= self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    <= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op "<=" other
 
     ## UNSTABLE
@@ -308,7 +307,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     > : Column | Any -> Column
-    > self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    > self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">" other
 
     ## UNSTABLE
@@ -322,7 +321,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     < : Column | Any -> Column
-    < self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    < self other = Value_Type.expect_comparable self other <|
         self.make_binary_op "<" other
 
     ## Element-wise inclusive bounds check.
@@ -339,9 +338,8 @@ type Column
        column fit between the lower and upper bounds (both ends inclusive).
     between : (Column | Any) -> (Column | Any) -> Column
     between self lower upper =
-        self_type = self.value_type
-        Value_Type.expect_comparable self_type (type_helpers.find_argument_type lower) <|
-            Value_Type.expect_comparable self_type (type_helpers.find_argument_type upper) <|
+        Value_Type.expect_comparable self lower <|
+            Value_Type.expect_comparable self upper <|
                 new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
                 self.make_op "BETWEEN" [lower, upper] new_name
 
@@ -357,7 +355,7 @@ type Column
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
     + self other =
-        op = type_helpers.resolve_addition_kind self.value_type (type_helpers.find_argument_type other)
+        op = Value_Type_Helpers.resolve_addition_kind self other
         op.if_not_error <|
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
@@ -374,7 +372,7 @@ type Column
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
     - self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "-" other
 
     ## UNSTABLE
@@ -389,7 +387,7 @@ type Column
        pairwise between corresponding elements of `self` and `other`.
     * : Column | Any -> Column
     * self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "*" other
 
     ## ALIAS Divide Columns
@@ -424,7 +422,7 @@ type Column
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
     / self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "/" other
 
     ## Element-wise modulus.
@@ -457,8 +455,8 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        type_helpers.check_binary_numeric_op self other <|
-            other_type = type_helpers.find_argument_type other
+        Value_Type_Helpers.check_binary_numeric_op self other <|
+            other_type = Value_Type_Helpers.find_argument_type other
             # Different implementation may be used for integer types.
             op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "mod"
             new_name = self.naming_helpers.binary_operation_name "%" self other
@@ -491,7 +489,7 @@ type Column
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
     ^ self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op '^' other
 
     ## UNSTABLE
@@ -507,7 +505,7 @@ type Column
        and `other`.
     && : Column | Any -> Column
     && self other =
-        type_helpers.check_binary_boolean_op self other <|
+        Value_Type_Helpers.check_binary_boolean_op self other <|
             new_name = self.naming_helpers.binary_operation_name "&&" self other
             self.make_binary_op "AND" other new_name
 
@@ -524,7 +522,7 @@ type Column
        and `other`.
     || : Column | Any -> Column
     || self other =
-        type_helpers.check_binary_boolean_op self other <|
+        Value_Type_Helpers.check_binary_boolean_op self other <|
             new_name = self.naming_helpers.binary_operation_name "||" self other
             self.make_binary_op "OR" other new_name
 
@@ -533,7 +531,7 @@ type Column
        Boolean negation of each element in this column.
     not : Column
     not self =
-        type_helpers.check_argument_type self Value_Type.expect_boolean <|
+        Value_Type.expect_boolean self <|
             new_name = "not " + self.naming_helpers.to_expression_text self
             self.make_unary_op "NOT" new_name
 
@@ -547,8 +545,8 @@ type Column
        - when_false: value or column when `self` is `False`.
     iif : Any -> Any -> Column
     iif self when_true when_false =
-        type_helpers.check_argument_type self Value_Type.expect_boolean <|
-            common_type = type_helpers.find_common_type_for_arguments [when_true, when_false]
+        Value_Type.expect_boolean self <|
+            common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false]
             common_type.if_not_error <|
                 new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
@@ -570,7 +568,7 @@ type Column
     coalesce self values =
         vec = Vector.unify_vector_or_element values
         args_with_self = [self]+vec
-        common_type = type_helpers.find_common_type_for_arguments args_with_self
+        common_type = Value_Type_Helpers.find_common_type_for_arguments args_with_self
         common_type.if_not_error <|
             new_name = self.naming_helpers.function_name "coalesce" args_with_self
             op_result = self.make_op "COALESCE" vec new_name
@@ -590,7 +588,7 @@ type Column
              example_min = Examples.decimal_column.min Examples.integer_column
     min : (Any | Vector Any) -> Column
     min self values =
-        type_helpers.check_multi_argument_comparable_op self values <|
+        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
             new_name = self.naming_helpers.function_name "min" [self]+args
             self.make_op "ROW_MIN" args new_name
@@ -609,7 +607,7 @@ type Column
              example_max = Examples.decimal_column.max Examples.integer_column
     max : (Any | Vector Any) -> Column
     max self values =
-        type_helpers.check_multi_argument_comparable_op self values <|
+        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
             new_name = self.naming_helpers.function_name "max" [self]+args
             self.make_op "ROW_MAX" args new_name
@@ -627,7 +625,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self = type_helpers.check_argument_type self Value_Type.expect_floating_point <|
+    is_nan self = Value_Type.expect_floating_point self <|
         new_name = self.naming_helpers.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
 
@@ -635,7 +633,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self = type_helpers.check_argument_type self Value_Type.expect_text <|
+    is_empty self = Value_Type.expect_text self <|
         new_name = self.naming_helpers.to_expression_text self + " is empty"
         self.make_unary_op "IS_EMPTY" new_name
 
@@ -681,7 +679,7 @@ type Column
        provided default.
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
-        common_type = type_helpers.find_common_type_for_arguments [self, default]
+        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
         common_type.if_not_error <|
             new_name = self.naming_helpers.function_name "fill_nothing" [self, default]
             op_result = self.make_binary_op "FILL_NULL" default new_name
@@ -698,8 +696,8 @@ type Column
          will be used.
     fill_empty : Column | Any -> Column
     fill_empty self default =
-        type_helpers.check_argument_type self Value_Type.expect_text <|
-            type_helpers.check_argument_type default Value_Type.expect_text <|
+        Value_Type.expect_text self <|
+            Value_Type.expect_text default <|
                 new_name = self.naming_helpers.function_name "fill_empty" [self, default]
                 result = self.is_empty.iif default self
                 result.rename new_name
@@ -837,8 +835,8 @@ type Column
              example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
     like self pattern =
-        type_helpers.check_argument_type self Value_Type.expect_text <|
-            type_helpers.check_argument_type pattern Value_Type.expect_text <|
+        Value_Type.expect_text self <|
+            Value_Type.expect_text pattern <|
                 new_name = self.naming_helpers.binary_operation_name "like" self pattern
                 self.make_binary_op "LIKE" pattern new_name
 
@@ -852,8 +850,8 @@ type Column
          removed. By default, spaces, tabs, returns and new lines are removed.
     trim : Location -> Column | Text -> Column
     trim self where=Location.Both what='' =
-        type_helpers.check_argument_type self Value_Type.expect_text <|
-            type_helpers.check_argument_type what Value_Type.expect_text <|
+        Value_Type.expect_text self <|
+            Value_Type.expect_text what <|
                 new_name = self.naming_helpers.function_name "trim" [self]
                 operator = case where of
                     Location.Both -> "TRIM"
@@ -901,7 +899,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
-    year self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+    year self = Value_Type.expect_has_date self <|
         self.make_unary_op "year"
 
     ## Gets the month as a number (1-12) from the date stored in the column.
@@ -909,7 +907,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
-    month self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+    month self = Value_Type.expect_has_date self <|
         self.make_unary_op "month"
 
     ## Gets the day of the month as a number (1-31) from the date stored in the
@@ -918,7 +916,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
-    day self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+    day self = Value_Type.expect_has_date self <|
         self.make_unary_op "day"
 
     ## Checks for each element of the column if it is contained within the
@@ -1121,11 +1119,7 @@ type Column
 ## PRIVATE
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
-    with_checks ~action =
-        type_helpers.check_argument_type left Value_Type.expect_text <|
-            type_helpers.check_argument_type other Value_Type.expect_text <|
-                action
-    result = with_checks <| case case_sensitivity of
+    result = Value_Type.expect_text left <| Value_Type.expect_text other <| case case_sensitivity of
         Case_Sensitivity.Default -> left.make_binary_op op other
         Case_Sensitivity.Sensitive ->
             make_sensitive column =

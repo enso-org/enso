@@ -247,12 +247,15 @@ spec setup =
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
 
             [(<), (<=), (>), (>=)].each op->
-                op (t.at "X") (t.at "Y") . should_fail_with Illegal_Argument
-                op (t.at "X") "FOO" . should_fail_with Illegal_Argument
-                op (t.at "Y") 42 . should_fail_with Illegal_Argument
-                op (t.at "Y") False . should_fail_with Illegal_Argument
-                op (t.at "Z") 32 . should_fail_with Illegal_Argument
-                op (t.at "Z") (t.at "X") . should_fail_with Illegal_Argument
+                r1 = op (t.at "X") (t.at "Y")
+                r1.should_fail_with Invalid_Value_Type
+                r1.catch . should_be_a Invalid_Value_Type.Incomparable
+
+                op (t.at "X") "FOO" . should_fail_with Invalid_Value_Type
+                op (t.at "Y") 42 . should_fail_with Invalid_Value_Type
+                op (t.at "Y") False . should_fail_with Invalid_Value_Type
+                op (t.at "Z") 32 . should_fail_with Invalid_Value_Type
+                op (t.at "Z") (t.at "X") . should_fail_with Invalid_Value_Type
 
         Test.specify "Between should return null if any of the values are null" pending="TODO" <|
             a = [2, 3, Nothing, 7,       5,       Nothing]
@@ -659,7 +662,7 @@ spec setup =
 
         Test.specify "should only allow trim on Text columns" <|
             c.trim what="a" . should_fail_with Invalid_Value_Type
-            a.trim what=1 . should_fail_with Illegal_Argument
+            a.trim what=1 . should_fail_with Invalid_Value_Type
             a.trim what=c . should_fail_with Invalid_Value_Type
 
     Test.group prefix+"Other Column Operations" <|

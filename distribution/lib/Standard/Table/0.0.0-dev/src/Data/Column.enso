@@ -16,10 +16,10 @@ import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
+import project.Data.Type.Value_Type_Helpers
 
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Data.Type.Value_Type_Helpers import type_helpers
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
@@ -183,8 +183,8 @@ type Column
            See: https://github.com/enso-org/enso/issues/5250
         fallback x y =
             x.equals_ignore_case y locale=locale
-        type_helpers.check_argument_type self Value_Type.expect_text <|
-            type_helpers.check_argument_type other Value_Type.expect_text <|
+        Value_Type.expect_text self <|
+            Value_Type.expect_text other <|
                 new_name = Naming_Helpers.function_name "equals_ignore_case" [self, other]
                 run_vectorized_binary_op self "equals_ignore_case" fallback other expected_result_type=Value_Type.Boolean new_name
 
@@ -246,7 +246,7 @@ type Column
 
              example_geq = Examples.integer_column >= 1
     >= : Column | Any -> Column
-    >= self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    >= self other = Value_Type.expect_comparable self other <|
         run_vectorized_binary_op self ">=" (>=) other expected_result_type=Value_Type.Boolean
 
     ## Element-wise order comparison.
@@ -273,7 +273,7 @@ type Column
 
              example_leq = Examples.integer_column <= 1
     <= : Column | Any -> Column
-    <= self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    <= self other = Value_Type.expect_comparable self other <|
         run_vectorized_binary_op self "<=" (<=) other expected_result_type=Value_Type.Boolean
 
     ## Element-wise order comparison.
@@ -300,7 +300,7 @@ type Column
 
              example_gt = Examples.integer_column > 1
     > : Column | Any -> Column
-    > self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    > self other = Value_Type.expect_comparable self other <|
         run_vectorized_binary_op self ">" (>) other expected_result_type=Value_Type.Boolean
 
     ## Element-wise order comparison.
@@ -327,7 +327,7 @@ type Column
 
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
-    < self other = Value_Type.expect_comparable self.value_type (type_helpers.find_argument_type other) <|
+    < self other = Value_Type.expect_comparable self other <|
         run_vectorized_binary_op self "<" (<) other expected_result_type=Value_Type.Boolean
 
     ## Element-wise inclusive bounds check.
@@ -344,9 +344,8 @@ type Column
        column fit between the lower and upper bounds (both ends inclusive).
     between : (Column | Any) -> (Column | Any) -> Column
     between self lower upper =
-        self_type = self.value_type
-        Value_Type.expect_comparable self_type (type_helpers.find_argument_type lower) <|
-            Value_Type.expect_comparable self_type (type_helpers.find_argument_type upper) <|
+        Value_Type.expect_comparable self lower <|
+            Value_Type.expect_comparable self upper <|
                 new_name = Naming_Helpers.to_expression_text self + " between " + Naming_Helpers.to_expression_text lower + " and " + Naming_Helpers.to_expression_text upper
                 result = (self >= lower) && (self <= upper)
                 result.rename new_name
@@ -378,7 +377,7 @@ type Column
              example_plus = Examples.integer_column + 10
     + : Column | Any -> Column
     + self other =
-        type_helpers.resolve_addition_kind self.value_type (type_helpers.find_argument_type other) . if_not_error <|
+        Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
             run_vectorized_binary_op self '+' fallback_fn=Nothing other
 
     ## ALIAS Subtract Columns
@@ -408,7 +407,7 @@ type Column
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
     - self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
     ## ALIAS Multiply Columns
@@ -438,7 +437,7 @@ type Column
              example_mul = Examples.integer_column * 10
     * : Column | Any -> Column
     * self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self '*' fallback_fn=Nothing other
 
     ## ALIAS Divide Columns
@@ -473,7 +472,7 @@ type Column
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
     / self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             new_name = Naming_Helpers.binary_operation_name "/" self other
             run_vectorized_binary_op_with_problem_handling self "/" fallback_fn=Nothing other new_name
 
@@ -507,7 +506,7 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             new_name = Naming_Helpers.binary_operation_name "%" self other
             run_vectorized_binary_op_with_problem_handling self "%" fallback_fn=Nothing other new_name
 
@@ -538,7 +537,7 @@ type Column
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
     ^ self other =
-        type_helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self '^' fallback_fn=Nothing other
 
     ## ALIAS AND Columns
@@ -569,7 +568,7 @@ type Column
              example_and = Examples.bool_column_1 && True
     && : Column | Any -> Column
     && self other =
-        type_helpers.check_binary_boolean_op self other <|
+        Value_Type_Helpers.check_binary_boolean_op self other <|
             run_vectorized_binary_op self "&&" fallback_fn=Nothing other
 
     ## ALIAS OR Columns
@@ -600,7 +599,7 @@ type Column
              example_or = Examples.bool_column_1 || True
     || : Column | Any -> Column
     || self other =
-        type_helpers.check_binary_boolean_op self other <|
+        Value_Type_Helpers.check_binary_boolean_op self other <|
            run_vectorized_binary_op self "||" fallback_fn=Nothing other
 
     ## ALIAS NOT
@@ -615,7 +614,7 @@ type Column
              example_not = Examples.bool_column_1.not
     not : Column
     not self =
-        type_helpers.check_argument_type self Value_Type.expect_boolean <|
+        Value_Type.expect_boolean self <|
             new_name = "not " + Naming_Helpers.to_expression_text self
             run_vectorized_unary_op self "not" fallback_fn=Nothing new_name
 
@@ -636,8 +635,8 @@ type Column
              example_if = Examples.bool_column_1.iif 1 0
     iif : Any -> Any -> Column
     iif self when_true when_false =
-        type_helpers.check_argument_type self Value_Type.expect_boolean <|
-            common_type = type_helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
+        Value_Type.expect_boolean self <|
+            common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
             storage_type = Storage.from_value_type_strict common_type
             storage_type.if_not_error <|
                 new_name = "if " + Naming_Helpers.to_expression_text self + " then " + Naming_Helpers.to_expression_text when_true + " else " + Naming_Helpers.to_expression_text when_false
@@ -688,7 +687,7 @@ type Column
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b < a then b else a
-        type_helpers.check_multi_argument_comparable_op self values <|
+        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             run_vectorized_many_op self "min" fallback values
 
     ## Returns a column of maximum on each row of `self` and `values`.
@@ -708,7 +707,7 @@ type Column
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b > a then b else a
-        type_helpers.check_multi_argument_comparable_op self values <|
+        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             run_vectorized_many_op self "max" fallback values
 
     ## Returns a column of booleans, with `True` items at the positions where
@@ -730,7 +729,7 @@ type Column
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self =
-        type_helpers.check_argument_type self Value_Type.expect_floating_point <|
+        Value_Type.expect_floating_point self <|
             self.internal_is_nan on_missing=Nothing
 
     ## PRIVATE
@@ -746,7 +745,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self = type_helpers.check_argument_type self Value_Type.expect_text <|
+    is_empty self = Value_Type.expect_text self <|
         self.internal_is_empty
 
     ## PRIVATE
@@ -809,7 +808,7 @@ type Column
              example_fill_missing = Examples.decimal_column.fill_nothing 20.5
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
-        common_type = type_helpers.find_common_type_for_arguments [self, default]
+        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
         common_type.if_not_error <|
             new_name = Naming_Helpers.function_name "fill_nothing" [self, default]
             storage = self.java_column.getStorage
@@ -834,8 +833,8 @@ type Column
          will be used.
     fill_empty : Column | Any -> Column
     fill_empty self default =
-        type_helpers.check_argument_type self Value_Type.expect_text <|
-            type_helpers.check_argument_type default Value_Type.expect_text <|
+        Value_Type.expect_text self <|
+            Value_Type.expect_text default <|
                 new_name = Naming_Helpers.function_name "fill_empty" [self, default]
                 result = self.is_empty.iif default self
                 result.rename new_name
@@ -951,8 +950,8 @@ type Column
              example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
     like self pattern =
-        type_helpers.check_argument_type self Value_Type.expect_text <|
-            type_helpers.check_argument_type pattern Value_Type.expect_text <|
+        Value_Type.expect_text self <|
+            Value_Type.expect_text pattern <|
                 run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State.Error "The `like` operation should only be used on text columns.")) pattern expected_result_type=Value_Type.Boolean
 
     ## This function removes the specified characters, by default any
@@ -964,10 +963,10 @@ type Column
        - what: A `Text` (or text `Column`) containing characters that should be
          removed. By default, all whitespace is removed.
     trim : Location -> Column | Text -> Column
-    trim self where=Location.Both what='' = Value_Type.expect_text self.value_type <|
+    trim self where=Location.Both what='' = Value_Type.expect_text self <|
         new_name = Naming_Helpers.function_name "trim" [self]
 
-        trim_get = wrap_text_argument what 'what'
+        trim_get = wrap_text_argument_as_value_provider what
 
         trim_get.if_not_error <|
             trim_fn t w = if w.is_empty then t.trim where else
@@ -1007,9 +1006,9 @@ type Column
              column.replace '"(.*?)"' '($1)' use_regex=True
     replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
-        Value_Type.expect_text self.value_type <|
-            term_fn = wrap_text_argument term 'term'
-            new_text_fn = wrap_text_argument new_text 'new_text'
+        Value_Type.expect_text self <|
+            term_fn = wrap_text_argument_as_value_provider term
+            new_text_fn = wrap_text_argument_as_value_provider new_text
 
             term_fn.if_not_error <| new_text_fn.if_not_error <|
                 new_name = Naming_Helpers.function_name "replace" [self, term, new_text]
@@ -1029,7 +1028,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
-    year self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+    year self = Value_Type.expect_has_date self <|
         simple_unary_op self "year"
 
     ## Gets the month as a number (1-12) from the date stored in the column.
@@ -1037,7 +1036,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
-    month self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+    month self = Value_Type.expect_has_date self <|
         simple_unary_op self "month"
 
     ## Gets the day of the month as a number (1-31) from the date stored in the
@@ -1046,7 +1045,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
-    day self = Value_Type.expect_has_date self.value_type related_column=self.name <|
+    day self = Value_Type.expect_has_date self <|
         simple_unary_op self "day"
 
     ## Checks for each element of the column if it is contained within the
@@ -1159,7 +1158,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
-        Value_Type.expect_text self.value_type related_column=self.name <|
+        Value_Type.expect_text self <|
             formatter = case format of
                 _ : Text ->
                     Data_Formatter.Value.with_format type format
@@ -1550,7 +1549,7 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
     effective_operands = Vector.unify_vector_or_element operands
     effective_new_name = new_name.if_nothing <|
         Naming_Helpers.function_name name [column]+effective_operands
-    common_type = type_helpers.find_common_type_for_arguments effective_operands
+    common_type = Value_Type_Helpers.find_common_type_for_arguments effective_operands
     common_type.if_not_error <|
         problem_builder = MapOperationProblemBuilder.new effective_new_name
         storage_type = resolve_storage_type common_type
@@ -1705,8 +1704,8 @@ make_storage_builder_for_type value_type on_problems initial_size=128 =
 run_vectorized_binary_case_text_op : Column -> Text -> (Text | Column) -> Case_Sensitivity -> (Text -> Text -> Any) -> Text -> Column
 run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_name =
     with_checks ~action =
-        type_helpers.check_argument_type left Value_Type.expect_text <|
-            type_helpers.check_argument_type other Value_Type.expect_text <|
+        Value_Type.expect_text left <|
+            Value_Type.expect_text other <|
                 action
     result_type = Value_Type.Boolean
     with_checks <| case case_sensitivity of
@@ -1735,9 +1734,9 @@ resolve_storage_type value_type = case value_type of
     _ -> Storage.from_value_type_strict value_type
 
 ## PRIVATE
-wrap_text_argument val field = case val of
-    _ : Text -> (_-> val)
-    col : Column -> type_helpers.check_argument_type col Value_Type.expect_text <|
-        storage = val.java_column.getStorage
-        i-> storage.getItemBoxed i
-    _ -> Error.throw (Illegal_Argument.Error "The `"+field+"` must be Text or a Text Column.")
+wrap_text_argument_as_value_provider val =
+    Value_Type.expect_text val <| case val of
+        text : Text -> (_-> text)
+        col : Column ->
+            storage = col.java_column.getStorage
+            i-> storage.getItemBoxed i

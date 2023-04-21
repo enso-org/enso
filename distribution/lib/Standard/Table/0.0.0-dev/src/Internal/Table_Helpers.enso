@@ -382,6 +382,15 @@ is_table obj =
     known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE
+   Checks if the given object implements a Table interface.
+
+   Currently, it relies on a hack - it checks if the object has a method
+   `is_table` and if it returns `True`.
+is_column obj =
+    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.Data.Column.Column"]
+    known_types.contains (Meta.get_qualified_type_name obj)
+
+## PRIVATE
    A helper method that resolves what should be the result type of a particular
    column set based on the union settings.
 unify_result_type_for_union column_set all_tables allow_type_widening problem_builder =
