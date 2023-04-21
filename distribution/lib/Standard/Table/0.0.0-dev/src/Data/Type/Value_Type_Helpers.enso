@@ -96,16 +96,14 @@ find_argument_type value = case value of
    A helper which resolves if numeric addition or string concatenation should be
    used when the a `+` operator is used with the two provided types.
    It will return an error if the provided types are incompatible.
-   The `other_type` may be `Nothing` if the other operand is `Nothing`, then the
-   operation will depend only on the `self_type`.
-resolve_addition_kind self other =
-    self_type = find_argument_type self
-    other_type = find_argument_type other
-    if self_type.is_numeric && (other_type.is_nothing || other_type.is_numeric) then 'ADD_NUMBER' else
-        if self_type.is_text && (other_type.is_nothing || other_type.is_text) then 'ADD_TEXT' else
+resolve_addition_kind arg1 arg2 =
+    type_1 = find_argument_type arg1
+    type_2 = find_argument_type arg2
+    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then 'ADD_NUMBER' else
+        if type_1.is_text && (type_2.is_nothing || type_2.is_text) then 'ADD_TEXT' else
             Error.throw <| Illegal_Argument.Error <|
-                if other_type.is_nothing then "Cannot perform addition on a value of type " + self_type.to_display_text + ". Addition can only be performed if the column is of some numeric type or is text." else
-                    "Cannot perform addition on a pair of values of types " + self_type.to_display_text + " and " + other_type.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
+                if type_2.is_nothing then "Cannot perform addition on a value of type " + type_1.to_display_text + ". Addition can only be performed if the column is of some numeric type or is text." else
+                    "Cannot perform addition on a pair of values of types " + type_1.to_display_text + " and " + type_2.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
 
 ## PRIVATE
    Checks that both provided arguments have numeric type and runs the action
@@ -132,11 +130,9 @@ check_binary_boolean_op arg1 arg2 ~action =
    - arg_or_args: a single value or column or a vector of values or columns.
    - action: the action to run if the arguments are compatible.
 check_multi_argument_comparable_op column arg_or_args ~action =
-    column_type = column.value_type
     args = Vector.unify_vector_or_element arg_or_args
-    other_types = args.map find_argument_type
-    checked = other_types.map other_type->
-        Value_Type.expect_comparable column_type other_type <|
+    checked = args.map arg->
+        Value_Type.expect_comparable column arg <|
             True
     checked.if_not_error <|
         action

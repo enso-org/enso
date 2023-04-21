@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -185,16 +184,15 @@ spec setup =
             check_problem (t.filter "ix" Filter_Condition.Is_Empty)
             check_problem (t.filter "ix" Filter_Condition.Not_Empty)
 
-            check_scalar_type_error_handling name action =
-                action.should_fail_with Type_Error
-                action.catch . should_equal (Type_Error.Error Text Integer name)
+            check_scalar_type_error_handling action =
+                action.should_fail_with Invalid_Value_Type
 
-            check_scalar_type_error_handling "prefix" (t.filter "X" (Filter_Condition.Starts_With 42))
-            check_scalar_type_error_handling "suffix" (t.filter "X" (Filter_Condition.Ends_With 42))
-            check_scalar_type_error_handling "substring" (t.filter "X" (Filter_Condition.Contains 42))
-            check_scalar_type_error_handling "pattern" (t.filter "X" (Filter_Condition.Like 42))
-            check_scalar_type_error_handling "pattern" (t.filter "X" (Filter_Condition.Not_Like 42))
-            check_scalar_type_error_handling "substring" (t.filter "X" (Filter_Condition.Not_Contains 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Starts_With 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Ends_With 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Contains 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Like 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Not_Like 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Not_Contains 42))
 
         Test.specify "by nulls" <|
             t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, 1, Nothing, 4]]]

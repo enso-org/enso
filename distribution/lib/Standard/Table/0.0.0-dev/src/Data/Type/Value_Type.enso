@@ -335,7 +335,10 @@ type Auto
 ## PRIVATE
    A helper for generating the `Value_Type.expect_` checks.
 expect_type : Any -> (Value_Type -> Boolean) -> Text|Value_Type -> Any -> Any ! Invalid_Value_Type
-expect_type value predicate type_kind ~action =
-    typ = Value_Type_Helpers.find_argument_type value
-    if predicate typ then action else
-        Value_Type_Helpers.raise_unexpected_type type_kind value
+expect_type value predicate type_kind ~action = case value of
+    # Special handling for `Nothing`. Likely, can be removed with #6281.
+    Nothing -> action
+    _ ->
+        typ = Value_Type_Helpers.find_argument_type value
+        if predicate typ then action else
+            Value_Type_Helpers.raise_unexpected_type type_kind value

@@ -578,11 +578,11 @@ spec setup =
 
         Test.specify "should check types" <|
             [(.min), (.max)].each op->
-                op a c . should_fail_with Illegal_Argument
-                op a [1, 2, c] . should_fail_with Illegal_Argument
-                op a [1, Nothing, c, Nothing] . should_fail_with Illegal_Argument
-                op c 1 . should_fail_with Illegal_Argument
-                op a True . should_fail_with Illegal_Argument
+                op a c . should_fail_with Invalid_Value_Type
+                op a [1, 2, c] . should_fail_with Invalid_Value_Type
+                op a [1, Nothing, c, Nothing] . should_fail_with Invalid_Value_Type
+                op c 1 . should_fail_with Invalid_Value_Type
+                op a True . should_fail_with Invalid_Value_Type
 
     Test.group prefix+"Column Operations - Text Replace" <|
         if setup.is_database.not then
@@ -608,9 +608,9 @@ spec setup =
 
             Test.specify "should only allow replace on Text columns" <|
                 c.replace "a" "#" . should_fail_with Invalid_Value_Type
-                a.replace 1 "#" . should_fail_with Illegal_Argument
+                a.replace 1 "#" . should_fail_with Invalid_Value_Type
                 a.replace c "#" . should_fail_with Invalid_Value_Type
-                a.replace "a" 1 . should_fail_with Illegal_Argument
+                a.replace "a" 1 . should_fail_with Invalid_Value_Type
                 a.replace "a" c . should_fail_with Invalid_Value_Type
 
             Test.specify "should not replace if Empty term" <|
