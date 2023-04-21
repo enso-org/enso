@@ -45,9 +45,9 @@ parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Se
             nums_to_names = pattern.group_nums_to_names
             1.up_to pattern.group_count . map group_num->
                 column_values = matches.map (match-> match.at group_num)
-                column_name = case nums_to_names.contains_key group_num of
-                    True -> nums_to_names.at group_num
-                    False -> unique.make_unique <| "Column " + group_num.to_text
+                column_name = case nums_to_names.get group_num of
+                    _ : Nothing -> unique.make_unique <| "Column " + group_num.to_text
+                    name -> name
                 Column.from_vector column_name column_values
 
     table = Table.new columns
