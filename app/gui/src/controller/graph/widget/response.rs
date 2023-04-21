@@ -52,13 +52,13 @@ pub(super) struct WidgetDefinition<'a> {
     #[serde(default)]
     pub display: widget::Display,
     #[serde(borrow, flatten)]
-    pub inner:   WidgetKindConfiguration<'a>,
+    pub inner:   WidgetKindDefinition<'a>,
 }
 
-/// Part of [`WidgetConfiguration`] that is dependant on widget kind.
+/// Part of [`WidgetDefinition`] that is dependant on widget kind.
 #[derive(Debug, serde::Deserialize)]
 #[serde(tag = "constructor")]
-pub(super) enum WidgetKindConfiguration<'a> {
+pub(super) enum WidgetKindDefinition<'a> {
     /// A single value widget (dropdown).
     #[serde(rename = "Single_Choice")]
     SingleChoice {
@@ -103,7 +103,7 @@ pub(super) enum WidgetKindConfiguration<'a> {
     #[serde(rename = "Text_Input")]
     TextInput,
 
-    /// Describes a folder chooser.
+    /// A folder chooser.
     #[serde(rename = "Folder_Browse")]
     FolderBrowse,
 

@@ -54,15 +54,15 @@ fn to_metadata(resp: response::WidgetDefinition) -> widget::Metadata {
     widget::Metadata { display: resp.display, config: to_config(resp.inner), has_port: true }
 }
 
-fn to_config(inner: response::WidgetKindConfiguration) -> widget::Config {
+fn to_config(inner: response::WidgetKindDefinition) -> widget::Config {
     match inner {
-        response::WidgetKindConfiguration::SingleChoice { label, values } =>
+        response::WidgetKindDefinition::SingleChoice { label, values } =>
             widget::single_choice::Config {
                 label:   label.map(Into::into),
                 entries: Rc::new(to_entries(&values)),
             }
             .into(),
-        response::WidgetKindConfiguration::ListEditor { item_editor, item_default } =>
+        response::WidgetKindDefinition::ListEditor { item_editor, item_default } =>
             widget::list_editor::Config {
                 item_editor:  Some(Rc::new(to_metadata(*item_editor))),
                 item_default: item_default.into(),
