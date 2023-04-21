@@ -1449,7 +1449,7 @@ spec setup =
             t2.at "Count Not Empty Text" . value_type . is_integer . should_be_true
             t2.at "Sum Int" . value_type . is_numeric . should_be_true
             t2.at "Sum Float" . value_type . is_floating_point . should_be_true
-            t2.at "Average Int" . value_type . is_floating_point . should_be_true
+            t2.at "Average Int" . value_type . is_numeric . should_be_true
             t2.at "Concatenate Text" . value_type . is_text . should_be_true
 
     Test.group prefix+"Table.aggregate should raise warnings when there are issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) <|

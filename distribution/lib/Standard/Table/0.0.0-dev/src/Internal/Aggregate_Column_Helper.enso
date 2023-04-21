@@ -107,7 +107,7 @@ default_aggregate_column_name aggregate_column include_column=True =
         _ ->
             prefix = Meta.get_simple_type_name aggregate_column . replace "_" " "
             c = aggregate_column.column
-            prefix + " " + (if include_column then c.name else "")
+            prefix + (if include_column then " " + c.name else "")
 
 ## PRIVATE
    Utility function to check if all aggregates are operating on the same source column.

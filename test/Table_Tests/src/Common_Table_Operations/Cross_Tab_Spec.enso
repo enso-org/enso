@@ -95,14 +95,14 @@ spec setup =
 
         Test.specify "should allow multiple values aggregates" <|
             t1 = table.cross_tab values=[Count, Sum "Value"]
-            t1.column_names . should_equal ["x Count", "x Sum Value", "y Count", "y Sum Value", "z Count", "z Sum Value"]
+            t1.column_names . should_equal ["x Count", "x Sum", "y Count", "y Sum", "z Count", "z Sum"]
             t1.row_count . should_equal 1
             t1.at "x Count" . to_vector . should_equal [4]
-            t1.at "x Sum Value" . to_vector . should_equal [10]
+            t1.at "x Sum" . to_vector . should_equal [10]
             t1.at "y Count" . to_vector . should_equal [3]
-            t1.at "y Sum Value" . to_vector . should_equal [18]
+            t1.at "y Sum" . to_vector . should_equal [18]
             t1.at "z Count" . to_vector . should_equal [2]
-            t1.at "z Sum Value" . to_vector . should_equal [17]
+            t1.at "z Sum" . to_vector . should_equal [17]
 
         Test.specify "should fail if name_field is not found" <|
             err1 = table.cross_tab [] "Name"
