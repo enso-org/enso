@@ -96,7 +96,6 @@ export function bundlerOptions(args: Arguments) {
         entryPoints: [
             pathModule.resolve(THIS_PATH, 'src', 'index.ts'),
             pathModule.resolve(THIS_PATH, 'src', 'index.html'),
-            pathModule.resolve(THIS_PATH, 'src', 'run.js'),
             pathModule.resolve(THIS_PATH, 'src', 'style.css'),
             pathModule.resolve(THIS_PATH, 'src', 'docsStyle.css'),
             ...wasmArtifacts.split(pathModule.delimiter),

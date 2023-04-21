@@ -8,10 +8,6 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
-interface Enso {
-    main: (inputConfig?: StringConfig) => Promise<void>
-}
-
 interface BuildInfo {
     commit: string
     version: string
@@ -42,9 +38,11 @@ interface AuthenticationApi {
     saveAccessToken: (access_token: string) => void
 }
 
+import * as app from '../../../../target/ensogl-pack/linked-dist/index'
+
 declare global {
     interface Window {
-        enso: Enso
+        runProject: (inputConfig?: StringConfig) => Promise<app.App | null>
         authenticationApi: AuthenticationApi
     }
 
@@ -65,5 +63,3 @@ declare global {
     const IS_DEV_MODE: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
 }
-
-export {}
