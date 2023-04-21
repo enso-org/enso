@@ -314,11 +314,17 @@ impl model::execution_context::API for ExecutionContext {
         self.model.rename_method_pointers(old_project_name, new_project_name);
     }
 
-    fn set_mode(&self, mode: ExecutionEnvironment) -> BoxFuture<FallibleResult> {
-        self.model.execution_environment.set(mode);
+    fn set_execution_environment(
+        &self,
+        execution_environment: ExecutionEnvironment,
+    ) -> BoxFuture<FallibleResult> {
+        self.model.execution_environment.set(execution_environment);
         async move {
-            info!("Setting execution environment to {mode:?}.");
-            self.language_server.client.set_execution_environment(&self.id, &mode).await?;
+            info!("Setting execution environment to {execution_environment:?}.");
+            self.language_server
+                .client
+                .set_execution_environment(&self.id, &execution_environment)
+                .await?;
             Ok(())
         }
         .boxed_local()

@@ -3,6 +3,9 @@
 use ensogl::application::shortcut::ActionType::*;
 
 
+// =======================================
+// === Shortcuts for the graph editor. ===
+// =======================================
 
 /// The list of all shortcuts used in the graph editor.
 pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &str)] = &[

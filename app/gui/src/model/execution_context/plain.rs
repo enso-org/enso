@@ -279,7 +279,10 @@ impl model::execution_context::API for ExecutionContext {
         });
     }
 
-    fn set_mode(&self, environment: ExecutionEnvironment) -> BoxFuture<FallibleResult> {
+    fn set_execution_environment(
+        &self,
+        environment: ExecutionEnvironment,
+    ) -> BoxFuture<FallibleResult> {
         info!("Setting execution environment to {environment:?}.");
         self.execution_environment.set(environment);
         futures::future::ready(Ok(())).boxed_local()

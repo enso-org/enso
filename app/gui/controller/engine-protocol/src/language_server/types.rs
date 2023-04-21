@@ -1201,9 +1201,9 @@ impl TryFrom<&str> for ExecutionEnvironment {
     type Error = ();
 
     fn try_from(value: &str) -> core::result::Result<Self, Self::Error> {
-        match value {
-            "design" | "Design" => Ok(ExecutionEnvironment::Design),
-            "live" | "Live" => Ok(ExecutionEnvironment::Live),
+        match value.to_lowercase().as_str() {
+            "design" => Ok(ExecutionEnvironment::Design),
+            "live" => Ok(ExecutionEnvironment::Live),
             _ => Err(()),
         }
     }
