@@ -11,8 +11,8 @@ use crate::node::input::widget;
 use crate::node::input::widget::MetadataPointer;
 use crate::node::profiling;
 use crate::view;
+use crate::CallWidgetsConfig;
 use crate::Type;
-use crate::WidgetUpdates;
 
 use enso_frp as frp;
 use enso_frp;
@@ -238,13 +238,13 @@ impl Model {
         Some(cursor::Style::new_highlight(display_object, size, radius, color))
     }
 
-    /// Apply widget updates to widgets in this input area.
-    fn apply_widget_updates(&self, updates: &WidgetUpdates) {
-        let WidgetUpdates { call_id, updates } = updates;
-        for update in updates.iter() {
-            let argument_name = update.argument_name.clone().into();
+    /// Apply widget configuration to widgets in this input area.
+    fn set_widget_configuration(&self, config: &CallWidgetsConfig) {
+        let CallWidgetsConfig { call_id, definitions } = config;
+        for definition in definitions.iter() {
+            let argument_name = definition.argument_name.clone().into();
             let meta_pointer = MetadataPointer { call_id: *call_id, argument_name };
-            self.widget_tree.set_metadata(meta_pointer, update.meta.clone());
+            self.widget_tree.set_metadata(meta_pointer, definition.meta.clone());
         }
     }
 
@@ -328,7 +328,7 @@ ensogl::define_endpoints! {
         set_connected (Crumbs, Option<color::Lcha>),
 
         /// Update widget metadata for widgets already present in this input area.
-        update_widgets   (WidgetUpdates),
+        update_widgets   (CallWidgetsConfig),
 
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
@@ -514,7 +514,7 @@ impl Area {
 
             // === Widgets ===
 
-            eval frp.update_widgets((a) model.apply_widget_updates(a));
+            eval frp.update_widgets((a) model.set_widget_configuration(a));
             eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));

@@ -174,7 +174,7 @@ define_widget_modules! {
     /// A widget for selecting a single value from a list of available options.
     SingleChoice single_choice,
     /// A widget for managing a list of values - adding, removing or reordering them.
-    VectorEditor vector_editor,
+    ListEditor list_editor,
     /// Default span tree traversal widget.
     Hierarchy hierarchy,
 }
@@ -197,27 +197,9 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    const fn always<C>(config: C) -> Self
-    where C: ~const Into<Config> {
-        Self { display: Display::Always, config: config.into(), has_port: true }
-    }
-
-    const fn inert<C>(config: C) -> Self
-    where C: ~const Into<Config> {
-        Self { display: Display::Always, config: config.into(), has_port: false }
-    }
-
-    /// Widget metadata for static dropdown, based on the tag values provided by suggestion
-    /// database.
-    fn static_dropdown(label: Option<ImString>, tag_values: &[span_tree::TagValue]) -> Metadata {
-        let entries = Rc::new(tag_values.iter().map(Entry::from).collect());
-        Self::always(single_choice::Config { label, entries })
-    }
-
-    fn vector_editor() -> Metadata {
-        Self::always(vector_editor::Config { item_editor: None, item_default: "_".into() })
-    }
-
+    /// Derive widget metadata from the expression, node data in span tree and inferred value type.
+    /// When no metadata is provided by language server, the metadata returned from this function
+    /// will be used to create a default widget.
     fn from_node(span_node: &SpanRef, usage_type: Option<crate::Type>, expression: &str) -> Self {
         use span_tree::node::Kind;
 
@@ -225,7 +207,7 @@ impl Metadata {
         let has_children = !span_node.children.is_empty();
 
         const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
-        let is_array_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
+        let is_list_editor_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
         let is_vector = |arg: &span_tree::node::Argument| {
             let type_matches = usage_type
                 .as_ref()
@@ -243,7 +225,7 @@ impl Metadata {
         match kind {
             Kind::Argument(arg) if !arg.tag_values.is_empty() =>
                 Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Argument(arg) if is_array_enabled && is_vector(arg) => Self::vector_editor(),
+            Kind::Argument(arg) if is_list_editor_enabled && is_vector(arg) => Self::list_editor(),
             Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
                 if !arg.tag_values.is_empty() {
                     Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
@@ -256,6 +238,27 @@ impl Metadata {
             _ if has_children => Self::always(hierarchy::Config),
             _ => Self::always(label::Config::default()),
         }
+    }
+
+    const fn always<C>(config: C) -> Self
+    where C: ~const Into<Config> {
+        Self { display: Display::Always, config: config.into(), has_port: true }
+    }
+
+    const fn inert<C>(config: C) -> Self
+    where C: ~const Into<Config> {
+        Self { display: Display::Always, config: config.into(), has_port: false }
+    }
+
+    /// Widget metadata for static dropdown, based on the tag values provided by suggestion
+    /// database.
+    fn static_dropdown(label: Option<ImString>, tag_values: &[span_tree::TagValue]) -> Metadata {
+        let entries = Rc::new(tag_values.iter().map(Entry::from).collect());
+        Self::always(single_choice::Config { label, entries })
+    }
+
+    fn list_editor() -> Metadata {
+        Self::always(list_editor::Config { item_editor: None, item_default: "_".into() })
     }
 }
 
@@ -342,9 +345,9 @@ pub struct WidgetsFrp {
 
 
 
-// ==============
-// === Widget ===
-// ==============
+// ============
+// === Tree ===
+// ============
 
 /// The node widget tree view. Contains all widgets created from the node's span tree, as well as
 /// all input ports of a node. The tree is initialized to empty state, waiting for first
@@ -558,6 +561,8 @@ pub(super) struct ConnectionData {
     /// Span tree depth at which the connection is made.
     pub depth: usize,
 }
+
+
 
 /// =================
 /// === TreeModel ===

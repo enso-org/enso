@@ -7,19 +7,24 @@ use crate::model::execution_context::VisualizationUpdateData;
 
 use super::response;
 use ide_view::graph_editor::component::node::input::widget;
-use ide_view::graph_editor::WidgetUpdate;
+use ide_view::graph_editor::ArgumentWidgetConfig;
 
 
-/// Deserialize a list of widget configurations from  visualization update data. Allows for partial
+
+/// =====================================
+/// == deserialize_widget_definitions ===
+/// =====================================
+
+/// Deserialize a list of widget configurations from visualization update data. Allows for partial
 /// deserialization: if any of the widget configurations fails to deserialize, it will be skipped,
 /// but the deserialization will continue. All errors are returned as a separate list.
-pub fn deserialize_widget_update(
+pub fn deserialize_widget_definitions(
     data: &VisualizationUpdateData,
-) -> (Vec<WidgetUpdate>, Vec<failure::Error>) {
+) -> (Vec<ArgumentWidgetConfig>, Vec<failure::Error>) {
     match serde_json::from_slice::<response::WidgetDefinitions>(data) {
         Ok(response) => {
             let updates = response.into_iter().map(
-                |(argument_name, fallable_widget)| -> FallibleResult<WidgetUpdate> {
+                |(argument_name, fallable_widget)| -> FallibleResult<ArgumentWidgetConfig> {
                     let widget: Option<response::WidgetDefinition> =
                         fallable_widget.widget.map_err(|e| {
                             let msg = "Failed to deserialize widget data for argument";
@@ -27,7 +32,7 @@ pub fn deserialize_widget_update(
                         })?;
                     let meta = widget.map(to_metadata);
                     let argument_name = argument_name.to_owned();
-                    Ok(WidgetUpdate { argument_name, meta })
+                    Ok(ArgumentWidgetConfig { argument_name, meta })
                 },
             );
 
@@ -41,6 +46,10 @@ pub fn deserialize_widget_update(
     }
 }
 
+/// == Conversion to Widget Metadata IDE structs ===
+
+/// Convert a widget definition from the engine response into a IDE internal widget metadata struct.
+/// See [`widget::Metadata`] for more information.
 fn to_metadata(resp: response::WidgetDefinition) -> widget::Metadata {
     widget::Metadata { display: resp.display, config: to_config(resp.inner), has_port: true }
 }
@@ -54,7 +63,7 @@ fn to_config(inner: response::WidgetKindConfiguration) -> widget::Config {
             }
             .into(),
         response::WidgetKindConfiguration::ListEditor { item_editor, item_default } =>
-            widget::vector_editor::Config {
+            widget::list_editor::Config {
                 item_editor:  Some(Rc::new(to_metadata(*item_editor))),
                 item_default: item_default.into(),
             }

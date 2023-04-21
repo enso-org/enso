@@ -637,7 +637,7 @@ ensogl::define_endpoints_2! {
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
-        update_node_widgets          ((NodeId,WidgetUpdates)),
+        update_node_widgets          ((NodeId,CallWidgetsConfig)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId, Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
@@ -1120,21 +1120,22 @@ impl Grid {
 // === WidgetUpdates ===
 // =====================
 
-/// A structure describing a widget update batch for arguments of single function call.
+/// Configuration for widgets of arguments at function call Enso expression.
 #[derive(Debug, Default, Clone)]
-pub struct WidgetUpdates {
+pub struct CallWidgetsConfig {
     /// The function call expression ID.
-    pub call_id: ast::Id,
-    /// Update of a widget for each function argument.
-    pub updates: Rc<Vec<WidgetUpdate>>,
+    pub call_id:     ast::Id,
+    /// Configuration of a widget for each function argument.
+    pub definitions: Rc<Vec<ArgumentWidgetConfig>>,
 }
 
 /// A structure describing a widget update for specific argument of a function call.
 #[derive(Debug)]
-pub struct WidgetUpdate {
+pub struct ArgumentWidgetConfig {
     /// The function argument name that this widget is for.
     pub argument_name: String,
-    /// Widget metadata queried from the language server.
+    /// Widget metadata queried from the language server. When this is `None`, the widget metadata
+    /// should be inferred automatically.
     pub meta:          Option<node::input::widget::Metadata>,
 }
 
@@ -2272,7 +2273,7 @@ impl GraphEditorModel {
         }
     }
 
-    fn update_node_widgets(&self, node_id: NodeId, updates: &WidgetUpdates) {
+    fn update_node_widgets(&self, node_id: NodeId, updates: &CallWidgetsConfig) {
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.view.update_widgets.emit(updates.clone());
         }

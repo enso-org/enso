@@ -11,9 +11,9 @@ use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
+use crate::CallWidgetsConfig;
 use crate::ExecutionEnvironment;
 use crate::Type;
-use crate::WidgetUpdates;
 
 use super::edge;
 use enso_frp as frp;
@@ -317,7 +317,7 @@ ensogl::define_endpoints_2! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type         (ast::Id, Option<Type>),
-        update_widgets                    (WidgetUpdates),
+        update_widgets                    (CallWidgetsConfig),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         /// Show visualization preview until either editing of the node is finished or the

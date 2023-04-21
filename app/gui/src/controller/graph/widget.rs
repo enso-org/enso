@@ -21,8 +21,8 @@ use ensogl::define_endpoints_2;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Metadata;
 use ide_view::graph_editor::data::enso::Code;
-use ide_view::graph_editor::WidgetUpdate;
-use ide_view::graph_editor::WidgetUpdates;
+use ide_view::graph_editor::ArgumentWidgetConfig;
+use ide_view::graph_editor::CallWidgetsConfig;
 
 
 
@@ -63,7 +63,7 @@ define_endpoints_2! {
     }
     Output {
         /// Emitted when the node's visualization has been set.
-        widget_data(NodeId, WidgetUpdates),
+        widget_data(NodeId, CallWidgetsConfig),
     }
 }
 
@@ -148,7 +148,7 @@ impl Model {
     fn handle_notification(
         &mut self,
         notification: Notification,
-    ) -> Option<(NodeId, WidgetUpdates)> {
+    ) -> Option<(NodeId, CallWidgetsConfig)> {
         let report_error = |message, error| {
             error!("{message}: {error}");
             None
@@ -171,26 +171,26 @@ impl Model {
         &mut self,
         target: ast::Id,
         data: VisualizationUpdateData,
-    ) -> Option<(NodeId, WidgetUpdates)> {
+    ) -> Option<(NodeId, CallWidgetsConfig)> {
         let query_data = self.widget_queries.get_mut(&target)?;
 
-        let (updates, errors) = metadata::deserialize_widget_update(&data);
+        let (definitions, errors) = metadata::deserialize_widget_definitions(&data);
 
         for error in errors {
             error!("{:?}", error);
         }
 
-        trace!("Widget updates: {updates:?}");
-        let updates = Rc::new(updates);
-        query_data.last_updates = Some(updates.clone());
+        trace!("Widget definitions: {definitions:?}");
+        let definitions = Rc::new(definitions);
+        query_data.last_definitions = Some(definitions.clone());
 
         let call_id = query_data.call_expression;
-        Some((query_data.node_id, WidgetUpdates { call_id, updates }))
+        Some((query_data.node_id, CallWidgetsConfig { call_id, definitions }))
     }
 
     /// Handle a widget request from presenter. Returns the widget updates if the request can be
     /// immediately fulfilled from the cache.
-    fn request_widget(&mut self, request: &Request) -> Option<(NodeId, WidgetUpdates)> {
+    fn request_widget(&mut self, request: &Request) -> Option<(NodeId, CallWidgetsConfig)> {
         let suggestion_db = self.graph.suggestion_db();
         let suggestion = suggestion_db.lookup(request.call_suggestion).ok()?;
 
@@ -216,7 +216,7 @@ impl Model {
                     // the last known visualization data. Each widget request needs to be responded
                     // to, otherwise the widget might not be displayed after the widget view has
                     // been temporarily removed and created again.
-                    query.last_updates()
+                    query.last_definitions()
                 }
             }
             Entry::Vacant(vacant) => {
@@ -328,11 +328,11 @@ pub struct Request {
 /// and maintains enough data to correlate the response with respective widget view.
 #[derive(Debug)]
 struct QueryData {
-    node_id:         NodeId,
-    call_expression: ExpressionId,
-    method_name:     ImString,
-    arguments:       Vec<ImString>,
-    last_updates:    Option<Rc<Vec<WidgetUpdate>>>,
+    node_id:          NodeId,
+    call_expression:  ExpressionId,
+    method_name:      ImString,
+    arguments:        Vec<ImString>,
+    last_definitions: Option<Rc<Vec<ArgumentWidgetConfig>>>,
 }
 
 impl QueryData {
@@ -341,8 +341,8 @@ impl QueryData {
         let arguments = suggestion.arguments.iter().map(|arg| arg.name.clone().into()).collect();
         let method_name = suggestion.name.clone().into();
         let call_expression = req.call_expression;
-        let last_updates = None;
-        QueryData { node_id, arguments, method_name, call_expression, last_updates }
+        let last_definitions = None;
+        QueryData { node_id, arguments, method_name, call_expression, last_definitions }
     }
 
     /// Update existing query data on new request. Returns true if the visualization query needs to
@@ -369,18 +369,18 @@ impl QueryData {
         visualization_modified
     }
 
-    fn last_updates(&self) -> Option<(NodeId, WidgetUpdates)> {
-        self.last_updates.as_ref().map(|updates| {
+    fn last_definitions(&self) -> Option<(NodeId, CallWidgetsConfig)> {
+        self.last_definitions.as_ref().map(|definitions| {
             let call_id = self.call_expression;
-            let updates = WidgetUpdates { call_id, updates: updates.clone() };
-            (self.node_id, updates)
+            let config = CallWidgetsConfig { call_id, definitions: definitions.clone() };
+            (self.node_id, config)
         })
     }
 
     fn request_visualization(&mut self, manager: &Rc<Manager>, target_expression: ast::Id) {
         // When visualization is requested, remove stale queried value to prevent updates  while
         // language server request is pending.
-        self.last_updates.take();
+        self.last_definitions.take();
         let vis_metadata = self.visualization_metadata();
         manager.request_visualization(target_expression, vis_metadata);
     }

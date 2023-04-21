@@ -181,7 +181,7 @@ impl Port {
                 f!([crumbs](t) Switch::new(crumbs.borrow().clone(), *t))
             );
 
-            frp.on_port_press <+ mouse_down.map(f!((_) crumbs.borrow().clone()));
+            frp.on_port_press <+ mouse_down.map(f_!(crumbs.borrow().clone()));
             eval frp.set_ports_visible([port_root_weak, hover_shape] (active) {
                 if let Some(port_root) = port_root_weak.upgrade() {
                     if *active {

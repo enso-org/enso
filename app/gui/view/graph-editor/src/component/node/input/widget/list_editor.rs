@@ -1,7 +1,7 @@
-//! Module dedicated to the Vector Editor widget. The main structure is [`Model`] which is one of
+//! Module dedicated to the List Editor widget. The main structure is [`Model`] which is one of
 //! the [KindModel](crate::component::node::widget::KindModel) variants.
 //!
-//! Currently the view is a simle [`Elements`] component, which will be replaced with a rich
+//! Currently the view is a simple [`Elements`] component, which will be replaced with a rich
 //! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
 
 use crate::prelude::*;

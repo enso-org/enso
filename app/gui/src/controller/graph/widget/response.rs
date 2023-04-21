@@ -7,24 +7,24 @@ use ide_view::graph_editor::component::node::input::widget;
 
 
 
-/// =====================
-/// === WidgetUpdates ===
-/// =====================
+/// =========================
+/// === WidgetDefinitions ===
+/// =========================
 
 /// A top level object received from the widget visualization, which contains widget definitions for
 /// all arguments of a single Enso method. Configurations are paired with the name of function
 /// argument they are associated with.
-pub(super) type WidgetDefinitions<'a> = Vec<(&'a str, FallableWidgetData<'a>)>;
+pub(super) type WidgetDefinitions<'a> = Vec<(&'a str, FallableWidgetDefinition<'a>)>;
 
-/// A wrapper type that allows deserialization of a widget definitions to partially fail: failures
-/// message of individual widget definition deserialization will be preserved, and deserialization
+/// A wrapper type that allows deserialization of a widget definitions to partially fail: failure
+/// message of individual widget definition deserialization will be preserved and deserialization
 /// will continue.
 #[derive(Debug)]
-pub(super) struct FallableWidgetData<'a> {
+pub(super) struct FallableWidgetDefinition<'a> {
     pub(super) widget: FallibleResult<Option<WidgetDefinition<'a>>>,
 }
 
-impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetData<'a> {
+impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetDefinition<'a> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where D: serde::Deserializer<'de> {
         let widget = <Option<WidgetDefinition>>::deserialize(deserializer)
@@ -35,9 +35,9 @@ impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetData<'a> {
 
 
 
-/// ==============
-/// === Widget ===
-/// ==============
+/// ========================
+/// === WidgetDefinition ===
+/// ========================
 
 /// Widget definition provided from the engine. It is used to define how to display a widget of
 /// particular argument expression. When not provided, the default widget will be chosen based on
