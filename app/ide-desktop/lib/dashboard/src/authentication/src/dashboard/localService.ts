@@ -13,6 +13,14 @@ import * as projectManager from './projectManager'
 /** The scene name to open a project, instead of a debug scene. */
 const PROJECT_SCENE_NAME = 'Project_root'
 
+// ========================
+// === Helper functions ===
+// ========================
+
+function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
+    return newtype.asNewtype<cloudService.Address>(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
+}
+
 // ===============
 // === Backend ===
 // ===============
@@ -43,7 +51,7 @@ export class Backend implements Partial<cloudService.Backend> {
             name: project.name,
             organizationId: '',
             projectId: project.id,
-            packageName: PROJECT_SCENE_NAME,
+            packageName: project.name,
             state: {
                 type: cloudService.ProjectState.created,
             },
@@ -64,7 +72,7 @@ export class Backend implements Partial<cloudService.Backend> {
             name: body.projectName,
             organizationId: '',
             projectId: project.projectId,
-            packageName: PROJECT_SCENE_NAME,
+            packageName: body.projectName,
             state: {
                 type: cloudService.ProjectState.created,
             },
@@ -99,7 +107,7 @@ export class Backend implements Partial<cloudService.Backend> {
                     jsonAddress: null,
                     binaryAddress: null,
                     organizationId: '',
-                    packageName: PROJECT_SCENE_NAME,
+                    packageName: project.name,
                     projectId,
                     state: {
                         type: cloudService.ProjectState.closed,
@@ -118,18 +126,10 @@ export class Backend implements Partial<cloudService.Backend> {
                     lifecycle: cloudService.VersionLifecycle.stable,
                     value: project.engineVersion,
                 },
-                jsonAddress: newtype.asNewtype<cloudService.Address>(
-                    project.languageServerJsonAddress.host +
-                        ':' +
-                        String(project.languageServerJsonAddress.port)
-                ),
-                binaryAddress: newtype.asNewtype<cloudService.Address>(
-                    project.languageServerBinaryAddress.host +
-                        ':' +
-                        String(project.languageServerBinaryAddress.port)
-                ),
+                jsonAddress: ipWithSocketToAddress(project.languageServerJsonAddress),
+                binaryAddress: ipWithSocketToAddress(project.languageServerBinaryAddress),
                 organizationId: '',
-                packageName: PROJECT_SCENE_NAME,
+                packageName: project.projectName,
                 projectId,
                 state: {
                     type: cloudService.ProjectState.opened,

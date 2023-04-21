@@ -12,6 +12,10 @@ import * as projectManagerService from '../localService'
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
+const JS_EXTENSION: Record<platformModule.Platform, string> = {
+    [platformModule.Platform.cloud]: '.js.gz',
+    [platformModule.Platform.desktop]: '.js',
+} as const
 
 // =================
 // === Component ===
@@ -29,10 +33,6 @@ function Ide(props: Props) {
 
     react.useEffect(() => {
         void (async () => {
-            // const ideElement = document.getElementById(IDE_ELEMENT_ID)
-            // while (ideElement?.firstChild) {
-            //     ideElement.removeChild(ideElement.firstChild)
-            // }
             const ideVersion =
                 project.ideVersion?.value ??
                 ('listVersions' in backendService
@@ -60,6 +60,14 @@ function Ide(props: Props) {
             } else if (binaryAddress == null) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
+                const assetsRoot = (() => {
+                    switch (backendPlatform) {
+                        case platformModule.Platform.cloud:
+                            return `${IDE_CDN_URL}/${ideVersion}`
+                        case platformModule.Platform.desktop:
+                            return ''
+                    }
+                })()
                 const runNewProject = async () => {
                     const originalUrl = window.location.href
                     // The URL query contains commandline options when running in the desktop,
@@ -67,9 +75,9 @@ function Ide(props: Props) {
                     history.replaceState(null, '', new URL('.', originalUrl))
                     await window.runProject({
                         loader: {
-                            assetsUrl: `${IDE_CDN_URL}/${ideVersion}/dynamic-assets`,
-                            wasmUrl: `${IDE_CDN_URL}/${ideVersion}/pkg-opt.wasm`,
-                            jsUrl: `${IDE_CDN_URL}/${ideVersion}/pkg.js.gz`,
+                            assetsUrl: `${assetsRoot}dynamic-assets`,
+                            wasmUrl: `${assetsRoot}/pkg-opt.wasm`,
+                            jsUrl: `${assetsRoot}/pkg${JS_EXTENSION[backendPlatform]}`,
                         },
                         engine: {
                             rpcUrl: jsonAddress,
