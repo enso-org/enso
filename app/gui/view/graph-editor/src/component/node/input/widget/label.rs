@@ -88,23 +88,23 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
-        let is_placeholder = ctx.span_tree_node.is_expected_argument();
+        let is_placeholder = ctx.span_node.is_expected_argument();
 
         let content = if is_placeholder {
-            ctx.span_tree_node.kind.argument_name().unwrap_or_default()
+            ctx.span_node.kind.argument_name().unwrap_or_default()
         } else {
-            ctx.expression_at(ctx.span_tree_node.span())
+            ctx.expression_at(ctx.span_node.span())
         };
 
-        let color_state: ColorState = if ctx.state.subtree_connection.is_connected() {
+        let color_state: ColorState = if ctx.info.subtree_connection.is_some() {
             ColorState::Connected
-        } else if ctx.state.disabled {
+        } else if ctx.info.disabled {
             ColorState::Disabled
         } else if is_placeholder {
             ColorState::Placeholder
         } else {
-            let ty = ctx.state.usage_type.clone();
-            let ty = ty.or_else(|| ctx.span_tree_node.kind.tp().map(|t| crate::Type(t.into())));
+            let ty = ctx.info.usage_type.clone();
+            let ty = ty.or_else(|| ctx.span_node.kind.tp().map(|t| crate::Type(t.into())));
             let color = crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles());
             ColorState::FromType(color)
         };
@@ -115,7 +115,7 @@ impl super::SpanWidget for Widget {
         input.content.emit(content);
         input.text_color.emit(color_state);
         input.text_weight(text_weight);
-        input.crumbs.emit(ctx.span_tree_node.crumbs.clone());
+        input.crumbs.emit(ctx.span_node.crumbs.clone());
     }
 }
 

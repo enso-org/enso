@@ -980,6 +980,18 @@ impl From<String> for Type {
     }
 }
 
+impl From<&String> for Type {
+    fn from(s: &String) -> Self {
+        Type(s.into())
+    }
+}
+
+impl From<&str> for Type {
+    fn from(s: &str) -> Self {
+        Type(s.into())
+    }
+}
+
 impl Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -1923,7 +1935,7 @@ impl GraphEditorModel {
             }
 
             if let Some(target) = edge.take_target() {
-                self.set_input_connected(&target, node::ConnectionStatus::Disconnected);
+                self.set_input_connected(&target, None);
                 if let Some(target_node) = self.nodes.get_cloned_ref(&target.node_id) {
                     target_node.in_edges.remove(&edge_id);
                 }
@@ -1931,7 +1943,7 @@ impl GraphEditorModel {
         }
     }
 
-    fn set_input_connected(&self, target: &EdgeEndpoint, status: node::ConnectionStatus) {
+    fn set_input_connected(&self, target: &EdgeEndpoint, status: Option<color::Lcha>) {
         if let Some(node) = self.nodes.get_cloned(&target.node_id) {
             node.view.set_input_connected(&target.port, status);
         }
@@ -1955,10 +1967,7 @@ impl GraphEditorModel {
         status: bool,
         neutral_color: color::Lcha,
     ) {
-        let status = match status {
-            true => node::ConnectionStatus::connected(self.edge_color(edge_id, neutral_color)),
-            false => node::ConnectionStatus::Disconnected,
-        };
+        let status = status.then(|| self.edge_color(edge_id, neutral_color));
         self.set_input_connected(target, status);
     }
 
@@ -2304,7 +2313,7 @@ impl GraphEditorModel {
             let color = self.edge_color(edge_id, neutral_color);
             edge.view.frp.set_color.emit(color);
             if let Some(target) = edge.target() {
-                self.set_input_connected(&target, node::ConnectionStatus::connected(color));
+                self.set_input_connected(&target, Some(color));
             }
         };
     }
@@ -4161,7 +4170,7 @@ mod tests {
         // Connecting edge.
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true, None);
-        let port_hover = node_2.model().input_port_shape().expect("No input port.");
+        let port_hover = node_2.model().input_port_hover_shape().expect("No input port.");
 
         // Input ports already use new event API.
         port_hover.emit_event(mouse::Down::default());

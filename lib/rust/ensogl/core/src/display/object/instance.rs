@@ -2025,13 +2025,8 @@ impl InstanceDef {
     }
 
     /// Replaces the parent binding with a new parent.
-    pub fn set_parent(&self, parent: &InstanceDef) {
+    fn set_parent(&self, parent: &InstanceDef) {
         parent.add_child(self);
-    }
-
-    /// Checks if the provided object is a parent of the current one.
-    fn is_parent_of(&self, child: &InstanceDef) -> bool {
-        child.parent_bind.parent_and_child_index().map_or(false, |(parent, _)| &parent.def == self)
     }
 
     /// Removes the current parent binding.
@@ -2649,7 +2644,7 @@ pub trait LayoutOps: Object {
         self.display_object().def.layout.size.get()
     }
 
-    /// Get the margin of the object.P lease note that this is user-set margin, not the computed
+    /// Get the margin of the object. Please note that this is user-set margin, not the computed
     /// one.
     fn margin(&self) -> Vector2<SideSpacing> {
         self.display_object().def.layout.margin.get()

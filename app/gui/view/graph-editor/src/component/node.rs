@@ -291,68 +291,6 @@ impl Default for Crumbs {
 
 
 
-// ========================
-// === ConnectionStatus ===
-// ========================
-
-/// The status of a single incoming connection to a specific port of a node. If a port has been
-/// disconnected, the status is set to `Disconnected`. All ports are initially disconnected.
-#[allow(missing_docs)]
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub enum ConnectionStatus {
-    #[default]
-    Disconnected,
-    Connected(ConnectionData),
-}
-
-impl ConnectionStatus {
-    /// Create a new `ConnectionStatus` representing an existing connection.
-    pub fn connected(color: color::Lcha) -> Self {
-        Self::Connected(ConnectionData { color })
-    }
-
-    /// Returns the data associated with the connection, if it exists.
-    pub fn data(&self) -> Option<ConnectionData> {
-        match self {
-            Self::Connected(data) => Some(*data),
-            Self::Disconnected => None,
-        }
-    }
-
-    /// Combine two statuses of a connection. If the first status is `Disconnected`, the second one
-    /// will be returned. Otherwise, the first status will be returned.
-    pub fn or(self, other: Self) -> Self {
-        match self {
-            Self::Disconnected => other,
-            _ => self,
-        }
-    }
-
-    /// Returns true if the port is connected.
-    pub fn is_connected(&self) -> bool {
-        matches!(self, Self::Connected(_))
-    }
-}
-
-impl From<Option<ConnectionData>> for ConnectionStatus {
-    fn from(t: Option<ConnectionData>) -> Self {
-        match t {
-            Some(t) => Self::Connected(t),
-            None => Self::Disconnected,
-        }
-    }
-}
-
-/// The data associated with a single existing incoming connection to a port. Holds the color
-/// matching connected edge.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ConnectionData {
-    /// Color of an edge connected to the port.
-    pub color: color::Lcha,
-}
-
-
-
 // ============
 // === Node ===
 // ============
@@ -365,7 +303,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_input_connected   (span_tree::Crumbs,ConnectionStatus),
+        set_input_connected   (span_tree::Crumbs,Option<color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -1175,7 +1113,7 @@ pub mod test_utils {
         /// 1. If there are no input ports.
         /// 2. If the port does not have a `Shape`. Some port models does not initialize the
         ///    `Shape`, see [`input::port::Model::init_shape`].
-        fn input_port_shape(&self) -> Option<input::port::hover_shape::View>;
+        fn input_port_hover_shape(&self) -> Option<input::port::hover_shape::View>;
     }
 
     impl NodeModelExt for NodeModel {
@@ -1190,7 +1128,7 @@ pub mod test_utils {
             }
         }
 
-        fn input_port_shape(&self) -> Option<input::port::hover_shape::View> {
+        fn input_port_hover_shape(&self) -> Option<input::port::hover_shape::View> {
             let shapes = self.input.model.port_hover_shapes();
             shapes.into_iter().next()
         }

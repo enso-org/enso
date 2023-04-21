@@ -4,10 +4,10 @@ use crate::prelude::*;
 
 use crate::component::node::input::widget::Config;
 use crate::component::node::input::widget::ConfigContext;
+use crate::component::node::input::widget::ConnectionData;
 use crate::component::node::input::widget::DynWidget;
 use crate::component::node::input::widget::SpanWidget;
 use crate::component::node::input::widget::WidgetsFrp;
-use crate::component::node::ConnectionStatus;
 
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -32,12 +32,6 @@ pub const BASE_PORT_HEIGHT: f32 = 18.0;
 /// The vertical hover padding of ports at low depth. It affects how the port hover should extend
 /// the target text boundary on both sides.
 pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_HEIGHT) / 2.0;
-
-/// The maximum depth of the widget port that is still considered primary. This is used to determine
-/// the hover area of the port.
-pub const PRIMARY_PORT_MAX_DEPTH: usize = 0;
-
-
 
 // =============
 // === Shape ===
@@ -84,8 +78,10 @@ pub mod hover_shape {
     }
 }
 
-/// An scene extension that holds the partitions of hover shapes for all ports. This is used to
-/// visually sort the ports based on port depth in the widget tree.
+/// An scene extension that maintains layer partitions for port hover shapes. It is shared by all
+/// ports in the scene. The hover shapes are partitioned by span tree depth, so that the hover area
+/// of ports deeper in the tree will always be displayed on top, giving them priority to receive
+/// mouse events.
 #[derive(Clone, CloneRef)]
 struct HoverLayers {
     hover_layer:      display::scene::Layer,
@@ -112,13 +108,16 @@ impl HoverLayers {
 }
 
 
+
 // ============
 // === Port ===
 // ============
 
-/// A port on the node side. It can be connected to other ports.
+/// Node of a widget tree that can be a source of an edge. Displays a visual representation of the
+/// connection below the widget, and handles mouse hover and click events when an edge is dragged.
 #[derive(Debug)]
 pub struct Port {
+    /// Drop source must be kept at the top of the struct, so it will be dropped first.
     #[allow(dead_code)]
     on_cleanup:      frp::DropSource,
     crumbs:          Rc<RefCell<span_tree::Crumbs>>,
@@ -179,7 +178,7 @@ impl Port {
             hovering <- hovering.on_change();
 
             frp.on_port_hover <+ hovering.map(
-                f!([crumbs](t) Switch::new(crumbs.borrow().clone(),*t))
+                f!([crumbs](t) Switch::new(crumbs.borrow().clone(), *t))
             );
 
             frp.on_port_press <+ mouse_down.map(f!((_) crumbs.borrow().clone()));
@@ -194,7 +193,8 @@ impl Port {
             });
 
             // Port shape is only connected to the display hierarchy when the port is connected.
-            // Thus the `on_updated` event is automatically disabled when the port is not connected.
+            // Thus the `on_transformed` event is automatically disabled when the port is not
+            // connected.
             let shape_display_object = port_shape.display_object();
             frp.connected_port_updated <+ shape_display_object.on_transformed;
         };
@@ -214,8 +214,8 @@ impl Port {
 
     /// Configure the port and its attached widget.
     pub fn configure(&mut self, config: &Config, ctx: ConfigContext) {
-        self.crumbs.replace(ctx.span_tree_node.crumbs.clone());
-        self.set_connected(ctx.state.connection);
+        self.crumbs.replace(ctx.span_node.crumbs.clone());
+        self.set_connected(ctx.info.connection);
         self.set_port_layout(&ctx);
         self.widget.configure(config, ctx);
         self.update_root();
@@ -223,13 +223,13 @@ impl Port {
 
     /// Update connection status of this port. Changing the connection status will add or remove the
     /// port's visible shape from the display hierarchy.
-    fn set_connected(&self, status: ConnectionStatus) {
+    fn set_connected(&self, status: Option<ConnectionData>) {
         match status {
-            ConnectionStatus::Connected(data) => {
+            Some(data) => {
                 self.port_root.add_child(&self.port_shape);
                 self.port_shape.color.set(color::Rgba::from(data.color).into())
             }
-            ConnectionStatus::Disconnected => {
+            None => {
                 self.port_root.remove_child(&self.port_shape);
             }
         };
@@ -245,15 +245,14 @@ impl Port {
     }
 
     fn set_port_layout(&mut self, ctx: &ConfigContext) {
-        let node_depth = ctx.span_tree_node.crumbs.len();
+        let node_depth = ctx.span_node.crumbs.len();
         if self.current_depth != node_depth {
             self.current_depth = node_depth;
             let layers = ctx.app().display.default_scene.extension::<HoverLayers>();
             layers.add_to_partition(self.hover_shape.display_object(), node_depth);
         }
 
-        #[allow(clippy::absurd_extreme_comparisons)]
-        let is_primary = ctx.state.depth <= PRIMARY_PORT_MAX_DEPTH;
+        let is_primary = ctx.info.nesting_level.is_primary();
         if self.current_primary != is_primary {
             self.current_primary = is_primary;
             let margin = if is_primary { PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };

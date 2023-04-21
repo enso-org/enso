@@ -10,20 +10,22 @@ use ide_view::graph_editor::component::node::input::widget;
 use ide_view::graph_editor::WidgetUpdate;
 
 
-
+/// Deserialize a list of widget configurations from  visualization update data. Allows for partial
+/// deserialization: if any of the widget configurations fails to deserialize, it will be skipped,
+/// but the deserialization will continue. All errors are returned as a separate list.
 pub fn deserialize_widget_update(
     data: &VisualizationUpdateData,
 ) -> (Vec<WidgetUpdate>, Vec<failure::Error>) {
-    match serde_json::from_slice::<response::WidgetUpdates>(data) {
+    match serde_json::from_slice::<response::WidgetDefinitions>(data) {
         Ok(response) => {
             let updates = response.into_iter().map(
                 |(argument_name, fallable_widget)| -> FallibleResult<WidgetUpdate> {
-                    let widget: Option<response::Widget> = fallable_widget.0.map_err(|e| {
-                        e.context(format!(
-                            "Failed to deserialize widget data for argument '{argument_name}'"
-                        ))
-                    })?;
-                    let meta = widget.map(map_metadata);
+                    let widget: Option<response::WidgetDefinition> =
+                        fallable_widget.widget.map_err(|e| {
+                            let msg = "Failed to deserialize widget data for argument";
+                            e.context(format!("{msg} '{argument_name}'"))
+                        })?;
+                    let meta = widget.map(to_metadata);
                     let argument_name = argument_name.to_owned();
                     Ok(WidgetUpdate { argument_name, meta })
                 },
@@ -32,27 +34,28 @@ pub fn deserialize_widget_update(
             updates.partition_result()
         }
         Err(err) => {
-            let err =
-                err.context("Failed to deserialize a list of arguments in widget response").into();
+            let msg = "Failed to deserialize a list of arguments in widget response";
+            let err = err.context(msg).into();
             (default(), vec![err])
         }
     }
 }
 
-fn map_metadata(resp: response::Widget) -> widget::Metadata {
-    widget::Metadata { display: resp.display, config: map_config(resp.inner), has_port: true }
+fn to_metadata(resp: response::WidgetDefinition) -> widget::Metadata {
+    widget::Metadata { display: resp.display, config: to_config(resp.inner), has_port: true }
 }
 
-fn map_config(inner: response::WidgetSpecific) -> widget::Config {
+fn to_config(inner: response::WidgetKindConfiguration) -> widget::Config {
     match inner {
-        response::WidgetSpecific::SingleChoice { label, values } => widget::single_choice::Config {
-            label:   label.map(Into::into),
-            entries: Rc::new(map_entries(&values)),
-        }
-        .into(),
-        response::WidgetSpecific::VectorEditor { item_editor, item_default } =>
+        response::WidgetKindConfiguration::SingleChoice { label, values } =>
+            widget::single_choice::Config {
+                label:   label.map(Into::into),
+                entries: Rc::new(to_entries(&values)),
+            }
+            .into(),
+        response::WidgetKindConfiguration::ListEditor { item_editor, item_default } =>
             widget::vector_editor::Config {
-                item_editor:  Some(Rc::new(map_metadata(*item_editor))),
+                item_editor:  Some(Rc::new(to_metadata(*item_editor))),
                 item_default: item_default.into(),
             }
             .into(),
@@ -60,11 +63,11 @@ fn map_config(inner: response::WidgetSpecific) -> widget::Config {
     }
 }
 
-fn map_entries(choices: &[response::Choice]) -> Vec<widget::Entry> {
-    choices.iter().map(map_entry).collect()
+fn to_entries(choices: &[response::Choice]) -> Vec<widget::Entry> {
+    choices.iter().map(to_entry).collect()
 }
 
-fn map_entry(choice: &response::Choice) -> widget::Entry {
+fn to_entry(choice: &response::Choice) -> widget::Entry {
     let value: ImString = (&choice.value).into();
     let label = choice.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
     widget::Entry { required_import: None, value, label }

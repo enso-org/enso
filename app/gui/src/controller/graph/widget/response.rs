@@ -11,54 +11,59 @@ use ide_view::graph_editor::component::node::input::widget;
 /// === WidgetUpdates ===
 /// =====================
 
-/// A complete object received from the widget visualization. Contain widget definitions for all
-/// requested arguments.
-///
-/// Pairs of argument name and associated widget configuration.
-pub(super) type WidgetUpdates<'a> = Vec<(&'a str, FallableWidgetData<'a>)>;
+/// A top level object received from the widget visualization, which contains widget definitions for
+/// all arguments of a single Enso method. Configurations are paired with the name of function
+/// argument they are associated with.
+pub(super) type WidgetDefinitions<'a> = Vec<(&'a str, FallableWidgetData<'a>)>;
 
-/// A wrapper type that allows deserialization of a widget to partially fail. Failure message of
-/// individual widget data deserialization will be preserved, and it will be allowed to continue
-/// deserializing other widgets.
+/// A wrapper type that allows deserialization of a widget definitions to partially fail: failures
+/// message of individual widget definition deserialization will be preserved, and deserialization
+/// will continue.
 #[derive(Debug)]
-pub(super) struct FallableWidgetData<'a>(pub(super) FallibleResult<Option<Widget<'a>>>);
+pub(super) struct FallableWidgetData<'a> {
+    pub(super) widget: FallibleResult<Option<WidgetDefinition<'a>>>,
+}
 
 impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetData<'a> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where D: serde::Deserializer<'de> {
-        let widget = <Option<Widget>>::deserialize(deserializer)
+        let widget = <Option<WidgetDefinition>>::deserialize(deserializer)
             .map_err(|e| failure::err_msg(e.to_string()));
-        Ok(Self(widget))
+        Ok(Self { widget })
     }
 }
+
 
 
 /// ==============
 /// === Widget ===
 /// ==============
 
-/// Describes the widget configuration, as provided by the node metadata from the engine.
+/// Widget definition provided from the engine. It is used to define how to display a widget of
+/// particular argument expression. When not provided, the default widget will be chosen based on
+/// value or expected argument type.
 ///
-/// Must be kept in sync with `Widget` type definition in `Standard.Base.Metadata` module.
+/// Must be kept in sync with `Widget` type definition in Enso's `Standard.Base.Metadata` module.
 /// In order to not ruin forward compatibility, only fields that are currently used by the IDE are
 /// specified and deserialized.
 #[derive(Debug, serde::Deserialize)]
-pub(super) struct Widget<'a> {
-    /// The display mode for the parameter.
+pub(super) struct WidgetDefinition<'a> {
+    /// The display mode of this widget.
     #[serde(default)]
     pub display: widget::Display,
     #[serde(borrow, flatten)]
-    pub inner:   WidgetSpecific<'a>,
+    pub inner:   WidgetKindConfiguration<'a>,
 }
 
-/// Widget type dependant fields.
+/// Part of [`WidgetConfiguration`] that is dependant on widget kind.
 #[derive(Debug, serde::Deserialize)]
 #[serde(tag = "constructor")]
-pub(super) enum WidgetSpecific<'a> {
-    /// Describes a single value widget (dropdown).
+pub(super) enum WidgetKindConfiguration<'a> {
+    /// A single value widget (dropdown).
     #[serde(rename = "Single_Choice")]
     SingleChoice {
-        /// The placeholder text value. By default, the parameter name is used.
+        /// The text that is displayed when no value is chosen. By default, the parameter name is
+        /// used.
         #[serde(borrow, default)]
         label:  Option<&'a str>,
         /// A list of choices to display.
@@ -66,36 +71,35 @@ pub(super) enum WidgetSpecific<'a> {
         values: Vec<Choice<'a>>,
     },
 
-    /// Describes a list editor widget producing a Vector.
-    /// Items can be dragged around to change the order, or dragged out to be deleted from the
-    /// Vector.
-    #[serde(rename = "Vector_Editor")]
-    VectorEditor {
+    /// A list editor widget producing a Vector. Items can be dragged around to change the order,
+    /// or dragged out to be deleted from the Vector.
+    #[serde(rename = "List_Editor", alias = "Vector_Editor")]
+    ListEditor {
         /// The widget to use for editing the items.
-        #[serde(borrow)]
-        item_editor:  Box<Widget<'a>>,
-        /// The default value for new items inserted when the user clicks the `+` button.
+        #[serde(borrow, alias = "item_editor")]
+        item_editor:  Box<WidgetDefinition<'a>>,
+        /// The default value for new items inserted when the user adds a new element.
         #[serde(borrow)]
         item_default: &'a str,
     },
 
-    /// Describes a multi value widget.
+    /// A multi value widget.
     #[serde(rename = "Multi_Choice")]
     MultipleChoice,
 
-    /// Describe a code parameter.
+    /// A code parameter.
     #[serde(rename = "Code_Input")]
     CodeInput,
 
-    /// Describe a boolean parameter.
+    /// A boolean parameter.
     #[serde(rename = "Boolean_Input")]
     BooleanInput,
 
-    /// Describe a numeric parameter.
+    /// A numeric parameter.
     #[serde(rename = "Numeric_Input")]
     NumericInput,
 
-    /// Describes a text widget.
+    /// A text widget.
     #[serde(rename = "Text_Input")]
     TextInput,
 
@@ -103,7 +107,7 @@ pub(super) enum WidgetSpecific<'a> {
     #[serde(rename = "Folder_Browse")]
     FolderBrowse,
 
-    /// Describes a file chooser.
+    /// A file chooser.
     #[serde(rename = "File_Browse")]
     FileBrowse,
 }
@@ -126,7 +130,7 @@ pub enum Display {
 /// A choice in a single or multiselect widget.
 #[derive(Debug, serde::Deserialize)]
 pub(super) struct Choice<'a> {
-    /// The value of the choice. Must be a valid code expression.
+    /// The value of the choice. Must be a valid Enso expression.
     pub value: &'a str,
     /// Custom label to display in the dropdown. If not provided, IDE will create a label based on
     /// value.

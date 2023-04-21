@@ -1215,10 +1215,10 @@ impl Scene {
     /// additional updates that affect the layout of display objects after the main scene layout
     /// has been performed.
     ///
-    /// During this phase, the layout updates can be observed using `on_updated` FRP events on each
-    /// individual display object. Any further updates to the scene may require the `update`
-    /// method to be manually called on affected objects in order to affect rendering during
-    /// this frame.
+    /// During this phase, the layout updates can be observed using `on_transformed` FRP events on
+    /// each individual display object. Any further updates to the scene may require the `update`
+    /// method to be manually called on affected objects in order to affect rendering
+    /// during this frame.
     #[profile(Debug)]
     pub fn early_update(&self, time: animation::TimeInfo) -> UpdateStatus {
         if self.context.borrow().is_some() {

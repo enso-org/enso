@@ -60,25 +60,25 @@ pub use span_tree::SpanTree;
 /// Specialized version of `node::Expression`.
 #[derive(Clone, Default)]
 #[allow(missing_docs)]
-pub struct InputExpression {
+pub struct Expression {
     pub code:      ImString,
     pub span_tree: SpanTree,
 }
 
-impl Deref for InputExpression {
+impl Deref for Expression {
     type Target = SpanTree;
     fn deref(&self) -> &Self::Target {
         &self.span_tree
     }
 }
 
-impl DerefMut for InputExpression {
+impl DerefMut for Expression {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.span_tree
     }
 }
 
-impl Debug for InputExpression {
+impl Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Expression({})", self.code)
     }
@@ -92,7 +92,7 @@ impl Debug for InputExpression {
 /// a default `Debug` implementation of `Expression`, so it is hidden behind a separate adapter
 /// and can be chosen by calling `expression.tree_pretty_printer()`.
 pub struct ExpressionTreePrettyPrint<'a> {
-    expression: &'a InputExpression,
+    expression: &'a Expression,
 }
 
 impl<'a> Debug for ExpressionTreePrettyPrint<'a> {
@@ -102,7 +102,7 @@ impl<'a> Debug for ExpressionTreePrettyPrint<'a> {
     }
 }
 
-impl InputExpression {
+impl Expression {
     /// Wrap the expression into a pretty-printing adapter that implements `Debug` and prints
     /// detailed span-tree information. See [`SpanTree::debug_print`] method for more details.
     ///
@@ -116,7 +116,7 @@ impl InputExpression {
 
 // === Conversions ===
 
-impl From<node::Expression> for InputExpression {
+impl From<node::Expression> for Expression {
     #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
         Self { code: t.code, span_tree: t.input_span_tree }
@@ -135,7 +135,7 @@ pub struct Model {
     app:             Application,
     display_object:  display::object::Instance,
     edit_mode_label: text::Text,
-    expression:      RefCell<InputExpression>,
+    expression:      RefCell<Expression>,
     styles:          StyleWatch,
     styles_frp:      StyleWatchFrp,
     widget_tree:     widget::Tree,
@@ -211,22 +211,16 @@ impl Model {
         self.edit_mode_label.add_to_scene_layer(layer);
     }
 
-    /// Set connection status of the given port.
-    fn set_connected(&self, crumbs: &Crumbs, status: node::ConnectionStatus) {
+    fn set_connected(&self, crumbs: &Crumbs, status: Option<color::Lcha>) {
         self.widget_tree.set_connected(crumbs, status);
     }
 
-    /// Set usage type of the given port.
     fn set_expression_usage_type(&self, id: ast::Id, usage_type: Option<Type>) {
         self.widget_tree.set_usage_type(id, usage_type);
     }
 
     fn body_hover_pointer_style(&self, hovered: &bool) -> cursor::Style {
-        if *hovered {
-            cursor::Style::cursor()
-        } else {
-            default()
-        }
+        hovered.then(|| cursor::Style::cursor()).unwrap_or_default()
     }
 
     fn port_hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
@@ -234,7 +228,7 @@ impl Model {
         let expr = self.expression.borrow();
         let port = expr.span_tree.get_node(crumbs).ok()?;
         let display_object = self.widget_tree.get_port_display_object(&port)?;
-        let tp = port.tp().map(|t| Type(t.into()));
+        let tp = port.tp().map(|t| t.into());
         let color = tp.as_ref().map(|tp| type_coloring::compute(tp, &self.styles));
         let pad_x = node::input::port::PORT_PADDING_X * 2.0;
         let min_y = node::input::port::BASE_PORT_HEIGHT;
@@ -262,7 +256,7 @@ impl Model {
 
     /// Request widgets metadata for all method calls within the expression.
     #[profile(Debug)]
-    fn request_widgets_metadata(&self, expression: &InputExpression, area_frp: &FrpEndpoints) {
+    fn request_widgets_metadata(&self, expression: &Expression, area_frp: &FrpEndpoints) {
         let call_info = CallInfoMap::scan_expression(&expression.span_tree);
         for (call_id, info) in call_info.iter() {
             if let Some(target_id) = info.target_id {
@@ -275,7 +269,7 @@ impl Model {
     /// expression is being edited by the user.
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
-        let new_expression = InputExpression::from(new_expression.into());
+        let new_expression = Expression::from(new_expression.into());
         debug!("set expression: \n{:?}", new_expression.tree_pretty_printer());
 
         self.widget_tree.rebuild_tree(
@@ -331,7 +325,7 @@ ensogl::define_endpoints! {
 
         /// Set the connection status of the port indicated by the breadcrumbs. For connected ports,
         /// contains the color of connected edge.
-        set_connected (Crumbs, node::ConnectionStatus),
+        set_connected (Crumbs, Option<color::Lcha>),
 
         /// Update widget metadata for widgets already present in this input area.
         update_widgets   (WidgetUpdates),
@@ -524,13 +518,7 @@ impl Area {
             eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
-            widget_tree_invalidated <- any_(...);
-            widget_tree_invalidated <+ frp.update_widgets;
-            widget_tree_invalidated <+ frp.set_connected;
-            widget_tree_invalidated <+ frp.set_disabled;
-            widget_tree_invalidated <+ frp.set_expression_usage_type;
-            rebuild_widget_tree <- widget_tree_invalidated.debounce();
-            eval rebuild_widget_tree((_) model.rebuild_widget_tree_if_dirty());
+            eval model.widget_tree.rebuild_required((_) model.rebuild_widget_tree_if_dirty());
 
             // === View Mode ===
 
@@ -576,7 +564,7 @@ impl Area {
             .root_ref()
             .get_descendant(crumbs)
             .ok()
-            .and_then(|t| t.tp().map(|t| Type(t.into())))
+            .and_then(|t| t.tp().map(|t| t.into()))
     }
 
     /// Set a scene layer for text rendering.

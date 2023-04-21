@@ -262,29 +262,31 @@ impl super::SpanWidget for Widget {
     fn configure(&mut self, config: &Config, mut ctx: super::ConfigContext) {
         let input = &self.config_frp.public.input;
 
-        let has_value = !ctx.span_tree_node.is_insertion_point();
+        let has_value = !ctx.span_node.is_insertion_point();
         let current_value: Option<ImString> =
-            has_value.then(|| ctx.expression_at(ctx.span_tree_node.span()).into());
+            has_value.then(|| ctx.expression_at(ctx.span_node.span()).into());
 
-        input.current_crumbs(ctx.span_tree_node.crumbs.clone());
+        input.current_crumbs(ctx.span_node.crumbs.clone());
         input.current_value(current_value);
         input.set_entries(config.entries.clone());
-        input.is_connected(ctx.state.subtree_connection.is_connected());
+        input.is_connected(ctx.info.subtree_connection.is_some());
 
         if has_value {
             ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
         }
 
-        if ctx.span_tree_node.children.is_empty() {
+
+        if ctx.span_node.children.is_empty() {
+            let child_level = ctx.info.nesting_level;
             let label_meta = super::Metadata::always(super::label::Config);
-            let child =
-                ctx.builder.child_widget_of_type(ctx.span_tree_node, ctx.state.depth, label_meta);
+            let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, label_meta);
             self.label_wrapper.replace_children(&[child]);
         } else {
+            let child_level = ctx.info.nesting_level.next();
             let children = ctx
-                .span_tree_node
+                .span_node
                 .children_iter()
-                .map(|child| ctx.builder.child_widget(child, ctx.state.depth + 1))
+                .map(|child| ctx.builder.child_widget(child, child_level))
                 .collect_vec();
             self.label_wrapper.replace_children(&children);
         }
@@ -318,6 +320,7 @@ fn entry_for_current_value(
     Some(with_fallback)
 }
 
+/// A wrapper for dropdown that only initializes it when it is first opened.
 #[derive(Debug)]
 struct LazyDropdown {
     app:                  ensogl::application::Application,

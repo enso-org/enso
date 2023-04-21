@@ -37,13 +37,12 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
-        let increase_depth = ctx.span_tree_node.is_argument();
-        let next_depth = if increase_depth { ctx.state.depth + 1 } else { ctx.state.depth };
+        let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
 
         let children = ctx
-            .span_tree_node
+            .span_node
             .children_iter()
-            .map(|node| ctx.builder.child_widget(node, next_depth))
+            .map(|node| ctx.builder.child_widget(node, child_level))
             .collect_vec();
         self.display_object.replace_children(&children);
     }

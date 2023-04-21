@@ -5,20 +5,18 @@ use crate::prelude::*;
 use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
 use crate::component::node::input::port::Port;
-use crate::component::node::ConnectionData;
-use crate::component::node::ConnectionStatus;
 
 use enso_config::ARGS;
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
+use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
+use span_tree::node::Ref as SpanRef;
 use text::index::Byte;
-
-
 
 // =================
 // === Constants ===
@@ -29,6 +27,10 @@ use text::index::Byte;
 /// introduces the least amount of visual changes. The value can be adjusted once we implement
 /// granular edit mode that works with widgets.
 pub const WIDGET_SPACING_PER_OFFSET: f32 = 7.224_609_4;
+
+/// The maximum depth of the widget port that is still considered primary. This is used to determine
+/// the hover area of the port.
+pub const PRIMARY_PORT_MAX_NESTING_LEVEL: usize = 0;
 
 
 
@@ -53,6 +55,11 @@ ensogl::define_endpoints_2! {
         /// signal is generated using the `on_updated` signal of the `display_object` of the widget,
         /// all caveats of that signal apply here as well.
         connected_port_updated (),
+        /// Tree data update recently caused it to be marked as dirty. Rebuild is required.
+        rebuild_required (),
+        /// Dirty flag has been marked. This signal is fired immediately after the update that
+        /// caused it. Prefer using `rebuild_required` signal instead, which is debounced.
+        marked_dirty_sync (),
     }
 }
 
@@ -83,6 +90,8 @@ pub trait SpanWidget {
     fn configure(&mut self, config: &Self::Config, ctx: ConfigContext);
 }
 
+/// Generate implementation for [`DynWidget`] enum and its associated [`Config`] enum. Those enums
+/// are used to represent any possible widget kind and its configuration.
 macro_rules! define_widget_modules(
     ($(
         $(#[$meta:meta])*
@@ -138,9 +147,7 @@ macro_rules! define_widget_modules(
 
             fn new(config: &Config, ctx: &ConfigContext) -> Self {
                 match config {
-                    $(
-                        Config::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),
-                    )*
+                    $(Config::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),)*
                 }
             }
 
@@ -176,8 +183,10 @@ define_widget_modules! {
 /// === Metadata ===
 /// ================
 
-/// Widget metadata that comes from an asynchronous visualization. Defines which widget should be
-/// used and a set of options that it should allow to choose from.
+/// The configuration of a widget and its display properties. Defines how the widget should be
+/// displayed, if it should be displayed at all, and whether or not it should have a port. Widgets
+/// that declare themselves as having a port will be able to handle edge connections and visually
+/// indicate that they are connected.
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub struct Metadata {
@@ -209,15 +218,11 @@ impl Metadata {
         Self::always(vector_editor::Config { item_editor: None, item_default: "_".into() })
     }
 
-    fn from_node(
-        node: &span_tree::node::Ref,
-        usage_type: Option<crate::Type>,
-        expression: &str,
-    ) -> Self {
+    fn from_node(span_node: &SpanRef, usage_type: Option<crate::Type>, expression: &str) -> Self {
         use span_tree::node::Kind;
 
-        let kind = &node.kind;
-        let has_children = !node.children.is_empty();
+        let kind = &span_node.kind;
+        let has_children = !span_node.children.is_empty();
 
         const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
         let is_array_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
@@ -228,7 +233,7 @@ impl Metadata {
                 .or(arg.tp.as_deref())
                 .map_or(false, |tp| tp.contains(VECTOR_TYPE));
             if type_matches {
-                let node_expr = &expression[node.span()];
+                let node_expr = &expression[span_node.span()];
                 node_expr.starts_with('[') && node_expr.ends_with(']')
             } else {
                 false
@@ -369,6 +374,8 @@ impl Tree {
         let network = &frp.network;
 
         frp::extend! { network
+            frp.private.output.rebuild_required <+ frp.marked_dirty_sync.debounce();
+
             set_ports_visible    <- frp.set_ports_visible.sampler();
             set_view_mode        <- frp.set_view_mode.sampler();
             set_profiling_status <- frp.set_profiling_status.sampler();
@@ -405,26 +412,26 @@ impl Tree {
     /// and it can be done by calling this method. The set metadata is persistent, and will be
     /// applied to any future widget of this node that matches given pointer.
     pub fn set_metadata(&self, pointer: MetadataPointer, meta: Option<Metadata>) {
-        self.model.set_metadata(pointer, meta);
+        self.notify_dirty(self.model.set_metadata(pointer, meta));
     }
 
     /// Set usage type for given AST node. The usage type is used to determine the widget appearance
     /// and default inferred widget metadata.
     pub fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) {
-        self.model.set_usage_type(ast_id, usage_type);
+        self.notify_dirty(self.model.set_usage_type(ast_id, usage_type));
     }
 
     /// Set connection status for given span crumbs. The connected nodes will be highlighted with a
     /// different color, and the widgets might change behavior depending on the connection
     /// status.
-    pub fn set_connected(&self, crumbs: &span_tree::Crumbs, status: ConnectionStatus) {
-        self.model.set_connected(crumbs, status);
+    pub fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) {
+        self.notify_dirty(self.model.set_connected(crumbs, status));
     }
 
     /// Set disabled status for given span tree node. The disabled nodes will be grayed out.
     /// The widgets might change behavior depending on the disabled status.
     pub fn set_disabled(&self, disabled: bool) {
-        self.model.set_disabled(disabled);
+        self.notify_dirty(self.model.set_disabled(disabled));
     }
 
 
@@ -459,13 +466,13 @@ impl Tree {
     /// have a distinct widget, so the returned value might be `None`.
     pub fn get_port_display_object(
         &self,
-        tree_node: &span_tree::node::Ref,
+        span_node: &SpanRef,
     ) -> Option<display::object::Instance> {
-        let pointer = self.model.get_node_widget_pointer(tree_node);
+        let pointer = self.model.get_node_widget_pointer(span_node);
         self.model.with_port(pointer, |w| w.display_object().clone())
     }
 
-    /// Get hover shapes for all ports in the tree. Used for testing to simulate mouse events.
+    /// Get hover shapes for all ports in the tree. Used in tests to manually dispatch mouse events.
     pub fn port_hover_shapes(&self) -> Vec<super::port::hover_shape::View> {
         let nodes = self.model.nodes_map.borrow();
         self.model
@@ -475,6 +482,12 @@ impl Tree {
             .filter_map(|n| nodes.get(&n.identity))
             .filter_map(|e| Some(e.node.port()?.hover_shape().clone_ref()))
             .collect_vec()
+    }
+
+    fn notify_dirty(&self, dirty_flag_just_set: bool) {
+        if dirty_flag_just_set {
+            self.frp.private.output.marked_dirty_sync.emit(());
+        }
     }
 }
 
@@ -516,7 +529,6 @@ impl display::Object for TreeNode {
 #[derive(Debug, Clone, Copy)]
 struct NodeHierarchy {
     identity:          WidgetIdentity,
-    #[allow(dead_code)]
     parent_index:      Option<usize>,
     total_descendants: usize,
 }
@@ -528,6 +540,23 @@ struct TreeEntry {
     /// Index in the `hierarchy` vector.
     #[allow(dead_code)]
     index: usize,
+}
+
+
+
+// ======================
+// === ConnectionData ===
+// ======================
+
+/// Data associated with an edge connected to a port in the tree. It is accessible to the connected
+/// port, its widget and all its descendants through `connection` and `subtree_connection` fields
+/// of  [`NodeState`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct ConnectionData {
+    /// Color of an edge connected to the port.
+    pub color: color::Lcha,
+    /// Span tree depth at which the connection is made.
+    pub depth: usize,
 }
 
 /// =================
@@ -544,9 +573,9 @@ struct TreeModel {
     /// be used to quickly find the parent of a node, or iterate over all children or descendants
     /// of a node.
     hierarchy:      RefCell<Vec<NodeHierarchy>>,
-    ports_map:      RefCell<HashMap<MainWidgetPointer, usize>>,
+    ports_map:      RefCell<HashMap<StableSpanIdentity, usize>>,
     metadata_map:   Rc<RefCell<HashMap<MetadataPointer, Metadata>>>,
-    connected_map:  Rc<RefCell<HashMap<span_tree::Crumbs, ConnectionData>>>,
+    connected_map:  Rc<RefCell<HashMap<span_tree::Crumbs, color::Lcha>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
     tree_dirty:     Cell<bool>,
@@ -578,39 +607,41 @@ impl TreeModel {
         }
     }
 
-    /// Set the metadata under given pointer. It may cause the tree to be marked as dirty.
-    fn set_metadata(&self, pointer: MetadataPointer, meta: Option<Metadata>) {
-        let mut map = self.metadata_map.borrow_mut();
-        let dirty = map.synchronize_entry(pointer, meta);
-        if dirty {
+    /// Mark dirty flag if the tree has been modified. Return true if the flag has been changed.
+    fn mark_dirty_flag(&self, modified: bool) -> bool {
+        if modified && !self.tree_dirty.get() {
             self.tree_dirty.set(true);
+            true
+        } else {
+            false
         }
     }
 
+    /// Set the metadata under given pointer. It may cause the tree to be marked as dirty.
+    fn set_metadata(&self, pointer: MetadataPointer, meta: Option<Metadata>) -> bool {
+        let mut map = self.metadata_map.borrow_mut();
+        let dirty = map.synchronize_entry(pointer, meta);
+        self.mark_dirty_flag(dirty)
+    }
+
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
-    fn set_connected(&self, crumbs: &span_tree::Crumbs, status: ConnectionStatus) {
+    fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) -> bool {
         let mut map = self.connected_map.borrow_mut();
-        let dirty = map.synchronize_entry(crumbs.clone(), status.data());
-        if dirty {
-            self.tree_dirty.set(true);
-        }
+        let dirty = map.synchronize_entry(crumbs.clone(), status);
+        self.mark_dirty_flag(dirty)
     }
 
     /// Set the usage type of an expression. It may cause the tree to be marked as dirty.
-    fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) {
+    fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) -> bool {
         let mut map = self.usage_type_map.borrow_mut();
         let dirty = map.synchronize_entry(ast_id, usage_type);
-        if dirty {
-            self.tree_dirty.set(true);
-        }
+        self.mark_dirty_flag(dirty)
     }
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
-    fn set_disabled(&self, disabled: bool) {
+    fn set_disabled(&self, disabled: bool) -> bool {
         let prev_disabled = self.node_disabled.replace(disabled);
-        if prev_disabled != disabled {
-            self.tree_dirty.set(true);
-        }
+        self.mark_dirty_flag(prev_disabled != disabled)
     }
 
     /// Get parent of a node under given pointer, if exists.
@@ -668,7 +699,7 @@ impl TreeModel {
         let mut hierarchy = self.hierarchy.take();
         hierarchy.clear();
 
-        let mut builder = WidgetTreeBuilder {
+        let mut builder = TreeBuilder {
             app,
             frp,
             node_disabled,
@@ -681,12 +712,12 @@ impl TreeModel {
             hierarchy,
             pointer_usage: default(),
             new_nodes: default(),
-            parent_state: default(),
+            parent_info: default(),
             last_ast_depth: default(),
             extensions: default(),
         };
 
-        let child = builder.child_widget(tree.root_ref(), 0);
+        let child = builder.child_widget(tree.root_ref(), default());
         self.display_object.replace_children(&[child]);
 
         self.nodes_map.replace(builder.new_nodes);
@@ -702,18 +733,18 @@ impl TreeModel {
     /// has a unique representation in the form of a widget tree pointer, which is more stable
     /// across changes in the span tree than [`span_tree::Crumbs`]. The pointer is used to identify
     /// the widgets or ports in the widget tree.
-    pub fn get_node_widget_pointer(&self, tree_node: &span_tree::node::Ref) -> MainWidgetPointer {
-        if let Some(id) = tree_node.node.ast_id {
+    pub fn get_node_widget_pointer(&self, span_node: &SpanRef) -> StableSpanIdentity {
+        if let Some(id) = span_node.ast_id {
             // This span represents an AST node, return a pointer directly to it.
-            MainWidgetPointer::new(Some(id), &[])
+            StableSpanIdentity::new(Some(id), &[])
         } else {
-            let root = tree_node.span_tree.root_ref();
+            let root = span_node.span_tree.root_ref();
             let root_ast_data = root.ast_id.map(|id| (id, 0));
 
             // When the node does not represent an AST node, its widget will be identified by the
             // closest parent AST node, if it exists. We have to find the closest parent node with
             // AST ID, and then calculate the relative crumbs from it to the current node.
-            let (_, ast_parent_data) = tree_node.crumbs.into_iter().enumerate().fold(
+            let (_, ast_parent_data) = span_node.crumbs.into_iter().enumerate().fold(
                 (root, root_ast_data),
                 |(node, last_seen), (index, crumb)| {
                     let ast_data = node.node.ast_id.map(|id| (id, index)).or(last_seen);
@@ -724,11 +755,11 @@ impl TreeModel {
             match ast_parent_data {
                 // Parent AST node found, return a pointer relative to it.
                 Some((ast_id, ast_parent_index)) => {
-                    let crumb_slice = &tree_node.crumbs[ast_parent_index..];
-                    MainWidgetPointer::new(Some(ast_id), crumb_slice)
+                    let crumb_slice = &span_node.crumbs[ast_parent_index..];
+                    StableSpanIdentity::new(Some(ast_id), crumb_slice)
                 }
                 // No parent AST node found. Return a pointer from root.
-                None => MainWidgetPointer::new(None, &tree_node.crumbs),
+                None => StableSpanIdentity::new(None, &span_node.crumbs),
             }
         }
     }
@@ -738,7 +769,7 @@ impl TreeModel {
     /// returned.
     pub fn with_port<T>(
         &self,
-        pointer: MainWidgetPointer,
+        pointer: StableSpanIdentity,
         f: impl FnOnce(&Port) -> T,
     ) -> Option<T> {
         let index = *self.ports_map.borrow().get(&pointer)?;
@@ -750,31 +781,26 @@ impl TreeModel {
 /// State of a node in the widget tree. Provides additional information about the node's current
 /// state, such as its depth in the widget tree, if it's connected, disabled, etc.
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct NodeState {
-    /// Identity of this node.
+pub(super) struct NodeInfo {
+    /// Unique identifier of this node within this widget tree.
     pub identity:           WidgetIdentity,
     /// Index of node in the widget tree, in insertion order.
     pub insertion_index:    usize,
-    /// Widget tree node depth, as provided by the parent node. This does not necessarily
-    /// correspond to the depth in the view hierarchy or span tree, but instead is treated as a
-    /// logical nesting level in the expressions. It is fully determined by the chain of parent
-    /// widgets, and thus is more or less independent from the true depth of the widget tree data
-    /// structure.
-    pub depth:              usize,
-    /// Connection status of the node. Only present at the exact node that is connected, not at
-    /// any of its parents.
-    pub connection:         ConnectionStatus,
-    /// Connection status of the node's subtree. Contains the status of this node's connection, or
-    /// it's first parent that is connected. This is the same as `connection` for nodes that
-    /// are directly connected.
-    pub subtree_connection: ConnectionStatus,
+    /// Logical nesting level of this widget, which was specified by the parent node during its
+    /// creation. Determines the mouse hover area size and widget indentation.
+    pub nesting_level:      NestingLevel,
+    /// Data associated with an edge connected to this node's span. Only present at the exact node
+    /// that is connected, not at any of its children.
+    pub connection:         Option<ConnectionData>,
+    /// Data associated with an edge connected to this subtree. Contains the status of this node's
+    /// connection, or its first parent that is connected. It is the same as `connection` for nodes
+    /// that are directly connected.
+    pub subtree_connection: Option<ConnectionData>,
     /// Whether the node is disabled, i.e. its expression is not currently used in the computation.
     /// Widgets of disabled nodes are usually grayed out.
     pub disabled:           bool,
-    /// Expression's usage type, as opposed to its definition type stored in the span tree. The
-    /// usage type represents the type of the expression as it is used in the computation, which
-    /// may differ from the definition type. For example, the definition type of a variable may be
-    /// `Number`, but its usage type may be `Vector`, if it is used as a vector component.
+    /// Inferred type of Enso expression at this node's span. May differ from the definition type
+    /// stored in the span tree.
     pub usage_type:         Option<crate::Type>,
 }
 
@@ -783,20 +809,15 @@ pub(super) struct NodeState {
 /// child widgets.
 #[derive(Debug)]
 pub struct ConfigContext<'a, 'b> {
-    builder:                   &'a mut WidgetTreeBuilder<'b>,
-    /// Display mode of the widget.
-    /// TODO [PG]: Consider handling display modes in the widget tree builder directly, instead of
-    /// passing it to the widgets. Right now it has not effect at all.
-    #[allow(dead_code)]
-    pub(super) display:        Display,
+    builder:               &'a mut TreeBuilder<'b>,
     /// The span tree node corresponding to the widget being configured.
-    pub(super) span_tree_node: span_tree::node::Ref<'a>,
+    pub(super) span_node:  span_tree::node::Ref<'a>,
     /// Additional state associated with configured widget tree node, such as its depth, connection
     /// status or parent node information.
-    pub(super) state:          NodeState,
+    pub(super) info:       NodeInfo,
     /// The length of tree extensions vector before the widget was configured. Used to determine
     /// which extensions were added by the widget parents, and which are new.
-    parent_extensions_len:     usize,
+    parent_extensions_len: usize,
 }
 
 impl<'a, 'b> ConfigContext<'a, 'b> {
@@ -879,29 +900,60 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
 
 
 
-/// ==========================================
-/// === MainWidgetPointer / WidgetIdentity ===
-/// ==========================================
+/// ====================
+/// === NestingLevel ===
+/// ====================
 
-/// A pointer to main widget of specific node in the span tree. Determines the base of a widget
-/// stable identity, and allows widgets to be reused when rebuilding the tree. The pointer is
-/// composed of two parts:
-/// - `id` is the AST ID of either the node itself, or the closest ancestor node which has one. It
-///   can be `None` if there is no such parent, e.g. for a tree Root node.
-/// - `crumbs_hash` is a hash of remaining crumbs since last node with stable AST ID, or since the
-///   root node if there is no such parent.
+/// A logical nesting level associated with a widget which determines the mouse hover area size and
+/// widget indentation. It is specified by the parent widget when creating a child widget, as an
+/// argument to the '[`ConfigContext`]' method.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NestingLevel {
+    level: usize,
+}
+
+impl NestingLevel {
+    /// Create a deeper nesting level. The depth of the new level will be one greater than the
+    /// current one.
+    pub fn next(self) -> Self {
+        Self { level: self.level + 1 }
+    }
+
+    /// Create an optionally deeper nesting level. When `condition` is `false`, the nesting level
+    /// will remain the same.
+    pub fn next_if(self, condition: bool) -> Self {
+        condition.as_some(self.next()).unwrap_or(self)
+    }
+
+    /// Check if a port at this nesting level is still considered primary. Primary ports have wider
+    /// hover areas and are indented more.
+    #[allow(clippy::absurd_extreme_comparisons)]
+    pub fn is_primary(self) -> bool {
+        self.level <= PRIMARY_PORT_MAX_NESTING_LEVEL
+    }
+}
+
+
+/// ===========================================
+/// === StableSpanIdentity / WidgetIdentity ===
+/// ===========================================
+
+/// A stable identifier to a span tree node. Uniquely determines a main widget of specific node in
+/// the span tree. It is a base of a widget stable identity, and allows widgets to be reused when
+/// rebuilding the tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MainWidgetPointer {
-    /// The latest set ast::Id in the span tree.
+pub struct StableSpanIdentity {
+    /// AST ID of either the node itself, or the closest ancestor node which has one. Is [`None`]
+    /// when there is no such parent with assigned AST id.
     id:          Option<ast::Id>,
-    /// A hash of remaining crumbs to the widget, starting from the node with the latest set
-    /// ast::Id. We store a hash instead of the crumbs directly, so the type can be trivially
-    /// copied. The collision is extremely unlikely due to commonly having very short lists of
-    /// crumbs to store here and u64 being comparatively extremely large hash space.
+    /// A hash of remaining crumbs to the widget, starting from the closest node with assigned AST
+    /// id. We store a hash instead of the crumbs directly, so the type can be trivially copied.
+    /// The collision is extremely unlikely due to commonly having very short lists of crumbs
+    /// to store here and u64 being comparatively extremely large hash space.
     crumbs_hash: u64,
 }
 
-impl MainWidgetPointer {
+impl StableSpanIdentity {
     fn new(id: Option<ast::Id>, crumbs: &[span_tree::Crumb]) -> Self {
         let mut hasher = DefaultHasher::new();
         crumbs.hash(&mut hasher);
@@ -915,30 +967,30 @@ impl MainWidgetPointer {
     }
 }
 
-/// An unique identity of a widget in the widget tree. It is a combination of a `MainWidgetPointer`
-/// and a sequential index of the widget assigned to the same span tree node. Any widget is allowed
-/// to create a child widget on the same span tree node, so we need to be able to distinguish
-/// between them. Note that only one widget created for a given span tree node will be able to
-/// receive a port. The port is assigned to the first widget created for a given node that wants to
-/// receive it.
+/// An unique identity of a widget in the widget tree. It is a combination of a [`SpanIdentity`] and
+/// a sequential index of the widget assigned to the same span tree node. Any widget is allowed to
+/// create a child widget on the same span tree node, so we need to be able to distinguish between
+/// them. Note that only one widget created for a given span tree node will be able to receive a
+/// port. The port is assigned to the first widget at given span that wants to receive it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WidgetIdentity {
     /// The pointer to the main widget of this widget's node.
-    main:  MainWidgetPointer,
+    main:  StableSpanIdentity,
     /// The sequential index of a widget assigned to the same span tree node.
     index: usize,
 }
 
 impl WidgetIdentity {
-    /// Whether this widget pointer represents first created widget for its node.
-    fn is_first(&self) -> bool {
+    /// Whether this widget pointer represents first created widget for its span tree node.
+    fn is_first_widget_of_span(&self) -> bool {
         self.index == 0
     }
 }
 
 /// Additional information about the usage of a widget pointer while building a tree. This is used
 /// to determine which widget should receive a port, and to assign sequential indices to widgets
-/// created for the same span tree node.
+/// created for the same span tree node. Used to transform ambiguous [`SpanIdentity`] into
+/// unique [`WidgetIdentity`].
 #[derive(Debug, Default)]
 struct PointerUsage {
     /// Next sequence index that will be assigned to a widget created for the same span tree node.
@@ -965,34 +1017,34 @@ impl PointerUsage {
 
 
 
-/// =========================
-/// === WidgetTreeBuilder ===
-/// =========================
+/// ===================
+/// === TreeBuilder ===
+/// ===================
 
 /// A builder for the widget tree. Maintains transient state necessary during the tree construction,
 /// and provides methods for creating child nodes of the tree. Maintains a map of all widgets
 /// created so far, and is able to reuse existing widgets under the same location in the tree, only
 /// updating their configuration as necessary.
 #[derive(Debug)]
-struct WidgetTreeBuilder<'a> {
+struct TreeBuilder<'a> {
     app:             Application,
     frp:             WidgetsFrp,
     node_disabled:   bool,
     node_expression: &'a str,
     styles:          &'a StyleWatch,
     metadata_map:    &'a HashMap<MetadataPointer, Metadata>,
-    connected_map:   &'a HashMap<span_tree::Crumbs, ConnectionData>,
+    connected_map:   &'a HashMap<span_tree::Crumbs, color::Lcha>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
     old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
     new_nodes:       HashMap<WidgetIdentity, TreeEntry>,
     hierarchy:       Vec<NodeHierarchy>,
-    pointer_usage:   HashMap<MainWidgetPointer, PointerUsage>,
-    parent_state:    Option<NodeState>,
+    pointer_usage:   HashMap<StableSpanIdentity, PointerUsage>,
+    parent_info:     Option<NodeInfo>,
     last_ast_depth:  usize,
     extensions:      Vec<Box<dyn Any>>,
 }
 
-impl<'a> WidgetTreeBuilder<'a> {
+impl<'a> TreeBuilder<'a> {
     /// Create a new child widget. The widget type will be automatically inferred, either based on
     /// the node kind, or on the metadata provided from the language server. If possible, an
     /// existing widget will be reused under the same location in the tree, only updating its
@@ -1009,10 +1061,10 @@ impl<'a> WidgetTreeBuilder<'a> {
     #[must_use]
     pub fn child_widget(
         &mut self,
-        span_tree_node: span_tree::node::Ref<'_>,
-        depth: usize,
+        span_node: span_tree::node::Ref<'_>,
+        nesting_level: NestingLevel,
     ) -> display::object::Instance {
-        self.create_child_widget(span_tree_node, depth, None)
+        self.create_child_widget(span_node, nesting_level, None)
     }
 
     /// Create a new child widget. Does not infer the widget type, but uses the provided metadata
@@ -1023,11 +1075,11 @@ impl<'a> WidgetTreeBuilder<'a> {
     #[allow(dead_code)] // Currently unused, but will be used in the future in VectorEditor.
     pub fn child_widget_of_type(
         &mut self,
-        span_tree_node: span_tree::node::Ref<'_>,
-        depth: usize,
+        span_node: span_tree::node::Ref<'_>,
+        nesting_level: NestingLevel,
         meta: Metadata,
     ) -> display::object::Instance {
-        self.create_child_widget(span_tree_node, depth, Some(meta))
+        self.create_child_widget(span_node, nesting_level, Some(meta))
     }
 
     /// Create a new widget for given span tree node. This function recursively builds a subtree
@@ -1035,35 +1087,36 @@ impl<'a> WidgetTreeBuilder<'a> {
     /// returned, so that it can be added to the parent's display hierarchy.
     fn create_child_widget(
         &mut self,
-        span_tree_node: span_tree::node::Ref<'_>,
-        depth: usize,
+        span_node: span_tree::node::Ref<'_>,
+        nesting_level: NestingLevel,
         set_metadata: Option<Metadata>,
     ) -> display::object::Instance {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
         let parent_last_ast_depth = self.last_ast_depth;
+        let depth = span_node.crumbs.len();
 
         // Figure out the widget tree pointer for the current node. That pointer determines the
         // widget identity, allowing it to maintain internal state. If the previous tree already
         // contained a widget for this pointer, we have to reuse it.
-        let main_ptr = match span_tree_node.ast_id {
+        let main_ptr = match span_node.ast_id {
             Some(ast_id) => {
-                self.last_ast_depth = span_tree_node.crumbs.len();
-                MainWidgetPointer::new(Some(ast_id), &[])
+                self.last_ast_depth = depth;
+                StableSpanIdentity::new(Some(ast_id), &[])
             }
             None => {
-                let ast_id = self.parent_state.as_ref().and_then(|st| st.identity.main.id);
-                let this_crumbs = &span_tree_node.crumbs;
+                let ast_id = self.parent_info.as_ref().and_then(|st| st.identity.main.id);
+                let this_crumbs = &span_node.crumbs;
                 let crumbs_since_id = &this_crumbs[parent_last_ast_depth..];
-                MainWidgetPointer::new(ast_id, crumbs_since_id)
+                StableSpanIdentity::new(ast_id, crumbs_since_id)
             }
         };
 
         let ptr_usage = self.pointer_usage.entry(main_ptr).or_default();
-        let unique_ptr = main_ptr.to_identity(ptr_usage);
+        let widget_id = main_ptr.to_identity(ptr_usage);
 
-        let is_placeholder = span_tree_node.is_expected_argument();
-        let sibling_offset = span_tree_node.sibling_offset.as_usize();
+        let is_placeholder = span_node.is_expected_argument();
+        let sibling_offset = span_node.sibling_offset.as_usize();
         let usage_type = main_ptr.id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Get widget metadata. There are three potential sources for metadata, that are used in
@@ -1075,7 +1128,7 @@ impl<'a> WidgetTreeBuilder<'a> {
         // 3. The default metadata for the node, which is determined based on the node kind, usage
         // type and whether it has children.
         let mut meta_fallback = None;
-        let kind = &span_tree_node.kind;
+        let kind = &span_node.kind;
         let meta = set_metadata
             .as_ref()
             .or_else(|| {
@@ -1089,53 +1142,44 @@ impl<'a> WidgetTreeBuilder<'a> {
             })
             .unwrap_or_else(|| {
                 meta_fallback.get_or_insert_with(|| {
-                    Metadata::from_node(&span_tree_node, usage_type.clone(), self.node_expression)
+                    Metadata::from_node(&span_node, usage_type.clone(), self.node_expression)
                 })
             });
 
-        let widget_has_port = ptr_usage.request_port(&unique_ptr, meta.has_port);
+        let widget_has_port = ptr_usage.request_port(&widget_id, meta.has_port);
 
-        let self_insertion_index = self.hierarchy.len();
+        let insertion_index = self.hierarchy.len();
         self.hierarchy.push(NodeHierarchy {
-            identity:          unique_ptr,
-            parent_index:      self.parent_state.as_ref().map(|st| st.insertion_index),
+            identity:          widget_id,
+            parent_index:      self.parent_info.as_ref().map(|info| info.insertion_index),
             // This will be updated later, after the child widgets are created.
             total_descendants: 0,
         });
 
-        let old_node = self.old_nodes.remove(&unique_ptr).map(|e| e.node);
+        let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
 
         // Once we have the metadata and potential old widget to reuse, we have to apply the
         // configuration to the widget.
-        let connection: ConnectionStatus =
-            self.connected_map.get(&span_tree_node.crumbs).copied().into();
-        let subtree_connection = match self.parent_state.as_ref().map(|s| s.subtree_connection) {
-            Some(parent_connection) => connection.or(parent_connection),
-            None => connection,
-        };
+        let connection_color = self.connected_map.get(&span_node.crumbs);
+        let connection = connection_color.map(|&color| ConnectionData { color, depth });
+        let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
+        let subtree_connection = connection.or(parent_connection);
 
         let disabled = self.node_disabled;
-        let state = NodeState {
-            identity: unique_ptr,
-            insertion_index: self_insertion_index,
-            depth,
+        let info = NodeInfo {
+            identity: widget_id,
+            insertion_index,
+            nesting_level,
             connection,
             subtree_connection,
             disabled,
             usage_type,
         };
 
-        let state_to_restore = std::mem::replace(&mut self.parent_state, Some(state.clone()));
-
+        let parent_info = std::mem::replace(&mut self.parent_info, Some(info.clone()));
         let parent_extensions_len = self.extensions.len();
 
-        let ctx = ConfigContext {
-            builder: &mut *self,
-            display: meta.display,
-            span_tree_node,
-            state,
-            parent_extensions_len,
-        };
+        let ctx = ConfigContext { builder: &mut *self, span_node, info, parent_extensions_len };
         let app = ctx.app();
         let frp = ctx.frp();
 
@@ -1165,18 +1209,18 @@ impl<'a> WidgetTreeBuilder<'a> {
 
         // Once the node has been configured and all its children have been created, we can update
         // the hierarchy data.
-        self.hierarchy[self_insertion_index].total_descendants =
-            self.hierarchy.len() - self_insertion_index - 1;
+        self.hierarchy[insertion_index].total_descendants =
+            self.hierarchy.len() - insertion_index - 1;
 
         // After visiting child node, restore previous layer's parent data.
-        self.parent_state = state_to_restore;
+        self.parent_info = parent_info;
         self.last_ast_depth = parent_last_ast_depth;
         self.extensions.truncate(parent_extensions_len);
 
         // Apply left margin to the widget, based on its offset relative to the previous sibling.
         let child_root = child_node.display_object().clone();
         let offset = match () {
-            _ if !unique_ptr.is_first() => 0,
+            _ if !widget_id.is_first_widget_of_span() => 0,
             _ if is_placeholder => 1,
             _ => sibling_offset,
         };
@@ -1186,8 +1230,8 @@ impl<'a> WidgetTreeBuilder<'a> {
             child_root.set_margin_left(left_margin);
         }
 
-        let entry = TreeEntry { node: child_node, index: self_insertion_index };
-        self.new_nodes.insert(unique_ptr, entry);
+        let entry = TreeEntry { node: child_node, index: insertion_index };
+        self.new_nodes.insert(widget_id, entry);
         child_root
     }
 }
