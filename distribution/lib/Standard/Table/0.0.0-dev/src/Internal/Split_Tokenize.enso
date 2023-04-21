@@ -59,7 +59,7 @@ parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensiti
     pat = Regex.compile pattern case_insensitive=case_insensitive
 
     fun = handle_nothing (parse_to_vectors pat)
-    column_namer = regex_to_column_namer pat
+    column_namer = regex_to_column_namer pat input_column_id
 
     column = table.at input_column_id
 
@@ -76,17 +76,21 @@ parse_to_vectors pattern =
     input->
         matches = pattern.match_all input
         matches.map match-> case pattern.group_count of
-            0 -> [match.text]
+            1 -> [match.text]
             _ -> match.groups . drop 1
 
 ## PRIVATE
    Create a column namer that uses regex group names, if any.
-regex_to_column_namer : Pattern -> (Integer -> Text | Nothing)
-regex_to_column_namer pattern =
-    group_nums_to_names = pattern.group_nums_to_names
-    i-> case group_nums_to_names.contains_key i of
-        True -> group_nums_to_names.at i
-        False -> Nothing
+   If the regex has no groups, it returns the original column name unchanged.
+regex_to_column_namer : Pattern -> Text -> (Integer -> Text | Nothing)
+regex_to_column_namer pattern original_column_name =
+    case pattern.group_count of
+        1 -> _-> original_column_name
+        _ ->
+            group_nums_to_names = pattern.group_nums_to_names
+            i-> case group_nums_to_names.contains_key i of
+                True -> group_nums_to_names.at i
+                False -> Nothing
 
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
