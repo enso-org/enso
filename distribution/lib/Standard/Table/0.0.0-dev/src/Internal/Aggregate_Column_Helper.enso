@@ -165,13 +165,13 @@ resolve_aggregate table problem_builder aggregate_column =
     resolve_numeric c =
         internal_column = resolve c
         col = columns_helper.make_column internal_column
-        Value_Type.expect_numeric col.value_type related_column=col.name <|
+        Value_Type.expect_numeric col <|
             internal_column
 
     resolve_text c =
         internal_column = resolve c
         col = columns_helper.make_column internal_column
-        Value_Type.expect_text col.value_type related_column=col.name <|
+        Value_Type.expect_text col <|
             internal_column
 
     result = case aggregate_column of
