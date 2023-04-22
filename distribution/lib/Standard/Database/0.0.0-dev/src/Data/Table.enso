@@ -17,6 +17,7 @@ import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
@@ -41,7 +42,6 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Data.Column import find_argument_type
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
@@ -621,7 +621,9 @@ type Table
         resolved = case column of
             _ : Text -> self.compute column on_problems
             _ -> column
-        renamed = if new_name.is_nothing then resolved else resolved.rename new_name
+        renamed = case new_name of
+           Nothing -> resolved
+           _ : Text -> resolved.rename new_name
 
         renamed.if_not_error <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
@@ -662,7 +664,7 @@ type Table
         get_column name = self.at name
         type_mapping = self.connection.dialect.get_type_mapping
         make_constant value =
-            argument_value_type = find_argument_type value
+            argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of
                 Nothing -> SQL_Type.null
                 _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
@@ -1151,31 +1153,28 @@ type Table
                         sql_type.catch Inexact_Type_Coercion error->
                             Panic.throw <|
                                 Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                        [column_set, sql_type]
+                        [column_set, sql_type, result_type]
             good_columns = merged_columns.filter r-> r.is_nothing.not
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
-                    cast_after_union = dialect.cast_after_union
                     queries = all_tables.map_with_index i-> t->
                         columns_to_select = good_columns.map description->
                             column_set = description.first
-                            result_type = description.second
+                            sql_type = description.second
                             column_name = column_set.name
-                            input_column = case column_set.column_indices.at i of
+                            case column_set.column_indices.at i of
                                 Nothing ->
                                     typ = SQL_Type_Reference.from_constant SQL_Type.null
                                     expr = SQL_Expression.Literal "NULL"
-                                    Internal_Column.Value column_name typ expr
+                                    null_column = Internal_Column.Value column_name typ expr
+                                    ## We assume that the type for this
+                                       expression will never be queried - it is
+                                       just used internally to build the Union
+                                       operation and never exposed externally.
+                                    infer_return_type _ = SQL_Type_Reference.null
+                                    dialect.make_cast null_column sql_type infer_return_type
                                 corresponding_column_index : Integer ->
                                     t.at corresponding_column_index . as_internal . rename column_name
-                            ## We return `null` return type, as this type should
-                               never be queried - we will just put it into the
-                               union and the overall queried type will be taken
-                               from there. This is just needed to create an
-                               internal representation.
-                            infer_return_type _ = SQL_Type_Reference.null
-                            if cast_after_union then input_column else
-                                dialect.make_cast input_column result_type infer_return_type
                         pairs = columns_to_select.map c->
                             [c.name, c.expression]
                         Query.Select pairs t.context
@@ -1191,15 +1190,11 @@ type Table
                         SQL_Type_Reference.new self.connection new_ctx expression
                     new_columns = good_columns.map description->
                         column_set = description.first
-                        result_type = description.second
+                        result_type = description.at 2
                         name = column_set.name
                         expression = SQL_Expression.Column union_alias name
-                        case cast_after_union of
-                            True ->
-                                input_column = Internal_Column.Value name SQL_Type_Reference.null expression
-                                dialect.make_cast input_column result_type infer_return_type
-                            False ->
-                                Internal_Column.Value name (infer_return_type expression) expression
+                        input_column = Internal_Column.Value name (infer_return_type expression) expression
+                        dialect.adapt_unified_column input_column result_type infer_return_type
 
                     Table.Value union_alias self.connection new_columns new_ctx
 

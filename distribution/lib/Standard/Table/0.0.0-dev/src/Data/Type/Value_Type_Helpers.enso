@@ -1,7 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Data.Column.Column
+import project.Data.Type.Enso_Types
 from project.Data.Type.Value_Type import Value_Type, Auto
+from project.Errors import Invalid_Value_Type, No_Common_Type
+from project.Internal.Table_Helpers import is_column
 
 ## PRIVATE
    Finds a type that can fit both a current type and a new type.
@@ -11,7 +15,6 @@ reconcile_types current new = case current of
         Value_Type.Integer new_size ->
             Value_Type.Integer (Math.max size new_size)
         Value_Type.Byte    -> Value_Type.Integer size
-        Value_Type.Boolean -> Value_Type.Integer size
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Float _ -> Value_Type.Float
         _                  -> Value_Type.Mixed
@@ -21,21 +24,15 @@ reconcile_types current new = case current of
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Integer _ -> Value_Type.Float
         Value_Type.Byte      -> Value_Type.Float
-        Value_Type.Boolean   -> Value_Type.Float
         _                    -> Value_Type.Mixed
     Value_Type.Byte -> case new of
         Value_Type.Byte    -> Value_Type.Byte
         Value_Type.Integer size ->
             Value_Type.Integer size
-        Value_Type.Boolean -> Value_Type.Byte
         Value_Type.Float _ -> Value_Type.Float
         _                  -> Value_Type.Mixed
     Value_Type.Boolean -> case new of
         Value_Type.Boolean -> Value_Type.Boolean
-        Value_Type.Integer size ->
-            Value_Type.Integer size
-        Value_Type.Byte    -> Value_Type.Byte
-        Value_Type.Float _ -> Value_Type.Float
         _                  -> Value_Type.Mixed
     Value_Type.Char current_size current_variable -> case new of
         Value_Type.Char new_size new_variable ->
@@ -75,3 +72,87 @@ find_common_type types strict =
         # Double check if Mixed was really allowed to come out.
         if types.contains Value_Type.Mixed then Value_Type.Mixed else
             Nothing
+
+## PRIVATE
+   Finds the type of an argument to a column operation.
+
+   If the argument is a column, the type of that column is returned. If it
+   is an Enso value, the smallest `Value_Type` that can fit that value will
+   be returned (but the Database is free to widen it to the closest type
+   that it supports without warning).
+
+   Since there is no special type for `Nothing` and `Nothing` technically
+   can fit any nullable type, it usually needs to be handled specially. This
+   method returns `Nothing` if the value is `Nothing` - so the caller can
+   try to treat this value as fitting any type, or accordingly to specific
+   semantics of each method.
+find_argument_type : Any -> Value_Type | Nothing
+find_argument_type value = case value of
+    Nothing -> Nothing
+    _ -> if is_column value then value.value_type else
+        Enso_Types.most_specific_value_type value use_smallest=True
+
+## PRIVATE
+   A helper which resolves if numeric addition or string concatenation should be
+   used when the a `+` operator is used with the two provided types.
+   It will return an error if the provided types are incompatible.
+resolve_addition_kind arg1 arg2 =
+    type_1 = find_argument_type arg1
+    type_2 = find_argument_type arg2
+    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then 'ADD_NUMBER' else
+        if type_1.is_text && (type_2.is_nothing || type_2.is_text) then 'ADD_TEXT' else
+            Error.throw <| Illegal_Argument.Error <|
+                if type_2.is_nothing then "Cannot perform addition on a value of type " + type_1.to_display_text + ". Addition can only be performed if the column is of some numeric type or is text." else
+                    "Cannot perform addition on a pair of values of types " + type_1.to_display_text + " and " + type_2.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
+
+## PRIVATE
+   Checks that both provided arguments have numeric type and runs the action
+   if they do.
+check_binary_numeric_op arg1 arg2 ~action =
+    Value_Type.expect_numeric arg1 <|
+        Value_Type.expect_numeric arg2 <|
+            action
+
+## PRIVATE
+   Checks that both provided arguments have boolean type and runs the action
+   if they do.
+check_binary_boolean_op arg1 arg2 ~action =
+    Value_Type.expect_boolean arg1 <|
+        Value_Type.expect_boolean arg2 <|
+            action
+
+## PRIVATE
+   Checks that all provided argument are comparable with the provided
+   column.
+
+   Arguments:
+   - column: the column to compare the arguments to.
+   - arg_or_args: a single value or column or a vector of values or columns.
+   - action: the action to run if the arguments are compatible.
+check_multi_argument_comparable_op column arg_or_args ~action =
+    args = Vector.unify_vector_or_element arg_or_args
+    checked = args.map arg->
+        Value_Type.expect_comparable column arg <|
+            True
+    checked.if_not_error <|
+        action
+
+## PRIVATE
+raise_unexpected_type expected_type argument =
+    error = case is_column argument of
+        True ->
+            Invalid_Value_Type.Column expected_type argument.value_type argument.name
+        False ->
+            Invalid_Value_Type.Value expected_type (find_argument_type argument) argument
+    Error.throw error
+
+## PRIVATE
+find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
+find_common_type_for_arguments arguments =
+    types = arguments.map find_argument_type . filter Filter_Condition.Not_Nothing
+    case types.is_empty of
+        True -> Nothing
+        False -> case find_common_type types strict=True of
+            common_type : Value_Type -> common_type
+            Nothing -> Error.throw <|
+                No_Common_Type.Error types related_column_name=Nothing

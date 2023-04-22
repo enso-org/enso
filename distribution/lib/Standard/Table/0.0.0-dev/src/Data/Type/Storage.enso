@@ -52,6 +52,8 @@ closest_storage_type value_type = case value_type of
     Value_Type.Mixed -> AnyObjectType.INSTANCE
 
 ## PRIVATE
+   Converts a value type to an in-memory storage type, possibly approximating it
+   to the closest supported type.
 from_value_type : Value_Type -> Problem_Behavior -> StorageType
 from_value_type value_type on_problems =
     approximate_storage = closest_storage_type value_type
@@ -59,6 +61,16 @@ from_value_type value_type on_problems =
     problems = if approximated_value_type == value_type then [] else
         [Inexact_Type_Coercion.Warning value_type approximated_value_type]
     on_problems.attach_problems_before problems approximate_storage
+
+## PRIVATE
+   A strict variant of `from_value_type` that expects that we can represent the
+   provided value type exactly.
+from_value_type_strict : Value_Type -> StorageType ! Illegal_State
+from_value_type_strict value_type =
+    value_type.if_not_error <|
+        result = from_value_type value_type Problem_Behavior.Report_Error
+        result.catch Inexact_Type_Coercion cause->
+            Panic.throw (Illegal_State.Error "No exact representation for the provided value has been found: "+cause.to_display_text+" This is a bug in the Table library.")
 
 ## PRIVATE
    Creates a column storage builder for the given storage type.

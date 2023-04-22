@@ -40,7 +40,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
   public static DoubleStorage makeEmpty(int size) {
     BitSet isMissing = new BitSet(size);
     isMissing.set(0, size);
-    return new DoubleStorage(new long[0], size, new BitSet(size));
+    return new DoubleStorage(new long[0], size, isMissing);
   }
 
   /** @inheritDoc */

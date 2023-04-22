@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+from project.Internal.Table_Helpers import is_column
+
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## PRIVATE
@@ -43,10 +45,3 @@ type Naming_Helpers
     to_expression_text value =
         if is_column value then "[" + value.name.replace "]" "]]" + "]" else
             value.pretty
-
-## PRIVATE
-   Checks if the value is a column of any backend.
-is_column value =
-    case Meta.get_qualified_type_name value of
-        Nothing -> False
-        typename : Text -> typename.ends_with ".Column"
