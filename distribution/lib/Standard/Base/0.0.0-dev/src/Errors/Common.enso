@@ -302,11 +302,6 @@ type Invalid_Conversion_Target
        - target: the type trying to be converted to.
     Error target
 
-    ## PRIVATE
-       Convert the No_Such_Conversion error to a human-readable format.
-    to_display_text : Text
-    to_display_text self = "Cannot convert to `"+self.target.to_display_text+"`."
-
 @Builtin_Type
 type No_Such_Conversion
     ## PRIVATE

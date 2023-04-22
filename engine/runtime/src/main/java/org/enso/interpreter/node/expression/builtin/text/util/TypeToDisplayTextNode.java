@@ -38,11 +38,11 @@ public abstract class TypeToDisplayTextNode extends Node {
       // Most likely it should be removed once that is implemented.
       return "null";
     } else if (TypesGen.isLong(value)) {
-      return value + " (Integer)";
+      return value.toString();
     } else if (TypesGen.isEnsoBigInteger(value)) {
-      return "Integer";
+      return value.toString();
     } else if (TypesGen.isDouble(value)) {
-      return value + " (Decimal)";
+      return value.toString();
     } else if (TypesGen.isBoolean(value)) {
       return (TypesGen.asBoolean(value) ? "True" : "False");
     } else if (TypesGen.isText(value)) {
