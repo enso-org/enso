@@ -126,6 +126,22 @@ impl Network {
         self.register(OwnedGate::new(label, event, behavior))
     }
 
+    pub fn sampled_gate<T1, T2>(
+        &self,
+        label: Label,
+        event: &T1,
+        behavior: &T2,
+    ) -> Stream<Output<T1>>
+    where
+        T1: EventOutput,
+        T2: EventOutput<Output = bool>,
+    {
+        let value = self.gate(label, event, behavior);
+        let on_gate_pass = self.on_true(label, behavior);
+        let value2 = self.sample(label, event, &on_gate_pass);
+        self.any(label, &value, &value2)
+    }
+
     /// Like `gate` but passes the value when the condition is `false`.
     pub fn gate_not<T1, T2>(&self, label: Label, event: &T1, behavior: &T2) -> Stream<Output<T1>>
     where

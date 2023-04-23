@@ -553,7 +553,8 @@ impl Slider {
         };
     }
 
-    /// Initialize the value display FRP network.
+    /// Initialize the value display FRP network. Sets text to bold if the value is not the default
+    /// one and manages the value display on the slider.
     fn init_value_display(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
@@ -563,33 +564,14 @@ impl Slider {
         frp::extend! { network
             eval input.show_value((v) model.show_value(*v));
 
-            value <- output.value.gate(&input.show_value);
-            on_t <- input.show_value.on_true();
-            value2 <- output.value.sample(&on_t);
-            value <- any(&value, &value2);
-
-            default_value <- input.set_default_value.gate(&input.show_value);
-            on_t <- input.show_value.on_true();
-            default_value2 <- input.set_default_value.sample(&on_t);
-            default_value <- any(&default_value, &default_value2);
-
+            value <- output.value.sampled_gate(&input.show_value);
+            default_value <- input.set_default_value.sampled_gate(&input.show_value);
             is_default <- all_with(&value, &default_value, |val, def| val == def);
             text_weight <- switch_constant(&is_default, Weight::Bold, Weight::Normal);
             eval text_weight ((v) model.set_value_text_property(*v));
-            // value_is_default_true <- is_default.on_true();
-            // value_is_default_false <- is_default.on_false();
-            // eval_ value_is_default_true(model.set_value_text_property(formatting::Weight::Normal));
-            // eval_ value_is_default_false(model.set_value_text_property(formatting::Weight::Bold));
 
-            precision <- output.precision.gate(&input.show_value);
-            on_t <- input.show_value.on_true();
-            precision2 <- output.precision.sample(&on_t);
-            precision <- any(&precision, &precision2);
-
-            max_decimal_places <- input.set_max_disp_decimal_places.gate(&input.show_value);
-            max_decimal_places2 <- input.set_max_disp_decimal_places.sample(&input.show_value);
-            max_decimal_places <- any(&max_decimal_places, &max_decimal_places2);
-
+            precision <- output.precision.sampled_gate(&input.show_value);
+            max_decimal_places <- input.set_max_disp_decimal_places.sampled_gate(&input.show_value);
             text <- all_with3(&value, &precision, &max_decimal_places, display_value);
             text_left <- text._0();
             text_right <- text._1();
