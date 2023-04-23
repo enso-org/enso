@@ -124,6 +124,19 @@ export function registerUrlCallback(callback: (url: URL) => void) {
         const lastArgumentSlice = argv.slice(requestOneLastElementSlice)
         const url = argsDenoteUrlOpenAttempt(lastArgumentSlice)
         if (url) {
+            logger.log(`Got URL from 'second-instance' event: '${url.toString()}'.`)
+            // Even we received the URL, our Window likely is not in the foreground - the focus
+            // went to the "second instance" of the application. We must bring our Window to the
+            // foreground, so the user gets back to the IDE after the authentication.
+            const primaryWindow = electron.BrowserWindow.getAllWindows()[0]
+            if (primaryWindow) {
+                if (primaryWindow.isMinimized()) {
+                    primaryWindow.restore()
+                }
+                primaryWindow.focus()
+            } else {
+                logger.error('No primary window found after receiving URL from second instance.')
+            }
             logger.log(`Got URL from second instance: '${url.toString()}'.`)
             event.preventDefault()
             callback(url)
