@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -44,6 +43,9 @@ spec setup =
 
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
+            ## We do not do typechecking at Enso level here, as it is
+               DB-dependent if such mixing is allowed, so we will rely on an SQL
+               error.
             case test_selection.allows_mixed_type_comparisons of
                 True -> v.should_equal []
                 False -> v.should_fail_with SQL_Error
@@ -163,7 +165,7 @@ spec setup =
             t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, "A", "", " "]]]
             check_problem result =
                 result.should_fail_with Invalid_Value_Type
-                result.catch.expected . should_equal Value_Type.Char
+                result.catch.expected . should_equal "Char"
 
             check_problem (t.filter "X" (Filter_Condition.Starts_With (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Ends_With (t.at "ix")))
@@ -182,16 +184,15 @@ spec setup =
             check_problem (t.filter "ix" Filter_Condition.Is_Empty)
             check_problem (t.filter "ix" Filter_Condition.Not_Empty)
 
-            check_scalar_type_error_handling name action =
-                action.should_fail_with Type_Error
-                action.catch . should_equal (Type_Error.Error Text Integer name)
+            check_scalar_type_error_handling action =
+                action.should_fail_with Invalid_Value_Type
 
-            check_scalar_type_error_handling "prefix" (t.filter "X" (Filter_Condition.Starts_With 42))
-            check_scalar_type_error_handling "suffix" (t.filter "X" (Filter_Condition.Ends_With 42))
-            check_scalar_type_error_handling "substring" (t.filter "X" (Filter_Condition.Contains 42))
-            check_scalar_type_error_handling "pattern" (t.filter "X" (Filter_Condition.Like 42))
-            check_scalar_type_error_handling "pattern" (t.filter "X" (Filter_Condition.Not_Like 42))
-            check_scalar_type_error_handling "substring" (t.filter "X" (Filter_Condition.Not_Contains 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Starts_With 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Ends_With 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Contains 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Like 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Not_Like 42))
+            check_scalar_type_error_handling (t.filter "X" (Filter_Condition.Not_Contains 42))
 
         Test.specify "by nulls" <|
             t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, 1, Nothing, 4]]]
@@ -349,12 +350,24 @@ spec setup =
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             t.filter_by_expression "[ix" . should_fail_with Expression_Error
             t.filter_by_expression "[ix" . catch . should_be_a Expression_Error.Syntax_Error
-            t.filter_by_expression "is_empty([b],False)" . should_fail_with Expression_Error
-            t.filter_by_expression "is_empty([b],False)" . catch . should_be_a Expression_Error.Argument_Mismatch
             t.filter_by_expression "Starts_With([b])" . should_fail_with Expression_Error
             t.filter_by_expression "Starts_With([b])" . catch . should_be_a Expression_Error.Argument_Mismatch
             t.filter_by_expression "[missing]" . should_fail_with No_Such_Column
             t.filter_by_expression "[ix]" . should_fail_with Invalid_Value_Type
+
+            ## This used to raise Expression_Error.Argument_Mismatch, but now we
+               cannot detect that.
+
+               Argument_Mismatch is detected by applying all arguments to the
+               function, if there are too many it will fail with
+               `Type error: expected a function` which was being detected.
+               But it first runs the code of the function with as many arguments
+               as it needed, thus if the function fails, its error overrides the
+               arity error.
+            t.filter_by_expression "is_empty([b],False)" . should_fail_with Invalid_Value_Type
+            # If we provide good type for the first argument, then the error will be again as expected.
+            t.filter_by_expression "is_empty('', 42)" . should_fail_with Expression_Error
+            t.filter_by_expression "is_empty('', 42)" . catch . should_be_a Expression_Error.Argument_Mismatch
 
         Test.specify "should report issues: floating point equality" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, -2.0]]]

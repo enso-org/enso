@@ -47,7 +47,7 @@ Error.should_fail_with : Any -> Integer -> Test_Result
 Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
-        loc = Meta.get_source_location 3+frames_to_skip
+        loc = Meta.get_source_location 2+frames_to_skip
         matcher_text = case matcher.to_text of
             text : Text -> text
             _ -> Meta.meta matcher . to_text
