@@ -432,13 +432,12 @@ impl Tree {
         frp::extend! { network
             frp.private.output.rebuild_required <+ frp.marked_dirty_sync.debounce();
 
-            set_ports_visible    <- frp.set_ports_visible.sampler();
-            set_view_mode        <- frp.set_view_mode.sampler();
+            set_ports_visible <- frp.set_ports_visible.sampler();
+            set_view_mode <- frp.set_view_mode.sampler();
             set_profiling_status <- frp.set_profiling_status.sampler();
 
-            on_port_hover        <- any(...);
-            on_port_press        <- any(...);
-            trace on_port_hover;
+            on_port_hover <- any(...);
+            on_port_press <- any(...);
             frp.private.output.on_port_hover <+ on_port_hover;
             frp.private.output.on_port_press <+ on_port_press;
         }
@@ -519,7 +518,7 @@ impl Tree {
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
-    /// have a distinct widget, so the returned value might be `None`.
+    /// have a distinct widget, so the returned value might be [`None`].
     pub fn get_port_display_object(
         &self,
         span_node: &SpanRef,
@@ -594,7 +593,6 @@ struct NodeHierarchy {
 struct TreeEntry {
     node:  TreeNode,
     /// Index in the `hierarchy` vector.
-    #[allow(dead_code)]
     index: usize,
 }
 
@@ -787,10 +785,10 @@ impl TreeModel {
         );
     }
 
-    /// Convert span tree node to a corresponding widget tree pointer. Every node in the span tree
-    /// has a unique representation in the form of a widget tree pointer, which is more stable
-    /// across changes in the span tree than [`span_tree::Crumbs`]. The pointer is used to identify
-    /// the widgets or ports in the widget tree.
+    /// Convert span tree node to a representation with stable identity across rebuilds. Every node
+    /// in the span tree has a unique representation in the form of a [`StableSpanIdentity`], which
+    /// is more stable across changes in the span tree than [`span_tree::Crumbs`]. The pointer is
+    /// used to identify the widgets or ports in the widget tree.
     pub fn get_node_widget_pointer(&self, span_node: &SpanRef) -> StableSpanIdentity {
         if let Some(id) = span_node.ast_id {
             // This span represents an AST node, return a pointer directly to it.

@@ -67,7 +67,6 @@ pub mod traits {
         fn unset(&mut self);
     }
 
-
     // === Arity-1 Operations ===
 
     /// Abstraction for dirty flags which can perform a dirty check by providing a single argument.
@@ -88,6 +87,12 @@ pub mod traits {
         fn unset(&mut self, arg: &Self::Arg);
     }
 
+    /// Abstraction for dirty flags which can swap the dirtiness state of two elements. Does not
+    /// trigger any updates. If you want to trigger the update, use `unset` and `check` instead.
+    #[allow(missing_docs)]
+    pub trait HasSwap1: HasArg {
+        fn swap(&mut self, a: Self::Arg, b: Self::Arg);
+    }
 
     // === Shared Global Operations ===
 
@@ -130,6 +135,13 @@ pub mod traits {
     #[allow(missing_docs)]
     pub trait SharedHasUnset1: HasArg {
         fn unset(&self, arg: &Self::Arg);
+    }
+
+    /// Abstraction for dirty flags which can swap the dirtiness state of two elements. Does not
+    /// trigger any updates. If you want to trigger the update, use `unset` and `check` instead.
+    #[allow(missing_docs)]
+    pub trait SharedHasSwap1: HasArg {
+        fn swap(&self, a: Self::Arg, b: Self::Arg);
     }
 
     // === Type Aliases ===
@@ -254,17 +266,22 @@ impl<T: FlagOps1, OnMut: FnMut0> HasSet1 for Flag<T, OnMut> {
 
 impl<T: HasUnset0, OnMut> HasUnset0 for Flag<T, OnMut> {
     fn unset(&mut self) {
-        trace!("Unsetting.");
         self.data.unset()
     }
 }
 
-impl<T: HasUnset1, OnMut> HasUnset1 for Flag<T, OnMut>
-where Arg<T>: Display
-{
+impl<T: HasUnset1, OnMut> HasUnset1 for Flag<T, OnMut> {
     fn unset(&mut self, arg: &Self::Arg) {
-        trace!("Unsetting {arg}.");
         self.data.unset(arg)
+    }
+}
+
+
+// === Swap ===
+
+impl<T: HasSwap1, OnMut> HasSwap1 for Flag<T, OnMut> {
+    fn swap(&mut self, a: Self::Arg, b: Self::Arg) {
+        self.data.swap(a, b)
     }
 }
 
@@ -367,11 +384,17 @@ impl<T: HasUnset0, OnMut> SharedHasUnset0 for RefCellFlag<T, OnMut> {
     }
 }
 
-impl<T: HasUnset1, OnMut> SharedHasUnset1 for RefCellFlag<T, OnMut>
-where Arg<T>: Display
-{
+impl<T: HasUnset1, OnMut> SharedHasUnset1 for RefCellFlag<T, OnMut> {
     fn unset(&self, arg: &Self::Arg) {
         self.data.borrow_mut().unset(arg)
+    }
+}
+
+// === Swap ===
+
+impl<T: HasSwap1, OnMut> SharedHasSwap1 for RefCellFlag<T, OnMut> {
+    fn swap(&self, a: Self::Arg, b: Self::Arg) {
+        self.data.borrow_mut().swap(a, b)
     }
 }
 
@@ -463,9 +486,7 @@ impl<T: HasUnset0, OnMut> SharedHasUnset0 for SharedFlag<T, OnMut> {
     }
 }
 
-impl<T: HasUnset1, OnMut> SharedHasUnset1 for SharedFlag<T, OnMut>
-where Arg<T>: Display
-{
+impl<T: HasUnset1, OnMut> SharedHasUnset1 for SharedFlag<T, OnMut> {
     fn unset(&self, arg: &Self::Arg) {
         self.rc.unset(arg)
     }
@@ -708,6 +729,24 @@ impl<Item: SetItem> HasSet1 for SetData<Item> {
 impl<Item: SetItem> HasUnset1 for SetData<Item> {
     fn unset(&mut self, a: &Item) {
         self.set.remove(a);
+    }
+}
+
+impl<Item: SetItem> HasSwap1 for SetData<Item> {
+    fn swap(&mut self, a: Item, b: Item) {
+        let a_dirty = self.set.contains(&a);
+        let b_dirty = self.set.contains(&b);
+        match (a_dirty, b_dirty) {
+            (true, false) => {
+                self.set.remove(&a);
+                self.set.insert(b);
+            }
+            (false, true) => {
+                self.set.remove(&b);
+                self.set.insert(a);
+            }
+            _ => {}
+        }
     }
 }
 

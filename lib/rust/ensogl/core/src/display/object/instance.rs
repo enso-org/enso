@@ -1398,18 +1398,25 @@ impl ParentBind {
         self.parent.upgrade()
     }
 
-    /// Drop this parent bind without removing the child from the parent's children list, assuming
-    /// it has been already done. Does not mark `modified_children` dirty flag, as the `child_index`
-    /// is already outdated.
-    fn drop_manually_removed_from_child_list(self, weak_child: WeakInstance) {
-        if let Some(parent) = self.parent() {
-            if let Some(child) = weak_child.upgrade() {
-                child.dirty.new_parent.set();
-            }
-            parent.dirty.removed_children.set(weak_child);
-        }
-        // do not perform usual drop
+    // Drop this [`ParentBind`] using provided borrows for its parent and its removed child entry.
+    // This allows clearing the parent children in a batch more efficiently.
+    fn drop_with_removed_element(
+        mut self,
+        parent: &InstanceDef,
+        removed_children_entry: WeakInstance,
+    ) {
+        self.notify_on_drop(parent, removed_children_entry);
+        // The list is already maintained. Drop the bind without doing it again.
         mem::forget(self);
+    }
+
+    fn notify_on_drop(&mut self, parent: &InstanceDef, removed_children_entry: WeakInstance) {
+        debug_assert!(parent.downgrade() == self.parent);
+        parent.dirty.modified_children.unset(&self.child_index);
+        if let Some(child) = removed_children_entry.upgrade() {
+            child.dirty.new_parent.set();
+        }
+        parent.dirty.removed_children.set(removed_children_entry);
     }
 }
 
@@ -1417,11 +1424,7 @@ impl Drop for ParentBind {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
             if let Some(weak_child) = parent.children.borrow_mut().remove(&self.child_index) {
-                parent.dirty.modified_children.unset(&self.child_index);
-                if let Some(child) = weak_child.upgrade() {
-                    child.dirty.new_parent.set();
-                }
-                parent.dirty.removed_children.set(weak_child);
+                self.notify_on_drop(&parent, weak_child);
             }
         }
     }
@@ -1647,17 +1650,18 @@ impl HierarchyFrp {
 #[derive(Debug, Deref)]
 pub struct HierarchyModel {
     #[deref]
-    frp:            HierarchyFrp,
-    visible:        Cell<bool>,
-    transformation: RefCell<CachedTransformation>,
-    parent_bind:    SharedParentBind,
+    frp:              HierarchyFrp,
+    visible:          Cell<bool>,
+    transformation:   RefCell<CachedTransformation>,
+    parent_bind:      SharedParentBind,
+    next_child_index: Cell<ChildIndex>,
     // We are using [`BTreeMap`] here in order to preserve the child insertion order.
-    children:       RefCell<BTreeMap<ChildIndex, WeakInstance>>,
+    children:         RefCell<BTreeMap<ChildIndex, WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer: RefCell<Option<LayerAssignment>>,
+    assigned_layer:   RefCell<Option<LayerAssignment>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:          RefCell<Option<LayerAssignment>>,
-    dirty:          dirty::Flags,
+    layer:            RefCell<Option<LayerAssignment>>,
+    dirty:            dirty::Flags,
 }
 
 impl HierarchyModel {
@@ -1666,11 +1670,22 @@ impl HierarchyModel {
         let visible = default();
         let transformation = default();
         let parent_bind = default();
+        let next_child_index = default();
         let children = default();
         let assigned_layer = default();
         let layer = default();
         let dirty = dirty::Flags::new(&parent_bind);
-        Self { frp, visible, transformation, parent_bind, children, assigned_layer, layer, dirty }
+        Self {
+            frp,
+            visible,
+            transformation,
+            parent_bind,
+            next_child_index,
+            children,
+            assigned_layer,
+            layer,
+            dirty,
+        }
     }
 }
 
@@ -2065,82 +2080,129 @@ impl InstanceDef {
     /// will remain in some valid state.
     fn replace_children<T: Object>(&self, new_children: &[T]) {
         let this_weak = self.downgrade();
+        let mut children_borrow = self.children.borrow_mut();
+        let num_children_before = children_borrow.len();
 
+        let mut pushed_out_children = false;
+        let mut added_children = 0;
+        let mut next_free_index = new_children.len().max(*self.next_child_index.get());
+        let starting_free_index = next_free_index;
+
+        // Update child indices of existing children, maintain their dirty flags.
         for (index, child) in new_children.iter().enumerate() {
             let child = child.display_object();
-            let child_index = ChildIndex(index);
+            let new_child_index = ChildIndex(index);
 
             let mut bind_borrow = child.parent_bind.data.borrow_mut();
-            if let Some(bind) = bind_borrow.as_mut().filter(|bind| bind.parent == this_weak) {
-                // The child is already a child of this instance. Set the new index.
-                if bind.child_index != child_index {
-                    self.dirty.modified_children.unset(&bind.child_index);
-                    self.dirty.modified_children.set(child_index);
-                    bind.child_index = child_index;
-                }
-            } else {
-                // This was not a child of this instance. Set the new parent.
-                drop(bind_borrow);
-                child.take_parent_bind();
-                let new_parent_bind = ParentBind { parent: this_weak.clone(), child_index };
-                child.set_parent_bind(new_parent_bind);
-                self.dirty.modified_children.set(child_index);
-            }
-        }
+            let same_parent_bind = bind_borrow.as_mut().filter(|bind| bind.parent == this_weak);
 
-        let mut borrow = self.children.borrow_mut();
-        // Drop all children that are not in the new list.
-        {
-            for (child_index, weak_instance) in borrow.iter() {
-                let index = child_index.0;
-                if let Some(instance) = weak_instance.upgrade() {
-                    let bind_index = instance.parent_bind.child_index();
-                    if bind_index != Some(*child_index) {
-                        // Bind index updated in the loop above. This means that the child has to
-                        // be preserved.
-                        continue;
-                    }
-                    let child = new_children.get(index);
-                    let matching = child.map_or(false, |c| c.display_object() == &instance);
+            let free_index = match same_parent_bind {
+                Some(bind) => {
+                    // The child is already a child of this parent. Update its index.
 
-                    if matching {
-                        // The child under this index is the same as the one in the new list. We
-                        // want to preserve it.
+                    if bind.child_index == new_child_index {
+                        // The child is already at its destination index. No need to update it.
                         continue;
                     }
 
-                    // For all other children, we want to drop them, but making sure to not mark
-                    // any newly inserted children as removed. This can happen, if existing element
-                    // has ben moved to an index occupied by an element we are about to remove.
-                    if let Some(bind) = instance.take_parent_bind() {
-                        if bind.child_index.0 >= new_children.len() {
-                            self.dirty.modified_children.unset(&bind.child_index);
-                        }
-                        bind.drop_manually_removed_from_child_list(weak_instance.clone());
+                    // Move the child to its destination index. In case the newly taken spot was
+                    // occupied, use a swap. The occupied entry will later be moved to the spot
+                    // freed by this element.
+                    let old_index = bind.child_index;
+                    bind.child_index = new_child_index;
+
+                    // If the old index was higher than the starting number of children, it means
+                    // that this element was previously pushed out by a swap. We are reusing it, but
+                    // not cleaning up the space it occupied. The cleanup is instead deferred.
+                    pushed_out_children |= *old_index >= starting_free_index;
+
+                    old_index
+                }
+                None => {
+                    added_children += 1;
+                    // This was not a child of this instance, so it needs to be added as one. Move
+                    // it from its existing parent to this one.
+                    drop(bind_borrow);
+                    drop(child.take_parent_bind());
+                    let new_parent_bind =
+                        ParentBind { parent: this_weak.clone(), child_index: new_child_index };
+                    child.set_parent_bind(new_parent_bind);
+                    self.dirty.removed_children.unset(&child.downgrade());
+                    let free_index = ChildIndex(next_free_index);
+                    next_free_index += 1;
+                    free_index
+                }
+            };
+
+            // If there already was a child present at the destination index, swap them. That child
+            // will be either maintained in future iterations or deleted.
+            //
+            // Note that we want to always attempt BTreeMap insertions before deletions, so we can
+            // avoid unnecessary tree structure manipulations. When inserting to previously occupied
+            // element, the tree structure is not modified.
+            self.dirty.modified_children.swap(free_index, new_child_index);
+            self.dirty.modified_children.set(new_child_index);
+            let child_at_dest = children_borrow.insert(new_child_index, child.downgrade());
+            if let Some(child_at_dest) = child_at_dest {
+                if let Some(strong) = child_at_dest.upgrade() {
+                    let mut bind = strong.parent_bind.data.borrow_mut();
+                    let bind = bind.as_mut().expect("Child should always have a parent bind.");
+                    bind.child_index = free_index;
+                    children_borrow.insert(free_index, child_at_dest);
+                    // In case we just put a child in its final spot, we have to mark as modified.
+                    // If it ends up being deleted, the flag will be cleared anyway.
+                    if bind.parent == this_weak {
+                        self.dirty.modified_children.set(free_index);
                     }
                 }
             }
         }
 
-        // Fill in the child list.
-        borrow.clear();
-        for (index, child) in new_children.iter().enumerate() {
-            let child = child.display_object();
-            let child_index = ChildIndex(index);
-            // Check again if the parent bind is is still in expected state. If the children list
-            // contained any duplicates, we don't want to insert them twice.
-            if child.parent_bind.matches(&this_weak, child_index) {
-                borrow.insert(ChildIndex(index), child.downgrade());
+        // At this point, all children that were in the new list are in the right position. We
+        // only need to remove the children that were not in the new list. All of them are still
+        // in the children list, and their indices are past the inserted indices.
+        let has_stale_indices = pushed_out_children || starting_free_index > new_children.len();
+        let retained_children = new_children.len() - added_children;
+        let has_elements_to_remove = retained_children < num_children_before;
+        let need_cleanup = has_elements_to_remove || has_stale_indices;
+
+        dbg!(retained_children, num_children_before, has_elements_to_remove, has_stale_indices);
+        if need_cleanup {
+            let mut binds_to_drop = SmallVec::<[(ParentBind, WeakInstance); 8]>::new();
+
+            // Drop the instances that were removed from the children list. Note that the drop may
+            // cause the instance to be removed from the children list, so we need to drop the
+            // instances without holding to borrows.
+            children_borrow.retain(|index, weak_instance| {
+                let to_retain = **index < new_children.len();
+                if !to_retain {
+                    let instance = weak_instance.upgrade();
+                    // We do not immediately remove old keys containing pushed-out children when
+                    // they have been reinserted to their appropriate position. To avoid treating
+                    // them as removed, we have to filter them out. Only children that are at their
+                    // correct position should be removed.
+                    let instance = instance.filter(|i| i.parent_bind.child_index() == Some(*index));
+                    let bind = instance.and_then(|i| i.take_parent_bind());
+                    let bind_with_instance = bind.map(|bind| (bind, weak_instance.clone()));
+                    binds_to_drop.extend(bind_with_instance);
+                }
+                to_retain
+            });
+
+            drop(children_borrow);
+
+            self.next_child_index.set(ChildIndex(new_children.len()));
+            for (bind, weak) in binds_to_drop {
+                bind.drop_with_removed_element(self, weak)
             }
         }
     }
 
     fn register_child(&self, child: &InstanceDef) -> ChildIndex {
-        let mut children_borrow = self.children.borrow_mut();
-        let next_key = children_borrow.last_key_value().map_or(0, |(k, _)| **k + 1);
-        let index = ChildIndex(next_key);
-        children_borrow.insert(index, child.downgrade());
-        drop(children_borrow);
+        let index = self.next_child_index.get();
+        self.next_child_index.set(ChildIndex(*index + 1));
+        self.children.borrow_mut().insert(index, child.downgrade());
+        self.dirty.removed_children.unset(&child.downgrade());
         self.dirty.modified_children.set(index);
         index
     }
@@ -4217,16 +4279,248 @@ mod hierarchy_tests {
         assert_eq!(node2.my_index(), Some(ChildIndex(0)));
 
         node1.add_child(&node2);
-        assert_eq!(node2.my_index(), Some(ChildIndex(0)));
+        assert_eq!(node2.my_index(), Some(ChildIndex(1)));
 
         node1.add_child(&node3);
-        assert_eq!(node3.my_index(), Some(ChildIndex(1)));
+        assert_eq!(node3.my_index(), Some(ChildIndex(2)));
 
         node1.add_child(&node2);
-        assert_eq!(node2.my_index(), Some(ChildIndex(2)));
+        assert_eq!(node2.my_index(), Some(ChildIndex(3)));
 
         node1.remove_child(&node3);
         assert_eq!(node3.my_index(), None);
+    }
+
+    struct ReplaceChildrenTest<const N: usize> {
+        root:  Instance,
+        nodes: [Instance; N],
+    }
+
+    impl<const N: usize> ReplaceChildrenTest<N> {
+        fn new() -> (Instance, [Instance; N], Self) {
+            let root = Instance::new_named("root");
+            let nodes = std::array::from_fn(|n| {
+                Instance::new_named(Box::leak(format!("{n}").into_boxed_str()))
+            });
+            let nodes_clone = std::array::from_fn(|i| nodes[i].clone());
+            (root.clone(), nodes_clone, Self { root, nodes })
+        }
+
+        fn prepare_clear_flags(&self) {
+            self.root.dirty.modified_children.unset_all();
+            self.root.dirty.removed_children.unset_all();
+            for node in self.nodes.iter() {
+                node.dirty.new_parent.unset();
+            }
+        }
+
+        #[track_caller]
+        fn new_node_parents(&self, node_has_new_parent: [bool; N]) {
+            let status = std::array::from_fn(|n| self.nodes[n].dirty.new_parent.take().check());
+            assert_eq!(status, node_has_new_parent);
+        }
+
+        #[track_caller]
+        fn children(&self, expected: &[&'static str]) {
+            let names = self.root.children().iter().map(|node| node.name).collect_vec();
+            assert_eq!(names, expected);
+        }
+
+        #[track_caller]
+        fn child_indices(&self, expected: &[usize]) {
+            let indices = self
+                .root
+                .children()
+                .iter()
+                .map(|node| node.my_index().expect("No index").0)
+                .collect_vec();
+            assert_eq!(indices, expected);
+        }
+
+        #[track_caller]
+        fn modified_children(&self, indices: &[usize]) {
+            let modified = self.root.dirty.modified_children.take().set;
+            let mut modified = modified.into_iter().map(|idx| idx.0).collect_vec();
+            modified.sort();
+            assert_eq!(modified, indices);
+        }
+
+        #[track_caller]
+        fn removed_children<T: Object>(&self, instances: &[T]) {
+            let mut removed = self.root.dirty.removed_children.take().set;
+            for instance in instances {
+                let instance = instance.display_object();
+                let is_removed = removed.remove(&instance.downgrade());
+                assert!(is_removed, "Missing removed instance: {:?}", instance.name);
+            }
+            assert!(
+                removed.is_empty(),
+                "Unexpected removed children: {:?}",
+                removed.iter().map(|i| i.upgrade().map(|i| i.name)).collect_vec()
+            );
+        }
+
+        #[track_caller]
+        fn no_removed_children(&self) {
+            self.removed_children::<Instance>(&[]);
+        }
+    }
+
+    #[test]
+    fn replace_children_identical_test() {
+        let (root, nodes, assert) = ReplaceChildrenTest::<5>::new();
+        root.replace_children(&nodes);
+        assert.children(&["0", "1", "2", "3", "4"]);
+        assert.child_indices(&[0, 1, 2, 3, 4]);
+        assert.modified_children(&[0, 1, 2, 3, 4]);
+        assert.removed_children::<Instance>(&[]);
+        assert.new_node_parents([true, true, true, true, true]);
+
+        root.replace_children(&nodes);
+        assert.children(&["0", "1", "2", "3", "4"]);
+        assert.child_indices(&[0, 1, 2, 3, 4]);
+        assert.modified_children(&[]);
+        assert.removed_children::<Instance>(&[]);
+        assert.new_node_parents([false, false, false, false, false]);
+
+        root.replace_children::<Instance>(&[]);
+        assert.child_indices(&[]);
+        assert.modified_children(&[]);
+        assert.removed_children(&nodes);
+        assert.new_node_parents([true, true, true, true, true]);
+    }
+
+    #[test]
+    fn replace_children_subset_test() {
+        let (root, nodes, assert) = ReplaceChildrenTest::<5>::new();
+        root.replace_children(&nodes);
+        assert.prepare_clear_flags();
+
+        root.replace_children(&nodes[0..4]);
+        assert.children(&["0", "1", "2", "3"]);
+        assert.child_indices(&[0, 1, 2, 3]);
+        assert.modified_children(&[]);
+        assert.removed_children(&[&nodes[4]]);
+        assert.new_node_parents([false, false, false, false, true]);
+
+
+        root.replace_children(&nodes[1..4]);
+        assert.children(&["1", "2", "3"]);
+        assert.child_indices(&[0, 1, 2]);
+        assert.modified_children(&[0, 1, 2]);
+        assert.removed_children(&[&nodes[0]]);
+        assert.new_node_parents([true, false, false, false, false]);
+
+        root.replace_children(&nodes[2..5]);
+        assert.children(&["2", "3", "4"]);
+        assert.child_indices(&[0, 1, 2]);
+        assert.modified_children(&[0, 1, 2]);
+        assert.removed_children(&[&nodes[1]]);
+        assert.new_node_parents([false, true, false, false, true]);
+
+        root.replace_children(&nodes);
+        assert.children(&["0", "1", "2", "3", "4"]);
+        assert.modified_children(&[0, 1, 2, 3, 4]);
+        assert.no_removed_children();
+        assert.new_node_parents([true, true, false, false, false]);
+
+        root.replace_children(&[&nodes[0], &nodes[2], &nodes[4]]);
+        assert.children(&["0", "2", "4"]);
+        assert.child_indices(&[0, 1, 2]);
+        assert.modified_children(&[1, 2]);
+        assert.removed_children(&[&nodes[1], &nodes[3]]);
+        assert.new_node_parents([false, true, false, true, false]);
+
+        root.replace_children(&nodes);
+        assert.children(&["0", "1", "2", "3", "4"]);
+        assert.modified_children(&[1, 2, 3, 4]);
+        assert.no_removed_children();
+        assert.new_node_parents([false, true, false, true, false]);
+    }
+
+    #[test]
+    fn replace_children_shuffle_test() {
+        let (root, nodes, assert) = ReplaceChildrenTest::<5>::new();
+        root.replace_children(&nodes);
+        assert.prepare_clear_flags();
+
+        root.replace_children(&[&nodes[2..=4], &nodes[0..=1]].concat());
+        assert.children(&["2", "3", "4", "0", "1"]);
+        assert.child_indices(&[0, 1, 2, 3, 4]);
+        assert.modified_children(&[0, 1, 2, 3, 4]);
+        assert.no_removed_children();
+        assert.new_node_parents([false, false, false, false, false]);
+
+        root.replace_children(&nodes[0..=3]);
+        assert.children(&["0", "1", "2", "3"]);
+        assert.child_indices(&[0, 1, 2, 3]);
+        assert.modified_children(&[0, 1, 2, 3]);
+        assert.removed_children(&[&nodes[4]]);
+        assert.new_node_parents([false, false, false, false, true]);
+
+        root.replace_children(&[&nodes[4..=4], &nodes[1..=3], &nodes[0..=0]].concat());
+        assert.children(&["4", "1", "2", "3", "0"]);
+        assert.child_indices(&[0, 1, 2, 3, 4]);
+        assert.modified_children(&[0, 4]);
+        assert.no_removed_children();
+        assert.new_node_parents([false, false, false, false, true]);
+
+        root.replace_children(&nodes[1..=3]);
+        assert.children(&["1", "2", "3"]);
+        assert.child_indices(&[0, 1, 2]);
+        assert.modified_children(&[0, 1, 2]);
+        assert.removed_children(&[&nodes[0], &nodes[4]]);
+        assert.new_node_parents([true, false, false, false, true]);
+
+        root.replace_children(&nodes[1..=4]);
+        assert.children(&["1", "2", "3", "4"]);
+        assert.child_indices(&[0, 1, 2, 3]);
+        assert.modified_children(&[3]);
+        assert.no_removed_children();
+        assert.new_node_parents([false, false, false, false, true]);
+    }
+
+    #[test]
+    fn replace_children_keep_flags_test() {
+        let (root, nodes, assert) = ReplaceChildrenTest::<5>::new();
+        root.replace_children(&nodes);
+        assert.prepare_clear_flags();
+
+        assert.children(&["0", "1", "2", "3", "4"]);
+        root.dirty.modified_children.set(ChildIndex(1));
+        root.replace_children(&[&nodes[0..=2], &nodes[4..=4]].concat());
+        assert.children(&["0", "1", "2", "4"]);
+        root.replace_children(&nodes);
+        assert.children(&["0", "1", "2", "3", "4"]);
+        assert.modified_children(&[1, 3, 4]);
+        assert.no_removed_children();
+        assert.new_node_parents([false, false, false, true, false]);
+    }
+
+    fn replace_children_replace_all_test() {
+        let (root, nodes, assert) = ReplaceChildrenTest::<5>::new();
+        root.replace_children(&nodes);
+        assert.prepare_clear_flags();
+
+        let new_nodes: [_; 10] = std::array::from_fn(|_| Instance::new());
+        root.replace_children(&new_nodes);
+        assert_eq!(root.children(), &new_nodes);
+        assert.child_indices(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        assert.modified_children(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        assert.removed_children(&nodes);
+        assert.new_node_parents([true, true, true, true, true]);
+
+        new_nodes.iter().enumerate().for_each(|(i, node)| {
+            assert_eq!(node.my_index(), Some(ChildIndex(i)));
+        });
+        nodes.iter().for_each(|node| assert_eq!(node.my_index(), None));
+
+        root.replace_children(&nodes);
+        assert.children(&["0", "1", "2", "3", "4"]);
+        assert.child_indices(&[0, 1, 2, 3, 4]);
+        assert.modified_children(&[0, 1, 2, 3, 4]);
+        assert.removed_children(&new_nodes);
+        assert.new_node_parents([true, true, true, true, true]);
     }
 
     #[test]
