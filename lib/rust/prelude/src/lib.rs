@@ -142,6 +142,20 @@ pub mod serde_reexports {
 
 
 
+// ================
+// === Printing ===
+// ================
+
+pub use web_sys;
+
+#[macro_export]
+macro_rules! console_log {
+    ( $( $t:tt )* ) => {
+        $crate::web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
+
+
 // ===============
 // === Logging ===
 // ===============

@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-from Standard.Table import Aggregate_Column, Join_Kind
+from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
@@ -137,15 +137,22 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Specifies if the cast used to reconcile column types should be done after
-       performing the union. If `False`, the cast will be done before the union.
+       Specifies if the Database distinguishes a seprarate `NaN` value for
+       floating point columns. Some databases will not be able to distinguish
+       NaN from NULL.
+    supports_separate_nan : Boolean
+    supports_separate_nan self =
+        Unimplemented.throw "This is an interface only."
 
-       Most databases that care about column types will want to do the cast
-       before the union operation to ensure that types are aligned when merging.
-       For an SQLite workaround to work, it's better to do the cast after the
-       union operation.
-    cast_after_union : Boolean
-    cast_after_union self =
+    ## PRIVATE
+       Performs any transformations on a column resulting from unifying other
+       columns.
+
+       These transformations depend on the dialect. They can be used to align
+       the result types, for example.
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE

@@ -22,7 +22,7 @@ import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
-postgres_specific_spec connection db_name =
+postgres_specific_spec connection db_name setup =
     Test.group "[PostgreSQL] Schemas and Databases" <|
         Test.specify "should be able to get current database and list databases" <|
             connection.database . should_equal db_name
@@ -158,6 +158,30 @@ postgres_specific_spec connection db_name =
 
         connection.execute_update 'DROP TABLE "'+name+'"'
 
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    Test.group "[PostgreSQL] Edge Cases" <|
+        Test.specify "materialize should respect the overridden type" <|
+            t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
+            t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
+
+            x = t1.at "x"
+            a = t1.at "A"
+            b = t1.at "B"
+            a.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+            b.value_type.should_equal (Value_Type.Char size=3 variable_length=False)
+
+            c = x.iif a b
+            c.to_vector.should_equal ["xyz", "b", "def"]
+            Test.with_clue "c.value_type="+c.value_type.to_display_text+": " <|
+                c.value_type.variable_length.should_be_true
+
+            d = materialize c
+            d.to_vector.should_equal ["xyz", "b", "def"]
+            Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
+                d.value_type.variable_length.should_be_true
+
+
 run_tests connection db_name =
     prefix = "[PostgreSQL] "
     name_counter = Ref.new 0
@@ -179,7 +203,6 @@ run_tests connection db_name =
     materialize = .read
 
     Common_Spec.spec prefix connection
-    postgres_specific_spec connection db_name
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False fixed_length_text_columns=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
@@ -190,6 +213,7 @@ run_tests connection db_name =
     tables.append empty_agg_table.name
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    postgres_specific_spec connection db_name setup
     Common_Table_Operations.Main.spec setup
 
     clean_tables tables.to_vector

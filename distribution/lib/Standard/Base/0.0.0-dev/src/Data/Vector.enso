@@ -86,6 +86,18 @@ type Vector a
     from_array : Array -> Vector
     from_array array = @Builtin_Method "Vector.from_array"
 
+    ## PRIVATE
+       A helper method that takes a vector or an array or a single element and
+       returns a vector.
+
+       If it got a vector or array, a vector containing the same elements is
+       returned.
+       If it got a single element, a vector containing this element is returned.
+    unify_vector_or_element value = case value of
+        vec : Vector -> vec
+        arr : Array -> Vector.from_polyglot_array arr
+        single_element -> [single_element]
+
     ## Creates a new vector of the given length, filling the elements with
        the provided constant.
 

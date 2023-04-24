@@ -149,8 +149,6 @@ impl Model {
 
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
-                ide_view_graph_editor::component::breadcrumbs::background -> close::shape;
-                ide_view_graph_editor::component::breadcrumbs::background -> fullscreen::shape;
                 shape -> close::shape;
                 shape -> fullscreen::shape;
             }

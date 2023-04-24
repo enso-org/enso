@@ -13,8 +13,6 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::style;
-use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use std::cmp::Ordering;
 
@@ -50,10 +48,9 @@ pub const HEIGHT: f32 = VERTICAL_MARGIN
     + breadcrumb::VERTICAL_MARGIN
     + VERTICAL_MARGIN;
 
-// This should be as large as the shadow around the background.
-const MAGIC_SHADOW_MARGIN: f32 = 25.0;
 /// Text offset to make the text appear more centered.
 const TEXT_Y_OFFSET: f32 = 2.0;
+
 
 
 // ========================
@@ -64,38 +61,6 @@ const TEXT_Y_OFFSET: f32 = 2.0;
 enum RelativePosition {
     Left,
     Right,
-}
-
-
-
-// ==================
-// === Background ===
-// ==================
-
-/// A background shape.
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style:Style) {
-            let theme             = ensogl_hardcoded_theme::graph_editor::breadcrumbs::background;
-            let theme             = style::Path::from(&theme);
-            let width             = Var::<Pixels>::from("input_size.x");
-            let height            = Var::<Pixels>::from("input_size.y");
-
-            let corner_radius     = style.get_number(theme.sub("corner_radius"));
-            let shape_width       = width  - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape_height      = height - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape             = Rect((&shape_width,&shape_height));
-            let shape             = shape.corners_radius(corner_radius.px());
-
-            let bg_color          = style.get_color(&theme);
-            let bg                = shape.fill(bg_color);
-
-            bg.into()
-        }
-    }
 }
 
 
@@ -140,6 +105,8 @@ ensogl::define_endpoints! {
         gap_width                   (f32),
         /// Set whether the project was changed since the last snapshot save.
         set_project_changed(bool),
+        /// Set read-only mode for this component.
+        set_read_only(bool),
     }
     Output {
         /// Signalizes when a new breadcrumb is pushed.
@@ -159,6 +126,8 @@ ensogl::define_endpoints! {
         project_name_hovered (bool),
         /// Indicates whether the project name was clicked.
         project_mouse_down (),
+        /// Indicates if the read-only mode is enabled.
+        read_only(bool),
     }
 }
 
@@ -173,7 +142,7 @@ ensogl::define_endpoints! {
 pub struct BreadcrumbsModel {
     /// The breadcrumbs panel display object.
     display_object:        display::object::Instance,
-    background:            background::View,
+    background:            Rectangle,
     project_name:          ProjectName,
     root:                  display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
@@ -205,8 +174,12 @@ impl BreadcrumbsModel {
         let frp_inputs = frp.input.clone_ref();
         let current_index = default();
         let camera = scene.camera().clone_ref();
-        let background = background::View::new();
+        let background: Rectangle = default();
         let gap_width = default();
+
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
+        background.set_style(breadcrumbs::background::HERE, &style);
 
         scene.layers.panel_background.add(&background);
 
@@ -223,21 +196,14 @@ impl BreadcrumbsModel {
             camera,
             gap_width,
         }
-        .init(&scene)
+        .init()
     }
 
-    fn init(self, scene: &Scene) -> Self {
+    fn init(self) -> Self {
         self.add_child(&self.root);
         self.root.add_child(&self.project_name);
         self.root.add_child(&self.breadcrumbs_container);
         self.root.add_child(&self.background);
-
-        ensogl::shapes_order_dependencies! {
-            scene => {
-                background -> breadcrumb::background;
-                background -> project_name::background;
-            }
-        }
 
         self.update_layout();
 
@@ -275,11 +241,9 @@ impl BreadcrumbsModel {
         let background_width = width + 2.0 * BACKGROUND_PADDING;
         let background_height =
             crate::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT + BACKGROUND_PADDING * 2.0;
-        let width_with_shadow = background_width + MAGIC_SHADOW_MARGIN * 2.0;
-        let height_with_shadow = background_height + MAGIC_SHADOW_MARGIN * 2.0;
-        self.background.set_size(Vector2(width_with_shadow, height_with_shadow));
-        self.background.set_x(width / 2.0);
-        self.background.set_y(-HEIGHT / 2.0);
+        self.background.set_size(Vector2(background_width, background_height));
+        self.background.set_x(-BACKGROUND_PADDING);
+        self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -561,6 +525,11 @@ impl Breadcrumbs {
 
             frp.source.pointer_style <+ model.project_name.frp.output.pointer_style;
 
+
+            // === Read-only mode ===
+
+            frp.source.read_only <+ frp.input.set_read_only;
+            model.project_name.set_read_only <+ frp.input.set_read_only;
         }
 
         Self { model, frp }

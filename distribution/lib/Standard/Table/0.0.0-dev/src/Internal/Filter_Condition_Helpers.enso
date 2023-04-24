@@ -30,9 +30,8 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
     Not_Nothing -> source_column.is_nothing.not
     # Boolean
     Is_True ->
-        Value_Type.expect_boolean source_column.value_type <| source_column
-    Is_False ->
-        Value_Type.expect_boolean source_column.value_type <| source_column.not
+        Value_Type.expect_boolean source_column <| source_column
+    Is_False -> source_column.not
     # Comparisons
     Less value -> (source_column < value)
     Equal_Or_Less value -> (source_column <= value)
@@ -41,52 +40,21 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
     Between lower upper -> source_column.between lower upper
     # Text
     Starts_With prefix case_sensitivity ->
-        Value_Type.expect_text source_column.value_type <|
-            expect_column_or_value_as_text "prefix" prefix <|
-                source_column.starts_with prefix case_sensitivity
+        source_column.starts_with prefix case_sensitivity
     Ends_With suffix case_sensitivity ->
-        Value_Type.expect_text source_column.value_type <|
-            expect_column_or_value_as_text "suffix" suffix <|
-                source_column.ends_with suffix case_sensitivity
+        source_column.ends_with suffix case_sensitivity
     Contains substring case_sensitivity ->
-        Value_Type.expect_text source_column.value_type <|
-            expect_column_or_value_as_text "substring" substring <|
-                source_column.contains substring case_sensitivity
+        source_column.contains substring case_sensitivity
     Not_Contains substring case_sensitivity ->
-        Value_Type.expect_text source_column.value_type <|
-            expect_column_or_value_as_text "substring" substring <|
-                source_column.contains substring case_sensitivity . not
+        source_column.contains substring case_sensitivity . not
     Is_Empty ->
-        Value_Type.expect_text source_column.value_type <|
-            source_column.is_empty
+        source_column.is_empty
     Not_Empty ->
-        Value_Type.expect_text source_column.value_type <|
-            source_column.is_empty.not
+        source_column.is_empty.not
     Like pattern ->
-        Value_Type.expect_text source_column.value_type <|
-            expect_column_or_value_as_text "pattern" pattern <|
-                source_column.like pattern
+        source_column.like pattern
     Not_Like pattern ->
-        Value_Type.expect_text source_column.value_type <|
-            expect_column_or_value_as_text "pattern" pattern <|
-                source_column.like pattern . not
+        source_column.like pattern . not
     # Vector
     Is_In values -> source_column.is_in values
     Not_In values -> source_column.is_in values . not
-
-## PRIVATE
-expect_column_or_value_as_text field_name column_or_value ~action = case column_or_value of
-    _ : Text -> action
-    ## A bit of a hack, because due to lack of interfaces we cannot check if the
-       thing is a Column (as there are various column implementations based on
-       the backend). So we assume it is a column and if it doesn't quack like a
-       column, we fall back to a type error.
-    maybe_column ->
-        result = Panic.catch No_Such_Method (Value_Type.expect_text maybe_column.value_type True) _->
-            Error.throw (Type_Error.Error Text (Meta.type_of maybe_column) field_name)
-        ## We don't run the action above, to avoid catching spurious
-           `No_Such_Method` from the action itself. Instead we just return
-           True there and if it went through successfully we can then execute
-           the action. If it fails, we forward the dataflow error instead.
-        case result of
-            True -> action

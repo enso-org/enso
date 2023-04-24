@@ -215,11 +215,12 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     }
 
     // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 2];
+    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 3];
     problems[0] = this.problems;
     problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
+    problems[2] = nameIndex.getProblems();
     for (int i = 0; i < aggregates.length; i++) {
-      problems[i + 2] = aggregates[i].getProblems();
+      problems[i + 3] = aggregates[i].getProblems();
     }
     AggregatedProblems merged = AggregatedProblems.merge(problems);
 

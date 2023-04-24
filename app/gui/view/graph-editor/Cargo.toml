@@ -42,4 +42,4 @@ version = "0.3.4"
 features = ["TextMetrics", 'CanvasRenderingContext2d', 'HtmlHeadElement']
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.8"
+wasm-bindgen-test = "0.3.34"

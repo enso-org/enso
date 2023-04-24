@@ -332,6 +332,7 @@ ensogl::define_endpoints_2! {
         /// Indicate whether on hover the quick action icons should appear.
         show_quick_action_bar_on_hover    (bool),
         set_execution_environment         (ExecutionEnvironment),
+        set_read_only                     (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -728,7 +729,7 @@ impl Node {
 
             // Hook up the display object position updates to the node's FRP. Required to calculate
             // the bounding box.
-            out.position <+ display_object.on_updated.map(f_!(display_object.position().xy()));
+            out.position <+ display_object.on_transformed.map(f_!(display_object.position().xy()));
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
@@ -827,6 +828,12 @@ impl Node {
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
             });
+
+
+            // === Read-only mode ===
+
+            action_bar.set_read_only <+ input.set_read_only;
+            model.input.set_read_only <+ input.set_read_only;
         }
 
 
