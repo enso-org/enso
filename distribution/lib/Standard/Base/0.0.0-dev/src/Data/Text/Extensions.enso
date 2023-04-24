@@ -20,6 +20,7 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
@@ -1470,6 +1471,86 @@ Text.parse_json self = Json.parse self
              date.catch Time_Error (_->Date.new 2000 1 1)
 Text.parse_date : (Text | Nothing) -> Date ! Time_Error
 Text.parse_date self format=Nothing = Date.parse self format
+
+## ALIAS Time from Text
+
+   Obtains an instance of `Date_Time` from a text such as
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+   Arguments:
+   - format: The pattern to use for parsing the input text.
+   - locale: The locale in which the pattern should be interpreted.
+
+   ? Pattern Syntax
+     For the list of accepted symbols in pattern refer to `Time.format` doc.
+
+   ? Default Date_Time Format
+     The text must represent a valid date-time and is parsed using the ISO-8601
+     extended offset date-time format to add the timezone. The section in square
+     brackets is not part of the ISO-8601 standard. The format consists of:
+
+     - The ISO offset date time.
+     - If the zone ID is not available or is a zone offset then the format is
+       complete.
+     - An open square bracket '['.
+     - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+       sensitive.
+     - A close square bracket ']'.
+
+   This method will return a `Time_Error` if the provided time cannot be parsed
+   using the above format.
+
+   > Example
+     Parse UTC time.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12Z".parse_date_time
+
+   > Example
+     Parse UTC-04:00 time.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12-04:00".parse_date_time
+
+   > Example
+     Parse UTC-04:00 time specifying New York timezone.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
+
+   > Example
+     Parse UTC-04:00 time with nanoseconds.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12.177528-04:00".parse_date_time
+
+   > Example
+     Recover from the parse error.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01".parse_date_time . catch Time_Error (_->Date_Time.now)
+
+   > Example
+     Parse "2020-05-06 04:30:20" as Date_Time
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-05-06 04:30:20".parse_date_time "yyyy-MM-dd HH:mm:ss"
+
+   > Example
+     Parse "06 of May 2020 at 04:30AM" as Date_Tme
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse =
+            "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
+Text.parse_date_time : Text | Nothing -> Locale -> Date_Time ! Time_Error
+Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse self format locale
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided
