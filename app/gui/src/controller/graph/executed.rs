@@ -44,6 +44,10 @@ pub struct NotEvaluatedYet(double_representation::node::Id);
 #[fail(display = "The node {} does not resolve to a method call.", _0)]
 pub struct NoResolvedMethod(double_representation::node::Id);
 
+#[allow(missing_docs)]
+#[derive(Debug, Fail, Clone, Copy)]
+#[fail(display = "Operation is not permitted in read only mode")]
+pub struct ReadOnly;
 
 
 // ====================
@@ -216,19 +220,25 @@ impl Handle {
     /// This will cause pushing a new stack frame to the execution context and changing the graph
     /// controller to point to a new definition.
     ///
-    /// Fails if method graph cannot be created (see `graph_for_method` documentation).
+    /// ### Errors
+    /// - Fails if method graph cannot be created (see `graph_for_method` documentation).
+    /// - Fails if the project is in read-only mode.
     pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
-        debug!("Entering node {}.", local_call.call);
-        let method_ptr = &local_call.definition;
-        let graph = controller::Graph::new_method(&self.project, method_ptr);
-        let graph = graph.await?;
-        self.execution_ctx.push(local_call.clone()).await?;
-        debug!("Replacing graph with {graph:?}.");
-        self.graph.replace(graph);
-        debug!("Sending graph invalidation signal.");
-        self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            debug!("Entering node {}.", local_call.call);
+            let method_ptr = &local_call.definition;
+            let graph = controller::Graph::new_method(&self.project, method_ptr);
+            let graph = graph.await?;
+            self.execution_ctx.push(local_call.clone()).await?;
+            debug!("Replacing graph with {graph:?}.");
+            self.graph.replace(graph);
+            debug!("Sending graph invalidation signal.");
+            self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
 
-        Ok(())
+            Ok(())
+        }
     }
 
     /// Attempts to get the computed value of the specified node.
@@ -246,15 +256,21 @@ impl Handle {
 
     /// Leave the current node. Reverse of `enter_node`.
     ///
-    /// Fails if this execution context is already at the stack's root or if the parent graph
+    /// ### Errors
+    /// - Fails if this execution context is already at the stack's root or if the parent graph
     /// cannot be retrieved.
+    /// - Fails if the project is in read-only mode.
     pub async fn exit_node(&self) -> FallibleResult {
-        let frame = self.execution_ctx.pop().await?;
-        let method = self.execution_ctx.current_method();
-        let graph = controller::Graph::new_method(&self.project, &method).await?;
-        self.graph.replace(graph);
-        self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
-        Ok(())
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            let frame = self.execution_ctx.pop().await?;
+            let method = self.execution_ctx.current_method();
+            let graph = controller::Graph::new_method(&self.project, &method).await?;
+            self.graph.replace(graph);
+            self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
+            Ok(())
+        }
     }
 
     /// Interrupt the program execution.
@@ -264,9 +280,16 @@ impl Handle {
     }
 
     /// Restart the program execution.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
     pub async fn restart(&self) -> FallibleResult {
-        self.execution_ctx.restart().await?;
-        Ok(())
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            self.execution_ctx.restart().await?;
+            Ok(())
+        }
     }
 
     /// Get the current call stack frames.
@@ -308,15 +331,29 @@ impl Handle {
     }
 
     /// Create connection in graph.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
     pub fn connect(&self, connection: &Connection) -> FallibleResult {
-        self.graph.borrow().connect(connection, self)
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            self.graph.borrow().connect(connection, self)
+        }
     }
 
     /// Remove the connections from the graph. Returns an updated edge destination endpoint for
     /// disconnected edge, in case it is still used as destination-only edge. When `None` is
     /// returned, no update is necessary.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
     pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
-        self.graph.borrow().disconnect(connection, self)
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            self.graph.borrow().disconnect(connection, self)
+        }
     }
 }
 
@@ -368,6 +405,8 @@ pub mod tests {
     use crate::model::execution_context::ExpressionId;
     use crate::test;
 
+    use crate::test::mock::Fixture;
+    use controller::graph::SpanTree;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -453,5 +492,96 @@ pub mod tests {
         );
 
         notifications.expect_pending();
+    }
+
+    // Test that moving nodes is possible in read-only mode.
+    #[wasm_bindgen_test]
+    fn read_only_mode_does_not_restrict_moving_nodes() {
+        use model::module::Position;
+
+        let fixture = crate::test::mock::Unified::new().fixture();
+        let Fixture { executed_graph, graph, .. } = fixture;
+
+        let nodes = executed_graph.graph().nodes().unwrap();
+        let node = &nodes[0];
+
+        let pos1 = Position::new(500.0, 250.0);
+        let pos2 = Position::new(300.0, 150.0);
+
+        graph.set_node_position(node.id(), pos1).unwrap();
+        assert_eq!(graph.node(node.id()).unwrap().position(), Some(pos1));
+        graph.set_node_position(node.id(), pos2).unwrap();
+        assert_eq!(graph.node(node.id()).unwrap().position(), Some(pos2));
+    }
+
+    // Test that certain actions are forbidden in read-only mode.
+    #[wasm_bindgen_test]
+    fn read_only_mode() {
+        fn run(code: &str, f: impl FnOnce(&Handle)) {
+            let mut data = crate::test::mock::Unified::new();
+            data.set_code(code);
+            let fixture = data.fixture();
+            fixture.read_only.set(true);
+            let Fixture { executed_graph, .. } = fixture;
+            f(&executed_graph);
+        }
+
+
+        // === Editing the node. ===
+
+        let default_code = r#"
+main =
+    foo = 2 * 2
+"#;
+        run(default_code, |executed| {
+            let nodes = executed.graph().nodes().unwrap();
+            let node = &nodes[0];
+            assert!(executed.graph().set_expression(node.info.id(), "5 * 20").is_err());
+        });
+
+
+        // === Collapsing nodes. ===
+
+        let code = r#"
+main =
+    foo = 2
+    bar = foo + 6
+    baz = 2 + foo + bar
+    caz = baz / 2 * baz
+"#;
+        run(code, |executed| {
+            let nodes = executed.graph().nodes().unwrap();
+            // Collapse two middle nodes.
+            let nodes_range = vec![nodes[1].id(), nodes[2].id()];
+            assert!(executed.graph().collapse(nodes_range, "extracted").is_err());
+        });
+
+
+        // === Connecting nodes. ===
+
+        let code = r#"
+main =
+    2 + 2
+    5 * 5
+"#;
+        run(code, |executed| {
+            let nodes = executed.graph().nodes().unwrap();
+            let sum_node = &nodes[0];
+            let product_node = &nodes[1];
+
+            assert_eq!(sum_node.expression().to_string(), "2 + 2");
+            assert_eq!(product_node.expression().to_string(), "5 * 5");
+
+            let context = &span_tree::generate::context::Empty;
+            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), context).unwrap();
+            let sum_input =
+                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
+            let connection = Connection {
+                source:      controller::graph::Endpoint::new(product_node.id(), []),
+                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+            };
+
+            assert!(executed.connect(&connection).is_err());
+        });
     }
 }

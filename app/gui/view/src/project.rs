@@ -103,6 +103,8 @@ ensogl::define_endpoints! {
         execution_context_interrupt(),
         /// Restart the program execution.
         execution_context_restart(),
+        toggle_read_only(),
+        set_read_only(bool),
     }
 
     Output {
@@ -362,6 +364,7 @@ impl View {
         let network = &frp.network;
         let searcher = &model.searcher.frp();
         let graph = &model.graph_editor.frp;
+        let code_editor = &model.code_editor;
         let project_list = &model.project_list;
         let searcher_anchor = DEPRECATED_Animation::<Vector2<f32>>::new(network);
 
@@ -392,6 +395,13 @@ impl View {
 
             eval_ frp.show_graph_editor(model.show_graph_editor());
             eval_ frp.hide_graph_editor(model.hide_graph_editor());
+
+
+            // === Read-only mode ===
+
+            graph.set_read_only <+ frp.set_read_only;
+            code_editor.set_read_only <+ frp.set_read_only;
+
 
             // === Searcher Position and Size ===
 
@@ -689,6 +699,8 @@ impl application::View for View {
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd shift t", "execution_context_interrupt"),
             (Press, "", "cmd shift r", "execution_context_restart"),
+            // TODO(#6179): Remove this temporary shortcut when Play button is ready.
+            (Press, "", "ctrl shift b", "toggle_read_only"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

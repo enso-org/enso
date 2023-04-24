@@ -63,7 +63,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match_all : Text -> Vector Match ! Type_Error
+    match_all : Text -> Vector Match ! Type_Error | Illegal_Argument
     match_all self input =
         Helpers.expect_text input <|
             pattern_is_empty = self.internal_regex_object.pattern == ''
@@ -288,13 +288,9 @@ type Pattern
                 groups = self.internal_regex_object.groups
 
                 n = case groups of
-                        # If Nothing, there are no named groups
-                        Nothing -> Error.throw (No_Such_Group.Error name)
-                        _ ->
-                            qq = (read_group_map groups name)
-                            case qq of
-                                Nothing -> Nothing
-                                n : Integer -> n
+                    # If Nothing, there are no named groups
+                    Nothing -> Error.throw (No_Such_Group.Error name)
+                    _ -> read_group_map groups name
                 case n of
                     _ : Integer -> n
                     Nothing -> Error.throw (No_Such_Group.Error name)
@@ -318,6 +314,12 @@ type Pattern
     named_groups self =
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.keys
+
+    ## Return a map from group number to group name. Only includes named groups.
+    group_nums_to_names : Map Integer Text
+    group_nums_to_names self =
+        map = polyglot_map_to_map self.internal_regex_object.groups
+        map.transform k-> v-> [v, k]
 
 ## PRIVATE
 

@@ -19,7 +19,7 @@ polyglot java import org.enso.table.data.mask.OrderMask
 split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
 split_to_columns table input_column_id delimiter="," column_count=Nothing on_problems=Report_Error =
     column = table.at input_column_id
-    Value_Type.expect_text (column.value_type) related_column=column <|
+    Value_Type.expect_text column <|
         fan_out_to_columns table input_column_id (handle_nothing (_.split delimiter)) column_count on_problems
 
 ## PRIVATE
@@ -28,7 +28,7 @@ split_to_columns table input_column_id delimiter="," column_count=Nothing on_pro
 split_to_rows : Table -> Text | Integer -> Text -> Table
 split_to_rows table input_column_id delimiter="," =
     column = table.at input_column_id
-    Value_Type.expect_text (column.value_type) related_column=column <|
+    Value_Type.expect_text column
         fan_out_to_rows table input_column_id (handle_nothing (_.split delimiter))
 
 ## PRIVATE
@@ -38,7 +38,7 @@ split_to_rows table input_column_id delimiter="," =
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
 tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
     column = table.at input_column_id
-    Value_Type.expect_text (column.value_type) related_column=column <|
+    Value_Type.expect_text column
         fan_out_to_columns table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
 
 ## PRIVATE
@@ -48,7 +48,7 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Table
 tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
     column = table.at input_column_id
-    Value_Type.expect_text (column.value_type) related_column=column <|
+    Value_Type.expect_text column
         fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
 
 ## PRIVATE
