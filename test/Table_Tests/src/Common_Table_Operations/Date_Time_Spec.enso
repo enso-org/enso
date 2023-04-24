@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
@@ -95,9 +96,40 @@ spec setup =
             t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
             r1 = t.at "A" . year
             r1.should_fail_with Invalid_Value_Type
-            r1.catch . to_display_text . should_start_with "Expected A column to have Date or Date_Time type, but got Integer"
+            r1.catch . to_display_text . should_start_with "Expected type Date or Date_Time, but got a column [A] of type Integer"
             t.at "B" . month . should_fail_with Invalid_Value_Type
             t.at "C" . day . should_fail_with Invalid_Value_Type
+
+        Test.specify "should allow to compare dates" <|
+            t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date.new 2021 12 5]]]
+
+            [(<), (<=), (>), (>=), (==), (!=)].each op->
+                op (t.at "X") (t.at "Y") . value_type . should_equal Value_Type.Boolean
+                op (t.at "X") (t.at "Y") . to_vector . should_succeed
+                op (t.at "X") (Date.new 2021 12 4) . to_vector . should_succeed
+
+        Test.specify "should allow to compare date-times" <|
+            t = table_builder [["X", [Date_Time.new 2021 12 3 12 30 0]], ["Y", [Date_Time.new 2021 12 5 12 30 0]]]
+
+            [(<), (<=), (>), (>=), (==), (!=)].each op->
+                op (t.at "X") (t.at "Y") . value_type . should_equal Value_Type.Boolean
+                op (t.at "X") (t.at "Y") . to_vector . should_succeed
+                op (t.at "X") (Date_Time.new 2021 12 4 12 30 0) . to_vector . should_succeed
+
+        Test.specify "should allow to compare time-of-day" <|
+            t = table_builder [["X", [Time_Of_Day.new 12 30 0]], ["Y", [Time_Of_Day.new 12 30 1]]]
+
+            [(<), (<=), (>), (>=), (==), (!=)].each op->
+                op (t.at "X") (t.at "Y") . value_type . should_equal Value_Type.Boolean
+                op (t.at "X") (t.at "Y") . to_vector . should_succeed
+                op (t.at "X") (Time_Of_Day.new 12 30 0) . to_vector . should_succeed
+
+        Test.specify "should not allow to mix" <|
+            t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
+
+            [(<), (<=), (>), (>=)].each op->
+                op (t.at "X") (t.at "Y") . should_fail_with Invalid_Value_Type
+                op (t.at "X") (t.at "Z") . should_fail_with Invalid_Value_Type
 
     if setup.test_selection.date_time.not then
         Test.group prefix+"partial Date-Time support" <|

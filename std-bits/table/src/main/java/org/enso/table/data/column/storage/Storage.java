@@ -1,10 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
@@ -14,6 +9,12 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> {
@@ -92,6 +93,9 @@ public abstract class Storage<T> {
    * @param skipNulls specifies whether null values on the input should result in a null result
    *     without passing them through the function, this is useful if the function does not support
    *     the null-values, but it needs to be set to false if the function should handle them.
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
+   * @param problemBuilder a builder for reporting computation problems
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage<?> bimap(
@@ -99,22 +103,31 @@ public abstract class Storage<T> {
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
+      StorageType expectedResultType,
       MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, argument, problemBuilder);
     }
-    Builder builder = new InferredBuilder(size());
+
+    checkFallback(function, expectedResultType, name);
+
+    Builder storageBuilder = Builder.getForType(expectedResultType, size());
+    if (skipNulls && argument == null) {
+      storageBuilder.appendNulls(size());
+      return storageBuilder.seal();
+    }
+
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
-        builder.appendNoGrow(null);
+        storageBuilder.appendNoGrow(null);
       } else {
         Object result = function.apply(it, argument);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        builder.appendNoGrow(converted);
+        storageBuilder.appendNoGrow(converted);
       }
     }
-    return builder.seal();
+    return storageBuilder.seal();
   }
 
   /**
@@ -124,6 +137,8 @@ public abstract class Storage<T> {
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
    * @param onMissing the value to place for missing cells, usually just null
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
    * @param problemBuilder a builder for reporting computation problems
    * @return the result of running the function on all non-missing elements.
    */
@@ -131,23 +146,28 @@ public abstract class Storage<T> {
       String name,
       Function<Object, Value> function,
       Value onMissing,
+      StorageType expectedResultType,
       MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null, problemBuilder);
     }
+
+    checkFallback(function, expectedResultType, name);
+
     Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
-    Builder builder = new InferredBuilder(size());
+
+    Builder storageBuilder = Builder.getForType(expectedResultType, size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.appendNoGrow(missingValue);
+        storageBuilder.appendNoGrow(missingValue);
       } else {
         Value result = function.apply(it);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        builder.appendNoGrow(converted);
+        storageBuilder.appendNoGrow(converted);
       }
     }
-    return builder.seal();
+    return storageBuilder.seal();
   }
 
   /**
@@ -157,6 +177,8 @@ public abstract class Storage<T> {
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
    * @param skipNa whether rows containing missing values should be passed to the function.
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
    * @param problemBuilder the builder used for reporting computation problems
    * @return the result of running the function on all non-missing elements.
    */
@@ -165,23 +187,47 @@ public abstract class Storage<T> {
       BiFunction<Object, Object, Object> function,
       Storage<?> arg,
       boolean skipNa,
+      StorageType expectedResultType,
       MapOperationProblemBuilder problemBuilder) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedZip(name, arg, problemBuilder);
     }
-    Builder builder = new InferredBuilder(size());
+
+    checkFallback(function, expectedResultType, name);
+
+    Builder storageBuilder = Builder.getForType(expectedResultType, size());
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
-        builder.appendNoGrow(null);
+        storageBuilder.appendNoGrow(null);
       } else {
         Object result = function.apply(it1, it2);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        builder.appendNoGrow(converted);
+        storageBuilder.appendNoGrow(converted);
       }
     }
-    return builder.seal();
+    return storageBuilder.seal();
+  }
+
+  private static void checkFallback(Object fallback, StorageType storageType, String operationName)
+      throws IllegalArgumentException {
+    if (fallback == null) {
+      if (operationName == null) {
+        throw new IllegalArgumentException(
+            "A function or name of vectorized operation must be specified. This is a bug in the Table library.");
+      } else {
+        throw new IllegalArgumentException(
+            "The operation "
+                + operationName
+                + " has no vectorized implementation for this storage type, but no fallback function was provided. This is a bug in the Table library.");
+      }
+    }
+
+    if (storageType == null) {
+      throw new IllegalArgumentException(
+          "The expected result type must be specified if a fallback function is used. This is a bug in the Table library.");
+    }
   }
 
   /**
@@ -198,10 +244,11 @@ public abstract class Storage<T> {
    * Fills missing values in this storage, by using corresponding values from {@code other}.
    *
    * @param other the source of default values
+   * @param commonType a common type that should fit values from both storages
    * @return a new storage with missing values filled
    */
-  public Storage<?> fillMissingFrom(Storage<?> other) {
-    var builder = new InferredBuilder(size());
+  public Storage<?> fillMissingFrom(Storage<?> other, StorageType commonType) {
+    var builder = Builder.getForType(commonType, size());
     for (int i = 0; i < size(); i++) {
       if (isNa(i)) {
         builder.appendNoGrow(other.getItemBoxed(i));

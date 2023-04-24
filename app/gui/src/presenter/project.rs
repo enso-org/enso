@@ -200,10 +200,13 @@ impl Model {
         self.ide_controller.set_component_browser_private_entries_visibility(!visibility);
     }
 
-    fn toggle_read_only(&self) {
-        let read_only = self.controller.model.read_only();
-        self.controller.model.set_read_only(!read_only);
-        info!("New read only state: {}.", self.controller.model.read_only());
+    /// Toggle the read-only mode, return the new state.
+    fn toggle_read_only(&self) -> bool {
+        let current_state = self.controller.model.read_only();
+        let new_state = !current_state;
+        self.controller.model.set_read_only(new_state);
+        info!("New read only state: {}.", new_state);
+        new_state
     }
 
     fn restore_project_snapshot(&self) {
@@ -400,6 +403,7 @@ impl Project {
 
             eval_ view.execution_context_restart(model.execution_context_restart());
 
+            view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((mode) model.execution_environment_changed(mode));
 
             eval_ view.toggle_read_only(model.toggle_read_only());

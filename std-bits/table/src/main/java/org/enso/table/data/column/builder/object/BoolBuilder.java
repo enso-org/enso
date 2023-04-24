@@ -29,8 +29,12 @@ public class BoolBuilder extends TypedBuilder {
     if (o == null) {
       isNa.set(size);
     } else {
-      if ((Boolean) o) {
-        vals.set(size);
+      if (o instanceof Boolean b) {
+        if (b) {
+          vals.set(size);
+        }
+      } else {
+        throw new UnsupportedOperationException("Cannot coerce " + o + " to a boolean type.");
       }
     }
     size++;

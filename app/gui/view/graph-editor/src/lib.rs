@@ -451,6 +451,11 @@ ensogl::define_endpoints_2! {
         space_for_window_buttons (Vector2<f32>),
 
 
+        // === Read-only mode ===
+
+        set_read_only(bool),
+
+
         // === Node Selection ===
 
         /// Node press event
@@ -661,6 +666,11 @@ ensogl::define_endpoints_2! {
         // === Debug Mode ===
 
         debug_mode                             (bool),
+
+
+        // === Read-only mode ===
+
+        read_only                              (bool),
 
         // === Edge ===
 
@@ -1702,6 +1712,11 @@ impl GraphEditorModelWithNetwork {
             node.set_view_mode <+ self.model.frp.view_mode;
 
 
+            // === Read-only mode ===
+
+            node.set_read_only <+ self.model.frp.set_read_only;
+
+
             // === Profiling ===
 
             let profiling_min_duration              = &self.model.profiling_statuses.min_duration;
@@ -2703,6 +2718,23 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let out = &frp.private.output;
     let selection_controller = &model.selection_controller;
 
+
+
+    // ======================
+    // === Read-only mode ===
+    // ======================
+
+    frp::extend! { network
+        out.read_only <+ inputs.set_read_only;
+        model.breadcrumbs.set_read_only <+ inputs.set_read_only;
+
+        // Drop the currently dragged edge if read-only mode is enabled.
+        read_only_enabled <- inputs.set_read_only.on_true();
+        inputs.drop_dragged_edge <+ read_only_enabled;
+    }
+
+
+
     // ========================
     // === Scene Navigation ===
     // ========================
@@ -2870,7 +2902,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         }
     });
     edge_click <- map2(&edge_mouse_down,&cursor_pos_in_scene,|edge_id,pos|(*edge_id,*pos));
-    valid_edge_disconnect_click <- edge_click.gate_not(&has_detached_edge);
+    valid_edge_disconnect_click <- edge_click.gate_not(&has_detached_edge).gate_not(&inputs.set_read_only);
 
     edge_is_source_click <- valid_edge_disconnect_click.map(f!([model]((edge_id,pos)) {
         if let Some(edge) = model.edges.get_cloned_ref(edge_id){
@@ -2905,8 +2937,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     attach_all_edge_inputs  <- any (port_input_mouse_up, inputs.press_node_input, inputs.set_detached_edge_targets);
     attach_all_edge_outputs <- any (port_output_mouse_up, inputs.press_node_output, inputs.set_detached_edge_sources);
 
-    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down);
-    create_edge_from_input  <- node_input_touch.down.map(|value| value.clone());
+    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down).gate_not(&inputs.set_read_only);
+    create_edge_from_input  <- node_input_touch.down.map(|value| value.clone()).gate_not(&inputs.set_read_only);
 
     on_new_edge    <- any(&output_down,&input_down);
     let selection_mode = selection::get_mode(network,inputs);
@@ -2985,7 +3017,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Adding Node ===
 
     frp::extend! { network
-        let node_added_with_button = model.add_node_button.clicked.clone_ref();
+        node_added_with_button <- model.add_node_button.clicked.gate_not(&inputs.set_read_only);
 
         input_start_node_creation_from_port <- inputs.hover_node_output.sample(
             &inputs.start_node_creation_from_port);

@@ -382,6 +382,15 @@ is_table obj =
     known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE
+   Checks if the given object implements a Table interface.
+
+   Currently, it relies on a hack - it checks if the object has a method
+   `is_table` and if it returns `True`.
+is_column obj =
+    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.Data.Column.Column"]
+    known_types.contains (Meta.get_qualified_type_name obj)
+
+## PRIVATE
    A helper method that resolves what should be the result type of a particular
    column set based on the union settings.
 unify_result_type_for_union column_set all_tables allow_type_widening problem_builder =
@@ -391,7 +400,7 @@ unify_result_type_for_union column_set all_tables allow_type_widening problem_bu
             types = columns.filter Filter_Condition.Not_Nothing . map .value_type
             common_type = Value_Type_Helpers.find_common_type types strict=True
             if common_type.is_nothing then
-                problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
+                problem_builder.report_other_warning (No_Common_Type.Error types related_column_name=column_set.name)
             common_type
         False ->
             is_not_nothing c = case c of

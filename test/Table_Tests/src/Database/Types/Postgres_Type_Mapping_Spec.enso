@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Aggregate_Column, Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 from Standard.Database import SQL_Query
 
@@ -123,13 +124,13 @@ spec connection db_name =
             t2.at "b" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
             t2.at "c" . value_type . should_be_a (Value_Type.Unsupported_Data_Type ...)
 
-        Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
-            # TODO this will be tested once the cast operator is implemented
-            # Binary 10 variable_length=False -> Binary max_int4 variable_length=True
-            # Byte -> Integer Bits.Bits_16
-            Nothing
+        Test.specify "should approximate types to the closest supported one" <|
+            t = make_table "T" [["b", "INT"]]
+            t2 = t.cast "b" Value_Type.Byte
+            t2.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            Problems.expect_warning Inexact_Type_Coercion t2
 
 main = Test_Suite.run_main (test_with_connection spec)
 
 max_int4 = 2147483647
-default_text = Value_Type.Char size=max_int4 variable_length=True
+default_text = Value_Type.Char size=Nothing variable_length=True

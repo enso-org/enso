@@ -1,9 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Column, Sort_Column, Aggregate_Column
-from Standard.Table.Errors import Floating_Point_Equality, Additional_Warnings
+from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Value_Type
+from Standard.Table.Errors import all
 import Standard.Table.Data.Expression.Expression_Error
 
 from Standard.Database.Errors import SQL_Error
@@ -113,6 +114,37 @@ spec detailed setup =
             expression_test "nUlL" Nothing
             expression_test "Nothing" Nothing
             expression_test "NOTHING" Nothing
+
+        Test.specify "should allow to create a NULL column" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            c = t.compute "null"
+            c.name . should_equal "null"
+            c.to_vector.should_equal [Nothing, Nothing, Nothing]
+            ## We do not specify the value type.
+               It usually will be `Mixed` in in-memory and
+               `Unsupported_Data_Type` in DB.
+            c.value_type.should_be_a Value_Type
+
+            c.is_nothing.to_vector.should_equal [True, True, True]
+
+        ## TODO that may not necessarily be good, I think we may need to
+           introduce a Value_Type.Null and make it accepted by all
+           `Value_Type.expect_*` checks.
+           See: https://github.com/enso-org/enso/issues/6281
+        Test.specify "a null column may fail typechecks that expect a concrete type" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            c = t.compute "null"
+            (c + c) . should_fail_with Illegal_Argument
+            (c - c) . should_fail_with Invalid_Value_Type
+            (c.starts_with "X") . should_fail_with Invalid_Value_Type
+            c.not . should_fail_with Invalid_Value_Type
+
+            t.compute "not(Nothing)" . should_fail_with Invalid_Value_Type
+            t.compute "Nothing + Nothing" . should_fail_with Illegal_Argument
+            t.compute "Nothing * Nothing" . should_fail_with Invalid_Value_Type
+
+            t.compute "[X] + Nothing" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t.compute "Nothing + [X]" . should_fail_with Illegal_Argument
 
     Test.group prefix+"Expression Date and Time literals" <|
         specify_test "should be able to add a date or time column" pending=pending_datetime expression_test->
@@ -254,10 +286,8 @@ spec detailed setup =
         specify_test "should be able to check empty" expression_test->
             expression_test "'Hello World' IS EMPTY" False
             expression_test "'' IS EMPTY" True
-            expression_test "Nothing IS EMPTY" True
             expression_test "'Hello World' IS NOT EMPTY" True
             expression_test "'' IS NOT EMPTY" False
-            expression_test "Nothing IS NOT EMPTY" False
 
     Test.group prefix+"Expression Text Operators" <|
         specify_test "should be able to concatenate text" expression_test->
@@ -279,6 +309,7 @@ spec detailed setup =
     Test.group prefix+"Expression Boolean Operators" <|
         specify_test "should be able to AND booleans" expression_test->
             expression_test "True && TRUE" True
+            expression_test "True && Nothing" Nothing
             expression_test "True AND False" False
             expression_test "True && [Bad]] Name]" [True, False, True, False, True]
             expression_test "False AND [Bad]] Name]" False
