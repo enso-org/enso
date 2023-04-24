@@ -779,7 +779,7 @@ pub struct UpdateStatus {
 // === SceneData ===
 // =================
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 pub struct SceneData {
     pub display_object: display::object::Root,
     pub dom: Dom,
@@ -1091,7 +1091,7 @@ impl display::Object for SceneData {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Scene {
-    no_mut_access: SceneData,
+    no_mut_access: Rc<SceneData>,
 }
 
 impl Scene {
@@ -1101,7 +1101,7 @@ impl Scene {
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let no_mut_access = SceneData::new(stats, on_mut, display_mode);
-        let this = Self { no_mut_access };
+        let this = Self { no_mut_access: Rc::new(no_mut_access) };
         this
     }
 

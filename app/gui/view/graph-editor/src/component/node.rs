@@ -715,6 +715,7 @@ impl Node {
         let action_bar = &model.action_bar.frp;
 
         frp::extend! { network
+            init <- source::<()>();
 
             // Hook up the display object position updates to the node's FRP. Required to calculate
             // the bounding box.
@@ -790,7 +791,8 @@ impl Node {
 
             // === Size ===
 
-            new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
+            input_width <- all(&model.input.frp.width, &init)._0();
+            new_size <- input_width.map(f!((w) model.set_width(*w)));
             model.output.frp.set_size <+ new_size;
 
 
@@ -904,7 +906,6 @@ impl Node {
             eval visualization_visible_on_change ((is_visible)
                 model.visualization.frp.set_visibility(is_visible)
             );
-            init <- source::<()>();
             out.visualization_path <+ model.visualization.frp.visualisation.all_with(&init,|def_opt,_| {
                 def_opt.as_ref().map(|def| def.signature.path.clone_ref())
             });

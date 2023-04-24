@@ -2356,8 +2356,7 @@ impl GraphEditorModel {
             }
             if let Some(edge_target) = edge.target() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_target.node_id) {
-                    let offset =
-                        node.model().input.port_offset(&edge_target.port).unwrap_or_default();
+                    let offset = node.model().input.port_offset(&edge_target.port);
                     let new_position = node.position().xy() + offset;
                     let prev_position = edge.view.target_position.get();
                     if prev_position != new_position {

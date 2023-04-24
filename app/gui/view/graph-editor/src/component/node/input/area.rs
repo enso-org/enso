@@ -427,22 +427,6 @@ impl Area {
 
             eval set_editing((is_editing) model.set_edit_mode(*is_editing));
 
-            // Prevent text selection from being created right after entering edit mode. Otherwise,
-            // a selection would be created between the current mouse position (the position at
-            // which we clicked) and initial cursor position within edit mode label (the code
-            // position corresponding to clicked port).
-            start_editing <- set_editing.on_true();
-            stop_editing  <- set_editing.on_false();
-            start_editing_delayed     <- start_editing.debounce();
-            reenable_selection_update <- any(&start_editing_delayed, &stop_editing);
-            selection_update_enabled  <- bool(&start_editing, &reenable_selection_update);
-            eval selection_update_enabled([model] (enabled) {
-                let cmd_start = "start_newest_selection_end_follow_mouse";
-                let cmd_stop = "stop_newest_selection_end_follow_mouse";
-                model.edit_mode_label.set_command_enabled(cmd_start, *enabled);
-                model.edit_mode_label.set_command_enabled(cmd_stop, *enabled);
-            });
-
 
             // === Show / Hide Phantom Ports ===
 
@@ -475,19 +459,14 @@ impl Area {
             frp.output.source.pointer_style <+ pointer_style;
 
             // === Properties ===
-            let layout_refresh = ensogl::animation::on_before_animations();
-            widget_tree_width <- layout_refresh.map(f!([model](_) {
-                let instance = model.widget_tree.display_object();
-                instance.computed_size().x()
-            })).on_change();
-
-            padded_edit_label_width <- model.edit_mode_label.width.map(|t| t + 2.0 * TEXT_OFFSET);
-
+            let widget_tree_object = model.widget_tree.display_object();
+            widget_tree_width <- widget_tree_object.on_resized.map(|size| size.x());
+            edit_label_width <- all(model.edit_mode_label.width, init)._0();
+            padded_edit_label_width <- edit_label_width.map(|t| t + 2.0 * TEXT_OFFSET);
             frp.output.source.width <+ set_editing.switch(
                 &widget_tree_width,
                 &padded_edit_label_width
             );
-
 
             // === Expression ===
 
@@ -553,14 +532,19 @@ impl Area {
     }
 
     /// An offset from node position to a specific port.
-    pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
+    pub fn port_offset(&self, crumbs: &[Crumb]) -> Vector2<f32> {
         let expr = self.model.expression.borrow();
-        let node = expr.get_node(crumbs).ok()?;
-        let instance = self.model.widget_tree.get_port_display_object(&node)?;
-        let pos = instance.global_position();
-        let node_pos = self.model.display_object.global_position();
-        let size = instance.computed_size();
-        Some(pos.xy() - node_pos.xy() + size * 0.5)
+        let port = expr
+            .get_node(crumbs)
+            .ok()
+            .and_then(|node| self.model.widget_tree.get_port_display_object(&node));
+        let initial_position = Vector2(TEXT_OFFSET, NODE_HEIGHT / 2.0);
+        port.map_or(initial_position, |port| {
+            let pos = port.global_position();
+            let node_pos = self.model.display_object.global_position();
+            let size = port.computed_size();
+            pos.xy() - node_pos.xy() + size * 0.5
+        })
     }
 
     /// A type of the specified port.

@@ -9,11 +9,10 @@ use ensogl::display::object;
 
 // =================
 // === Hierarchy ===
-// ================
-
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+// =================
 
 /// Label widget configuration options.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Config;
 
 /// Hierarchy widget. This widget expands each child of its span tree into a new widget.

@@ -1184,7 +1184,10 @@ impl<'a> TreeBuilder<'a> {
         //    set by an external source, e.g. based on language server.
         // 3. The default metadata for the node, which is determined based on the node kind, usage
         //    type and whether it has children.
-        let mut meta_fallback = None;
+
+        // Stack variable necessary to hold an owned configuration initialized in a closure below,
+        // so we can take a reference to it.
+        let mut default_config = None;
         let kind = &span_node.kind;
         let configuration = config_override
             .as_ref()
@@ -1198,7 +1201,7 @@ impl<'a> TreeBuilder<'a> {
                 meta_pointer.and_then(|ptr| self.metadata_map.get(&ptr))
             })
             .unwrap_or_else(|| {
-                meta_fallback.get_or_insert_with(|| {
+                default_config.get_or_insert_with(|| {
                     Configuration::from_node(&span_node, usage_type.clone(), self.node_expression)
                 })
             });
