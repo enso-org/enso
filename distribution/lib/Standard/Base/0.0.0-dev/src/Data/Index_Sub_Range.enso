@@ -60,12 +60,12 @@ type Index_Sub_Range
        Convert to a display representation of this Index_Sub_Range.
     to_display_text : Text
     to_display_text self = case self of
-        Index_Sub_Range.First count -> "First " + count.to_text
-        Index_Sub_Range.Last count -> "Last " + count.to_text
+        Index_Sub_Range.First count -> "First " + count.to_display_text
+        Index_Sub_Range.Last count -> "Last " + count.to_display_text
         Index_Sub_Range.While _ -> "While <predicate>"
         Index_Sub_Range.By_Index indexes -> "By_Index " + indexes.to_display_text
-        Index_Sub_Range.Sample count _ -> "Sample " + count.to_text
-        Index_Sub_Range.Every step first -> "Every " + step.to_text + (if first == 0 then "" else " from " + first.to_text)
+        Index_Sub_Range.Sample count _ -> "Sample " + count.to_display_text
+        Index_Sub_Range.Every step first -> "Every " + step.to_display_text + (if first == 0 then "" else " from " + first.to_display_text)
 
 ## PRIVATE
    Resolves a vector of ranges or indices into a vector of ranges that fit

@@ -29,9 +29,9 @@ type Model
     to_display_text : Text
     to_display_text self = case self of
         Model.Linear intercept ->
-            if intercept.is_nothing then "Linear" else "Linear(intercept: " + intercept.to_text + ")"
+            if intercept.is_nothing then "Linear" else "Linear(intercept: " + intercept.to_display_text + ")"
         Model.Exponential intercept ->
-            if intercept.is_nothing then "Exponential" else "Exponential(intercept: " + intercept.to_text + ")"
+            if intercept.is_nothing then "Exponential" else "Exponential(intercept: " + intercept.to_display_text + ")"
         Model.Logarithmic -> "Logarithmic"
         Model.Power -> "Power"
 

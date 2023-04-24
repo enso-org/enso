@@ -143,9 +143,9 @@ type Interval
     to_display_text : Text
     to_display_text self =
         prefix = case self.start of
-            Bound.Exclusive s -> "(" + s.to_text + ", "
-            Bound.Inclusive s -> "[" + s.to_text + ", "
+            Bound.Exclusive s -> "(" + s.to_display_text + ", "
+            Bound.Inclusive s -> "[" + s.to_display_text + ", "
         suffix = case self.end of
-            Bound.Exclusive e -> e.to_text + ")"
-            Bound.Inclusive e -> e.to_text + "]"
+            Bound.Exclusive e -> e.to_display_text + ")"
+            Bound.Inclusive e -> e.to_display_text + "]"
         prefix + suffix

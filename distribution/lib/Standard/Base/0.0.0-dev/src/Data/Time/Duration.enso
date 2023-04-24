@@ -269,4 +269,4 @@ type Duration
     to_display_text : Text
     to_display_text self =
         seconds = self.seconds + self.nanoseconds/1000000000
-        self.hours.to_text + "h" + self.minutes.format "00" + "m" + seconds.format "00.0#########"
+        self.hours.to_text + "h" + self.minutes.format "00" + "m" + seconds.format "00.##########"

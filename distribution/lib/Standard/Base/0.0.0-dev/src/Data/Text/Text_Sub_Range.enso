@@ -44,10 +44,10 @@ type Text_Sub_Range
        Convert to a display representation of this Index_Sub_Range.
     to_display_text : Text
     to_display_text self = case self of
-        Text_Sub_Range.Before delimiter -> "Before " + delimiter
-        Text_Sub_Range.Before_Last delimiter -> "Before Last " + delimiter
-        Text_Sub_Range.After delimiter -> "After " + delimiter
-        Text_Sub_Range.After_Last delimiter -> "After Last " + delimiter
+        Text_Sub_Range.Before delimiter -> "Before " + delimiter.to_text
+        Text_Sub_Range.Before_Last delimiter -> "Before Last " + delimiter.to_text
+        Text_Sub_Range.After delimiter -> "After " + delimiter.to_text
+        Text_Sub_Range.After_Last delimiter -> "After Last " + delimiter.to_text
 
 type Codepoint_Ranges
     ## PRIVATE

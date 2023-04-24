@@ -434,8 +434,8 @@ type Range
        Convert to a display representation of this Range.
     to_display_text : Text
     to_display_text self =
-        start = "[" + self.start.to_text + " .. " + self.end.to_text
-        step = if self.step.abs == 1 then "" else " by " + self.step.to_text
+        start = "[" + self.start.to_display_text + " .. " + self.end.to_display_text
+        step = if self.step.abs == 1 then "" else " by " + self.step.to_display_text
         start + step + "]"
 
 ## PRIVATE
