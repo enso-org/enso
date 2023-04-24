@@ -814,132 +814,138 @@ function Dashboard(props: DashboardProps) {
                             ))
                         }}
                     />
-                    <tr className="h-8" />
-                    <Rows<backend.Asset<backend.AssetType.directory>>
-                        items={visibleDirectoryAssets}
-                        getKey={dir => dir.id}
-                        placeholder={
-                            <span className="opacity-75">
-                                This directory does not contain any subdirectories
-                                {query ? ' matching your query' : ''}.
-                            </span>
-                        }
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                            id: column,
-                            heading: ColumnHeading(column, backend.AssetType.directory),
-                            render: renderer(column, backend.AssetType.directory),
-                        }))}
-                        onClick={directoryAsset => {
-                            setSelectedAssets([directoryAsset])
-                        }}
-                        onContextMenu={(_directory, event) => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            setModal(() => <ContextMenu event={event}></ContextMenu>)
-                        }}
-                    />
-                    <tr className="h-8" />
-                    <Rows<backend.Asset<backend.AssetType.secret>>
-                        items={visibleSecretAssets}
-                        getKey={secret => secret.id}
-                        placeholder={
-                            <span className="opacity-75">
-                                This directory does not contain any secrets
-                                {query ? ' matching your query' : ''}.
-                            </span>
-                        }
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                            id: column,
-                            heading: ColumnHeading(column, backend.AssetType.secret),
-                            render: renderer(column, backend.AssetType.secret),
-                        }))}
-                        onClick={secret => {
-                            setSelectedAssets([secret])
-                        }}
-                        onContextMenu={(secret, event) => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            // This is not a React component even though it contains JSX.
-                            // eslint-disable-next-line no-restricted-syntax
-                            function doDelete() {
-                                setModal(() => (
-                                    <ConfirmDeleteModal
-                                        name={secret.title}
-                                        assetType={secret.type}
-                                        doDelete={() => backendService.deleteSecret(secret.id)}
-                                        onSuccess={doRefresh}
-                                    />
-                                ))
-                            }
-                            setModal(() => (
-                                <ContextMenu event={event}>
-                                    <ContextMenuEntry onClick={doDelete}>
-                                        <span className="text-red-700">Delete</span>
-                                    </ContextMenuEntry>
-                                </ContextMenu>
-                            ))
-                        }}
-                    />
-                    <tr className="h-8" />
-                    <Rows<backend.Asset<backend.AssetType.file>>
-                        items={visibleFileAssets}
-                        getKey={file => file.id}
-                        placeholder={
-                            <span className="opacity-75">
-                                This directory does not contain any files
-                                {query ? ' matching your query' : ''}.
-                            </span>
-                        }
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                            id: column,
-                            heading: ColumnHeading(column, backend.AssetType.file),
-                            render: renderer(column, backend.AssetType.file),
-                        }))}
-                        onClick={file => {
-                            setSelectedAssets([file])
-                        }}
-                        onContextMenu={(file, event) => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            function doCopy() {
-                                /** TODO: Call endpoint for copying file. */
-                            }
-                            function doCut() {
-                                /** TODO: Call endpoint for downloading file. */
-                            }
-                            // This is not a React component even though it contains JSX.
-                            // eslint-disable-next-line no-restricted-syntax
-                            function doDelete() {
-                                setModal(() => (
-                                    <ConfirmDeleteModal
-                                        name={file.title}
-                                        assetType={file.type}
-                                        doDelete={() => backendService.deleteFile(file.id)}
-                                        onSuccess={doRefresh}
-                                    />
-                                ))
-                            }
-                            function doDownload() {
-                                /** TODO: Call endpoint for downloading file. */
-                            }
-                            setModal(() => (
-                                <ContextMenu event={event}>
-                                    <ContextMenuEntry disabled onClick={doCopy}>
-                                        Copy
-                                    </ContextMenuEntry>
-                                    <ContextMenuEntry disabled onClick={doCut}>
-                                        Cut
-                                    </ContextMenuEntry>
-                                    <ContextMenuEntry onClick={doDelete}>
-                                        <span className="text-red-700">Delete</span>
-                                    </ContextMenuEntry>
-                                    <ContextMenuEntry disabled onClick={doDownload}>
-                                        Download
-                                    </ContextMenuEntry>
-                                </ContextMenu>
-                            ))
-                        }}
-                    />
+                    {platform === platformModule.Platform.cloud && (
+                        <>
+                            <tr className="h-8" />
+                            <Rows<backend.Asset<backend.AssetType.directory>>
+                                items={visibleDirectoryAssets}
+                                getKey={dir => dir.id}
+                                placeholder={
+                                    <span className="opacity-75">
+                                        This directory does not contain any subdirectories
+                                        {query ? ' matching your query' : ''}.
+                                    </span>
+                                }
+                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                    id: column,
+                                    heading: ColumnHeading(column, backend.AssetType.directory),
+                                    render: renderer(column, backend.AssetType.directory),
+                                }))}
+                                onClick={directoryAsset => {
+                                    setSelectedAssets([directoryAsset])
+                                }}
+                                onContextMenu={(_directory, event) => {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    setModal(() => <ContextMenu event={event}></ContextMenu>)
+                                }}
+                            />
+                            <tr className="h-8" />
+                            <Rows<backend.Asset<backend.AssetType.secret>>
+                                items={visibleSecretAssets}
+                                getKey={secret => secret.id}
+                                placeholder={
+                                    <span className="opacity-75">
+                                        This directory does not contain any secrets
+                                        {query ? ' matching your query' : ''}.
+                                    </span>
+                                }
+                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                    id: column,
+                                    heading: ColumnHeading(column, backend.AssetType.secret),
+                                    render: renderer(column, backend.AssetType.secret),
+                                }))}
+                                onClick={secret => {
+                                    setSelectedAssets([secret])
+                                }}
+                                onContextMenu={(secret, event) => {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    // This is not a React component even though it contains JSX.
+                                    // eslint-disable-next-line no-restricted-syntax
+                                    function doDelete() {
+                                        setModal(() => (
+                                            <ConfirmDeleteModal
+                                                name={secret.title}
+                                                assetType={secret.type}
+                                                doDelete={() =>
+                                                    backendService.deleteSecret(secret.id)
+                                                }
+                                                onSuccess={doRefresh}
+                                            />
+                                        ))
+                                    }
+                                    setModal(() => (
+                                        <ContextMenu event={event}>
+                                            <ContextMenuEntry onClick={doDelete}>
+                                                <span className="text-red-700">Delete</span>
+                                            </ContextMenuEntry>
+                                        </ContextMenu>
+                                    ))
+                                }}
+                            />
+                            <tr className="h-8" />
+                            <Rows<backend.Asset<backend.AssetType.file>>
+                                items={visibleFileAssets}
+                                getKey={file => file.id}
+                                placeholder={
+                                    <span className="opacity-75">
+                                        This directory does not contain any files
+                                        {query ? ' matching your query' : ''}.
+                                    </span>
+                                }
+                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                    id: column,
+                                    heading: ColumnHeading(column, backend.AssetType.file),
+                                    render: renderer(column, backend.AssetType.file),
+                                }))}
+                                onClick={file => {
+                                    setSelectedAssets([file])
+                                }}
+                                onContextMenu={(file, event) => {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    function doCopy() {
+                                        /** TODO: Call endpoint for copying file. */
+                                    }
+                                    function doCut() {
+                                        /** TODO: Call endpoint for downloading file. */
+                                    }
+                                    // This is not a React component even though it contains JSX.
+                                    // eslint-disable-next-line no-restricted-syntax
+                                    function doDelete() {
+                                        setModal(() => (
+                                            <ConfirmDeleteModal
+                                                name={file.title}
+                                                assetType={file.type}
+                                                doDelete={() => backendService.deleteFile(file.id)}
+                                                onSuccess={doRefresh}
+                                            />
+                                        ))
+                                    }
+                                    function doDownload() {
+                                        /** TODO: Call endpoint for downloading file. */
+                                    }
+                                    setModal(() => (
+                                        <ContextMenu event={event}>
+                                            <ContextMenuEntry disabled onClick={doCopy}>
+                                                Copy
+                                            </ContextMenuEntry>
+                                            <ContextMenuEntry disabled onClick={doCut}>
+                                                Cut
+                                            </ContextMenuEntry>
+                                            <ContextMenuEntry onClick={doDelete}>
+                                                <span className="text-red-700">Delete</span>
+                                            </ContextMenuEntry>
+                                            <ContextMenuEntry disabled onClick={doDownload}>
+                                                Download
+                                            </ContextMenuEntry>
+                                        </ContextMenu>
+                                    ))
+                                }}
+                            />
+                        </>
+                    )}
                 </tbody>
             </table>
             {isFileBeingDragged ? (
