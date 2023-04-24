@@ -21,6 +21,7 @@ import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
@@ -1551,6 +1552,69 @@ Text.parse_date self format=Nothing = Date.parse self format
             "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
 Text.parse_date_time : Text | Nothing -> Locale -> Date_Time ! Time_Error
 Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse self format locale
+
+## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+
+   Arguments:
+   - format: The pattern to use for parsing the input text.
+   - locale: The locale in which the pattern should be interpreted.
+
+   Returns a `Time_Error` if the provided text cannot be parsed using the
+   default format.
+
+   ? Pattern Syntax
+     For the list of accepted symbols in pattern refer to `Time.format` doc.
+
+   ? Default Time Format
+     The text must represent a valid time and is parsed using the ISO-8601
+     extended local time format. The format consists of:
+
+     - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+       digits.
+     - A colon
+     - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
+       two digits.
+     - If the second-of-minute is not available then the format is complete.
+     - A colon
+     - Two digits for the second-of-minute. This is pre-padded by zero to ensure
+       two digits.
+     - If the nano-of-second is zero or not available then the format is
+       complete.
+     - A decimal point
+     - One to nine digits for the nano-of-second. As many digits will be output
+       as required.
+
+   > Example
+     Get the time 15:05:30.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "15:05:30".parse_time_of_day
+
+   > Example
+     Recover from the parse error.
+
+         import Standard.Base.Data.Text.Extensions
+         from Standard.Base.Errors.Common import Time_Error
+
+         example_parse = "half twelve".parse_time_of_day . catch Time_Error _->
+             Time_Of_Day.new
+
+   > Example
+     Parse "04:30:20" as Time_Of_Day.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "04:30:20".parse_time_of_day "HH:mm:ss"
+
+   > Example
+     Parse "4:30AM" as Time_Of_Day
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "4:30AM".parse_time_of_day "h:mma"
+Text.parse_time_of_day : Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
+Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.parse self format locale
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided

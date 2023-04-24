@@ -36,4 +36,9 @@ spec =
             "2020-05-06 04:30:20".parse_date_time "yyyy-MM-dd HH:mm:ss" . should_equal <| Date_Time.parse  "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
             "asdf".parse_date_time . should_fail_with Time_Error
 
+        Test.specify "Time_Of_Day" <|
+            "15:05:30".parse_time_of_day . should_equal <| Time_Of_Day.parse "15:05:30"
+            "4:30AM".parse_time_of_day "h:mma" . should_equal <| Time_Of_Day.parse "4:30AM" "h:mma"
+            "half twelve".parse_time_of_day . should_fail_with Time_Error
+
 main = Test_Suite.run_main spec
