@@ -470,8 +470,9 @@ impl Tree {
         self.notify_dirty(self.model.set_config_override(pointer, meta));
     }
 
-    /// Set usage type for given AST node. The usage type is used to determine the widget appearance
-    /// and default inferred widget configuration.
+    /// Set the inferred type of the expression for given ast ID. On rebuild, the type will be
+    /// linked with any widget created on any span with matching AST ID. It is used to determine the
+    /// widget appearance and default inferred widget configuration.
     pub fn set_usage_type(&self, ast_id: ast::Id, usage_type: Option<crate::Type>) {
         self.notify_dirty(self.model.set_usage_type(ast_id, usage_type));
     }
@@ -528,7 +529,7 @@ impl Tree {
     }
 
     /// Get hover shapes for all ports in the tree. Used in tests to manually dispatch mouse events.
-    pub fn port_hover_shapes(&self) -> Vec<super::port::hover_shape::View> {
+    pub fn port_hover_shapes(&self) -> Vec<super::port::HoverShape> {
         let nodes = self.model.nodes_map.borrow();
         self.model
             .hierarchy

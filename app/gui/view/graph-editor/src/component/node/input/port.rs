@@ -15,6 +15,7 @@ use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::layer::LayerSymbolPartition;
+use ensogl::display::shape;
 
 
 
@@ -33,50 +34,17 @@ pub const BASE_PORT_HEIGHT: f32 = 18.0;
 /// the target text boundary on both sides.
 pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_HEIGHT) / 2.0;
 
-// =============
-// === Shape ===
-// =============
 
-/// Shapes the port is build from. It consist of the `hover_shape`, which represents a hover area of
-/// a height dependent on logical widget depth, and the `shape`, which is a nice, visual highlight
-/// representation with padding extending out of the widget bounding box. Both shapes are children
-/// of `Port`'s `port_root` display object:
-///
-/// ```text
-///     hover_shape (appears when hovering over the node while dragging an edge)
-///      ◄──────►
-/// ╭───┬────────┬──┄
-/// │   │╭──────╮│▼ shape
-/// │   │╰──────╯│▲
-/// ╰───┴────────┴──┄
-/// ```
-pub mod shape {
-    use super::*;
-    ensogl::shape! {
-        below = [ensogl::gui::cursor::shape];
-        pointer_events = false;
-        (style:Style, color:Vector4) {
-            let size = Var::canvas_size();
-            let shape_color = Var::<color::Rgba>::from(color);
-            let visual_shape = Rect(&size).corners_radius(size.y() / 2.0).fill(shape_color);
-            visual_shape.into()
-        }
-    }
-}
 
-/// Hover area of port shape, reacts to mouse when an edge is dragged.
-pub mod hover_shape {
-    use super::*;
-    ensogl::shape! {
-        above = [shape];
-        (style:Style) {
-            let size = Var::canvas_size();
-            let transparent = Var::<color::Rgba>::from("srgba(1.0,1.0,1.0,0.00001)");
-            let hover_shape = Rect(size).fill(transparent);
-            hover_shape.into()
-        }
-    }
-}
+// ============================
+// === Shapes / HoverLayers ===
+// ============================
+
+type PortShape = shape::compound::rectangle::Rectangle;
+
+/// Shape used for handling mouse events in the port, such as hovering or dropping an edge.
+pub type HoverShape = shape::compound::rectangle::Rectangle;
+type HoverShapeView = shape::compound::rectangle::shape::Shape;
 
 /// An scene extension that maintains layer partitions for port hover shapes. It is shared by all
 /// ports in the scene. The hover shapes are partitioned by span tree depth, so that the hover area
@@ -85,12 +53,12 @@ pub mod hover_shape {
 #[derive(Clone, CloneRef)]
 struct HoverLayers {
     hover_layer:      display::scene::Layer,
-    hover_partitions: Rc<RefCell<Vec<LayerSymbolPartition<hover_shape::Shape>>>>,
+    hover_partitions: Rc<RefCell<Vec<LayerSymbolPartition<HoverShapeView>>>>,
 }
 
 impl display::scene::Extension for HoverLayers {
     fn init(scene: &display::Scene) -> Self {
-        let hover_layer = scene.layers.label.clone_ref();
+        let hover_layer = scene.layers.port_hover.clone_ref();
         Self { hover_layer, hover_partitions: default() }
     }
 }
@@ -102,7 +70,7 @@ impl HoverLayers {
         let mut hover_partitions = self.hover_partitions.borrow_mut();
         if hover_partitions.len() <= depth {
             hover_partitions.resize_with(depth + 1, || {
-                self.hover_layer.create_symbol_partition::<hover_shape::Shape>("input port hover")
+                self.hover_layer.create_symbol_partition("input port hover")
             })
         }
         hover_partitions[depth].add(object);
@@ -126,8 +94,8 @@ pub struct Port {
     port_root:       display::object::Instance,
     widget_root:     display::object::Instance,
     widget:          DynWidget,
-    port_shape:      shape::View,
-    hover_shape:     hover_shape::View,
+    port_shape:      PortShape,
+    hover_shape:     HoverShape,
     /// Last set tree depth of the port. Allows skipping layout update when the depth has not
     /// changed during reconfiguration.
     current_depth:   usize,
@@ -142,8 +110,13 @@ impl Port {
     pub fn new(widget: DynWidget, app: &Application, frp: &WidgetsFrp) -> Self {
         let port_root = display::object::Instance::new();
         let widget_root = widget.root_object().clone_ref();
-        let port_shape = shape::View::new();
-        let hover_shape = hover_shape::View::new();
+        let port_shape = PortShape::new();
+        let hover_shape = HoverShape::new();
+        port_shape.set_corner_radius_max().set_pointer_events(false);
+        hover_shape
+            .set_pointer_events(true)
+            .set_color(shape::INVISIBLE_HOVER_COLOR)
+            .set_border_color(shape::INVISIBLE_HOVER_COLOR);
 
         port_root.add_child(&widget_root);
         widget_root.set_margin_left(0.0);
@@ -279,7 +252,7 @@ impl Port {
     }
 
     /// Get the port's hover shape. Used for testing to simulate mouse events.
-    pub fn hover_shape(&self) -> &hover_shape::View {
+    pub fn hover_shape(&self) -> &HoverShape {
         &self.hover_shape
     }
 }

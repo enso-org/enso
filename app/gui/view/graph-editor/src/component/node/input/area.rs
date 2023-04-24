@@ -291,7 +291,7 @@ impl Model {
 
     /// Get hover shapes for all input ports of a node. Mainly used in tests to manually dispatch
     /// mouse events.
-    pub fn port_hover_shapes(&self) -> Vec<super::port::hover_shape::View> {
+    pub fn port_hover_shapes(&self) -> Vec<super::port::HoverShape> {
         self.widget_tree.port_hover_shapes()
     }
 }

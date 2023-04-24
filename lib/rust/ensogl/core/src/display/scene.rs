@@ -597,6 +597,7 @@ pub struct HardcodedLayers {
     pub main:               Layer,
     pub port_selection:     Layer,
     pub label:              Layer,
+    pub port_hover:         Layer,
     pub above_nodes:        Layer,
     pub above_nodes_text:   Layer,
     /// `panel` layer contains all panels with fixed position (not moving with the panned scene)
@@ -639,6 +640,7 @@ impl HardcodedLayers {
         let port_selection =
             root.create_sublayer_with_camera("port_selection", &port_selection_cam);
         let label = root.create_sublayer("label");
+        let port_hover = root.create_sublayer("port_hover");
         let above_nodes = root.create_sublayer("above_nodes");
         let above_nodes_text = root.create_sublayer("above_nodes_text");
         let panel_background = root.create_sublayer_with_camera("panel_background", &panel_cam);
@@ -662,6 +664,7 @@ impl HardcodedLayers {
             main,
             port_selection,
             label,
+            port_hover,
             above_nodes,
             above_nodes_text,
             panel_background,

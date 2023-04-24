@@ -500,8 +500,6 @@ impl NodeModel {
                 background                -> drag_area;
                 drag_area                 -> edge::front::corner;
                 drag_area                 -> edge::front::line;
-                edge::front::corner       -> input::port::shape;
-                edge::front::line         -> input::port::shape;
             }
         }
 
@@ -1113,7 +1111,7 @@ pub mod test_utils {
         /// 1. If there are no input ports.
         /// 2. If the port does not have a `Shape`. Some port models does not initialize the
         ///    `Shape`, see [`input::port::Model::init_shape`].
-        fn input_port_hover_shape(&self) -> Option<input::port::hover_shape::View>;
+        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape>;
     }
 
     impl NodeModelExt for NodeModel {
@@ -1128,7 +1126,7 @@ pub mod test_utils {
             }
         }
 
-        fn input_port_hover_shape(&self) -> Option<input::port::hover_shape::View> {
+        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape> {
             let shapes = self.input.model.port_hover_shapes();
             shapes.into_iter().next()
         }
