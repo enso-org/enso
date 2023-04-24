@@ -1,4 +1,6 @@
+import project.Any.Any
 import project.Data.Text.Text
+import project.Nothing.Nothing
 import project.System.File.File
 
 ## Functionality for inspecting the current project.
@@ -49,6 +51,27 @@ type Project_Description
     namespace : Text
     namespace self = self.prim_config.namespace
 
-## Returns the Enso project description.
-enso_project : Project_Description
-enso_project = @Builtin_Method "Project_Description.enso_project"
+## Returns the Enso project description for the given module.
+
+   Arguments:
+   - module: An optional module for which the Enso project description
+     will be fetched.
+
+   > Example
+     Get the project description for the current project.
+
+         enso_project
+
+   > Example
+     Get the project description for the `Standard.Visualizations` project.
+
+         enso_project Standard.Visualizations
+
+   > Example
+     Get the project description for the `Standard.Base` project from the
+     `Vector` module.
+
+         enso_project Standard.Base.Data.Vector
+enso_project : (Any | Nothing) -> Project_Description
+enso_project module=Nothing =
+    Project_Description.enso_project_builtin module
