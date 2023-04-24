@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Extensions
 import Standard.Test.Extensions
 
+from Standard.Base.Data.Json import Json, Invalid_JSON, JS_Object
 from Standard.Base.Data.Numbers import Decimal, Integer, Number_Parse_Error
 from Standard.Test import Test, Test_Suite
 
@@ -18,5 +19,9 @@ spec =
             "12343456".parse_integer . should_equal <| Integer.parse "12343456"
             "ABC123".parse_integer 16 . should_equal <| Integer.parse "ABC123" 16
             "abc".parse_integer . should_fail_with Number_Parse_Error
+
+        Test.specify "Json" <|
+            "[null, null, true, false]".parse_json  . should_equal <| Json.parse "[null, null, true, false]"
+            "[[".parse_json . should_fail_with Invalid_JSON
 
 main = Test_Suite.run_main spec

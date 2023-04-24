@@ -29,7 +29,8 @@ import project.Meta
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Numbers import Decimal, Integer, Number_Parse_Error
+from project.Data.Json import Json, Invalid_JSON, JS_Object
+from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
@@ -1391,6 +1392,18 @@ Text.parse_decimal self locale=Nothing = Decimal.parse self locale
         "20220216".parse
 Text.parse_integer : Integer -> Integer ! Number_Parse_Error
 Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
+
+## ALIAS From Text
+
+   Parse a Text value into a `JS_Object` or an Enso primitive value (like
+   `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
+
+   > Example
+    Parse the text "[null, null, true, false]".
+
+        "[null, null, true, false]".parse_json
+Text.parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
+Text.parse_json self = Json.parse self
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided

@@ -28,7 +28,15 @@ from project.Data.Boolean import Boolean, True, False
 
 ## Methods for serializing from and to JSON.
 type Json
-    ## Parse a Text value into a `JS_Object` or an Enso primitive value (like `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
+    ## ALIAS From Text
+
+       Parse a Text value into a `JS_Object` or an Enso primitive value (like
+       `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
+
+       > Example
+        Parse the text "[null, null, true, false]".
+
+            Json.parse "[null, null, true, false]"
     parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
     parse json =
         error_handler js_exception =
