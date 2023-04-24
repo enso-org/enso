@@ -708,7 +708,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     fn push(&mut self, item: T) -> Index {
-        console_log!("push");
         let index = self.len();
         let item = Item::new(item);
         self.items.push(item.into());
@@ -717,7 +716,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     fn insert(&mut self, index: Index, item: T) -> Index {
-        console_log!("insert, items count: {}", self.items.len());
         let index = if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
             let item = Item::new(item);
             self.items.insert(index2, item.into());
@@ -770,7 +768,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
 
     /// Retain only items and placeholders that did not collapse yet (both strong and weak ones).
     fn retain_non_collapsed_items(&mut self) {
-        console_log!("!!!! RETAIN");
         self.items.retain(|item| item.exists());
     }
 
@@ -896,7 +893,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     fn replace_item_with_placeholder(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {
-        console_log!("replace_item_with_placeholder");
         match self.items.remove(index) {
             ItemOrPlaceholder::Item(item) => {
                 self.collapse_all_placeholders_no_margin_update();
@@ -921,7 +917,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// Prepare place for the dragged item by creating or reusing a placeholder and growing it to
     /// the dragged object size.
     fn add_insertion_point(&mut self, index: ItemOrPlaceholderIndex) {
-        console_log!("add_insertion_point");
         if let Some(item) =
             self.cursor.with_dragged_item_if_is::<T, _>(|t| t.display_object().clone())
         {
@@ -943,7 +938,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// [`Item`] object, will handles its animation. See the documentation of
     /// [`ItemOrPlaceholder`] to learn more.
     fn place_dragged_item(&mut self, index: ItemOrPlaceholderIndex) -> Option<(Index, T)> {
-        console_log!("place_dragged_item");
         if let Some(item) = self.cursor.stop_drag_if_is::<T>() {
             self.collapse_all_placeholders_no_margin_update();
             if let Some((index, placeholder)) = self.get_indexed_merged_placeholder_at(index) {
@@ -968,7 +962,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     pub fn trash_item(&mut self, item: T) {
-        console_log!("trash_item");
         self.root.add_child(&Trash::new(item));
         self.reposition_items();
     }
