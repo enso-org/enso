@@ -1,0 +1,47 @@
+from Standard.Base import all
+
+from Standard.Table import Table as In_Memory_Table
+
+import project.Connection.Connection.Connection
+from project.Errors import all
+
+## Creates a new database table from this in-memory table.
+
+   Arguments:
+   - connection: the database connection to use. The table will be created in
+     the database and schema associated with this connection.
+   - table_name: the name of the table to create. If not provided, a random name
+     will be generated for temporary tables. If `temporary=False`, then a name
+     must be provided.
+   - primary_key: the names of the columns to use as the primary key. The first
+     column from the table is used by default. If it is set to `Nothing` or an
+     empty vector, no primary key will be created.
+   - temporary: if set to `True`, the table will be temporary, meaning that it
+     will be dropped once the `connection` is closed. Defaults to `False`.
+   - structure_only: if set to `True`, the created table will inherit the
+     structure (column names and types) of the source table, but no rows will be
+     inserted. Defaults to `False`.
+   - on_problems: the behavior to use when encountering non-fatal problems.
+     Defaults to reporting them as warning.
+
+   ! Error Conditions
+
+     - If a table with the given name already exists, then a
+       `Table_Already_Exists` error is raised.
+     - If a column type is not supported and is coerced to a similar supported
+       type, an `Inexact_Type_Coercion` problem is reported according to the
+       `on_problems` setting.
+     - If a column type is not supported and there is no replacement (e.g.
+       native Enso types), an `Unsupported_Type` error is raised.
+     - If the provided primary key columns are not present in the source table,
+       `No_Such_Column` error is raised.
+     - If the selected primary key columns are not unique, a
+       `Non_Unique_Primary_Key` error is raised.
+     - An `SQL_Error` may be reported if there is a failure on the database
+       side.
+
+     If an error has been raised, the table is not created (that may not always
+     apply to `SQL_Error`).
+In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | SQL_Error
+In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning =
+    Error.throw "TODO"
