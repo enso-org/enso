@@ -5,7 +5,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import SQL_Error
+from Standard.Database.Errors import all
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -328,11 +328,15 @@ spec setup =
             (y ^ "a").should_fail_with Invalid_Value_Type
             (y ^ 42).should_fail_with Invalid_Value_Type
 
-        if setup.test_selection.is_nan_and_nothing_distinct then
-            Test.specify "should support is_nan" <|
+        case setup.test_selection.is_nan_and_nothing_distinct of
+            True -> Test.specify "should support is_nan" <|
                 t = table_builder [["X", [1.5, 2, Number.nan]], ["Y", [1, 2, 3]]]
                 t.at "X" . is_nan . to_vector . should_equal [False, False, True]
                 t.at "Y" . is_nan . should_fail_with Invalid_Value_Type
+            False -> Test.specify "should report that is_nan is not supported" <|
+                t = table_builder [["X", [1.5]]]
+                t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
+
         Test.specify "should support is_blank" <|
             t = table_builder [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
             t.at "X" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, False, True, True]

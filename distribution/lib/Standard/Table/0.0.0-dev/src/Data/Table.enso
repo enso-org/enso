@@ -1756,12 +1756,13 @@ type Table
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
-            index  = self.java_table.indexFromColumns java_key_columns.to_array
+            index = self.java_table.indexFromColumns java_key_columns.to_array
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else
                     all_same = Aggregate_Column_Helper.all_same_column validated_values
-                    c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
+                    include_column_name = all_same.not
+                    c -> Aggregate_Column_Helper.default_aggregate_column_name c include_column_name
 
             data_columns = validated_values.map c->
                 col_name = c.new_name.if_nothing <|

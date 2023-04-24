@@ -101,13 +101,13 @@ export function importDirectory(rootPath: string): string {
             const message = `Project directory already exists: ${targetDirectory}.`
             // eslint-disable-next-line no-restricted-syntax
             throw new Error(message)
+        } else {
+            logger.log(`Copying: '${rootPath}' -> '${targetDirectory}'.`)
+            fsSync.cpSync(rootPath, targetDirectory, { recursive: true })
+            // Update the project ID, so we are certain that it is unique. This would be violated, if we imported the same
+            // project multiple times.
+            return updateId(targetDirectory)
         }
-
-        logger.log(`Copying: '${rootPath}' -> '${targetDirectory}'.`)
-        fsSync.cpSync(rootPath, targetDirectory, { recursive: true })
-        // Update the project ID, so we are certain that it is unique. This would be violated, if we imported the same
-        // project multiple times.
-        return updateId(targetDirectory)
     }
 }
 

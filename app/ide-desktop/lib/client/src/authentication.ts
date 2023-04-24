@@ -79,6 +79,9 @@ import opener from 'opener'
 
 import * as electron from 'electron'
 
+import * as electron from 'electron'
+import opener from 'opener'
+
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 import * as urlAssociations from 'url-associations'
@@ -166,15 +169,15 @@ function initSaveAccessTokenListener() {
         /** System agnostic credentials directory home path. */
         const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
 
-        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, err => {
-            if (err) {
+        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, error => {
+            if (error) {
                 logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
             } else {
                 fs.writeFile(
                     path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
                     accessToken,
-                    err => {
-                        if (err) {
+                    innerError => {
+                        if (innerError) {
                             logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
                         }
                     }

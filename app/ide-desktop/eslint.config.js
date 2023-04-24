@@ -102,7 +102,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector:
-            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))):has(:matches([finalizer=null], .finalizer :matches(ReturnStatement, ThrowStatement))))) > * > :matches(ReturnStatement, ThrowStatement)',
+            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), Program > TryStatement, Program > TryStatement > .handler, TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))) > .handler)) > * > :matches(ReturnStatement, ThrowStatement)',
         message: 'No early returns',
     },
     {
