@@ -102,13 +102,10 @@ use placeholder::StrongPlaceholder;
 // === Constants ===
 // =================
 
-// FIXME: to be parametrized
-// const GAP: f32 = 10.0;
-
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
-pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
+pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
