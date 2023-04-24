@@ -79,6 +79,7 @@ use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
 use ide_view_execution_environment_selector as execution_environment_selector;
+use ide_view_execution_environment_selector::ExecutionEnvironmentSelector;
 
 
 // ===============
@@ -1795,7 +1796,7 @@ pub struct GraphEditorModel {
     profiling_button: component::profiling::Button,
     styles_frp: StyleWatchFrp,
     selection_controller: selection::Controller,
-    execution_environment_selector: execution_environment_selector::ExecutionEnvironmentSelector,
+    execution_environment_selector: ExecutionEnvironmentSelector,
 }
 
 

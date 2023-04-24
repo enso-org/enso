@@ -63,7 +63,7 @@ pub struct ExecutionContext {
     /// Component groups defined in libraries imported into the execution context.
     pub component_groups: RefCell<Rc<Vec<ComponentGroup>>>,
     /// Execution environment of the context.
-    pub execution_environment: Rc<Cell<ExecutionEnvironment>>,
+    pub execution_environment: Cell<ExecutionEnvironment>,
 }
 
 impl ExecutionContext {
