@@ -170,7 +170,7 @@ impl OutputDefinition {
     /// Constructor of the RGBA u8 output with default texture parameters. It is the most popular
     /// option and you should use it to render colors with your passes.
     pub fn new_rgba<Name: Str>(name: Name) -> Self {
-        let internal_format = texture::Rgba;
+        let internal_format = texture::Rgba8;
         let item_type = texture::item_type::u8;
         let texture_parameters = default();
         OutputDefinition::new(name, internal_format, item_type, texture_parameters)
