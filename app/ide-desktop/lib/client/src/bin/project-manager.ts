@@ -24,8 +24,9 @@ export function pathOrPanic(args: config.Args): string {
     const binExists = fsSync.existsSync(binPath)
     if (!binExists) {
         throw new Error(`Could not find the project manager binary at ${binPath}.`)
+    } else {
+        return binPath
     }
-    return binPath
 }
 
 /** Executes the Project Manager with given arguments. */

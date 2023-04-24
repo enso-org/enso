@@ -76,6 +76,7 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
+use ide_view_execution_mode_selector as execution_mode_selector;
 
 
 // ===============
@@ -109,6 +110,8 @@ const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
 const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
+/// Space between items in the top bar.
+const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let platform_str = ARGS.groups.startup.options.platform.value.as_str();
@@ -117,10 +120,9 @@ fn traffic_lights_gap_width() -> f32 {
     if is_macos && !ARGS.groups.window.options.frame.value {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
-        0.0
+        TOP_BAR_ITEM_MARGIN
     }
 }
-
 
 
 // =================
@@ -447,6 +449,11 @@ ensogl::define_endpoints_2! {
         space_for_window_buttons (Vector2<f32>),
 
 
+        // === Read-only mode ===
+
+        set_read_only(bool),
+
+
         // === Node Selection ===
 
         /// Node press event
@@ -650,12 +657,20 @@ ensogl::define_endpoints_2! {
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
 
+        /// Set the execution modes available to the graph.
+        set_available_execution_modes          (Rc<Vec<execution_mode_selector::ExecutionMode>>),
+
     }
 
     Output {
         // === Debug Mode ===
 
         debug_mode                             (bool),
+
+
+        // === Read-only mode ===
+
+        read_only                              (bool),
 
         // === Edge ===
 
@@ -749,6 +764,11 @@ ensogl::define_endpoints_2! {
         default_x_gap_between_nodes (f32),
         default_y_gap_between_nodes (f32),
         min_x_spacing_for_new_nodes (f32),
+
+        /// The selected execution mode.
+        execution_mode (execution_mode_selector::ExecutionMode),
+        /// A press of the execution mode selector play button.
+        execution_mode_play_button_pressed (),
     }
 }
 
@@ -1692,6 +1712,11 @@ impl GraphEditorModelWithNetwork {
             node.set_view_mode <+ self.model.frp.view_mode;
 
 
+            // === Read-only mode ===
+
+            node.set_read_only <+ self.model.frp.set_read_only;
+
+
             // === Profiling ===
 
             let profiling_min_duration              = &self.model.profiling_statuses.min_duration;
@@ -1752,24 +1777,25 @@ impl GraphEditorModelWithNetwork {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
-    pub display_object:   display::object::Instance,
-    pub app:              Application,
-    pub breadcrumbs:      component::Breadcrumbs,
-    pub cursor:           cursor::Cursor,
-    pub nodes:            Nodes,
-    pub edges:            Edges,
-    pub vis_registry:     visualization::Registry,
-    pub drop_manager:     ensogl_drop_manager::Manager,
-    pub navigator:        Navigator,
-    pub add_node_button:  Rc<component::add_node_button::AddNodeButton>,
-    tooltip:              Tooltip,
-    touch_state:          TouchState,
-    visualisations:       Visualisations,
-    frp:                  Frp,
-    profiling_statuses:   profiling::Statuses,
-    profiling_button:     component::profiling::Button,
-    styles_frp:           StyleWatchFrp,
-    selection_controller: selection::Controller,
+    pub display_object:      display::object::Instance,
+    pub app:                 Application,
+    pub breadcrumbs:         component::Breadcrumbs,
+    pub cursor:              cursor::Cursor,
+    pub nodes:               Nodes,
+    pub edges:               Edges,
+    pub vis_registry:        visualization::Registry,
+    pub drop_manager:        ensogl_drop_manager::Manager,
+    pub navigator:           Navigator,
+    pub add_node_button:     Rc<component::add_node_button::AddNodeButton>,
+    tooltip:                 Tooltip,
+    touch_state:             TouchState,
+    visualisations:          Visualisations,
+    frp:                     Frp,
+    profiling_statuses:      profiling::Statuses,
+    profiling_button:        component::profiling::Button,
+    styles_frp:              StyleWatchFrp,
+    selection_controller:    selection::Controller,
+    execution_mode_selector: execution_mode_selector::ExecutionModeSelector,
 }
 
 
@@ -1787,6 +1813,8 @@ impl GraphEditorModel {
         let visualisations = default();
         let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
+        let execution_mode_selector = execution_mode_selector::ExecutionModeSelector::new(app);
+
         let app = app.clone_ref();
         let frp = frp.clone_ref();
         let navigator = Navigator::new(scene, &scene.camera());
@@ -1824,17 +1852,19 @@ impl GraphEditorModel {
             add_node_button,
             styles_frp,
             selection_controller,
+            execution_mode_selector,
         }
         .init()
     }
 
     fn init(self) -> Self {
-        self.add_child(&self.breadcrumbs);
         let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
-        let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER + component::breadcrumbs::HEIGHT / 2.0;
+
+        self.add_child(&self.execution_mode_selector);
+
+        self.add_child(&self.breadcrumbs);
         self.breadcrumbs.set_x(x_offset);
-        self.breadcrumbs.set_y(y_offset);
-        self.breadcrumbs.gap_width(traffic_lights_gap_width());
+
         self.scene().add_child(&self.tooltip);
         self.add_child(&self.profiling_button);
         self.add_child(&*self.add_node_button);
@@ -2644,15 +2674,15 @@ impl application::View for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
-            (Press, "!node_editing", "tab", "start_node_creation"),
-            (Press, "!node_editing", "enter", "start_node_creation"),
+            (Press, "!node_editing & !read_only", "tab", "start_node_creation"),
+            (Press, "!node_editing & !read_only", "enter", "start_node_creation"),
             // === Drag ===
             (Press, "", "left-mouse-button", "node_press"),
             (Release, "", "left-mouse-button", "node_release"),
-            (Press, "!node_editing", "backspace", "remove_selected_nodes"),
-            (Press, "!node_editing", "delete", "remove_selected_nodes"),
+            (Press, "!node_editing & !read_only", "backspace", "remove_selected_nodes"),
+            (Press, "!node_editing & !read_only", "delete", "remove_selected_nodes"),
             (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-            (Press, "", "cmd g", "collapse_selected_nodes"),
+            (Press, "!read_only", "cmd g", "collapse_selected_nodes"),
             // === Visualization ===
             (Press, "!node_editing", "space", "press_visualization_visibility"),
             (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
@@ -2679,17 +2709,17 @@ impl application::View for GraphEditor {
                 "ctrl space",
                 "cycle_visualization_for_selected_node",
             ),
-            (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
-            (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
-            (Press, "", "right-mouse-button", "start_node_creation_from_port"),
-            (Press, "!node_editing", "cmd enter", "enter_selected_node"),
-            (Press, "", "alt enter", "exit_node"),
+            (DoublePress, "!read_only", "left-mouse-button", "enter_hovered_node"),
+            (DoublePress, "!read_only", "left-mouse-button", "start_node_creation_from_port"),
+            (Press, "!read_only", "right-mouse-button", "start_node_creation_from_port"),
+            (Press, "!node_editing & !read_only", "cmd enter", "enter_selected_node"),
+            (Press, "!read_only", "alt enter", "exit_node"),
             // === Node Editing ===
-            (Press, "", "cmd", "edit_mode_on"),
-            (Release, "", "cmd", "edit_mode_off"),
-            (Press, "", "cmd left-mouse-button", "edit_mode_on"),
-            (Release, "", "cmd left-mouse-button", "edit_mode_off"),
-            (Press, "node_editing", "cmd enter", "stop_editing"),
+            (Press, "!read_only", "cmd", "edit_mode_on"),
+            (Release, "!read_only", "cmd", "edit_mode_off"),
+            (Press, "!read_only", "cmd left-mouse-button", "edit_mode_on"),
+            (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
+            (Press, "node_editing & !read_only", "cmd enter", "stop_editing"),
             // === Profiling Mode ===
             (Press, "", "cmd p", "toggle_profiling_mode"),
             // === Debug ===
@@ -2746,9 +2776,20 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let out = &frp.private.output;
     let selection_controller = &model.selection_controller;
 
-    // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-    // system (#795)
-    let styles = StyleWatch::new(&scene.style_sheet);
+
+
+    // ======================
+    // === Read-only mode ===
+    // ======================
+
+    frp::extend! { network
+        out.read_only <+ inputs.set_read_only;
+        model.breadcrumbs.set_read_only <+ inputs.set_read_only;
+
+        // Drop the currently dragged edge if read-only mode is enabled.
+        read_only_enabled <- inputs.set_read_only.on_true();
+        inputs.drop_dragged_edge <+ read_only_enabled;
+    }
 
 
 
@@ -2778,17 +2819,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ===================
 
     frp::extend! { network
-        // === Layout ===
-        eval inputs.space_for_window_buttons([model](size) {
-            // The breadcrumbs apply their own spacing next to the gap, so we need to omit padding.
-            let width         = size.x;
-            let path          = theme::application::window_control_buttons::padding::right;
-            let right_padding = styles.get_number(path);
-            model.breadcrumbs.gap_width.emit(width - right_padding)
-        });
-
 
         // === Debugging ===
+
         eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.debug_push_breadcrumb.emit(None));
         eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.debug_pop_breadcrumb.emit(()));
     }
@@ -2927,7 +2960,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         }
     });
     edge_click <- map2(&edge_mouse_down,&cursor_pos_in_scene,|edge_id,pos|(*edge_id,*pos));
-    valid_edge_disconnect_click <- edge_click.gate_not(&has_detached_edge);
+    valid_edge_disconnect_click <- edge_click.gate_not(&has_detached_edge).gate_not(&inputs.set_read_only);
 
     edge_is_source_click <- valid_edge_disconnect_click.map(f!([model]((edge_id,pos)) {
         if let Some(edge) = model.edges.get_cloned_ref(edge_id){
@@ -2962,8 +2995,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     attach_all_edge_inputs  <- any (port_input_mouse_up, inputs.press_node_input, inputs.set_detached_edge_targets);
     attach_all_edge_outputs <- any (port_output_mouse_up, inputs.press_node_output, inputs.set_detached_edge_sources);
 
-    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down);
-    create_edge_from_input  <- node_input_touch.down.map(|value| value.clone());
+    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down).gate_not(&inputs.set_read_only);
+    create_edge_from_input  <- node_input_touch.down.map(|value| value.clone()).gate_not(&inputs.set_read_only);
 
     on_new_edge    <- any(&output_down,&input_down);
     let selection_mode = selection::get_mode(network,inputs);
@@ -3042,7 +3075,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Adding Node ===
 
     frp::extend! { network
-        let node_added_with_button = model.add_node_button.clicked.clone_ref();
+        node_added_with_button <- model.add_node_button.clicked.gate_not(&inputs.set_read_only);
 
         input_start_node_creation_from_port <- inputs.hover_node_output.sample(
             &inputs.start_node_creation_from_port);
@@ -3875,6 +3908,35 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp.private.output.min_x_spacing_for_new_nodes.emit(min_x_spacing.value());
 
 
+    // ================================
+    // === Execution Mode Selection ===
+    // ================================
+
+    let execution_mode_selector = &model.execution_mode_selector;
+    frp::extend! { network
+
+        execution_mode_selector.set_available_execution_modes <+ frp.set_available_execution_modes;
+        out.execution_mode <+ execution_mode_selector.selected_execution_mode;
+        out.execution_mode_play_button_pressed <+ execution_mode_selector.play_press;
+
+        // === Layout ===
+        init <- source::<()>();
+        size_update <- all(init,execution_mode_selector.size,inputs.space_for_window_buttons);
+        eval size_update ([model]((_,size,gap_size)) {
+            let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
+            let traffic_light_width = traffic_lights_gap_width();
+
+            let execution_mode_selector_x = gap_size.x + traffic_light_width;
+            model.execution_mode_selector.set_x(execution_mode_selector_x);
+            let breadcrumb_gap_width = execution_mode_selector_x + size.x + TOP_BAR_ITEM_MARGIN;
+            model.breadcrumbs.gap_width(breadcrumb_gap_width);
+
+            model.execution_mode_selector.set_y(y_offset + size.y / 2.0);
+            model.breadcrumbs.set_y(y_offset + component::breadcrumbs::HEIGHT / 2.0);
+        });
+    }
+    init.emit(());
+
 
     // ==================
     // === Debug Mode ===
@@ -4137,6 +4199,7 @@ mod tests {
         displacement: Vector2,
         add_node_at: impl Fn(&GraphEditor, Vector2),
     ) {
+        enso_frp::microtasks::flush_microtasks();
         let unaligned_pos = aligned_pos + displacement;
         let add_node_unaligned = |editor: &GraphEditor| add_node_at(editor, unaligned_pos);
         let (_, node) = graph_editor.add_node_by(&add_node_unaligned);

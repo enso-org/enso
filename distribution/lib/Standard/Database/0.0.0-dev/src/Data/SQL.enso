@@ -105,6 +105,18 @@ type Builder
     is_empty : Boolean
     is_empty self = self.fragments.is_empty
 
+    ## UNSTABLE
+
+       Checks if a code fragment is a constant.
+    is_constant : Boolean
+    is_constant self =
+        if self.fragments.length != 1 then False else
+            case self.fragments of
+                Vector_Builder.Leaf vec -> case vec.at 0 of
+                    SQL_Fragment.Interpolation _ -> True
+                    _ -> False
+                _ -> False
+
     ## PRIVATE
        ADVANCED
        Builds a SQL statement.

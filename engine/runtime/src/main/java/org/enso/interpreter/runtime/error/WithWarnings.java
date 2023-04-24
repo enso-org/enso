@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime.error;
 
+import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -8,8 +11,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
@@ -18,7 +19,8 @@ public final class WithWarnings implements TruffleObject {
   private final ArrayRope<Warning> warnings;
   private final Object value;
 
-  public WithWarnings(Object value, Warning... warnings) {
+  private WithWarnings(Object value, Warning... warnings) {
+    assert !(value instanceof WithWarnings);
     this.warnings = new ArrayRope<>(warnings);
     this.value = value;
   }
@@ -26,6 +28,14 @@ public final class WithWarnings implements TruffleObject {
   private WithWarnings(Object value, ArrayRope<Warning> warnings) {
     this.warnings = warnings;
     this.value = value;
+  }
+
+  public static WithWarnings wrap(Object value, Warning... warnings) {
+    if (value instanceof WithWarnings with) {
+      return with.append(warnings);
+    } else {
+      return new WithWarnings(value, warnings);
+    }
   }
 
   public Object getValue() {

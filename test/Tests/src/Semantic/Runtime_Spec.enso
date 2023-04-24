@@ -27,12 +27,12 @@ spec =
             res = Panic.catch Any (in_fn 1) p-> p.payload.to_text
             res . should_equal "(Forbidden_Operation.Error 'Input')"
         Test.specify "should be configurable" <|
-            r1 = Runtime.with_enabled_context Input <|
-                Runtime.with_enabled_context Output <|
+            r1 = Runtime.with_enabled_context Input environment=Runtime.current_execution_environment <|
+                Runtime.with_enabled_context Output environment=Runtime.current_execution_environment <|
                   in_fn (out_fn 10)
             r1.should_equal 22
 
-            r2 = Panic.catch Any (Runtime.with_enabled_context Output <| in_fn (out_fn 10)) p-> p.payload.to_text
+            r2 = Panic.catch Any (Runtime.with_enabled_context Output environment=Runtime.current_execution_environment  <| in_fn (out_fn 10)) p-> p.payload.to_text
             r2 . should_equal "(Forbidden_Operation.Error 'Input')"
 
 main = Test_Suite.run_main spec

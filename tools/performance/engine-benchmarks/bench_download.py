@@ -706,7 +706,8 @@ if __name__ == '__main__':
     else:
         bench_runs = get_bench_runs(since, until)
         if len(bench_runs) == 0:
-            print(f"No successful benchmarks found within period since {since} until {until}")
+            print(
+                f"No successful benchmarks found within period since {since} until {until}")
             exit(1)
         job_reports: List[JobReport] = []
         for bench_run in bench_runs:
@@ -714,6 +715,11 @@ if __name__ == '__main__':
             if job_report:
                 job_reports.append(job_report)
         logging.debug(f"Got {len(job_reports)} job reports")
+        if len(job_reports) == 0:
+            print("There were 0 job_reports in the specified time interval, so "
+                  "there is nothing to visualize or compare.")
+            exit(1)
+
         if create_csv:
             write_bench_reports_to_csv(job_reports, csv_fname)
             logging.info(f"Benchmarks written to {csv_fname}")

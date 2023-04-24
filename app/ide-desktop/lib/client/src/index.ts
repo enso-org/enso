@@ -206,7 +206,6 @@ class App {
                     preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
                     backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
-                    devTools: argGroups.debug.options.devTools.value,
                     enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
@@ -282,9 +281,9 @@ class App {
                 fsSync.writeFileSync(profileOutPath, data)
             })
         }
-        electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, _event => {
+        electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, () => {
             if (this.window != null) {
-                this.window.loadURL('chrome://gpu')
+                void this.window.loadURL('chrome://gpu')
             }
         })
         electron.ipcMain.on(ipc.Channel.quit, () => {

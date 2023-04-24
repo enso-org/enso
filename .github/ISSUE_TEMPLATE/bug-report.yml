@@ -18,9 +18,9 @@ body:
       label: "What type of issue is this?"
       multiple: false
       options:
-        - "Transient – Occuring only once"
-        - "Intermittent – Ocurring irregularly"
-        - "Permanent – Ocurring repeatably"
+        - "Transient – Occurring only once"
+        - "Intermittent – Occurring irregularly"
+        - "Permanent – Occurring repeatably"
     validations:
       required: true
 

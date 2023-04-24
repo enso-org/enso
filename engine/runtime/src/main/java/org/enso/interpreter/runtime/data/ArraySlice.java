@@ -95,7 +95,7 @@ public final class ArraySlice implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return new WithWarnings(toEnso.execute(v), extracted);
+      return WithWarnings.wrap(toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
   }

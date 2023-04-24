@@ -136,16 +136,16 @@ export function onFileOpened(event: Event, path: string) {
 export function handleOpenFile(openedFile: string): string {
     try {
         return project.importProjectFromPath(openedFile)
-    } catch (e: unknown) {
+    } catch (error) {
         // Since the user has explicitly asked us to open a file, in case of an error, we should
         // display a message box with the error details.
         let message = `Cannot open file '${openedFile}'.`
-        message += `\n\nReason:\n${e?.toString() ?? 'Unknown error'}`
-        if (e instanceof Error && typeof e.stack !== 'undefined') {
-            message += `\n\nDetails:\n${e.stack}`
+        message += `\n\nReason:\n${error?.toString() ?? 'Unknown error'}`
+        if (error instanceof Error && typeof error.stack !== 'undefined') {
+            message += `\n\nDetails:\n${error.stack}`
         }
-        logger.error(e)
+        logger.error(error)
         electron.dialog.showErrorBox(common.PRODUCT_NAME, message)
-        throw e
+        throw error
     }
 }
