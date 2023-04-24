@@ -42,7 +42,7 @@ public abstract class BuiltinRootNode extends RootNode implements InlineableRoot
    * @return new node to use to call this builtin
    */
   public DirectCallNode createDirectCallNode() {
-    return DirectCallNode.create(getCallTarget());
+    return DirectCallNode.create(cloneUninitialized().getCallTarget());
   }
 
   /**
