@@ -42,7 +42,6 @@
 //!    It uses the combination of span tree node kind data and type information to decide which
 //!    widget is the best fit for the node.
 
-
 use crate::prelude::*;
 
 use crate::component::node::input::area::NODE_HEIGHT;
@@ -60,6 +59,8 @@ use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
 use text::index::Byte;
+
+
 
 // =================
 // === Constants ===
@@ -1063,12 +1064,9 @@ impl PointerUsage {
     }
 
     fn request_port(&mut self, identity: &WidgetIdentity, wants_port: bool) -> bool {
-        if wants_port && self.port_index.is_none() {
-            self.port_index = Some(identity.index);
-            true
-        } else {
-            false
-        }
+        let will_receive_port = wants_port && self.port_index.is_none();
+        will_receive_port.then(|| self.port_index = Some(identity.index));
+        will_receive_port
     }
 }
 

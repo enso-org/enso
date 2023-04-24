@@ -1213,7 +1213,7 @@ impl Deref for Scene {
 }
 
 impl Scene {
-    /// Perform early phase of scene update. This includes updating camera and the layout of all
+    /// Perform layout phase of scene update. This includes updating camera and the layout of all
     /// display objects. No GPU buffers are updated yet, giving the opportunity to perform
     /// additional updates that affect the layout of display objects after the main scene layout
     /// has been performed.
@@ -1223,7 +1223,7 @@ impl Scene {
     /// method to be manually called on affected objects in order to affect rendering
     /// during this frame.
     #[profile(Debug)]
-    pub fn early_update(&self, time: animation::TimeInfo) -> UpdateStatus {
+    pub fn update_layout(&self, time: animation::TimeInfo) -> UpdateStatus {
         if self.context.borrow().is_some() {
             debug_span!("Early update.").in_scope(|| {
                 let mut scene_was_dirty = false;
@@ -1239,11 +1239,11 @@ impl Scene {
         }
     }
 
-    /// Perform late phase of scene update. At this point, all display object state is being
+    /// Perform rendering phase of scene update. At this point, all display object state is being
     /// committed for rendering. This includes updating the layer stack, refreshing GPU buffers and
     /// handling mouse events.
     #[profile(Debug)]
-    pub fn late_update(
+    pub fn update_rendering(
         &self,
         time: animation::TimeInfo,
         early_status: UpdateStatus,

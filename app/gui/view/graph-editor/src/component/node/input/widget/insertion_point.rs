@@ -1,4 +1,9 @@
-//! Definition of empty widget that represents insertion point.
+//! Definition of empty widget that represents insertion point, which is a span node representing
+//! a position where a new expression can be inserted. Does not correspond to any AST, but instead
+//! is placed between spans for AST nodes. It is often used as an temporary edge endpoint when
+//! dragging an edge.
+//!
+//! See also [`span_tree::node::InsertionPoint`].
 
 use crate::prelude::*;
 

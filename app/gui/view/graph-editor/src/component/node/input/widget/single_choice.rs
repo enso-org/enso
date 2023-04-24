@@ -31,6 +31,8 @@ const DROPDOWN_Y_OFFSET: f32 = -20.0;
 /// by these values, it will receive a scroll bar.
 const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
 
+
+
 // ======================
 // === Triangle Shape ===
 // ======================
@@ -101,7 +103,6 @@ impl super::SpanWidget for Widget {
 
     fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
         let app = ctx.app();
-        let widgets_frp = ctx.frp();
         //  ╭─display_object────────────────────╮
         //  │╭─content_wrapper─────────────────╮│
         //  ││ ╭ shape ╮ ╭ label_wrapper ────╮ ││
@@ -116,7 +117,7 @@ impl super::SpanWidget for Widget {
         let activation_shape = triangle::View::new();
         activation_shape.set_size(ACTIVATION_SHAPE_SIZE);
 
-        let layers = &ctx.app().display.default_scene.layers;
+        let layers = &app.display.default_scene.layers;
         layers.label.add(&activation_shape);
 
         let display_object = display::object::Instance::new();
@@ -145,24 +146,137 @@ impl super::SpanWidget for Widget {
         dropdown_wrapper.set_size((0.0, 0.0)).set_alignment_left_top();
 
         let config_frp = Frp::new();
-        let network = &config_frp.network;
-        let input = &config_frp.private.input;
-        let styles = ctx.styles();
+        let dropdown = LazyDropdown::new(&app, &config_frp.network);
+        let dropdown = Rc::new(RefCell::new(dropdown));
 
-        let focus_receiver = display_object.clone_ref();
+        Self {
+            config_frp,
+            display_object,
+            content_wrapper,
+            dropdown_wrapper,
+            label_wrapper,
+            dropdown,
+            activation_shape,
+        }
+        .init(ctx)
+    }
+
+    fn configure(&mut self, config: &Config, mut ctx: super::ConfigContext) {
+        let input = &self.config_frp.public.input;
+
+        let has_value = !ctx.span_node.is_insertion_point();
+        let current_value: Option<ImString> =
+            has_value.then(|| ctx.expression_at(ctx.span_node.span()).into());
+
+        input.current_crumbs(ctx.span_node.crumbs.clone());
+        input.current_value(current_value);
+        input.set_entries(config.entries.clone());
+        input.is_connected(ctx.info.subtree_connection.is_some());
+
+        if has_value {
+            ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
+        }
+
+        if ctx.span_node.children.is_empty() {
+            let child_level = ctx.info.nesting_level;
+            let label_meta = super::Configuration::always(super::label::Config);
+            let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, label_meta);
+            self.label_wrapper.replace_children(&[child]);
+        } else {
+            let child_level = ctx.info.nesting_level.next();
+            let children = ctx
+                .span_node
+                .children_iter()
+                .map(|child| ctx.builder.child_widget(child, child_level))
+                .collect_vec();
+            self.label_wrapper.replace_children(&children);
+        }
+    }
+}
+
+impl Widget {
+    fn init(self, ctx: &super::ConfigContext) -> Self {
+        let is_open = self.init_dropdown_focus();
+        self.init_dropdown_values(ctx, is_open);
+        self.init_activation_shape(ctx);
+        self
+    }
+
+    fn init_dropdown_focus(&self) -> frp::Stream<bool> {
+        let focus_receiver = self.display_object.clone_ref();
+        let focus_in = focus_receiver.on_event::<event::FocusIn>();
+        let focus_out = focus_receiver.on_event::<event::FocusOut>();
+        let network = &self.config_frp.network;
+        let dropdown = &self.dropdown;
+        let dropdown_frp = &self.dropdown.borrow();
+        let dropdown_wrapper = &self.dropdown_wrapper;
+        frp::extend! { network
+            eval focus_in([dropdown, dropdown_wrapper](_) {
+                dropdown.borrow_mut().lazy_init(&dropdown_wrapper);
+            });
+            is_open <- bool(&focus_out, &focus_in);
+            dropdown_frp.set_open <+ is_open.on_change();
+
+            // Close the dropdown after a short delay after selection. Because the dropdown
+            // value application triggers operations that can introduce a few dropped frames,
+            // we want to delay the dropdown closing animation after that is handled.
+            // Otherwise the animation finishes within single frame, which looks bad.
+            let close_after_selection_timer = frp::io::timer::Timeout::new(network);
+            close_after_selection_timer.restart <+ dropdown_frp.user_select_action.constant(1);
+            eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
+
+        }
+        is_open
+    }
+
+
+    fn init_dropdown_values(&self, ctx: &super::ConfigContext, is_open: frp::Stream<bool>) {
+        let network = &self.config_frp.network;
+        let dropdown_frp = &self.dropdown.borrow();
+        let config_frp = &self.config_frp;
+        let widgets_frp = ctx.frp();
 
         frp::extend! { network
-            initialize_dropdown <- any_(...);
+            current_value <- config_frp.current_value.on_change();
+            entries <- config_frp.set_entries.on_change();
+            entries_and_value <- all(&entries, &current_value);
+            entries_and_value <- entries_and_value.debounce();
+            dropdown_frp.set_all_entries <+ entries_and_value.map(|(e, _)| e.deref().clone());
+            entries_and_value <- entries_and_value.buffered_gate(&is_open);
 
-            let focus_in = focus_receiver.on_event::<event::FocusIn>();
-            let focus_out = focus_receiver.on_event::<event::FocusOut>();
-            initialize_dropdown <+ focus_in;
-            is_open <- bool(&focus_out, &focus_in);
+            selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
+            dropdown_frp.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
-            is_hovered <- widgets_frp.on_port_hover.map2(&input.current_crumbs, |h, crumbs| {
+            dropdown_entry <- dropdown_frp.selected_entries
+                .map(|e: &HashSet<Entry>| e.iter().next().cloned());
+
+            // Emit the output value only after actual user action. This prevents the
+            // dropdown from emitting its initial value when it is opened, which can
+            // represent slightly different version of code than actually written.
+            submitted_entry <- dropdown_entry.sample(&dropdown_frp.user_select_action);
+            dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Entry::value));
+            dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
+
+            widgets_frp.request_import <+ dropdown_out_import.unwrap();
+            widgets_frp.value_changed <+ dropdown_out_value.map2(&config_frp.current_crumbs,
+                move |t: &Option<ImString>, crumbs: &span_tree::Crumbs| (crumbs.clone(), t.clone())
+            );
+
+        };
+    }
+
+    fn init_activation_shape(&self, ctx: &super::ConfigContext) {
+        let network = &self.config_frp.network;
+        let config_frp = &self.config_frp;
+        let widgets_frp = ctx.frp();
+        let styles = ctx.styles();
+        let activation_shape = &self.activation_shape;
+        let focus_receiver = &self.display_object;
+        frp::extend! { network
+            is_hovered <- widgets_frp.on_port_hover.map2(&config_frp.current_crumbs, |h, crumbs| {
                 h.on().map_or(false, |h| crumbs.starts_with(h))
             });
-            is_connected_or_hovered <- input.is_connected || is_hovered;
+            is_connected_or_hovered <- config_frp.is_connected || is_hovered;
             activation_shape_theme <- is_connected_or_hovered.map(|is_connected_or_hovered| {
                 if *is_connected_or_hovered {
                     Some(theme::widget::activation_shape::connected)
@@ -187,111 +301,9 @@ impl super::SpanWidget for Widget {
                 false => focus_receiver.blur(),
             });
 
-            current_value     <- input.current_value.on_change();
-            entries           <- input.set_entries.on_change();
-            entries_and_value <- all(&entries, &current_value);
-            entries_and_value <- entries_and_value.debounce();
-            dropdown_set_open          <- is_open.on_change();
-            dropdown_set_all_entries   <- entries_and_value.map(|(e, _)| e.deref().clone());
-            entries_and_value <- entries_and_value.buffered_gate(&is_open);
-
-            // sources from dropdown, lazily initialized
-            dropdown_user_select_action <- any(...);
-            dropdown_selected_entries <- any(...);
-
-            // Close the dropdown after a short delay after selection. Because the dropdown
-            // value application triggers operations that can introduce a few dropped frames,
-            // we want to delay the dropdown closing animation after that is handled.
-            // Otherwise the animation finishes within single frame, which looks bad.
-            let close_after_selection_timer = frp::io::timer::Timeout::new(network);
-            close_after_selection_timer.restart <+ dropdown_user_select_action.constant(1);
-            eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
-
-            selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
-            dropdown_set_selected_entries <- selected_entry.map(|e| e.iter().cloned().collect());
-
-            dropdown_entry <- dropdown_selected_entries.map(|e: &HashSet<Entry>| e.iter().next().cloned());
-            // Emit the output value only after actual user action. This prevents the
-            // dropdown from emitting its initial value when it is opened, which can
-            // represent slightly different version of code than actually written.
-            submitted_entry <- dropdown_entry.sample(&dropdown_user_select_action);
-            dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Entry::value));
-            dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
-
-            widgets_frp.request_import <+ dropdown_out_import.unwrap();
-            widgets_frp.value_changed <+ dropdown_out_value.map2(&input.current_crumbs,
-                move |t: &Option<ImString>, crumbs: &span_tree::Crumbs| (crumbs.clone(), t.clone())
-            );
         };
-
-        frp::extend! { network
-            dropdown_set_all_entries <- dropdown_set_all_entries.sampler();
-            dropdown_set_selected_entries <- dropdown_set_selected_entries.sampler();
-            dropdown_set_open <- dropdown_set_open.sampler();
-        }
-
-        let dropdown = LazyDropdown {
-            app:                  app.clone_ref(),
-            set_all_entries:      dropdown_set_all_entries,
-            set_selected_entries: dropdown_set_selected_entries,
-            set_open:             dropdown_set_open,
-            selected_entries:     dropdown_selected_entries,
-            user_select_action:   dropdown_user_select_action,
-            dropdown:             None,
-        };
-        let dropdown = Rc::new(RefCell::new(dropdown));
-
-        frp::extend! { network
-            eval initialize_dropdown([dropdown, dropdown_wrapper](_) {
-                dropdown.borrow_mut().init(&dropdown_wrapper);
-            });
-        }
-
-        Self {
-            config_frp,
-            display_object,
-            content_wrapper,
-            dropdown_wrapper,
-            label_wrapper,
-            dropdown,
-            activation_shape,
-        }
-    }
-
-    fn configure(&mut self, config: &Config, mut ctx: super::ConfigContext) {
-        let input = &self.config_frp.public.input;
-
-        let has_value = !ctx.span_node.is_insertion_point();
-        let current_value: Option<ImString> =
-            has_value.then(|| ctx.expression_at(ctx.span_node.span()).into());
-
-        input.current_crumbs(ctx.span_node.crumbs.clone());
-        input.current_value(current_value);
-        input.set_entries(config.entries.clone());
-        input.is_connected(ctx.info.subtree_connection.is_some());
-
-        if has_value {
-            ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
-        }
-
-
-        if ctx.span_node.children.is_empty() {
-            let child_level = ctx.info.nesting_level;
-            let label_meta = super::Configuration::always(super::label::Config);
-            let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, label_meta);
-            self.label_wrapper.replace_children(&[child]);
-        } else {
-            let child_level = ctx.info.nesting_level.next();
-            let children = ctx
-                .span_node
-                .children_iter()
-                .map(|child| ctx.builder.child_widget(child, child_level))
-                .collect_vec();
-            self.label_wrapper.replace_children(&children);
-        }
     }
 }
-
 
 fn entry_for_current_value(
     all_entries: &[Entry],
@@ -303,15 +315,13 @@ fn entry_for_current_value(
         // Handle parentheses in current value. Entries with parenthesized expressions will match if
         // they start with the same expression as the current value. That way it is still matched
         // once extra arguments are added to the nested function call.
-        if current_value.starts_with('(') {
+        current_value.starts_with('(').and_option_from(|| {
             let current_value = current_value.trim_start_matches('(').trim_end_matches(')');
             all_entries.iter().find(|entry| {
                 let trimmed_value = entry.value.trim_start_matches('(').trim_end_matches(')');
                 current_value.starts_with(trimmed_value)
             })
-        } else {
-            None
-        }
+        })
     });
 
     let with_fallback =
@@ -319,45 +329,80 @@ fn entry_for_current_value(
     Some(with_fallback)
 }
 
-/// A wrapper for dropdown that only initializes it when it is first opened.
+
+
+/// ====================
+/// === LazyDropdown ===
+/// ====================
+
+/// A wrapper for dropdown that can be initialized lazily, with all required FRP endpoints to drive
+/// it as if was just an ordinary view. Before calling `lazy_init` for the first time, the overhead
+/// is minimal, as the actual dropdown view is not created.
 #[derive(Debug)]
 struct LazyDropdown {
-    app:                  ensogl::application::Application,
-    set_all_entries:      frp::Sampler<Vec<Entry>>,
-    set_selected_entries: frp::Sampler<HashSet<Entry>>,
-    set_open:             frp::Sampler<bool>,
-    selected_entries:     frp::Any<HashSet<Entry>>,
-    user_select_action:   frp::Any<()>,
-    dropdown:             Option<Dropdown<Entry>>,
+    app: ensogl::application::Application,
+    set_all_entries: frp::Any<Vec<Entry>>,
+    set_selected_entries: frp::Any<HashSet<Entry>>,
+    set_open: frp::Any<bool>,
+    sampled_set_all_entries: frp::Sampler<Vec<Entry>>,
+    sampled_set_selected_entries: frp::Sampler<HashSet<Entry>>,
+    sampled_set_open: frp::Sampler<bool>,
+    selected_entries: frp::Any<HashSet<Entry>>,
+    user_select_action: frp::Any<()>,
+    dropdown: Option<Dropdown<Entry>>,
 }
 
 impl LazyDropdown {
-    fn init(&mut self, parent: &display::object::Instance) {
+    fn new(app: &ensogl::application::Application, network: &frp::Network) -> Self {
+        frp::extend! { network
+            set_all_entries <- any(...);
+            set_selected_entries <- any(...);
+            set_open <- any(...);
+            selected_entries <- any(...);
+            user_select_action <- any(...);
+            sampled_set_all_entries <- set_all_entries.sampler();
+            sampled_set_selected_entries <- set_selected_entries.sampler();
+            sampled_set_open <- set_open.sampler();
+        }
+
+        Self {
+            app: app.clone_ref(),
+            set_all_entries,
+            set_selected_entries,
+            set_open,
+            selected_entries,
+            user_select_action,
+            sampled_set_all_entries,
+            sampled_set_selected_entries,
+            sampled_set_open,
+            dropdown: None,
+        }
+    }
+
+    /// Perform initialization that actually creates the dropdown. Should be done only once there is
+    /// a request to open the dropdown.
+    fn lazy_init(&mut self, parent: &display::object::Instance) {
         if self.dropdown.is_some() {
             return;
         }
 
-        let dropdown = self.app.new_view::<Dropdown<Entry>>();
-        let dropdown = self.dropdown.insert(dropdown);
-
+        let dropdown = self.dropdown.insert(self.app.new_view::<Dropdown<Entry>>());
         parent.add_child(dropdown);
-        let layers = &self.app.display.default_scene.layers;
-        layers.above_nodes.add(&*dropdown);
-        dropdown.set_y(DROPDOWN_Y_OFFSET);
-        dropdown.set_max_open_size(DROPDOWN_MAX_SIZE);
-        dropdown.allow_deselect_all(true);
+        self.app.display.default_scene.layers.above_nodes.add(&*dropdown);
 
         frp::extend! { _network
-            dropdown.set_all_entries <+ self.set_all_entries;
-            dropdown.set_selected_entries <+ self.set_selected_entries;
-            dropdown.set_open <+ self.set_open;
+            dropdown.set_all_entries <+ self.sampled_set_all_entries;
+            dropdown.set_selected_entries <+ self.sampled_set_selected_entries;
+            dropdown.set_open <+ self.sampled_set_open;
             self.selected_entries <+ dropdown.selected_entries;
             self.user_select_action <+ dropdown.user_select_action;
         }
 
-
-        dropdown.set_all_entries.emit(self.set_all_entries.value());
-        dropdown.set_selected_entries.emit(self.set_selected_entries.value());
-        dropdown.set_open.emit(self.set_open.value());
+        dropdown.set_y(DROPDOWN_Y_OFFSET);
+        dropdown.set_max_open_size(DROPDOWN_MAX_SIZE);
+        dropdown.allow_deselect_all(true);
+        dropdown.set_all_entries(self.sampled_set_all_entries.value());
+        dropdown.set_selected_entries(self.sampled_set_selected_entries.value());
+        dropdown.set_open(self.sampled_set_open.value());
     }
 }

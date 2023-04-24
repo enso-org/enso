@@ -1622,12 +1622,12 @@ impl GraphEditorModelWithNetwork {
                model.frp.private.output.hover_node_output.emit(output);
             });
 
-            eval node_model.input.frp.input_edges_need_refresh(
-                (_) model.frp.private.output.node_incoming_edge_updates.emit(node_id)
+            eval_ node_model.input.frp.input_edges_need_refresh(
+                model.frp.private.output.node_incoming_edge_updates.emit(node_id)
             );
 
-            eval node_model.input.frp.width(
-                (_) model.frp.private.output.node_outgoing_edge_updates.emit(node_id)
+            eval_ node_model.input.frp.width(
+                model.frp.private.output.node_outgoing_edge_updates.emit(node_id)
             );
 
             let neutral_color = model.styles_frp.get_color(theme::code::types::any::selection);

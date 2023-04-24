@@ -171,8 +171,8 @@ crate::define_endpoints_2! {
         on_frame_start(Duration),
         on_before_animations(TimeInfo),
         on_after_animations(TimeInfo),
+        on_before_layout(TimeInfo),
         on_before_rendering(TimeInfo),
-        on_before_rendering_late(TimeInfo),
         frame_end(TimeInfo),
     }
 }
@@ -203,14 +203,14 @@ pub fn on_after_animations() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.on_after_animations.clone_ref())
 }
 
+/// Fires before the layout is performed.
+pub fn on_before_layout() -> enso_frp::Sampler<TimeInfo> {
+    LOOP_REGISTRY.with(|registry| registry.on_before_layout.clone_ref())
+}
+
 /// Fires before the rendering is performed.
 pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.on_before_rendering.clone_ref())
-}
-
-/// Fires before the late stage of rendering is performed.
-pub fn on_before_rendering_late() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.on_before_rendering_late.clone_ref())
 }
 
 /// A wrapper for JavaScript `requestAnimationFrame` loop. It allows registering callbacks and also
@@ -308,8 +308,8 @@ fn on_frame_closure(
         let on_frame_start = output.on_frame_start.clone_ref();
         let on_before_animations = output.on_before_animations.clone_ref();
         let on_after_animations = output.on_after_animations.clone_ref();
+        let on_before_layout = output.on_before_layout.clone_ref();
         let on_before_rendering = output.on_before_rendering.clone_ref();
-        let on_before_rendering_late = output.on_before_rendering_late.clone_ref();
         let frame_end = output.frame_end.clone_ref();
         let before_animations = before_animations.clone_ref();
         let animations = animations.clone_ref();
@@ -323,9 +323,9 @@ fn on_frame_closure(
             .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| animations.run_all(t)))
             .then(move || on_after_animations.emit(time_info))
             .then(move || frame_end.emit(time_info))
-            .then(move || on_before_rendering.emit(time_info))
+            .then(move || on_before_layout.emit(time_info))
             .then(move || {
-                on_before_rendering_late.emit(time_info);
+                on_before_rendering.emit(time_info);
                 drop(_profiler);
             })
             .schedule();
