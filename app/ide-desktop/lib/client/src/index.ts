@@ -22,6 +22,7 @@ import * as debug from 'debug'
 // eslint-disable-next-line no-restricted-syntax
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
+import * as log from 'log'
 import * as naming from 'naming'
 import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
@@ -29,7 +30,6 @@ import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
-import { Consumer, LogLevel } from '../../../../../target/ensogl-pack/linked-dist'
 
 const logger = contentConfig.logger
 
@@ -46,74 +46,20 @@ class App {
     isQuitting = false
 
     async run() {
-        // Consumer that redirects all logs to the file.
-        logger.addConsumer(
-            new (class extends Consumer {
-                private logFilePath: string
-                private logFileHandle: number
-
-                private generateUniqueLogFilePath(): string {
-                    const logsDirectory = electron.app.getPath('logs')
-                    const timestamp = new Date().toISOString().replace(/[:.-]/g, '')
-                    const fileName = `IDE-${timestamp}.txt`
-
-                    if (!fsSync.existsSync(logsDirectory)) {
-                        fsSync.mkdirSync(logsDirectory, { recursive: true })
-                    }
-
-                    const filePath = pathModule.join(logsDirectory, fileName)
-                    return filePath
-                }
-
-                constructor() {
-                    super()
-                    this.logFilePath = this.generateUniqueLogFilePath()
-                    this.logFileHandle = fsSync.openSync(this.logFilePath, 'a')
-                    logger.log(`Log file: ${this.logFilePath}`)
-                }
-
-                override message(level: LogLevel, ...args: unknown[]): void {
-                    const timestamp = new Date().toISOString()
-                    const message = args
-                        .map(arg => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
-                        .join(' ')
-                    const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`
-
-                    if (!this.logFileHandle) {
-                        console.error('Log file not initialized.')
-                        return
-                    }
-
-                    try {
-                        fsSync.writeSync(this.logFileHandle, timestampedMessage)
-                    } catch (error) {
-                        console.error('Failed to write log:', error)
-                    }
-                }
-                override startGroup(...args: unknown[]): void {
-                    this.message('log', '[GROUP START]', ...args)
-                }
-                override startGroupCollapsed(...args: unknown[]): void {
-                    this.message('log', '[GROUP START]', ...args)
-                }
-                override groupEnd(...args: unknown[]): void {
-                    this.message('log', '[GROUP END]', ...args)
-                }
-            })()
-        )
+        log.addFileLog()
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        fileAssociations.setOpenFileHandler(id => this.setProjectToOpenOnStartup(id))
+        fileAssociations.setOpenFileHandler(id => { this.setProjectToOpenOnStartup(id); })
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
         this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
             await this.printVersion()
-            electron.app.quit()
+            this.quit()
         } else if (this.args.groups.debug.options.info.value) {
             await electron.app.whenReady().then(async () => {
                 await debug.printInfo()
-                electron.app.quit()
+                this.quit()
             })
         } else {
             this.setChromeOptions(chromeOptions)
@@ -456,7 +402,6 @@ class App {
             })
         })
     }
-}
 
 // ===================
 // === App startup ===
