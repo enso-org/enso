@@ -1417,13 +1417,13 @@ Text.parse_json self = Json.parse self
    Converts text containing a date into a Date object.
 
    Arguments:
-   - format: An optional pattern describing how to parse the text.
+   - format: An optional format describing how to parse the text.
 
-   Returns a `Time_Error` if the provided `text` cannot be parsed using the
-   provided `pattern`.
+   Returns a `Time_Error` if `self`` cannot be parsed using the provided
+   `format`.
 
-   ? Pattern Syntax
-     Patterns are based on a simple sequence of letters and symbols. For
+   ? Format Syntax
+     Formats are based on a simple sequence of letters and symbols. For
      example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
 
    ? Default Date Formatting
@@ -1482,11 +1482,11 @@ Text.parse_date self format=Nothing = Date.parse self format
    "2007-12-03T10:15:30+01:00 Europe/Paris".
 
    Arguments:
-   - format: The pattern to use for parsing the input text.
-   - locale: The locale in which the pattern should be interpreted.
+   - format: The format to use for parsing the input text.
+   - locale: The locale in which the format should be interpreted.
 
-   ? Pattern Syntax
-     For the list of accepted symbols in pattern refer to `Time.format` doc.
+   ? Format Syntax
+     For the list of accepted symbols in format refer to `Time.format` doc.
 
    ? Default Date_Time Format
      The text must represent a valid date-time and is parsed using the ISO-8601
@@ -1561,14 +1561,14 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
    Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
    Arguments:
-   - format: The pattern to use for parsing the input text.
-   - locale: The locale in which the pattern should be interpreted.
+   - format: The format to use for parsing the input text.
+   - locale: The locale in which the format should be interpreted.
 
    Returns a `Time_Error` if the provided text cannot be parsed using the
    default format.
 
-   ? Pattern Syntax
-     For the list of accepted symbols in pattern refer to `Time.format` doc.
+   ? Format Syntax
+     For the list of accepted symbols in format refer to `Time.format` doc.
 
    ? Default Time Format
      The text must represent a valid time and is parsed using the ISO-8601
