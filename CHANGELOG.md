@@ -695,6 +695,7 @@
 - [Vector.sort handles incomparable types][5998]
 - [Removing need for asynchronous thread to execute ResourceManager
   finalizers][6335]
+- [Reimplement `enso_project` as a proper builtin][6352]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -801,7 +802,10 @@
 [6151]: https://github.com/enso-org/enso/pull/6151
 [6171]: https://github.com/enso-org/enso/pull/6171
 [5998]: https://github.com/enso-org/enso/pull/5998
+
 [6335]: https://github.com/enso-org/enso/pull/6335
+
+[6352]: https://github.com/enso-org/enso/pull/6352
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
