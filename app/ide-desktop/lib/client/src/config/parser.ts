@@ -38,6 +38,8 @@ const USAGE =
     `the application from a web-browser, the creation of a window can be suppressed by ` +
     `entering either '-window=false' or '-no-window'.`
 
+/** Contains information for a category of command line options and the options it is comprised of.
+ */
 class Section<T> {
     description = ''
     entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []
@@ -201,9 +203,12 @@ function wordWrap(str: string, width: number): string[] {
 // === Chrome Options ===
 // ======================
 
+/** Represents a command line option to be passed to the Chrome instance powering Electron. */
 export class ChromeOption {
+    /** Creates a {@link ChromeOption}. */
     constructor(public name: string, public value?: string) {}
 
+    /** Returns the option as it would appear on the command line. */
     display(): string {
         const value = this.value == null ? '' : `=${this.value}`
         return `--${this.name}${value}`
@@ -355,7 +360,8 @@ export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMEN
         windowSize = parsedWindowSize
     }
 
-    const printHelpAndExit = (exitCode?: number) => {
+    /** Prints the entire help text, and exits with the specified exit code. */
+    function printHelpAndExit(exitCode?: number) {
         printHelp({
             args,
             groupsOrdering: [

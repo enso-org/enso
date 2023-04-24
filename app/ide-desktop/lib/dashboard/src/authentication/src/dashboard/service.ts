@@ -446,6 +446,7 @@ interface ListVersionsResponseBody {
 // === Type guards ===
 // ===================
 
+/** Returns `true` if an {@link Asset} is of the given type. */
 export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
 }
@@ -465,13 +466,15 @@ export class Backend {
     ) {
         // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
         // set.
-        if (!this.client.defaultHeaders?.has('Authorization')) {
+        if (!this.client.defaultHeaders.has('Authorization')) {
             return this.throw('Authorization header not set.')
         } else {
             return
         }
     }
 
+    /** Logs an error message and throws an `Error` with the specified message.
+     * @throws {Error} Always. */
     throw(message: string): never {
         this.logger.error(message)
         throw new Error(message)
@@ -525,7 +528,7 @@ export class Backend {
 
     /** Creates a directory, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createDirectory(body: CreateDirectoryRequestBody): Promise<Directory> {
         const response = await this.post<Directory>(CREATE_DIRECTORY_PATH, body)
         if (response.status !== STATUS_OK) {
@@ -550,7 +553,7 @@ export class Backend {
 
     /** Creates a project for the current user, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createProject(body: CreateProjectRequestBody): Promise<CreatedProject> {
         const response = await this.post<CreatedProject>(CREATE_PROJECT_PATH, body)
         if (response.status !== STATUS_OK) {
@@ -562,7 +565,7 @@ export class Backend {
 
     /** Closes the project identified by the given project ID, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async closeProject(projectId: ProjectId): Promise<void> {
         const response = await this.post(closeProjectPath(projectId), {})
         if (response.status !== STATUS_OK) {
@@ -574,7 +577,7 @@ export class Backend {
 
     /** Returns project details for the specified project ID, from the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async getProjectDetails(projectId: ProjectId): Promise<Project> {
         const response = await this.get<Project>(getProjectDetailsPath(projectId))
         if (response.status !== STATUS_OK) {
@@ -586,7 +589,7 @@ export class Backend {
 
     /** Sets project to an open state, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async openProject(
         projectId: ProjectId,
         body: OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
@@ -599,6 +602,9 @@ export class Backend {
         }
     }
 
+    /** Updates project's name or AMI, on the Cloud backend API.
+     *
+     * @throws An error if any status code other than 200 OK was received. */
     async projectUpdate(
         projectId: ProjectId,
         body: ProjectUpdateRequestBody
@@ -613,7 +619,7 @@ export class Backend {
 
     /** Deletes project, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteProject(projectId: ProjectId): Promise<void> {
         const response = await this.delete(deleteProjectPath(projectId))
         if (response.status !== STATUS_OK) {
@@ -625,7 +631,7 @@ export class Backend {
 
     /** Returns project memory, processor and storage usage, from the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async checkResources(projectId: ProjectId): Promise<ResourceUsage> {
         const response = await this.get<ResourceUsage>(checkResourcesPath(projectId))
         if (response.status !== STATUS_OK) {
@@ -637,7 +643,7 @@ export class Backend {
 
     /** Returns a list of files accessible by the current user, from the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listFiles(): Promise<File[]> {
         const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
         if (response.status !== STATUS_OK) {
@@ -649,7 +655,7 @@ export class Backend {
 
     /** Uploads a file, to the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo> {
         const response = await this.postBase64<FileInfo>(
             UPLOAD_FILE_PATH +
@@ -680,7 +686,7 @@ export class Backend {
 
     /** Deletes a file, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteFile(fileId: FileId): Promise<void> {
         const response = await this.delete(deleteFilePath(fileId))
         if (response.status !== STATUS_OK) {
@@ -692,7 +698,7 @@ export class Backend {
 
     /** Creates a secret environment variable, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo> {
         const response = await this.post<SecretAndInfo>(CREATE_SECRET_PATH, body)
         if (response.status !== STATUS_OK) {
@@ -704,7 +710,7 @@ export class Backend {
 
     /** Returns a secret environment variable, from the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async getSecret(secretId: SecretId): Promise<Secret> {
         const response = await this.get<Secret>(getSecretPath(secretId))
         if (response.status !== STATUS_OK) {
@@ -716,7 +722,7 @@ export class Backend {
 
     /** Returns the secret environment variables accessible by the user, from the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listSecrets(): Promise<SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
         if (response.status !== STATUS_OK) {
@@ -728,7 +734,7 @@ export class Backend {
 
     /** Deletes a secret environment variable, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteSecret(secretId: SecretId): Promise<void> {
         const response = await this.delete(deleteSecretPath(secretId))
         if (response.status !== STATUS_OK) {
@@ -740,7 +746,7 @@ export class Backend {
 
     /** Creates a file tag or project tag, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createTag(body: CreateTagRequestBody): Promise<TagInfo> {
         const response = await this.post<TagInfo>(CREATE_TAG_PATH, {
             /* eslint-disable @typescript-eslint/naming-convention */
@@ -759,7 +765,7 @@ export class Backend {
 
     /** Returns file tags or project tags accessible by the user, from the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listTags(params: ListTagsRequestParams): Promise<Tag[]> {
         const response = await this.get<ListTagsResponseBody>(
             LIST_TAGS_PATH +
@@ -778,7 +784,7 @@ export class Backend {
 
     /** Deletes a secret environment variable, on the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteTag(tagId: TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
         if (response.status !== STATUS_OK) {
@@ -790,7 +796,7 @@ export class Backend {
 
     /** Returns list of backend or IDE versions, from the Cloud backend API.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listVersions(params: ListVersionsRequestParams): Promise<[Version, ...Version[]]> {
         const response = await this.get<ListVersionsResponseBody>(
             LIST_VERSIONS_PATH +
@@ -838,12 +844,12 @@ export class Backend {
 // === createBackend ===
 // =====================
 
-/** Shorthand method for creating a new instance of the backend API, along with the necessary
- * headers. */
 /* TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
  * This is a hack to quickly create the backend in the format we want, until we get the provider
  * working. This should be removed entirely in favour of creating the backend once and using it from
  * the context. */
+/** Shorthand method for creating a new instance of the backend API, along with the necessary
+ * headers. */
 export function createBackend(accessToken: string, logger: loggerProvider.Logger): Backend {
     const headers = new Headers()
     headers.append('Authorization', `Bearer ${accessToken}`)

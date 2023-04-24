@@ -26,6 +26,7 @@ const LOGIN_QUERY_PARAMS = {
 // === Login ===
 // =============
 
+/** A form for users to log in. */
 function Login() {
     const { search } = router.useLocation()
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
@@ -166,6 +167,7 @@ function Login() {
     )
 }
 
+/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
 function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const email = query.get(LOGIN_QUERY_PARAMS.email)

@@ -89,7 +89,7 @@ function getClientArguments(): string[] {
 // === File Associations ===
 // =========================
 
-/* Check if the given path looks like a file that we can open. */
+/** Check if the given path looks like a file that we can open. */
 export function isFileOpenable(path: string): boolean {
     const extension = pathModule.extname(path).toLowerCase()
     return (
@@ -98,7 +98,7 @@ export function isFileOpenable(path: string): boolean {
     )
 }
 
-/* On macOS when Enso-associated file is opened, the application is first started and then it
+/** On macOS when an Enso-associated file is opened, the application is first started and then it
  * receives the `open-file` event. However, if there is already an instance of Enso running,
  * it receives the `open-file` event (and no new instance is created for us). In this case,
  * we manually start a new instance of the application and pass the file path to it (using the

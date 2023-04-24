@@ -21,6 +21,7 @@ const REGISTRATION_QUERY_PARAMS = {
 // === Confirm Registration ===
 // ============================
 
+/** An empty component redirecting users based on the backend response to user registration. */
 function ConfirmRegistration() {
     const logger = loggerProvider.useLogger()
     const { confirmSignUp } = auth.useAuth()
@@ -50,6 +51,7 @@ function ConfirmRegistration() {
     return <></>
 }
 
+/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
 function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const verificationCode = query.get(REGISTRATION_QUERY_PARAMS.verificationCode)

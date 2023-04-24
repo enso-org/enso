@@ -13,13 +13,15 @@ import SvgIcon from './svgIcon'
 // === Registration ===
 // ====================
 
+/** A form for users to register an account. */
 function Registration() {
     const { signUp } = auth.useAuth()
     const [email, setEmail] = react.useState('')
     const [password, setPassword] = react.useState('')
     const [confirmPassword, setConfirmPassword] = react.useState('')
 
-    const handleSubmit = () => {
+    /** Submit the form to the backend. */
+    function handleSubmit() {
         /** The password & confirm password fields must match. */
         if (password !== confirmPassword) {
             toast.error('Passwords do not match.')

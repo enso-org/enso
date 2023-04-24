@@ -45,6 +45,7 @@ interface SessionProviderProps {
     children: react.ReactNode
 }
 
+/** A React provider for the session of the authenticated user. */
 export function SessionProvider(props: SessionProviderProps) {
     const { mainPageUrl, children, userSession, registerAuthEventListener } = props
 
@@ -93,6 +94,8 @@ export function SessionProvider(props: SessionProviderProps) {
      * For example, if a user clicks the signout button, this will clear the user's session, which
      * means we want the login screen to render (which is a child of this provider). */
     react.useEffect(() => {
+        /** Handles Cognito authentication events
+         * @throws {error.UnreachableCaseError} Never. */
         const listener: listen.ListenerCallback = event => {
             switch (event) {
                 case listen.AuthEvent.signIn:
@@ -137,6 +140,7 @@ export function SessionProvider(props: SessionProviderProps) {
 // === useSession ===
 // ==================
 
+/** React context hook returning the session of the authenticated user. */
 export function useSession() {
     return react.useContext(SessionContext)
 }

@@ -21,21 +21,29 @@ const ModalContext = react.createContext<ModalContextType>({
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ModalProviderProps extends React.PropsWithChildren<object> {}
 
+/** A React provider containing the currently active modal. */
 export function ModalProvider(props: ModalProviderProps) {
     const { children } = props
     const [modal, setModal] = react.useState<Modal | null>(null)
     return <ModalContext.Provider value={{ modal, setModal }}>{children}</ModalContext.Provider>
 }
 
+/** A React context hook exposing the currently active modal, if one is currently visible. */
 export function useModal() {
     const { modal } = react.useContext(ModalContext)
     return { modal }
 }
 
+/** A React context hook exposing functions to set and unset the currently active modal. */
 export function useSetModal() {
-    const { setModal } = react.useContext(ModalContext)
+    const { setModal: setModalRaw } = react.useContext(ModalContext)
+    /** Sets the currently active modal to the given value. */
+    function setModal(modal: Modal) {
+        setModalRaw(modal)
+    }
+    /** Unsets the currently active modal. */
     function unsetModal() {
-        setModal(null)
+        setModalRaw(null)
     }
     return { setModal, unsetModal }
 }

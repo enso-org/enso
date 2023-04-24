@@ -226,6 +226,18 @@ export default [
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
+            'require-jsdoc': [
+                'error',
+                {
+                    require: {
+                        FunctionDeclaration: true,
+                        MethodDefinition: true,
+                        ClassDeclaration: true,
+                        ArrowFunctionExpression: true,
+                        FunctionExpression: true,
+                    },
+                },
+            ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',

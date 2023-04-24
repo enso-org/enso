@@ -11,6 +11,7 @@ import SvgIcon from './svgIcon'
 // === SetUsername ===
 // ===================
 
+/** A form for users to set their username upon registration. */
 function SetUsername() {
     const { setUsername: authSetUsername } = auth.useAuth()
     const { accessToken, email } = auth.usePartialUserSession()

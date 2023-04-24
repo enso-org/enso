@@ -34,6 +34,7 @@ interface LoggerProviderProps {
     logger: Logger
 }
 
+/** A React provider containing the diagnostic logger. */
 export function LoggerProvider(props: LoggerProviderProps) {
     const { children, logger } = props
     return <LoggerContext.Provider value={logger}>{children}</LoggerContext.Provider>
@@ -43,6 +44,7 @@ export function LoggerProvider(props: LoggerProviderProps) {
 // === useLogger ===
 // =================
 
+/** A React context hook exposing the diagnostic logger. */
 export function useLogger() {
     return react.useContext(LoggerContext)
 }

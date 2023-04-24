@@ -198,6 +198,7 @@ interface OtherDashboardProps extends BaseDashboardProps {
 
 export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
 
+/** The component containing the entire UI. */
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
 
@@ -278,7 +279,8 @@ function Dashboard(props: DashboardProps) {
         ),
     }
 
-    const renderer = <Type extends backend.AssetType>(column: Column, assetType: Type) => {
+    /** Returns a function that returns JSX for the specified {@link Column}. */
+    function renderer<Type extends backend.AssetType>(column: Column, assetType: Type) {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax

@@ -23,6 +23,7 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 // === ResetPassword ===
 // =====================
 
+/** A form for users to reset their password. */
 function ResetPassword() {
     const { resetPassword } = auth.useAuth()
     const { search } = router.useLocation()
@@ -34,7 +35,8 @@ function ResetPassword() {
     const [newPassword, setNewPassword] = react.useState('')
     const [newPasswordConfirm, setNewPasswordConfirm] = react.useState('')
 
-    const handleSubmit = () => {
+    /** Submit the form to the backend. */
+    function handleSubmit() {
         if (newPassword !== newPasswordConfirm) {
             toast.error('Passwords do not match')
             return Promise.resolve()
@@ -173,6 +175,7 @@ function ResetPassword() {
     )
 }
 
+/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
 function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const verificationCode = query.get(RESET_PASSWORD_QUERY_PARAMS.verificationCode)

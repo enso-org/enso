@@ -97,6 +97,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })()
     }, [])
 
+    /** Closes project and sets UI state. */
     function closeProject() {
         setState(backend.ProjectState.closed)
         void backendService.closeProject(project.id)
@@ -109,6 +110,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })
     }
 
+    /** Opens project and sets UI state. */
     function openProject() {
         setState(backend.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
@@ -121,7 +123,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
         void backendService.openProject(project.id)
 
-        const checkProjectStatus = async () => {
+        /** Fetches project details from the backend. */
+        async function checkProjectStatus() {
             const response = await backendService.getProjectDetails(project.id)
 
             setState(response.state.type)

@@ -125,6 +125,7 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
     }
 }
 
+/** Returns the appropriate Amplify configuration for the current  */
 function loadAmplifyConfig(
     logger: loggerProvider.Logger,
     platform: platformModule.Platform,
@@ -146,7 +147,7 @@ function loadAmplifyConfig(
         urlOpener = openUrlWithExternalBrowser
 
         /** When running on destop we want to have option to save access token to a file,
-         * so it can be later reuse when issuing requests to Cloud API. */
+         * so it can be later reused when issuing requests to the Cloud API. */
         accessTokenSaver = saveAccessToken
 
         /** To handle redirects back to the application from the system browser, we also need to
@@ -163,10 +164,12 @@ function loadAmplifyConfig(
     }
 }
 
+/** Opens a URL with the user's default browser. */
 function openUrlWithExternalBrowser(url: string) {
     window.authenticationApi.openUrlInSystemBrowser(url)
 }
 
+/** Saves the access token to a file. */
 function saveAccessToken(accessToken: string) {
     window.authenticationApi.saveAccessToken(accessToken)
 }
@@ -189,6 +192,7 @@ function saveAccessToken(accessToken: string) {
  * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
  * ignored by this handler. */
 function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
+    /** Handles incoming deep links. */
     const onDeepLink = (url: string) => {
         const parsedUrl = new URL(url)
         logger.log(`Parsed pathname: ${parsedUrl.pathname}`)

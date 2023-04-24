@@ -44,6 +44,7 @@ class App {
     args: config.Args = config.CONFIG
     isQuitting = false
 
+    /** Initializes and runs the Electron application. */
     async run() {
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
@@ -76,6 +77,7 @@ class App {
         }
     }
 
+    /** Processes the command line arguments. */
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
@@ -114,14 +116,11 @@ class App {
         }
     }
 
-    /** Set Chrome options based on the app configuration. For comprehensive list of available
+    /** Sets Chrome options based on the app configuration. For comprehensive list of available
      * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
-        const addIf = (
-            opt: contentConfig.Option<boolean>,
-            chromeOptName: string,
-            value?: string
-        ) => {
+        /** Adds the specified Chrome option when the specified command line option is enabled. */
+        function addIf(opt: contentConfig.Option<boolean>, chromeOptName: string, value?: string) {
             if (opt.value) {
                 const chromeOption = new configParser.ChromeOption(chromeOptName, value)
                 const chromeOptionStr = chromeOption.display()
@@ -130,8 +129,10 @@ class App {
                 chromeOptions.push(chromeOption)
             }
         }
-        const add = (option: string, value?: string) =>
+        /** Adds the specified Chrome option. */
+        function add(option: string, value?: string) {
             chromeOptions.push(new configParser.ChromeOption(option, value))
+        }
         logger.groupMeasured('Setting Chrome options', () => {
             const perfOpts = this.args.groups.performance.options
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
@@ -330,7 +331,8 @@ class App {
         }
     }
 
-    printVersion(): Promise<void> {
+    /** Prints the version of the frontend and the backend. */
+    async printVersion(): Promise<void> {
         const indent = ' '.repeat(utils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
@@ -342,22 +344,20 @@ class App {
             const spacing = ' '.repeat(maxNameLen - name.length)
             console.log(`${indent}${label}:${spacing} ${value}`)
         }
-
         console.log('')
-
         console.log('Backend:')
-        return projectManager.version(this.args).then(backend => {
-            if (!backend) {
-                console.log(`${indent}No backend available.`)
-            } else {
-                const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
-                for (const line of lines) {
-                    console.log(`${indent}${line}`)
-                }
+        const backend = await projectManager.version(this.args)
+        if (!backend) {
+            console.log(`${indent}No backend available.`)
+        } else {
+            const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+            for (const line of lines) {
+                console.log(`${indent}${line}`)
             }
-        })
+        }
     }
 
+    /** Registers keyboard shortcuts. */
     registerShortcuts() {
         electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
             webContents.on('before-input-event', (_beforeInputEvent, input) => {

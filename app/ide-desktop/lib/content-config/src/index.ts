@@ -27,6 +27,7 @@ export const VERSION = {
     /// Version of the `client` js package.
     ide: new semver.SemVer(BUILD_INFO.version, { loose: true }),
 
+    /** Returns whether this is a development version. */
     isDev(): boolean {
         const clientVersion = VERSION.ide
         const releaseDev = clientVersion.compareMain(VERSION.dev) === 0

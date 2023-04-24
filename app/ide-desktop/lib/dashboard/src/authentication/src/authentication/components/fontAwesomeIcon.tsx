@@ -10,6 +10,7 @@ export interface FontAwesomeIconProps {
     icon: fontawesomeIcons.IconDefinition
 }
 
+/** A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */
 function FontAwesomeIcon(props: FontAwesomeIconProps) {
     return (
         <span

@@ -56,7 +56,9 @@ type UnsubscribeFunction = () => void
  * to avoid memory leaks or duplicate event handlers. */
 export type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction
 
+/** Listens to authentication state changes. */
 export function registerAuthEventListener(listener: ListenerCallback) {
+    /** A wrapper function around the listener to filter for only authentication events. */
     const callback: amplify.HubCallback = data => {
         if (isAuthEvent(data.payload.event)) {
             listener(data.payload.event, data.payload.data)

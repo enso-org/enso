@@ -25,6 +25,7 @@ interface NotNewtype {
     _$type?: never
 }
 
+/** Converts a value that is not a newtype, to a value that is a newtype. */
 export function asNewtype<T extends Newtype<unknown, string>>(
     s: NotNewtype & Omit<T, '_$type'>
 ): T {

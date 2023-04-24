@@ -92,14 +92,17 @@ export interface ListSamplesParams {
 // === Project Manager ===
 // =======================
 
-/** A WebSocket endpoint to the project manager. */
+/** A WebSocket endpoint to the Project Manager. */
 export class ProjectManager {
+    /** Creates a {@link ProjectManager}. */
     constructor(protected readonly connectionUrl: string) {}
 
+    /** Returns the singleton instance of the {@link ProjectManager}. */
     static default() {
         return new ProjectManager(PROJECT_MANAGER_ENDPOINT)
     }
 
+    /** Sends a JSON-RPC request to the WebSocket endpoint. */
     public async sendRequest<T = void>(method: string, params: unknown): Promise<Result<T>> {
         const req = {
             jsonrpc: '2.0',

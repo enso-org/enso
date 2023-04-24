@@ -13,6 +13,7 @@ import Modal from './modal'
 // === ResetPasswordModal ===
 // ==========================
 
+/** A modal to change the user's password. */
 function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
@@ -20,7 +21,9 @@ function ChangePasswordModal() {
     const [oldPassword, setOldPassword] = react.useState('')
     const [newPassword, setNewPassword] = react.useState('')
     const [confirmNewPassword, setConfirmNewPassword] = react.useState('')
-    const handleSubmit = async () => {
+
+    /** Submit the form to the backend and update the UI. */
+    async function handleSubmit() {
         if (newPassword !== confirmNewPassword) {
             toast.error('Passwords do not match.')
         } else {
@@ -44,9 +47,9 @@ function ChangePasswordModal() {
                 </div>
                 <div className="mt-10">
                     <form
-                        onSubmit={event => {
+                        onSubmit={async event => {
                             event.preventDefault()
-                            void handleSubmit()
+                            await handleSubmit()
                         }}
                     >
                         <div className="flex flex-col mb-6">

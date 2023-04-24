@@ -16,6 +16,7 @@ interface UserMenuItemProps {
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
+/** User menu item */
 function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
     const { children, onClick } = props
 
@@ -37,7 +38,8 @@ function UserMenu() {
     const { accessToken, organization } = auth.useFullUserSession()
     const { setModal } = modalProvider.useSetModal()
 
-    const goToProfile = () => {
+    /** Redirect to the user profile page. */
+    function goToProfile() {
         // TODO: Implement this when the backend endpoints are implemented.
     }
 

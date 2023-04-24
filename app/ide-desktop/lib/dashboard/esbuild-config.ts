@@ -48,10 +48,11 @@ export function argumentsFromEnv(): Arguments {
     return { outputPath, devMode: false }
 }
 
-// ======================
-// === Inline plugins ===
-// ======================
+// =======================
+// === Esbuild plugins ===
+// =======================
 
+/** A plugin to process all CSS files with Tailwind CSS. */
 function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',

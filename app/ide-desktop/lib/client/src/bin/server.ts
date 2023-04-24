@@ -46,6 +46,7 @@ interface ConfigConfig {
 export class Config {
     dir: string
     port: number
+    /** Creates a server configuration. */
     constructor(cfg: ConfigConfig) {
         this.dir = path.resolve(cfg.dir)
         this.port = cfg.port
@@ -66,12 +67,13 @@ async function findPort(port: number): Promise<number> {
 // === Server ===
 // ==============
 
-/// A simple server implementation.
-///
-/// Initially it was based on `union`, but later we migrated to `create-servers`. Read this topic to
-/// learn why: https://github.com/http-party/http-server/issues/483
+/** A simple server implementation.
+ *
+ * Initially it was based on `union`, but later we migrated to `create-servers`. Read this topic to
+ * learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
     server: unknown
+    /** Creates a simple HTTP server. */
     constructor(public config: Config) {}
 
     /** Server constructor. */
@@ -83,6 +85,7 @@ export class Server {
         return server
     }
 
+    /** Starts the server. */
     run(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.server = createServer(
@@ -103,6 +106,7 @@ export class Server {
         })
     }
 
+    /** Responds to an incoming request. */
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
         if (requestUrl == null) {

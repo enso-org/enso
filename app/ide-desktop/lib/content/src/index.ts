@@ -40,15 +40,16 @@ if (IS_DEV_MODE) {
 // === Fetch ===
 // =============
 
-function timeout(time: number) {
+/** Returns an `AbortController` that aborts after the specified number of seconds. */
+function timeout(timeSeconds: number) {
     const controller = new AbortController()
     setTimeout(() => {
         controller.abort()
-    }, time * SECOND)
+    }, timeSeconds * SECOND)
     return controller
 }
 
-/** A version of `fetch` which timeouts after the provided time. */
+/** A version of `fetch` which times out after the provided time. */
 async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknown> {
     return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
@@ -126,7 +127,9 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** Contains the entrypoint into the IDE. */
 class Main {
+    /** The entrypoint into the IDE. */
     async main(inputConfig: StringConfig) {
         const config = Object.assign(
             {
@@ -161,6 +164,8 @@ class Main {
                     contentConfig.OPTIONS.groups.startup.options.entry.value ===
                         contentConfig.OPTIONS.groups.startup.options.entry.default
                 ) {
+                    /** Hides the authentication UI.
+                     * This should be called once the authentciation UI is no longer needed. */
                     const hideAuth = () => {
                         const auth = document.getElementById('dashboard')
                         const ide = document.getElementById('root')
@@ -181,6 +186,9 @@ class Main {
                      * appInstance was already ran. Target solution should move running appInstance
                      * where it will be called only once. */
                     let appInstanceRan = false
+                    /** Callback called when authentication is finished.
+                     * Hides the authentication UI and runs the IDE
+                     * if the dashboard is not enabled. */
                     const onAuthenticated = () => {
                         if (
                             !contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value

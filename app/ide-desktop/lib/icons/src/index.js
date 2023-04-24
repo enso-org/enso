@@ -31,7 +31,9 @@ const MACOS_DPI = 144
 // === Logo ===
 // ============
 
+/** A class representing the logo, of the specified size. */
 class Logo {
+    /** Creates a {@link Logo}. */
     constructor(size = DEFAULT_SIZE, compatibleMode = true) {
         this.xsize = size
         this.size = DEFAULT_SIZE
@@ -56,6 +58,7 @@ class Logo {
         this.defs = ''
     }
 
+    /** Outputs the logo as an SVG image. */
     generate() {
         return `
 <svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="${
@@ -125,6 +128,7 @@ class Logo {
 `
     }
 
+    /** Return a reference to the element containing the complete logo. */
     main() {
         return `<g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>`
     }

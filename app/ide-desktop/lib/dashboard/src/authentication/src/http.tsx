@@ -35,12 +35,13 @@ function blobToBase64(blob: Blob) {
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export class Client {
+    /** Creates a new HTTP client with the specified headers to be sent on every request. */
     constructor(
         /** A map of default headers that are included in every HTTP request sent by this client.
          *
-         * This is useful for setting headers that are required for every request, like authentication
-         * tokens. */
-        public defaultHeaders?: Headers
+         * This is useful for setting headers that are required for every request, like
+         * authentication tokens. */
+        public defaultHeaders: Headers
     ) {}
 
     /** Sends an HTTP GET request to the specified URL. */
@@ -80,8 +81,7 @@ export class Client {
         payload?: string,
         mimetype?: string
     ) {
-        const defaultHeaders = this.defaultHeaders ?? []
-        const headers = new Headers(defaultHeaders)
+        const headers = new Headers(this.defaultHeaders)
         if (payload) {
             const contentType = mimetype ?? 'application/json'
             headers.set('Content-Type', contentType)

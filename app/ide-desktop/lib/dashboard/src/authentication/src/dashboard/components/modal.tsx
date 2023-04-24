@@ -11,6 +11,10 @@ export interface ModalProps extends react.PropsWithChildren {
     className?: string
 }
 
+/** A fullscreen modal with content at the center.
+ * The background is fully opaque by default;
+ * background transparency can be enabled with Tailwind's `bg-opacity` classes,
+ * like `className="bg-opacity-50"` */
 function Modal(props: ModalProps) {
     const { children } = props
     const { unsetModal } = modalProvider.useSetModal()

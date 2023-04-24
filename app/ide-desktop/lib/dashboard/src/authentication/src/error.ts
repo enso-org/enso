@@ -7,6 +7,8 @@
  * least find out at runtime if we've missed a case, or forgotten to update the code when we add a
  * new case. */
 export class UnreachableCaseError extends Error {
+    /** Creates an `UnreachableCaseError`.
+     * The parameter should be `never` since it is unreachable assuming all logic is sound. */
     constructor(value: never) {
         super(`Unreachable case: ${JSON.stringify(value)}`)
     }

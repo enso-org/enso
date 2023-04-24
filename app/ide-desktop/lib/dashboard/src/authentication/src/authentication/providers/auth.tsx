@@ -134,6 +134,7 @@ export interface AuthProviderProps {
     children: react.ReactNode
 }
 
+/** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
     const { authService, children } = props
     const { cognito } = authService
@@ -150,7 +151,8 @@ export function AuthProvider(props: AuthProviderProps) {
      * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
      * If the token has expired, automatically refreshes the token and returns the new token. */
     react.useEffect(() => {
-        const fetchSession = async () => {
+        /** Gets the details of the current user from the backend. */
+        async function fetchSession() {
             if (session.none) {
                 setInitialized(true)
                 setUserSession(null)
@@ -196,6 +198,8 @@ export function AuthProvider(props: AuthProviderProps) {
         })
     }, [session])
 
+    /** Wraps a function returning a {@link Promise} to displays a loading toast notification
+     * until the returned {@link Promise} finishes loading. */
     const withLoadingToast =
         <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
         async (...args: T) => {
@@ -209,47 +213,51 @@ export function AuthProvider(props: AuthProviderProps) {
             return result
         }
 
-    const signUp = (username: string, password: string) =>
-        cognito.signUp(username, password).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.signUpSuccess)
-            } else {
-                toast.error(result.val.message)
+    /** A wrapper with toast notifications around the backend sign up endpoint. */
+    async function signUp(username: string, password: string) {
+        const result = await cognito.signUp(username, password)
+        if (result.ok) {
+            toast.success(MESSAGES.signUpSuccess)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
+
+    /** A wrapper with toast notifications around the backend confirm sign up endpoint. */
+    async function confirmSignUp(email: string, code: string) {
+        const result = await cognito.confirmSignUp(email, code)
+        if (result.err) {
+            switch (result.val.kind) {
+                case 'UserAlreadyConfirmed':
+                    break
+                default:
+                    throw new errorModule.UnreachableCaseError(result.val.kind)
             }
-            return result.ok
-        })
+        }
 
-    const confirmSignUp = async (email: string, code: string) =>
-        cognito.confirmSignUp(email, code).then(result => {
-            if (result.err) {
-                switch (result.val.kind) {
-                    case 'UserAlreadyConfirmed':
-                        break
-                    default:
-                        throw new errorModule.UnreachableCaseError(result.val.kind)
-                }
+        toast.success(MESSAGES.confirmSignUpSuccess)
+        navigate(app.LOGIN_PATH)
+        return result.ok
+    }
+
+    /** A wrapper with toast notifications around the backend sign in with pasword endpoint. */
+    async function signInWithPassword(email: string, password: string) {
+        const result = await cognito.signInWithPassword(email, password)
+        if (result.ok) {
+            toast.success(MESSAGES.signInWithPasswordSuccess)
+        } else {
+            if (result.val.kind === 'UserNotFound') {
+                navigate(app.REGISTRATION_PATH)
             }
 
-            toast.success(MESSAGES.confirmSignUpSuccess)
-            navigate(app.LOGIN_PATH)
-            return result.ok
-        })
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
 
-    const signInWithPassword = async (email: string, password: string) =>
-        cognito.signInWithPassword(email, password).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.signInWithPasswordSuccess)
-            } else {
-                if (result.val.kind === 'UserNotFound') {
-                    navigate(app.REGISTRATION_PATH)
-                }
-
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
-
-    const setUsername = async (accessToken: string, username: string, email: string) => {
+    /** A wrapper with toast notifications around the backend set username endpoint. */
+    async function setUsername(accessToken: string, username: string, email: string) {
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
          * The API client is reinitialised on every request. That is an inefficient way of usage.
          * Fix it by using React context and implementing it as a singleton. */
@@ -264,41 +272,47 @@ export function AuthProvider(props: AuthProviderProps) {
         return true
     }
 
-    const forgotPassword = async (email: string) =>
-        cognito.forgotPassword(email).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.forgotPasswordSuccess)
-                navigate(app.RESET_PASSWORD_PATH)
-            } else {
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
+    /** A wrapper with toast notifications around the backend forgot password endpoint. */
+    async function forgotPassword(email: string) {
+        const result = await cognito.forgotPassword(email)
+        if (result.ok) {
+            toast.success(MESSAGES.forgotPasswordSuccess)
+            navigate(app.RESET_PASSWORD_PATH)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
 
-    const resetPassword = async (email: string, code: string, password: string) =>
-        cognito.forgotPasswordSubmit(email, code, password).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.resetPasswordSuccess)
-                navigate(app.LOGIN_PATH)
-            } else {
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
-    const changePassword = async (oldPassword: string, newPassword: string) =>
-        cognito.changePassword(oldPassword, newPassword).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.changePasswordSuccess)
-            } else {
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
-    const signOut = () =>
-        cognito.signOut().then(() => {
-            toast.success(MESSAGES.signOutSuccess)
-            return true
-        })
+    /** A wrapper with toast notifications around the backend reset password endpoint. */
+    async function resetPassword(email: string, code: string, password: string) {
+        const result = await cognito.forgotPasswordSubmit(email, code, password)
+        if (result.ok) {
+            toast.success(MESSAGES.resetPasswordSuccess)
+            navigate(app.LOGIN_PATH)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
+
+    /** A wrapper with toast notifications around the backend change password endpoint. */
+    async function changePassword(oldPassword: string, newPassword: string) {
+        const result = await cognito.changePassword(oldPassword, newPassword)
+        if (result.ok) {
+            toast.success(MESSAGES.changePasswordSuccess)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
+
+    /** A wrapper with toast notifications around the backend sign out endpoint. */
+    async function signOut() {
+        await cognito.signOut()
+        toast.success(MESSAGES.signOutSuccess)
+        return true
+    }
 
     const value = {
         signUp: withLoadingToast(signUp),
@@ -360,6 +374,7 @@ export function useAuth() {
 // === ProtectedLayout ===
 // =======================
 
+/** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
     const { session } = useAuth()
 
@@ -374,6 +389,8 @@ export function ProtectedLayout() {
 // === GuestLayout ===
 // ===================
 
+/** A React Router layout route containing routes only accessible by users that are not logged in.
+ */
 export function GuestLayout() {
     const { session } = useAuth()
 
@@ -390,6 +407,8 @@ export function GuestLayout() {
 // === usePartialUserSession ===
 // =============================
 
+/** A React context hook returning the user session
+ * for a user that has not yet completed registration. */
 export function usePartialUserSession() {
     return router.useOutletContext<PartialUserSession>()
 }
@@ -398,6 +417,7 @@ export function usePartialUserSession() {
 // === useFullUserSession ===
 // ==========================
 
+/** A React context hook returning the user session for a user that has completed registration. */
 export function useFullUserSession() {
     return router.useOutletContext<FullUserSession>()
 }
