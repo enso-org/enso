@@ -295,7 +295,7 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
 
 #[derive(Derivative, CloneRef, Debug, Deref)]
 #[derivative(Clone(bound = ""))]
-pub struct ListEditor<T: frp::node::Data> {
+pub struct ListEditor<T: 'static> {
     #[deref]
     pub frp:          Frp<T>,
     root:             display::object::Instance,
@@ -342,7 +342,7 @@ impl<T> From<Model<T>> for SharedModel<T> {
 }
 
 
-impl<T: display::Object + frp::node::Data> ListEditor<T> {
+impl<T: display::Object + Clone + 'static> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
         let frp = Frp::new();
         let model = Model::new();
@@ -880,7 +880,7 @@ impl<T: display::Object + 'static> Model<T> {
     }
 }
 
-impl<T: frp::node::Data> display::Object for ListEditor<T> {
+impl<T: 'static> display::Object for ListEditor<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.root
     }
