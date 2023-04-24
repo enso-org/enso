@@ -802,9 +802,7 @@
 [6151]: https://github.com/enso-org/enso/pull/6151
 [6171]: https://github.com/enso-org/enso/pull/6171
 [5998]: https://github.com/enso-org/enso/pull/5998
-
 [6335]: https://github.com/enso-org/enso/pull/6335
-
 [6352]: https://github.com/enso-org/enso/pull/6352
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
