@@ -25,12 +25,14 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Syntax_Error
 import project.Error.Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Meta
+import project.Network.URI.URI
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
@@ -1368,7 +1370,7 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
         span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
 
-## ALIAS From Text
+## ALIAS Decimal From Text
 
    Parses a textual representation of a decimal into a decimal number, returning
    a `Number_Parse_Error` if the text does not represent a valid decimal.
@@ -1383,7 +1385,7 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
 Text.parse_decimal : Locale | Nothing -> Decimal ! Number_Parse_Error
 Text.parse_decimal self locale=Nothing = Decimal.parse self locale
 
-## ALIAS From Text
+## ALIAS Integer From Text
 
    Parses a textual representation of an integer into an integer number, returning
    a `Number_Parse_Error` if the text does not represent a valid integer.
@@ -1398,7 +1400,7 @@ Text.parse_decimal self locale=Nothing = Decimal.parse self locale
 Text.parse_integer : Integer -> Integer ! Number_Parse_Error
 Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
 
-## ALIAS From Text
+## ALIAS JSON From Text
 
    Parse a Text value into a `JS_Object` or an Enso primitive value (like
    `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -1474,7 +1476,7 @@ Text.parse_json self = Json.parse self
 Text.parse_date : (Text | Nothing) -> Date ! Time_Error
 Text.parse_date self format=Nothing = Date.parse self format
 
-## ALIAS Time from Text
+## ALIAS Date_Time from Text
 
    Obtains an instance of `Date_Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
@@ -1554,7 +1556,9 @@ Text.parse_date self format=Nothing = Date.parse self format
 Text.parse_date_time : Text | Nothing -> Locale -> Date_Time ! Time_Error
 Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse self format locale
 
-## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+## ALIAS Time_Of_Day from Text
+
+   Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
    Arguments:
    - format: The pattern to use for parsing the input text.
@@ -1617,7 +1621,7 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
 Text.parse_time_of_day : Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
 Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.parse self format locale
 
-## ALIAS Time Zone from Text
+## ALIAS Time_Zone from Text
 
    This method parses the ID producing a `Time_Zone`.
 
@@ -1650,6 +1654,21 @@ Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.p
          example_parse = "+03:02:01".parse_time_zone
 Text.parse_time_zone : Time_Zone ! Time_Error
 Text.parse_time_zone self = Time_Zone.parse self
+
+## ALIAS URI from Text
+
+   Parse a URI from a `Text`.
+
+   Throws a Syntax_Error when the text cannot be parsed as a URI.
+
+   > Example
+     Parse URI text.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "http://example.com".parse_uri
+Text.parse_uri : URI ! Syntax_Error
+Text.parse_uri self = URI.parse self
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided
