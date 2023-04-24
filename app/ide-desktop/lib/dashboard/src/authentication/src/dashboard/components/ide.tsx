@@ -63,7 +63,7 @@ function Ide(props: Props) {
                 const assetsRoot = (() => {
                     switch (backendPlatform) {
                         case platformModule.Platform.cloud:
-                            return `${IDE_CDN_URL}/${ideVersion}`
+                            return `${IDE_CDN_URL}/${ideVersion}/`
                         case platformModule.Platform.desktop:
                             return ''
                     }
@@ -76,8 +76,8 @@ function Ide(props: Props) {
                     await window.runProject({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
-                            wasmUrl: `${assetsRoot}/pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}/pkg${JS_EXTENSION[backendPlatform]}`,
+                            wasmUrl: `${assetsRoot}pkg-opt.wasm`,
+                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendPlatform]}`,
                         },
                         engine: {
                             rpcUrl: jsonAddress,

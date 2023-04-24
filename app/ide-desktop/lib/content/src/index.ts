@@ -144,7 +144,7 @@ let currentAppInstance: app.App | null = new app.App({
 
 async function runProject(inputConfig?: StringConfig) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    currentAppInstance?.wasm?.drop()
+    currentAppInstance?.wasm?.drop?.()
     const rootElement = document.getElementById(IDE_ELEMENT_ID)
     if (!rootElement) {
         logger.error(`The root element (the element with ID '${IDE_ELEMENT_ID}') was not found.`)
