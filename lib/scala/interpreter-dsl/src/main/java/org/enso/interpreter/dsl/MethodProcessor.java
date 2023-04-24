@@ -502,7 +502,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
                 + arrayRead(argumentsArray, arg.getPosition())
                 + " = withWarnings.getValue();");
         out.println(
-            "      gatheredWarnings = gatheredWarnings.prepend(withWarnings.getReassignedWarnings(bodyNode));");
+            "      gatheredWarnings = gatheredWarnings.prepend(withWarnings.getReassignedWarningsAsRope(bodyNode));");
         out.println("    }");
       }
       return true;

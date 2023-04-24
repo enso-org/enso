@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.graalvm.collections.EconomicSet;
 
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
@@ -27,7 +28,8 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public final class Array implements TruffleObject {
   private final Object[] items;
-  private Boolean withWarnings;
+  private @CompilerDirectives.CompilationFinal Boolean withWarnings;
+  private @CompilerDirectives.CompilationFinal EconomicSet<Warning> cachedWarnings;
 
   /**
    * Creates a new array
@@ -108,7 +110,7 @@ public final class Array implements TruffleObject {
     var v = items[(int) index];
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
-      Warning[] extracted = this.getWarnings(null, warnings);
+      EconomicSet<Warning> extracted = this.getWarningsUnique(null, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -210,6 +212,28 @@ public final class Array implements TruffleObject {
       }
     }
     return ropeOfWarnings.toArray(Warning[]::new);
+  }
+
+  @ExportMessage
+  EconomicSet<Warning> getWarningsUnique(
+      Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    if (cachedWarnings == null) {
+      cachedWarnings = collectAllWarnings(warnings);
+    }
+    return cachedWarnings;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
+    for (int i = 0; i < items.length; i++) {
+      if (warnings.hasWarnings(items[i])) {
+        setOfWarnings.addAll(warnings.getWarningsUnique(items[i], null));
+      }
+    }
+    return setOfWarnings;
   }
 
   @ExportMessage

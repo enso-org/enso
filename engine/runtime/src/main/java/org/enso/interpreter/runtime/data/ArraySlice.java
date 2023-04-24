@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.graalvm.collections.EconomicSet;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
@@ -91,7 +92,7 @@ public final class ArraySlice implements TruffleObject {
 
     var v = interop.readArrayElement(storage, start + index);
     if (this.hasWarnings(warnings)) {
-      Warning[] extracted = this.getWarnings(null, warnings);
+      EconomicSet<Warning> extracted = this.getWarningsUnique(null, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -149,6 +150,11 @@ public final class ArraySlice implements TruffleObject {
   @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
+  }
+
+  @ExportMessage
+  EconomicSet<Warning> getWarningsUnique(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+    return warnings.getWarningsUnique(this.storage, location);
   }
 
   @ExportMessage

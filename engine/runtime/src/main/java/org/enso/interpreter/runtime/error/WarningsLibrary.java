@@ -5,6 +5,7 @@ import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;
 import com.oracle.truffle.api.library.LibraryFactory;
 import com.oracle.truffle.api.nodes.Node;
+import org.graalvm.collections.EconomicSet;
 
 @GenerateLibrary
 public abstract class WarningsLibrary extends Library {
@@ -51,6 +52,20 @@ public abstract class WarningsLibrary extends Library {
    */
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
   public Warning[] getWarnings(Object receiver, Node location) throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
+  }
+
+  /**
+   * Returns a set of warnings associated with the receiver.
+   *
+   * @param receiver the receiver to analyze
+   * @param location optional parameter specifying the node to which the warnings should be
+   *     reassigned to
+   * @return the set of warnings
+   */
+  @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
+  public EconomicSet<Warning> getWarningsUnique(Object receiver, Node location)
+      throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
 

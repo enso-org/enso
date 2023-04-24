@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.graalvm.collections.EconomicSet;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -119,7 +120,7 @@ public final class Vector implements TruffleObject {
       throws InvalidArrayIndexException, UnsupportedMessageException {
     var v = interop.readArrayElement(storage, index);
     if (warnings.hasWarnings(this)) {
-      Warning[] extracted = warnings.getWarnings(this, null);
+      EconomicSet<Warning> extracted = warnings.getWarningsUnique(this, null);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -214,6 +215,13 @@ public final class Vector implements TruffleObject {
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
+  }
+
+  @ExportMessage
+  EconomicSet<Warning> getWarningsUnique(
+      Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    return warnings.getWarningsUnique(this.storage, location);
   }
 
   @ExportMessage

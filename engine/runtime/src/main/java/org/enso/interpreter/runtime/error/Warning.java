@@ -205,28 +205,13 @@ public final class Warning implements TruffleObject {
     return EnsoContext.get(thisLib).getBuiltins().warning();
   }
 
+  @CompilerDirectives.TruffleBoundary
   private static Warning[] uniqueWarnings(Warning[] warnings) {
     int uniqueLen = 0;
     Warning last = null;
     Warning[] tmp = new Warning[warnings.length];
     System.arraycopy(warnings, 0, tmp, 0, warnings.length);
     Arrays.sort(tmp, Comparator.comparing(Warning::getCreationTime).reversed());
-    for (int i = 0; i < tmp.length; i++) {
-      if (last == null || tmp[i].getCreationTime() != last.getCreationTime()) {
-        last = tmp[i];
-        uniqueLen += 1;
-      }
-    }
-    Warning[] unique = new Warning[uniqueLen];
-    int lastUniqueIndex = 0;
-    last = null;
-    for (int i = 0; i < tmp.length; i++) {
-      if (last == null || tmp[i].getCreationTime() != last.getCreationTime()) {
-        last = tmp[i];
-        unique[lastUniqueIndex] = tmp[i];
-        lastUniqueIndex += 1;
-      }
-    }
-    return unique;
+    return tmp;
   }
 }
