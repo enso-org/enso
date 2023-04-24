@@ -1220,6 +1220,8 @@ type Table
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
+         - If a given aggregate is not supported by the backend,
+           `Unsupported_Database_Operation` is reported.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
            reported according to the `on_problems` setting, unless
            `error_on_missing_columns` is set to `True`, in which case it is
@@ -1256,11 +1258,17 @@ type Table
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
-        on_problems.attach_problems_before validated.problems <|
-            key_columns = validated.key_columns
+        key_columns = validated.key_columns
+        key_problems = key_columns.flat_map internal_column->
+            column = self.make_column internal_column
+            case column.value_type.is_floating_point of
+                True -> [Floating_Point_Equality.Error column.name]
+                False -> []
+        on_problems.attach_problems_before validated.problems+key_problems <|
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
             new_ctx = self.context.set_groups key_expressions
+            problem_builder = Problem_Builder.new
             ## TODO [RW] here we will perform as many fetches as there are
                aggregate columns, but technically we could perform just one
                fetch fetching all column types - TODO we should do that. We can
@@ -1269,7 +1277,7 @@ type Table
                point to a single query.
                See #6118.
             infer_from_database_callback expression =
-                    SQL_Type_Reference.new self.connection self.context expression
+                SQL_Type_Reference.new self.connection self.context expression
             dialect = self.connection.dialect
             type_mapping = dialect.get_type_mapping
             infer_return_type op_kind columns expression =
@@ -1277,7 +1285,7 @@ type Table
             results = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
-                result = Aggregate_Helper.make_aggregate_column agg new_name dialect infer_return_type
+                result = Aggregate_Helper.make_aggregate_column self agg new_name dialect infer_return_type problem_builder
                 ## If the `result` did contain an error, we catch it to be
                    able to store it in a vector and then we will partition the
                    created columns and failures.
@@ -1291,9 +1299,11 @@ type Table
                the `lift_aggregate` method to push the aggregates into a
                subquery.
             new_columns = partitioned.second
-            problems = partitioned.first.map .value
-            on_problems.attach_problems_before problems <|
-                self.updated_context_and_columns new_ctx new_columns subquery=True
+            problem_builder.attach_problems_before on_problems <|
+                problems = partitioned.first.map .value
+                on_problems.attach_problems_before problems <|
+                    if new_columns.is_empty then (Error.throw No_Output_Columns) else
+                        self.updated_context_and_columns new_ctx new_columns subquery=True
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single

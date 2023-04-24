@@ -179,6 +179,13 @@ type Dialect
         _ = aggregate
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Checks if an operation is supported by the dialect.
+    is_supported : Text -> Boolean
+    is_supported self operation =
+        _ = operation
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.

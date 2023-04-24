@@ -333,6 +333,7 @@ pub struct OperatorProperties {
     // Special properties
     is_compile_time_operation: bool,
     is_right_associative:      bool,
+    is_modifier:               bool,
     // Unique operators
     is_decimal:                bool,
     is_type_annotation:        bool,
@@ -373,6 +374,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as right associative.
     pub fn as_right_associative(self) -> Self {
         Self { is_right_associative: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an modified-assignment operator.
+    pub fn as_modifier(self) -> Self {
+        Self { is_modifier: true, ..self }
     }
 
     /// Return a copy of this operator, modified to be flagged as special.
@@ -465,6 +471,11 @@ impl OperatorProperties {
     /// Return whether this operator is the assignment operator.
     pub fn is_assignment(&self) -> bool {
         self.is_assignment
+    }
+
+    /// Return whether this operator is a modified-assignment operator.
+    pub fn is_modifier(&self) -> bool {
+        self.is_modifier
     }
 
     /// Return whether this operator is the arrow operator.

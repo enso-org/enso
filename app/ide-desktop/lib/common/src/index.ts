@@ -4,7 +4,7 @@
  * here when it is not possible for a sibling package to own that code without introducing a
  * circular dependency in our packages. */
 
-/** URL protocol scheme for deep links to authentication flow pages.
+/** URL protocol scheme for deep links to authentication flow pages, without the `:` suffix.
  *
  * For example: the deep link URL
  * `enso://authentication/register?code=...&state=...` uses this scheme. */

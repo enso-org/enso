@@ -73,9 +73,6 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
-pub mod item;
-pub mod placeholder;
-
 use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
@@ -91,10 +88,17 @@ use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::Animation;
 use ensogl_core::Easing;
-
 use item::Item;
 use placeholder::Placeholder;
 use placeholder::StrongPlaceholder;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod item;
+pub mod placeholder;
 
 
 
@@ -291,7 +295,7 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
 
 #[derive(Derivative, CloneRef, Debug, Deref)]
 #[derivative(Clone(bound = ""))]
-pub struct ListEditor<T: frp::node::Data> {
+pub struct ListEditor<T: 'static> {
     #[deref]
     pub frp:          Frp<T>,
     root:             display::object::Instance,
@@ -338,7 +342,7 @@ impl<T> From<Model<T>> for SharedModel<T> {
 }
 
 
-impl<T: display::Object + frp::node::Data> ListEditor<T> {
+impl<T: display::Object + Clone + 'static> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
         let frp = Frp::new();
         let model = Model::new();
@@ -876,7 +880,7 @@ impl<T: display::Object + 'static> Model<T> {
     }
 }
 
-impl<T: frp::node::Data> display::Object for ListEditor<T> {
+impl<T: 'static> display::Object for ListEditor<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.root
     }

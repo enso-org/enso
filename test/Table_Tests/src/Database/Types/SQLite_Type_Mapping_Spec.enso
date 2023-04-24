@@ -4,6 +4,8 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Aggregate_Column, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
+import Standard.Database.Data.Dialect
+import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 
 from Standard.Test import Problems, Test, Test_Suite
@@ -57,26 +59,25 @@ spec =
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
 
             t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
-            t.compute '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[a] + 100' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.compute '[a] * [d]' . value_type . should_equal Value_Type.Float
+            t.compute '[a] + 100' . value_type . should_equal Value_Type.Integer
+            t.compute '[a] + 100.0' . value_type . should_equal Value_Type.Float
             t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
             t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
             t.compute 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
             t.compute 'fill_empty([b], "<NA>")' . value_type . should_equal Value_Type.Char
             t.compute 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
             t.compute 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_nan([d])' . value_type . should_equal Value_Type.Boolean
             t.compute 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
 
             t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "d", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
             t2.at "b" . value_type . should_equal Value_Type.Char
-            t2.at "Sum a" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
-            t2.at "Minimum d" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t2.at "Count Not Nothing c" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Sum a" . value_type . should_equal Value_Type.Integer
+            t2.at "Maximum a" . value_type . should_equal Value_Type.Integer
+            t2.at "Minimum d" . value_type . should_equal Value_Type.Float
+            t2.at "Count Not Nothing c" . value_type . should_equal Value_Type.Integer
             t2.at "Concatenate b" . value_type . should_equal Value_Type.Char
-            t2.at "Count" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Count" . value_type . should_equal Value_Type.Integer
             # First is not currently implemented in SQLite
             # t2.at "First c" . value_type . should_equal Value_Type.Boolean
 
@@ -90,5 +91,12 @@ spec =
             t2 = t.cast "b" Value_Type.Byte
             t2.at "b" . value_type . should_equal Value_Type.Integer
             Problems.expect_warning Inexact_Type_Coercion t2
+
+        Test.specify "should be able to infer types for all supported operations" <|
+            dialect = Dialect.sqlite
+            internal_mapping = dialect.internal_generator_dialect.operation_map
+            operation_type_mapping = SQLite_Type_Mapping.operations_map
+
+            operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
 
 main = Test_Suite.run_main spec
