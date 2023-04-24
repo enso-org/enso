@@ -228,6 +228,28 @@ function Dashboard(props: DashboardProps) {
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
+    react.useEffect(() => {
+        function onKeyDown(event: KeyboardEvent) {
+            if (
+                event.key === 'd' &&
+                event.ctrlKey &&
+                event.altKey &&
+                !event.shiftKey &&
+                !event.metaKey
+            ) {
+                setTab(Tab.dashboard)
+                const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                if (ideElement) {
+                    ideElement.hidden = true
+                }
+            }
+        }
+        document.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.removeEventListener('keydown', onKeyDown)
+        }
+    }, [])
+
     // The purpose of this effect is to enable search action.
     react.useEffect(() => {
         return () => {
