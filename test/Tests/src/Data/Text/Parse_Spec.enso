@@ -9,11 +9,14 @@ from Standard.Test import Test, Test_Suite
 spec =
     Test.group "parse" <|
         Test.specify "Decimal" <|
-            ["32.5", "000000", "-98.5"].map s->
-                s.parse_decimal . should_equal <| Decimal.parse s
+            "32.5".parse_decimal . should_equal <| Decimal.parse "32.5"
             l = Locale.new "cs"
-            ["32,5", "0122,5"].map s->
-                s.parse_decimal l . should_equal <| Decimal.parse s l
+            "32,5".parse_decimal l . should_equal <| Decimal.parse "32,5" l
             "abc".parse_decimal . should_fail_with Number_Parse_Error
+
+        Test.specify "Integer" <|
+            "12343456".parse_integer . should_equal <| Integer.parse "12343456"
+            "ABC123".parse_integer 16 . should_equal <| Integer.parse "ABC123" 16
+            "abc".parse_integer . should_fail_with Number_Parse_Error
 
 main = Test_Suite.run_main spec

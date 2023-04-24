@@ -1362,7 +1362,9 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
         span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
 
-## Parses a textual representation of a decimal into a decimal number, returning
+## ALIAS From Text
+
+   Parses a textual representation of a decimal into a decimal number, returning
    a `Number_Parse_Error` if the text does not represent a valid decimal.
 
    Arguments:
@@ -1374,6 +1376,21 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
          "7.6".parse_decimal
 Text.parse_decimal : Locale | Nothing -> Decimal ! Number_Parse_Error
 Text.parse_decimal self locale=Nothing = Decimal.parse self locale
+
+## ALIAS From Text
+
+   Parses a textual representation of an integer into an integer number, returning
+   a `Number_Parse_Error` if the text does not represent a valid integer.
+
+   Arguments:
+   - radix: The number base to use for parsing (defaults to 10).
+
+   > Example
+     Parse the text "20220216" into an integer number.
+
+        "20220216".parse
+Text.parse_integer : Integer -> Integer ! Number_Parse_Error
+Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided
