@@ -36,6 +36,8 @@ ensogl::define_endpoints! {
         hide(),
         /// Toggle Code Editor visibility.
         toggle(),
+        /// Set read-only mode for this component.
+        set_read_only(bool),
     }
 
     Output {
@@ -90,12 +92,15 @@ impl View {
             hide              <- any(frp.input.hide,hide_after_toggle);
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
-            eval_ show ({
+            focus <- show.gate_not(&frp.set_read_only);
+            eval_ focus ({
                 model.deprecated_focus();
                 model.focus();
             });
             eval_ hide (height_fraction.set_target_value(0.0));
-            eval_ hide ([model] {
+            enable_read_only <- frp.set_read_only.on_true();
+            defocus <- any(hide, enable_read_only);
+            eval_ defocus ([model] {
                 model.remove_all_cursors();
                 model.deprecated_defocus();
                 model.blur();

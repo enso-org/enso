@@ -14,11 +14,13 @@ import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
-import * as config from 'enso-content-config'
+import * as contentConfig from 'enso-content-config'
+
+import * as clientConfig from './config'
 import * as fileAssociations from '../file-associations'
 import * as project from './project-management'
 
-const logger = config.logger
+const logger = contentConfig.logger
 
 // =================
 // === Reexports ===
@@ -136,16 +138,38 @@ export function onFileOpened(event: Event, path: string) {
 export function handleOpenFile(openedFile: string): string {
     try {
         return project.importProjectFromPath(openedFile)
-    } catch (e: unknown) {
+    } catch (error) {
         // Since the user has explicitly asked us to open a file, in case of an error, we should
         // display a message box with the error details.
         let message = `Cannot open file '${openedFile}'.`
-        message += `\n\nReason:\n${e?.toString() ?? 'Unknown error'}`
-        if (e instanceof Error && typeof e.stack !== 'undefined') {
-            message += `\n\nDetails:\n${e.stack}`
+        message += `\n\nReason:\n${error?.toString() ?? 'Unknown error'}`
+        if (error instanceof Error && typeof error.stack !== 'undefined') {
+            message += `\n\nDetails:\n${error.stack}`
         }
-        logger.error(e)
+        logger.error(error)
         electron.dialog.showErrorBox(common.PRODUCT_NAME, message)
-        throw e
+        throw error
+    }
+}
+
+/** Handle the file to open, if any. See {@link handleOpenFile} for details.
+ *
+ * If no file to open is provided, does nothing.
+ *
+ * Handles all errors internally.
+ * @param openedFile - The file to open (null if none).
+ * @param args - The parsed application arguments.
+ */
+export function handleFileArguments(openedFile: string | null, args: clientConfig.Args): void {
+    if (openedFile != null) {
+        try {
+            // This makes the IDE open the relevant project. Also, this prevents us from using this
+            // method after IDE has been fully set up, as the initializing code would have already
+            // read the value of this argument.
+            args.groups.startup.options.project.value = handleOpenFile(openedFile)
+        } catch (e) {
+            // If we failed to open the file, we should enter the usual welcome screen.
+            // The `handleOpenFile` function will have already displayed an error message.
+        }
     }
 }

@@ -178,8 +178,8 @@ current_execution_environment = @Builtin_Method "Runtime.current_execution_envir
    - environment: Name of the execution environment.
    - context: The context to enable.
    - action: Action to be performed with the context enabled.
-with_enabled_context : Context -> Function -> Text -> Any
-with_enabled_context context ~action environment=Runtime.current_execution_environment = with_enabled_context_builtin context action environment
+with_enabled_context : Context -> Text -> Function -> Any
+with_enabled_context context environment=Runtime.current_execution_environment ~action = with_enabled_context_builtin context environment action
 
 ## PRIVATE
    ADVANCED
@@ -192,8 +192,8 @@ with_enabled_context context ~action environment=Runtime.current_execution_envir
    - environment: Name of the execution environment.
    - context: The context to enable.
    - action: Action to be performed with the context enabled.
-with_enabled_context_builtin : Context -> Function -> Text -> Any
-with_enabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_enabled_context_builtin"
+with_enabled_context_builtin : Context -> Text -> Function -> Any
+with_enabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_enabled_context_builtin"
 
 ## PRIVATE
    ADVANCED
@@ -204,8 +204,8 @@ with_enabled_context_builtin context ~action environment = @Builtin_Method "Runt
    - environment: Name of the execution environment.
    - context: The context to disable.
    - action: Action to be performed with the context disabled.
-with_disabled_context : Context -> Function -> Text -> Any
-with_disabled_context context ~action environment=Runtime.current_execution_environment = with_disabled_context_builtin context action environment
+with_disabled_context : Context -> Text -> Function -> Any
+with_disabled_context context environment=Runtime.current_execution_environment ~action = with_disabled_context_builtin context environment action
 
 ## PRIVATE
    ADVANCED
@@ -218,5 +218,5 @@ with_disabled_context context ~action environment=Runtime.current_execution_envi
    - environment: Name of the execution environment.
    - context: The context to disable.
    - action: Action to be performed with the context disabled.
-with_disabled_context_builtin : Context -> Function -> Text -> Any
-with_disabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_disabled_context_builtin"
+with_disabled_context_builtin : Context -> Text -> Function -> Any
+with_disabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_disabled_context_builtin"

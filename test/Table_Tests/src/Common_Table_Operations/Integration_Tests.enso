@@ -133,3 +133,46 @@ spec setup =
                 r5 = t5 |> materialize
                 r5.at "A" . to_vector . should_contain_the_same_elements_as ["b", "a"]
                 r5.at "B" . to_vector . should_equal [5, 5]
+
+        if setup.test_selection.fixed_length_text_columns then
+            Test.specify "types of unioned fixed-length columns should be correctly inferred after passing through other operations that infer types from Database, like aggregate Shortest" <|
+                t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 0, 2]]] . cast "X" (Value_Type.Char 1 False)
+                t2 = table_builder [["X", ["ddd", "eee", "fff"]], ["Y", [0, 1, 0]]] . cast "X" (Value_Type.Char 3 False)
+                t3 = t1.union t2
+
+                vt1 = t3.at "X" . value_type
+                Test.with_clue "t3[X].value_type="+vt1.to_display_text+": " <|
+                    vt1.should_be_a (Value_Type.Char ...)
+                    vt1.variable_length.should_be_true
+
+                t4 = t3.aggregate [Aggregate_Column.Shortest "X", Aggregate_Column.Group_By "Y"]
+                vt2 = t4.at "Shortest X" . value_type
+                Test.with_clue "t4[X].value_type="+vt2.to_display_text+": " <|
+                    vt2.should_be_a (Value_Type.Char ...)
+                    vt2.variable_length.should_be_true
+                t5 = t4 |> materialize |> _.order_by "Y"
+                t5.at "Y" . to_vector . should_equal [0, 1, 2]
+                t5.at "Shortest X" . to_vector . should_equal ["b", "a", "c"]
+
+            Test.specify "types should be correctly preserved after aggregation after iif" <|
+                t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
+                t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
+
+                x = t1.at "x"
+                a = t1.at "A"
+                b = t1.at "B"
+                a.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+                b.value_type.should_equal (Value_Type.Char size=3 variable_length=False)
+
+                c = x.iif a b
+                c.to_vector.should_equal ["xyz", "b", "def"]
+                Test.with_clue "c.value_type="+c.value_type.to_display_text+": " <|
+                    c.value_type.variable_length.should_be_true
+
+                t2 = t1.set c "C"
+                t3 = t2.aggregate [Aggregate_Column.Shortest "C"]
+                t3.at "Shortest C" . to_vector . should_equal ["b"]
+                vt = t3.at "Shortest C" . value_type
+                Test.with_clue "t3[C].value_type="+vt.to_display_text+": " <|
+                    vt.should_be_a (Value_Type.Char ...)
+                    vt.variable_length.should_be_true

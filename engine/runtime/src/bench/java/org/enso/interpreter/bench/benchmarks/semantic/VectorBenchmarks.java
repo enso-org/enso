@@ -48,7 +48,6 @@ public class VectorBenchmarks {
     var code = """
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
-        import Standard.Base.Any.Any
 
         avg arr =
             sum acc i = if i == arr.length then acc else

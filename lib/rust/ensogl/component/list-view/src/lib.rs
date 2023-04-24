@@ -240,7 +240,7 @@ impl<E: Entry> Model<E> {
         self.entries.set_x(-view.size.x / 2.0 + entry_padding);
         self.background.set_size(view.size + padding + shadow + margin);
         self.overlay.set_size(view.size + padding + shadow + margin);
-        self.scrolled_area.set_y(view.size.y / 2.0 - view.position_y);
+        self.scrolled_area.set_y(view.size.y / 2.0 - view.position_y + SHAPE_MARGIN / 2.0);
         self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
 

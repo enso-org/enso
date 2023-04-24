@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Average, Count, Group_By, Sum
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Average, Count, Group_By, Sum, Concatenate
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 
@@ -95,14 +95,14 @@ spec setup =
 
         Test.specify "should allow multiple values aggregates" <|
             t1 = table.cross_tab values=[Count, Sum "Value"]
-            t1.column_names . should_equal ["x Count", "x Sum Value", "y Count", "y Sum Value", "z Count", "z Sum Value"]
+            t1.column_names . should_equal ["x Count", "x Sum", "y Count", "y Sum", "z Count", "z Sum"]
             t1.row_count . should_equal 1
             t1.at "x Count" . to_vector . should_equal [4]
-            t1.at "x Sum Value" . to_vector . should_equal [10]
+            t1.at "x Sum" . to_vector . should_equal [10]
             t1.at "y Count" . to_vector . should_equal [3]
-            t1.at "y Sum Value" . to_vector . should_equal [18]
+            t1.at "y Sum" . to_vector . should_equal [18]
             t1.at "z Count" . to_vector . should_equal [2]
-            t1.at "z Sum Value" . to_vector . should_equal [17]
+            t1.at "z Sum" . to_vector . should_equal [17]
 
         Test.specify "should fail if name_field is not found" <|
             err1 = table.cross_tab [] "Name"
@@ -160,26 +160,6 @@ spec setup =
             problems3 = [Duplicate_Output_Column_Names.Error ["x"]]
             Problems.test_problem_handling action3 problems3 tester3
 
-        Test.specify "should fail on invalid aggregations" <|
-            table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["TextValue", ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
-                err = table.cross_tab [] "Key" values=[Average "TextValue"] on_problems=pb
-                case setup.is_database of
-                    True ->
-                        err.should_fail_with SQL_Error
-                    False ->
-                        err.should_fail_with Invalid_Aggregation
-                        err.catch . should_equal (Invalid_Aggregation.Error "Average TextValue" [0, 4, 7] "Cannot convert to a number.")
-
-            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
-                err = table.cross_tab [] "Key" values=[Average "Value", Sum "TextValue"] on_problems=pb
-                case setup.is_database of
-                    True ->
-                        err.should_fail_with SQL_Error
-                    False ->
-                        err.should_fail_with Invalid_Aggregation
-                        err.catch . should_equal (Invalid_Aggregation.Error "Sum TextValue" [0, 4, 7] "Cannot convert to a number.")
-
         Test.specify "should allow non-Text columns to be used as name" <|
             table = table_builder [["Key", [1, 1, 1, 2, 2, 1, 3, 3, 1]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             t1 = table.cross_tab
@@ -200,6 +180,49 @@ spec setup =
             t1.at "ąęź" . to_vector . should_equal [2]
             t1.at '\n\n' . to_vector . should_equal [1]
             t1.at " " . to_vector . should_equal [1]
+
+        Test.specify "should report Floating_Point_Equality if the group or name column is floating point" <|
+            t = table_builder [["X", [1.5, 2.5, 2.5, 1.5]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "b", "b", "b"]]]
+            t1 = t.cross_tab
+            Problems.expect_warning Floating_Point_Equality t1
+            t1.column_names . should_equal ["1.5", "2.5"]
+            t1.row_count . should_equal 1
+            t1.at "1.5" . to_vector . should_equal [2]
+            t1.at "2.5" . to_vector . should_equal [2]
+
+            t2 = t.cross_tab ["X"] "Z"
+            Problems.expect_warning Floating_Point_Equality t2
+            t2.column_names . should_equal ["X", "a", "b"]
+            t2.row_count . should_equal 2
+            t2.at "X" . to_vector . should_equal [1.5, 2.5]
+            t2.at "a" . to_vector . should_equal [1, 0]
+            t2.at "b" . to_vector . should_equal [1, 2]
+
+        Test.specify "should check types of aggregates" <|
+            t = table_builder [["Key", ["a", "a", "b", "b"]], ["ints", [1, 2, 3, 4]], ["texts", ["a", "b", "c", "d"]]]
+
+            [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
+                t1 = t.cross_tab [] "Key" values=[Average "texts"] on_problems=pb
+                t1.should_fail_with Invalid_Value_Type
+                t2 = t.cross_tab [] "Key" values=[Sum "texts"] on_problems=pb
+                t2.should_fail_with Invalid_Value_Type
+                t3 = t.cross_tab [] "Key" values=[Concatenate "ints"] on_problems=pb
+                t3.should_fail_with Invalid_Value_Type
+
+        Test.specify "should return predictable types" <|
+            table = table_builder [["Text", ["a", "b"]], ["Int", [1, 2]], ["Float", [1.1, 2.2]]]
+            t1 = table.cross_tab ["Int"] "Text"
+            t1.column_names . should_equal ["Int", "a", "b"]
+            t1.at "Int" . value_type . is_integer . should_be_true
+            t1.at "a" . value_type . is_integer . should_be_true
+            t1.at "b" . value_type . is_integer . should_be_true
+
+            t2 = table.cross_tab [] "Int" values=[Average "Float", Concatenate "Text"] . sort_columns
+            t2.column_names . should_equal ["1 Average Float", "1 Concatenate Text", "2 Average Float", "2 Concatenate Text"]
+            t2.at "1 Average Float" . value_type . is_floating_point . should_be_true
+            t2.at "1 Concatenate Text" . value_type . is_text . should_be_true
+            t2.at "2 Average Float" . value_type . is_floating_point . should_be_true
+            t2.at "2 Concatenate Text" . value_type . is_text . should_be_true
 
         Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
             table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]

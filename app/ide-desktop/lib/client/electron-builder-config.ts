@@ -17,9 +17,9 @@ import yargs from 'yargs'
 
 import * as common from 'enso-common'
 
-import * as paths from './paths.js'
-import signArchivesMacOs from './tasks/signArchivesMacOs.js'
-import { BUNDLED_PROJECT_EXTENSION, SOURCE_FILE_EXTENSION } from './file-associations.js'
+import * as fileAssociations from './file-associations'
+import * as paths from './paths'
+import signArchivesMacOs from './tasks/signArchivesMacOs'
 
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
@@ -157,12 +157,12 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         ],
         fileAssociations: [
             {
-                ext: SOURCE_FILE_EXTENSION,
+                ext: fileAssociations.SOURCE_FILE_EXTENSION,
                 name: `${common.PRODUCT_NAME} Source File`,
                 role: 'Editor',
             },
             {
-                ext: BUNDLED_PROJECT_EXTENSION,
+                ext: fileAssociations.BUNDLED_PROJECT_EXTENSION,
                 name: `${common.PRODUCT_NAME} Project Bundle`,
                 role: 'Editor',
             },

@@ -42,6 +42,7 @@ ensogl::define_endpoints_2! {
         set_current_value (Option<ImString>),
         set_focused       (bool),
         set_visible       (bool),
+        set_read_only     (bool),
     }
     Output {
         value_changed(Option<ImString>),
@@ -148,6 +149,7 @@ pub struct SampledFrp {
     set_focused:        frp::Sampler<bool>,
     out_value_changed:  frp::Any<Option<ImString>>,
     out_request_import: frp::Any<ImString>,
+    set_read_only:      frp::Sampler<bool>,
 }
 
 
@@ -193,9 +195,17 @@ impl View {
             set_current_value <- input.set_current_value.sampler();
             set_visible <- input.set_visible.sampler();
             set_focused <- input.set_focused.sampler();
+            set_read_only <- input.set_read_only.sampler();
             let out_value_changed = frp.private.output.value_changed.clone_ref();
             let out_request_import = frp.private.output.request_import.clone_ref();
-            let sampled_frp = SampledFrp { set_current_value, set_visible, set_focused, out_value_changed, out_request_import };
+            let sampled_frp = SampledFrp {
+                set_current_value,
+                set_visible,
+                set_focused,
+                out_value_changed,
+                out_request_import,
+                set_read_only
+            };
 
             eval widget_data([model, sampled_frp]((meta, node_data)) {
                 model.set_widget_data(&sampled_frp, meta, node_data);
@@ -415,8 +425,8 @@ impl SingleChoiceModel {
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
-            let dot_clicked = activation_shape.events_deprecated.mouse_down_primary.clone_ref();
-            toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
+            clicked <- activation_shape.events_deprecated.mouse_down_primary.gate_not(&frp.set_read_only);
+            toggle_focus <- clicked.map(f!([display_object](()) !display_object.is_focused()));
             set_focused <- any(toggle_focus, frp.set_focused);
             eval set_focused([display_object](focus) match focus {
                 true => display_object.focus(),

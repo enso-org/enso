@@ -28,16 +28,16 @@ type Context
 current_execution_environment : Text
 current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"
 
-with_enabled_context : Context -> Function -> Text -> Any
-with_enabled_context context ~action environment=Runtime.current_execution_environment = with_enabled_context_builtin context action environment
+with_enabled_context : Context -> Text -> Function -> Any
+with_enabled_context context environment=Runtime.current_execution_environment ~action = with_enabled_context_builtin context environment action
 
-with_enabled_context_builtin : Context -> Function -> Text -> Any
-with_enabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_enabled_context_builtin"
+with_enabled_context_builtin : Context -> Text -> Function -> Any
+with_enabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_enabled_context_builtin"
 
-with_disabled_context : Context -> Function -> Text -> Any
-with_disabled_context context ~action environment=Runtime.current_execution_environment = with_disabled_context_builtin context action environment
+with_disabled_context : Context -> Text -> Function -> Any
+with_disabled_context context environment=Runtime.current_execution_environment ~action = with_disabled_context_builtin context environment action
 
-with_disabled_context_builtin : Context -> Function -> Text -> Any
-with_disabled_context_builtin context ~action environment = @Builtin_Method "Runtime.with_disabled_context_builtin"
+with_disabled_context_builtin : Context -> Text -> Function -> Any
+with_disabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_disabled_context_builtin"
 
 primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
