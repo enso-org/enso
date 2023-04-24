@@ -29,6 +29,7 @@ import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
+import { Consumer, LogLevel } from '../../../../../target/ensogl-pack/linked-dist'
 
 const logger = contentConfig.logger
 
@@ -45,9 +46,64 @@ class App {
     isQuitting = false
 
     async run() {
+        // Consumer that redirects all logs to the file.
+        logger.addConsumer(
+            new (class extends Consumer {
+                private logFilePath: string
+                private logFileHandle: number
+
+                private generateUniqueLogFilePath(): string {
+                    const logsDirectory = electron.app.getPath('logs')
+                    const timestamp = new Date().toISOString().replace(/[:.-]/g, '')
+                    const fileName = `IDE-${timestamp}.txt`
+
+                    if (!fsSync.existsSync(logsDirectory)) {
+                        fsSync.mkdirSync(logsDirectory, { recursive: true })
+                    }
+
+                    const filePath = pathModule.join(logsDirectory, fileName)
+                    return filePath
+                }
+
+                constructor() {
+                    super()
+                    this.logFilePath = this.generateUniqueLogFilePath()
+                    this.logFileHandle = fsSync.openSync(this.logFilePath, 'a')
+                    logger.log(`Log file: ${this.logFilePath}`)
+                }
+
+                override message(level: LogLevel, ...args: unknown[]): void {
+                    const timestamp = new Date().toISOString()
+                    const message = args
+                        .map(arg => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
+                        .join(' ')
+                    const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`
+
+                    if (!this.logFileHandle) {
+                        console.error('Log file not initialized.')
+                        return
+                    }
+
+                    try {
+                        fsSync.writeSync(this.logFileHandle, timestampedMessage)
+                    } catch (error) {
+                        console.error('Failed to write log:', error)
+                    }
+                }
+                override startGroup(...args: unknown[]): void {
+                    this.message('log', '[GROUP START]', ...args)
+                }
+                override startGroupCollapsed(...args: unknown[]): void {
+                    this.message('log', '[GROUP START]', ...args)
+                }
+                override groupEnd(...args: unknown[]): void {
+                    this.message('log', '[GROUP END]', ...args)
+                }
+            })()
+        )
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        electron.app.on('open-file', fileAssociations.onFileOpened)
+        fileAssociations.setOpenFileHandler(id => this.setProjectToOpenOnStartup(id))
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
         this.handleItemOpening(fileToOpen, urlToOpen)
@@ -70,6 +126,7 @@ class App {
              * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
              * should be used here instead. */
             electron.app.on('ready', () => {
+                logger.log('Electron app is ready.')
                 void this.main(windowSize)
             })
             this.registerShortcuts()
@@ -92,6 +149,17 @@ class App {
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
+    setProjectToOpenOnStartup(idOfProjectToOpen: string) {
+        // Make sure that we are not initialized yet, as this method should be called before the
+        // application is ready. 
+        if(!electron.app.isReady()) {
+            logger.log(`Setting project to open on startup: ${idOfProjectToOpen}.`)
+            this.args.groups.startup.options.project.value = idOfProjectToOpen
+        } else {
+            logger.error(`Cannot set project to open on startup: ${idOfProjectToOpen}, as the application is already initialized.`)
+        }
+    }
+
     /** This method is invoked when the application was spawned due to being a default application
      * for a URL protocol or file extension. */
     handleItemOpening(fileToOpen: string | null, urlToOpen: URL | null) {
@@ -101,8 +169,8 @@ class App {
                 // This makes the IDE open the relevant project. Also, this prevents us from using this
                 // method after IDE has been fully set up, as the initializing code would have already
                 // read the value of this argument.
-                this.args.groups.startup.options.project.value =
-                    fileAssociations.handleOpenFile(fileToOpen)
+                const projectId = fileAssociations.handleOpenFile(fileToOpen)
+                this.setProjectToOpenOnStartup(projectId)
             }
 
             if (urlToOpen != null) {
