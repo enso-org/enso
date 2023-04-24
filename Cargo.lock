@@ -4451,6 +4451,7 @@ dependencies = [
  "js-sys",
  "nalgebra",
  "ordered-float",
+ "parser",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

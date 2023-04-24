@@ -118,6 +118,8 @@ ensogl::define_endpoints! {
         project_name_hovered (bool),
         /// Indicates whether the project name was clicked.
         project_mouse_down (),
+        /// Signalizes an error if the user tried to rename the project to an invalid name.
+        project_name_error (String),
     }
 }
 
@@ -475,6 +477,9 @@ impl Breadcrumbs {
             frp.source.project_mouse_down   <+ model.project_name.mouse_down;
 
             eval frp.input.set_project_changed((v) model.project_name.set_project_changed(v));
+
+            frp.source.project_name_error <+ model.project_name.error;
+
 
             // === User Interaction ===
 

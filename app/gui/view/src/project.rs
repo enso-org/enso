@@ -619,6 +619,10 @@ impl View {
 
             model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
             model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
+
+            // === Error Pop-up ===
+
+            model.popup.set_label <+ model.graph_editor.model.breadcrumbs.project_name_error;
         }
 
         init.emit(());
