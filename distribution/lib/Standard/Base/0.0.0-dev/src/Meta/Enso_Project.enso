@@ -55,7 +55,8 @@ type Project_Description
 
    Arguments:
    - module: An optional module for which the Enso project description
-     will be fetched.
+     will be fetched. If `Nothing`, the current project description will
+     be fetched.
 
    > Example
      Get the project description for the current project.
