@@ -132,8 +132,8 @@
   quickly understand each button's function.
 - [File associations are created on Windows and macOS][6077]. This allows
   opening Enso files by double-clicking them in the file explorer.
-- - [The IDE UI element for selecting the execution mode of the
-    project is now sending messages to the backend.][6341].
+- - [The IDE UI element for selecting the execution mode of the project is now
+    sending messages to the backend.][6341].
 
 #### EnsoGL (rendering engine)
 

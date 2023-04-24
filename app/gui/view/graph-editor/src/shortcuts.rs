@@ -3,6 +3,7 @@
 use ensogl::application::shortcut::ActionType::*;
 
 
+
 // =======================================
 // === Shortcuts for the graph editor. ===
 // =======================================
