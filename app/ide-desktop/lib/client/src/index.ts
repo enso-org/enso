@@ -27,6 +27,7 @@ import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
 
 const logger = contentConfig.logger
@@ -44,22 +45,12 @@ class App {
     isQuitting = false
 
     async run() {
+        urlAssociations.registerAssociations()
         // Register file associations for macOS.
         electron.app.on('open-file', fileAssociations.onFileOpened)
 
-        const { windowSize, chromeOptions, fileToOpen } = this.processArguments()
-        if (fileToOpen != null) {
-            try {
-                // This makes the IDE open the relevant project. Also, this prevents us from using this
-                // method after IDE has been fully set up, as the initializing code would have already
-                // read the value of this argument.
-                this.args.groups.startup.options.project.value =
-                    fileAssociations.handleOpenFile(fileToOpen)
-            } catch (e) {
-                // If we failed to open the file, we should enter the usual welcome screen.
-                // The `handleOpenFile` function will have already displayed an error message.
-            }
-        }
+        const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
+        this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
             await this.printVersion()
             electron.app.quit()
@@ -91,11 +82,36 @@ class App {
         const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(
             fileAssociations.CLIENT_ARGUMENTS
         )
+        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(
+            fileAssociations.CLIENT_ARGUMENTS
+        )
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
-        // the argument), it means that effectively we don't have any non-standard arguments.
+        // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse = fileToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
-        return { ...configParser.parseArgs(argsToParse), fileToOpen }
+        const argsToParse = fileToOpen || urlToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
+        return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
+    }
+
+    /** This method is invoked when the application was spawned due to being a default application
+     * for a URL protocol or file extension. */
+    handleItemOpening(fileToOpen: string | null, urlToOpen: URL | null) {
+        logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
+        try {
+            if (fileToOpen != null) {
+                // This makes the IDE open the relevant project. Also, this prevents us from using this
+                // method after IDE has been fully set up, as the initializing code would have already
+                // read the value of this argument.
+                this.args.groups.startup.options.project.value =
+                    fileAssociations.handleOpenFile(fileToOpen)
+            }
+
+            if (urlToOpen != null) {
+                urlAssociations.handleOpenUrl(urlToOpen)
+            }
+        } catch (e) {
+            // If we failed to open the file, we should enter the usual welcome screen.
+            // The `handleOpenFile` function will have already displayed an error message.
+        }
     }
 
     /** Set Chrome options based on the app configuration. For comprehensive list of available
