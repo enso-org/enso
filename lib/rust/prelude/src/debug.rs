@@ -153,7 +153,7 @@ pub mod leak_detector {
 
     /// A utility for tracing all copies of CloneRef-able entity and keeping list of existing ones.
     ///
-    /// This is a wrapper for [`TraceCopies`] which also register creation of each copy in
+    /// This is a wrapper for [`TraceCopies`] which also register each enabled copy in
     /// [`TRACKED_OBJECTS`] global variable. The variable may be then checked for leaks in moments
     /// when we expect it to be empty.
     #[derive(Debug)]
@@ -164,7 +164,7 @@ pub mod leak_detector {
     impl Trace {
         /// Create enabled structure with appointed entity name (shared between all copies).
         ///
-        /// See [`TraceCopes::enabled`].
+        /// See [`TraceCopies::enabled`] and [`Trace::enable`].
         pub fn enabled(name: impl Into<ImString>) -> Self {
             let instance = TraceCopies::enabled(name);
             Self::register_tracked_object(&instance);
@@ -172,9 +172,9 @@ pub mod leak_detector {
         }
 
         /// Assign a name to the entity (shared between all copies), start printing logs and
-        /// register its creation backtrace.
+        /// register its creation backtrace in [`TRACKED_OBJECTS`].
         ///
-        /// See [`TraceCopes::enable`].
+        /// See [`TraceCopies::enable`].
         pub fn enable(&self, name: impl Into<ImString>) {
             self.instance.enable(name);
             Self::register_tracked_object(&self.instance);

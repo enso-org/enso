@@ -1701,6 +1701,14 @@ impl GraphEditorModelWithNetwork {
                     visualization_shown.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
 
 
+                init <- source::<()>();
+                enabled_visualization_path <- init.all_with3(
+                    &node.visualization_enabled, &node.visualization_path,
+                    move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
+                );
+                output.enabled_visualization_path <+ enabled_visualization_path;
+
+
                 // === View Mode ===
 
                 node.set_view_mode <+ self.model.frp.output.view_mode;
@@ -1708,7 +1716,7 @@ impl GraphEditorModelWithNetwork {
 
                 // === Read-only mode ===
 
-                node.set_read_only <+ self.model.frp.set_read_only;
+                node.set_read_only <+ self.model.frp.input.set_read_only;
 
 
                 // === Profiling ===
@@ -2786,7 +2794,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         // Drop the currently dragged edge if read-only mode is enabled.
         read_only_enabled <- inputs.set_read_only.on_true();
-        inputs.drop_dragged_edge <+ read_only_enabled;
+        frp.drop_dragged_edge <+ read_only_enabled;
     }
 
 
