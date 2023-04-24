@@ -99,7 +99,6 @@ export function importDirectory(rootPath: string): string {
         const targetDirectory = generateDirectoryName(rootPath)
         if (fsSync.existsSync(targetDirectory)) {
             const message = `Project directory already exists: ${targetDirectory}.`
-            // eslint-disable-next-line no-restricted-syntax
             throw new Error(message)
         } else {
             logger.log(`Copying: '${rootPath}' -> '${targetDirectory}'.`)
