@@ -19,12 +19,14 @@ import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Date.Date
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 
@@ -1404,6 +1406,70 @@ Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
         "[null, null, true, false]".parse_json
 Text.parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
 Text.parse_json self = Json.parse self
+
+## ALIAS Date from Text
+
+   Converts text containing a date into a Date object.
+
+   Arguments:
+   - format: An optional pattern describing how to parse the text.
+
+   Returns a `Time_Error` if the provided `text` cannot be parsed using the
+   provided `pattern`.
+
+   ? Pattern Syntax
+     Patterns are based on a simple sequence of letters and symbols. For
+     example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+
+   ? Default Date Formatting
+     Unless you provide a custom format, the text must represent a valid date
+     that can be parsed using the ISO-8601 extended local date format. The
+     format consists of:
+
+     - Four digits or more for the year. Years in the range 0000 to 9999
+       will be pre-padded by zero to ensure four digits. Years outside
+       that range will have a prefixed positive or negative symbol.
+     - A dash
+     - Two digits for the month-of-year. This is pre-padded by zero to ensure
+       two digits.
+     - A dash
+     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+       digits.
+
+   > Example
+     Parse the date of 23rd December 2020.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-12-23".parse_date
+
+   > Example
+     Recover from an error due to a wrong format.
+
+         import Standard.Base.Data.Text.Extensions
+         from Standard.Base.Errors.Common import Time_Error
+
+         example_parse_err = "my birthday".parse_date . catch Time_Error _->
+             Date.new 2000 1 1
+
+   > Example
+     Parse "1999-1-1" as Date using a custom format.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "1999-1-1".parse_date "yyyy-M-d"
+
+   > Example
+     Recover from the parse error.
+
+         import Standard.Base.Data.Text.Extensions
+         from Standard.Base.Errors.Common import Time_Error
+
+         example_parse_err =
+             date = "1999-1-1".parse_date "yyyy-MM-dd"
+             date.catch Time_Error (_->Date.new 2000 1 1)
+Text.parse_date : (Text | Nothing) -> Date ! Time_Error
+Text.parse_date self format=Nothing = Date.parse self format
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided
