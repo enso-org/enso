@@ -260,6 +260,24 @@ spec =
             actual = t.parse_to_columns "bar" "(?<bar>\d)(?<baz>\d)(?<quux>\d)"
             actual.should_equal_verbose expected
 
+        Test.specify "empty table" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "bar", "baz"] []
+            actual = t.parse_to_columns "bar" "\d+"
+            actual.should_equal_verbose expected
+
+        Test.specify "empty table, with regex groups" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] [["x", "a", "a", "y"]] . take 0
+            actual = t.parse_to_columns "bar" "(\d)(\d)"
+            actual.should_equal_verbose expected
+
+        Test.specify "empty table, with named and unnamed regex groups" <|
+            t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "quux", "bar 0", "foo_1", "bar 1", "baz"] [["x", "a", "a", "a", "a", "y"]] . take 0
+            actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
+            actual.should_equal_verbose expected
+
         Test.specify "input with no matches" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
             expected = Table.from_rows ["foo", "bar", "baz"] []
