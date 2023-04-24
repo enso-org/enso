@@ -38,11 +38,9 @@ interface AuthenticationApi {
     saveAccessToken: (access_token: string) => void
 }
 
-import * as app from '../../../../target/ensogl-pack/linked-dist/index'
-
 declare global {
     interface Window {
-        runProject: (inputConfig?: StringConfig) => Promise<app.App | null>
+        runProject: (inputConfig?: StringConfig) => Promise<void>
         authenticationApi: AuthenticationApi
     }
 
@@ -63,3 +61,5 @@ declare global {
     const IS_DEV_MODE: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
 }
+
+export {}

@@ -248,7 +248,7 @@ function Dashboard(props: DashboardProps) {
                         setProject(await backend.getProjectDetails(projectAsset.id))
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.style.display = ''
+                            ideElement.hidden = false
                         }
                     }}
                 />
@@ -329,13 +329,13 @@ function Dashboard(props: DashboardProps) {
                         setTab(Tab.ide)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.style.display = ''
+                            ideElement.hidden = false
                         }
                     } else {
                         setTab(Tab.dashboard)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.style.display = 'none'
+                            ideElement.hidden = true
                         }
                     }
                 }}

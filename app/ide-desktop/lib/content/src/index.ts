@@ -23,6 +23,8 @@ const ESBUILD_EVENT_NAME = 'change'
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
+/** The `id` attribute of the element that the IDE will be rendered into. */
+const IDE_ELEMENT_ID = 'root'
 
 // ===================
 // === Live reload ===
@@ -124,51 +126,8 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
-async function runProject(inputConfig?: StringConfig) {
-    const config = Object.assign(
-        {
-            loader: {
-                wasmUrl: 'pkg-opt.wasm',
-                jsUrl: 'pkg.js',
-                assetsUrl: 'dynamic-assets',
-            },
-        },
-        inputConfig
-    )
-
-    const appInstance = new app.App({
-        config,
-        configOptions: contentConfig.OPTIONS,
-        packageInfo: {
-            version: BUILD_INFO.version,
-            engineVersion: BUILD_INFO.engineVersion,
-        },
-    })
-
-    if (!appInstance.initialized) {
-        console.error('Failed to initialize the application.')
-        return null
-    } else {
-        if (contentConfig.OPTIONS.options.dataCollection.value) {
-            // TODO: Add remote-logging here.
-        }
-        if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
-            displayDeprecatedVersionDialog()
-            return null
-        } else {
-            const email = contentConfig.OPTIONS.groups.authentication.options.email.value
-            // The default value is `""`, so a truthiness check is most appropriate here.
-            if (email) {
-                logger.log(`User identified as '${email}'.`)
-            }
-            void appInstance.run()
-            return appInstance
-        }
-    }
-}
-
 // Hack to mutate `configOptions.OPTIONS`
-const APP_INSTANCE = new app.App({
+let currentAppInstance: app.App | null = new app.App({
     config: {
         loader: {
             wasmUrl: 'pkg-opt.wasm',
@@ -182,6 +141,58 @@ const APP_INSTANCE = new app.App({
         engineVersion: BUILD_INFO.engineVersion,
     },
 })
+
+async function runProject(inputConfig?: StringConfig) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    currentAppInstance?.wasm?.drop()
+    const rootElement = document.getElementById(IDE_ELEMENT_ID)
+    if (!rootElement) {
+        logger.error(`The root element (the element with ID '${IDE_ELEMENT_ID}') was not found.`)
+    } else {
+        while (rootElement.firstChild) {
+            rootElement.removeChild(rootElement.firstChild)
+        }
+    }
+
+    const config = Object.assign(
+        {
+            loader: {
+                wasmUrl: 'pkg-opt.wasm',
+                jsUrl: 'pkg.js',
+                assetsUrl: 'dynamic-assets',
+            },
+        },
+        inputConfig
+    )
+
+    currentAppInstance = new app.App({
+        config,
+        configOptions: contentConfig.OPTIONS,
+        packageInfo: {
+            version: BUILD_INFO.version,
+            engineVersion: BUILD_INFO.engineVersion,
+        },
+    })
+    console.log('bruh', currentAppInstance)
+
+    if (!currentAppInstance.initialized) {
+        console.error('Failed to initialize the application.')
+    } else {
+        if (contentConfig.OPTIONS.options.dataCollection.value) {
+            // TODO: Add remote-logging here.
+        }
+        if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
+            displayDeprecatedVersionDialog()
+        } else {
+            const email = contentConfig.OPTIONS.groups.authentication.options.email.value
+            // The default value is `""`, so a truthiness check is most appropriate here.
+            if (email) {
+                logger.log(`User identified as '${email}'.`)
+            }
+            void currentAppInstance.run()
+        }
+    }
+}
 
 if (
     (contentConfig.OPTIONS.options.authentication.value ||
@@ -197,7 +208,7 @@ if (
             auth.style.display = 'none'
         }
         if (ide) {
-            ide.style.display = ''
+            ide.hidden = false
         }
     }
     /** This package is an Electron desktop app (i.e., not in the Cloud), so
