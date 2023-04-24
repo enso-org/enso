@@ -134,6 +134,11 @@ impl Drop for TraceCopies {
 // ====================
 
 /// A module containing an utility for detecting leaks.
+///
+/// If you suspect a particular struct is leaking, i.e. its instances are still present when we
+/// expect them to be removed, you may add a [`Trace`] field to it. Then, at the point where we
+/// expect all instances to be dropped, we may check the [`TRACKED_OBJECTS`] global variable, what
+/// instances are still alive and their creation backtraces.
 pub mod leak_detector {
     use crate::*;
 
@@ -158,6 +163,8 @@ pub mod leak_detector {
 
     impl Trace {
         /// Create enabled structure with appointed entity name (shared between all copies).
+        ///
+        /// See [`TraceCopes::enabled`].
         pub fn enabled(name: impl Into<ImString>) -> Self {
             let instance = TraceCopies::enabled(name);
             Self::register_tracked_object(&instance);
@@ -166,6 +173,8 @@ pub mod leak_detector {
 
         /// Assign a name to the entity (shared between all copies), start printing logs and
         /// register its creation backtrace.
+        ///
+        /// See [`TraceCopes::enable`].
         pub fn enable(&self, name: impl Into<ImString>) {
             self.instance.enable(name);
             Self::register_tracked_object(&self.instance);
