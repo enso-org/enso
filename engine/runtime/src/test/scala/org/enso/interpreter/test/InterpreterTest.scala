@@ -113,6 +113,7 @@ class InterpreterContext(
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
+      .allowCreateThread(false)
       .out(output)
       .err(err)
       .option(RuntimeOptions.LOG_LEVEL, "WARNING")

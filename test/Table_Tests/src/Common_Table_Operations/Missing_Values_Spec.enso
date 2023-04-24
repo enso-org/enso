@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Column_Selector
+from Standard.Table import Column_Selector, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 
@@ -138,3 +138,103 @@ spec setup =
 
             no_rows.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["X"]
             no_rows.remove_columns Column_Selector.Blank_Columns . columns . map .name . should_fail_with No_Output_Columns
+
+    Test.group prefix+"Filling Missing Values" <|
+        Test.specify "should coerce long and double types to double" <|
+            table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0.5, Nothing, Nothing, 0.25]]]
+            ints = table.at "X"
+            ints_filled = ints.fill_nothing 0.5
+            ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
+            ints_filled.value_type.is_floating_point.should_be_true
+
+            decimals = table.at "Y"
+            decimals_filled = decimals.fill_nothing 42
+            decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
+            decimals_filled.value_type.is_floating_point.should_be_true
+
+            r1 = ints.fill_nothing decimals
+            r1.to_vector . should_equal [1.0, Nothing, 2.0, 0.25]
+            vt1 = r1.value_type
+            Test.with_clue "r1.value_type="+vt1.to_display_text+": " <|
+                vt1.is_floating_point.should_be_true
+
+            r2 = ints.coalesce [decimals, 133]
+            r2.to_vector . should_equal [1.0, 133, 2.0, 0.25]
+            vt2 = r2.value_type
+            Test.with_clue "r2.value_type="+vt2.to_display_text+": " <|
+                vt2.is_floating_point.should_be_true
+
+            t2 = table_builder [["X", [1, Nothing]], ["Y", [0.5, Nothing]]]
+            r3 = (t2.at "X").fill_nothing (t2.at "Y")
+            r3.to_vector . should_equal [1.0, Nothing]
+            vt3 = r3.value_type
+            Test.with_clue "r3.value_type="+vt3.to_display_text+": " <|
+                vt3.is_floating_point.should_be_true
+
+            r4 = ints.fill_nothing 100.0
+            r4.to_vector . should_equal [1, 100, 2, 100]
+            vt4 = r4.value_type
+            Test.with_clue "r4.value_type="+vt4.to_display_text+": " <|
+                vt4.is_floating_point.should_be_true
+
+        Test.specify "should keep String, Boolean, Long and Double type" <|
+            table = table_builder [["X", ["a", Nothing, "b", Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [1, Nothing, 2, Nothing]], ["W", [0.5, Nothing, Nothing, 0.25]]]
+            strs = table.at "X"
+            strs_filled = strs.fill_nothing "X"
+            strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
+            strs_filled.value_type.is_text.should_be_true
+
+            bools = table.at "Y"
+            bools_filled = bools.fill_nothing False
+            bools_filled.to_vector . should_equal [True, False, False, False]
+            bools_filled.value_type . should_equal Value_Type.Boolean
+
+            ints = table.at "Z"
+            ints_filled = ints.fill_nothing 42
+            ints_filled.to_vector . should_equal [1, 42, 2, 42]
+            ints_filled.value_type.is_integer.should_be_true
+
+            decimals = table.at "W"
+            decimals_filled = decimals.fill_nothing 1.0
+            decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
+            decimals_filled.value_type.is_floating_point.should_be_true
+
+        Test.specify "should not allow mixing types by default" <|
+            table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [0.5, Nothing, Nothing, 0.25]]]
+            ints = table.at "X"
+            ints_filled = ints.fill_nothing False
+            ints_filled.should_fail_with No_Common_Type
+
+            c = ints.coalesce [42.0, False]
+            c.should_fail_with No_Common_Type
+
+            table.at "Y" . fill_nothing 42 . should_fail_with No_Common_Type
+            table.at "Z" . fill_nothing True . should_fail_with No_Common_Type
+
+        if setup.is_database.not then
+            Test.specify "may allow mixed types if explicitly retyped" pending="TODO: cast #6112" <|
+                table = table_builder [["X", [1, Nothing, 2, Nothing]]]
+                ints = table.at "X" . cast Value_Type.Mixed
+                ints_filled = ints.fill_nothing False
+                ints_filled.to_vector . should_equal [1, False, 2, False]
+                ints_filled.value_type . should_equal Value_Type.Mixed
+
+        Test.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            t0 = table_builder [["A", ["a", Nothing, "c"]], ["B", ["X", "Y", "Z"]], ["C", ["xyz", "abc", "def"]]]
+            t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=1 variable_length=False) . cast "C" (Value_Type.Char size=3 variable_length=False)
+
+            a = t1.at "A"
+            b = t1.at "B"
+            c = t1.at "C"
+            a.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+            b.value_type.should_equal (Value_Type.Char size=1 variable_length=False)
+            c.value_type.should_equal (Value_Type.Char size=3 variable_length=False)
+
+            d = a.fill_nothing b
+            d.to_vector . should_equal ["a", "Y", "c"]
+            d.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+
+            e = a.fill_nothing c
+            e.to_vector . should_equal ["a", "abc", "c"]
+            Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
+                e.value_type.variable_length.should_be_true

@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Data.Type.Value_Type_Helpers
 from project.Errors import Invalid_Value_Type
 
 ## Type to represent the different sizes of integer or float storage.
@@ -187,30 +188,92 @@ type Value_Type
         _ -> False
 
     ## PRIVATE
-       ADVANCED
-       Checks if the provided value type is a textual type (with any settings)
-       and runs the following action or reports a type error.
-    expect_text : Value_Type -> Any -> Text -> Any ! Invalid_Value_Type
-    expect_text value_type ~action related_column=Nothing =
-        if Value_Type.is_text value_type then action else
-            Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type related_column)
+       Specifies if values of the given type can be compared for ordering.
+    has_ordering : Boolean
+    has_ordering self = case self of
+        Value_Type.Integer _   -> True
+        Value_Type.Float _     -> True
+        Value_Type.Decimal _ _ -> True
+        Value_Type.Byte        -> True
+        Value_Type.Char _ _    -> True
+        Value_Type.Boolean     -> True
+        Value_Type.Date        -> True
+        Value_Type.Date_Time _ -> True
+        Value_Type.Time        -> True
+        ## Not all mixed types are ordered, but some can, so we allow ordering
+           for mixed columns.
+        Value_Type.Mixed -> True
+        _ -> False
+
+    ## PRIVATE
+       Specifies if values of the given type can be compared for ordering.
+    are_comparable : Value_Type -> Value_Type -> Boolean
+    are_comparable type_1 type_2 =
+        find_bucket typ = typ.if_not_error <|
+            buckets = [["Integer", "Byte", "Float", "Decimal"], ["Char"], ["Date"], ["Date_Time"], ["Time"], ["Boolean"], ["Mixed"]]
+            ctor_name = Meta.meta typ . constructor . name
+            buckets.index_of bucket->
+                bucket.contains ctor_name
+
+        bucket_1 = find_bucket type_1
+        bucket_2 = find_bucket type_2
+        if bucket_1.is_nothing || bucket_2.is_nothing then False else
+            if (type_1 == Value_Type.Mixed) || (type_2 == Value_Type.Mixed) then True else
+                bucket_1 == bucket_2
+
+
+    ## PRIVATE
+       Checks that both arguments can be compared for ordering and runs the
+       following action or reports an error.
+    expect_comparable : Any -> Any -> Any -> Any ! Invalid_Value_Type
+    expect_comparable arg1 arg2 ~action =
+        type_1 = Value_Type_Helpers.find_argument_type arg1
+        type_2 = Value_Type_Helpers.find_argument_type arg2
+        if type_1.has_ordering.not then Error.throw (Invalid_Value_Type.Not_Ordered type_1) else
+            if type_2.is_nothing.not && type_2.has_ordering.not then Error.throw (Invalid_Value_Type.Not_Ordered type_2) else
+                if type_2.is_nothing.not && (Value_Type.are_comparable type_1 type_2 . not) then Error.throw (Invalid_Value_Type.Incomparable type_1 type_2) else
+                    action
 
     ## PRIVATE
        ADVANCED
-       Checks if the provided value type is a boolean type and runs the
-       following action or reports a type error.
-    expect_boolean : Value_Type -> Any -> Any ! Invalid_Value_Type
-    expect_boolean value_type ~action = case value_type of
-        Value_Type.Boolean -> action
-        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Boolean value_type)
+       Checks if the provided argument (which may be a value or a Column) is of
+       a text type and runs the following action or reports a type error.
+    expect_text : Any -> Any -> Any ! Invalid_Value_Type
+    expect_text argument ~action =
+        expect_type argument .is_text "Char" action
 
     ## PRIVATE
        ADVANCED
-       Checks if the provided value type is a `Date` or `Date_Time`.
-    expect_has_date : Value_Type -> Any -> Text -> Any ! Invalid_Value_Type
-    expect_has_date value_type ~action related_column=Nothing = case value_type.has_date of
-        True -> action
-        False -> Error.throw (Invalid_Value_Type.Error "Date or Date_Time" value_type related_column)
+       Checks if the provided argument (which may be a value or a Column) is of
+       a text type and runs the following action or reports a type error.
+    expect_boolean : Any -> Any -> Any ! Invalid_Value_Type
+    expect_boolean argument ~action =
+        expect_type argument .is_boolean Value_Type.Boolean action
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the provided argument (which may be a value or a Column) is of
+       a numeric type and runs the following action or reports a type error.
+    expect_numeric : Any -> Any -> Any ! Invalid_Value_Type
+    expect_numeric argument ~action =
+        expect_type argument .is_numeric "a numeric" action
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the provided argument (which may be a value or a Column) is of
+       a floating point type and runs the following action or reports a type
+       error.
+    expect_floating_point : Any -> Any -> Any ! Invalid_Value_Type
+    expect_floating_point argument ~action =
+        expect_type argument .is_floating_point "Float" action
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the provided argument (which may be a value or a Column) is has
+       type `Date` or `Date_Time`.
+    expect_has_date : Any -> Any -> Any ! Invalid_Value_Type
+    expect_has_date argument ~action =
+        expect_type argument .has_date "Date or Date_Time" action
 
     ## PRIVATE
        Provides a text representation of the `Value_Type` meant for
@@ -268,3 +331,14 @@ type Value_Type
    - otherwise, `Text` is chosen as a fallback and the column is kept as-is
      without parsing.
 type Auto
+
+## PRIVATE
+   A helper for generating the `Value_Type.expect_` checks.
+expect_type : Any -> (Value_Type -> Boolean) -> Text|Value_Type -> Any -> Any ! Invalid_Value_Type
+expect_type value predicate type_kind ~action = case value of
+    # Special handling for `Nothing`. Likely, can be removed with #6281.
+    Nothing -> action
+    _ ->
+        typ = Value_Type_Helpers.find_argument_type value
+        if predicate typ then action else
+            Value_Type_Helpers.raise_unexpected_type type_kind value

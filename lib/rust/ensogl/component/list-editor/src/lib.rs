@@ -73,9 +73,6 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
-pub mod item;
-pub mod placeholder;
-
 use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
@@ -91,10 +88,17 @@ use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::Animation;
 use ensogl_core::Easing;
-
 use item::Item;
 use placeholder::Placeholder;
 use placeholder::StrongPlaceholder;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod item;
+pub mod placeholder;
 
 
 

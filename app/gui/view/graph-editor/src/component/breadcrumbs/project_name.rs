@@ -78,6 +78,8 @@ ensogl::define_endpoints_2! {
        ide_text_edit_mode (bool),
        /// Set whether the project was changed since the last snapshot save.
        set_project_changed(bool),
+       /// Set the read-only mode for this component.
+       set_read_only(bool),
     }
 
     Output {
@@ -88,6 +90,7 @@ ensogl::define_endpoints_2! {
         edit_mode     (bool),
         selected      (bool),
         is_hovered    (bool),
+        read_only     (bool),
     }
 }
 
@@ -265,6 +268,10 @@ impl ProjectName {
         let input = &frp.private.input;
         let output = &frp.private.output;
         frp::extend! { network
+            // === Read-only mode ===
+
+            output.read_only <+ input.set_read_only;
+
 
             // === Mouse IO ===
 
@@ -402,9 +409,9 @@ impl View for ProjectName {
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
-            (Press, "", "enter", "commit"),
+            (Press, "!read_only", "enter", "commit"),
             (Release, "", "escape", "cancel_editing"),
-            (DoublePress, "is_hovered", "left-mouse-button", "start_editing"),
+            (DoublePress, "is_hovered & !read_only", "left-mouse-button", "start_editing"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
