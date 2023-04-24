@@ -52,7 +52,7 @@ pub mod model;
 /// much the value is changed per pixel dragged and how many digits are displayed after the decimal.
 const PRECISION_DEFAULT: f32 = 1.0;
 /// Default upper limit of the slider value.
-const MAX_VALUE_DEFAULT: f32 = 1.0;
+const MAX_VALUE_DEFAULT: f32 = 100.0;
 /// Default for the maximum number of digits after the decimal point that is displayed.
 const MAX_DISP_DECIMAL_PLACES_DEFAULT: usize = 8;
 /// Margin above/below the component within which vertical mouse movement will not affect slider
@@ -106,15 +106,15 @@ pub enum LabelPosition {
 // === Slider orientation ===
 // ==========================
 
-/// The orientation of the slider component.
-#[derive(Clone, Copy, Debug, Default)]
-pub enum SliderOrientation {
-    #[default]
-    /// The slider value is changed by dragging the slider horizontally.
-    Horizontal,
-    /// The slider value is changed by dragging the slider vertically.
-    Vertical,
-}
+// /// The orientation of the slider component.
+// #[derive(Clone, Copy, Debug, Default)]
+// pub enum Axis2 {
+//     #[default]
+//     /// The slider value is changed by dragging the slider horizontally.
+//     Horizontal,
+//     /// The slider value is changed by dragging the slider vertically.
+//     Vertical,
+// }
 
 
 
@@ -124,15 +124,15 @@ pub enum SliderOrientation {
 
 /// The type of element that indicates the slider's value along its length.
 #[derive(Clone, Copy, Debug, Default)]
-pub enum ValueIndicator {
+pub enum Kind {
     #[default]
     /// A track is a bar that fills the slider as the value increases. The track is empty when the
     /// slider's value is at the lower limit and filled when the value is at the upper limit.
-    Track,
+    SingleValue,
     /// A thumb is a small element that moves across the slider as the value changes. The thumb is
     /// on the left/lower end of the slider when the slider's value is at the lower limit and on
     /// the right/upper end of the slider when the value is at the upper limit.
-    Thumb,
+    Scrollbar(f32),
 }
 
 
@@ -227,12 +227,12 @@ fn value_limit_clamp(
 
 ensogl_core::define_endpoints_2! {
     Input {
-        /// Set the width of the slider component.
-        set_width(f32),
-        /// Set the height of the slider component.
-        set_height(f32),
+        // /// Set the width of the slider component.
+        // set_width(f32),
+        // /// Set the height of the slider component.
+        // set_height(f32),
         /// Set the type of the slider's value indicator.
-        set_value_indicator(ValueIndicator),
+        kind(Kind),
         /// Set the color of the slider's value indicator.
         set_value_indicator_color(color::Lcha),
         /// Set the color of the slider's background.
@@ -278,7 +278,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the position of the slider's label.
         set_label_position(LabelPosition),
         /// Set the orientation of the slider component.
-        set_orientation(SliderOrientation),
+        orientation(Axis2),
         /// Set a tooltip that pops up when the mose hovers over the component.
         set_tooltip(ImString),
         /// Set the delay of the tooltip showing after the mouse hovers over the component.
@@ -328,8 +328,8 @@ ensogl_core::define_endpoints_2! {
         disabled(bool),
         /// Indicates whether the slider's value is being edited currently.
         editing(bool),
-        /// The orientation of the slider, either horizontal or vertical.
-        orientation(SliderOrientation),
+        // /// The orientation of the slider, either horizontal or vertical.
+        // orientation(Axis2),
     }
 }
 
@@ -383,6 +383,7 @@ impl Slider {
     /// Initialize the slider value update FRP network.
     fn init_value_update(&self) {
         let network = self.frp.network();
+        let frp = &self.frp;
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
@@ -391,49 +392,33 @@ impl Slider {
         let keyboard = &scene.keyboard.frp;
 
         let ptr_down_any = model.background.on_event::<mouse::Down>();
-        let ptr_up_any = model.background.on_event::<mouse::Up>();
+        let ptr_up_any = scene.on_event::<mouse::Up>();
         let ptr_out = model.background.on_event::<mouse::Out>();
         let ptr_over = model.background.on_event::<mouse::Over>();
 
+        let obj = model.display_object();
+
         frp::extend! { network
-
-
+            ptr_down <- ptr_down_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
+            ptr_up <- ptr_up_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
             pos <- mouse.position.map(
                 f!([scene, model] (p) scene.screen_to_object_space(&model.background, *p))
             );
-
-            ptr_down <- ptr_down_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
-            ptr_up <- ptr_up_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
-
             value_on_ptr_down <- output.value.sample(&ptr_down);
 
-
-            ptr_down <- ptr_down.gate_not(&input.set_slider_disabled);
+            ptr_down <- ptr_down.gate_not(&frp.set_slider_disabled);
             ptr_down <- ptr_down.gate_not(&output.editing);
             on_disabled <- input.set_slider_disabled.on_true();
             on_editing <- output.editing.on_true();
-            drag_start <- ptr_down.gate_not(&keyboard.is_control_down);
-            drag_stop <- any3(&ptr_up, &on_disabled, &on_editing);
-            dragging <- bool(&drag_stop, &drag_start);
-            drag_start_pos <- pos.sample(&drag_start);
-            drag_end_pos <- pos.gate(&dragging);
-            drag_end_pos <- any2(&drag_end_pos, &drag_start_pos);
-            drag_delta_xy <- all2(&drag_end_pos, &drag_start_pos).map(|(end, start)| end - start);
-            drag_delta <- all_with(&drag_delta_xy, &input.set_orientation, |delta, orientation|
-                // FIXME: use X/Y abstraction
-                match orientation {
-                    SliderOrientation::Horizontal => delta.x,
-                    SliderOrientation::Vertical => delta.y,
-                }
-            ).on_change();
-
-            precision_delta <- all_with(&drag_end_pos, &input.set_orientation, |delta, orientation|
-                // FIXME: use X/Y abstraction
-                match orientation {
-                    SliderOrientation::Horizontal => delta.y,
-                    SliderOrientation::Vertical => delta.x,
-                }
-            ).on_change();
+            on_drag_start <- ptr_down.gate_not(&keyboard.is_control_down);
+            on_drag_stop <- any3(&ptr_up, &on_disabled, &on_editing);
+            dragging <- bool(&on_drag_stop, &on_drag_start);
+            drag_start <- pos.sample(&on_drag_start);
+            drag_end <- pos.gate(&dragging).any2(&drag_start);
+            drag_delta <- all2(&drag_end, &drag_start).map(|(end, start)| end - start);
+            drag_delta1 <- all_with(&drag_delta, &frp.orientation, |t, d| t.get_dim(d)).on_change();
+            orientation_orth <- frp.orientation.map(|o| o.orthogonal());
+            prec_delta <- all_with(&drag_end, &orientation_orth, |t, d| t.get_dim(d)).on_change();
 
             output.hovered <+ bool(&ptr_out, &ptr_over);
             output.dragged <+ dragging;
@@ -441,28 +426,14 @@ impl Slider {
 
             // === Precision calculation ===
 
-            // FIXME: this should be done from display object size
-            length <- all_with3(&input.set_orientation, &input.set_width, &input.set_height,
-                |orientation, width, height|
-                match orientation {
-                    SliderOrientation::Horizontal => *width,
-                    SliderOrientation::Vertical => *height,
-                }
-            );
+            length <- all_with(&obj.on_resized, &frp.orientation, |size, dim| size.get_dim(dim));
+            width <- all_with(&obj.on_resized, &orientation_orth, |size, dim| size.get_dim(dim));
 
-            width <- all_with3(&input.set_orientation, &input.set_width, &input.set_height,
-                |orientation, width, height|
-                match orientation {
-                    SliderOrientation::Horizontal => *height,
-                    SliderOrientation::Vertical => *width,
-                }
-            );
-
-            empty_space <- all_with3(&length, &input.set_value_indicator, &input.set_thumb_size,
+            empty_space <- all_with3(&length, &frp.kind, &frp.set_thumb_size,
                 |length, indicator, thumb_size|
                 match indicator {
-                    ValueIndicator::Thumb => length * (1.0 - thumb_size),
-                    ValueIndicator::Track => *length,
+                    Kind::Scrollbar(thumb_size) => length * (1.0 - thumb_size),
+                    Kind::SingleValue => *length,
                 }
             );
 
@@ -471,14 +442,14 @@ impl Slider {
 
             non_native_precision <- all_with5(
                 &width,
-                &input.set_precision_adjustment_margin,
-                &precision_delta,
-                &input.set_precision_adjustment_step_size,
-                &input.set_max_precision_adjustment_steps,
-            |width, margin, precision_delta, step_size, max_steps| {
+                &frp.set_precision_adjustment_margin,
+                &prec_delta,
+                &frp.set_precision_adjustment_step_size,
+                &frp.set_max_precision_adjustment_steps,
+            |width, margin, prec_delta, step_size, max_steps| {
                     let prec_margin = width / 2.0 + margin;
-                    let sign = precision_delta.signum() as i32;
-                    let offset = precision_delta.abs() - prec_margin;
+                    let sign = prec_delta.signum() as i32;
+                    let offset = prec_delta.abs() - prec_margin;
                     let level = min(*max_steps as i32, (offset / step_size).ceil() as i32) * sign;
                     (level != 0).as_some_from(|| {
                         let exp = if level > 0 { level - 1 } else { level };
@@ -493,15 +464,15 @@ impl Slider {
 
             // === Value calculation ===
 
-            value <- drag_delta.map3(&value_on_ptr_down, &precision,
+            value <- drag_delta1.map3(&value_on_ptr_down, &precision,
                 |delta, value, precision| value + delta * precision);
-            value <- any2(&input.set_value, &value);
+            value <- any2(&frp.set_value, &value);
             value <- all5(
                 &value,
-                &input.set_min_value,
-                &input.set_max_value,
-                &input.set_lower_limit_type,
-                &input.set_upper_limit_type,
+                &frp.set_min_value,
+                &frp.set_max_value,
+                &frp.set_lower_limit_type,
+                &frp.set_upper_limit_type,
             ).map(value_limit_clamp);
             output.value <+ value;
 
@@ -657,17 +628,19 @@ impl Slider {
         let min_limit_anim = Animation::new_non_init(network);
         let max_limit_anim = Animation::new_non_init(network);
 
+        let obj = model.display_object();
+
         frp::extend! { network
-            comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
-            eval comp_size((size) model.update_size(*size));
-            eval input.set_value_indicator((i) model.set_value_indicator(i));
-            output.width <+ input.set_width;
-            output.height <+ input.set_height;
+            // comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
+            eval obj.on_resized((size) model.update_size(*size));
+            eval input.kind((i) model.kind(i));
+            // output.width <+ input.set_width;
+            // output.height <+ input.set_height;
             min_limit_anim.target <+ output.min_value;
             max_limit_anim.target <+ output.max_value;
             indicator_pos <- all3(&model.value_animation.value, &min_limit_anim.value, &max_limit_anim.value);
             indicator_pos <- indicator_pos.map(|(value, min, max)| (value - min) / (max - min));
-            indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.set_orientation);
+            indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.orientation);
             eval indicator_pos((v) model.set_indicator_position(v));
 
             value_text_left_pos_x <- all3(
@@ -690,28 +663,28 @@ impl Slider {
             eval model.value_text_edit.width((w) model.value_text_edit.set_x(-*w / 2.0));
             eval model.value_text_edit.height((h) model.value_text_edit.set_y(*h / 2.0));
 
-            overflow_marker_position <- all3(
-                &input.set_width,
-                &input.set_height,
-                &input.set_orientation,
-            );
-            eval overflow_marker_position((p) model.set_overflow_marker_position(p));
-            overflow_marker_shape <- all2(&model.value_text_left.height, &input.set_orientation);
-            eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));
+            // overflow_marker_position <- all3(
+            //     &input.set_width,
+            //     &input.set_height,
+            //     &input.orientation,
+            // );
+            // eval overflow_marker_position((p) model.set_overflow_marker_position(p));
+            // overflow_marker_shape <- all2(&model.value_text_left.height, &input.orientation);
+            // eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));
+            //
+            // eval input.set_label_hidden((v) model.set_label_hidden(*v));
+            // model.label.set_content <+ input.set_label;
+            // label_position <- all6(
+            //     &input.set_width,
+            //     &input.set_height,
+            //     &model.label.width,
+            //     &model.label.height,
+            //     &input.set_label_position,
+            //     &input.orientation,
+            // );
+            // eval label_position((p) model.set_label_position(p));
 
-            eval input.set_label_hidden((v) model.set_label_hidden(*v));
-            model.label.set_content <+ input.set_label;
-            label_position <- all6(
-                &input.set_width,
-                &input.set_height,
-                &model.label.width,
-                &model.label.height,
-                &input.set_label_position,
-                &input.set_orientation,
-            );
-            eval label_position((p) model.set_label_position(p));
-
-            output.orientation <+ input.set_orientation;
+            // output.orientation <+ input.orientation;
         };
     }
 
@@ -804,6 +777,7 @@ impl Slider {
         self.frp.set_precision_popup_duration(PRECISION_ADJUSTMENT_POPUP_DURATION);
         self.frp.set_thumb_size(THUMB_SIZE_DEFAULT);
         self.show_value(true);
+        self.orientation(Axis2::X);
     }
 }
 
