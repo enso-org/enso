@@ -118,9 +118,9 @@ impl<T: Payload> ChildGenerator<T> {
     }
 
     fn add_node(&mut self, ast_crumbs: ast::Crumbs, node: Node<T>) -> &mut node::Child<T> {
-        let offset = self.current_offset;
+        let parent_offset = self.current_offset;
         let sibling_offset = self.sibling_offset;
-        let child = node::Child { node, offset, sibling_offset, ast_crumbs };
+        let child = node::Child { node, parent_offset, sibling_offset, ast_crumbs };
         self.current_offset += child.node.size;
         self.sibling_offset = 0.byte_diff();
         self.children.push(child);
@@ -128,21 +128,16 @@ impl<T: Payload> ChildGenerator<T> {
     }
 
     fn generate_empty_node(&mut self, insert_type: InsertionPointType) -> &mut node::Child<T> {
-        let child = node::Child {
-            node:           Node::<T>::new().with_kind(insert_type),
-            offset:         self.current_offset,
-            sibling_offset: self.sibling_offset,
-            ast_crumbs:     vec![],
-        };
-        self.sibling_offset = 0.byte_diff();
-        self.children.push(child);
-        self.children.last_mut().unwrap()
+        self.add_node(vec![], Node::<T>::new().with_kind(insert_type))
     }
 
     fn reverse_children(&mut self) {
         self.children.reverse();
+        let mut last_parent_offset = 0.byte_diff();
         for child in &mut self.children {
-            child.offset = self.current_offset - child.offset - child.node.size;
+            child.parent_offset = self.current_offset - child.parent_offset - child.node.size;
+            child.sibling_offset = child.parent_offset - last_parent_offset;
+            last_parent_offset = child.parent_offset;
         }
     }
 
@@ -822,12 +817,12 @@ fn tree_generate_node<T: Payload>(
     if let Some(leaf_info) = &tree.leaf_info {
         size = ByteDiff::from(leaf_info.len());
     } else {
-        let mut offset = ByteDiff::from(0);
+        let mut parent_offset = ByteDiff::from(0);
         let mut sibling_offset = ByteDiff::from(0);
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
             match raw_span_info {
                 SpanSeed::Space(ast::SpanSeedSpace { space }) => {
-                    offset += ByteDiff::from(space);
+                    parent_offset += ByteDiff::from(space);
                     sibling_offset += ByteDiff::from(space);
                 }
                 SpanSeed::Token(ast::SpanSeedToken { token }) => {
@@ -835,8 +830,8 @@ fn tree_generate_node<T: Payload>(
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
                     let node = Node { kind, size, ..default() };
-                    children.push(node::Child { node, offset, sibling_offset, ast_crumbs });
-                    offset += size;
+                    children.push(node::Child { node, parent_offset, sibling_offset, ast_crumbs });
+                    parent_offset += size;
                     sibling_offset = 0.byte_diff();
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
@@ -844,13 +839,13 @@ fn tree_generate_node<T: Payload>(
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
-                    children.push(node::Child { node, offset, sibling_offset, ast_crumbs });
-                    offset += child_size;
+                    children.push(node::Child { node, parent_offset, sibling_offset, ast_crumbs });
+                    parent_offset += child_size;
                     sibling_offset = 0.byte_diff();
                 }
             }
         }
-        size = offset;
+        size = parent_offset;
     }
     let payload = default();
     Ok(Node { kind, parenthesized, size, children, ast_id, payload })

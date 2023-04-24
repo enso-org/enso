@@ -183,7 +183,7 @@ pub struct Child<T = ()> {
     /// A child node.
     pub node:           Node<T>,
     /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset:         ByteDiff,
+    pub parent_offset:  ByteDiff,
     /// The offset counted from the end of previous sibling node.
     pub sibling_offset: ByteDiff,
     /// AST crumbs which lead from parent to child associated AST node.
@@ -194,10 +194,10 @@ impl<T> Child<T> {
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Child<S> {
         let node = self.node.map(f);
-        let offset = self.offset;
+        let parent_offset = self.parent_offset;
         let ast_crumbs = self.ast_crumbs;
         let sibling_offset = self.sibling_offset;
-        Child { node, offset, sibling_offset, ast_crumbs }
+        Child { node, parent_offset, sibling_offset, ast_crumbs }
     }
 }
 
@@ -370,7 +370,7 @@ impl<'a, T> Ref<'a, T> {
             None => Err(InvalidCrumb::new(node.children.len(), index, &crumbs).into()),
             Some(child) => {
                 let node = &child.node;
-                span_offset += child.offset;
+                span_offset += child.parent_offset;
                 let sibling_offset = child.sibling_offset;
                 let crumbs = crumbs.into_sub(index);
                 ast_crumbs.extend_from_slice(&child.ast_crumbs);
@@ -617,9 +617,9 @@ impl<'a, T> RefMut<'a, T> {
         crumbs: Crumbs,
         mut ast_crumbs: ast::Crumbs,
     ) -> RefMut<'a, T> {
-        let offset = child.offset;
+        let offset = child.parent_offset;
         let node = &mut child.node;
-        span_begin += child.offset;
+        span_begin += child.parent_offset;
         let crumbs = crumbs.into_sub(index);
         ast_crumbs.extend(child.ast_crumbs.iter().cloned());
         Self { node, offset, span_offset: span_begin, crumbs, ast_crumbs }

@@ -31,12 +31,12 @@ pub trait Builder<T: Payload>: Sized {
         let kind = kind.into();
         let node = Node::<T>::new().with_kind(kind).with_size(len.into());
         let prev_child = self.node_being_built().children.last();
-        let prev_child_end = prev_child.map_or(0, |c| (c.offset + c.node.size).as_usize());
-        let sibling_offset = offset.saturating_sub(prev_child_end);
+        let prev_child_end = prev_child.map_or(0, |c| (c.parent_offset + c.node.size).as_usize());
+        let parent_offset = prev_child_end + offset;
         let child = node::Child {
             node,
-            offset: offset.into(),
-            sibling_offset: sibling_offset.into(),
+            parent_offset: parent_offset.into(),
+            sibling_offset: offset.into(),
             ast_crumbs: crumbs.into_crumbs(),
         };
         ChildBuilder { built: child, parent: self }
