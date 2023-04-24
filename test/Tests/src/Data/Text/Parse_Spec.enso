@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Text.Extensions
+import Standard.Test.Extensions
+
+from Standard.Base.Data.Numbers import Decimal, Integer, Number_Parse_Error
+from Standard.Test import Test, Test_Suite
+
+spec =
+    Test.group "parse" <|
+        Test.specify "Decimal" <|
+            ["32.5", "000000", "-98.5"].map s->
+                s.parse_decimal . should_equal <| Decimal.parse s
+            l = Locale.new "cs"
+            ["32,5", "0122,5"].map s->
+                s.parse_decimal l . should_equal <| Decimal.parse s l
+            "abc".parse_decimal . should_fail_with Number_Parse_Error
+
+main = Test_Suite.run_main spec
