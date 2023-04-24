@@ -207,7 +207,7 @@ pub fn drop() {
         let objects = objects.borrow();
         if !objects.is_empty() {
             error!("Tracked objects leaked after dropping entire application!");
-            error!("{objects:#?}");
+            error!("Leaked objects: {objects:#?}");
         }
     })
 }
