@@ -58,7 +58,7 @@ make_json_for_vector vector max_rows =
     truncated = vector.take max_rows
 
     matrix = make_json_for_matrix (Vector.new_builder truncated.length) truncated
-    if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix]] else
+    if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
         object_matrix = make_json_for_object_matrix (Vector.new_builder truncated.length) truncated
         if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
             JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
@@ -140,6 +140,7 @@ make_json_for_table dataframe indices all_rows_count =
    Create JSON serialization of values for the table.
 make_json_for_value : Any -> Integer -> Text
 make_json_for_value val level=0 = case val of
+    Nothing -> Nothing
     _ : Text -> val
     _ : Vector ->
         if level != 0 then "[… "+val.length.to_text+" items]" else

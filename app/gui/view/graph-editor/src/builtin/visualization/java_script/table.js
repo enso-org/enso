@@ -118,10 +118,18 @@ class TableVisualization extends Visualization {
             this.agGridOptions.api.setColumnDefs([
                 {
                     field: 'Error',
-                    cellStyle: { 'white-space': 'normal' },
+                    cellStyle: {'white-space': 'normal'},
                 },
             ])
-            this.agGridOptions.api.setRowData([{ Error: parsedData.error }])
+            this.agGridOptions.api.setRowData([{Error: parsedData.error}])
+        } else if (parsedData.type === "Matrix") {
+            let defs = []
+            for (let i = 0; i < parsedData.column_count; i++) {
+                defs.push({ field: i.toString() })
+            }
+            columnDefs = defs
+            rowData = parsedData.json
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && isMatrix(parsedData.json)) {
             columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
             rowData = parsedData.json
