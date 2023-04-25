@@ -56,7 +56,7 @@ pub use internal::backtrace;
 /// mark each copy with unique id (the original copy has id of 0). Once enabled, it will print
 /// backtrace of each clone, clone_ref or drop operation with assigned name (the same for all
 /// copies) and copy id.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct TraceCopies {
     clone_id: u64,
     handle:   Rc<RefCell<Option<ImString>>>,
@@ -75,6 +75,10 @@ fn next_clone_id() -> u64 {
 }
 
 impl TraceCopies {
+    pub fn new() -> Self {
+        Self { clone_id: next_clone_id(), handle: default() }
+    }
+
     /// Create enabled structure with appointed entity name (shared between all copies).
     pub fn enabled(name: impl Into<ImString>) -> Self {
         let this: Self = default();
@@ -156,7 +160,7 @@ pub mod leak_detector {
     /// This is a wrapper for [`TraceCopies`] which also register each enabled copy in
     /// [`TRACKED_OBJECTS`] global variable. The variable may be then checked for leaks in moments
     /// when we expect it to be empty.
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     pub struct Trace {
         instance: TraceCopies,
     }

@@ -201,7 +201,13 @@ pub fn main() {
 /// All connections will be closed and all visuals will be removed.
 #[wasm_bindgen]
 pub fn drop() {
-    IDE.with(RefCell::take);
+    let ide = IDE.with(RefCell::take);
+    if let Some(Ok(ide)) = &ide {
+        //TODO[ao] #6420 We should not do this, but somehow the `dom` field in the scene is
+        // leaking.
+        ide.ensogl_app.display.default_scene.dom.root.remove();
+    }
+    mem::drop(ide);
     EXECUTOR.with(RefCell::take);
     leak_detector::TRACKED_OBJECTS.with(|objects| {
         let objects = objects.borrow();
