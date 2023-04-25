@@ -93,7 +93,7 @@ impl Controller {
         let input = &frp.input;
         let output = &frp.private.output;
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             updates_from_cache <- input.request_widgets.filter_map(
                 f!((definition) model.borrow_mut().request_widget(definition))
             );
