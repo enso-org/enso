@@ -1,5 +1,5 @@
 [package]
-name = "ide-view-execution-mode-selector"
+name = "ide-view-execution-environment-selector"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"

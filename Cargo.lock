@@ -1614,7 +1614,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "debug-scene-execution-mode-dropdown"
+name = "debug-scene-execution-environment-dropdown"
 version = "0.1.0"
 dependencies = [
  "ensogl",
@@ -1622,7 +1622,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
  "ensogl-text-msdf",
- "ide-view-execution-mode-selector",
+ "ide-view-execution-environment-selector",
 ]
 
 [[package]]
@@ -1647,7 +1647,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "ide-view",
- "ide-view-execution-mode-selector",
+ "ide-view-execution-environment-selector",
  "parser",
  "span-tree",
  "uuid 0.8.2",
@@ -2109,7 +2109,7 @@ version = "0.1.0"
 dependencies = [
  "debug-scene-component-list-panel-view",
  "debug-scene-documentation",
- "debug-scene-execution-mode-dropdown",
+ "debug-scene-execution-environment-dropdown",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-text-grid-visualization",
@@ -4298,7 +4298,7 @@ dependencies = [
  "ensogl-text-msdf",
  "ide-view-component-browser",
  "ide-view-documentation",
- "ide-view-execution-mode-selector",
+ "ide-view-execution-environment-selector",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
@@ -4413,7 +4413,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ide-view-execution-mode-selector"
+name = "ide-view-execution-environment-selector"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
@@ -4446,7 +4446,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "failure",
- "ide-view-execution-mode-selector",
+ "ide-view-execution-environment-selector",
  "indexmap",
  "js-sys",
  "nalgebra",

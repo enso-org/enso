@@ -25,6 +25,7 @@ use ensogl::gui::text;
 use ensogl::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf::run_once_initialized;
+use ide_view::execution_environment_selector::make_dummy_execution_environments;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node::vcs;
 use ide_view::graph_editor::component::node::Expression;
@@ -256,7 +257,7 @@ fn init(app: &Application) {
 
     // === Execution Modes ===
 
-    graph_editor.set_available_execution_modes(vec!["design".to_string(), "live".to_string()]);
+    graph_editor.set_available_execution_environments(make_dummy_execution_environments());
 
 
     // === Rendering ===
