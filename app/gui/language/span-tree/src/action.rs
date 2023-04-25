@@ -4,7 +4,6 @@
 
 use crate::prelude::*;
 use ast::crumbs::*;
-use ast::Shape;
 
 use crate::generate::Context;
 use crate::node;
@@ -241,9 +240,6 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
         if self.node.kind.removable() {
             Some(Box::new(move |root, context| {
-                let code = root.repr();
-                let msg = self.span_tree.debug_print(&code);
-                error!("{msg}");
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
@@ -279,7 +275,7 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
                 let mut new_root = root.set_traversing(parent_crumbs, new_ast?)?;
 
 
-                // when erasing a positional or named argument, all further positional arguments
+                // When erasing a positional or named argument, all further positional arguments
                 // past its definition order will end up in wrong position. To fix that, we need to
                 // rewrite them as named arguments.
                 if let Some(erased_definition_index) = self.kind.definition_index() {
@@ -290,43 +286,47 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
                         })
                         .map(|found| found.node);
 
+                    // To better understand the code, it's important to know the structure of
+                    // the [`SpanTree`] for prefix chains:
+                    //
+                    // Root
+                    // └─Chained
+                    //   ├─Chained
+                    //   │ ├─Chained
+                    //   │ │ └─ Argument1
+                    //   │ └─Argument2
+                    //   └─Argument3
+                    //
+                    // This loop traverses the tree bottom to top, starting at one of the arguments,
+                    // and continues until all arguments are covered. It operates as follows:
+                    // 1. Verify that the traversal is still within the prefix chain of arguments.
+                    // This is crucial since [`Node::get_descendant_by_ast_crumbs`] is recursive,
+                    // and it will return the argument from a lower level of the SpanTree if it is
+                    // not available on the current level. This could result in always choosing the
+                    // last argument if the traversal is not inside the prefix chain.
+                    // 2. Retrieve the argument from the current level of the [`SpanTree`].
+                    // 3. Rewrite the argument as necessary.
+                    // 4. Update `next_parent` to be the parent of the current node.
                     while let Some(node) = next_parent {
+                        // We're only interested in nodes inside the prefix chain.
                         if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
                             break;
                         }
-                        let code = new_root.repr();
-                        let span_tree = node.span_tree.clone();
-                        let msg = span_tree.debug_print(&code);
-                        //error!("{msg}");
                         next_parent = node.parent()?;
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());
-                        error!("Argument node: {argument_node:?}");
 
                         match argument_node {
                             Some(found) if found.node.is_argument() =>
                                 if let Some(arg_name) = found.node.kind.argument_name() {
                                     let def_idx = found.node.kind.definition_index();
-                                    error!("{arg_name:?}, {def_idx:?}");
                                     let need_rewrite =
                                         def_idx.map_or(false, |idx| idx > erased_definition_index);
 
                                     if need_rewrite {
                                         let arg_crumbs = &found.node.ast_crumbs;
                                         let expression = new_root.get_traversing(arg_crumbs)?;
-                                        // Hotfix for Issue #6228.
-                                        // let expression = if let Some(assignment) =
-                                        //     ast::opr::to_assignment(&expression)
-                                        // {
-                                        //     assignment.rarg.clone()
-                                        // } else {
-                                        //     expression.clone()
-                                        // };
-                                        error!(
-                                            "Expression: {expression:?} ({})",
-                                            expression.repr()
-                                        );
                                         let named_ast = Ast::named_argument(arg_name, expression);
                                         new_root =
                                             new_root.set_traversing(arg_crumbs, named_ast)?;
