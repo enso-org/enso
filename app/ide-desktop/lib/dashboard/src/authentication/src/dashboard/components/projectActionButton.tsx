@@ -43,17 +43,17 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { project, openIde } = props
     const { backend } = backendProvider.useBackend()
 
-    const [state, setStateRaw] = react.useState(backend.ProjectState.created)
+    const [state, setStateRaw] = react.useState(cloudService.ProjectState.created)
     const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(null)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
-    function setState(newState: backend.ProjectState) {
-        if (newState !== backend.ProjectState.opened) {
+    function setState(newState: cloudService.ProjectState) {
+        if (newState !== cloudService.ProjectState.opened || !('checkResources' in backend)) {
             setStateRaw(newState)
         } else {
             // Only change state if `checkResources` endpoint returns a value,
             // indicating that the project is ready to be opened.
-            void backendService.checkResources(project.id).then(() => {
+            void backend.checkResources(project.id).then(() => {
                 setStateRaw(newState)
             })
         }
