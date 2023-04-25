@@ -596,7 +596,6 @@ type Date
     format : Text -> Text
     format self pattern = Time_Utils.local_date_format self pattern
 
-
 ## PRIVATE
 week_days_between start end =
     ## We split the interval into 3 periods: the first week (containing the

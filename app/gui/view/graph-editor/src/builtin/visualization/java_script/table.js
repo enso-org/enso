@@ -65,44 +65,8 @@ class TableVisualization extends Visualization {
 
             if (content instanceof Object) {
                 const type = content.type
-                if (type === 'BigInt') {
-                    return BigInt(content.value)
-                } else if (content['_display_text_']) {
+                if (content['_display_text_']) {
                     return content['_display_text_']
-                } else if (type === 'Date') {
-                    return new Date(content.year, content.month - 1, content.day)
-                        .toISOString()
-                        .substring(0, 10)
-                } else if (type === 'Time_Of_Day') {
-                    const js_date = new Date(
-                        0,
-                        0,
-                        1,
-                        content.hour,
-                        content.minute,
-                        content.second,
-                        content.nanosecond / 1000000
-                    )
-                    return (
-                        js_date.toTimeString().substring(0, 8) +
-                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
-                    )
-                } else if (type === 'Date_Time') {
-                    const js_date = new Date(
-                        content.year,
-                        content.month - 1,
-                        content.day,
-                        content.hour,
-                        content.minute,
-                        content.second,
-                        content.nanosecond / 1000000
-                    )
-                    return (
-                        js_date.toISOString().substring(0, 10) +
-                        ' ' +
-                        js_date.toTimeString().substring(0, 8) +
-                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
-                    )
                 } else {
                     return `{ ${type} Object }`
                 }
@@ -136,7 +100,7 @@ class TableVisualization extends Visualization {
                     sortable: true,
                     filter: true,
                     resizable: true,
-                    minWidth: 50,
+                    minWidth: 25,
                     headerValueGetter: params => params.colDef.field,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
