@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -72,7 +73,7 @@ public final class LongStorage extends NumericStorage<Long> {
 
   @Override
   public double getItemDouble(int idx) {
-    return getItem(idx);
+    return (double) getItem(idx);
   }
 
   @Override
@@ -139,7 +140,7 @@ public final class LongStorage extends NumericStorage<Long> {
   @Override
   public Storage<?> fillMissing(Value arg) {
     if (arg.isNumber()) {
-      if (arg.fitsInLong()) {
+      if (NumericConverter.isCoercibleToLong(arg.as(Object.class))) {
         return fillMissingLong(arg.asLong());
       } else {
         return fillMissingDouble(arg.asDouble());
@@ -338,7 +339,7 @@ public final class LongStorage extends NumericStorage<Long> {
 
               @Override
               protected boolean doDouble(long a, double b) {
-                return a > b;
+                return a < b;
               }
             })
         .add(

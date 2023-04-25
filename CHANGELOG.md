@@ -390,6 +390,10 @@
 - [Implemented `Table.union` for the Database backend.][6204]
 - [Array & Vector have the same methods & behavior][6218]
 - [Implemented `Table.split` and `Table.tokenize` for in-memory tables.][6233]
+- [Added `trim` and `replace` to `Column`. Enhanced number parsing with support
+  for thousands and decimal point automatic detection.][6253]
+- [Implemented `Table.parse_text_to_table`.][6294]
+- [Added `Table.parse_to_columns`.][6383]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -588,6 +592,9 @@
 [6077]: https://github.com/enso-org/enso/pull/6077
 [6218]: https://github.com/enso-org/enso/pull/6218
 [6233]: https://github.com/enso-org/enso/pull/6233
+[6253]: https://github.com/enso-org/enso/pull/6253
+[6294]: https://github.com/enso-org/enso/pull/6294
+[6383]: https://github.com/enso-org/enso/pull/6383
 
 #### Enso Compiler
 

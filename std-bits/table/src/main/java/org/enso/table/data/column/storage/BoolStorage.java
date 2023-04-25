@@ -180,10 +180,10 @@ public final class BoolStorage extends Storage<Boolean> {
     return negated;
   }
 
-  public Storage<?> iif(Value when_true, Value when_false) {
+  public Storage<?> iif(Value when_true, Value when_false, StorageType resultStorageType) {
     var on_true = makeRowProvider(when_true);
     var on_false = makeRowProvider(when_false);
-    InferredBuilder builder = new InferredBuilder(size);
+    Builder builder = Builder.getForType(resultStorageType, size);
     for (int i = 0; i < size; i++) {
       if (isMissing.get(i)) {
         builder.append(null);

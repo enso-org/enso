@@ -547,7 +547,7 @@ fn test_execution_context() {
     let path = main.clone();
     let edit = FileEdit { path, edits, old_version, new_version };
     test_request(
-        |client| client.apply_text_file_edit(&edit),
+        |client| client.apply_text_file_edit(&edit, &true),
         "text/applyEdit",
         json!({
             "edit" : {
@@ -572,7 +572,8 @@ fn test_execution_context() {
                 ],
                 "oldVersion" : "d3ee9b1ba1990fecfd794d2f30e0207aaa7be5d37d463073096d86f8",
                 "newVersion" : "6a33e22f20f16642697e8bd549ff7b759252ad56c05a1b0acc31dc69"
-            }
+            },
+            "execute": true
         }),
         unit_json.clone(),
         (),

@@ -240,7 +240,7 @@ async fn ls_text_protocol_test() {
     let new_version = Sha3_224::new(b"Hello, world!");
     let path = move_path.clone();
     let edit = FileEdit { path, edits, old_version, new_version: new_version.clone() };
-    client.apply_text_file_edit(&edit).await.expect("Couldn't apply edit.");
+    client.apply_text_file_edit(&edit, &true).await.expect("Couldn't apply edit.");
 
     let saving_result = client.save_text_file(&move_path, &new_version).await;
     saving_result.expect("Couldn't save file.");
