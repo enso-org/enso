@@ -85,6 +85,9 @@ spec =
         Test.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1]], ["Y", [2], "Z"]] . should_fail_with Illegal_Argument
+            Table.new [["X"]] . should_fail_with Illegal_Argument
+            Table.new ["X", "Y", "Z"] . should_fail_with Illegal_Argument
             Table.new [] . should_fail_with Illegal_Argument
 
             Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument
@@ -193,7 +196,7 @@ spec =
 
             x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
             y = Column.from_vector 'b' [0, 0, 0, 0]
-            r = x.zip y skip_missing=False x-> y-> if x == 1 then x else y
+            r = x.zip y skip_nothing=False x-> y-> if x == 1 then x else y
             r.to_vector.should_equal [1, 0, 0, 0]
             r.value_type . should_equal Value_Type.Integer
 
@@ -287,61 +290,12 @@ spec =
             r.at "b" . to_vector . should_equal [2]
             r.at "c" . to_vector . should_equal [Nothing]
 
-    Test.group "Filling Missing Values" <|
-        Test.specify "should coerce non-coercible types to Object" <|
-            strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_nothing False
-            strs_filled.to_vector . should_equal ["a", False, "b", False]
-            strs_filled.value_type . should_equal Value_Type.Mixed
-
-            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_nothing "X"
-            ints_filled.to_vector . should_equal [1, "X", 2, "X"]
-            ints_filled.value_type . should_equal Value_Type.Mixed
-
-            bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_nothing "X"
-            bools_filled.to_vector . should_equal [True, False, "X"]
-            bools_filled.value_type . should_equal Value_Type.Mixed
-
-        Test.specify "should coerce long and double types to double" <|
-            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_nothing 0.5
-            ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
-            ints_filled.value_type . should_equal Value_Type.Float
-
-            decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_nothing 42
-            decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
-            decimals_filled.value_type . should_equal Value_Type.Float
-
-        Test.specify "should keep String, Boolean, Long and Double type" <|
-            strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_nothing "X"
-            strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
-            strs_filled.value_type . should_equal Value_Type.Char
-
-            bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_nothing False
-            bools_filled.to_vector . should_equal [True, False, False]
-            bools_filled.value_type . should_equal Value_Type.Boolean
-
-            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_nothing 42
-            ints_filled.to_vector . should_equal [1, 42, 2, 42]
-            ints_filled.value_type . should_equal Value_Type.Integer
-
-            decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_nothing 1.0
-            decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
-            decimals_filled.value_type . should_equal Value_Type.Float
-
     Test.group "Counting Values" <|
         Test.specify "should count missing and non-missing values" <|
             col = Column.from_vector 'x' [1, Nothing, 2]
             col.length . should_equal 3
             col.count . should_equal 2
-            col.count_missing . should_equal 1
+            col.count_nothing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
         Test.specify "should correctly handle NaNs with mixed type columns" <|
@@ -350,6 +304,11 @@ spec =
             t1.at "X" . to_vector . should_equal [1, 4, 5]
             # Comparing text value because `Number.nan != Number.nan`.
             t1.at "Y" . to_vector . to_text . should_equal "[A, NaN, 0]"
+
+            c = t.at "Y" . is_blank treat_nans_as_blank=True
+            c.to_vector . should_equal [False, True, True, True, False]
+            c.value_type . should_equal Value_Type.Boolean
+
             t2 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
             t2.at "X" . to_vector . should_equal [1, 5]
             t2.at "Y" . to_vector . should_equal ['A', 0]
@@ -819,7 +778,10 @@ spec =
                                 False -> True
                                 Nothing -> Nothing
                             negated_column_vector = column_vector.map not
-                            t = Table.new [["X", column_vector]]
+                            ## A workaround to ensure that X has Boolean type.
+                               It can be removed with
+                            t0 = Table.new [["X", [True]+column_vector]]
+                            t = t0.drop 1
                             in_column = Column.from_vector "in" in_vector
 
                             expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)

@@ -449,6 +449,11 @@ ensogl::define_endpoints_2! {
         space_for_window_buttons (Vector2<f32>),
 
 
+        // === Read-only mode ===
+
+        set_read_only(bool),
+
+
         // === Node Selection ===
 
         /// Node press event
@@ -661,6 +666,11 @@ ensogl::define_endpoints_2! {
         // === Debug Mode ===
 
         debug_mode                             (bool),
+
+
+        // === Read-only mode ===
+
+        read_only                              (bool),
 
         // === Edge ===
 
@@ -1702,6 +1712,11 @@ impl GraphEditorModelWithNetwork {
             node.set_view_mode <+ self.model.frp.view_mode;
 
 
+            // === Read-only mode ===
+
+            node.set_read_only <+ self.model.frp.set_read_only;
+
+
             // === Profiling ===
 
             let profiling_min_duration              = &self.model.profiling_statuses.min_duration;
@@ -2659,15 +2674,15 @@ impl application::View for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
-            (Press, "!node_editing", "tab", "start_node_creation"),
-            (Press, "!node_editing", "enter", "start_node_creation"),
+            (Press, "!node_editing & !read_only", "tab", "start_node_creation"),
+            (Press, "!node_editing & !read_only", "enter", "start_node_creation"),
             // === Drag ===
             (Press, "", "left-mouse-button", "node_press"),
             (Release, "", "left-mouse-button", "node_release"),
-            (Press, "!node_editing", "backspace", "remove_selected_nodes"),
-            (Press, "!node_editing", "delete", "remove_selected_nodes"),
+            (Press, "!node_editing & !read_only", "backspace", "remove_selected_nodes"),
+            (Press, "!node_editing & !read_only", "delete", "remove_selected_nodes"),
             (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-            (Press, "", "cmd g", "collapse_selected_nodes"),
+            (Press, "!read_only", "cmd g", "collapse_selected_nodes"),
             // === Visualization ===
             (Press, "!node_editing", "space", "press_visualization_visibility"),
             (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
@@ -2694,17 +2709,17 @@ impl application::View for GraphEditor {
                 "ctrl space",
                 "cycle_visualization_for_selected_node",
             ),
-            (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
-            (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
-            (Press, "", "right-mouse-button", "start_node_creation_from_port"),
-            (Press, "!node_editing", "cmd enter", "enter_selected_node"),
-            (Press, "", "alt enter", "exit_node"),
+            (DoublePress, "!read_only", "left-mouse-button", "enter_hovered_node"),
+            (DoublePress, "!read_only", "left-mouse-button", "start_node_creation_from_port"),
+            (Press, "!read_only", "right-mouse-button", "start_node_creation_from_port"),
+            (Press, "!node_editing & !read_only", "cmd enter", "enter_selected_node"),
+            (Press, "!read_only", "alt enter", "exit_node"),
             // === Node Editing ===
-            (Press, "", "cmd", "edit_mode_on"),
-            (Release, "", "cmd", "edit_mode_off"),
-            (Press, "", "cmd left-mouse-button", "edit_mode_on"),
-            (Release, "", "cmd left-mouse-button", "edit_mode_off"),
-            (Press, "node_editing", "cmd enter", "stop_editing"),
+            (Press, "!read_only", "cmd", "edit_mode_on"),
+            (Release, "!read_only", "cmd", "edit_mode_off"),
+            (Press, "!read_only", "cmd left-mouse-button", "edit_mode_on"),
+            (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
+            (Press, "node_editing & !read_only", "cmd enter", "stop_editing"),
             // === Profiling Mode ===
             (Press, "", "cmd p", "toggle_profiling_mode"),
             // === Debug ===
@@ -2760,6 +2775,23 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let vis_registry = &model.vis_registry;
     let out = &frp.private.output;
     let selection_controller = &model.selection_controller;
+
+
+
+    // ======================
+    // === Read-only mode ===
+    // ======================
+
+    frp::extend! { network
+        out.read_only <+ inputs.set_read_only;
+        model.breadcrumbs.set_read_only <+ inputs.set_read_only;
+
+        // Drop the currently dragged edge if read-only mode is enabled.
+        read_only_enabled <- inputs.set_read_only.on_true();
+        inputs.drop_dragged_edge <+ read_only_enabled;
+    }
+
+
 
     // ========================
     // === Scene Navigation ===
@@ -2928,7 +2960,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         }
     });
     edge_click <- map2(&edge_mouse_down,&cursor_pos_in_scene,|edge_id,pos|(*edge_id,*pos));
-    valid_edge_disconnect_click <- edge_click.gate_not(&has_detached_edge);
+    valid_edge_disconnect_click <- edge_click.gate_not(&has_detached_edge).gate_not(&inputs.set_read_only);
 
     edge_is_source_click <- valid_edge_disconnect_click.map(f!([model]((edge_id,pos)) {
         if let Some(edge) = model.edges.get_cloned_ref(edge_id){
@@ -2963,8 +2995,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     attach_all_edge_inputs  <- any (port_input_mouse_up, inputs.press_node_input, inputs.set_detached_edge_targets);
     attach_all_edge_outputs <- any (port_output_mouse_up, inputs.press_node_output, inputs.set_detached_edge_sources);
 
-    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down);
-    create_edge_from_input  <- node_input_touch.down.map(|value| value.clone());
+    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down).gate_not(&inputs.set_read_only);
+    create_edge_from_input  <- node_input_touch.down.map(|value| value.clone()).gate_not(&inputs.set_read_only);
 
     on_new_edge    <- any(&output_down,&input_down);
     let selection_mode = selection::get_mode(network,inputs);
@@ -3043,7 +3075,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Adding Node ===
 
     frp::extend! { network
-        let node_added_with_button = model.add_node_button.clicked.clone_ref();
+        node_added_with_button <- model.add_node_button.clicked.gate_not(&inputs.set_read_only);
 
         input_start_node_creation_from_port <- inputs.hover_node_output.sample(
             &inputs.start_node_creation_from_port);

@@ -79,6 +79,8 @@ ensogl::define_endpoints! {
         set_action_context_switch_state (Option<bool>),
         show_on_hover                   (bool),
         set_execution_environment       (ExecutionEnvironment),
+        /// Set the read-only mode for the buttons.
+        set_read_only                   (bool),
     }
 
     Output {
@@ -127,6 +129,12 @@ impl Icons {
         self.context_switch.set_visibility(visible);
         self.freeze.frp.set_visibility(visible);
         self.skip.frp.set_visibility(visible);
+    }
+
+    fn set_read_only(&self, read_only: bool) {
+        self.context_switch.set_read_only(read_only);
+        self.freeze.frp.set_read_only(read_only);
+        self.skip.frp.set_read_only(read_only);
     }
 
     fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
@@ -205,6 +213,11 @@ impl ContextSwitchButton {
     fn set_visibility(&self, visible: bool) {
         self.disable_button.set_visibility(visible);
         self.enable_button.set_visibility(visible);
+    }
+
+    fn set_read_only(&self, read_only: bool) {
+        self.disable_button.set_read_only(read_only);
+        self.enable_button.set_read_only(read_only);
     }
 
     fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
@@ -375,6 +388,10 @@ impl ActionBar {
         let model = &self.model;
 
         frp::extend! { network
+            // === Read-only mode ===
+
+            eval frp.set_read_only((read_only) model.icons.set_read_only(*read_only));
+
 
             // === Input Processing ===
 

@@ -22,6 +22,7 @@ import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
+import Templates from './templates'
 import TopBar from './topBar'
 
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -281,7 +282,6 @@ function Dashboard(props: DashboardProps) {
         }
     }, [directoryStack])
 
-    // FIXME[sb]: Figure out how to pass whether the row was selected.
     /** React components for the name column. */
     const nameRenderers: {
         [Type in backend.AssetType]: (asset: backend.Asset<Type>) => JSX.Element
@@ -602,6 +602,66 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
+    const getNewProjectName = (templateName?: string | null): string => {
+        const prefix = `${templateName ?? 'New_Project'}_`
+        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+        let highestProjectIndex = 0
+        for (const projectAsset of projectAssets) {
+            let projectIndex = projectNameTemplate.exec(projectAsset.title)?.groups?.projectIndex
+            if (projectIndex) {
+                highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
+            }
+        }
+        return `${prefix}${highestProjectIndex + 1}`
+    }
+
+    const handleCreateProject = async (templateName: string | null) => {
+        const projectName = getNewProjectName(templateName)
+        switch (platform) {
+            case platformModule.Platform.cloud: {
+                const body: backend.CreateProjectRequestBody = {
+                    projectName,
+                    projectTemplateName:
+                        templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
+                    parentDirectoryId: null,
+                }
+                if (templateName) {
+                    body.projectTemplateName = templateName.replace(/_/g, '').toLocaleLowerCase()
+                }
+                const projectAsset = await backendService.createProject(body)
+                setProjectAssets(oldProjectAssets => [
+                    ...oldProjectAssets,
+                    {
+                        type: backend.AssetType.project,
+                        title: projectAsset.name,
+                        id: projectAsset.projectId,
+                        parentId: '',
+                        permissions: [],
+                    },
+                ])
+                break
+            }
+            case platformModule.Platform.desktop: {
+                const result = await props.projectManager.createProject({
+                    name: newtype.asNewtype<projectManagerModule.ProjectName>(projectName),
+                    ...(templateName ? { projectTemplate: templateName } : {}),
+                })
+                const newProject = result.result
+                setProjectAssets(oldProjectAssets => [
+                    ...oldProjectAssets,
+                    {
+                        type: backend.AssetType.project,
+                        title: projectName,
+                        id: newProject.projectId,
+                        parentId: '',
+                        permissions: [],
+                    },
+                ])
+                break
+            }
+        }
+    }
+
     return (
         <div
             className={`select-none text-primary text-xs min-h-screen ${
@@ -625,9 +685,7 @@ function Dashboard(props: DashboardProps) {
                     query={query}
                     setQuery={setQuery}
                 />
-                {/* This is a placeholder. When implementing a feature,
-                 * please replace it with the actual element.*/}
-                <div id="templates" />
+                <Templates onTemplateClick={handleCreateProject} />
                 <div className="flex flex-row flex-nowrap">
                     <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                     <div className="flex flex-row flex-nowrap mx-4">

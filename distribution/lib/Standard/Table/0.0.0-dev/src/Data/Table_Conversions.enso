@@ -1,14 +1,15 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
-
 import project.Data.Table.Table
 import project.Data.Match_Columns.Match_Columns
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Errors.Invalid_JSON_Format
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
+import project.Internal.Parse_To_Table
 
 Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
     case format of
@@ -91,6 +92,30 @@ Table.from_objects value fields=Nothing =
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
         _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
 
+## Converts a Text into a Table using a regular expression pattern.
+
+   Each match becomes a row in the table.
+
+   If there are no marked groups, there will be a single column with the
+   whole content of the match. Otherwise, each group becomes a column
+   (with the column name taken from the group name if the group is named in the
+   regex).
+
+   Arguments:
+   - pattern: The pattern used to search within the text.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
+   - parse_values: Parse any values using the default value parser.
+
+   ? Column Names
+
+   If there are no marked groups, the new column will be named `Column`.
+   If the marked groups are named, the names will be used otherwise the column
+   will be named `Column <N>` where `N` is the number of the marked group.
+   (Group 0 is not included.)
+Text.parse_to_table : Text -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
+Text.parse_to_table self pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+    Parse_To_Table.parse_text_to_table self pattern case_sensitivity parse_values on_problems
 
 ## PRIVATE
    ADVANCED

@@ -368,7 +368,7 @@ spec =
             r1 = t1.parse columns=["A", "B", "C"]
             r1.should_fail_with Invalid_Value_Type
             r1.catch.related_column . should_equal "A"
-            r1.catch.expected.is_text.should_be_true
+            r1.catch.expected.should_equal "Char"
 
         Test.specify "should error if no input columns selected, unless error_on_missing_columns=False" <|
             t1 = Table.new [["A", ["1", "2", "3"]]]
@@ -619,7 +619,7 @@ spec =
             r1 = c1.parse
             r1.should_fail_with Invalid_Value_Type
             r1.catch.related_column . should_equal "A"
-            r1.catch.expected.is_text.should_be_true
+            r1.catch.expected . should_equal "Char"
 
 
 main = Test_Suite.run_main spec

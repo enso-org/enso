@@ -1,9 +1,10 @@
 use ensogl_core::prelude::*;
 
+use crate::placeholder::StrongPlaceholder;
+
 use ensogl_core::display;
 use ensogl_core::Animation;
 
-use crate::placeholder::StrongPlaceholder;
 
 
 ensogl_core::define_endpoints_2! {
