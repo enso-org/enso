@@ -83,11 +83,6 @@ public final class WithWarnings implements TruffleObject {
     return allWarnings;
   }
 
-  @CompilerDirectives.TruffleBoundary
-  private static Function<Integer, Warning[]> genArrayFun() {
-    return Warning[]::new;
-  }
-
   /** @return the number of warnings. */
   public int getWarningsCount() {
     return warnings.size();
@@ -105,10 +100,9 @@ public final class WithWarnings implements TruffleObject {
     return warnings;
   }
 
-  @CompilerDirectives.TruffleBoundary
   public static WithWarnings appendTo(Object target, ArrayRope<Warning> warnings) {
     if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).append(warnings.toArray(genArrayFun()));
+      return ((WithWarnings) target).append(warnings.toArray(Warning[]::new));
     } else {
       return new WithWarnings(target, warnings.toArray(Warning[]::new));
     }
