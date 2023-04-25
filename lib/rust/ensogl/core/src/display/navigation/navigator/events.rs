@@ -267,9 +267,6 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_down.add(move |event: &mouse::Down| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
                 match event.button() {
                     mouse::MiddleButton => data.set_movement_type(Some(MovementType::Pan)),
                     mouse::SecondaryButton => {
@@ -285,22 +282,16 @@ impl NavigatorEvents {
 
     fn initialize_mouse_end_event(&mut self) {
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_up.add(move |event: &mouse::Up| {
+        let listener = self.mouse_manager.on_up.add(move |_: &mouse::Up| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
                 data.set_movement_type(None);
             }
         });
         self.mouse_up = Some(listener);
 
         let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_leave.add(move |event: &mouse::Leave| {
+        let listener = self.mouse_manager.on_leave.add(move |_: &mouse::Leave| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
-                    event.prevent_default();
-                }
                 data.set_movement_type(None);
             }
         });
