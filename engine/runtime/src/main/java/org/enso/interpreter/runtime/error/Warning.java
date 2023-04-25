@@ -30,11 +30,11 @@ public final class Warning implements TruffleObject {
   private final ArrayRope<Reassignment> reassignments;
   private final long creationTime;
 
-  public Warning(Object value, Object origin, long creationTime) {
+  private Warning(Object value, Object origin, long creationTime) {
     this(value, origin, creationTime, new ArrayRope<>());
   }
 
-  public Warning(
+  private Warning(
       Object value, Object origin, long creationTime, ArrayRope<Reassignment> reassignments) {
     this.value = value;
     this.origin = origin;

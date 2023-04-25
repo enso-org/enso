@@ -206,7 +206,7 @@ public final class Array implements TruffleObject {
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     if (cachedWarnings == null) {
-      cachedWarnings = Warning.fromSetToArray(collectAllWarnings(warnings, location), false);
+      cachedWarnings = Warning.fromSetToArray(collectAllWarnings(warnings, location));
     }
     return cachedWarnings;
   }
