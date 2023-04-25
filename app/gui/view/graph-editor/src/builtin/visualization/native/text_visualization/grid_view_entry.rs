@@ -77,6 +77,7 @@ impl Entry {
         let mut style = "position: absolute; white-space: pre; pointer-events: auto;".to_string();
         write!(style, "left: {left}px; top: {top}px;").ok();
         write!(style, "width: {width}px; height: {height}px;").ok();
+        write!(style, "line-height: 1").ok();
 
         self.text.set_attribute_or_warn("style", style);
     }
