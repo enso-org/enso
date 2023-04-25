@@ -471,10 +471,10 @@ generate_create_table dialect name columns primary_key temporary =
     column_definitions = columns.map descriptor->
         name = descriptor.first
         sql_type_as_text = descriptor.second
-        dialect.quote_identifier name ++ " " ++ sql_type_as_text
+        dialect.wrap_identifier name ++ " " ++ sql_type_as_text
     table_type = if temporary then "TEMPORARY TABLE" else "TABLE"
     modifiers = if primary_key.is_nothing then [] else
-        [" PRIMARY KEY (" ++ Builder.join ", " (primary_key.get.map dialect.quote_identifier) ++ ")"]
-    create_prefix = Builder.code ("CREATE "+table_type+" ") ++ dialect.quote_identifier name
+        [" PRIMARY KEY (" ++ Builder.join ", " (primary_key.get.map dialect.wrap_identifier) ++ ")"]
+    create_prefix = Builder.code ("CREATE "+table_type+" ") ++ dialect.wrap_identifier name
     create_body = (Builder.join ", " column_definitions) ++ (Builder.join "" modifiers)
     create_prefix ++ " (" ++ create_body ++ ")"

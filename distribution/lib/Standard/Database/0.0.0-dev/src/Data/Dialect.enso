@@ -46,15 +46,6 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Converts the identifier into a quoted form, ensuring that it can be
-       safely used in a constructed query regardless of what characters it
-       contains.
-    quote_identifier : Text -> Builder
-    quote_identifier self identifier =
-        _ = [identifier]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering

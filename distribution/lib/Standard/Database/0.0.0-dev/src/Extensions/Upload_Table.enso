@@ -2,12 +2,14 @@ from Standard.Base import all
 from Standard.Base.Random import random_uuid
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table as In_Memory_Table
+import Standard.Table.Data.Table.Table as In_Memory_Table
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Query.SQL_Query
 import project.Data.Table.Table as Database_Table
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
 from project.Errors import all
 
 ## Creates a new database table from this in-memory table.
@@ -88,7 +90,7 @@ default_batch_size = 100
 
 ## PRIVATE
 make_batched_insert_template : Connection -> Text -> Vector (Vector Text) -> SQL_Query
-make_batched_insert_statement connection table_name column_names =
+make_batched_insert_template connection table_name column_names =
     # We add Nothing as placeholders, they will be replaced with the actual values later.
     pairs = column_names.map name->[name, SQL_Expression.Constant Nothing]
     connection.dialect.generate_sql <| Query.Insert table_name pairs
