@@ -18,7 +18,7 @@ export function addFileLog(): string {
         fsSync.mkdirSync(logsDirectory, { recursive: true })
     }
 
-    const filename = generateUniqueLogFilePath()
+    const filename = generateUniqueLogFileName()
     const logFilePath = pathModule.join(logsDirectory, filename)
 
     contentConfig.logger.addConsumer(
@@ -32,9 +32,13 @@ export function addFileLog(): string {
  *
  * @returns The file name log file.
  */
-export function generateUniqueLogFilePath(): string {
+export function generateUniqueLogFileName(): string {
     const timestamp = new Date().toISOString().replace(/[:.-]/g, '')
-    return `IDE-${timestamp}.txt`
+    return `ide-${timestamp}.txt`
+}
+
+export function logDirectory(): string {
+    return electron.app.getPath('logs')
 }
 
 /** Log consumer that writes to a file. */
@@ -70,6 +74,8 @@ export class FileConsumer extends linkedDist.Consumer {
         this.message('log', '[GROUP START]', ...args)
     }
     override startGroupCollapsed(...args: unknown[]): void {
+        // We don't have a way to collapse groups in the file logger, so we just use the same
+        // function as startGroup.
         this.message('log', '[GROUP START]', ...args)
     }
     override groupEnd(...args: unknown[]): void {
