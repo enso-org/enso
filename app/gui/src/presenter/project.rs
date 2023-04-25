@@ -204,9 +204,14 @@ impl Model {
     fn toggle_read_only(&self) -> bool {
         let current_state = self.controller.model.read_only();
         let new_state = !current_state;
-        self.controller.model.set_read_only(new_state);
-        info!("New read only state: {}.", new_state);
+        self.set_read_only(new_state);
         new_state
+    }
+    /// Toggle the read-only mode, return the new state.
+
+    fn set_read_only(&self, new_state: bool) {
+        self.controller.model.set_read_only(new_state);
+        error!("New read only state: {}.", new_state);
     }
 
     fn restore_project_snapshot(&self) {
@@ -404,9 +409,13 @@ impl Project {
             eval_ view.execution_context_restart(model.execution_context_restart());
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
-            eval graph_view.execution_environment((mode) model.execution_environment_changed(mode));
+            eval graph_view.execution_environment((env) model.execution_environment_changed(env));
+            view.set_read_only <+ graph_view.execution_environment.map(f!([model](env) {
+                let read_only = ExecutionEnvironment::try_from(env.as_ref()).map(|env| !env.output_context_enabled()).unwrap_or(false);
+                model.set_read_only(read_only);
+                read_only
+            }));
 
-            eval_ view.toggle_read_only(model.toggle_read_only());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
@@ -422,8 +431,6 @@ impl Project {
         let graph = &self.model.view.graph();
         let entries = Rc::new(ExecutionEnvironment::list_all_as_imstrings());
         graph.set_available_execution_environments(entries);
-        let default_mode = ExecutionEnvironment::default();
-        graph.set_execution_environment(default_mode);
         self
     }
 
