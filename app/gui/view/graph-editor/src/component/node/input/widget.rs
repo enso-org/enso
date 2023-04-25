@@ -85,6 +85,7 @@ pub const PRIMARY_PORT_MAX_NESTING_LEVEL: usize = 0;
 ensogl::define_endpoints_2! {
     Input {
         set_ports_visible    (bool),
+        set_read_only        (bool),
         set_view_mode        (crate::view::Mode),
         set_profiling_status (crate::node::profiling::Status),
         set_disabled         (bool),
@@ -387,6 +388,7 @@ impl DropdownValue for Entry {
 #[derive(Debug, Clone, CloneRef)]
 pub struct WidgetsFrp {
     pub(super) set_ports_visible:      frp::Sampler<bool>,
+    pub(super) set_read_only:          frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
     pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
     pub(super) value_changed:          frp::Any<(span_tree::Crumbs, Option<ImString>)>,
@@ -434,6 +436,7 @@ impl Tree {
             frp.private.output.rebuild_required <+ frp.marked_dirty_sync.debounce();
 
             set_ports_visible <- frp.set_ports_visible.sampler();
+            set_read_only <- frp.set_read_only.sampler();
             set_view_mode <- frp.set_view_mode.sampler();
             set_profiling_status <- frp.set_profiling_status.sampler();
 
@@ -449,6 +452,7 @@ impl Tree {
         let connected_port_updated = frp.private.output.connected_port_updated.clone_ref();
         let widgets_frp = WidgetsFrp {
             set_ports_visible,
+            set_read_only,
             set_view_mode,
             set_profiling_status,
             value_changed,

@@ -196,13 +196,14 @@ impl super::SpanWidget for Widget {
 
 impl Widget {
     fn init(self, ctx: &super::ConfigContext) -> Self {
-        let is_open = self.init_dropdown_focus();
+        let is_open = self.init_dropdown_focus(ctx);
         self.init_dropdown_values(ctx, is_open);
         self.init_activation_shape(ctx);
         self
     }
 
-    fn init_dropdown_focus(&self) -> frp::Stream<bool> {
+    fn init_dropdown_focus(&self, ctx: &super::ConfigContext) -> frp::Stream<bool> {
+        let widgets_frp = ctx.frp();
         let focus_receiver = self.display_object.clone_ref();
         let focus_in = focus_receiver.on_event::<event::FocusIn>();
         let focus_out = focus_receiver.on_event::<event::FocusOut>();
@@ -214,7 +215,10 @@ impl Widget {
             eval focus_in([dropdown, dropdown_wrapper](_) {
                 dropdown.borrow_mut().lazy_init(&dropdown_wrapper);
             });
-            is_open <- bool(&focus_out, &focus_in);
+            readonly_set <- widgets_frp.set_read_only.on_true();
+            do_open <- focus_in.gate_not(&widgets_frp.set_read_only);
+            do_close <- any_(focus_out, readonly_set);
+            is_open <- bool(&do_close, &do_open);
             dropdown_frp.set_open <+ is_open.on_change();
 
             // Close the dropdown after a short delay after selection. Because the dropdown

@@ -333,6 +333,8 @@ ensogl::define_endpoints_2! {
         /// Indicate whether on hover the quick action icons should appear.
         show_quick_action_bar_on_hover    (bool),
         set_execution_environment         (ExecutionEnvironment),
+
+        /// Set read-only mode for input ports.
         set_read_only                     (bool),
     }
     Output {

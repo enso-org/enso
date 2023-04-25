@@ -115,8 +115,7 @@ impl Port {
         port_shape.set_corner_radius_max().set_pointer_events(false);
         hover_shape
             .set_pointer_events(true)
-            .set_color(shape::INVISIBLE_HOVER_COLOR)
-            .set_border_color(shape::INVISIBLE_HOVER_COLOR);
+            .set_color(shape::INVISIBLE_HOVER_COLOR);
 
         port_root.add_child(&widget_root);
         widget_root.set_margin_left(0.0);

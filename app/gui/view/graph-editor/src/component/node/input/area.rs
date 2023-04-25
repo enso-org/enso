@@ -277,7 +277,7 @@ impl Model {
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let new_expression = Expression::from(new_expression.into());
-        warn!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
+        debug!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
 
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
@@ -514,6 +514,7 @@ impl Area {
             finished          <- frp.set_profiling_status.map(|s| s.is_finished());
             profiled          <- in_profiling_mode && finished;
 
+            model.widget_tree.set_read_only <+ frp.set_read_only;
             model.widget_tree.set_view_mode <+ frp.set_view_mode;
             model.widget_tree.set_profiling_status <+ frp.set_profiling_status;
 
