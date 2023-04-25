@@ -54,6 +54,7 @@ define_style! {
     press: f32,
     port_selection_layer : bool,
     trash: f32,
+    plus: f32,
 }
 
 
@@ -106,6 +107,11 @@ impl Style {
         let trash = Some(StyleValue::new(1.0));
         Self { trash, ..default() }
     }
+
+    pub fn plus() -> Self {
+        let plus = Some(StyleValue::new(1.0));
+        Self { plus, ..default() }
+    }
 }
 
 
@@ -153,6 +159,7 @@ pub mod shape {
             radius: f32,
             color: Vector4,
             trash: f32,
+            plus: f32,
         ) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -167,13 +174,24 @@ pub mod shape {
             let color: Var<color::Rgba> = color.into();
             let trash_color: Var<color::Rgba> = color::Rgba::new(0.91, 0.32, 0.32, 1.0).into();
             let color = color.mix(&trash_color, &trash);
+
+            let plus_color: Var<color::Rgba> = color::Rgba::new(0.39, 0.71, 0.15, 1.0).into();
+            let color = color.mix(&plus_color, &plus);
+
+
             let cursor            = cursor.fill(color);
 
             let trash_bar1 = Rect((2.px(), (&height - 4.px()) * &trash - 1.px()));
             let trash_bar2 = trash_bar1.rotate((PI/2.0).radians());
             let trash_bar_x = (trash_bar1 + trash_bar2).rotate((PI/4.0).radians());
             let trash_bar_x = trash_bar_x.fill(color::Rgba::new(1.0,1.0,1.0,0.8));
-            let cursor = cursor + trash_bar_x;
+
+            let plus_bar1 = Rect((2.px(), (&height - 4.px()) * &plus - 1.px()));
+            let plus_bar2 = plus_bar1.rotate((PI/2.0).radians());
+            let plus_sign = plus_bar1 + plus_bar2;
+            let plus_sign = plus_sign.fill(color::Rgba::new(1.0,1.0,1.0,0.8));
+
+            let cursor = cursor + trash_bar_x + plus_sign;
             cursor.into()
         }
     }
@@ -298,6 +316,7 @@ impl Cursor {
         let host_attached_weight = Easing::new(network);
         let port_selection_layer_weight = Animation::<f32>::new(network);
         let trash = Animation::<f32>::new(network);
+        let plus = Animation::<f32>::new(network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
@@ -316,6 +335,7 @@ impl Cursor {
                 model.for_each_view(|vw| {vw.set_size(dim);});
             });
             eval trash.value ((v) model.for_each_view(|vw| vw.trash.set(*v)));
+            eval plus.value ((v) model.for_each_view(|vw| vw.plus.set(*v)));
 
             alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);
 
@@ -392,6 +412,11 @@ impl Cursor {
                 match &new_style.trash {
                     None => trash.target.emit(0.0),
                     Some(t) => trash.target.emit(t.value.unwrap_or(0.0)),
+                }
+
+                match &new_style.plus {
+                    None => plus.target.emit(0.0),
+                    Some(t) => plus.target.emit(t.value.unwrap_or(0.0)),
                 }
 
                 *model.style.borrow_mut() = new_style.clone();

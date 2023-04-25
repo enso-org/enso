@@ -126,6 +126,22 @@ impl Network {
         self.register(OwnedGate::new(label, event, behavior))
     }
 
+    pub fn sampled_gate<T1, T2>(
+        &self,
+        label: Label,
+        event: &T1,
+        behavior: &T2,
+    ) -> Stream<Output<T1>>
+    where
+        T1: EventOutput,
+        T2: EventOutput<Output = bool>,
+    {
+        let value = self.gate(label, event, behavior);
+        let on_gate_pass = self.on_true(label, behavior);
+        let value2 = self.sample(label, event, &on_gate_pass);
+        self.any(label, &value, &value2)
+    }
+
     /// Like `gate` but passes the value when the condition is `false`.
     pub fn gate_not<T1, T2>(&self, label: Label, event: &T1, behavior: &T2) -> Stream<Output<T1>>
     where
@@ -364,6 +380,16 @@ impl Network {
         T1: EventOutput<Output = bool>,
         T2: EventOutput<Output = bool>, {
         self.all_with(label, t1, t2, |a, b| *a && *b)
+    }
+
+    pub fn is_some<T, X>(&self, label: Label, src: &T) -> Stream<bool>
+    where T: EventOutput<Output = Option<X>> {
+        self.map(label, src, |t| t.is_some())
+    }
+
+    pub fn is_none<T, X>(&self, label: Label, src: &T) -> Stream<bool>
+    where T: EventOutput<Output = Option<X>> {
+        self.map(label, src, |t| t.is_none())
     }
 
     /// Redirect second or third input to the output when the value of the first input is `false` or
@@ -1065,6 +1091,42 @@ impl Network {
             + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>, &Output<T6>) -> T,
     {
         self.register(OwnedAllWith6::new(label, t1, t2, t3, t4, t5, t6, f))
+    }
+
+    /// Specialized version `all_with`.
+    pub fn all_with7<T1, T2, T3, T4, T5, T6, T7, F, T>(
+        &self,
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+        t7: &T7,
+        f: F,
+    ) -> Stream<T>
+    where
+        T1: EventOutput,
+        T2: EventOutput,
+        T3: EventOutput,
+        T4: EventOutput,
+        T5: EventOutput,
+        T6: EventOutput,
+        T7: EventOutput,
+        T: Data,
+        F: 'static
+            + Fn(
+                &Output<T1>,
+                &Output<T2>,
+                &Output<T3>,
+                &Output<T4>,
+                &Output<T5>,
+                &Output<T6>,
+                &Output<T7>,
+            ) -> T,
+    {
+        self.register(OwnedAllWith7::new(label, t1, t2, t3, t4, t5, t6, t7, f))
     }
 
     /// Specialized version `all_with`.
@@ -4316,6 +4378,147 @@ where
 impl<T1, T2, T3, T4, T5, T6, F> Debug for AllWith6Data<T1, T2, T3, T4, T5, T6, F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "AllWith6Data")
+    }
+}
+
+
+
+// ================
+// === AllWith7 ===
+// ================
+
+pub struct AllWith7Data<T1, T2, T3, T4, T5, T6, T7, F> {
+    src1:     watch::Ref<T1>,
+    src2:     watch::Ref<T2>,
+    src3:     watch::Ref<T3>,
+    src4:     watch::Ref<T4>,
+    src5:     watch::Ref<T5>,
+    src6:     watch::Ref<T6>,
+    src7:     watch::Ref<T7>,
+    function: F,
+}
+pub type OwnedAllWith7<T1, T2, T3, T4, T5, T6, T7, F> =
+    stream::Node<AllWith7Data<T1, T2, T3, T4, T5, T6, T7, F>>;
+pub type AllWith7<T1, T2, T3, T4, T5, T6, T7, F> =
+    stream::WeakNode<AllWith7Data<T1, T2, T3, T4, T5, T6, T7, F>>;
+
+impl<T1, T2, T3, T4, T5, T6, T7, F, Out> HasOutput for AllWith7Data<T1, T2, T3, T4, T5, T6, T7, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    T7: EventOutput,
+    Out: Data,
+    F: 'static
+        + Fn(
+            &Output<T1>,
+            &Output<T2>,
+            &Output<T3>,
+            &Output<T4>,
+            &Output<T5>,
+            &Output<T6>,
+            &Output<T7>,
+        ) -> Out,
+{
+    type Output = Out;
+}
+
+impl<T1, T2, T3, T4, T5, T6, T7, F, Out> OwnedAllWith7<T1, T2, T3, T4, T5, T6, T7, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    T7: EventOutput,
+    Out: Data,
+    F: 'static
+        + Fn(
+            &Output<T1>,
+            &Output<T2>,
+            &Output<T3>,
+            &Output<T4>,
+            &Output<T5>,
+            &Output<T6>,
+            &Output<T7>,
+        ) -> Out,
+{
+    /// Constructor.
+    pub fn new(
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+        t7: &T7,
+        function: F,
+    ) -> Self {
+        let src1 = watch_stream(t1);
+        let src2 = watch_stream(t2);
+        let src3 = watch_stream(t3);
+        let src4 = watch_stream(t4);
+        let src5 = watch_stream(t5);
+        let src6 = watch_stream(t6);
+        let src7 = watch_stream(t7);
+        let def = AllWith7Data { src1, src2, src3, src4, src5, src6, src7, function };
+        let this = Self::construct(label, def);
+        let weak = this.downgrade();
+        t1.register_target(weak.clone_ref().into());
+        t2.register_target(weak.clone_ref().into());
+        t3.register_target(weak.clone_ref().into());
+        t4.register_target(weak.clone_ref().into());
+        t5.register_target(weak.clone_ref().into());
+        t6.register_target(weak.clone_ref().into());
+        t7.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, T7, F, Out, T> stream::EventConsumer<T>
+    for OwnedAllWith7<T1, T2, T3, T4, T5, T6, T7, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    T7: EventOutput,
+    Out: Data,
+    F: 'static
+        + Fn(
+            &Output<T1>,
+            &Output<T2>,
+            &Output<T3>,
+            &Output<T4>,
+            &Output<T5>,
+            &Output<T6>,
+            &Output<T7>,
+        ) -> Out,
+{
+    fn on_event(&self, stack: CallStack, _: &T) {
+        let value1 = self.src1.value();
+        let value2 = self.src2.value();
+        let value3 = self.src3.value();
+        let value4 = self.src4.value();
+        let value5 = self.src5.value();
+        let value6 = self.src6.value();
+        let value7 = self.src7.value();
+
+        let out = (self.function)(&value1, &value2, &value3, &value4, &value5, &value6, &value7);
+        self.emit_event(stack, &out);
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, T7, F> Debug for AllWith7Data<T1, T2, T3, T4, T5, T6, T7, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "AllWith8Data")
     }
 }
 
