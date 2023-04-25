@@ -220,7 +220,7 @@ impl Model {
     }
 
     fn body_hover_pointer_style(&self, hovered: &bool) -> cursor::Style {
-        hovered.then(|| cursor::Style::cursor()).unwrap_or_default()
+        hovered.then(cursor::Style::cursor).unwrap_or_default()
     }
 
     fn port_hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
@@ -247,7 +247,7 @@ impl Model {
         for definition in definitions.iter() {
             let argument_name = definition.argument_name.clone().into();
             let override_key = OverrideKey { call_id: *call_id, argument_name };
-            self.widget_tree.set_config_override(override_key, definition.meta.clone());
+            self.widget_tree.set_config_override(override_key, definition.config.clone());
         }
     }
 
@@ -365,9 +365,9 @@ ensogl::define_endpoints! {
         on_port_code_update (Crumbs,ImString),
         on_background_press (),
         view_mode           (view::Mode),
-        /// A set of widgets attached to a method requires metadata to be queried. The tuple
-        /// contains the ID of the call expression the widget is attached to, and the ID of that
-        /// call's target expression (`self` or first argument).
+        /// A set of widgets attached to a method requests their definitions to be queried from an
+        /// external source. The tuple contains the ID of the call expression the widget is attached
+        /// to, and the ID of that call's target expression (`self` or first argument).
         requested_widgets    (ast::Id, ast::Id),
         request_import       (ImString),
         /// A connected port within the node has been moved. Some edges might need to be updated.
@@ -551,12 +551,7 @@ impl Area {
     /// A type of the specified port.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
-        expression
-            .span_tree
-            .root_ref()
-            .get_descendant(crumbs)
-            .ok()
-            .and_then(|t| t.tp().map(|t| t.into()))
+        expression.span_tree.get_node(crumbs).ok().and_then(|t| t.tp().map(|t| t.into()))
     }
 
     /// Set a scene layer for text rendering.
@@ -567,9 +562,9 @@ impl Area {
 
 
 
-/// ===================
-/// === CallInfoMap ===
-/// ===================
+// ===================
+// === CallInfoMap ===
+// ===================
 
 #[derive(Debug, Deref)]
 struct CallInfoMap {

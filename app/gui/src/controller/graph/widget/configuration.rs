@@ -15,9 +15,10 @@ use ide_view::graph_editor::ArgumentWidgetConfig;
 /// == deserialize_widget_definitions ===
 /// =====================================
 
-/// Deserialize a list of widget configurations from visualization update data. Allows for partial
-/// deserialization: if any of the widget configurations fails to deserialize, it will be skipped,
-/// but the deserialization will continue. All errors are returned as a separate list.
+/// Deserialize a list of widget configurations from definitions provided in visualization update
+/// data. Allows for partial deserialization: if any of the widget definitions fails to deserialize,
+/// it will be skipped, but the deserialization will continue. All errors are returned as a separate
+/// list.
 pub fn deserialize_widget_definitions(
     data: &VisualizationUpdateData,
 ) -> (Vec<ArgumentWidgetConfig>, Vec<failure::Error>) {
@@ -32,7 +33,7 @@ pub fn deserialize_widget_definitions(
                         })?;
                     let meta = widget.map(to_configuration);
                     let argument_name = argument_name.to_owned();
-                    Ok(ArgumentWidgetConfig { argument_name, meta })
+                    Ok(ArgumentWidgetConfig { argument_name, config: meta })
                 },
             );
 

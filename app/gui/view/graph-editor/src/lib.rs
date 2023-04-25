@@ -1116,16 +1116,16 @@ impl Grid {
 
 
 
-// =====================
-// === WidgetUpdates ===
-// =====================
+// =========================
+// === CallWidgetsConfig ===
+// =========================
 
 /// Configuration for widgets of arguments at function call Enso expression.
 #[derive(Debug, Default, Clone)]
 pub struct CallWidgetsConfig {
     /// The function call expression ID.
     pub call_id:     ast::Id,
-    /// Configuration of a widget for each function argument.
+    /// Definition of a widget for each function argument.
     pub definitions: Rc<Vec<ArgumentWidgetConfig>>,
 }
 
@@ -1136,7 +1136,7 @@ pub struct ArgumentWidgetConfig {
     pub argument_name: String,
     /// Widget configuration queried from the language server. When this is `None`, the widget
     /// configuration should be inferred automatically.
-    pub meta:          Option<node::input::widget::Configuration>,
+    pub config:        Option<node::input::widget::Configuration>,
 }
 
 
@@ -3432,9 +3432,10 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         model.set_node_expression_usage_type(*node_id,*ast_id,maybe_type.clone());
         *node_id
     }));
-    edges_to_refresh <= node_to_refresh.map(
-        f!((node_id) nodes.get_cloned_ref(node_id).map(|node| node.all_edges()))
+    edges_to_refresh_batch <- node_to_refresh.map(f!((node_id)
+        nodes.get_cloned_ref(node_id).map(|node| node.all_edges()))
     ).unwrap();
+    edges_to_refresh <= edges_to_refresh_batch;
     eval edges_to_refresh ([model, neutral_color] (edge)
         model.refresh_edge_color(*edge, neutral_color.value().into()));
     eval inputs.update_node_widgets(((node, updates)) model.update_node_widgets(*node, updates));
@@ -3803,10 +3804,12 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
 
-    // Let the edge update complete before refreshing the cursor. Otherwise, the cursor style can
-    // be updated too early, before the edge had a chance to be updated with new endpoints.
-    refresh_detached_edge_cursor <- all(&out.some_edge_endpoints_unset,&out.view_mode);
-    refresh_detached_edge_cursor <- refresh_detached_edge_cursor._0().debounce();
+    edges_refresh_when_detached <- edges_to_refresh_batch.gate(&out.some_edge_endpoints_unset);
+    refresh_detached_edge_cursor <- all(
+        out.some_edge_endpoints_unset,
+        out.view_mode,
+        edges_refresh_when_detached
+    )._0();
 
     cursor_style_edge_drag <- refresh_detached_edge_cursor.map(
         f!([model,neutral_color](some_edges_detached) {

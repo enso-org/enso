@@ -151,9 +151,9 @@ impl<T: Payload> ChildGenerator<T> {
 
 
 
-/// =============================
-/// === Trait Implementations ===
-/// =============================
+// =============================
+// === Trait Implementations ===
+// =============================
 
 /// Helper structure constructed from Ast that consists base of prefix application.
 ///

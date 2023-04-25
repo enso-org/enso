@@ -2166,7 +2166,6 @@ impl InstanceDef {
         let has_elements_to_remove = retained_children < num_children_before;
         let need_cleanup = has_elements_to_remove || has_stale_indices;
 
-        dbg!(retained_children, num_children_before, has_elements_to_remove, has_stale_indices);
         if need_cleanup {
             let mut binds_to_drop = SmallVec::<[(ParentBind, WeakInstance); 8]>::new();
 

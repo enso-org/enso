@@ -23,7 +23,7 @@ pub trait Builder<T: Payload>: Sized {
     /// extend this branch of the tree.
     fn add_child(
         mut self,
-        offset: usize,
+        parent_offset: usize,
         len: usize,
         kind: impl Into<node::Kind>,
         crumbs: impl IntoCrumbs,
@@ -32,11 +32,11 @@ pub trait Builder<T: Payload>: Sized {
         let node = Node::<T>::new().with_kind(kind).with_size(len.into());
         let prev_child = self.node_being_built().children.last();
         let prev_child_end = prev_child.map_or(0, |c| (c.parent_offset + c.node.size).as_usize());
-        let parent_offset = prev_child_end + offset;
+        let sibling_offset = prev_child_end.saturating_sub(parent_offset);
         let child = node::Child {
             node,
             parent_offset: parent_offset.into(),
-            sibling_offset: offset.into(),
+            sibling_offset: sibling_offset.into(),
             ast_crumbs: crumbs.into_crumbs(),
         };
         ChildBuilder { built: child, parent: self }
@@ -67,9 +67,9 @@ pub trait Builder<T: Payload>: Sized {
 
 
 
-/// ================
-/// === Builders ===
-/// ================
+// ================
+// === Builders ===
+// ================
 
 // === SpanTree Builder ===
 

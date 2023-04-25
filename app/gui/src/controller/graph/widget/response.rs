@@ -7,9 +7,9 @@ use ide_view::graph_editor::component::node::input::widget;
 
 
 
-/// =========================
-/// === WidgetDefinitions ===
-/// =========================
+// =========================
+// === WidgetDefinitions ===
+// =========================
 
 /// A top level object received from the widget visualization, which contains widget definitions for
 /// all arguments of a single Enso method. Configurations are paired with the name of function
@@ -35,9 +35,9 @@ impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetDefinition<'a> {
 
 
 
-/// ========================
-/// === WidgetDefinition ===
-/// ========================
+// ========================
+// === WidgetDefinition ===
+// ========================
 
 /// Widget definition provided from the engine. It is used to define how to display a widget of
 /// particular argument expression. When not provided, the default widget will be chosen based on

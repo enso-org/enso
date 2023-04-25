@@ -573,25 +573,25 @@ impl<'a, T> Ref<'a, T> {
 #[derive(Debug)]
 pub struct RefMut<'a, T = ()> {
     /// The node's ref.
-    node:            &'a mut Node<T>,
+    node:              &'a mut Node<T>,
     /// An offset counted from the parent node start to the start of this node's span.
-    pub offset:      ByteDiff,
+    pub parent_offset: ByteDiff,
     /// Span begin's offset counted from the root expression.
-    pub span_offset: Byte,
+    pub span_offset:   Byte,
     /// Crumbs specifying this node position related to root.
-    pub crumbs:      Crumbs,
+    pub crumbs:        Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
-    pub ast_crumbs:  ast::Crumbs,
+    pub ast_crumbs:    ast::Crumbs,
 }
 
 impl<'a, T> RefMut<'a, T> {
     /// Constructor.
     pub fn new(node: &'a mut Node<T>) -> Self {
-        let offset = default();
+        let parent_offset = default();
         let span_begin = default();
         let crumbs = default();
         let ast_crumbs = default();
-        Self { node, offset, span_offset: span_begin, crumbs, ast_crumbs }
+        Self { node, parent_offset, span_offset: span_begin, crumbs, ast_crumbs }
     }
 
     /// Payload accessor.
@@ -613,16 +613,16 @@ impl<'a, T> RefMut<'a, T> {
     fn child_from_ref(
         index: usize,
         child: &'a mut Child<T>,
-        mut span_begin: Byte,
+        span_begin: Byte,
         crumbs: Crumbs,
         mut ast_crumbs: ast::Crumbs,
     ) -> RefMut<'a, T> {
-        let offset = child.parent_offset;
+        let parent_offset = child.parent_offset;
         let node = &mut child.node;
-        span_begin += child.parent_offset;
+        let span_offset = span_begin + parent_offset;
         let crumbs = crumbs.into_sub(index);
         ast_crumbs.extend(child.ast_crumbs.iter().cloned());
-        Self { node, offset, span_offset: span_begin, crumbs, ast_crumbs }
+        Self { node, parent_offset, span_offset, crumbs, ast_crumbs }
     }
 
     /// Get the reference to child with given index. Fails if index if out of bounds.

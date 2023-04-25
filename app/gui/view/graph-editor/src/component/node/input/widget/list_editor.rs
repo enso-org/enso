@@ -57,7 +57,6 @@ impl Widget {
 
     /// Create Model for Vector Editor widget.
     pub fn new(app: &Application, widgets_frp: &WidgetsFrp, styles: &StyleWatch) -> Self {
-        let network = frp::Network::new("vector_editor::Model");
         let display_object = display::object::Instance::new();
         let list_container = display::object::Instance::new();
         let child_container = display::object::Instance::new();
@@ -87,7 +86,6 @@ impl Widget {
     fn init_toggle(self, widgets_frp: &WidgetsFrp) -> Self {
         let network = &self.config_frp.network;
         let display_object = &self.display_object;
-        let activation_shape = &self.activation_shape;
         let list_container = &self.list_container;
         let list = &self.list;
         let dot_clicked = self.activation_shape.on_event::<mouse::Down>();

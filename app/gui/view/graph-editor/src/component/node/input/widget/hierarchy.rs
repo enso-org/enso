@@ -7,6 +7,18 @@ use ensogl::display::object;
 
 
 
+// ===============
+// === Aliases ===
+// ===============
+
+/// A collection type used to collect a temporary list of node child widget roots, so that they can
+/// be passed to `replace_children` method in one go. Avoids allocation for small number of
+/// children, but also doesn't consume too much stack memory to avoid stack overflow in deep widget
+/// hierarchies.
+pub type CollectedChildren = SmallVec<[object::Instance; 4]>;
+
+
+
 // =================
 // === Hierarchy ===
 // =================
@@ -37,12 +49,8 @@ impl super::SpanWidget for Widget {
 
     fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
         let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
-
-        let children = ctx
-            .span_node
-            .children_iter()
-            .map(|node| ctx.builder.child_widget(node, child_level))
-            .collect_vec();
-        self.display_object.replace_children(&children);
+        let children_iter = ctx.span_node.children_iter();
+        let children = children_iter.map(|node| ctx.builder.child_widget(node, child_level));
+        self.display_object.replace_children(&children.collect::<CollectedChildren>());
     }
 }

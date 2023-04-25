@@ -88,8 +88,7 @@ impl HoverLayers {
 #[derive(Debug)]
 pub struct Port {
     /// Drop source must be kept at the top of the struct, so it will be dropped first.
-    #[allow(dead_code)]
-    on_cleanup:      frp::DropSource,
+    _on_cleanup:     frp::DropSource,
     crumbs:          Rc<RefCell<span_tree::Crumbs>>,
     port_root:       display::object::Instance,
     widget_root:     display::object::Instance,
@@ -113,9 +112,7 @@ impl Port {
         let port_shape = PortShape::new();
         let hover_shape = HoverShape::new();
         port_shape.set_corner_radius_max().set_pointer_events(false);
-        hover_shape
-            .set_pointer_events(true)
-            .set_color(shape::INVISIBLE_HOVER_COLOR);
+        hover_shape.set_pointer_events(true).set_color(shape::INVISIBLE_HOVER_COLOR);
 
         port_root.add_child(&widget_root);
         widget_root.set_margin_left(0.0);
@@ -178,7 +175,7 @@ impl Port {
         };
 
         Self {
-            on_cleanup,
+            _on_cleanup: on_cleanup,
             port_shape,
             hover_shape,
             widget,

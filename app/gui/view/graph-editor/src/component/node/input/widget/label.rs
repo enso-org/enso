@@ -96,20 +96,21 @@ impl super::SpanWidget for Widget {
             ctx.expression_at(ctx.span_node.span())
         };
 
-        let color_state: ColorState = if ctx.info.subtree_connection.is_some() {
-            ColorState::Connected
-        } else if ctx.info.disabled {
-            ColorState::Disabled
-        } else if is_placeholder {
-            ColorState::Placeholder
-        } else {
-            let ty = ctx.info.usage_type.clone();
-            let ty = ty.or_else(|| ctx.span_node.kind.tp().map(|t| crate::Type(t.into())));
-            let color = crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles());
-            ColorState::FromType(color)
+        let is_connected = ctx.info.subtree_connection.is_some();
+        let color_state = match () {
+            _ if is_connected => ColorState::Connected,
+            _ if ctx.info.disabled => ColorState::Disabled,
+            _ if is_placeholder => ColorState::Placeholder,
+            _ => {
+                let span_node_type = ctx.span_node.kind.tp();
+                let usage_type = ctx.info.usage_type.clone();
+                let ty = usage_type.or_else(|| span_node_type.map(|t| crate::Type(t.into())));
+                let color = crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles());
+                ColorState::FromType(color)
+            }
         };
 
-        let ext = ctx.get_extension::<Extension>().copied().unwrap_or_default();
+        let ext = ctx.get_extension_or_default::<Extension>();
         let text_weight = if ext.bold { text::Weight::Bold } else { text::Weight::Normal };
         let input = &self.frp.public.input;
         input.content.emit(content);

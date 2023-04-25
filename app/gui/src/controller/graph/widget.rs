@@ -26,9 +26,9 @@ use ide_view::graph_editor::CallWidgetsConfig;
 
 
 
-/// =================
-/// === Constants ===
-/// =================
+// =================
+// === Constants ===
+// =================
 
 /// A module containing the widget visualization method.
 const WIDGET_VISUALIZATION_MODULE: &str = "Standard.Visualization.Widgets";
@@ -252,9 +252,9 @@ impl Model {
 
 
 
-/// ============================
-/// === NodeToWidgetsMapping ===
-/// ============================
+// ============================
+// === NodeToWidgetsMapping ===
+// ============================
 
 /// A map of widgets attached to nodes. Used to perform cleanup of node widget queries when node is
 /// removed.
@@ -299,9 +299,9 @@ impl NodeToWidgetsMapping {
 
 
 
-/// ===============
-/// === Request ===
-/// ===============
+// ===============
+// === Request ===
+// ===============
 
 /// Definition of a widget request. Defines the node subexpression that the widgets will be attached
 /// to, and the method call that corresponds to that expression.
@@ -320,9 +320,9 @@ pub struct Request {
 
 
 
-/// =================
-/// === QueryData ===
-/// =================
+// =================
+// === QueryData ===
+// =================
 
 /// Data of ongoing widget query. Defines which expressions a visualization query is attached to,
 /// and maintains enough data to correlate the response with respective widget view.

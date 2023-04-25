@@ -1108,12 +1108,8 @@ pub mod test_utils {
         /// 3. If the output port is [`MultiPortView`].
         fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
 
-        /// Return the `Shape` of the first input port of the node.
-        ///
-        /// Returns `None`:
-        /// 1. If there are no input ports.
-        /// 2. If the port does not have a `Shape`. Some port models does not initialize the
-        ///    `Shape`, see [`input::port::Model::init_shape`].
+        /// Return the `Shape` of the first input port of the node. Returns `None` if there are no
+        /// input ports.
         fn input_port_hover_shape(&self) -> Option<input::port::HoverShape>;
     }
 

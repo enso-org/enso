@@ -6,7 +6,6 @@ use crate::component::node::input::widget::Entry;
 
 use enso_frp as frp;
 use ensogl::control::io::mouse;
-use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
@@ -14,9 +13,9 @@ use ensogl_hardcoded_theme as theme;
 
 
 
-/// =================
-/// === Constants ===
-/// =================
+// =================
+// === Constants ===
+// =================
 
 /// Height of the activation triangle shape.
 pub const ACTIVATION_SHAPE_SIZE: Vector2 = Vector2(15.0, 11.0);
@@ -146,7 +145,7 @@ impl super::SpanWidget for Widget {
         dropdown_wrapper.set_size((0.0, 0.0)).set_alignment_left_top();
 
         let config_frp = Frp::new();
-        let dropdown = LazyDropdown::new(&app, &config_frp.network);
+        let dropdown = LazyDropdown::new(app, &config_frp.network);
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         Self {
@@ -177,20 +176,13 @@ impl super::SpanWidget for Widget {
             ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
         }
 
-        if ctx.span_node.children.is_empty() {
-            let child_level = ctx.info.nesting_level;
-            let label_meta = super::Configuration::always(super::label::Config);
-            let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, label_meta);
-            self.label_wrapper.replace_children(&[child]);
-        } else {
-            let child_level = ctx.info.nesting_level.next();
-            let children = ctx
-                .span_node
-                .children_iter()
-                .map(|child| ctx.builder.child_widget(child, child_level))
-                .collect_vec();
-            self.label_wrapper.replace_children(&children);
-        }
+        let label_config = match ctx.span_node.children.is_empty() {
+            true => super::Configuration::always(super::label::Config),
+            false => super::Configuration::always(super::hierarchy::Config),
+        };
+        let child_level = ctx.info.nesting_level;
+        let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, label_config);
+        self.label_wrapper.replace_children(&[child]);
     }
 }
 
@@ -292,8 +284,7 @@ impl Widget {
             eval activation_shape_theme([styles, activation_shape](path) {
                 if let Some(path) = path {
                     let color = styles.get_color(path);
-                    let rgba = color::Rgba::from(color);
-                    activation_shape.color.set(rgba.into());
+                    activation_shape.color.set(color.into());
                 }
             });
 
@@ -335,9 +326,9 @@ fn entry_for_current_value(
 
 
 
-/// ====================
-/// === LazyDropdown ===
-/// ====================
+// ====================
+// === LazyDropdown ===
+// ====================
 
 /// A wrapper for dropdown that can be initialized lazily, with all required FRP endpoints to drive
 /// it as if was just an ordinary view. Before calling `lazy_init` for the first time, the overhead
