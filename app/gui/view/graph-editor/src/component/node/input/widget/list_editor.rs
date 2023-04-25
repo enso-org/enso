@@ -223,7 +223,7 @@ impl super::SpanWidget for Widget {
 
         let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
         let label_meta = super::Configuration::always(super::label::Config);
-        let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, label_meta);
+        let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, Some(&label_meta));
         self.child_container.replace_children(&[child]);
     }
 }

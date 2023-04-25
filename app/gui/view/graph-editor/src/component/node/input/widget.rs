@@ -1018,20 +1018,24 @@ impl NestingLevel {
 pub struct StableSpanIdentity {
     /// AST ID of either the node itself, or the closest ancestor node which has one. Is [`None`]
     /// when there is no such parent with assigned AST id.
-    id:          Option<ast::Id>,
-    /// A hash of remaining crumbs to the widget, starting from the closest node with assigned AST
-    /// id. We store a hash instead of the crumbs directly, so the type can be trivially copied.
-    /// The collision is extremely unlikely due to commonly having very short lists of crumbs
-    /// to store here and u64 being comparatively extremely large hash space.
-    crumbs_hash: u64,
+    ast_id:        Option<ast::Id>,
+    /// A hash of remaining data used to distinguish between tree nodes. We store a hash instead of
+    /// the data directly, so the type can be trivially copied. The collision is extremely unlikely
+    /// due to u64 being extremely large hash space, compared to the size of the used data. Many
+    /// nodes are also already fully distinguished by the AST ID alone.
+    ///
+    /// Currently we are hashing a portion of span-tree crumbs, starting from the closest node with
+    /// assigned AST id up to this node. The widgets should not rely on the exact kind of data
+    /// used, as it may be extended to include more information in the future.
+    identity_hash: u64,
 }
 
 impl StableSpanIdentity {
-    fn new(id: Option<ast::Id>, crumbs: &[span_tree::Crumb]) -> Self {
+    fn new(ast_id: Option<ast::Id>, crumbs_since_ast: &[span_tree::Crumb]) -> Self {
         let mut hasher = DefaultHasher::new();
-        crumbs.hash(&mut hasher);
-        let crumbs_hash = hasher.finish();
-        Self { id, crumbs_hash }
+        crumbs_since_ast.hash(&mut hasher);
+        let identity_hash = hasher.finish();
+        Self { ast_id, identity_hash }
     }
 
     /// Convert this pointer to a stable identity of a widget, making it unique among all widgets.
@@ -1045,9 +1049,10 @@ impl StableSpanIdentity {
 /// create a child widget on the same span tree node, so we need to be able to distinguish between
 /// them. Note that only one widget created for a given span tree node will be able to receive a
 /// port. The port is assigned to the first widget at given span that wants to receive it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref)]
 pub struct WidgetIdentity {
     /// The pointer to the main widget of this widget's node.
+    #[deref]
     main:  StableSpanIdentity,
     /// The sequential index of a widget assigned to the same span tree node.
     index: usize,
@@ -1115,10 +1120,11 @@ struct TreeBuilder<'a> {
 }
 
 impl<'a> TreeBuilder<'a> {
-    /// Create a new child widget. The widget type will be automatically inferred, either based on
-    /// the node kind, or on the configuration provided from the language server. If possible, an
-    /// existing widget will be reused under the same location in the tree, only updating its
-    /// configuration as necessary. If no widget can be reused, a new one will be created.
+    /// Create a new child widget, along with its whole subtree. The widget type will be
+    /// automatically inferred, either based on the node kind, or on the configuration provided
+    /// from the language server. If possible, an existing widget will be reused under the same
+    /// location in the tree, only updating its configuration as necessary. If no widget can be
+    /// reused, a new one will be created.
     ///
     /// The root display object of the created widget will be returned, and it must be inserted into
     /// the display object hierarchy by the caller. It will be common that the returned display
@@ -1134,33 +1140,25 @@ impl<'a> TreeBuilder<'a> {
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
     ) -> display::object::Instance {
-        self.create_child_widget(span_node, nesting_level, None)
+        self.child_widget_of_type(span_node, nesting_level, None)
     }
 
-    /// Create a new child widget. Does not infer the widget type, but uses the provided
-    /// configuration instead. That way, the parent widget can explicitly control the type of the
-    /// child widget.
+    /// Create a new widget for given span tree node, recursively building a subtree of its
+    /// children. When a widget configuration is not provided, it is inferred automatically from the
+    /// span tree and expression value type.
     ///
-    /// See [`child_widget`] method for more details about widget creation.
-    #[must_use]
-    #[allow(dead_code)] // Currently unused, but will be used in the future in VectorEditor.
+    /// The returned value contains a root display object of created widget child, and it must be
+    /// inserted into the display hierarchy by the caller. The returned display object will
+    /// frequently not change between subsequent widget `configure` calls, as long as it can be
+    /// reused by the tree. The caller must not rely on it not changing. In order to handle that
+    /// efficiently, the caller can use the `replace_children` method of
+    /// [`display::object::InstanceDef`], which will only perform hierarchy updates if the children
+    /// list has been actually modified.
     pub fn child_widget_of_type(
         &mut self,
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
-        config: Configuration,
-    ) -> display::object::Instance {
-        self.create_child_widget(span_node, nesting_level, Some(config))
-    }
-
-    /// Create a new widget for given span tree node. This function recursively builds a subtree
-    /// of widgets, starting from the given node. The built subtree's root display object is
-    /// returned, so that it can be added to the parent's display hierarchy.
-    fn create_child_widget(
-        &mut self,
-        span_node: span_tree::node::Ref<'_>,
-        nesting_level: NestingLevel,
-        config_override: Option<Configuration>,
+        configuration: Option<&Configuration>,
     ) -> display::object::Instance {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
@@ -1176,7 +1174,7 @@ impl<'a> TreeBuilder<'a> {
                 StableSpanIdentity::new(Some(ast_id), &[])
             }
             None => {
-                let ast_id = self.parent_info.as_ref().and_then(|st| st.identity.main.id);
+                let ast_id = self.parent_info.as_ref().and_then(|st| st.identity.main.ast_id);
                 let this_crumbs = &span_node.crumbs;
                 let crumbs_since_id = &this_crumbs[parent_last_ast_depth..];
                 StableSpanIdentity::new(ast_id, crumbs_since_id)
@@ -1188,7 +1186,7 @@ impl<'a> TreeBuilder<'a> {
 
         let is_placeholder = span_node.is_expected_argument();
         let sibling_offset = span_node.sibling_offset.as_usize();
-        let usage_type = main_ptr.id.and_then(|id| self.usage_type_map.get(&id)).cloned();
+        let usage_type = main_ptr.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Get widget configuration. There are three potential sources for configuration, that are
         // used in order, whichever is available first:
@@ -1199,16 +1197,14 @@ impl<'a> TreeBuilder<'a> {
         // 3. The default configuration for the widget, which is determined based on the node kind,
         // usage type and whether it has children.
         let kind = &span_node.kind;
-        let config_override = config_override.as_ref();
-        let stored_override = || {
+        let config_override = || {
             self.override_map.get(&OverrideKey {
                 call_id:       kind.call_id()?,
                 argument_name: kind.argument_name()?.into(),
             })
         };
-        let provided_config = config_override.or_else(stored_override);
         let inferred_config;
-        let configuration = match provided_config {
+        let configuration = match configuration.or_else(config_override) {
             Some(config) => config,
             None => {
                 let ty = usage_type.clone();
@@ -1304,4 +1300,30 @@ impl<'a> TreeBuilder<'a> {
         self.new_nodes.insert(widget_id, entry);
         child_root
     }
+}
+
+
+
+// =============
+// === Child ===
+// =============
+
+/// A child structure returned from the tree builder. Contains information about just built widget,
+/// which might be useful for the parent widget in order to correctly place it in its view
+/// hierarchy.
+#[derive(Debug, Clone, Deref)]
+struct Child {
+    /// The widget identity that is stable across rebuilds. The parent might use it to associate
+    /// internal state with any particular child. When a new child is inserted between two existing
+    /// children, their identities will be maintained.
+    #[allow(dead_code)]
+    pub id:          WidgetIdentity,
+    /// The root object of the widget. In order to make the widget visible, it must be added to the
+    /// parent's view hierarchy. Every time a widget is [`configure`d], its root object may change.
+    /// The parent must not assume ownership over a root object of a removed child. The widget
+    /// [`Tree`] is allowed to reuse any widgets and insert them into different branches.
+    ///
+    /// [`configure`d]: SpanWidget::configure
+    #[deref]
+    pub root_object: display::object::Instance,
 }
