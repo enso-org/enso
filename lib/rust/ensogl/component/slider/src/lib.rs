@@ -892,42 +892,42 @@ mod tests {
 
     #[test]
     fn test_high_precision() {
-        let (left, right) = display_value(&(123.4567, 0.01, 8));
+        let (left, right) = display_value(&123.4567, &0.01, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("46".to_im_string()));
     }
 
     #[test]
     fn test_low_precision() {
-        let (left, right) = display_value(&(123.4567, 10.0, 8));
+        let (left, right) = display_value(&123.4567, &10.0, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_precision_is_zero() {
-        let (left, right) = display_value(&(123.4567, 0.0, 8));
+        let (left, right) = display_value(&123.4567, &0.0, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("45670319".to_im_string()));
     }
 
     #[test]
     fn test_precision_is_nan() {
-        let (left, right) = display_value(&(123.4567, NAN, 8));
+        let (left, right) = display_value(&123.4567, &NAN, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_value_is_nan() {
-        let (left, right) = display_value(&(NAN, 0.01, 8));
+        let (left, right) = display_value(&NAN, &0.01, &8);
         assert_eq!(left, "NaN".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_zero_decimal_places() {
-        let (left, right) = display_value(&(123.4567, 0.01, 0));
+        let (left, right) = display_value(&123.4567, &0.01, &0);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
