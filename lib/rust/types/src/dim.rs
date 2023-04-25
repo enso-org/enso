@@ -342,7 +342,9 @@ pub struct Z;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct W;
 
+/// An axis in 2D space.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Axis2 {
     X,
     Y,
@@ -355,6 +357,7 @@ impl Default for Axis2 {
 }
 
 impl Axis2 {
+    /// The orthogonal axis to the current one.
     pub fn orthogonal(self) -> Self {
         match self {
             Self::X => Self::Y,

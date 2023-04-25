@@ -105,6 +105,8 @@ ensogl::define_endpoints! {
         gap_width                   (f32),
         /// Set whether the project was changed since the last snapshot save.
         set_project_changed(bool),
+        /// Set read-only mode for this component.
+        set_read_only(bool),
     }
     Output {
         /// Signalizes when a new breadcrumb is pushed.
@@ -124,6 +126,8 @@ ensogl::define_endpoints! {
         project_name_hovered (bool),
         /// Indicates whether the project name was clicked.
         project_mouse_down (),
+        /// Indicates if the read-only mode is enabled.
+        read_only(bool),
     }
 }
 
@@ -521,6 +525,11 @@ impl Breadcrumbs {
 
             frp.source.pointer_style <+ model.project_name.frp.output.pointer_style;
 
+
+            // === Read-only mode ===
+
+            frp.source.read_only <+ frp.input.set_read_only;
+            model.project_name.set_read_only <+ frp.input.set_read_only;
         }
 
         Self { model, frp }

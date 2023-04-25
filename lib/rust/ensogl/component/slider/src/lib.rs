@@ -31,9 +31,7 @@ use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::Animation;
-use ensogl_text::formatting;
 use ensogl_text::formatting::Weight;
-
 
 
 // ==============
@@ -430,7 +428,7 @@ impl Slider {
             width <- all_with(&obj.on_resized, &orientation_orth, |size, dim| size.get_dim(dim));
 
             empty_space <- all_with3(&length, &frp.kind, &frp.set_thumb_size,
-                |length, indicator, thumb_size|
+                |length, indicator, _thumb_size|
                 match indicator {
                     Kind::Scrollbar(thumb_size) => length * (1.0 - thumb_size),
                     Kind::SingleValue => *length,

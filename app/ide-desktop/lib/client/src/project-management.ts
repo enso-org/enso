@@ -51,8 +51,9 @@ export function importProjectFromPath(openedPath: string): string {
         if (rootPath == null) {
             const message = `File '${openedPath}' does not belong to the ${common.PRODUCT_NAME} project.`
             throw new Error(message)
+        } else {
+            return importDirectory(rootPath)
         }
-        return importDirectory(rootPath)
     }
 }
 
@@ -99,13 +100,13 @@ export function importDirectory(rootPath: string): string {
         if (fsSync.existsSync(targetDirectory)) {
             const message = `Project directory already exists: ${targetDirectory}.`
             throw new Error(message)
+        } else {
+            logger.log(`Copying: '${rootPath}' -> '${targetDirectory}'.`)
+            fsSync.cpSync(rootPath, targetDirectory, { recursive: true })
+            // Update the project ID, so we are certain that it is unique. This would be violated, if we imported the same
+            // project multiple times.
+            return updateId(targetDirectory)
         }
-
-        logger.log(`Copying: '${rootPath}' -> '${targetDirectory}'.`)
-        fsSync.cpSync(rootPath, targetDirectory, { recursive: true })
-        // Update the project ID, so we are certain that it is unique. This would be violated, if we imported the same
-        // project multiple times.
-        return updateId(targetDirectory)
     }
 }
 

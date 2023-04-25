@@ -73,9 +73,6 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
-pub mod item;
-pub mod placeholder;
-
 use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
@@ -91,10 +88,17 @@ use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::Animation;
 use ensogl_core::Easing;
-
 use item::Item;
 use placeholder::Placeholder;
 use placeholder::StrongPlaceholder;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod item;
+pub mod placeholder;
 
 
 
@@ -432,7 +436,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             );
             index <= opt_index;
             enabled <- opt_index.is_some();
-            pointer_style <- opt_index.map(|t| t.if_some_or_default(|| cursor::Style::plus()));
+            pointer_style <- opt_index.map(|t| t.if_some_or_default(cursor::Style::plus));
             on_up_in_gap <- on_up.gate(&enabled);
             insert_in_gap <- index.sample(&on_up_in_gap);
             frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
@@ -1032,7 +1036,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 }
 
-impl<T: frp::node::Data> display::Object for ListEditor<T> {
+impl<T: 'static> display::Object for ListEditor<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.root
     }

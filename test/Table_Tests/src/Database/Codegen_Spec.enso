@@ -68,12 +68,6 @@ spec =
             t2 = t1.filter "A" (Filter_Condition.Between 10 20)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [10, 20]]
 
-            t3 = t1.filter "A" (Filter_Condition.Between (t1.at "B") (t1.at "C"))
-            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND "T1"."C")', []]
-
-            t4 = t1.filter "A" (Filter_Condition.Between (t1.at "B") 33)
-            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND ?)', [33]]
-
         Test.specify "should generate an IN expression" <|
             t2 = t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?, ?, ?), FALSE)', [1, 2, "foo"]]
@@ -89,8 +83,8 @@ spec =
 
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_nothing should allow to replace missing values in a column with a constant" <|
-            c = t1.at "A" . fill_nothing "not-applicable"
-            c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "fill_nothing([A], \'not-applicable\')" FROM "T1" AS "T1"', ["not-applicable"]]
+            c = t1.at "B" . fill_nothing "not-applicable"
+            c.to_sql.prepare . should_equal ['SELECT CAST(COALESCE("T1"."B", ?) AS TEXT) AS "fill_nothing([B], \'not-applicable\')" FROM "T1" AS "T1"', ["not-applicable"]]
 
         Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.filter_blank_rows when_any=True

@@ -281,12 +281,17 @@ spec =
             Meta.get_annotation value "Value" "bar" . should_equal Nothing
             Meta.get_annotation value "Value" "baz" . should_equal (My_Type.Value 1 2 3)
 
-    Test.group "Check Nothing" <|
+    Test.group "Check Nothing and NaN" <|
         Test.specify "Nothing.is_a Nothing" <|
             Nothing.is_a Nothing . should_be_true
+            Meta.is_same_object Nothing Nothing . should_be_true
 
         Test.specify "type_of Nothing is Nothing" <|
             Meta.type_of Nothing . should_equal Nothing
+
+        Test.specify "NaN and NaN should be the same object" <|
+            Meta.is_same_object Number.nan Number.nan . should_be_true
+            (Number.nan == Number.nan) . should_be_false
 
     Test.group "Atom with holes" <|
         Test.specify "construct and fill" <|

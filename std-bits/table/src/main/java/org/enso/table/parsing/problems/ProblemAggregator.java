@@ -15,9 +15,6 @@ public interface ProblemAggregator {
    */
   void reportInvalidFormat(String cell);
 
-  /** Reports a cell containing unexpected leading zeros. */
-  void reportLeadingZeroes(String cell);
-
   /** Reports that a mismatched quote has been encountered. */
   void reportMismatchedQuote(String cellText);
 

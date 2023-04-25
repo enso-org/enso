@@ -805,7 +805,12 @@ impl LayerModel {
 
     /// Clear the parent field and remove the layer from its parent's sublayer list.
     fn remove_from_parent(&self) {
-        if let Some(parent) = self.parent.borrow_mut().take() {
+        // Borrow `self.parent` only within the scope of this line. Note that if this expression
+        // were used directly as the matched expression of the `if let`, the `RefMut` would not be
+        // dropped until the end of the `if let` block, even though it is a temporary value within
+        // the subexpression with `take`.
+        let parent = self.parent.borrow_mut().take();
+        if let Some(parent) = parent {
             parent.borrow_mut().remove(self.id());
             // Recompute depth order, in case removing a parent resolved a cycle.
             self.depth_order_dirty.set();
