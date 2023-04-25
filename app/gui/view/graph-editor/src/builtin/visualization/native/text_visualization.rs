@@ -61,7 +61,7 @@ const CHARS_PER_CHUNK: usize = 20;
 /// loaded in each direction around the visible grid. So a value of 5 with a base grid of 20x10 will
 /// load 25x15 grid.
 const CACHE_PADDING: u32 = 15;
-const PADDING_TEXT: f32 = 5.0;
+const PADDING_TEXT: f32 = 10.0;
 
 
 
@@ -399,8 +399,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                     let right = left +  vis_size.x;
 
                     // Set DOM element size.
-                    dom_entry_root.set_style_or_warn("top", format!("{}px", top + PADDING_TEXT));
-                    dom_entry_root.set_style_or_warn("left", format!("{}px", -left + PADDING_TEXT));
+                    dom_entry_root.set_style_or_warn("top", format!("{top}px"));
+                    dom_entry_root.set_style_or_warn("left", format!("{}px", -left));
 
                     // Output viewport.
                     let viewport = grid_view::Viewport {top, bottom, left, right};
