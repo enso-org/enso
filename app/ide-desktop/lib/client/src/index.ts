@@ -47,7 +47,7 @@ class App {
     async run() {
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        fileAssociations.setOpenFileHandler(id => {
+        fileAssociations.setOpenFileEventHandler(id => {
             this.setProjectToOpenOnStartup(id)
         })
 
@@ -72,7 +72,7 @@ class App {
              * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
              * should be used here instead. */
             electron.app.on('ready', () => {
-                logger.log('Electron app is ready.')
+                logger.log('Electron application is ready.')
                 void this.main(windowSize)
             })
             this.registerShortcuts()

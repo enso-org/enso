@@ -134,12 +134,12 @@ export function onFileOpened(event: Event, path: string): string | void {
     }
 }
 
-/** Setup the `open-file` event handler that might import a project and invoke the given callback,
+/** Set up the `open-file` event handler that might import a project and invoke the given callback,
  * if this IDE instance should load the project. See {@link onFileOpened} for more details.
  *
  * @param setProjectToOpen - A function that will be called with the ID of the project to open.
  */
-export function setOpenFileHandler(setProjectToOpen: (id: string) => void) {
+export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) {
     electron.app.on('open-file', (event, path) => {
         const projectId = onFileOpened(event, path)
         if (typeof projectId === 'string') {
