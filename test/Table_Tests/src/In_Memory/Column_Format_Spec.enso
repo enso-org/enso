@@ -1,0 +1,18 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Time.Date.Date
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Test.Extensions
+
+from Standard.Table import Column, Value_Type
+from Standard.Test import Test, Test_Suite
+
+spec =
+    Test.group "Column.format" <|
+        Test.specify "Date column" <|
+            input = Column.from_vector "dates" [Date.new 2020 12 21, Date.new 2023 4 25]
+            expected = Column.from_vector "date" ["20201221", "20230425"]
+            actual = input.format "yyyyMMdd"
+            actual . should_equal expected
+
+main = Test_Suite.run_main spec

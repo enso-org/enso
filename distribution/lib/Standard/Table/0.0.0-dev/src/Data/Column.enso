@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Locale.Locale
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -15,12 +16,14 @@ import project.Data.Table.Table
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
+import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Widget_Helpers
 import project.Data.Type.Value_Type_Helpers
 
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion
+from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -1175,6 +1178,22 @@ type Column
             output = Column.Value (Java_Column.new self.name new_storage)
             on_problems.attach_problems_after output problems
 
+    ## Format a `Column` using a format string (or `Column` of format strings).
+    format : Text | Column -> Locale -> Problem_Behavior -> Column
+    format self format locale=Locale.default on_problems=Report_Warning =
+        problem_builder = Problem_Builder.new
+        formatter = case self.value_type of
+            Date -> date_formatter self format locale problem_builder
+            #Date_Time -> format_as_date_time self format on_problems
+            #Time -> format_as_time_of_day self format on_problems
+            #Integer -> format_as_integer self format on_problems
+            #Boolean,Float,Decimal
+            bad_type ->
+                msg = "Cannot format a Column of type " + bad_type
+                Error.throw (Illegal_Argument.Error msg)
+        new_column = map_to_text_over_storage self formatter
+        problem_builder.attach_problems_after on_problems new_column
+
     ## ALIAS Transform Column
 
        Applies `function` to each item in this column and returns the column
@@ -1740,3 +1759,26 @@ wrap_text_argument_as_value_provider val =
         col : Column ->
             storage = col.java_column.getStorage
             i-> storage.getItemBoxed i
+
+## PRIVATE
+   Create a `Date` formatter for the given format string.
+date_formatter : Date -> Text -> Locale -> Problem_Builder -> (Date -> Text)
+date_formatter date format locale problem_builder =
+    _ = [problem_builder]
+    date.format format locale
+
+## PRIVATE
+   Map a text-returning function over the column values, using Storage directly.
+   The output column has the same name as the input.
+map_to_text_over_storage : Column -> (Any -> Text) -> Boolean -> Column
+map_to_text_over_storage input_column function skip_nothing=True =
+    input_storage = input_column.java_column.getStorage
+    num_input_rows = input_storage.size
+    output_storage_builder = make_string_builder num_input_rows
+    0.up_to num_input_rows . each i->
+        input_value = input_storage.getItemBoxed i
+        if skip_nothing && input_value.is_nothing then output_storage_builder.append Nothing else
+            output_value = function input_value
+            output_storage_builder.append output_value
+    output_storage = output_storage_builder.seal
+    Column.from_storage input_column.name output_storage
