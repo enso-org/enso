@@ -22,7 +22,6 @@ import * as debug from 'debug'
 // eslint-disable-next-line no-restricted-syntax
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
-import * as log from 'log'
 import * as naming from 'naming'
 import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
@@ -46,20 +45,21 @@ class App {
     isQuitting = false
 
     async run() {
-        log.addFileLog()
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        fileAssociations.setOpenFileHandler(id => { this.setProjectToOpenOnStartup(id); })
+        fileAssociations.setOpenFileHandler(id => {
+            this.setProjectToOpenOnStartup(id)
+        })
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
         this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
             await this.printVersion()
-            this.quit()
+            electron.app.quit()
         } else if (this.args.groups.debug.options.info.value) {
             await electron.app.whenReady().then(async () => {
                 await debug.printInfo()
-                this.quit()
+                electron.app.quit()
             })
         } else {
             this.setChromeOptions(chromeOptions)
@@ -97,12 +97,14 @@ class App {
 
     setProjectToOpenOnStartup(idOfProjectToOpen: string) {
         // Make sure that we are not initialized yet, as this method should be called before the
-        // application is ready. 
-        if(!electron.app.isReady()) {
+        // application is ready.
+        if (!electron.app.isReady()) {
             logger.log(`Setting project to open on startup: ${idOfProjectToOpen}.`)
             this.args.groups.startup.options.project.value = idOfProjectToOpen
         } else {
-            logger.error(`Cannot set project to open on startup: ${idOfProjectToOpen}, as the application is already initialized.`)
+            logger.error(
+                `Cannot set project to open on startup: ${idOfProjectToOpen}, as the application is already initialized.`
+            )
         }
     }
 
@@ -402,6 +404,7 @@ class App {
             })
         })
     }
+}
 
 // ===================
 // === App startup ===

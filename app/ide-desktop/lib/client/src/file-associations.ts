@@ -136,7 +136,7 @@ export function onFileOpened(event: Event, path: string): string | void {
 
 /** Setup the `open-file` event handler that might import a project and invoke the given callback,
  * if this IDE instance should load the project. See {@link onFileOpened} for more details.
- * 
+ *
  * @param setProjectToOpen - A function that will be called with the ID of the project to open.
  */
 export function setOpenFileHandler(setProjectToOpen: (id: string) => void) {
@@ -171,7 +171,6 @@ export function handleOpenFile(openedFile: string): string {
         throw error
     }
 }
-    
 
 /** Handle the file to open, if any. See {@link handleOpenFile} for details.
  *
