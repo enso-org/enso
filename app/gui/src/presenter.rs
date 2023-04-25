@@ -169,7 +169,9 @@ async fn with_progress_indicator<F, T>(f: F)
 where
     F: FnOnce() -> T,
     T: Future<Output = ()>, {
-    // TODO: Use a safer variant of getting the JS app.
+    // TODO[ss]: Use a safer variant of getting the JS app. This one gets a variable from JS, casts
+    // it to a type, etc. Somewhere in EnsoGL we might already have some logic for getting the JS
+    // app and throwing an error if it's not defined.
     let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
     app.show_progress_indicator(0.0);
 
