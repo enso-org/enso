@@ -597,6 +597,7 @@ impl Model {
                         }));
                         area_frp.source.on_port_code_update <+ code_update;
                         area_frp.source.request_import <+ widget.request_import;
+                        widget.set_read_only <+ area_frp.set_read_only;
                     }
                 }
 
@@ -936,6 +937,8 @@ ensogl::define_endpoints! {
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
 
+        /// Set read-only mode for input ports.
+        set_read_only (bool),
     }
 
     Output {

@@ -436,21 +436,17 @@ impl Translate {
         infix(lhs, opr, rhs).map(|opr_app| self.finish_ast(opr_app, builder))
     }
 
-    /// Translate an operator or multiple-operator erorr into the [`Ast`] representation.
+    /// Translate an operator or multiple-operator error into the [`Ast`] representation.
     fn translate_operators(&mut self, opr: &tree::OperatorOrError) -> WithInitialSpace<Ast> {
         match opr {
-            Ok(name) => match name.code.repr.strip_suffix('=') {
-                Some(mod_name) if mod_name.contains(|c| c != '=') => {
-                    let opr_builder = self.start_ast();
-                    let token = self.visit_token(name);
-                    token.map(|_| {
-                        let name = mod_name.to_string();
-                        let opr = ast::Mod { name };
-                        self.finish_ast(opr, opr_builder)
-                    })
-                }
-                _ => self.translate_operator(name),
-            },
+            Ok(name) if name.properties.is_modifier() => {
+                let opr_builder = self.start_ast();
+                self.visit_token(name).map(|name| {
+                    let name = name.strip_suffix('=').map(|s| s.to_owned()).unwrap_or(name);
+                    self.finish_ast(ast::Mod { name }, opr_builder)
+                })
+            }
+            Ok(name) => self.translate_operator(name),
             Err(names) => {
                 let opr_builder = self.start_ast();
                 let mut span_info = SpanSeedBuilder::new();

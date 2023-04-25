@@ -147,7 +147,7 @@ spec prefix connection =
             col = t4.at 'a'
             col.length . should_equal 5
             col.count . should_equal 3
-            col.count_missing . should_equal 2
+            col.count_nothing . should_equal 2
 
     Test.group prefix+"Sorting" <|
         df = upload "clothes" <|

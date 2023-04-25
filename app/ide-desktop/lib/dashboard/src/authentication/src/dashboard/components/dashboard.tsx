@@ -19,6 +19,7 @@ import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import Ide from './ide'
 import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
+import Templates from './templates'
 import TopBar from './topBar'
 
 // =============
@@ -337,6 +338,40 @@ function Dashboard(props: DashboardProps) {
         [accessToken, directoryId, backend]
     )
 
+    const getNewProjectName = (templateName?: string | null): string => {
+        const prefix = `${templateName ?? 'New_Project'}_`
+        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+        let highestProjectIndex = 0
+        for (const projectAsset of projectAssets) {
+            let projectIndex = projectNameTemplate.exec(projectAsset.title)?.groups?.projectIndex
+            if (projectIndex) {
+                highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
+            }
+        }
+        return `${prefix}${highestProjectIndex + 1}`
+    }
+
+    const handleCreateProject = async (templateName?: string | null) => {
+        const projectName = getNewProjectName(templateName)
+        const body: cloudService.CreateProjectRequestBody = {
+            projectName,
+        }
+        if (templateName) {
+            body.projectTemplateName = templateName.replace(/_/g, '').toLocaleLowerCase()
+        }
+        const projectAsset = await backend.createProject(body)
+        setProjectAssets(oldProjectAssets => [
+            ...oldProjectAssets,
+            {
+                type: cloudService.AssetType.project,
+                title: projectAsset.name,
+                id: projectAsset.projectId,
+                parentId: '',
+                permissions: [],
+            },
+        ])
+    }
+
     return (
         <div
             className={`text-primary text-xs ${tab === Tab.dashboard ? '' : 'hidden'}`}
@@ -380,9 +415,7 @@ function Dashboard(props: DashboardProps) {
                 searchVal={searchVal}
                 setSearchVal={setSearchVal}
             />
-            {/* This is a placeholder. When implementing a feature,
-             * please replace it with the actual element.*/}
-            <div id="templates" />
+            <Templates onTemplateClick={handleCreateProject} />
             <div className="flex flex-row flex-nowrap m-2">
                 <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                 <div className="flex flex-row flex-nowrap mx-4">

@@ -136,7 +136,7 @@ export const PLAY_ICON = (
             width={21}
             height={21}
             rx={10.5}
-            stroke="#3E515F"
+            stroke="currentColor"
             strokeOpacity={0.1}
             strokeWidth={3}
         />
@@ -160,6 +160,25 @@ export const ARROW_UP_ICON = (
         <path
             d="M8.943 12a1 1 0 0 1-.814-1.581l3.057-4.28a1 1 0 0 1 1.628 0l3.056 4.28A1 1 0 0 1 15.057 12H8.943Z"
             fill="currentColor"
+        />
+    </svg>
+)
+
+/** An icon representing creation of an item. */
+export const CIRCLED_PLUS_ICON = (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={80}
+        height={80}
+        viewBox="0 0 24 24"
+        fill="none"
+        strokeWidth={0.5}
+        stroke="currentColor"
+    >
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
         />
     </svg>
 )

@@ -363,7 +363,6 @@ export function useAuth() {
 // === ProtectedLayout ===
 // =======================
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export function ProtectedLayout() {
     const { session } = useAuth()
 
@@ -378,7 +377,6 @@ export function ProtectedLayout() {
 // === GuestLayout ===
 // ===================
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export function GuestLayout() {
     const { session } = useAuth()
 
