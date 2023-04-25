@@ -49,14 +49,17 @@ from project.Errors import all
 
      If an error has been raised, the table is not created (that may not always
      apply to `SQL_Error`).
-In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | SQL_Error
+In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Non_Unique_Primary_Key | SQL_Error
 In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning =
     checked_primary_key = case primary_key of
         Nothing -> Nothing
         _ : Vector -> if primary_key.is_empty then Nothing else
-            primary_key.map name->
+            checked = primary_key.map name->
                 # This ensures that each column exists in the table.
                 self.at name . name
+            # And this makes sure that no duplicate columns get selected.
+            checked.if_not_error <|
+                self.select_columns primary_key reorder=True
 
     effective_table_name = case table_name of
         Nothing -> if temporary then "temporary-table-"+random_uuid else

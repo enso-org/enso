@@ -218,3 +218,16 @@ type Connection
     drop_table : Text -> Nothing
     drop_table self table_name =
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))
+
+    ## PRIVATE
+       A helper method that allows to access names of columns that constitute
+       the primary key of a table.
+
+       Currently used for testing, but in the future some of our methods will be
+       using the primary key as default ordering. See #5130.
+    get_primary_key : Text -> Vector Text | Nothing
+    get_primary_key self table_name =
+        self.with_connection java_connection->
+            keys_table = result_set_to_table java_connection.getMetaData.getPrimaryKeys Nothing self.schema table_name
+            key_column_names = keys_table.order_by "KEY_SEQ" . at "COLUMN_NAME" . to_vector
+            if key_column_names.is_empty then Nothing else key_column_names

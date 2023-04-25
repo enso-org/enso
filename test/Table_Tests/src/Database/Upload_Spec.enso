@@ -20,7 +20,7 @@ spec prefix make_new_connection =
     Test.group prefix+"Uploading an in-memory Table" <|
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
         Test.specify "should include the created table in the tables directory" <|
-            db_table = in_memory_table.upload connection (Name_Generator.random_name "permanent_table_1") temporary=False
+            db_table = in_memory_table.create_database_table connection (Name_Generator.random_name "permanent_table_1") temporary=False
             Panic.with_finalizer (connection.drop_table db_table.name) <|
                 db_table.at "X" . to_vector . should_equal [1, 2, 3]
 
@@ -28,14 +28,14 @@ spec prefix make_new_connection =
                 connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
 
         Test.specify "should include the temporary table in the tables directory" <|
-            db_table = in_memory_table.upload connection (Name_Generator.random_name "permanent_table_1") temporary=True
+            db_table = in_memory_table.create_database_table connection (Name_Generator.random_name "permanent_table_1") temporary=True
             db_table.at "X" . to_vector . should_equal [1, 2, 3]
             connection.tables.at "Name" . to_vector . should_contain db_table.name
             connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
 
         Test.specify "should drop the temporary table after the connection is closed" <|
             tmp_connection = make_new_connection Nothing
-            db_table = in_memory_table.upload tmp_connection (Name_Generator.random_name "permanent_table_1") temporary=True
+            db_table = in_memory_table.create_database_table tmp_connection (Name_Generator.random_name "permanent_table_1") temporary=True
             name = db_table.name
             tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
             tmp_connection.close
@@ -43,22 +43,56 @@ spec prefix make_new_connection =
 
         Test.specify "should preserve the regular table after the connection is closed" <|
             tmp_connection = make_new_connection Nothing
-            db_table = in_memory_table.upload tmp_connection (Name_Generator.random_name "permanent_table_1") temporary=False
+            db_table = in_memory_table.create_database_table tmp_connection (Name_Generator.random_name "permanent_table_1") temporary=False
             name = db_table.name
             Panic.with_finalizer (connection.drop_table name) <|
                 tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
                 tmp_connection.close
                 connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
 
-        Test.specify "should rollback the table creation if upload fails" <|
+        Test.specify "should rollback the table creation if create_database_table fails" <|
             normal_column = Column.from_vector "Y" (100+0.up_to 100+1000).to_vector
             exploding_column = make_mock_column "X" Value_Type.Integer (0.up_to 1000).to_vector 512
             exploding_table = Table.new [normal_column, exploding_column]
             name = Name_Generator.random_name "rolling-back-table"
             connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
             Test.expect_panic_with matcher=Explosion_Payload <|
-                exploding_table.upload connection name temporary=False
+                exploding_table.create_database_table connection name temporary=False
             connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+
+        Test.specify "should set a primary key for the table" <|
+            t1 = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
+            db_table_1 = t1.create_database_table connection (Name_Generator.random_name "primary-key-1") temporary=True primary_key=["Y", "X"]
+            db_table_1.at "X" . to_vector . should_equal [1, 2, 3]
+            connection.get_primary_key db_table_1.name . should_equal ["X", "Y"]
+
+            db_table_2 = t1.create_database_table connection (Name_Generator.random_name "primary-key-2") temporary=True
+            db_table_2.at "X" . to_vector . should_equal [1, 2, 3]
+            connection.get_primary_key db_table_2.name . should_equal ["X"]
+
+            db_table_3 = t1.create_database_table connection (Name_Generator.random_name "primary-key-3") temporary=True primary_key=Nothing
+            db_table_3.at "X" . to_vector . should_equal [1, 2, 3]
+            connection.get_primary_key db_table_3.name . should_equal Nothing
+
+        Test.specify "should ensure that primary key columns are valid" <|
+            r1 = in_memory_table.create_database_table connection (Name_Generator.random_name "primary-key-4") temporary=True primary_key=["X", "nonexistent"]
+            r1.should_fail_with No_Such_Column
+
+            db_table_2 = in_memory_table.create_database_table connection (Name_Generator.random_name "primary-key-5") temporary=True primary_key=["X", 0]
+            connection.get_primary_key db_table_2.name . should_equal ["X"]
+
+        Test.specify "should fail if the primary key is not unique" <|
+            t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
+            r1 = t1.create_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["X"]
+            r1.should_fail_with Non_Unique_Primary_Key
+            r2 = t1.create_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["Y"]
+            r2.should_fail_with Non_Unique_Primary_Key
+            r3 = t1.create_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
+            r3.at "X" . to_vector . should_equal [1, 2, 1]
+
+            t2 = Table.new [["X", [1, 2, 1]], ["Y", ['a', 'b', 'a']]]
+            r4 = t1.create_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
+            r4.should_fail_with Non_Unique_Primary_Key
 
 type Exploding_Mock_Column
     Value (name:Text) (values:Vector)

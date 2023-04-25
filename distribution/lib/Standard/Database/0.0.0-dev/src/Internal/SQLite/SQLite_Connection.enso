@@ -133,6 +133,16 @@ type SQLite_Connection
     drop_table self table_name =
         self.connection.drop_table table_name
 
+    ## PRIVATE
+       A helper method that allows to access names of columns that constitute
+       the primary key of a table.
+
+       Currently used for testing, but in the future some of our methods will be
+       using the primary key as default ordering. See #5130.
+    get_primary_key : Text -> Vector Text | Nothing
+    get_primary_key self table_name =
+        self.connection.get_primary_key table_name
+
 ## PRIVATE
 
    Creates a SQLite connection based on a JDBC URL and properties.
