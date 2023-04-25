@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+from Standard.Table import Table, Value_Type
+import Standard.Table.Data.Type.Storage
+
 from Standard.Database import all
 from Standard.Database.Errors import all
 
@@ -7,6 +10,7 @@ from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
+from project.Errors import Table_Not_Found
 
 main = Test_Suite.run_main <|
     spec "[SQLite] " (Database.connect (SQLite In_Memory))
@@ -18,19 +22,74 @@ spec prefix make_new_connection =
         Test.specify "should include the created table in the tables directory" <|
             db_table = in_memory_table.upload connection (Name_Generator.random_name "permanent_table_1") temporary=False
             Panic.with_finalizer (connection.drop_table db_table.name) <|
-                ???
+                db_table.at "X" . to_vector . should_equal [1, 2, 3]
+
+                connection.tables.at "Name" . to_vector . should_contain db_table.name
+                connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
 
         Test.specify "should include the temporary table in the tables directory" <|
-            Error.throw "TODO"
+            db_table = in_memory_table.upload connection (Name_Generator.random_name "permanent_table_1") temporary=True
+            db_table.at "X" . to_vector . should_equal [1, 2, 3]
+            connection.tables.at "Name" . to_vector . should_contain db_table.name
+            connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
 
         Test.specify "should drop the temporary table after the connection is closed" <|
-            Error.throw "TODO"
+            tmp_connection = make_new_connection Nothing
+            db_table = in_memory_table.upload tmp_connection (Name_Generator.random_name "permanent_table_1") temporary=True
+            name = db_table.name
+            tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+            tmp_connection.close
+            connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
 
         Test.specify "should preserve the regular table after the connection is closed" <|
-            Error.throw "TODO"
+            tmp_connection = make_new_connection Nothing
+            db_table = in_memory_table.upload tmp_connection (Name_Generator.random_name "permanent_table_1") temporary=False
+            name = db_table.name
+            Panic.with_finalizer (connection.drop_table name) <|
+                tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+                tmp_connection.close
+                connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
 
         Test.specify "should rollback the table creation if upload fails" <|
-            Error.throw "TODO"
+            normal_column = Column.from_vector "Y" (100+0.up_to 100+1000).to_vector
+            exploding_column = make_mock_column "X" Value_Type.Integer (0.up_to 1000).to_vector 512
+            exploding_table = Table.new [normal_column, exploding_column]
+            name = Name_Generator.random_name "rolling-back-table"
+            connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+            Test.expect_panic_with matcher=Explosion_Payload <|
+                exploding_table.upload connection name temporary=False
+            connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
 
 type Exploding_Mock_Column
-    Value (values:Vector)
+    Value (name:Text) (values:Vector)
+
+    getSize self = self.getStorage.getSize
+    getName self = self.name
+    getStorage self =
+
+type Exploding_Mock_Storage
+    Value (values:Vector) storage_type (exploding_index:Integer)
+
+    check_exploding index ~action =
+        case index == self.exploding_index of
+            True -> Panic.throw Explosion_Payload.Error
+            False -> action
+    getSize self = self.values.size
+    getType self = self.storage_type
+    isNa self index = self.check_exploding index <|
+        self.values.at index . is_nothing
+    getItem self index = self.check_exploding index <|
+        self.values.at index
+
+type Explosion_Payload
+    Error
+
+## PRIVATE
+   Creates a mock column containing `values` which reports the `storage_type`
+   when queried.
+
+   If `exploding_index` is accessed, a Panic will be thrown.
+make_mock_column name value_type values exploding_index =
+    storage_type = Storage.closest_storage_type value_type
+    storage = Exploding_Mock_Storage.Value values storage_type exploding_index
+    Exploding_Mock_Column.Value name values
