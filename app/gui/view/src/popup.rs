@@ -91,8 +91,9 @@ ensogl::define_endpoints! {
 // ============
 
 /// A temporary text message on top of the screen.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 pub struct View {
+    #[deref]
     frp:   Frp,
     model: Model,
 }
@@ -107,7 +108,7 @@ impl View {
         frp::extend! { network
             init <- source_();
             let scene_shape = app.display.default_scene.shape();
-            _eval <- all_with(scene_shape, &init, f!([model] (scene_shape, _init)
+            _eval <- all_with(scene_shape, &init, f!((scene_shape, _init)
                 model.set_label_position(scene_shape.height);
             ));
 
@@ -132,13 +133,5 @@ impl View {
 impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
         self.model.label.display_object()
-    }
-}
-
-impl Deref for View {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }

@@ -230,7 +230,7 @@ impl ProjectNameModel {
         let parser = Parser::new();
         match parser.parse_line_ast(name).map(|ast| ast.shape().clone()) {
             Ok(ast::Shape::Cons(_)) => Ok(()),
-            _ => Err("The project name should be in Upper_Snake_Case.".to_owned()),
+            _ => Err("The project name should use the 'Upper_Snake' case.".to_owned()),
         }
     }
 
