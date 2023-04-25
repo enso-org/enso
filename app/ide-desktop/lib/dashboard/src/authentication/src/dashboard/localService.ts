@@ -6,13 +6,6 @@ import * as cloudService from './cloudService'
 import * as newtype from '../newtype'
 import * as projectManager from './projectManager'
 
-// =================
-// === Constants ===
-// =================
-
-/** The scene name to open a project, instead of a debug scene. */
-const PROJECT_SCENE_NAME = 'Project_root'
-
 // ========================
 // === Helper functions ===
 // ========================

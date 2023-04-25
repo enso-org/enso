@@ -301,7 +301,7 @@ function Dashboard(props: DashboardProps) {
         ),
     }
 
-    const renderer = <Type extends cloudService.AssetType>(column: Column, assetType: Type) => {
+    function renderer<Type extends cloudService.AssetType>(column: Column, assetType: Type) {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
@@ -338,7 +338,7 @@ function Dashboard(props: DashboardProps) {
         [accessToken, directoryId, backend]
     )
 
-    const getNewProjectName = (templateName?: string | null): string => {
+    function getNewProjectName(templateName?: string | null): string {
         const prefix = `${templateName ?? 'New_Project'}_`
         const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
         let highestProjectIndex = 0
@@ -351,7 +351,7 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    const handleCreateProject = async (templateName?: string | null) => {
+    async function handleCreateProject(templateName?: string | null) {
         const projectName = getNewProjectName(templateName)
         const body: cloudService.CreateProjectRequestBody = {
             projectName,
@@ -415,7 +415,7 @@ function Dashboard(props: DashboardProps) {
                 searchVal={searchVal}
                 setSearchVal={setSearchVal}
             />
-            <Templates onTemplateClick={handleCreateProject} />
+            <Templates backendPlatform={backendPlatform} onTemplateClick={handleCreateProject} />
             <div className="flex flex-row flex-nowrap m-2">
                 <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                 <div className="flex flex-row flex-nowrap mx-4">
