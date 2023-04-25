@@ -10,7 +10,7 @@ from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
-from project.Errors import Table_Not_Found
+from project.Errors import Table_Not_Found, Non_Unique_Primary_Key
 
 main = Test_Suite.run_main <|
     spec "[SQLite] " (Database.connect (SQLite In_Memory))

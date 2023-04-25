@@ -4,6 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
 from Standard.Table.Errors import Inexact_Type_Coercion
+from Standard.Table import Aggregate_Column
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Query.SQL_Query
@@ -59,7 +60,9 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
                 self.at name . name
             # And this makes sure that no duplicate columns get selected.
             checked.if_not_error <|
-                self.select_columns primary_key reorder=True
+                unique_key = self.select_columns primary_key reorder=True
+                check_primary_key_is_unique table unique_key . if_not_error <|
+                    unique_key
 
     effective_table_name = case table_name of
         Nothing -> if temporary then "temporary-table-"+random_uuid else
@@ -85,6 +88,15 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
             connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
 
     connection.query (SQL_Query.Table_Name effective_table_name)
+
+## PRIVATE
+   Checks if the specified primary key uniquely identifies all rows in the table.
+
+   If the key is not unique, it will raise a `Non_Unique_Primary_Key` error.
+check_primary_key_is_unique table primary_key =
+    deduplicated = table.distinct primary_key
+    if deduplicated.row_count != table.row_count then
+        Error.throw (Non_Unique_Primary_Key.Error primary_key)
 
 ## PRIVATE
    The recommended batch size seems to be between 50 and 100.
