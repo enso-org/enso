@@ -37,6 +37,7 @@ public class WarningBenchmarks extends TestBase {
     private Value elemWithWarning;
 
     private OutputStream out = new ByteArrayOutputStream();
+    private String benchmarkName;
 
     @Setup
     public void initializeBench(BenchmarkParams params) throws IOException {
@@ -55,6 +56,8 @@ public class WarningBenchmarks extends TestBase {
                 .option("engine.BackgroundCompilation", "true")
                 .build();
 
+        benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+
         var code = """
         from Standard.Base import all
 
@@ -72,12 +75,7 @@ public class WarningBenchmarks extends TestBase {
             x = 42
             Warning.attach "Foo!" x
         """;
-
-        var file = File.createTempFile("warnings", ".enso");
-        try (var w = new FileWriter(file)) {
-            w.write(code);
-        }
-        var src = Source.newBuilder("enso", file).build();
+        var src = SrcUtil.source(benchmarkName, code);
         Value module = ctx.eval(src);
         vecSumBench = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "vec_sum_bench"));
         createVec = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create_vec"));
@@ -85,6 +83,11 @@ public class WarningBenchmarks extends TestBase {
         elemWithWarning = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem_with_warning"));
         noWarningsVec = createVec.execute(INPUT_VEC_SIZE, elem);
         sameWarningVec = createVec.execute(INPUT_VEC_SIZE, elemWithWarning);
+    }
+
+    @TearDown
+    public void cleanup() {
+        ctx.close(true);
     }
 
     @Benchmark
