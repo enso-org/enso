@@ -18,11 +18,11 @@ type Example_Error_Type
 
 ## The standard library data directory.
 data_dir : File
-data_dir = (enso_project Standard.Examples).data
+data_dir = enso_project.data
 
 ## An example CSV file for experimenting with Table and its APIs.
 csv : File
-csv = (enso_project Standard.Examples).data / "food_shop_inventory.csv"
+csv = enso_project.data / "food_shop_inventory.csv"
 
 ## The path to the CSV.
 csv_path : Text
@@ -38,7 +38,7 @@ csv_path = csv.path
 xls : File
 xls =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
-    file = (enso_project Standard.Examples).data / 'spreadsheet.xls'
+    file = enso_project.data / 'spreadsheet.xls'
     if file.exists.not then
         HTTP.fetch url . to_file file
     file
@@ -53,7 +53,7 @@ xls =
 xlsx : File
 xlsx =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsx"
-    file = (enso_project Standard.Examples).data / 'spreadsheet.xlsx'
+    file = enso_project.data / 'spreadsheet.xlsx'
     if file.exists.not then
         HTTP.fetch url . to_file file
     file
@@ -61,7 +61,7 @@ xlsx =
 ## A file that is used for writing temporary data as part of tests.
 scratch_file : File
 scratch_file =
-    file = (enso_project Standard.Examples).data / "scratch_file"
+    file = enso_project.data / "scratch_file"
     if file.exists then file.delete else Nothing
     file
 
@@ -170,7 +170,7 @@ uri = URI.parse "http://user:pass@example.com/foo/bar?key=val"
 image_file : File
 image_file =
     url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
-    file = (enso_project Standard.Examples).data / "image.png"
+    file = enso_project.data / "image.png"
     if file.exists.not then
         HTTP.fetch url . to_file file
     file
@@ -259,12 +259,12 @@ inventory_table = csv.read
 ## A simple table that contains basic item popularity data for the food shop.
 popularity_table : Table
 popularity_table =
-    ((enso_project Standard.Examples).data / "food_shop_popularity.csv") . read
+    (enso_project.data / "food_shop_popularity.csv") . read
 
 ## A simple tablethat contains basic transaction data for the food shop.
 transactions_table : Table
 transactions_table =
-    ((enso_project Standard.Examples).data / "food_shop_transactions.csv") . read
+    (enso_project.data / "food_shop_transactions.csv") . read
 
 ## An example regex match.
 match : Match
