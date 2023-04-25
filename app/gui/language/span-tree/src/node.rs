@@ -432,31 +432,36 @@ impl<'a, T> Ref<'a, T> {
     pub fn get_descendant_by_ast_crumbs<'b>(
         self,
         ast_crumbs: &'b [ast::Crumb],
-    ) -> Option<NodeFoundByAstCrumbs<'a, 'b, T>> {
+    ) -> Option<NodeFoundByAstCrumbs<'a, 'b, T>>
+    where
+        T: Debug,
+    {
+        error!("get_descendant_by_ast_crumbs called with ast_crumbs: {ast_crumbs:?}");
         if self.node.children.is_empty() || ast_crumbs.is_empty() {
+            error!("First branch");
             let node = self;
             let remaining_ast_crumbs = ast_crumbs;
             Some(NodeFoundByAstCrumbs { node, ast_crumbs: remaining_ast_crumbs })
         } else {
+            error!("Else branch");
             // Please be advised, that the `ch.ast_crumbs` is not a field of Ref, but Child, and
             // therefore have different meaning!
-            let next = self
-                .node
-                .children
-                .iter()
-                .find_position(|ch| {
-                    !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
-                })
-                .or_else(|| {
-                    // We try to find appropriate node second time, this time expecting case of
-                    // "prefix-like" nodes with `InsertionPoint(ExpectedArgument(_))`. See also docs
-                    // for `generate::generate_expected_argument`.
-                    // TODO[ao]: As implementation of SpanTree will extend there may be some day
-                    // more  cases. Should be reconsidered in https://github.com/enso-org/ide/issues/787
-                    self.node.children.iter().find_position(|ch| {
-                        ch.ast_crumbs.is_empty() && !ch.kind.is_insertion_point()
-                    })
-                });
+            let next = self.node.children.iter().find_position(|ch| {
+                !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
+            });
+            error!("Found position: {next:?}");
+            let next = next.or_else(|| {
+                // We try to find appropriate node second time, this time expecting case of
+                // "prefix-like" nodes with `InsertionPoint(ExpectedArgument(_))`. See also docs
+                // for `generate::generate_expected_argument`.
+                // TODO[ao]: As implementation of SpanTree will extend there may be some day
+                // more  cases. Should be reconsidered in https://github.com/enso-org/ide/issues/787
+                self.node
+                    .children
+                    .iter()
+                    .find_position(|ch| ch.ast_crumbs.is_empty() && !ch.kind.is_insertion_point())
+            });
+            error!("or else: {next:?}");
             next.and_then(|(id, child)| {
                 let ast_subcrumbs = &ast_crumbs[child.ast_crumbs.len()..];
                 self.child(id).unwrap().get_descendant_by_ast_crumbs(ast_subcrumbs)

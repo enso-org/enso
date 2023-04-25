@@ -291,6 +291,9 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
                         .map(|found| found.node);
 
                     while let Some(node) = next_parent {
+                        if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
+                            break;
+                        }
                         let code = new_root.repr();
                         let span_tree = node.span_tree.clone();
                         let msg = span_tree.debug_print(&code);
@@ -313,13 +316,13 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
                                         let arg_crumbs = &found.node.ast_crumbs;
                                         let expression = new_root.get_traversing(arg_crumbs)?;
                                         // Hotfix for Issue #6228.
-                                        let expression = if let Some(assignment) =
-                                            ast::opr::to_assignment(&expression)
-                                        {
-                                            assignment.rarg.clone()
-                                        } else {
-                                            expression.clone()
-                                        };
+                                        // let expression = if let Some(assignment) =
+                                        //     ast::opr::to_assignment(&expression)
+                                        // {
+                                        //     assignment.rarg.clone()
+                                        // } else {
+                                        //     expression.clone()
+                                        // };
                                         error!(
                                             "Expression: {expression:?} ({})",
                                             expression.repr()
