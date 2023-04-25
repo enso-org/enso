@@ -94,8 +94,8 @@ public final class Warning implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib);
-    Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
-    return new Array((Object[])warnings);
+    sortArray(warnings);
+    return new Array((Object[]) warnings);
   }
 
   @Builtin.Method(
@@ -106,7 +106,9 @@ public final class Warning implements TruffleObject {
   public static Array getAll(Object value, WarningsLibrary warnings) {
     if (warnings.hasWarnings(value)) {
       try {
-        return new Array((Object[]) fromSetToArray(warnings.getWarningsUnique(value, null), true));
+        Warning[] arr = warnings.getWarnings(value, null);
+        sortArray(arr);
+        return new Array((Object[]) arr);
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
@@ -116,12 +118,14 @@ public final class Warning implements TruffleObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  static Warning[] fromSetToArray(EconomicSet<Warning> set, boolean sort) {
-    Warning[] arr = set.toArray(new Warning[set.size()]);
-    if (sort) {
-      Arrays.sort(arr, Comparator.comparing(Warning::getCreationTime).reversed());
-    }
-    return arr;
+  private static void sortArray(Warning[] arr) {
+    Arrays.sort(arr, Comparator.comparing(Warning::getCreationTime).reversed());
+  }
+
+  /** Converts set to an array behing a truffle boundary. */
+  @CompilerDirectives.TruffleBoundary
+  public static Warning[] fromSetToArray(EconomicSet<Warning> set) {
+    return set.toArray(new Warning[set.size()]);
   }
 
   @Builtin.Method(

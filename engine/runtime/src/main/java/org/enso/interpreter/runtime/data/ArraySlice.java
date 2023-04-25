@@ -92,7 +92,7 @@ public final class ArraySlice implements TruffleObject {
 
     var v = interop.readArrayElement(storage, start + index);
     if (this.hasWarnings(warnings)) {
-      EconomicSet<Warning> extracted = this.getWarningsUnique(null, warnings);
+      Warning[] extracted = this.getWarnings(null, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -150,11 +150,6 @@ public final class ArraySlice implements TruffleObject {
   @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
-  }
-
-  @ExportMessage
-  EconomicSet<Warning> getWarningsUnique(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
-    return warnings.getWarningsUnique(this.storage, location);
   }
 
   @ExportMessage

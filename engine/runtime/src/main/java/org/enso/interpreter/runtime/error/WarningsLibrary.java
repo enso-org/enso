@@ -43,7 +43,7 @@ public abstract class WarningsLibrary extends Library {
   }
 
   /**
-   * Returns all warnings associated with the receiver.
+   * Returns all unique warnings associated with the receiver.
    *
    * @param receiver the receiver to analyze
    * @param location optional parameter specifying the node to which the warnings should be
@@ -52,20 +52,6 @@ public abstract class WarningsLibrary extends Library {
    */
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
   public Warning[] getWarnings(Object receiver, Node location) throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
-  }
-
-  /**
-   * Returns a set of warnings associated with the receiver.
-   *
-   * @param receiver the receiver to analyze
-   * @param location optional parameter specifying the node to which the warnings should be
-   *     reassigned to
-   * @return the set of warnings
-   */
-  @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public EconomicSet<Warning> getWarningsUnique(Object receiver, Node location)
-      throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
 

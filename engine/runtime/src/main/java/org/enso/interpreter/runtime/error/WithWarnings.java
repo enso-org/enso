@@ -89,14 +89,14 @@ public final class WithWarnings implements TruffleObject {
     Warning[] allWarnings;
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
-        EconomicSet<Warning> valueWarnings = warningsLibrary.getWarningsUnique(value, null);
+        Warning[] valueWarnings = warningsLibrary.getWarnings(value, null);
         EconomicSet<Warning> tmp = cloneSetAndAppend(warnings, valueWarnings);
-        allWarnings = Warning.fromSetToArray(tmp, false);
+        allWarnings = Warning.fromSetToArray(tmp);
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
     } else {
-      allWarnings = Warning.fromSetToArray(warnings, false);
+      allWarnings = Warning.fromSetToArray(warnings);
     }
     return allWarnings;
   }
@@ -177,17 +177,7 @@ public final class WithWarnings implements TruffleObject {
     if (location != null) {
       return getReassignedWarnings(location, warningsLibrary);
     } else {
-      return Warning.fromSetToArray(warnings, false);
-    }
-  }
-
-  @ExportMessage
-  EconomicSet<Warning> getWarningsUnique(
-          Node location, @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
-    if (location != null) {
-      return createSetFromArray(getReassignedWarnings(location, warningsLibrary));
-    } else {
-      return warnings;
+      return Warning.fromSetToArray(warnings);
     }
   }
 

@@ -120,7 +120,7 @@ public final class Vector implements TruffleObject {
       throws InvalidArrayIndexException, UnsupportedMessageException {
     var v = interop.readArrayElement(storage, index);
     if (warnings.hasWarnings(this)) {
-      EconomicSet<Warning> extracted = warnings.getWarningsUnique(this, null);
+      Warning[] extracted = warnings.getWarnings(this, null);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -215,13 +215,6 @@ public final class Vector implements TruffleObject {
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
-  }
-
-  @ExportMessage
-  EconomicSet<Warning> getWarningsUnique(
-      Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
-      throws UnsupportedMessageException {
-    return warnings.getWarningsUnique(this.storage, location);
   }
 
   @ExportMessage

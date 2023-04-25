@@ -29,7 +29,7 @@ import org.graalvm.collections.EconomicSet;
 public final class Array implements TruffleObject {
   private final Object[] items;
   private @CompilerDirectives.CompilationFinal Boolean withWarnings;
-  private @CompilerDirectives.CompilationFinal EconomicSet<Warning> cachedWarnings;
+  private @CompilerDirectives.CompilationFinal(dimensions = 1) Warning[] cachedWarnings;
 
   /**
    * Creates a new array
@@ -110,7 +110,7 @@ public final class Array implements TruffleObject {
     var v = items[(int) index];
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
-      EconomicSet<Warning> extracted = this.getWarningsUnique(null, warnings);
+      Warning[] extracted = this.getWarnings(null, warnings);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -205,21 +205,8 @@ public final class Array implements TruffleObject {
   @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    ArrayRope<Warning> ropeOfWarnings = new ArrayRope<>();
-    for (int i = 0; i < items.length; i++) {
-      if (warnings.hasWarnings(items[i])) {
-        ropeOfWarnings = ropeOfWarnings.prepend(warnings.getWarnings(items[i], location));
-      }
-    }
-    return ropeOfWarnings.toArray(Warning[]::new);
-  }
-
-  @ExportMessage
-  EconomicSet<Warning> getWarningsUnique(
-      Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
-      throws UnsupportedMessageException {
     if (cachedWarnings == null) {
-      cachedWarnings = collectAllWarnings(warnings, location);
+      cachedWarnings = Warning.fromSetToArray(collectAllWarnings(warnings, location), false);
     }
     return cachedWarnings;
   }
@@ -230,7 +217,7 @@ public final class Array implements TruffleObject {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
     for (int i = 0; i < items.length; i++) {
       if (warnings.hasWarnings(items[i])) {
-        setOfWarnings.addAll(warnings.getWarningsUnique(items[i], location));
+        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(items[i], location)));
       }
     }
     return setOfWarnings;
