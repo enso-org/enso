@@ -1,0 +1,31 @@
+from Standard.Base import all
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+main = Test_Suite.run_main <|
+    spec "[SQLite] " (Database.connect (SQLite In_Memory))
+
+spec prefix make_new_connection =
+    connection = make_new_connection Nothing
+    Test.group prefix+"Uploading an in-memory Table" <|
+        Test.specify "should include the created table in the tables directory" <|
+            Error.throw "TODO"
+
+        Test.specify "should include the temporary table in the tables directory" <|
+            Error.throw "TODO"
+
+        Test.specify "should drop the temporary table after the connection is closed" <|
+            Error.throw "TODO"
+
+        Test.specify "should preserve the regular table after the connection is closed" <|
+            Error.throw "TODO"
+
+        Test.specify "should rollback the table creation if upload fails" <|
+            Error.throw "TODO"
+
+type Exploding_Mock_Column
+    Value (values:Vector)

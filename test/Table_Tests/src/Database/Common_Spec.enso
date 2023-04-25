@@ -18,12 +18,13 @@ spec prefix connection =
     tables_to_clean = Vector.new_builder
     upload prefix data temporary=True =
         name = Name_Generator.random_name prefix
-        table = connection.upload_table name data temporary=temporary
-        tables_to_clean.append name
+        table = data.create_database_table connection name temporary=temporary
+        tables_to_clean.append table.name
         table
 
     ## We have to upload the table as non-temporary, because otherwise it will
        not be visible in the list of tables and make `Table.query` confused.
+       TODO [RW] remove temporary=False once #6398 is done.
     t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]]) temporary=False
     Test.group prefix+"Basic Table Access" <|
         Test.specify "should allow to materialize tables and columns into local memory" <|

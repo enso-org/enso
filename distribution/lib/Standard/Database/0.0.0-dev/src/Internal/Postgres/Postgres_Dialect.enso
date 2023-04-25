@@ -204,11 +204,6 @@ type Postgres_Dialect
     is_supported self operation =
         self.internal_generator_dialect.is_supported operation
 
-    ## PRIVATE
-    create_table_statement : Text -> Vector (Pair Text SQL_Type) -> Nothing | Vector Text -> Boolean -> SQL_Statement
-    create_table_statement name columns primary_key temporary =
-        Dialect.default_create_table_statement self name columns primary_key temporary
-
 
 ## PRIVATE
 make_internal_generator_dialect =
