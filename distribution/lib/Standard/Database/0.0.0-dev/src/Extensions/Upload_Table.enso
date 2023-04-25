@@ -70,7 +70,7 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
         sql_type = type_mapping.value_type_to_sql value_type on_problems
         sql_type_text = type_mapping.sql_type_to_text sql_type
         Pair.new name sql_type_text
-    create_statement = self.connection.dialect.generate_sql <|
+    create_statement = connection.dialect.generate_sql <|
         Query.Create_Table effective_table_name column_descriptors checked_primary_key temporary
 
     connection.jdbc_connection.run_within_transaction <|
@@ -93,4 +93,6 @@ make_batched_insert_template : Connection -> Text -> Vector (Vector Text) -> SQL
 make_batched_insert_template connection table_name column_names =
     # We add Nothing as placeholders, they will be replaced with the actual values later.
     pairs = column_names.map name->[name, SQL_Expression.Constant Nothing]
-    connection.dialect.generate_sql <| Query.Insert table_name pairs
+    query = connection.dialect.generate_sql <| Query.Insert table_name pairs
+    template = query.prepare.first
+    template

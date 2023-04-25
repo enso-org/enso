@@ -213,3 +213,8 @@ type Connection
         self.jdbc_connection.with_prepared_statement query statement_setter stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
+
+    ## PRIVATE
+    drop_table : Text -> Nothing
+    drop_table self table_name =
+        self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))

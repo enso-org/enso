@@ -124,6 +124,15 @@ type SQLite_Connection
        Access the dialect.
     dialect self = self.connection.dialect
 
+    ## PRIVATE
+       Access the underlying JDBC connection.
+    jdbc_connection self = self.connection.jdbc_connection
+
+    ## PRIVATE
+    drop_table : Text -> Nothing
+    drop_table self table_name =
+        self.connection.drop_table table_name
+
 ## PRIVATE
 
    Creates a SQLite connection based on a JDBC URL and properties.

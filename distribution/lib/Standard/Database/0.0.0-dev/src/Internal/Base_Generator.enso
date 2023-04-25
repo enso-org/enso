@@ -417,6 +417,8 @@ generate_query dialect query = case query of
         generate_insert_query dialect table_name pairs
     Query.Create_Table name columns primary_key temporary ->
         generate_create_table dialect name columns primary_key temporary
+    Query.Drop_Table name ->
+        Builder.code "DROP TABLE " ++ dialect.wrap_identifier name
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE
@@ -472,9 +474,9 @@ generate_create_table dialect name columns primary_key temporary =
         name = descriptor.first
         sql_type_as_text = descriptor.second
         dialect.wrap_identifier name ++ " " ++ sql_type_as_text
-    table_type = if temporary then "TEMPORARY TABLE" else "TABLE"
     modifiers = if primary_key.is_nothing then [] else
-        [" PRIMARY KEY (" ++ Builder.join ", " (primary_key.get.map dialect.wrap_identifier) ++ ")"]
+        [Builder.code " PRIMARY KEY (" ++ Builder.join ", " (primary_key.map dialect.wrap_identifier) ++ ")"]
+    table_type = if temporary then "TEMPORARY TABLE" else "TABLE"
     create_prefix = Builder.code ("CREATE "+table_type+" ") ++ dialect.wrap_identifier name
     create_body = (Builder.join ", " column_definitions) ++ (Builder.join "" modifiers)
     create_prefix ++ " (" ++ create_body ++ ")"
