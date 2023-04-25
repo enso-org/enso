@@ -14,7 +14,6 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
-import org.graalvm.collections.EconomicSet;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(WarningsLibrary.class)

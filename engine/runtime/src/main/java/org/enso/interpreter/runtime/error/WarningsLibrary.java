@@ -5,7 +5,6 @@ import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;
 import com.oracle.truffle.api.library.LibraryFactory;
 import com.oracle.truffle.api.nodes.Node;
-import org.graalvm.collections.EconomicSet;
 
 @GenerateLibrary
 public abstract class WarningsLibrary extends Library {

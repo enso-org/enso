@@ -31,12 +31,6 @@ public final class WithWarnings implements TruffleObject {
     this.value = value;
   }
 
-  private WithWarnings(Object value, EconomicSet<Warning> warnings) {
-    assert !(value instanceof WithWarnings);
-    this.warnings = cloneSet(warnings);
-    this.value = value;
-  }
-
   private WithWarnings(Object value, EconomicSet<Warning> warnings, Warning... additionalWarnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = cloneSetAndAppend(warnings, additionalWarnings);
@@ -57,23 +51,11 @@ public final class WithWarnings implements TruffleObject {
     }
   }
 
-  public static WithWarnings wrap(Object value, EconomicSet<Warning> warnings) {
-    if (value instanceof WithWarnings with) {
-      return with.append(warnings);
-    } else {
-      return new WithWarnings(value, warnings);
-    }
-  }
-
   public Object getValue() {
     return value;
   }
 
   public WithWarnings append(Warning... newWarnings) {
-    return new WithWarnings(value, warnings, newWarnings);
-  }
-
-  public WithWarnings append(EconomicSet<Warning> newWarnings) {
     return new WithWarnings(value, warnings, newWarnings);
   }
 
@@ -113,10 +95,6 @@ public final class WithWarnings implements TruffleObject {
 
   public ArrayRope<Warning> getReassignedWarningsAsRope(Node location) {
     return new ArrayRope<>(getReassignedWarnings(location, null));
-  }
-
-  public Warning[] getReassignedWarnings(Node location) {
-    return getReassignedWarnings(location, null);
   }
 
   public Warning[] getReassignedWarnings(Node location, WarningsLibrary warningsLibrary) {
@@ -233,14 +211,6 @@ public final class WithWarnings implements TruffleObject {
     EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
     set.addAll(initial.iterator());
     set.addAll(entries.iterator());
-    return set;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  @SuppressWarnings("unchecked")
-  private EconomicSet<Warning> cloneSet(EconomicSet<Warning> initial) {
-    EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
-    set.addAll(initial.iterator());
     return set;
   }
 
