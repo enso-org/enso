@@ -18,7 +18,7 @@ import project.Helpers
    Expected Enso types are inferred based on known SQL types and their mapping
    to Enso types.
 prepare_visualization : Table.IR.Query -> Text
-prepare_visualization x = Helpers.recover_errors <|
+prepare_visualization x =
     prepared = x.to_sql.prepare
     code = prepared.first
     interpolations = prepared.second
