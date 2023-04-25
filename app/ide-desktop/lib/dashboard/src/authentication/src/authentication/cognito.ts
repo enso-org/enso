@@ -308,7 +308,7 @@ const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
     kind: 'NoCurrentUser',
 } as const
 
-type CurrentSessionErrorKind = typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR['kind']
+type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
 
 /** Converts an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
  * else re-throws the error.
@@ -377,9 +377,9 @@ const SIGN_UP_INVALID_PASSWORD_ERROR = {
 } as const
 
 type SignUpErrorKind =
-    | typeof SIGN_UP_INVALID_PARAMETER_ERROR['kind']
-    | typeof SIGN_UP_INVALID_PASSWORD_ERROR['kind']
-    | typeof SIGN_UP_USERNAME_EXISTS_ERROR['kind']
+    | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
+    | (typeof SIGN_UP_INVALID_PASSWORD_ERROR)['kind']
+    | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
 
 export interface SignUpError {
     kind: SignUpErrorKind
@@ -428,7 +428,7 @@ const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     kind: 'UserAlreadyConfirmed',
 } as const
 
-type ConfirmSignUpErrorKind = typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR['kind']
+type ConfirmSignUpErrorKind = (typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR)['kind']
 
 export interface ConfirmSignUpError {
     kind: ConfirmSignUpErrorKind
