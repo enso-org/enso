@@ -32,7 +32,7 @@ pub trait Builder<T: Payload>: Sized {
         let node = Node::<T>::new().with_kind(kind).with_size(len.into());
         let prev_child = self.node_being_built().children.last();
         let prev_child_end = prev_child.map_or(0, |c| (c.parent_offset + c.node.size).as_usize());
-        let sibling_offset = prev_child_end.saturating_sub(parent_offset);
+        let sibling_offset = parent_offset.saturating_sub(prev_child_end);
         let child = node::Child {
             node,
             parent_offset: parent_offset.into(),
