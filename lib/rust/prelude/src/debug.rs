@@ -94,6 +94,12 @@ impl TraceCopies {
     }
 }
 
+impl Default for TraceCopies {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Clone for TraceCopies {
     fn clone(&self) -> Self {
         let borrow = self.handle.borrow();
