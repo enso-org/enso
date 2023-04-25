@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 use ast::crumbs::*;
+use ast::Shape;
 
 use crate::generate::Context;
 use crate::node;
@@ -311,6 +312,14 @@ impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
                                     if need_rewrite {
                                         let arg_crumbs = &found.node.ast_crumbs;
                                         let expression = new_root.get_traversing(arg_crumbs)?;
+                                        // Hotfix for Issue #6228.
+                                        let expression = if let Some(assignment) =
+                                            ast::opr::to_assignment(&expression)
+                                        {
+                                            assignment.rarg.clone()
+                                        } else {
+                                            expression.clone()
+                                        };
                                         error!(
                                             "Expression: {expression:?} ({})",
                                             expression.repr()

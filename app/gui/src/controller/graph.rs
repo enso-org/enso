@@ -1756,12 +1756,12 @@ main =
                 .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                 .filter(|found| found.ast_crumbs.is_empty());
             eprintln!("{argument_node:?}");
-            panic!();
-            // let connections = graph.connections(&ctx).unwrap();
-            // let connection = connections.connections.first().unwrap();
-            // graph.disconnect(connection, &ctx).unwrap();
-            // let new_main = graph.definition().unwrap().ast.repr();
-            // assert_eq!(new_main, expected);
+            // panic!();
+            let connections = graph.connections(&ctx).unwrap();
+            let connection = connections.connections.first().unwrap();
+            graph.disconnect(connection, &ctx).unwrap();
+            let new_main = graph.definition().unwrap().ast.repr();
+            assert_eq!(new_main, expected);
         })
     }
 
