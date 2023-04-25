@@ -1,12 +1,15 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.Optional;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.EnsoFile;
@@ -24,19 +27,58 @@ public abstract class EnsoProjectNode extends Node {
     return EnsoProjectNodeGen.create();
   }
 
-  public abstract Object execute(Object project);
+  /**
+   * @param module Either {@code Nothing}, or a module.
+   */
+  public abstract Object execute(Object module);
 
+  /**
+   * Fetches the second stack frame from Truffle runtime (note that the first stack frame is the
+   * call of {@code enso_project}) - the caller of {@code enso_project}, and finds in which package
+   * the caller is located.
+   *
+   * @param nothing Nothing, or interop null.
+   */
   @Specialization(guards = "isNothing(interop, nothing)")
   @TruffleBoundary
   public Object getCurrentProjectDescr(
       Object nothing, @CachedLibrary(limit = "5") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
-    var mainProjectPkg = ctx.getPackageRepository().getMainProjectPackage();
-    if (mainProjectPkg.isDefined()) {
-      return createProjectDescriptionAtom(ctx, mainProjectPkg.get());
+    // Find the caller of `enso_project`, i.e., of this node, and find in which package
+    // it is located. The first frame is skipped, because it is always `Enso_Project.enso_project`,
+    // i.e., the first frame is always call of this specialization.
+    Optional<Package<TruffleFile>> pkgOpt =
+        Truffle.getRuntime()
+            .iterateFrames(
+                frame -> {
+                  var callNode = frame.getCallNode();
+                  assert callNode != null
+                      : "Should skip the first frame, therefore, callNode should not be null";
+                  var callRootNode = callNode.getRootNode();
+                  assert callRootNode != null
+                      : "Should be called only from Enso code, and thus, should always have a root node";
+                  if (callRootNode instanceof EnsoRootNode ensoRootNode) {
+                    var pkg = ensoRootNode.getModuleScope().getModule().getPackage();
+                    // Don't return null, as that would signal to Truffle that we want to
+                    // continue the iteration.
+                    if (pkg != null) {
+                      return Optional.of(pkg);
+                    } else {
+                      return Optional.empty();
+                    }
+                  } else {
+                    throw new IllegalStateException(
+                        "Should not reach here: callRootNode = "
+                            + callRootNode
+                            + ". Probably not called from Enso?");
+                  }
+                },
+                // The first frame is always Enso_Project.enso_project
+                1);
+    if (pkgOpt.isPresent()) {
+      return createProjectDescriptionAtom(ctx, pkgOpt.get());
     } else {
-      return DataflowError.withoutTrace(
-          ctx.getBuiltins().error().makeModuleNotInPackageError(), this);
+      return notInModuleError(ctx);
     }
   }
 
@@ -51,11 +93,16 @@ public abstract class EnsoProjectNode extends Node {
       return unsupportedArgsError(module);
     }
     Type moduleType = typesLib.getType(module);
+    // Currently, the module is represented as Type with no constructors.
     if (!moduleType.getConstructors().isEmpty()) {
       return unsupportedArgsError(module);
     }
     var pkg = moduleType.getDefinitionScope().getModule().getPackage();
-    return createProjectDescriptionAtom(ctx, pkg);
+    if (pkg != null) {
+      return createProjectDescriptionAtom(ctx, pkg);
+    } else {
+      return notInModuleError(ctx);
+    }
   }
 
   private static Atom createProjectDescriptionAtom(EnsoContext ctx, Package<TruffleFile> pkg) {
@@ -75,6 +122,11 @@ public abstract class EnsoProjectNode extends Node {
             .makeUnsupportedArgumentsError(
                 new Object[] {moduleActual}, "The `module` argument does not refer to a module"),
         this);
+  }
+
+  private DataflowError notInModuleError(EnsoContext ctx) {
+    return DataflowError.withoutTrace(
+        ctx.getBuiltins().error().makeModuleNotInPackageError(), this);
   }
 
   boolean isNothing(InteropLibrary interop, Object object) {
