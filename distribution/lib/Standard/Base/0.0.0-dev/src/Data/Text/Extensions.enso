@@ -1424,9 +1424,9 @@ Text.parse_json self = Json.parse self
    `format`.
 
    ? Format Syntax
-     Formats are based on a simple sequence of letters and symbols. For
-     example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
-     See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     A custom format string consists of one or more custom date and time format
+     specifiers. For example, "d MMM yyyy" will format "2011-12-03" as
+     "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
      for a complete format specification.
 
    ? Default Date Formatting
@@ -1489,7 +1489,10 @@ Text.parse_date self format=Nothing = Date.parse self format
    - locale: The locale in which the format should be interpreted.
 
    ? Format Syntax
-     For the list of accepted symbols in format refer to `Time.format` doc.
+     A custom format string consists of one or more custom date and time format
+     specifiers. For example, "d MMM yyyy" will format "2011-12-03" as
+     "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
 
    ? Default Date_Time Format
      The text must represent a valid date-time as defined by the ISO-8601
@@ -1573,7 +1576,10 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
    default format.
 
    ? Format Syntax
-     For the list of accepted symbols in format refer to `Time.format` doc.
+     A custom format string consists of one or more custom date and time format
+     specifiers. For example, "d MMM yyyy" will format "2011-12-03" as
+     "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
 
    ? Default Time Format
      The text must represent a valid time and is parsed using the ISO-8601
