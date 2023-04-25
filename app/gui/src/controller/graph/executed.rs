@@ -365,6 +365,12 @@ impl Handle {
         self.execution_ctx.set_execution_environment(execution_environment).await?;
         Ok(())
     }
+
+    /// Trigger the execution of the current graph.
+    pub async fn start_execution(&self) -> FallibleResult {
+        self.execution_ctx.start_execution().await?;
+        Ok(())
+    }
 }
 
 

@@ -511,6 +511,10 @@ pub trait API: Debug {
         &'a self,
         execution_environment: ExecutionEnvironment,
     ) -> BoxFuture<'a, FallibleResult>;
+
+    /// Start the execution of the context.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn start_execution<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes

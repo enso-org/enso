@@ -287,6 +287,10 @@ impl model::execution_context::API for ExecutionContext {
         self.execution_environment.set(environment);
         futures::future::ready(Ok(())).boxed_local()
     }
+
+    fn start_execution(&self) -> LocalBoxFuture<FallibleResult> {
+        futures::future::ready(Ok(())).boxed_local()
+    }
 }
 
 
