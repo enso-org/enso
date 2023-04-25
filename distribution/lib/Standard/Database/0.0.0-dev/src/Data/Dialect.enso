@@ -6,6 +6,7 @@ import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
 import project.Connection.Connection.Connection
+import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
@@ -42,6 +43,15 @@ type Dialect
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
         _ = [query]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Converts the identifier into a quoted form, ensuring that it can be
+       safely used in a constructed query regardless of what characters it
+       contains.
+    quote_identifier : Text -> Builder
+    quote_identifier self identifier =
+        _ = [identifier]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -208,3 +218,17 @@ redshift = Redshift_Dialect.redshift
 default_fetch_types_query dialect expression context =
     empty_context = context.add_where_filters [SQL_Expression.Literal "FALSE"]
     dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
+
+## PRIVATE
+default_create_table_statement dialect name columns primary_key temporary =
+    type_mapping = dialect.get_type_mapping
+    column_definitions = columns.map descriptor->
+        name = descriptor.first
+        sql_type = descriptor.second
+        dialect.quote_identifier name ++ " " ++ (type_mapping.sql_type_to_text sql_type)
+    table_type = if temporary then "TEMPORARY TABLE" else "TABLE"
+    modifiers = if primary_key.is_nothing then [] else
+        [" PRIMARY KEY (" ++ Builder.join ", " (primary_key.get.map dialect.quote_identifier) ++ ")"]
+    create_prefix = Builder.code ("CREATE "+table_type+" ") ++ dialect.quote_identifier name
+    create_body = (Builder.join ", " column_definitions) ++ (Builder.join "" modifiers)
+    (create_prefix ++ " (" ++ create_body ++ ")").build

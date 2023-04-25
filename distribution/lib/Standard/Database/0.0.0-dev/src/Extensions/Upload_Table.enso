@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Random import random_uuid
 
 from Standard.Table import Table as In_Memory_Table
 
@@ -44,4 +45,36 @@ from project.Errors import all
      apply to `SQL_Error`).
 In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | SQL_Error
 In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning =
-    Error.throw "TODO"
+    checked_primary_key = case primary_key of
+        Nothing -> Nothing
+        [] -> Nothing
+        _ -> primary_key.map name->
+            # This ensures that the column exists in the table.
+            self.at name . name
+
+    effective_table_name = case table_name of
+        Nothing -> if temporary then "temporary-table-"+random_uuid else
+            Error.throw (Illegal_Argument.Error "A table name must be provided if temporary=False.")
+        _ : Text -> table_name
+
+    type_mapping = connection.dialect.get_type_mapping
+    column_descriptors = self.columns.map column->
+        name = column.name
+        value_type = column.value_type
+        sql_type = type_mapping.value_type_to_sql value_type on_problems
+        Pair.new name sql_type
+
+    create_statement = connection.dialect.create_table_statement effective_table_name column_descriptors checked_primary_key temporary
+    connection.jdbc_connection.run_within_transaction <|
+        connection.execute_update create_statement
+        if structure_only.not then
+            insert_template = ...
+            statement_setter = connection.dialect.get_statement_setter
+            connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
+
+    connection.query (SQL_Query.Table_Name effective_table_name)
+
+## PRIVATE
+   The recommended batch size seems to be between 50 and 100.
+   See: https://docs.oracle.com/cd/E18283_01/java.112/e16548/oraperf.htm#:~:text=batch%20sizes%20in%20the%20general%20range%20of%2050%20to%20100
+default_batch_size = 100
