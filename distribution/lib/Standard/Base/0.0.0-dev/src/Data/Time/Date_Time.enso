@@ -175,9 +175,11 @@ type Date_Time
          For the list of accepted symbols in pattern refer to `Time.format` doc.
 
        ? Default Date_Time Format
-         The text must represent a valid date-time and is parsed using the ISO-8601
-         extended offset date-time format to add the timezone. The section in square
-         brackets is not part of the ISO-8601 standard. The format consists of:
+         The text must represent a valid date-time as defined by the ISO-8601
+         format. (See https://en.wikipedia.org/wiki/ISO_8601.) If a time zone is
+         present, it must be in the ISO-8601 Extended Date/Time Format (EDTF).
+         (See https://en.wikipedia.org/wiki/ISO_8601#EDTF.) The time zone format
+         consists of:
 
          - The ISO offset date time.
          - If the zone ID is not available or is a zone offset then the format is

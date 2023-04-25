@@ -1391,7 +1391,8 @@ Text.parse_decimal self locale=Nothing = Decimal.parse self locale
    a `Number_Parse_Error` if the text does not represent a valid integer.
 
    Arguments:
-   - radix: The number base to use for parsing (defaults to 10).
+   - radix: The number base to use for parsing (defaults to 10). `radix`
+     must be between 2 and 36 (inclusive) -- see https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
 
    > Example
      Parse the text "20220216" into an integer number.
@@ -1425,6 +1426,8 @@ Text.parse_json self = Json.parse self
    ? Format Syntax
      Formats are based on a simple sequence of letters and symbols. For
      example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+     See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
 
    ? Default Date Formatting
      Unless you provide a custom format, the text must represent a valid date
@@ -1489,9 +1492,11 @@ Text.parse_date self format=Nothing = Date.parse self format
      For the list of accepted symbols in format refer to `Time.format` doc.
 
    ? Default Date_Time Format
-     The text must represent a valid date-time and is parsed using the ISO-8601
-     extended offset date-time format to add the timezone. The section in square
-     brackets is not part of the ISO-8601 standard. The format consists of:
+     The text must represent a valid date-time as defined by the ISO-8601
+     format. (See https://en.wikipedia.org/wiki/ISO_8601.) If a time zone is
+     present, it must be in the ISO-8601 Extended Date/Time Format (EDTF).
+     (See https://en.wikipedia.org/wiki/ISO_8601#EDTF.) The time zone format
+     consists of:
 
      - The ISO offset date time.
      - If the zone ID is not available or is a zone offset then the format is
