@@ -211,7 +211,7 @@ impl Model {
 
     fn set_read_only(&self, new_state: bool) {
         self.controller.model.set_read_only(new_state);
-        error!("New read only state: {}.", new_state);
+        info!("New read only state: {}.", new_state);
     }
 
     fn restore_project_snapshot(&self) {
