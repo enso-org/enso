@@ -74,7 +74,7 @@ public final class Warning implements TruffleObject {
   @Builtin.Specialize
   public static WithWarnings attach(
       EnsoContext ctx, WithWarnings value, Object warning, Object origin) {
-    return value.prepend(new Warning(warning, origin, ctx.clockTick()));
+    return value.append(new Warning(warning, origin, ctx.clockTick()));
   }
 
   @Builtin.Method(

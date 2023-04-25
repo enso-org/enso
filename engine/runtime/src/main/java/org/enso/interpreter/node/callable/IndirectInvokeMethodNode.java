@@ -134,7 +134,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return WithWarnings.prependTo(result, warnings);
+    return WithWarnings.appendTo(result, warnings);
   }
 
   @Specialization

@@ -37,12 +37,6 @@ public final class WithWarnings implements TruffleObject {
     this.value = value;
   }
 
-  private WithWarnings(Object value, EconomicSet<Warning> warnings, EconomicSet<Warning> additionalWarnings) {
-    assert !(value instanceof WithWarnings);
-    this.warnings = cloneSetAndAppend(warnings, additionalWarnings);
-    this.value = value;
-  }
-
   public static WithWarnings wrap(Object value, Warning... warnings) {
     if (value instanceof WithWarnings with) {
       return with.append(warnings);
@@ -59,12 +53,8 @@ public final class WithWarnings implements TruffleObject {
     return new WithWarnings(value, warnings, newWarnings);
   }
 
-  public WithWarnings prepend(ArrayRope<Warning> newWarnings) {
-    return new WithWarnings(value, createSetFromArray(newWarnings.toArray(Warning[]::new)), warnings);
-  }
-
-  public WithWarnings prepend(Warning... newWarnings) {
-    return new WithWarnings(value, createSetFromArray(newWarnings), warnings);
+  public WithWarnings append(ArrayRope<Warning> newWarnings) {
+    return new WithWarnings(value, warnings, newWarnings.toArray(Warning[]::new));
   }
 
   public Warning[] getWarningsArray(WarningsLibrary warningsLibrary) {
@@ -111,22 +101,6 @@ public final class WithWarnings implements TruffleObject {
   public static WithWarnings appendTo(Object target, Warning[] warnings) {
     if (target instanceof WithWarnings) {
       return ((WithWarnings) target).append(warnings);
-    } else {
-      return new WithWarnings(target, warnings);
-    }
-  }
-
-  public static WithWarnings prependTo(Object target, ArrayRope<Warning> warnings) {
-    if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).prepend(warnings);
-    } else {
-      return new WithWarnings(target, warnings.toArray(Warning[]::new));
-    }
-  }
-
-  public static WithWarnings prependTo(Object target, Warning[] warnings) {
-    if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).prepend(warnings);
     } else {
       return new WithWarnings(target, warnings);
     }
@@ -196,15 +170,6 @@ public final class WithWarnings implements TruffleObject {
     EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
     set.addAll(initial.iterator());
     set.addAll(Arrays.stream(entries).iterator());
-    return set;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  @SuppressWarnings("unchecked")
-  private EconomicSet<Warning> cloneSetAndAppend(EconomicSet<Warning> initial, EconomicSet<Warning> entries) {
-    EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
-    set.addAll(initial.iterator());
-    set.addAll(entries.iterator());
     return set;
   }
 
