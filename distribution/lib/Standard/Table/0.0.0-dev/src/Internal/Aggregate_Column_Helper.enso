@@ -1,15 +1,15 @@
 from Standard.Base import all hiding First, Last
 
+import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Sort_Column.Sort_Column
+import project.Data.Table.Table
+import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-
-import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from project.Data.Aggregate_Column.Aggregate_Column import all
-import project.Data.Table.Table
 from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation
 
 polyglot java import org.enso.table.aggregations.Aggregator
@@ -107,7 +107,7 @@ default_aggregate_column_name aggregate_column include_column=True =
         _ ->
             prefix = Meta.get_simple_type_name aggregate_column . replace "_" " "
             c = aggregate_column.column
-            prefix + " " + (if include_column then c.name else "")
+            prefix + (if include_column then " " + c.name else "")
 
 ## PRIVATE
    Utility function to check if all aggregates are operating on the same source column.
@@ -127,6 +127,8 @@ all_same_column aggregates =
    Returns a copy of this aggregate where all column descriptors (names,
    indices or column references potentially from a different table) are
    replaced with column references from the provided table.
+
+   It also verifies that the columns have the right types.
 
    `Sort_Column`s are replaced with column references of matched columns coming
    from the provided table.
@@ -160,6 +162,18 @@ resolve_aggregate table problem_builder aggregate_column =
                 Internal_Order_By_Column_Reference.Value c.column c.associated_selector.direction
             sort_columns
 
+    resolve_numeric c =
+        internal_column = resolve c
+        col = columns_helper.make_column internal_column
+        Value_Type.expect_numeric col <|
+            internal_column
+
+    resolve_text c =
+        internal_column = resolve c
+        col = columns_helper.make_column internal_column
+        Value_Type.expect_text col <|
+            internal_column
+
     result = case aggregate_column of
         Group_By c new_name -> Group_By (resolve c) new_name
         Count new_name -> Count new_name
@@ -168,21 +182,21 @@ resolve_aggregate table problem_builder aggregate_column =
             Count_Distinct new_c new_name ignore_nothing
         Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name
         Count_Nothing c new_name -> Count_Nothing (resolve c) new_name
-        Count_Not_Empty c new_name -> Count_Not_Empty (resolve c) new_name
-        Count_Empty c new_name ->  Count_Empty (resolve c) new_name
-        Sum c new_name ->  Sum (resolve c) new_name
-        Average c new_name -> Average (resolve c) new_name
-        Median c new_name -> Median (resolve c) new_name
-        Percentile p c new_name -> Percentile p (resolve c) new_name
+        Count_Not_Empty c new_name -> Count_Not_Empty (resolve_text c) new_name
+        Count_Empty c new_name ->  Count_Empty (resolve_text c) new_name
+        Sum c new_name -> Sum (resolve_numeric c) new_name
+        Average c new_name -> Average (resolve_numeric c) new_name
+        Median c new_name -> Median (resolve_numeric c) new_name
+        Percentile p c new_name -> Percentile p (resolve_numeric c) new_name
         Mode c new_name -> Mode (resolve c) new_name
-        Standard_Deviation c new_name population -> Standard_Deviation (resolve c) new_name population
-        Concatenate c new_name separator prefix suffix quote_char -> Concatenate (resolve c) new_name separator prefix suffix quote_char
+        Standard_Deviation c new_name population -> Standard_Deviation (resolve_numeric c) new_name population
+        Concatenate c new_name separator prefix suffix quote_char -> Concatenate (resolve_text c) new_name separator prefix suffix quote_char
         First c new_name ignore_nothing order_by -> First (resolve c) new_name ignore_nothing (resolve_order_by order_by)
         Last c new_name ignore_nothing order_by -> Last (resolve c) new_name ignore_nothing (resolve_order_by order_by)
         Maximum c new_name -> Maximum (resolve c) new_name
         Minimum c new_name -> Minimum (resolve c) new_name
-        Shortest c new_name -> Shortest (resolve c) new_name
-        Longest c new_name -> Longest (resolve c) new_name
+        Shortest c new_name -> Shortest (resolve_text c) new_name
+        Longest c new_name -> Longest (resolve_text c) new_name
 
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.

@@ -64,8 +64,7 @@ spec setup =
             c4.value_type.is_integer . should_be_true
             c4.to_vector . should_equal [1001, 1000, 1001]
 
-        pending_sqlite_types = if prefix.contains "SQLite" then "TODO: perform SQLite type inference locally - #6208"
-        Test.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" pending=pending_sqlite_types <|
+        Test.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
             c1 = t.at "X" . cast Value_Type.Char
             c2 = t.at "Y" . cast Value_Type.Integer
