@@ -326,8 +326,9 @@ impl Default for Keyboard {
 // === Dom ===
 // ===========
 
-/// DOM element manager
-#[derive(Clone, CloneRef, Debug)]
+/// DOM element manager. Creates root div element containing [`DomLayers`] upon construction and
+/// removes them once dropped.
+#[derive(Clone, Debug)]
 pub struct Dom {
     /// Root DOM element of the scene.
     pub root:   web::dom::WithKnownShape<web::HtmlDivElement>,
@@ -360,6 +361,12 @@ impl Dom {
 impl Default for Dom {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Drop for Dom {
+    fn drop(&mut self) {
+        self.root.remove();
     }
 }
 
@@ -496,14 +503,14 @@ impl Dirty {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Renderer {
-    dom:          Dom,
+    dom:          Rc<Dom>,
     variables:    UniformScope,
     pub pipeline: Rc<CloneCell<render::Pipeline>>,
     pub composer: Rc<RefCell<Option<render::Composer>>>,
 }
 
 impl Renderer {
-    fn new(dom: &Dom, variables: &UniformScope) -> Self {
+    fn new(dom: &Rc<Dom>, variables: &UniformScope) -> Self {
         let dom = dom.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
@@ -776,7 +783,7 @@ pub struct UpdateStatus {
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
     pub display_object: display::object::Root,
-    pub dom: Dom,
+    pub dom: Rc<Dom>,
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
     pub variables: UniformScope,
@@ -810,7 +817,7 @@ impl SceneData {
     ) -> Self {
         debug!("Initializing.");
         let display_mode = display_mode.clone_ref();
-        let dom = Dom::new();
+        let dom = default();
         let display_object = display::object::Root::new_named("Scene");
         let variables = world::with_context(|t| t.variables.clone_ref());
         let dirty = Dirty::new(on_mut);
