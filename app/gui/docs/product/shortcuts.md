@@ -35,7 +35,7 @@ broken and require further investigation.
 #### General Shortcuts
 
 | Shortcut                                                                        | Action                                                                                                                                                                                                                                               |
-|---------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>                     | Toggle light/dark application style. Currently doesn't work properly, as the Theme Switcher is not created yet. (https://github.com/enso-org/ide/issues/795)                                                                                         |
 | <kbd>ctrl</kbd>+<kbd>`</kbd>                                                    | Show Code Editor. Please note that the Code Editor implementation is in a very early stage and you should not use it. Even just openning it can cause errors in the IDE. Do not try using the graph editor while having the code editor tab openned. |
 | <kbd>cmd</kbd>+<kbd>o</kbd>                                                     | Open project                                                                                                                                                                                                                                         |
@@ -55,7 +55,7 @@ broken and require further investigation.
 #### Navigation
 
 | Shortcut                                         | Action                          |
-|--------------------------------------------------|---------------------------------|
+| ------------------------------------------------ | ------------------------------- |
 | Drag gesture (two fingers)                       | Pan the scene.                  |
 | Pinch gesture (two fingers)                      | Zoom the scene.                 |
 | <kbd>MMB</kbd> drag                              | Pan the scene.                  |
@@ -68,14 +68,14 @@ broken and require further investigation.
 #### Node Layout
 
 | Shortcut                                   | Action                                                            |
-|--------------------------------------------|-------------------------------------------------------------------|
+| ------------------------------------------ | ----------------------------------------------------------------- |
 | <kbd>LMB</kbd> drag non-selected node name | Move the node to new position (dragging do not modify selection). |
 | <kbd>LMB</kbd> drag selected node name     | Move all selected nodes the node to new positions.                |
 
 #### Node Selection
 
 | Shortcut                                                                                       | Action                                                     |
-|------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | <kbd>LMB</kbd> click node name                                                                 | Deselect all nodes. Select the target node.                |
 | <kbd>LMB</kbd> click background                                                                | Deselect all nodes.                                        |
 | :warning: <kbd>LMB</kbd> drag background                                                       | Select nodes using selection-box.                          |
@@ -94,7 +94,7 @@ broken and require further investigation.
 #### Node Editing
 
 | Shortcut                                         | Action                                                      |
-|--------------------------------------------------|-------------------------------------------------------------|
+| ------------------------------------------------ | ----------------------------------------------------------- |
 | <kbd>tab</kbd>                                   | Open Component Browser to create a new node .               |
 | <kbd>backspace</kbd> or <kbd>delete</kbd>        | Remove selected nodes.                                      |
 | <kbd>cmd</kbd>+<kbd>g</kbd>                      | Collapse (group) selected nodes.                            |
@@ -107,7 +107,7 @@ broken and require further investigation.
 #### Visualization
 
 | Shortcut                                  | Action                                                        |
-|-------------------------------------------|---------------------------------------------------------------|
+| ----------------------------------------- | ------------------------------------------------------------- |
 | <kbd>space</kbd>                          | Toggle visualization visibility of the selected node.         |
 | <kbd>space</kbd> hold                     | Preview visualization of the selected node (hide on release). |
 | :warning: <kbd>space</kbd> double press   | Toggle visualization fullscreen mode                          |
@@ -117,7 +117,7 @@ broken and require further investigation.
 #### Visualizations Implementations
 
 | Shortcut                      | Action                                             |
-|-------------------------------|----------------------------------------------------|
+| ----------------------------- | -------------------------------------------------- |
 | <kbd>cmd</kbd> + <kbd>a</kbd> | Show all points if available in visualization.     |
 | <kbd>cmd</kbd> + <kbd>z</kbd> | Zoom into selection if available in visualization. |
 

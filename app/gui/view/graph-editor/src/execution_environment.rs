@@ -25,7 +25,7 @@ fn get_next_execution_environment(
 pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
     let out = &frp.private.output;
     let network = frp.network();
-    let inputs = &model.frp;
+    let inputs = &frp.private.input;
     let selector = &model.execution_environment_selector;
 
     frp::extend! { network
