@@ -6,9 +6,11 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Pattern.Pattern
 
 from project import Value_Type
-from project.Errors import Column_Count_Exceeded, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
+from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.mask.OrderMask
@@ -52,6 +54,61 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
         fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
 
 ## PRIVATE
+   Converts a Text column into new columns using a regular expression
+   pattern.
+   See `Table.parse_to_columns`.
+parse_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+    pat = Regex.compile pattern case_insensitive=case_insensitive
+
+    fun = handle_nothing (regex_parse_to_vectors pat)
+    column_names = regex_to_column_names pat input_column_id
+
+    column = table.at input_column_id
+
+    new_table = Value_Type.expect_text column <|
+        fan_out_to_rows_and_columns table input_column_id fun column_names on_problems
+    if parse_values then new_table.parse on_problems=on_problems else new_table
+
+## PRIVATE
+   Create a parser from a regex to a nested `Vector`. Each match becomes an
+   element of the vector; each group (or the whole match, if there are no
+   groups) becomes an element of the inner vectors.
+regex_parse_to_vectors : Pattern -> (Text -> Vector (Vector (Text | Nothing)))
+regex_parse_to_vectors pattern =
+    input->
+        matches = pattern.match_all input
+        case pattern.group_count of
+            1 -> matches.map match-> [match.text]
+            _ -> matches.map match-> match.groups . drop 1
+
+## PRIVATE
+   Generate column names for the output columns from a regex match.
+   If the regex has no explicit groups, it uses the original column name
+   unchanged; otherwise, it uses the group name if it exists, or the original
+   column name with a number.
+regex_to_column_names : Pattern -> Text -> Vector Text
+regex_to_column_names pattern original_column_name =
+    case pattern.group_count of
+        1 ->
+            [original_column_name]
+        _ ->
+            group_nums_to_names = pattern.group_nums_to_names
+
+            unnamed_group_numbers = 1.up_to pattern.group_count . filter i-> group_nums_to_names.contains_key i . not
+            group_number_to_column_name_suffix = Map.from_vector <| unnamed_group_numbers.zip (0.up_to unnamed_group_numbers.length)
+
+            Vector.new (pattern.group_count-1) i->
+                # explicit groups start at 1
+                case group_nums_to_names.get (i+1) of
+                    Nothing ->
+                        suffix = group_number_to_column_name_suffix.at (i+1)
+                        default_column_namer original_column_name suffix
+                    name : Text ->
+                        name
+
+## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
    function that maps a single element of the input column to a vector of output
    values. The original column is replaced by the new columns.
@@ -81,47 +138,112 @@ fan_out_to_columns table input_column_id function column_count=Nothing on_proble
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Table
-fan_out_to_rows table input_column_id function =
+fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Problem_Behavior -> Table
+fan_out_to_rows table input_column_id function on_problems=Report_Error =
+    ## Treat this as a special case of fan_out_to_rows_and_columns, with one
+       column. Wrap the provided function to convert each value to a singleton
+       `Vector`.
+    wrapped_function x = function x . map y-> [y]
+    column_names = [input_column_id]
+    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names on_problems
+
+## PRIVATE
+   Transform a column by applying the given function to the values in the
+   column. The function returns a `Vector` of `Vectors`. Each inner vector turns
+   into multiple new columns in a single row. Each inner vector within the outer
+   vector produces an output row, so each row is duplicated, with each row
+   getting a distinct set of output values in place of the original input value.
+   The other column values are just duplicated.
+
+   ! Error Conditions
+
+     The inner vectors should all have the same number of values, which should
+     match the provided `column_names`. If a value is too short, it will be
+     padded with Nothing, and if it is too long, it will be truncated. In either
+     case, Column_Count_Mismatch will be added as a warning. (It is expected
+     that the caller of this private method will ensure that the provided
+     function will produce inner vectors of the correct length, but we check for
+     it anyway.)
+
+   > Example
+   f("12 34 56") -> [[1, 2], [3, 4], [5, 6]]
+
+   foo | bar       | baz
+   ----+-----------+----
+     x | 12 34 56  |   y    ===>
+   ... | ...       | ...
+
+   foo | bar 0 | bar 1 | baz
+   ----+-------+-------+----
+     x |     1 |     2 |   y
+     x |     3 |     4 |   y
+     x |     5 |     6 |   y
+   ... | ...   | ...   | ...
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to a `Vector` of `Vector` of values.
+   - column_names: The names for the generated columns.
+   - on_problems: Specifies the behavior when a problem occurs.
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns table input_column_id function column_names on_problems=Report_Error =
+    problem_builder = Problem_Builder.new
+    unique = Unique_Name_Strategy.new
+
     input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size
 
+    num_output_columns = column_names.length
+
     # Guess that most of the time, we'll get at least one value for each input.
     initial_size = input_column.length
-    # Accumulates the output of the output column values.
-    output_column_builder = make_string_builder initial_size
+    # Accumulates the outputs of the function.
+    output_column_builders = Vector.new num_output_columns _-> make_string_builder initial_size
     # Accumulates repeated position indices for the order mask.
     order_mask_positions = Vector.new_builder initial_size
 
     0.up_to num_input_rows . each i->
         input_value = input_storage.getItemBoxed i
         output_values = function input_value
-        # Append each value.
-        output_values.each v-> output_column_builder.append v
+        # Append each group of values to the builder.
+        output_values.each row_unchecked->
+            row = uniform_length num_output_columns row_unchecked problem_builder
+            row.each_with_index i-> v-> output_column_builders.at i . append v
         # Append n copies of the input row position, n = # of output values.
         repeat_each output_values.length <| order_mask_positions.append i
 
+    # Reserve the non-input column names that will not be changing.
+    non_input_columns = table.columns.filter c-> c.name != input_column.name
+    unique.mark_used <| non_input_columns.map .name
+
     # Build the output column
-    output_storage = output_column_builder.seal
-    output_column = Column.from_storage input_column_id output_storage
+    output_storages = output_column_builders.map .seal
+    output_columns = output_storages.map_with_index i-> output_storage->
+        column_name = unique.make_unique <| column_names.at i
+        Column.from_storage column_name output_storage
 
     # Build the order mask.
     order_mask = OrderMask.new (order_mask_positions.to_vector)
 
-    # Build the other columns, and include the output_column while doing it.
-    new_columns = table.columns.map column->
+    ## Build the new table, replacing the input column with the new output
+       columns.
+    new_columns_unflattened = table.columns.map column->
         case column.name == input_column_id of
             True ->
-                # Replace the input column with the output column.
-                output_column
+                # Replace the input column with the output columns.
+                output_columns
             False ->
                 # Build a new column from the old one with the mask
                 old_storage = column.java_column.getStorage
                 new_storage = old_storage.applyMask order_mask
-                Column.from_storage column.name new_storage
+                [Column.from_storage column.name new_storage]
+    new_columns = new_columns_unflattened.flatten
 
-    Table.new new_columns
+    new_table = Table.new new_columns
+    problem_builder.attach_problems_after on_problems new_table
 
 ## PRIVATE
 
@@ -195,7 +317,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
 
     # Build Columns.
     builders.map .seal . map_with_index i-> storage->
-        name = input_column.name + "_" + i.to_text
+        name = default_column_namer input_column.name i
         Column.from_storage name storage
 
 ## PRIVATE
@@ -225,7 +347,7 @@ maximum vec = if vec.is_empty then Nothing else
     vec.reduce (a-> b-> a.max b)
 
 ## PRIVATE
-   Wrap a function so that it returns [] if passed Nothing
+   Wrap a function so that it returns [] if passed Nothing.
 handle_nothing : (Any -> Any) -> (Any -> Any)
 handle_nothing function = x-> case x of
     _ : Nothing -> []
@@ -234,3 +356,21 @@ handle_nothing function = x-> case x of
 ## PRIVATE
    Repeat a computation n times.
 repeat_each n ~action = 0.up_to n . each _-> action
+
+## PRIVATE
+   Name a column by appending an integer to a base column name.
+default_column_namer : Text -> Integer -> Text
+default_column_namer base_name i = base_name + " " + i.to_text
+
+## PRIVATE
+   Pad or truncate a vector to be a specified length; if altered, report
+   it as a Column_Count_Mismatch warning.
+uniform_length : Integer -> Vector Any -> Problem_Builder -> Vector Any
+uniform_length target_length v problem_builder = if v.length == target_length then v else
+    problem = Column_Count_Mismatch.Error target_length v.length
+    problem_builder.report_other_warning problem
+    case v.length < target_length of
+        # Pad.
+        True -> v.pad target_length Nothing
+		# Truncate.
+        False -> v.take target_length

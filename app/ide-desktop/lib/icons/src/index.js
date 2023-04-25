@@ -217,8 +217,10 @@ async function main() {
         throw Error(
             `Script '${script}' invocation needs to be given an output path either through command line argument or 'ENSO_BUILD_ICONS' environment variable.`
         )
+    } else {
+        await genIcons(outputDir)
+        return
     }
-    await genIcons(outputDir)
 }
 
 await main()
