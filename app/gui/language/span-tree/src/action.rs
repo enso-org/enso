@@ -240,6 +240,9 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
         if self.node.kind.removable() {
             Some(Box::new(move |root, context| {
+                let code = root.repr();
+                let msg = self.span_tree.debug_print(&code);
+                error!("span_tree: \n{msg}");
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
@@ -309,6 +312,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     // 4. Update `next_parent` to be the parent of the current node.
                     while let Some(node) = next_parent {
                         // We're only interested in nodes inside the prefix chain.
+                        error!("kind: {:?}", node.node.kind);
                         if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
                             break;
                         }
