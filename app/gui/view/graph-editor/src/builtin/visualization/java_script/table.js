@@ -130,6 +130,22 @@ class TableVisualization extends Visualization {
             columnDefs = defs
             rowData = parsedData.json
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
+        } else if (parsedData.type === "Object_Matrix") {
+            let defs = []
+            let keys = {}
+            parsedData.json.forEach(val => {
+                if (val) {
+                    Object.keys(val).forEach(k => {
+                        if (!keys[k]) {
+                            keys[k] = true
+                            defs.push({ field: k })
+                        }
+                    })
+                }
+            })
+            columnDefs = defs
+            rowData = parsedData.json
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && isMatrix(parsedData.json)) {
             columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
             rowData = parsedData.json

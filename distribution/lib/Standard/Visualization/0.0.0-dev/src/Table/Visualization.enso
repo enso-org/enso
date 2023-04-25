@@ -27,6 +27,7 @@ prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
         _ : Vector -> make_json_for_vector x max_rows
         _ : Array -> prepare_visualization x.to_vector max_rows
         _ : Map -> make_json_for_map x max_rows
+        _ : JS_Object -> make_json_for_js_object x max_rows
         _ : Dataframe_Column -> prepare_visualization x.to_table max_rows
         _ : Dataframe_Table ->
             dataframe = x.take max_rows
@@ -110,6 +111,18 @@ make_json_for_map map max_items =
     all_rows = ["all_rows_count", map.size]
     map_vector = Warning.clear (map.to_vector.take max_items)
     mapped = map_vector . map p-> [p.first.to_text, make_json_for_value p.second]
+    data = ["data", [mapped.map .first, mapped.map .second]]
+    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
+
+## PRIVATE
+   Render JS_Object to JSON
+make_json_for_js_object : JS_Object -> Integer -> JS_Object
+make_json_for_js_object js_object max_items =
+    fields = js_object.field_names
+    header = ["header", ["key", "value"]]
+    all_rows = ["all_rows_count", fields.length]
+    map_vector = Warning.clear (fields.take max_items)
+    mapped = map_vector . map p-> [p, make_json_for_value (js_object.get p)]
     data = ["data", [mapped.map .first, mapped.map .second]]
     JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
 
