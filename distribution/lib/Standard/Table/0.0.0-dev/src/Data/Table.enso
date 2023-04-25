@@ -998,6 +998,34 @@ type Table
     tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
         Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity
 
+    ## Converts a Text column into new columns using a regular expression
+       pattern.
+
+       Each match becomes a row in the table.
+       The values of other columns are repeated for the new rows.
+
+       If there are no marked groups, a single column with whole content of
+       match is added. Otherwise, each group becomes a column (with group name
+       if named in Regex).
+
+       Arguments:
+       - column: The column to split the text of.
+       - pattern: The pattern used to search within the text.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - parse_values: Parse any values using the default value parser.
+
+       ? Column Names
+
+       If no marked group, the new column will have the same name as the input.
+       If the marked groups are named, the names will be used otherwise the column
+       will be named `<Input Column> <N>` where `N` is the number of the marked group.
+       If the new name is already in use it will be renamed following the normal
+       suffixing strategy.
+    parse_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+    parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+        Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
+
     ## ALIAS Filter Rows
 
        Selects only the rows of this table that correspond to `True` values of
