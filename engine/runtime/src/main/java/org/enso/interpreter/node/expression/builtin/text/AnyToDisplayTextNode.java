@@ -46,7 +46,7 @@ public abstract class AnyToDisplayTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private static Text takePrefix(Text self, final int limit) {
-    var prefix = Core_Text_Utils.take_prefix(self.toString(), limit);
+    var prefix = Core_Text_Utils.take_prefix(self.toString(), limit - 2);
     return Text.create(prefix + " …");
   }
 

@@ -23,11 +23,11 @@ get_default_seed = System.nano_time
 ## Constructs a new random number generator.
 new : Integer -> Random_Number_Generator
 new seed=get_default_seed =
-    Random_Number_Generator.Value (Java_Random.new seed) seed
+    Random_Number_Generator.Value (Java_Random.new seed)
 
 type Random_Number_Generator
     ## A random number generator.
-    Value java_random seed
+    Value java_random
 
     ## Gets the next random Boolean.
     boolean : Decimal
@@ -56,15 +56,15 @@ type Random_Number_Generator
             Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.")
 
     ## PRIVATE
-       Serialise to JS_Object (note it will contain the original seed not the current).
+       Serialise to JS_Object
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "Random_Number_Generator"], ["constructor", "new"], ["seed", self.seed]]
+        JS_Object.from_pairs [["type", "Random_Number_Generator"], ["constructor", "new"]]
 
     ## PRIVATE
        Convert to a display representation of this Random_Number_Generator.
     to_display_text : Text
-    to_display_text self = "Random_Number_Generator(" + self.seed.to_text + ")"
+    to_display_text self = "Random_Number_Generator"
 
 ## Returns a new vector containing a random sample of the input vector, without
    replacement.
