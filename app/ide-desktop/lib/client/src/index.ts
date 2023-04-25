@@ -22,6 +22,7 @@ import * as debug from 'debug'
 // eslint-disable-next-line no-restricted-syntax
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
+import * as log from 'log'
 import * as naming from 'naming'
 import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
@@ -45,6 +46,7 @@ class App {
     isQuitting = false
 
     async run() {
+        log.addFileLog()
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
         fileAssociations.setOpenFileEventHandler(id => {
