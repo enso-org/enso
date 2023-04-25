@@ -86,20 +86,17 @@ public final class WithWarnings implements TruffleObject {
   }
 
   public Warning[] getWarningsArray(WarningsLibrary warningsLibrary) {
-    Warning[] warningsArr = fromSetToArray(warnings);
     Warning[] allWarnings;
-
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
-        Warning[] valuesWarnings = warningsLibrary.getWarnings(value, null);
-        allWarnings = newWarningsArray(valuesWarnings.length + warningsArr.length);
-        System.arraycopy(warningsArr, 0, allWarnings, 0, warningsArr.length);
-        System.arraycopy(valuesWarnings, 0, allWarnings, warningsArr.length, valuesWarnings.length);
+        EconomicSet<Warning> valueWarnings = warningsLibrary.getWarningsUnique(value, null);
+        EconomicSet<Warning> tmp = cloneSetAndAppend(warnings, valueWarnings);
+        allWarnings = Warning.fromSetToArray(tmp, false);
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
     } else {
-      allWarnings = warningsArr;
+      allWarnings = Warning.fromSetToArray(warnings, false);
     }
     return allWarnings;
   }
@@ -107,16 +104,6 @@ public final class WithWarnings implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   private static Function<Integer, Warning[]> genArrayFun() {
     return Warning[]::new;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private static Warning[] newWarningsArray(int size) {
-    return new Warning[size];
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private Warning[] fromSetToArray(EconomicSet<Warning> set) {
-    return set.toArray(new Warning[set.size()]);
   }
 
   /** @return the number of warnings. */
@@ -190,7 +177,7 @@ public final class WithWarnings implements TruffleObject {
     if (location != null) {
       return getReassignedWarnings(location, warningsLibrary);
     } else {
-      return fromSetToArray(warnings);
+      return Warning.fromSetToArray(warnings, false);
     }
   }
 
@@ -252,7 +239,7 @@ public final class WithWarnings implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   @SuppressWarnings("unchecked")
-  private EconomicSet<Warning> cloneSetAndAppend(EconomicSet<Warning> initial, EconomicSet entries) {
+  private EconomicSet<Warning> cloneSetAndAppend(EconomicSet<Warning> initial, EconomicSet<Warning> entries) {
     EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
     set.addAll(initial.iterator());
     set.addAll(entries.iterator());

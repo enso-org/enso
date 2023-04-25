@@ -219,18 +219,18 @@ public final class Array implements TruffleObject {
       Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     if (cachedWarnings == null) {
-      cachedWarnings = collectAllWarnings(warnings);
+      cachedWarnings = collectAllWarnings(warnings, location);
     }
     return cachedWarnings;
   }
 
   @CompilerDirectives.TruffleBoundary
-  private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings)
+  private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
     for (int i = 0; i < items.length; i++) {
       if (warnings.hasWarnings(items[i])) {
-        setOfWarnings.addAll(warnings.getWarningsUnique(items[i], null));
+        setOfWarnings.addAll(warnings.getWarningsUnique(items[i], location));
       }
     }
     return setOfWarnings;

@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.graalvm.collections.EconomicSet;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -93,8 +94,8 @@ public final class Warning implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib);
-    Object[] unique = uniqueWarnings(warnings);
-    return new Array(unique);
+    Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
+    return new Array((Object[])warnings);
   }
 
   @Builtin.Method(
@@ -105,13 +106,22 @@ public final class Warning implements TruffleObject {
   public static Array getAll(Object value, WarningsLibrary warnings) {
     if (warnings.hasWarnings(value)) {
       try {
-        return new Array((Object[]) uniqueWarnings(warnings.getWarnings(value, null)));
+        return new Array((Object[]) fromSetToArray(warnings.getWarningsUnique(value, null), true));
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
     } else {
       return new Array();
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  static Warning[] fromSetToArray(EconomicSet<Warning> set, boolean sort) {
+    Warning[] arr = set.toArray(new Warning[set.size()]);
+    if (sort) {
+      Arrays.sort(arr, Comparator.comparing(Warning::getCreationTime).reversed());
+    }
+    return arr;
   }
 
   @Builtin.Method(
@@ -203,15 +213,5 @@ public final class Warning implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().warning();
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private static Warning[] uniqueWarnings(Warning[] warnings) {
-    int uniqueLen = 0;
-    Warning last = null;
-    Warning[] tmp = new Warning[warnings.length];
-    System.arraycopy(warnings, 0, tmp, 0, warnings.length);
-    Arrays.sort(tmp, Comparator.comparing(Warning::getCreationTime).reversed());
-    return tmp;
   }
 }
