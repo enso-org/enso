@@ -37,6 +37,11 @@ spec_with name create_new_date parse_date =
             text = create_new_date 2020 12 21 . format "yyyyMMdd"
             text . should_equal "20201221"
 
+        Test.specify "should format local date using provided pattern and locale" <|
+            create_new_date 2021 1 1 . format "w" . should_equal "1"
+            create_new_date 2021 1 1 . format "w" Locale.us . should_equal "1"
+            create_new_date 2021 1 1 . format "w" Locale.uk . should_equal "53"
+
         Test.specify "should format local date using default pattern" <|
             text = create_new_date 2020 12 21 . to_text
             text . should_equal "2020-12-21"

@@ -95,6 +95,10 @@ public class Time_Utils {
     return DateTimeFormatter.ofPattern(format.toString()).format(date);
   }
 
+  public static String local_date_format(LocalDate date, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(date);
+  }
+
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
     return switch (op) {
       case PLUS -> date.plus(period);
