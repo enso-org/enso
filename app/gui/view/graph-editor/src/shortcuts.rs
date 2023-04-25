@@ -10,15 +10,15 @@ use ensogl::application::shortcut::ActionType::*;
 
 /// The list of all shortcuts used in the graph editor.
 pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &str)] = &[
-    (Press, "!node_editing", "tab", "start_node_creation"),
-    (Press, "!node_editing", "enter", "start_node_creation"),
+    (Press, "!node_editing & !read_only", "tab", "start_node_creation"),
+    (Press, "!node_editing & !read_only", "enter", "start_node_creation"),
     // === Drag ===
     (Press, "", "left-mouse-button", "node_press"),
     (Release, "", "left-mouse-button", "node_release"),
-    (Press, "!node_editing", "backspace", "remove_selected_nodes"),
-    (Press, "!node_editing", "delete", "remove_selected_nodes"),
+    (Press, "!node_editing & !read_only", "backspace", "remove_selected_nodes"),
+    (Press, "!node_editing & !read_only", "delete", "remove_selected_nodes"),
     (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-    (Press, "", "cmd g", "collapse_selected_nodes"),
+    (Press, "!read_only", "cmd g", "collapse_selected_nodes"),
     // === Visualization ===
     (Press, "!node_editing", "space", "press_visualization_visibility"),
     (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
@@ -45,24 +45,24 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
         "ctrl space",
         "cycle_visualization_for_selected_node",
     ),
-    (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
-    (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
-    (Press, "", "right-mouse-button", "start_node_creation_from_port"),
-    (Press, "!node_editing", "cmd enter", "enter_selected_node"),
-    (Press, "", "alt enter", "exit_node"),
+    (DoublePress, "!read_only", "left-mouse-button", "enter_hovered_node"),
+    (DoublePress, "!read_only", "left-mouse-button", "start_node_creation_from_port"),
+    (Press, "!read_only", "right-mouse-button", "start_node_creation_from_port"),
+    (Press, "!node_editing & !read_only", "cmd enter", "enter_selected_node"),
+    (Press, "!read_only", "alt enter", "exit_node"),
     // === Node Editing ===
-    (Press, "", "cmd", "edit_mode_on"),
-    (Release, "", "cmd", "edit_mode_off"),
-    (Press, "", "cmd left-mouse-button", "edit_mode_on"),
-    (Release, "", "cmd left-mouse-button", "edit_mode_off"),
-    (Press, "node_editing", "cmd enter", "stop_editing"),
+    (Press, "!read_only", "cmd", "edit_mode_on"),
+    (Release, "!read_only", "cmd", "edit_mode_off"),
+    (Press, "!read_only", "cmd left-mouse-button", "edit_mode_on"),
+    (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
+    (Press, "node_editing & !read_only", "cmd enter", "stop_editing"),
     // === Profiling Mode ===
     (Press, "", "cmd p", "toggle_profiling_mode"),
-    // === Execution Mode ===
-    (Press, "", "shift ctrl e", "toggle_execution_environment"),
     // === Debug ===
     (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
     (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
     (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
     (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
+    // === Execution Mode ===
+    (Press, "", "shift ctrl e", "toggle_execution_environment"),
 ];
