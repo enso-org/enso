@@ -989,6 +989,55 @@ impl Network {
         self.register(OwnedMap4::new(label, t1, t2, t3, t4, f))
     }
 
+    /// Specialized version of `map`.
+    pub fn map5<T1, T2, T3, T4, T5, F, T>(
+        &self,
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        f: F,
+    ) -> Stream<T>
+    where
+        T1: EventOutput,
+        T2: EventOutput,
+        T3: EventOutput,
+        T4: EventOutput,
+        T5: EventOutput,
+        T: Data,
+        F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>) -> T,
+    {
+        self.register(OwnedMap5::new(label, t1, t2, t3, t4, t5, f))
+    }
+
+    /// Specialized version of `map`.
+    pub fn map6<T1, T2, T3, T4, T5, T6, F, T>(
+        &self,
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+        f: F,
+    ) -> Stream<T>
+    where
+        T1: EventOutput,
+        T2: EventOutput,
+        T3: EventOutput,
+        T4: EventOutput,
+        T5: EventOutput,
+        T6: EventOutput,
+        T: Data,
+        F: 'static
+            + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>, &Output<T6>) -> T,
+    {
+        self.register(OwnedMap6::new(label, t1, t2, t3, t4, t5, t6, f))
+    }
+
 
     // === AllWith ===
 
@@ -3967,6 +4016,226 @@ where
 impl<T1, T2, T3, T4, F> Debug for Map4Data<T1, T2, T3, T4, F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Map4Data")
+    }
+}
+
+
+
+// ============
+// === Map5 ===
+// ============
+
+pub struct Map5Data<T1, T2, T3, T4, T5, F> {
+    _src1:    T1,
+    src2:     watch::Ref<T2>,
+    src3:     watch::Ref<T3>,
+    src4:     watch::Ref<T4>,
+    src5:     watch::Ref<T5>,
+    function: F,
+}
+pub type OwnedMap5<T1, T2, T3, T4, T5, F> = stream::Node<Map5Data<T1, T2, T3, T4, T5, F>>;
+pub type Map5<T1, T2, T3, T4, T5, F> = stream::WeakNode<Map5Data<T1, T2, T3, T4, T5, F>>;
+
+impl<T1, T2, T3, T4, T5, F, Out> HasOutput for Map5Data<T1, T2, T3, T4, T5, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    Out: Data,
+    F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>) -> Out,
+{
+    type Output = Out;
+}
+
+impl<T1, T2, T3, T4, T5, F, Out> OwnedMap5<T1, T2, T3, T4, T5, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    Out: Data,
+    F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>) -> Out,
+{
+    /// Constructor.
+    pub fn new(label: Label, t1: &T1, t2: &T2, t3: &T3, t4: &T4, t5: &T5, function: F) -> Self {
+        let _src1 = t1.clone_ref();
+        let src2 = watch_stream(t2);
+        let src3 = watch_stream(t3);
+        let src4 = watch_stream(t4);
+        let src5 = watch_stream(t5);
+        let def = Map5Data { _src1, src2, src3, src4, src5, function };
+        let this = Self::construct(label, def);
+        let weak = this.downgrade();
+        t1.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1, T2, T3, T4, T5, F, Out> stream::EventConsumer<Output<T1>>
+    for OwnedMap5<T1, T2, T3, T4, T5, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    Out: Data,
+    F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>) -> Out,
+{
+    fn on_event(&self, stack: CallStack, value1: &Output<T1>) {
+        let value2 = self.src2.value();
+        let value3 = self.src3.value();
+        let value4 = self.src4.value();
+        let value5 = self.src5.value();
+        let out = (self.function)(value1, &value2, &value3, &value4, &value5);
+        self.emit_event(stack, &out);
+    }
+}
+
+impl<T1, T2, T3, T4, T5, F> stream::InputBehaviors for Map5Data<T1, T2, T3, T4, T5, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+{
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![
+            Link::behavior(&self.src2),
+            Link::behavior(&self.src3),
+            Link::behavior(&self.src4),
+            Link::behavior(&self.src5),
+        ]
+    }
+}
+
+impl<T1, T2, T3, T4, T5, F> Debug for Map5Data<T1, T2, T3, T4, T5, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Map5Data")
+    }
+}
+
+
+
+// ============
+// === Map6 ===
+// ============
+
+pub struct Map6Data<T1, T2, T3, T4, T5, T6, F> {
+    _src1:    T1,
+    src2:     watch::Ref<T2>,
+    src3:     watch::Ref<T3>,
+    src4:     watch::Ref<T4>,
+    src5:     watch::Ref<T5>,
+    src6:     watch::Ref<T6>,
+    function: F,
+}
+pub type OwnedMap6<T1, T2, T3, T4, T5, T6, F> = stream::Node<Map6Data<T1, T2, T3, T4, T5, T6, F>>;
+pub type Map6<T1, T2, T3, T4, T5, T6, F> = stream::WeakNode<Map6Data<T1, T2, T3, T4, T5, T6, F>>;
+
+impl<T1, T2, T3, T4, T5, T6, F, Out> HasOutput for Map6Data<T1, T2, T3, T4, T5, T6, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    Out: Data,
+    F: 'static
+        + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>, &Output<T6>) -> Out,
+{
+    type Output = Out;
+}
+
+impl<T1, T2, T3, T4, T5, T6, F, Out> OwnedMap6<T1, T2, T3, T4, T5, T6, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    Out: Data,
+    F: 'static
+        + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>, &Output<T6>) -> Out,
+{
+    /// Constructor.
+    pub fn new(
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+        function: F,
+    ) -> Self {
+        let _src1 = t1.clone_ref();
+        let src2 = watch_stream(t2);
+        let src3 = watch_stream(t3);
+        let src4 = watch_stream(t4);
+        let src5 = watch_stream(t5);
+        let src6 = watch_stream(t6);
+        let def = Map6Data { _src1, src2, src3, src4, src5, src6, function };
+        let this = Self::construct(label, def);
+        let weak = this.downgrade();
+        t1.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, F, Out> stream::EventConsumer<Output<T1>>
+    for OwnedMap6<T1, T2, T3, T4, T5, T6, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    Out: Data,
+    F: 'static
+        + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>, &Output<T6>) -> Out,
+{
+    fn on_event(&self, stack: CallStack, value1: &Output<T1>) {
+        let value2 = self.src2.value();
+        let value3 = self.src3.value();
+        let value4 = self.src4.value();
+        let value5 = self.src5.value();
+        let value6 = self.src6.value();
+        let out = (self.function)(value1, &value2, &value3, &value4, &value5, &value6);
+        self.emit_event(stack, &out);
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, F> stream::InputBehaviors for Map6Data<T1, T2, T3, T4, T5, T6, F>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+{
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![
+            Link::behavior(&self.src2),
+            Link::behavior(&self.src3),
+            Link::behavior(&self.src4),
+            Link::behavior(&self.src5),
+            Link::behavior(&self.src6),
+        ]
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, F> Debug for Map6Data<T1, T2, T3, T4, T5, T6, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Map6Data")
     }
 }
 

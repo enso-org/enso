@@ -91,107 +91,107 @@ impl Model {
         slider1.frp.set_tooltip("Slider information tooltip.");
         self.root.add_child(&slider1);
         self.sliders.borrow_mut().push(slider1);
-
-        let slider2 = make_slider(&self.app);
-        slider2.set_size((400.0, 50.0));
-        slider2.set_y(-60.0);
-        slider2.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider2.frp.set_slider_disabled(true);
-        slider2.frp.set_label("Disabled");
-        self.root.add_child(&slider2);
-        self.sliders.borrow_mut().push(slider2);
-
-        let slider3 = make_slider(&self.app);
-        slider3.set_size((400.0, 50.0));
-        slider3.set_y(0.0);
-        slider3.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider3.frp.set_default_value(100.0);
-        slider3.frp.set_value(100.0);
-        slider3.frp.set_max_value(500.0);
-        slider3.frp.set_label("Adaptive lower limit");
-        slider3.frp.set_lower_limit_type(slider::SliderLimit::Adaptive);
-        self.root.add_child(&slider3);
-        self.sliders.borrow_mut().push(slider3);
-
-        let slider4 = make_slider(&self.app);
-        slider4.set_size((400.0, 50.0));
-        slider4.set_y(60.0);
-        slider4.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider4.frp.set_label("Adaptive upper limit");
-        slider4.frp.set_label_position(slider::LabelPosition::Inside);
-        slider4.frp.set_upper_limit_type(slider::SliderLimit::Adaptive);
-        self.root.add_child(&slider4);
-        self.sliders.borrow_mut().push(slider4);
-
-        let slider5 = make_slider(&self.app);
-        slider5.set_size((75.0, 230.0));
-        slider5.set_y(-35.0);
-        slider5.set_x(275.0);
-        slider5.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider5.frp.set_label("Hard limits");
-        slider5.frp.orientation(Axis2::Y);
-        slider5.frp.set_max_disp_decimal_places(4);
-        self.root.add_child(&slider5);
-        self.sliders.borrow_mut().push(slider5);
-
-        let slider6 = make_slider(&self.app);
-        slider6.set_size((75.0, 230.0));
-        slider6.set_y(-35.0);
-        slider6.set_x(375.0);
-        slider6.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider6.frp.set_label("Soft\nlimits");
-        slider6.frp.set_label_position(slider::LabelPosition::Inside);
-        slider6.frp.set_lower_limit_type(slider::SliderLimit::Soft);
-        slider6.frp.set_upper_limit_type(slider::SliderLimit::Soft);
-        slider6.frp.orientation(Axis2::Y);
-        slider6.frp.set_max_disp_decimal_places(4);
-        self.root.add_child(&slider6);
-        self.sliders.borrow_mut().push(slider6);
-
-        let slider7 = make_slider(&self.app);
-        slider7.set_size((400.0, 10.0));
-        slider7.set_y(-160.0);
-        slider7.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider7.frp.show_value(false);
-        slider7.frp.set_precision_adjustment_disabled(true);
-        slider7.frp.kind(slider::Kind::Scrollbar(0.1));
-        slider7.frp.set_thumb_size(0.1);
-        self.root.add_child(&slider7);
-        self.sliders.borrow_mut().push(slider7);
-
-        let slider8 = make_slider(&self.app);
-        slider8.set_size((400.0, 10.0));
-        slider8.set_y(-180.0);
-        slider8.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider8.frp.show_value(false);
-        slider8.frp.set_precision_adjustment_disabled(true);
-        slider8.frp.kind(slider::Kind::Scrollbar(0.25));
-        slider8.frp.set_thumb_size(0.25);
-        self.root.add_child(&slider8);
-        self.sliders.borrow_mut().push(slider8);
-
-        let slider9 = make_slider(&self.app);
-        slider9.set_size((400.0, 10.0));
-        slider9.set_y(-200.0);
-        slider9.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider9.frp.show_value(false);
-        slider9.frp.set_precision_adjustment_disabled(true);
-        slider9.frp.kind(slider::Kind::Scrollbar(0.5));
-        slider9.frp.set_thumb_size(0.5);
-        self.root.add_child(&slider9);
-        self.sliders.borrow_mut().push(slider9);
-
-        let slider10 = make_slider(&self.app);
-        slider10.set_size((10.0, 230));
-        slider10.set_y(-35.0);
-        slider10.set_x(430.0);
-        slider10.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider10.frp.show_value(false);
-        slider10.frp.set_precision_adjustment_disabled(true);
-        slider10.frp.kind(slider::Kind::Scrollbar(0.1));
-        slider10.frp.orientation(Axis2::Y);
-        self.root.add_child(&slider10);
-        self.sliders.borrow_mut().push(slider10);
+        //
+        // let slider2 = make_slider(&self.app);
+        // slider2.set_size((400.0, 50.0));
+        // slider2.set_y(-60.0);
+        // slider2.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider2.frp.set_slider_disabled(true);
+        // slider2.frp.set_label("Disabled");
+        // self.root.add_child(&slider2);
+        // self.sliders.borrow_mut().push(slider2);
+        //
+        // let slider3 = make_slider(&self.app);
+        // slider3.set_size((400.0, 50.0));
+        // slider3.set_y(0.0);
+        // slider3.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider3.frp.set_default_value(100.0);
+        // slider3.frp.set_value(100.0);
+        // slider3.frp.set_max_value(500.0);
+        // slider3.frp.set_label("Adaptive lower limit");
+        // slider3.frp.set_lower_limit_type(slider::SliderLimit::Adaptive);
+        // self.root.add_child(&slider3);
+        // self.sliders.borrow_mut().push(slider3);
+        //
+        // let slider4 = make_slider(&self.app);
+        // slider4.set_size((400.0, 50.0));
+        // slider4.set_y(60.0);
+        // slider4.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider4.frp.set_label("Adaptive upper limit");
+        // slider4.frp.set_label_position(slider::LabelPosition::Inside);
+        // slider4.frp.set_upper_limit_type(slider::SliderLimit::Adaptive);
+        // self.root.add_child(&slider4);
+        // self.sliders.borrow_mut().push(slider4);
+        //
+        // let slider5 = make_slider(&self.app);
+        // slider5.set_size((75.0, 230.0));
+        // slider5.set_y(-35.0);
+        // slider5.set_x(275.0);
+        // slider5.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider5.frp.set_label("Hard limits");
+        // slider5.frp.orientation(Axis2::Y);
+        // slider5.frp.set_max_disp_decimal_places(4);
+        // self.root.add_child(&slider5);
+        // self.sliders.borrow_mut().push(slider5);
+        //
+        // let slider6 = make_slider(&self.app);
+        // slider6.set_size((75.0, 230.0));
+        // slider6.set_y(-35.0);
+        // slider6.set_x(375.0);
+        // slider6.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider6.frp.set_label("Soft\nlimits");
+        // slider6.frp.set_label_position(slider::LabelPosition::Inside);
+        // slider6.frp.set_lower_limit_type(slider::SliderLimit::Soft);
+        // slider6.frp.set_upper_limit_type(slider::SliderLimit::Soft);
+        // slider6.frp.orientation(Axis2::Y);
+        // slider6.frp.set_max_disp_decimal_places(4);
+        // self.root.add_child(&slider6);
+        // self.sliders.borrow_mut().push(slider6);
+        //
+        // let slider7 = make_slider(&self.app);
+        // slider7.set_size((400.0, 10.0));
+        // slider7.set_y(-160.0);
+        // slider7.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider7.frp.show_value(false);
+        // slider7.frp.set_precision_adjustment_disabled(true);
+        // slider7.frp.kind(slider::Kind::Scrollbar(0.1));
+        // slider7.frp.set_thumb_size(0.1);
+        // self.root.add_child(&slider7);
+        // self.sliders.borrow_mut().push(slider7);
+        //
+        // let slider8 = make_slider(&self.app);
+        // slider8.set_size((400.0, 10.0));
+        // slider8.set_y(-180.0);
+        // slider8.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider8.frp.show_value(false);
+        // slider8.frp.set_precision_adjustment_disabled(true);
+        // slider8.frp.kind(slider::Kind::Scrollbar(0.25));
+        // slider8.frp.set_thumb_size(0.25);
+        // self.root.add_child(&slider8);
+        // self.sliders.borrow_mut().push(slider8);
+        //
+        // let slider9 = make_slider(&self.app);
+        // slider9.set_size((400.0, 10.0));
+        // slider9.set_y(-200.0);
+        // slider9.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider9.frp.show_value(false);
+        // slider9.frp.set_precision_adjustment_disabled(true);
+        // slider9.frp.kind(slider::Kind::Scrollbar(0.5));
+        // slider9.frp.set_thumb_size(0.5);
+        // self.root.add_child(&slider9);
+        // self.sliders.borrow_mut().push(slider9);
+        //
+        // let slider10 = make_slider(&self.app);
+        // slider10.set_size((10.0, 230));
+        // slider10.set_y(-35.0);
+        // slider10.set_x(430.0);
+        // slider10.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        // slider10.frp.show_value(false);
+        // slider10.frp.set_precision_adjustment_disabled(true);
+        // slider10.frp.kind(slider::Kind::Scrollbar(0.1));
+        // slider10.frp.orientation(Axis2::Y);
+        // self.root.add_child(&slider10);
+        // self.sliders.borrow_mut().push(slider10);
     }
 
     /// Drop all sliders from scene.

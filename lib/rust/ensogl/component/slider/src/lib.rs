@@ -308,8 +308,9 @@ ensogl_core::define_endpoints_2! {
         width(f32),
         /// The component's height.
         height(f32),
+        start_value(f32),
         /// The slider's value.
-        value(f32),
+        end_value(f32),
         /// The slider's precision.
         precision(f32),
         /// The slider value's lower limit. This takes into account limit extension if an adaptive
@@ -319,8 +320,6 @@ ensogl_core::define_endpoints_2! {
         /// slider limit is set.
         max_value(f32),
         /// Indicates whether the mouse is currently hovered over the component.
-        hovered(bool),
-        /// Indicates whether the slider is currently being dragged.
         dragged(bool),
         /// Indicates whether the slider is disabled.
         disabled(bool),
@@ -332,6 +331,13 @@ ensogl_core::define_endpoints_2! {
 }
 
 
+#[derive(Debug, Copy, Clone, Default)]
+pub enum DragHandle {
+    Start,
+    Middle,
+    #[default]
+    End,
+}
 
 // ========================
 // === Slider component ===
@@ -400,9 +406,16 @@ impl Slider {
             ptr_down <- ptr_down_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
             ptr_up <- ptr_up_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
             pos <- mouse.position.map(
-                f!([scene, model] (p) scene.screen_to_object_space(&model.background, *p))
+                f!([scene, model] (p) scene.screen_to_object_space(model.display_object(), *p))
             );
-            value_on_ptr_down <- output.value.sample(&ptr_down);
+
+            orientation_orth <- frp.orientation.map(|o| o.orthogonal());
+            length <- all_with(&obj.on_resized, &frp.orientation, |size, dim| size.get_dim(dim));
+            width <- all_with(&obj.on_resized, &orientation_orth, |size, dim| size.get_dim(dim));
+
+            start_value_on_ptr_down <- output.start_value.sample(&ptr_down);
+            end_value_on_ptr_down <- output.end_value.sample(&ptr_down);
+
 
             ptr_down <- ptr_down.gate_not(&frp.set_slider_disabled);
             ptr_down <- ptr_down.gate_not(&output.editing);
@@ -415,17 +428,29 @@ impl Slider {
             drag_end <- pos.gate(&dragging).any2(&drag_start);
             drag_delta <- all2(&drag_end, &drag_start).map(|(end, start)| end - start);
             drag_delta1 <- all_with(&drag_delta, &frp.orientation, |t, d| t.get_dim(d)).on_change();
-            orientation_orth <- frp.orientation.map(|o| o.orthogonal());
             prec_delta <- all_with(&drag_end, &orientation_orth, |t, d| t.get_dim(d)).on_change();
 
-            output.hovered <+ bool(&ptr_out, &ptr_over);
             output.dragged <+ dragging;
+
+            handle <- drag_start.map6(&length, &start_value_on_ptr_down, &end_value_on_ptr_down, &output.min_value, &output.max_value,
+                |pos, length, start_val, end_val, min_val, max_val| {
+                    let val_range = max_val - min_val;
+                    let start_val_pos = start_val / val_range * length;
+                    let end_val_pos = end_val / val_range * length;
+                    if pos.x < start_val_pos {
+                        DragHandle::Start
+                    } else if pos.x > end_val_pos {
+                        DragHandle::End
+                    } else {
+                        DragHandle::Middle
+                    }
+            });
+            trace handle;
 
 
             // === Precision calculation ===
 
-            length <- all_with(&obj.on_resized, &frp.orientation, |size, dim| size.get_dim(dim));
-            width <- all_with(&obj.on_resized, &orientation_orth, |size, dim| size.get_dim(dim));
+
 
             empty_space <- all_with3(&length, &frp.kind, &frp.set_thumb_size,
                 |length, indicator, _thumb_size|
@@ -462,28 +487,39 @@ impl Slider {
 
             // === Value calculation ===
 
-            value <- drag_delta1.map3(&value_on_ptr_down, &precision,
-                |delta, value, precision| value + delta * precision);
-            value <- any2(&frp.set_value, &value);
-            value <- all5(
-                &value,
-                &frp.set_min_value,
-                &frp.set_max_value,
-                &frp.set_lower_limit_type,
-                &frp.set_upper_limit_type,
-            ).map(value_limit_clamp);
-            output.value <+ value;
+            values <- drag_delta1.map5(&handle, &start_value_on_ptr_down, &end_value_on_ptr_down, &precision,
+                |delta, handle, start_value, end_value, precision| {
+                    let diff = delta * precision;
+                    match handle {
+                        DragHandle::Start => (Some(start_value + diff), None),
+                        DragHandle::End => (None, Some(end_value + diff)),
+                        DragHandle::Middle => (Some(start_value + diff), Some(end_value + diff))
+                    }
+            });
+            start_value <= values._0();
+            end_value <= values._1();
+            value <- any2(&frp.set_value, &end_value);
+            // value <- all5(
+            //     &value,
+            //     &frp.set_min_value,
+            //     &frp.set_max_value,
+            //     &frp.set_lower_limit_type,
+            //     &frp.set_upper_limit_type,
+            // ).map(value_limit_clamp);
+            output.start_value <+ start_value;
+            output.end_value <+ value;
 
 
             // === Value Reset ===
 
             reset_value <- ptr_down.gate(&keyboard.is_control_down);
             value_on_reset <- input.set_default_value.sample(&reset_value);
-            output.value <+ value_on_reset;
+            output.end_value <+ value_on_reset;
 
 
             // === Value Animation ===
-            model.value_animation.target <+ output.value;
+            model.start_value_animation.target <+ output.start_value;
+            model.end_value_animation.target <+ output.end_value;
         };
     }
 
@@ -496,7 +532,7 @@ impl Slider {
 
         frp::extend! { network
             min_value <- all_with5(
-                &output.value,
+                &output.end_value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.min_value,
@@ -506,7 +542,7 @@ impl Slider {
             output.min_value <+ min_value;
 
             max_value <- all_with5(
-                &output.value,
+                &output.end_value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.max_value,
@@ -515,8 +551,8 @@ impl Slider {
             ).on_change();
             output.max_value <+ max_value;
 
-            overflow_lower <- all_with(&output.value, &min_value, |v, min| v < min).on_change();
-            overflow_upper <- all_with(&output.value, &max_value, |v, max| v > max).on_change();
+            overflow_lower <- all_with(&output.end_value, &min_value, |v, min| v < min).on_change();
+            overflow_upper <- all_with(&output.end_value, &max_value, |v, max| v > max).on_change();
             eval overflow_lower((v) model.set_overflow_lower_visible(*v));
             eval overflow_upper((v) model.set_overflow_upper_visible(*v));
         };
@@ -533,7 +569,7 @@ impl Slider {
         frp::extend! { network
             eval input.show_value((v) model.show_value(*v));
 
-            value <- output.value.sampled_gate(&input.show_value);
+            value <- output.end_value.sampled_gate(&input.show_value);
             default_value <- input.set_default_value.sampled_gate(&input.show_value);
             is_default <- all_with(&value, &default_value, |val, def| val == def);
             text_weight <- switch_constant(&is_default, Weight::Bold, Weight::Normal);
@@ -636,10 +672,13 @@ impl Slider {
             // output.height <+ input.set_height;
             min_limit_anim.target <+ output.min_value;
             max_limit_anim.target <+ output.max_value;
-            indicator_pos <- all3(&model.value_animation.value, &min_limit_anim.value, &max_limit_anim.value);
-            indicator_pos <- indicator_pos.map(|(value, min, max)| (value - min) / (max - min));
-            indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.orientation);
-            eval indicator_pos((v) model.set_indicator_position(v));
+            indicator_pos <- all_with4(&model.start_value_animation.value, &model.end_value_animation.value, &min_limit_anim.value, &max_limit_anim.value,
+                |start_value, end_value, min, max| {
+                    let total = max - min;
+                    ((start_value - min) / total, (end_value - min) / total)
+            });
+            indicator_pos <- all_with3(&indicator_pos, &input.set_thumb_size, &input.orientation,
+                f!((a, b, c) model.set_indicator_position(a.0, a.1, *b, *c)));
 
             value_text_left_pos_x <- all3(
                 &model.value_text_left.width,
@@ -725,7 +764,7 @@ impl Slider {
         frp::extend! { network
             start_editing <- input.start_value_editing.gate_not(&output.disabled);
             start_editing <- start_editing.gate(&input.show_value);
-            value_on_edit <- output.value.sample(&start_editing);
+            value_on_edit <- output.end_value.sample(&start_editing);
             prec_on_edit <- output.precision.sample(&start_editing);
             max_places_on_edit <-
                 input.set_max_disp_decimal_places.sample(&start_editing);
@@ -755,8 +794,8 @@ impl Slider {
             output.editing <+ editing;
             output.precision <+ prec_after_edit.gate(&edit_success);
             value_after_edit <- value_after_edit.gate(&edit_success);
-            output.value <+ value_after_edit;
-            model.value_animation.target <+ value_after_edit;
+            output.end_value <+ value_after_edit;
+            model.end_value_animation.target <+ value_after_edit;
             editing_event <- any2(&start_editing, &stop_editing);
             editing <- all2(&editing, &output.precision).sample(&editing_event);
             eval editing((t) model.set_edit_mode(t));

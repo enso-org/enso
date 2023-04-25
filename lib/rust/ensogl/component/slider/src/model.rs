@@ -21,8 +21,6 @@ use ensogl_tooltip::Tooltip;
 // === Constants ===
 // =================
 
-/// Size of the margin around the component's shapes for proper anti-aliasing.
-const COMPONENT_MARGIN: f32 = 4.0;
 /// Default component width on initialization.
 const COMPONENT_WIDTH_DEFAULT: f32 = 200.0;
 /// Default component height on initialization.
@@ -47,8 +45,6 @@ impl Background {
     fn new() -> Self {
         let width: Var<Pixels> = "input_size.x".into();
         let height: Var<Pixels> = "input_size.y".into();
-        let width = width - COMPONENT_MARGIN.px() * 2.0;
-        let height = height - COMPONENT_MARGIN.px() * 2.0;
         let shape = Rect((&width, &height)).corners_radius(&height / 2.0);
         let shape = shape.into();
         Background { width, height, shape }
@@ -72,19 +68,15 @@ mod background {
 /// Track shape that fills the slider proportional to the slider value.
 mod track {
     use super::*;
-
     ensogl_core::shape! {
         above = [background];
         pointer_events = false;
         alignment = center;
-        (style:Style, slider_fraction_horizontal:f32, slider_fraction_vertical:f32, color:Vector4) {
+        (style:Style, start: f32, end:f32, color:Vector4) {
             let Background{width,height,shape: background} = Background::new();
-            let track = Rect((
-                &width * &slider_fraction_horizontal,
-                &height * &slider_fraction_vertical,
-            ));
-            let track = track.translate_x(&width * (&slider_fraction_horizontal - 1.0) * 0.5);
-            let track = track.translate_y(&height * (&slider_fraction_vertical - 1.0) * 0.5);
+            let length = &end - &start;
+            let track = Rect((&width * &length, &height));
+            let track = track.translate_x(&width * (length - 1.0) * 0.5 + &width * start);
             let track = track.intersection(background).fill(color);
             track.into()
         }
@@ -126,8 +118,6 @@ mod overflow {
         (style:Style, color:Vector4) {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = "input_size.y".into();
-            let width = width - COMPONENT_MARGIN.px() * 2.0;
-            let height = height - COMPONENT_MARGIN.px() * 2.0;
 
             let color = style.get_color(theme::overflow::color);
             let triangle = Triangle(width, height);
@@ -148,31 +138,32 @@ mod overflow {
 #[derive(Debug)]
 pub struct Model {
     /// Background element
-    pub background:       background::View,
+    pub background:            background::View,
     /// Slider track element that fills the slider proportional to the slider value.
-    pub track:            track::View,
+    pub track:                 track::View,
     /// Slider thumb element that moves across the slider proportional to the slider value.
-    pub thumb:            thumb::View,
+    pub thumb:                 thumb::View,
     /// Indicator for overflow when the value is below the lower limit.
-    pub overflow_lower:   overflow::View,
+    pub overflow_lower:        overflow::View,
     /// Indicator for overflow when the value is above the upper limit.
-    pub overflow_upper:   overflow::View,
+    pub overflow_upper:        overflow::View,
     /// Slider label that is shown next to the slider.
-    pub label:            text::Text,
+    pub label:                 text::Text,
     /// Textual representation of the slider value, only part left of the decimal point.
-    pub value_text_left:  text::Text,
+    pub value_text_left:       text::Text,
     /// Decimal point that is used to display non-integer slider values.
-    pub value_text_dot:   text::Text,
+    pub value_text_dot:        text::Text,
     /// Textual representation of the slider value, only part right of the decimal point.
-    pub value_text_right: text::Text,
+    pub value_text_right:      text::Text,
     /// Textual representation of the slider value used when editing the value as text input.
-    pub value_text_edit:  text::Text,
+    pub value_text_edit:       text::Text,
     /// Tooltip component showing either a tooltip message or slider precision changes.
-    pub tooltip:          Tooltip,
+    pub tooltip:               Tooltip,
+    pub start_value_animation: Animation<f32>,
     /// Animation component that smoothly adjusts the slider value on large jumps.
-    pub value_animation:  Animation<f32>,
+    pub end_value_animation:   Animation<f32>,
     /// Root of the display object.
-    pub root:             display::object::Instance,
+    pub root:                  display::object::Instance,
 }
 
 impl Model {
@@ -185,7 +176,8 @@ impl Model {
         let value_text_right = app.new_view::<text::Text>();
         let value_text_edit = app.new_view::<text::Text>();
         let tooltip = Tooltip::new(app);
-        let value_animation = Animation::new_non_init(frp_network);
+        let start_value_animation = Animation::new_non_init(frp_network);
+        let end_value_animation = Animation::new_non_init(frp_network);
         let background = background::View::new();
         let track = track::View::new();
         let thumb = thumb::View::new();
@@ -220,7 +212,8 @@ impl Model {
             value_text_right,
             value_text_edit,
             tooltip,
-            value_animation,
+            start_value_animation,
+            end_value_animation,
             root,
         };
         model.init(style)
@@ -245,10 +238,12 @@ impl Model {
 
     /// Set the component size.
     pub fn update_size(&self, size: Vector2<f32>) {
-        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        self.background.set_size(size + margin);
-        self.track.set_size(size + margin);
-        self.thumb.set_size(size + margin);
+        self.background.set_size(size);
+        self.track.set_size(size);
+        self.thumb.set_size(size);
+        self.background.set_x(size.x / 2.0);
+        self.track.set_x(size.x / 2.0);
+        self.thumb.set_x(size.x / 2.0);
     }
 
     /// Set the color of the slider track or thumb.
@@ -277,28 +272,27 @@ impl Model {
     }
 
     /// Set the position of the value indicator.
-    pub fn set_indicator_position(&self, (fraction, size, orientation): &(f32, f32, Axis2)) {
-        self.thumb.slider_fraction.set(*fraction);
+    pub fn set_indicator_position(&self, start: f32, fraction: f32, size: f32, orientation: Axis2) {
+        console_log!("start: {}", start);
+        self.thumb.slider_fraction.set(fraction);
         match orientation {
             Axis2::X => {
-                self.track.slider_fraction_horizontal.set(fraction.clamp(0.0, 1.0));
-                self.track.slider_fraction_vertical.set(1.0);
-                self.thumb.thumb_width.set(*size);
-                self.thumb.thumb_height.set(1.0);
+                self.track.start.set(start.clamp(0.0, 1.0));
+                self.track.end.set(fraction.clamp(0.0, 1.0));
+                // self.thumb.thumb_width.set(size);
+                // self.thumb.thumb_height.set(1.0);
             }
             Axis2::Y => {
-                self.track.slider_fraction_horizontal.set(1.0);
-                self.track.slider_fraction_vertical.set(fraction.clamp(0.0, 1.0));
+                self.track.end.set(1.0);
                 self.thumb.thumb_width.set(1.0);
-                self.thumb.thumb_height.set(*size);
+                self.thumb.thumb_height.set(size);
             }
         }
     }
 
     /// Set the size and orientation of the overflow markers.
     pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, Axis2)) {
-        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE + margin;
+        let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE;
         self.overflow_lower.set_size(size);
         self.overflow_upper.set_size(size);
         match orientation {
