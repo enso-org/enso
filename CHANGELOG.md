@@ -132,6 +132,9 @@
   quickly understand each button's function.
 - [File associations are created on Windows and macOS][6077]. This allows
   opening Enso files by double-clicking them in the file explorer.
+- [Fixed text visualisations which were being cut off at the last line.][6421]
+
+[6421]: https://github.com/enso-org/enso/pull/6421
 
 #### EnsoGL (rendering engine)
 
