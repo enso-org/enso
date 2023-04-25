@@ -12,6 +12,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Database.Common_Spec
+import project.Database.Upload_Spec
 import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
@@ -144,10 +145,14 @@ spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists
-    sqlite_spec (Database.connect (SQLite file)) "[SQLite] "
+    in_file_prefix = "[SQLite File] "
+    sqlite_spec (Database.connect (SQLite file)) in_file_prefix
+    Upload_Spec.spec (_ -> Database.connect (SQLite file)) in_file_prefix
     file.delete
 
-    sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
+    in_memory_prefix = "[SQLite In-Memory] "
+    sqlite_spec (Database.connect (SQLite In_Memory)) in_memory_prefix
+    Upload_Spec.spec (_ -> Database.connect (SQLite In_Memory)) in_memory_prefix
 
     SQLite_Type_Mapping_Spec.spec
 

@@ -15,7 +15,7 @@ from project.Errors import Table_Not_Found, Non_Unique_Primary_Key
 main = Test_Suite.run_main <|
     spec "[SQLite] " (Database.connect (SQLite In_Memory))
 
-spec prefix make_new_connection =
+spec make_new_connection prefix =
     connection = make_new_connection Nothing
     Test.group prefix+"Uploading an in-memory Table" <|
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]

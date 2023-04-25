@@ -12,9 +12,7 @@ import Standard.Test.Extensions
 import project.Database.Helpers.Name_Generator
 from project.Database.Postgres_Spec import test_with_connection
 
-spec connection db_name =
-    _ = db_name
-
+spec connection =
     make_table prefix columns =
         name = Name_Generator.random_name prefix
         column_exprs = columns.map col_def->

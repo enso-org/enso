@@ -61,7 +61,7 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
             # And this makes sure that no duplicate columns get selected.
             checked.if_not_error <|
                 unique_key = self.select_columns primary_key reorder=True
-                check_primary_key_is_unique table unique_key . if_not_error <|
+                check_primary_key_is_unique self unique_key . if_not_error <|
                     unique_key
 
     effective_table_name = case table_name of
