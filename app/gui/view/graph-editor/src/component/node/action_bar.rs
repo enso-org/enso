@@ -3,8 +3,7 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
-use crate::ExecutionEnvironment;
-
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::tooltip;

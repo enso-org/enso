@@ -64,6 +64,12 @@ extern crate core;
 
 use prelude::*;
 
+use wasm_bindgen::prelude::*;
+
+mod profile_workflow;
+#[cfg(test)]
+mod tests;
+
 
 // ==============
 // === Export ===
@@ -82,12 +88,8 @@ pub mod transport;
 
 pub use crate::ide::*;
 pub use engine_protocol;
+use enso_executor::web::EventLoopExecutor;
 pub use ide_view as view;
-
-
-
-#[cfg(test)]
-mod tests;
 
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {
@@ -126,6 +128,12 @@ pub mod prelude {
     pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
+
+
+// ====================
+// === Entry Points ===
+// ====================
+
 // These imports are required to have all entry points (such as examples) and `before_main`
 // functions (such as the dynamic-asset loader), available in the IDE.
 #[allow(unused_imports)]
@@ -136,13 +144,23 @@ mod imported_for_entry_points {
 }
 #[allow(unused_imports)]
 use imported_for_entry_points::*;
-mod profile_workflow;
 
 
 
-// ===================
-// === Entry Point ===
-// ===================
+// ====================
+// === Global State ===
+// ====================
+
+thread_local! {
+    static EXECUTOR: RefCell<Option<EventLoopExecutor>> = default();
+    static IDE: RefCell<Option<Result<Ide, FailedIde>>> = default();
+}
+
+
+
+// =======================
+// === IDE Entry Point ===
+// =======================
 
 /// IDE startup function.
 #[entry_point(ide)]
@@ -159,16 +177,43 @@ pub fn main() {
         "debug_mode_is_active",
         analytics::AnonymousData(debug_mode),
     );
-    let config =
-        crate::config::Startup::from_web_arguments().expect("Failed to read configuration");
-    let executor = crate::executor::setup_global_executor();
-    let initializer = crate::ide::initializer::Initializer::new(config);
+    let config = config::Startup::from_web_arguments().expect("Failed to read configuration");
+    let executor = executor::setup_global_executor();
+    EXECUTOR.with(move |global_executor| global_executor.replace(Some(executor)));
+    let initializer = Initializer::new(config);
     executor::global::spawn(async move {
         let ide = initializer.start().await;
         ensogl::system::web::document
             .get_element_by_id("loader")
             .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
-        std::mem::forget(ide);
+        IDE.with(move |global_ide| global_ide.replace(Some(ide)));
     });
-    std::mem::forget(executor);
+}
+
+
+
+// ================
+// === IDE Drop ===
+// ================
+
+/// Drop all structure created so far.
+///
+/// All connections will be closed and all visuals will be removed.
+#[wasm_bindgen]
+pub fn drop() {
+    let ide = IDE.with(RefCell::take);
+    if let Some(Ok(ide)) = &ide {
+        //TODO[ao] #6420 We should not do this, but somehow the `dom` field in the scene is
+        // leaking.
+        ide.ensogl_app.display.default_scene.dom.root.remove();
+    }
+    mem::drop(ide);
+    EXECUTOR.with(RefCell::take);
+    leak_detector::TRACKED_OBJECTS.with(|objects| {
+        let objects = objects.borrow();
+        if !objects.is_empty() {
+            error!("Tracked objects leaked after dropping entire application!");
+            error!("Leaked objects: {objects:#?}");
+        }
+    })
 }

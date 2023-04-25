@@ -134,6 +134,8 @@
   opening Enso files by double-clicking them in the file explorer.
 - [Added capability to create node widgets with complex UI][6347]. Node widgets
   such as dropdown can now be placed in the node and affect the code text flow.
+- [The IDE UI element for selecting the execution mode of the project is now
+  sending messages to the backend.][6341].
 
 #### EnsoGL (rendering engine)
 
@@ -196,6 +198,7 @@
 [5895]: https://github.com/enso-org/enso/pull/6130
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
+[6097]: https://github.com/enso-org/enso/pull/6341
 
 #### Enso Standard Library
 
