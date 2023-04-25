@@ -16,11 +16,10 @@ import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.SuggestionsRepo
 import org.enso.testkit.RetrySpec
 import org.enso.text.editing.model.Position
-import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -44,9 +43,6 @@ class SuggestionsHandlerSpec
   import system.dispatcher
 
   val Timeout: FiniteDuration = 10.seconds
-
-  def contentsVersion(text: String): ContentVersion =
-    Sha3_224VersionCalculator.evalVersion(text)
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
@@ -79,7 +75,6 @@ class SuggestionsHandlerSpec
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion(""),
           Vector(),
           Vector(),
           Tree.Root(Suggestions.all.toVector.map { suggestion =>
@@ -125,7 +120,6 @@ class SuggestionsHandlerSpec
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion(""),
           Vector(),
           Vector(),
           Tree.Root(
@@ -227,7 +221,6 @@ class SuggestionsHandlerSpec
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion(""),
           Vector(),
           Vector(),
           tree1
@@ -302,7 +295,6 @@ class SuggestionsHandlerSpec
         // update tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion("1"),
           Vector(),
           Vector(),
           tree2
@@ -394,7 +386,6 @@ class SuggestionsHandlerSpec
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion(""),
           Vector(),
           Vector(),
           tree
@@ -473,7 +464,6 @@ class SuggestionsHandlerSpec
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion(""),
           Vector(),
           Vector(),
           tree1
@@ -498,7 +488,6 @@ class SuggestionsHandlerSpec
         // clean module
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion("1"),
           Vector(
             Api.SuggestionsDatabaseAction.Clean(Suggestions.constructor.module)
           ),
@@ -580,7 +569,6 @@ class SuggestionsHandlerSpec
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion(""),
           Vector(),
           Vector(),
           tree1
@@ -625,7 +613,6 @@ class SuggestionsHandlerSpec
         // apply updates1
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion("1"),
           Vector(),
           Vector(exportUpdateAdd),
           Tree.Root(Vector())
@@ -670,7 +657,6 @@ class SuggestionsHandlerSpec
         // apply updates2
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
-          contentsVersion("2"),
           Vector(),
           Vector(exportUpdateRemove),
           Tree.Root(Vector())
@@ -923,8 +909,7 @@ class SuggestionsHandlerSpec
     config: Config,
     sessionRouter: TestProbe,
     runtimeConnector: TestProbe,
-    suggestionsRepo: SuggestionsRepo[Future],
-    versionsRepo: VersionsRepo[Future]
+    suggestionsRepo: SuggestionsRepo[Future]
   ): ActorRef = {
     val contentRootManagerActor =
       system.actorOf(ContentRootManagerActor.props(config))
@@ -935,7 +920,6 @@ class SuggestionsHandlerSpec
         config,
         contentRootManagerWrapper,
         suggestionsRepo,
-        versionsRepo,
         sessionRouter.ref,
         runtimeConnector.ref
       )
@@ -946,16 +930,14 @@ class SuggestionsHandlerSpec
     config: Config,
     sessionRouter: TestProbe,
     runtimeConnector: TestProbe,
-    suggestionsRepo: SuggestionsRepo[Future],
-    versionsRepo: VersionsRepo[Future]
+    suggestionsRepo: SuggestionsRepo[Future]
   ): ActorRef = {
     val handler =
       newSuggestionsHandler(
         config,
         sessionRouter,
         runtimeConnector,
-        suggestionsRepo,
-        versionsRepo
+        suggestionsRepo
       )
 
     handler ! SuggestionsHandler.ProjectNameUpdated("Test")
@@ -968,22 +950,14 @@ class SuggestionsHandlerSpec
     )
 
     val suggestionsInit = suggestionsRepo.init
-    val versionsInit    = versionsRepo.init
     suggestionsInit.onComplete {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize Suggestions repo")
     }
-    versionsInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.VersionsRepoInitialized)
-      case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize FileVersions repo")
-    }
 
     Await.ready(suggestionsInit, Timeout)
-    Await.ready(versionsInit, Timeout)
     handler
   }
 
@@ -1017,7 +991,7 @@ class SuggestionsHandlerSpec
     JsonSession(clientId, TestProbe().ref)
 
   def withDbs(
-    test: (Config, SuggestionsRepo[Future], VersionsRepo[Future]) => Any
+    test: (Config, SuggestionsRepo[Future]) => Any
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
@@ -1029,29 +1003,19 @@ class SuggestionsHandlerSpec
     )
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
-    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 
     val suggestionsInit = suggestionsRepo.init
-    val versionsInit    = versionsRepo.init
     suggestionsInit.onComplete {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize Suggestions repo")
     }
-    versionsInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.VersionsRepoInitialized)
-      case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize FileVersions repo")
-    }
 
     Await.ready(suggestionsInit, Timeout)
-    Await.ready(versionsInit, Timeout)
 
-    try test(config, suggestionsRepo, versionsRepo)
+    try test(config, suggestionsRepo)
     finally {
-      versionsRepo.close()
       suggestionsRepo.close()
     }
   }
@@ -1078,13 +1042,11 @@ class SuggestionsHandlerSpec
     val sqlDatabase = SqlDatabase.inmem("testdb")
     sqlDatabase.open()
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
-    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
     val handler = newInitializedSuggestionsHandler(
       config,
       router,
       connector,
-      suggestionsRepo,
-      versionsRepo
+      suggestionsRepo
     )
 
     try test(config, suggestionsRepo, router, connector, handler)

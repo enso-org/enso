@@ -33,8 +33,11 @@ async function bundle() {
             path.resolve(THIS_PATH, 'src', 'index.tsx')
         )
         await esbuild.build(opts)
+        return
     } catch (error) {
         console.error(error)
+        // The error is being re-thrown.
+        // eslint-disable-next-line no-restricted-syntax
         throw error
     }
 }

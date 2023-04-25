@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
-import org.enso.text.Sha3_224VersionCalculator
 
 import java.util
 import java.util.{Collections, UUID}
@@ -58,8 +57,7 @@ final class JobExecutionEngine(
       jobProcessor     = this,
       jobControlPlane  = this,
       locking          = locking,
-      state            = executionState,
-      versioning       = Sha3_224VersionCalculator
+      state            = executionState
     )
 
   /** @inheritdoc */
@@ -130,9 +128,17 @@ final class JobExecutionEngine(
   }
 
   /** @inheritdoc */
-  override def abortAllJobs(): Unit = {
-    val allJobs         = runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
-    val cancellableJobs = allJobs.filter(_.job.isCancellable)
+  override def abortAllJobs(): Unit =
+    abortAllExcept()
+
+  /** @inheritdoc */
+  override def abortAllExcept(ignoredJobs: Class[_ <: Job[_]]*): Unit = {
+    val allJobs = runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+    val cancellableJobs = allJobs
+      .filter { runningJob =>
+        runningJob.job.isCancellable &&
+        !ignoredJobs.contains(runningJob.job.getClass)
+      }
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
     }

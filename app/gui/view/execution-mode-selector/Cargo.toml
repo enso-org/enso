@@ -1,0 +1,18 @@
+[package]
+name = "ide-view-execution-mode-selector"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-frp = { path = "../../../../lib/rust/frp" }
+enso-prelude = { path = "../../../../lib/rust/prelude" }
+ensogl = { path = "../../../../lib/rust/ensogl" }
+ensogl-derive-theme = { path = "../../../../lib/rust/ensogl/app/theme/derive" }
+ensogl-drop-down-menu = { path = "../../../../lib/rust/ensogl/component/drop-down-menu" }
+ensogl-gui-component = { path = "../../../../lib/rust/ensogl/component/gui" }
+ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-list-view = { path = "../../../../lib/rust/ensogl/component/list-view" }

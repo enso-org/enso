@@ -11,6 +11,7 @@ use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
+use crate::ExecutionEnvironment;
 use crate::Type;
 use crate::WidgetUpdates;
 
@@ -306,6 +307,9 @@ ensogl::define_endpoints_2! {
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
         set_freeze_macro      (bool),
+        /// Set whether the output context is explicitly enabled: `Some(true/false)` for
+        /// enabled/disabled; `None` for no context switch expression.
+        set_context_switch    (Option<bool>),
         set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
@@ -326,7 +330,9 @@ ensogl::define_endpoints_2! {
         set_profiling_max_global_duration (f32),
         set_profiling_status              (profiling::Status),
         /// Indicate whether on hover the quick action icons should appear.
-        show_quick_action_bar_on_hover    (bool)
+        show_quick_action_bar_on_hover    (bool),
+        set_execution_environment         (ExecutionEnvironment),
+        set_read_only                     (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -342,6 +348,7 @@ ensogl::define_endpoints_2! {
         /// and update the node with new expression tree using `set_expression`.
         on_expression_modified   (span_tree::Crumbs, ImString),
         comment                  (Comment),
+        context_switch           (bool),
         skip                     (bool),
         freeze                   (bool),
         hover                    (bool),
@@ -722,7 +729,7 @@ impl Node {
 
             // Hook up the display object position updates to the node's FRP. Required to calculate
             // the bounding box.
-            out.position <+ display_object.on_updated.map(f_!(display_object.position().xy()));
+            out.position <+ display_object.on_transformed.map(f_!(display_object.position().xy()));
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
@@ -801,6 +808,7 @@ impl Node {
             // === Action Bar ===
 
             let visualization_button_state = action_bar.action_visibility.clone_ref();
+            out.context_switch <+ action_bar.action_context_switch;
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
             show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
@@ -808,6 +816,8 @@ impl Node {
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
             action_bar.set_action_freeze_state <+ input.set_freeze_macro;
             action_bar.set_action_skip_state <+ input.set_skip_macro;
+            action_bar.set_action_context_switch_state <+ input.set_context_switch;
+            action_bar.set_execution_environment <+ input.set_execution_environment;
 
 
             // === View Mode ===
@@ -818,6 +828,12 @@ impl Node {
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
             });
+
+
+            // === Read-only mode ===
+
+            action_bar.set_read_only <+ input.set_read_only;
+            model.input.set_read_only <+ input.set_read_only;
         }
 
 

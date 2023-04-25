@@ -112,7 +112,7 @@ public final class Array implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return new WithWarnings(v, extracted);
+      return WithWarnings.wrap(v, extracted);
     }
     return v;
   }
@@ -127,10 +127,13 @@ public final class Array implements TruffleObject {
     return allocate(0);
   }
 
-  /** @return an identity array */
-  @Builtin.Method(description = "Identity on arrays, implemented for protocol completeness.")
-  public Object toArray() {
-    return this;
+  @Builtin.Method(name = "slice", description = "Returns a slice of this Array.")
+  @Builtin.Specialize
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
+  public final Object slice(long start, long end, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    var slice = ArraySlice.createOrNull(this, start, length(), end);
+    return slice == null ? this : slice;
   }
 
   /**

@@ -17,7 +17,10 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.*;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
@@ -69,19 +72,8 @@ public final class Vector implements TruffleObject {
   @Builtin.WrapException(from = UnsupportedMessageException.class)
   public final Vector slice(long start, long end, InteropLibrary interop)
       throws UnsupportedMessageException {
-    long this_length = length(interop);
-    long slice_start = Math.max(0, start);
-    long slice_end = Math.min(this_length, end);
-
-    if (slice_start >= slice_end) {
-      return new Vector(Array.allocate(0));
-    }
-
-    if ((slice_start == 0) && (slice_end == this_length)) {
-      return this;
-    }
-
-    return new Vector(new ArraySlice(this.storage, slice_start, slice_end));
+    var slice = ArraySlice.createOrNull(storage, start, length(interop), end);
+    return slice == null ? this : slice;
   }
 
   @Builtin.Method(description = "Returns the length of this Vector.")
@@ -131,7 +123,7 @@ public final class Vector implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return new WithWarnings(toEnso.execute(v), extracted);
+      return WithWarnings.wrap(toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
   }

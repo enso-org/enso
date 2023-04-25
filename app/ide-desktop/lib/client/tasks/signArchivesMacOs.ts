@@ -196,6 +196,7 @@ class ArchiveToSign implements Signable {
             console.log(
                 `Successfully repacked ${this.path} to handle signing inner native dependency.`
             )
+            return
         } catch (error) {
             console.error(
                 `Could not repackage ${archiveName}. Please check the ${import.meta.url} task to ` +

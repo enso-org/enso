@@ -686,6 +686,15 @@ mod tests {
     }
 
     #[test]
+    fn infix_section() {
+        let a = Ast::var("a");
+        let a_plus = Ast::section_left(a.clone(), "+");
+        let chain = Chain::try_new(&a_plus).unwrap();
+        expect_at(&chain.target, &a);
+        test_enumerating(&chain, &a_plus, &[&a]);
+    }
+
+    #[test]
     fn infix_chain_tests_right() {
         let a = Ast::var("a");
         let b = Ast::var("b");

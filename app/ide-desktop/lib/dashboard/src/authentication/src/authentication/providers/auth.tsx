@@ -25,6 +25,7 @@ const MESSAGES = {
     setUsernameSuccess: 'Your username has been set!',
     signInWithPasswordSuccess: 'Successfully logged in!',
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
+    changePasswordSuccess: 'Successfully changed password!',
     resetPasswordSuccess: 'Successfully reset password!',
     signOutSuccess: 'Successfully logged out!',
     pleaseWait: 'Please wait...',
@@ -79,15 +80,16 @@ export interface PartialUserSession {
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
-    signUp: (email: string, password: string) => Promise<void>
-    confirmSignUp: (email: string, code: string) => Promise<void>
-    setUsername: (accessToken: string, username: string, email: string) => Promise<void>
-    signInWithGoogle: () => Promise<void>
-    signInWithGitHub: () => Promise<void>
-    signInWithPassword: (email: string, password: string) => Promise<void>
-    forgotPassword: (email: string) => Promise<void>
-    resetPassword: (email: string, code: string, password: string) => Promise<void>
-    signOut: () => Promise<void>
+    signUp: (email: string, password: string) => Promise<boolean>
+    confirmSignUp: (email: string, code: string) => Promise<boolean>
+    setUsername: (accessToken: string, username: string, email: string) => Promise<boolean>
+    signInWithGoogle: () => Promise<boolean>
+    signInWithGitHub: () => Promise<boolean>
+    signInWithPassword: (email: string, password: string) => Promise<boolean>
+    forgotPassword: (email: string) => Promise<boolean>
+    changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
+    resetPassword: (email: string, code: string, password: string) => Promise<boolean>
+    signOut: () => Promise<boolean>
     /** Session containing the currently authenticated user's authentication information.
      *
      * If the user has not signed in, the session will be `null`. */
@@ -172,6 +174,9 @@ export function AuthProvider(props: AuthProviderProps) {
                         organization,
                     }
 
+                    /** Save access token so can be reused by Enso backend. */
+                    cognito.saveAccessToken(accessToken)
+
                     /** Execute the callback that should inform the Electron app that the user has logged in.
                      * This is done to transition the app from the authentication/dashboard view to the IDE. */
                     onAuthenticated()
@@ -192,14 +197,16 @@ export function AuthProvider(props: AuthProviderProps) {
     }, [session])
 
     const withLoadingToast =
-        <T extends unknown[]>(action: (...args: T) => Promise<void>) =>
+        <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
         async (...args: T) => {
             const loadingToast = toast.loading(MESSAGES.pleaseWait)
+            let result
             try {
-                await action(...args)
+                result = await action(...args)
             } finally {
                 toast.dismiss(loadingToast)
             }
+            return result
         }
 
     const signUp = (username: string, password: string) =>
@@ -209,6 +216,7 @@ export function AuthProvider(props: AuthProviderProps) {
             } else {
                 toast.error(result.val.message)
             }
+            return result.ok
         })
 
     const confirmSignUp = async (email: string, code: string) =>
@@ -224,6 +232,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
             toast.success(MESSAGES.confirmSignUpSuccess)
             navigate(app.LOGIN_PATH)
+            return result.ok
         })
 
     const signInWithPassword = async (email: string, password: string) =>
@@ -237,6 +246,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
                 toast.error(result.val.message)
             }
+            return result.ok
         })
 
     const setUsername = async (accessToken: string, username: string, email: string) => {
@@ -251,6 +261,7 @@ export function AuthProvider(props: AuthProviderProps) {
         })
         navigate(app.DASHBOARD_PATH)
         toast.success(MESSAGES.setUsernameSuccess)
+        return true
     }
 
     const forgotPassword = async (email: string) =>
@@ -261,6 +272,7 @@ export function AuthProvider(props: AuthProviderProps) {
             } else {
                 toast.error(result.val.message)
             }
+            return result.ok
         })
 
     const resetPassword = async (email: string, code: string, password: string) =>
@@ -271,22 +283,41 @@ export function AuthProvider(props: AuthProviderProps) {
             } else {
                 toast.error(result.val.message)
             }
+            return result.ok
         })
-
+    const changePassword = async (oldPassword: string, newPassword: string) =>
+        cognito.changePassword(oldPassword, newPassword).then(result => {
+            if (result.ok) {
+                toast.success(MESSAGES.changePasswordSuccess)
+            } else {
+                toast.error(result.val.message)
+            }
+            return result.ok
+        })
     const signOut = () =>
         cognito.signOut().then(() => {
             toast.success(MESSAGES.signOutSuccess)
+            return true
         })
 
     const value = {
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
         setUsername,
-        signInWithGoogle: cognito.signInWithGoogle.bind(cognito),
-        signInWithGitHub: cognito.signInWithGitHub.bind(cognito),
+        signInWithGoogle: () =>
+            cognito
+                .signInWithGoogle()
+                .then(() => true)
+                .catch(() => false),
+        signInWithGitHub: () =>
+            cognito
+                .signInWithGitHub()
+                .then(() => true)
+                .catch(() => false),
         signInWithPassword: withLoadingToast(signInWithPassword),
         forgotPassword: withLoadingToast(forgotPassword),
         resetPassword: withLoadingToast(resetPassword),
+        changePassword: withLoadingToast(changePassword),
         signOut,
         session: userSession,
     }
@@ -329,7 +360,6 @@ export function useAuth() {
 // === ProtectedLayout ===
 // =======================
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export function ProtectedLayout() {
     const { session } = useAuth()
 
@@ -344,7 +374,6 @@ export function ProtectedLayout() {
 // === GuestLayout ===
 // ===================
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export function GuestLayout() {
     const { session } = useAuth()
 

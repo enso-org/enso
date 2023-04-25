@@ -185,7 +185,7 @@ public class EqualsTest extends TestBase {
   public void testVectorsEquality() {
     Object ensoVector =
         unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base.import all"));
-    Object javaVector = unwrapValue(context, context.asValue(List.of(1, 2, 3)));
+    Object javaVector = unwrapValue(context, context.asValue(List.of(1L, 2L, 3L)));
     executeInContext(
         context,
         () -> {

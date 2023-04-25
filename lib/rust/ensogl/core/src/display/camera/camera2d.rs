@@ -215,7 +215,7 @@ impl Camera2dData {
             frp_position <- source();
             frp_zoom <- source();
             frp_screen <- source();
-            eval_ display_object.on_updated (dirty.transform.set());
+            eval_ display_object.on_transformed (dirty.transform.set());
         }
         let frp = Frp { network, position: frp_position, zoom: frp_zoom, screen: frp_screen };
         Self {

@@ -63,6 +63,11 @@ macro_rules! newtype_prim_no_derives {
             pub const fn new(raw:$type) -> Self {
                 Self {raw}
             }
+
+            /// Checked subtraction. Returns [`None`] if the result would be negative.
+            pub fn checked_sub(self, rhs: Self) -> Option<Self> {
+                self.raw.checked_sub(rhs.raw).map(Self::new)
+            }
         }
 
         impl Deref for $name {

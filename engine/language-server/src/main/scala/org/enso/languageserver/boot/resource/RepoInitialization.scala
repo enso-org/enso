@@ -9,7 +9,7 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.logger.masking.MaskedPath
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -21,14 +21,12 @@ import scala.util.{Failure, Success}
   * @param eventStream akka events stream
   * @param sqlDatabase the sql database
   * @param suggestionsRepo the suggestions repo
-  * @param versionsRepo the versions repo
   */
 class RepoInitialization(
   directoriesConfig: ProjectDirectoriesConfig,
   eventStream: EventStream,
   sqlDatabase: SqlDatabase,
-  suggestionsRepo: SqlSuggestionsRepo,
-  versionsRepo: SqlVersionsRepo
+  suggestionsRepo: SqlSuggestionsRepo
 )(implicit ec: ExecutionContext)
     extends InitializationComponent
     with LazyLogging {
@@ -38,7 +36,6 @@ class RepoInitialization(
     for {
       _ <- sqlDatabaseInit
       _ <- suggestionsRepoInit
-      _ <- versionsRepoInit
     } yield InitializationComponent.Initialized
 
   private def sqlDatabaseInit: Future[Unit] = {
@@ -80,36 +77,6 @@ class RepoInitialization(
       case Failure(ex) =>
         logger.error(
           "Failed to initialize SQL suggestions repo [{}].",
-          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
-          ex
-        )
-    }
-    initAction
-  }
-
-  private def versionsRepoInit: Future[Unit] = {
-    val initAction =
-      for {
-        _ <- Future {
-          logger.info(
-            "Initializing versions repo [{}]...",
-            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
-          )
-        }
-        _ <- versionsRepo.init
-        _ <- Future {
-          logger.info(
-            "Initialized Versions repo [{}].",
-            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
-          )
-        }
-      } yield ()
-    initAction.onComplete {
-      case Success(()) =>
-        eventStream.publish(InitializedEvent.VersionsRepoInitialized)
-      case Failure(ex) =>
-        logger.error(
-          "Failed to initialize SQL versions repo [{}].",
           MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
           ex
         )
