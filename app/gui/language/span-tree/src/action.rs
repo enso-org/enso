@@ -114,7 +114,7 @@ pub trait Implementation {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>>;
 }
 
-impl<'a, T: Debug> Implementation for node::Ref<'a, T> {
+impl<'a, T> Implementation for node::Ref<'a, T> {
     fn set_impl(&self) -> Option<SetOperation> {
         match &self.node.kind {
             node::Kind::InsertionPoint(ins_point) => Some(Box::new(move |root, new| {
