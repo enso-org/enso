@@ -1874,7 +1874,9 @@ impl GraphEditorModel {
         self.breadcrumbs.set_x(x_offset);
 
         self.scene().add_child(&self.tooltip);
-        self.add_child(&self.profiling_button);
+        if ARGS.groups.feature_preview.options.profiling.value {
+            self.add_child(&self.profiling_button);
+        }
         self.add_child(&*self.add_node_button);
         self
     }
