@@ -62,7 +62,4 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
     (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
     (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
-    (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
-    // === Execution Mode ===
-    (Press, "", "shift ctrl e", "toggle_execution_environment"),
 ];

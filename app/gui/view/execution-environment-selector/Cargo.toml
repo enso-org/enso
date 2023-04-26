@@ -16,3 +16,4 @@ ensogl-drop-down-menu = { path = "../../../../lib/rust/ensogl/component/drop-dow
 ensogl-gui-component = { path = "../../../../lib/rust/ensogl/component/gui" }
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-list-view = { path = "../../../../lib/rust/ensogl/component/list-view" }
+engine-protocol = { path = "../../controller/engine-protocol" }

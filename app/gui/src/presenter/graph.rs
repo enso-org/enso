@@ -493,15 +493,6 @@ impl Model {
             }
         }
     }
-
-    fn toggle_execution_environment(&self) -> ExecutionEnvironment {
-        let new_environment = match self.execution_environment.get() {
-            ExecutionEnvironment::Live => ExecutionEnvironment::Design,
-            ExecutionEnvironment::Design => ExecutionEnvironment::Live,
-        };
-        self.execution_environment.set(new_environment);
-        new_environment
-    }
 }
 
 
@@ -716,15 +707,6 @@ impl Graph {
                     Rc::new(default())
                 }
             }));
-
-
-            // === Execution Environment ===
-
-            // TODO(#5930): Delete me once we synchronise the execution environment with the
-            // language server.
-            view.set_execution_environment <+ view.toggle_execution_environment.map(
-                f_!(model.toggle_execution_environment()));
-
 
             // === Refreshing Nodes ===
 
