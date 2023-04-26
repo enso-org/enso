@@ -63,7 +63,7 @@ public abstract class ThunkExecutorNode extends Node {
         return callNode.call(Function.ArgumentsHelper.buildArguments(function, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
-            e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+            null, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
       }
     }
   }
@@ -84,7 +84,7 @@ public abstract class ThunkExecutorNode extends Node {
             function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
-            e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+            null, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
       }
     }
   }

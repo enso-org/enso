@@ -4,11 +4,13 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.InlineableRootNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -48,14 +50,19 @@ public abstract class ExecuteCallNode extends Node {
    */
   @Specialization(guards = "function.getCallTarget() == cachedTarget")
   protected Object callDirect(
+      VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("createCallNode(cachedTarget)") DirectCallNode callNode) {
-    return callNode.call(
-        Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
+    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments);
+    if (callNode instanceof BuiltinRootNode.InlinedCallNode in) {
+      return in.callWithFrame(frame, args);
+    } else {
+      return callNode.call(args);
+    }
   }
 
   static DirectCallNode createCallNode(RootCallTarget t) {
@@ -90,6 +97,7 @@ public abstract class ExecuteCallNode extends Node {
   /**
    * Executes the function call.
    *
+   * @param frame the caller's frame
    * @param function the function to execute
    * @param callerInfo the caller info to pass to the function
    * @param state the state value to pass to the function
@@ -97,5 +105,5 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   public abstract Object executeCall(
-      Function function, CallerInfo callerInfo, Object state, Object[] arguments);
+      VirtualFrame frame, Function function, CallerInfo callerInfo, Object state, Object[] arguments);
 }

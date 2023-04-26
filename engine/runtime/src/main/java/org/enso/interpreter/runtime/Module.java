@@ -626,6 +626,7 @@ public final class Module implements TruffleObject {
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       return callOptimiserNode.executeDispatch(
+          null,
           eval.getFunction(),
           callerInfo,
           context.emptyState(),

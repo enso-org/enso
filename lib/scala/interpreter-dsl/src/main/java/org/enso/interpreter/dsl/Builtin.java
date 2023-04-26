@@ -160,6 +160,20 @@ public @interface Builtin {
      * type. Auto-registered methods do not have to be declared explicitly.
      */
     boolean autoRegister() default true;
+
+    /**
+     * Needs own frame or not. This argument doesn't need to be specified. If it is missing, its
+     * <em>effective value</em> is derived from the arguments of the annotated method. When the
+     * {@code execute} method requires {@link VirtualFrame} as one of its arguments the value of
+     * unspecified {@link #needsFrame()} is {@code true}. When no {@link VirtualFrame} is needed,
+     * the value is assumed to be {@code false}.
+     *
+     * @return explicitly specify whether the builtin needs its own {@link VirtualFrame} or can
+     *     share the one of a caller.
+     * @see BuiltinMethod
+     * @see BuiltinMethod#needsFrame
+     */
+    boolean needsFrame() default false;
   }
 
   /**

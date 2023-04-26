@@ -34,8 +34,11 @@ public class MethodDefinition {
    * @param packageName the name of the package this method is declared in.
    * @param element the element (class) declaring this method.
    * @param execute the element (method) containing the logic.
+   * @param needsFrame optionally specify if we need own frame, if {@code null} the value is derived
+   *     from presence/absence of {@code VirtualFrame} argument
    */
-  public MethodDefinition(String packageName, TypeElement element, ExecutableElement execute) {
+  public MethodDefinition(
+      String packageName, TypeElement element, ExecutableElement execute, Boolean needsFrame) {
     this.annotation = element.getAnnotation(BuiltinMethod.class);
     this.element = element;
     this.executeMethod = execute;
@@ -46,7 +49,8 @@ public class MethodDefinition {
     this.arguments = initArguments(execute);
     this.imports = initImports();
     this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
-    this.needsFrame = arguments.stream().anyMatch(ArgumentDefinition::isFrame);
+    this.needsFrame =
+        needsFrame != null ? needsFrame : arguments.stream().anyMatch(ArgumentDefinition::isFrame);
     this.constructorExpression = initConstructor(element);
   }
 

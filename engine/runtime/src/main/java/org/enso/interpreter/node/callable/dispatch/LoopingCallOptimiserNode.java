@@ -79,7 +79,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       @Cached ExecuteCallNode executeCallNode) {
     while (true) {
       try {
-        return executeCallNode.executeCall(function, callerInfo, state, arguments);
+        return executeCallNode.executeCall(null, function, callerInfo, state, arguments);
       } catch (TailCallException e) {
         function = e.getFunction();
         callerInfo = e.getCallerInfo();
@@ -211,7 +211,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
         Object[] arguments = getNextArgs(frame);
         CallerInfo callerInfo = getCallerInfo(frame);
         frame.setObject(
-            resultSlotIdx, dispatchNode.executeCall(function, callerInfo, state, arguments));
+            resultSlotIdx, dispatchNode.executeCall(frame, function, callerInfo, state, arguments));
         return false;
       } catch (TailCallException e) {
         setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getArguments());

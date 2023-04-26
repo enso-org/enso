@@ -54,7 +54,7 @@ public abstract class BuiltinRootNode extends RootNode implements InlineableRoot
    * @param <E> extra data to keep in the node
    * @param <N> node to delegate to from {@link #call(java.lang.Object...)} method
    */
-  protected abstract static class InlinedCallNode<E, N extends Node> extends DirectCallNode {
+  public abstract static class InlinedCallNode<E, N extends Node> extends DirectCallNode {
     protected final E extra;
     @Child protected N body;
 
@@ -62,6 +62,10 @@ public abstract class BuiltinRootNode extends RootNode implements InlineableRoot
       super(null);
       this.extra = extra;
       this.body = body;
+    }
+
+    public Object callWithFrame(VirtualFrame frame, Object... arguments) {
+      return call(arguments);
     }
 
     @Override
