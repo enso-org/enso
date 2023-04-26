@@ -155,7 +155,11 @@ make_json_for_value : Any -> Integer -> Text
 make_json_for_value val level=0 = case val of
     Nothing -> Nothing
     _ : Text -> val
-    _ : Number -> val
+    _ : Number ->
+        js_version = val.to_js_object
+        if js_version.is_a JS_Object . not then js_version else
+            pairs = [['_display_text_', val.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
+            JS_Object.from_pairs pairs
     _ : Boolean -> val
     _ : Vector ->
         if level != 0 then "[… "+val.length.to_text+" items]" else

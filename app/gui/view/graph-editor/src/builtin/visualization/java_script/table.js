@@ -151,6 +151,7 @@ class TableVisualization extends Visualization {
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (isMatrix(parsedData.json)) {
+            // Kept to allow visualization from older versions of the backend.
             columnDefs = [
                 { field: '#' },
                 ...parsedData.json[0].map((_, i) => ({ field: i.toString() })),
@@ -158,6 +159,7 @@ class TableVisualization extends Visualization {
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (isObjectMatrix(parsedData.json)) {
+            // Kept to allow visualization from older versions of the backend.
             let firstKeys = [{ field: '#' }, ...Object.keys(parsedData.json[0])]
             columnDefs = firstKeys.map(field => ({ field }))
             rowData = addRowIndex(parsedData.json)
