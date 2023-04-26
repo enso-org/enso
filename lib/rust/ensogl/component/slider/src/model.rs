@@ -160,7 +160,6 @@ impl Model {
         let track = track::View::new();
         let overflow_lower = overflow::View::new();
         let overflow_upper = overflow::View::new();
-        let scene = &app.display.default_scene;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
         root.add_child(&background);
@@ -171,12 +170,6 @@ impl Model {
         value.add_child(&value_text_dot);
         value.add_child(&value_text_right);
         app.display.default_scene.add_child(&tooltip);
-
-        value_text_left.add_to_scene_layer(&scene.layers.label);
-        value_text_dot.add_to_scene_layer(&scene.layers.label);
-        value_text_right.add_to_scene_layer(&scene.layers.label);
-        value_text_edit.add_to_scene_layer(&scene.layers.label);
-        label.add_to_scene_layer(&scene.layers.label);
 
         let model = Self {
             background,
