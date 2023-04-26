@@ -122,7 +122,9 @@ simple_types_map = Map.from_vector <|
     strings = [Types.CHAR, Types.VARCHAR] . map x-> [x, default_text]
     blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
-    ints + floats + numerics + strings + blobs + special_types
+    # Currently we do not support date-time types in SQLite, so we coerce them to text.
+    datetime = [Types.DATE, Types.TIME, Types.TIMESTAMP] . map x-> [x, default_text]
+    ints + floats + numerics + strings + blobs + special_types + datetime
 
 ## PRIVATE
    Maps operation names to functions that infer its result type.
