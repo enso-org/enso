@@ -227,7 +227,6 @@ function Dashboard(props: DashboardProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
     const [backendPlatform, setBackendPlatform] = react.useState(platformModule.Platform.cloud)
-    const [searchVal, setSearchVal] = react.useState('')
     const [refresh, doRefresh] = hooks.useRefresh()
 
     const [query, setQuery] = react.useState('')
@@ -577,7 +576,7 @@ function Dashboard(props: DashboardProps) {
                 setAssets(assets)
             }
         },
-        [accessToken, directoryId, refresh]
+        [accessToken, directoryId, refresh, backend]
     )
 
     react.useEffect(() => {
@@ -961,7 +960,7 @@ function Dashboard(props: DashboardProps) {
                             ))
                         }}
                     />
-                    {platform === platformModule.Platform.cloud && (
+                    {backendPlatform === platformModule.Platform.cloud && (
                         <>
                             <tr className="h-10" />
                             <Rows<cloudService.Asset<cloudService.AssetType.directory>>
