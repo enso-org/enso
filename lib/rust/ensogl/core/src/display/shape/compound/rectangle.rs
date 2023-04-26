@@ -106,7 +106,9 @@ impl Rectangle {
 
     /// Constructor.
     pub fn new() -> Self {
-        Self::default()
+        Self::default().build(|r| {
+            r.set_border_color(display::shape::INVISIBLE_HOVER_COLOR);
+        })
     }
 
     /// Builder-style modifier, allowing setting shape properties without creating a temporary
@@ -145,13 +147,15 @@ impl Rectangle {
 
     /// Set the border size of the shape. If you want to use border, you should always set the inset
     /// at least of the size of the border. If you do not want the border to be animated, you can
-    /// use [`Self::set_inset_border`] instead.
+    /// use [`Self::set_inset_border`] instead. To make the border visible, you also need to set the
+    /// border color using [`Self::set_border_color`].
     pub fn set_border(&self, border: f32) -> &Self {
         self.modify_view(|view| view.border.set(border))
     }
 
     /// Set both the inset and border at once. See documentation of [`Self::set_border`] and
-    /// [`Self::set_inset`] to learn more.
+    /// [`Self::set_inset`] to learn more. To make the border visible, you also need to set the
+    /// border color using [`Self::set_border_color`].
     pub fn set_inset_border(&self, border: f32) -> &Self {
         self.set_inset(border).set_border(border)
     }

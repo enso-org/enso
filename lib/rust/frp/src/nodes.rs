@@ -43,6 +43,14 @@ impl Network {
         self.register_raw(OwnedSource::new(label))
     }
 
+    /// A source that emits a single event when it is dropped. This is always returned as an owned
+    /// node, so its drop timing can be precisely controlled. It is not automatically retained by
+    /// the network. When the source is cloned, the event will only be emitted after all clones are
+    /// dropped.
+    pub fn on_drop(&self, label: Label) -> DropSource {
+        DropSource::new(label)
+    }
+
     /// Remember the last event value and allow sampling it anytime.
     pub fn sampler<T, Out>(&self, label: Label, src: &T) -> Sampler<Out>
     where
@@ -148,6 +156,27 @@ impl Network {
         T1: EventOutput,
         T2: EventOutput<Output = bool>, {
         self.register(OwnedGateNot::new(label, event, behavior))
+    }
+
+    /// Passes the incoming event of the first stream only if the value of the second stream is
+    /// true. If the event is received when condition is false, it is buffered and emitted when
+    /// the condition becomes true. Only the last received event value is emitted next time the
+    /// condition becomes true. A single received event will be reemitted at most once.
+    ///
+    /// Behavior: T---F---T-----F-------T---T---F---T--
+    /// Event:    --1--2-----3---4-5-6-----------------
+    /// Output:   --1-----2--3----------6--------------
+    pub fn buffered_gate<T1, T2>(
+        &self,
+        label: Label,
+        event: &T1,
+        behavior: &T2,
+    ) -> Stream<Output<T1>>
+    where
+        T1: EventOutput,
+        T2: EventOutput<Output = bool>,
+    {
+        self.register(OwnedBufferedGate::new(label, event, behavior))
     }
 
     /// Unwraps the value of incoming events and emits the unwrapped values.
@@ -427,6 +456,44 @@ impl Network {
         self.switch_constant(label, check, default(), t)
     }
 
+    /// Map the incoming value into a stream and connect the resulting stream to the output. When a
+    /// new value is emitted, the previous stream is disconnected and the new one is connected.
+    pub fn flat_map<T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Out>
+    where
+        T: EventOutput,
+        Out: Data,
+        F: 'static + Fn(&Output<T>) -> Stream<Out>, {
+        let output = self.any_mut(label);
+        let stream = output.clone().into();
+        let last_proxy: RefCell<OwnedAny<Out>> = RefCell::new(OwnedAny::new("flat_map proxy"));
+
+        self.map(label, src, move |t| {
+            let stream = f(t);
+            last_proxy.replace_with(|_| {
+                let next_proxy = OwnedAny::new1("flat_map proxy", &stream);
+                output.attach(&next_proxy);
+                next_proxy
+            });
+        });
+        stream
+    }
+
+    /// Whenever the incoming value is `true`, emit constant value. Otherwise, emit `None`.
+    pub fn then_constant<Cond, T>(&self, label: Label, check: &Cond, t: T) -> Stream<Option<T>>
+    where
+        Cond: EventOutput<Output = bool>,
+        T: Data, {
+        self.switch_constant(label, check, None, Some(t))
+    }
+
+    /// Emit the first input value if it is `Some`. Otherwise, emit the second input value.
+    pub fn unwrap_or<T, T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<T>
+    where
+        T1: EventOutput<Output = Option<T>>,
+        T2: EventOutput<Output = T>,
+        T: Data, {
+        self.all_with(label, t1, t2, |t1, t2| t1.as_ref().unwrap_or(t2).clone())
+    }
 
     // === Any ===
 
@@ -1841,12 +1908,29 @@ impl<Out: Data> OwnedSampler<Out> {
     pub fn value(&self) -> Out {
         self.value.borrow().clone()
     }
+
+    /// Perform scoped operation on sampler value without cloning it. The internal value is borrowed
+    /// for the duration of the passed function scope. Setting the sampler value inside the
+    /// function scope will cause a panic.
+    pub fn with<T>(&self, f: impl FnOnce(&Out) -> T) -> T {
+        let borrow = self.value.borrow();
+        f(&*borrow)
+    }
 }
 
 impl<Out: Data> Sampler<Out> {
     /// Sample the value.
     pub fn value(&self) -> Out {
         self.upgrade().map(|t| t.value.borrow().clone()).unwrap_or_default()
+    }
+
+    /// Perform scoped operation on sampler value without cloning it. The internal value is borrowed
+    /// for the duration of the passed function scope. Setting the sampler value inside the
+    /// function scope will cause a panic.
+    ///
+    /// If the sampler is already dropped, the function will return `None`.
+    pub fn with<T>(&self, f: impl FnOnce(&Out) -> T) -> Option<T> {
+        self.upgrade().map(|t| t.with(f))
     }
 }
 
@@ -2239,6 +2323,120 @@ where
 }
 
 impl<T1, T2> stream::InputBehaviors for GateNotData<T1, T2>
+where T2: EventOutput
+{
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![Link::behavior(&self.behavior)]
+    }
+}
+
+
+
+// ====================
+// === BufferedGate ===
+// ====================
+
+#[derive(Debug)]
+pub struct BufferedGateData<T1, T2> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event:    watch::Ref<T1>,
+    behavior: T2,
+    state:    Cell<BufferedGateState>,
+}
+pub type OwnedBufferedGate<T1, T2> = stream::Node<BufferedGateData<T1, T2>>;
+pub type BufferedGate<T1, T2> = stream::WeakNode<BufferedGateData<T1, T2>>;
+struct BufferedGateEdgeTrigger<T1: EventOutput, T2: EventOutput> {
+    gate: BufferedGate<T1, T2>,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum BufferedGateState {
+    /// Gate is currently open.
+    Active,
+    /// Gate is currently closed and haven't received any events since it was closed.
+    Inactive,
+    /// Gate is currently closed and have received at least one event since it was closed.
+    Buffered,
+}
+
+impl<T1: EventOutput, T2> HasOutput for BufferedGateData<T1, T2> {
+    type Output = Output<T1>;
+}
+
+impl<T1, T2> OwnedBufferedGate<T1, T2>
+where
+    T1: EventOutput,
+    T2: EventOutput<Output = bool>,
+{
+    /// Constructor.
+    pub fn new(label: Label, src: &T1, behavior: &T2) -> Self {
+        let event = watch_stream(src);
+        let state = match behavior.value() {
+            true => BufferedGateState::Active,
+            false => BufferedGateState::Inactive,
+        };
+        let definition =
+            BufferedGateData { event, behavior: behavior.clone_ref(), state: Cell::new(state) };
+        let this = Self::construct(label, definition);
+        let weak = this.downgrade();
+        let on_edge = BufferedGateEdgeTrigger { gate: weak.clone() };
+        behavior.register_target(stream::EventInput::new(Rc::new(on_edge)));
+        src.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1, T2> stream::EventConsumer<Output<T1>> for OwnedBufferedGate<T1, T2>
+where
+    T1: EventOutput,
+    T2: EventOutput<Output = bool>,
+{
+    fn on_event(&self, stack: CallStack, event: &Output<T1>) {
+        match self.state.get() {
+            BufferedGateState::Active => self.emit_event(stack, event),
+            BufferedGateState::Inactive => {
+                self.state.set(BufferedGateState::Buffered);
+            }
+            BufferedGateState::Buffered => (),
+        }
+    }
+}
+
+impl<T1, T2> stream::WeakEventConsumer<Output<T2>> for BufferedGateEdgeTrigger<T1, T2>
+where
+    T1: EventOutput,
+    T2: EventOutput<Output = bool>,
+{
+    fn is_dropped(&self) -> bool {
+        self.gate.is_dropped()
+    }
+
+    fn on_event_if_exists(&self, stack: CallStack, new_active: &bool) -> bool {
+        if let Some(gate) = self.gate.upgrade() {
+            match (gate.state.get(), new_active) {
+                (BufferedGateState::Active, false) => {
+                    gate.state.set(BufferedGateState::Inactive);
+                }
+                (BufferedGateState::Inactive, true) => {
+                    gate.state.set(BufferedGateState::Active);
+                }
+                (BufferedGateState::Buffered, true) => {
+                    gate.state.set(BufferedGateState::Active);
+                    gate.event.with(|value| gate.emit_event(stack, value));
+                }
+                _ => (),
+            }
+            true
+        } else {
+            false
+        }
+    }
+}
+
+
+impl<T1, T2> stream::InputBehaviors for BufferedGateData<T1, T2>
 where T2: EventOutput
 {
     fn input_behaviors(&self) -> Vec<Link> {
@@ -4715,5 +4913,58 @@ where T: EventOutput<Output = usize>
         for _ in 0..*event {
             self.emit_event(stack, &())
         }
+    }
+}
+
+
+// ==================
+// === DropSource ===
+// ==================
+
+
+/// A source that emits a single event when dropped.
+#[derive(CloneRef, Debug, Clone)]
+pub struct DropSource {
+    source: OwnedSource<()>,
+}
+
+impl DropSource {
+    fn new(label: Label) -> Self {
+        Self { source: OwnedSource::new(label) }
+    }
+}
+
+impl Drop for DropSource {
+    fn drop(&mut self) {
+        self.source.emit_event(&default(), &());
+    }
+}
+
+impl HasOutput for DropSource {
+    type Output = ();
+}
+
+impl ValueProvider for DropSource {
+    fn value(&self) {}
+
+    fn with<T>(&self, _: impl FnOnce(&()) -> T) -> Option<T>
+    where Self: Sized {
+        None
+    }
+}
+
+impl stream::EventEmitter for DropSource {
+    fn emit_event(&self, _: CallStack, _: &()) {}
+    fn register_target(&self, target: stream::EventInput<()>) {
+        self.source.register_target(target)
+    }
+    fn register_watch(&self) -> watch::Handle {
+        watch::Handle::null()
+    }
+}
+
+impl HasId for DropSource {
+    fn id(&self) -> Id {
+        self.source.id()
     }
 }
