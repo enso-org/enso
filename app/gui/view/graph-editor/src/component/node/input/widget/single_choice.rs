@@ -182,7 +182,7 @@ impl super::SpanWidget for Widget {
         };
         let child_level = ctx.info.nesting_level;
         let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, Some(&config));
-        self.label_wrapper.replace_children(&[child]);
+        self.label_wrapper.replace_children(&[child.root_object]);
     }
 }
 

@@ -780,7 +780,7 @@ impl TreeModel {
         };
 
         let child = builder.child_widget(tree.root_ref(), default());
-        self.display_object.replace_children(&[child]);
+        self.display_object.replace_children(&[child.root_object]);
 
         self.nodes_map.replace(builder.new_nodes);
         self.hierarchy.replace(builder.hierarchy);
@@ -1139,7 +1139,7 @@ impl<'a> TreeBuilder<'a> {
         &mut self,
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
-    ) -> display::object::Instance {
+    ) -> Child {
         self.child_widget_of_type(span_node, nesting_level, None)
     }
 
@@ -1159,7 +1159,7 @@ impl<'a> TreeBuilder<'a> {
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
         configuration: Option<&Configuration>,
-    ) -> display::object::Instance {
+    ) -> Child {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
         let parent_last_ast_depth = self.last_ast_depth;
@@ -1298,7 +1298,7 @@ impl<'a> TreeBuilder<'a> {
 
         let entry = TreeEntry { node: child_node, index: insertion_index };
         self.new_nodes.insert(widget_id, entry);
-        child_root
+        Child { id: widget_id, root_object: child_root }
     }
 }
 

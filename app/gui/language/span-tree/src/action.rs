@@ -12,6 +12,7 @@ use crate::SpanTree;
 use ast::opr::match_named_argument;
 use ast::opr::ArgWithOffset;
 use ast::Ast;
+use ast::SpanSeed;
 
 
 
@@ -142,6 +143,27 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             ),
                         };
                         Ok(infix.into_ast())
+                    } else if let ast::Shape::Tree(tree) = ast.shape() {
+                        let mut tree = tree.clone();
+                        let span_info = &mut tree.span_info;
+                        let has_children =
+                            span_info.iter().any(|span| matches!(span, ast::SpanSeed::Child(_)));
+                        match *kind {
+                            BeforeArgument(index) => {
+                                span_info.insert(index, ast::SpanSeed::child(new));
+                                span_info.insert(index + 1, ast::SpanSeed::token(",".to_owned()));
+                                span_info.insert(index + 2, ast::SpanSeed::space(1).unwrap());
+                            }
+                            Append => {
+                                if has_children {
+                                    span_info.push(ast::SpanSeed::token(",".to_owned()));
+                                    span_info.push(ast::SpanSeed::space(1).unwrap());
+                                }
+                                span_info.push(ast::SpanSeed::child(new));
+                            }
+                            _ => unreachable!("Wrong insertion point in tree."),
+                        }
+                        Ok(ast.with_shape(tree))
                     } else {
                         let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
                         let item = ast::prefix::Argument::new(new, DEFAULT_OFFSET, None);
@@ -266,6 +288,24 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             infix.args.pop();
                         }
                         Ok(infix.into_ast())
+                    } else if let (Crumb::Tree(crumb), ast::Shape::Tree(tree)) =
+                        (last_crumb, ast.shape())
+                    {
+                        let index = crumb.index;
+                        let mut tree = tree.clone();
+                        let span_info: &mut Vec<_> = &mut tree.span_info;
+                        let after = &span_info[index + 1..];
+                        let before = &span_info[..index];
+                        let is_child = |span: &SpanSeed<Ast>| span.is_child();
+                        let child_after_offset = after.iter().position(is_child);
+                        let child_before_offset = before.iter().rposition(is_child);
+                        let removed_range = match (child_after_offset, child_before_offset) {
+                            (Some(after), _) => index..=index + after,
+                            (None, Some(before)) => before + 1..=index,
+                            (None, None) => index..=index,
+                        };
+                        span_info.drain(removed_range);
+                        Ok(ast.with_shape(tree))
                     } else {
                         let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
                         prefix.args.pop();

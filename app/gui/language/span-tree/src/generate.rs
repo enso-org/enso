@@ -5,6 +5,7 @@ use enso_text::unit::*;
 
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
+use crate::node::InsertionPoint;
 use crate::node::InsertionPointType;
 use crate::node::Payload;
 use crate::ArgumentInfo;
@@ -819,6 +820,11 @@ fn tree_generate_node<T: Payload>(
     } else {
         let mut parent_offset = ByteDiff::from(0);
         let mut sibling_offset = ByteDiff::from(0);
+        let first_token_or_child =
+            tree.span_info.iter().filter(|span| !matches!(span, SpanSeed::Space(_))).next();
+        let is_array = matches!(first_token_or_child, Some(SpanSeed::Token(ast::SpanSeedToken { token })) if token == "[");
+        let last_children_index =
+            tree.span_info.iter().rposition(|span| matches!(span, SpanSeed::Child(_)));
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
             match raw_span_info {
                 SpanSeed::Space(ast::SpanSeedSpace { space }) => {
@@ -835,6 +841,17 @@ fn tree_generate_node<T: Payload>(
                     sibling_offset = 0.byte_diff();
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
+                    if is_array {
+                        let kind = InsertionPointType::BeforeArgument(index);
+                        children.push(node::Child {
+                            node: Node::<T>::new().with_kind(kind),
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs: vec![],
+                        });
+                        sibling_offset = 0.byte_diff();
+                    }
+
                     let kind = node::Kind::argument();
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
@@ -842,6 +859,16 @@ fn tree_generate_node<T: Payload>(
                     children.push(node::Child { node, parent_offset, sibling_offset, ast_crumbs });
                     parent_offset += child_size;
                     sibling_offset = 0.byte_diff();
+
+                    if Some(index) == last_children_index && is_array {
+                        let kind = InsertionPointType::Append;
+                        children.push(node::Child {
+                            node: Node::<T>::new().with_kind(kind),
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs: vec![],
+                        });
+                    }
                 }
             }
         }
