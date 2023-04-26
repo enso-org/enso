@@ -1,12 +1,14 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
+import project.Data.Text.Extensions
+import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
-import project.Data.Ordering.Comparable
-import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
+import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -132,13 +134,13 @@ type Period
     ## PRIVATE
        Convert Period to a friendly string.
     to_display_text : Text
-    to_display_text self =
+    to_display_text self = if self == Period.new then "0D" else
         years = self.years + (self.months/12).floor
-        y = if years = 0 then "" else years.to_text + "Y"
+        y = if years == 0 then "" else years.to_text + "Y "
+
+        d = if self.days == 0 then "" else self.days.to_text + "D "
 
         months = self.months % 12
-        m = if months = 0 then "" else months.to_text + "M"
+        m = if months == 0 && (y=="" || d=="") then "" else months.to_text + "M "
 
-        d = if self.days = 0 then "" else self.days.to_text + "D"
-
-        y + m + d
+        (y + m + d) . trim

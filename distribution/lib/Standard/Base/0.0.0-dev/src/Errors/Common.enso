@@ -163,8 +163,8 @@ type No_Such_Method
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        target_type = Meta.type_of self.target
-        "Method `"+self.method_name+"` of type "+target_type.to_display_text+" could not be found."
+        target_type_name = if Meta.is_polyglot self.target then self.to_display_text else (Meta.type_of self.target).to_display_text
+        "Method `"+self.method_name+"` of type "+target_type_name+" could not be found."
 
 @Builtin_Type
 type No_Such_Field
@@ -180,7 +180,9 @@ type No_Such_Field
     ## PRIVATE
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Field `"+self.field_name+"` of "+self.value.to_display_text+" could not be found."
+    to_display_text self =
+        target_type_name = if Meta.is_polyglot self.target then self.to_display_text else (Meta.type_of self.target).to_display_text
+        "Field `"+self.field_name+"` of "+target_type_name+" could not be found."
 
 @Builtin_Type
 type Module_Not_In_Package_Error
