@@ -370,8 +370,8 @@ final class SerializationManager(
           module.setLoadedFromCache(true)
           logger.log(
             debugLogLevel,
-            () =>
-              s"Restored IR from cache for module ${module.getName} at stage ${loadedCache.compilationStage()}."
+            "Restored IR from cache for module [{0}] at stage [{1}].",
+            Array[Object](module.getName, loadedCache.compilationStage())
           )
 
           if (!relinkedIrChecks.contains(false)) {
