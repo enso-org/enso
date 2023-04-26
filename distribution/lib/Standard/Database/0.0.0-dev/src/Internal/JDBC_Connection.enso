@@ -136,6 +136,8 @@ type JDBC_Connection
        Once the action is completed, the transaction is committed.
        If a panic escapes from the action, the transaction is rolled-back and
        closed.
+       If the rollback fails and panics, the panic related to the rollback will
+       take precedence over the original panic that caused that rollback.
     run_within_transaction : Any -> Any
     run_within_transaction self ~action =
         self.run_without_autocommit <|

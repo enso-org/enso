@@ -155,7 +155,6 @@ type Non_Unique_Primary_Key
 
        Arguments:
        - primary_key: The primary key that is not unique.
-       # TODO [RW] should we include `duplicate_rows` here to show example ids of rows that are not unique?
     Error (primary_key : Vector Text)
 
     ## PRIVATE

@@ -11,6 +11,10 @@ import org.enso.table.data.mask.SliceRange;
 import java.util.BitSet;
 import java.util.List;
 
+/**
+ * A helper class used in the Upload_Spec test to purposefully interrupt a table upload in the
+ * middle of it by throwing an exception. It is used to test the transactionality of the upload.
+ */
 public class ExplodingStorage extends Storage<Long> {
   private final long[] array;
   private final long explodingIndex;

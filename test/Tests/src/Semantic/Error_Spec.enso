@@ -289,7 +289,7 @@ spec =
 
             caught_js_arr_panic . should_equal "JS array:[1, 2, 3]"
 
-        Test.specify "should allow to use with_finalizer" <|
+        Test.specify "should allow to use `with_finalizer`" <|
             ref1 = Ref.new ""
             r1 = Panic.with_finalizer (ref1.put "finalized") <|
                 42
@@ -310,5 +310,30 @@ spec =
                 Error.throw (Illegal_Argument.Error "msg2")
             r3.should_fail_with Illegal_Argument
             ref3.get . should_equal "finalized"
+
+        Test.specify "should propagate any panics raised in `with_finalizer` finalization" <|
+            v1 = Vector.new_builder
+            c1 = Panic.catch Any handler=(.payload) <|
+                do_finalize =
+                    v1.append 2
+                    Panic.throw "finalizer"
+                do_act =
+                    v1.append 1
+                    42
+                Panic.with_finalizer do_finalize do_act
+            c1 . should_equal "finalizer"
+            v1.to_vector . should_equal [1, 2]
+
+            v2 = Vector.new_builder
+            c2 = Panic.catch Any handler=(.payload) <|
+                do_finalize =
+                    v2.append 2
+                    Panic.throw "finalizer"
+                do_act =
+                    v2.append 1
+                    Panic.throw "action"
+                Panic.with_finalizer do_finalize do_act
+            c2 . should_equal "finalizer"
+            v2.to_vector . should_equal [1, 2]
 
 main = Test_Suite.run_main spec
