@@ -99,6 +99,10 @@ public class Time_Utils {
     return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(date);
   }
 
+  public static String date_time_format_with_locale(ZonedDateTime dateTime, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(dateTime);
+  }
+
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
     return switch (op) {
       case PLUS -> date.plus(period);
