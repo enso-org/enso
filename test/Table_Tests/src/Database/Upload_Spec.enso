@@ -5,7 +5,6 @@ from Standard.Table.Errors import No_Such_Column
 
 from Standard.Database import all
 from Standard.Database.Errors import all
-from Standard.Database.Errors import Table_Not_Found, Non_Unique_Primary_Key
 from Standard.Database.Internal.Result_Set import result_set_to_table
 
 from Standard.Test import Test, Test_Suite, Problems

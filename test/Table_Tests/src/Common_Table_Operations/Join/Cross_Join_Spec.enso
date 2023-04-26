@@ -18,7 +18,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    db_todo = if prefix.contains "In-Memory" then Nothing else "Table.cross_join is still WIP for the DB backend."
+    db_todo = if setup.is_database.not then Nothing else "Table.cross_join is still WIP for the DB backend."
     Test.group prefix+"Table.cross_join" pending=db_todo <|
         Test.specify "should allow to create a cross product of two tables in the right order" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
@@ -150,4 +150,3 @@ spec setup =
             r5 = [100, 4, 'a', 'x']
             expected_rows = [r0, r1, r2, r3, r4, r5]
             r.should_equal expected_rows
-
