@@ -155,15 +155,17 @@ make_json_for_value : Any -> Integer -> Text
 make_json_for_value val level=0 = case val of
     Nothing -> Nothing
     _ : Text -> val
+    _ : Number -> val
+    _ : Boolean -> val
     _ : Vector ->
         if level != 0 then "[… "+val.length.to_text+" items]" else
-            truncated = val.take 5 . map v-> make_json_for_value v level+1
+            truncated = val.take 5 . map v-> (make_json_for_value v level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "[" + (prepared.join ", ") + "]"
     _ : Array -> make_json_for_value val.to_vector level
     _ : Map ->
         if level != 0 then "{… "+val.size.to_text+" items}" else
-            truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1)
+            truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
     _ : Dataframe_Column -> make_json_for_value val.to_table level
