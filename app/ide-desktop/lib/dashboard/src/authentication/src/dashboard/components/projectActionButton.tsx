@@ -22,6 +22,8 @@ enum SpinnerState {
 
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL = 10000
+/** The interval between requests checking whether the VM is ready. */
+const CHECK_RESOURCES_INTERVAL = 2500
 
 const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
     [SpinnerState.initial]: 'dasharray-5 ease-linear',
@@ -43,31 +45,19 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { project, openIde } = props
     const { backend } = backendProvider.useBackend()
 
-    const [state, setStateRaw] = react.useState(cloudService.ProjectState.created)
+    const [state, setState] = react.useState(cloudService.ProjectState.created)
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
+    const [isCheckingResources, setIsCheckingResources] = react.useState(false)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
-
-    function setState(newState: cloudService.ProjectState) {
-        if (newState !== cloudService.ProjectState.opened || !('checkResources' in backend)) {
-            setStateRaw(newState)
-        } else {
-            // Only change state if `checkResources` endpoint returns a value,
-            // indicating that the project is ready to be opened.
-            void backend.checkResources(project.id).then(() => {
-                setStateRaw(newState)
-            })
-        }
-    }
 
     react.useEffect(() => {
         async function checkProjectStatus() {
             const response = await backend.getProjectDetails(project.id)
-
-            setState(response.state.type)
-
             if (response.state.type === cloudService.ProjectState.opened) {
-                setSpinnerState(SpinnerState.done)
                 setIsCheckingStatus(false)
+                setIsCheckingResources(true)
+            } else {
+                setState(response.state.type)
             }
         }
         if (!isCheckingStatus) {
@@ -82,6 +72,35 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
         }
     }, [isCheckingStatus])
+
+    react.useEffect(() => {
+        async function checkProjectResources() {
+            if (!('checkResources' in backend)) {
+                setIsCheckingResources(false)
+            } else {
+                try {
+                    // This call will error if the VM is not ready yet.
+                    await backend.checkResources(project.id)
+                    setState(cloudService.ProjectState.opened)
+                    setIsCheckingResources(false)
+                    setSpinnerState(SpinnerState.done)
+                } catch {
+                    // Ignored.
+                }
+            }
+        }
+        if (!isCheckingResources) {
+            return
+        } else {
+            const handle = window.setInterval(
+                () => void checkProjectResources(),
+                CHECK_RESOURCES_INTERVAL
+            )
+            return () => {
+                clearInterval(handle)
+            }
+        }
+    }, [isCheckingResources])
 
     react.useEffect(() => {
         void (async () => {
