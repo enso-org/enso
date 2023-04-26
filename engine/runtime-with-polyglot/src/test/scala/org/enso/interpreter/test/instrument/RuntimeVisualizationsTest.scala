@@ -1733,7 +1733,7 @@ class RuntimeVisualizationsTest
       Api.Response(
         requestId,
         Api.VisualisationExpressionFailed(
-          "Method `does_not_exist` of Main could not be found.",
+          "Method `does_not_exist` of type Main could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
               message =
