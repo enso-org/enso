@@ -181,8 +181,8 @@ type No_Such_Field
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
-        "Field `"+self.field_name+"` of "+target_type_name+" could not be found."
+        value_type_name = if Meta.is_polyglot self.value then self.value.to_display_text else (Meta.type_of self.value).to_display_text
+        "Field `"+self.field_name+"` of "+value_type_name+" could not be found."
 
 @Builtin_Type
 type Module_Not_In_Package_Error
