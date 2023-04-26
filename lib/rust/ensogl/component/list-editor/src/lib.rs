@@ -258,10 +258,10 @@ impl<T> From<StrongPlaceholder> for ItemOrPlaceholder<T> {
 // === ListEditor ===
 // ==================
 
-ensogl_core::define_endpoints_2! { <T: ('static)>
+ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
     Input {
         /// Push a new element to the end of the list.
-        push(Weak<T>),
+        push(Rc<RefCell<Option<T>>>),
 
         insert((Index, Weak<T>)),
 
@@ -279,7 +279,7 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
     }
     Output {
         /// Fires whenever a new element was added to the list.
-        on_item_added(Response<(Index, Weak<T>)>),
+        on_item_added(Response<Index>),
 
         on_item_removed(Response<(Index, Weak<T>)>),
 
@@ -292,7 +292,7 @@ ensogl_core::define_endpoints_2! { <T: ('static)>
 
 #[derive(Derivative, CloneRef, Debug, Deref)]
 #[derivative(Clone(bound = ""))]
-pub struct ListEditor<T: 'static> {
+pub struct ListEditor<T: 'static + Debug> {
     #[deref]
     pub frp: Frp<T>,
     root:    display::object::Instance,
@@ -335,7 +335,7 @@ impl<T> From<Model<T>> for SharedModel<T> {
 }
 
 
-impl<T: display::Object + CloneRef> ListEditor<T> {
+impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
     pub fn new(cursor: &Cursor) -> Self {
         let frp = Frp::new();
         let model = Model::new(cursor);
@@ -358,9 +358,13 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
 
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
-            eval on_down ([] (event) event.stop_propagation());
-            target <= on_down.map(|event| event.target());
-            trace target;
+
+            sub_target <= on_down.map(|event| event.target());
+
+            indexed_target <= sub_target.map(f!([model] (t) {
+                let objs = t.rev_parent_chain();
+                objs.into_iter().find_map(|t| model.borrow().item_index_of(&t).map(|i| (i, t)))
+            }));
 
             on_up <- on_up_source.identity();
             on_up_cleaning_phase <- on_up_source.identity();
@@ -382,13 +386,19 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         }
 
         self.init_add_and_remove();
-        let (is_dragging, drag_diff) = self.init_dragging(&on_up, &on_down, &target, &pos_diff);
+        let (is_dragging, drag_diff, no_drag) =
+            self.init_dragging(&on_up, &on_down, &indexed_target, &pos_diff);
         let (is_trashing, trash_pointer_style) = self.init_trashing(&on_up, &drag_diff);
         self.init_dropping(&on_up, &pos_on_move_down, &is_trashing);
         let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
         frp::extend! { network
             cursor.frp.set_style <+ all [insert_pointer_style, trash_pointer_style].fold();
+            on_down_drag <- on_down.gate_not(&no_drag);
+            eval on_down_drag ([] (event) event.stop_propagation());
+            _eval <- no_drag.on_true().map3(&on_down, &sub_target, |_, event, target| {
+                target.emit_event(event.payload.clone());
+            });
         }
         self
     }
@@ -449,11 +459,11 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
 
         frp::extend! { network
             push_ix <= frp.push.map(f!((item) model.push_weak(item)));
-            on_pushed <- frp.push.map2(&push_ix, |t, ix| Response::api((*ix, t.clone())));
+            on_pushed <- frp.push.map2(&push_ix, |t, ix| Response::api(*ix));
             frp.private.output.on_item_added <+ on_pushed;
 
             insert_ix <= frp.insert.map(f!(((index, item)) model.insert_weak(*index, item)));
-            on_inserted <- frp.insert.map2(&insert_ix, |t, ix| Response::api((*ix, t.1.clone())));
+            on_inserted <- frp.insert.map2(&insert_ix, |t, ix| Response::api(*ix));
             frp.private.output.on_item_added <+ on_inserted;
 
             let on_item_removed = &frp.private.output.on_item_removed;
@@ -470,9 +480,9 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         &self,
         on_up: &frp::Stream<Event<mouse::Up>>,
         on_down: &frp::Stream<Event<mouse::Down>>,
-        target: &frp::Stream<display::object::Instance>,
+        target: &frp::Stream<((Index, ItemOrPlaceholderIndex), display::object::Instance)>,
         pos_diff: &frp::Stream<Vector2>,
-    ) -> (frp::Stream<bool>, frp::Stream<Vector2>) {
+    ) -> (frp::Stream<bool>, frp::Stream<Vector2>, frp::Stream<bool>) {
         let model = &self.model;
         let on_up = on_up.clone_ref();
         let on_down = on_down.clone_ref();
@@ -496,6 +506,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             init_drag_not_disabled <- init_drag.gate_not(&drag_disabled);
             is_dragging <- bool(&on_up, &init_drag_not_disabled).on_change();
             drag_diff <- pos_diff.gate(&is_dragging);
+            no_drag <- drag_disabled.gate_not(&is_dragging).on_change();
 
             status <- bool(&on_up, &drag_diff).on_change();
             start <- status.on_true();
@@ -507,7 +518,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
                 }
             });
         }
-        (status, drag_diff)
+        (status, drag_diff, no_drag)
     }
 
     /// Implementation of item trashing logic. See docs of this crate to learn more.
@@ -569,7 +580,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             let on_item_added = &frp.private.output.on_item_added;
             eval insert_index_on_drop ([model, on_item_added] (index)
                 if let Some((index, item)) = model.borrow_mut().place_dragged_item(*index) {
-                    on_item_added.emit(Response::gui((index, Rc::new(item).downgrade())));
+                    on_item_added.emit(Response::gui(index));
                 }
             );
         }
@@ -588,7 +599,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
     }
 
     pub fn push(&self, item: T) {
-        self.frp.push(Rc::new(item).downgrade());
+        self.frp.push(Rc::new(RefCell::new(Some(item))));
     }
 
     pub fn items(&self) -> Vec<T> {
@@ -609,8 +620,9 @@ impl<T: display::Object + CloneRef + 'static> SharedModel<T> {
         self.borrow_mut().push(item)
     }
 
-    fn push_weak(&self, item: &Weak<T>) -> Option<Index> {
-        item.upgrade().map(|item| self.push((*item).clone_ref()))
+    fn push_weak(&self, item: &Rc<RefCell<Option<T>>>) -> Option<Index> {
+        let item = mem::take(&mut *item.borrow_mut());
+        item.map(|item| self.push(item))
     }
 
     fn insert(&self, index: Index, item: T) -> Index {
@@ -678,7 +690,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
 
     /// Find an element by the provided display object reference.
     fn item_index_of(
-        &mut self,
+        &self,
         obj: &display::object::Instance,
     ) -> Option<(Index, ItemOrPlaceholderIndex)> {
         self.items
@@ -837,15 +849,14 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// be reused and scaled to cover the size of the dragged element.
     ///
     /// See docs of [`Self::start_item_drag_at`] for more information.
-    fn start_item_drag(&mut self, target: &display::object::Instance) -> Option<(Index, T)> {
-        let objs = target.rev_parent_chain();
-        let index = objs.into_iter().find_map(|obj| self.item_index_of(&obj));
-        if let Some((index, index_or_placeholder_index)) = index {
-            self.start_item_drag_at(index_or_placeholder_index).map(|item| (index, item))
-        } else {
-            warn!("Requested to drag a non-existent item.");
-            None
-        }
+    fn start_item_drag(
+        &mut self,
+        target: &((Index, ItemOrPlaceholderIndex), display::object::Instance),
+    ) -> Option<(Index, T)> {
+        // FIXME: ugly
+        let (index, index_or_placeholder_index) = target.0;
+        let item = &target.1;
+        self.start_item_drag_at(index_or_placeholder_index).map(|item| (index, item))
     }
 
     /// Remove the selected item from the item list and mark it as an element being dragged. In the
@@ -1034,7 +1045,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 }
 
-impl<T: 'static> display::Object for ListEditor<T> {
+impl<T: 'static + Debug> display::Object for ListEditor<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.root
     }

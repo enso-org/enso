@@ -2266,6 +2266,7 @@ impl InstanceDef {
         if event.captures.get() {
             for object in &rev_parent_chain {
                 if !event.is_cancelled() {
+                    event.set_current_target(object);
                     object.event.capturing_fan.emit(&event.data);
                 } else {
                     break;
@@ -2281,6 +2282,7 @@ impl InstanceDef {
         if event.bubbles.get() {
             for object in rev_parent_chain.iter().rev() {
                 if !event.is_cancelled() {
+                    event.set_current_target(object);
                     object.event.bubbling_fan.emit(&event.data);
                 } else {
                     break;

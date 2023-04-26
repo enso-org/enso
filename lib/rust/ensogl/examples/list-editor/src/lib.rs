@@ -97,21 +97,19 @@ pub fn main() {
 
     // let shape1_down = shape1.on_event::<mouse::Down>();
     frp::extend! { glob_frp_network
-        // eval_ shape1_down ([] {
-        //     warn!("Shape 1 down");
-        // });
-        // new_item <- vector_editor.request_new_item.map(|_| {
-        //     let shape = RoundedRectangle(10.0).build(|t| {
-        //         t.set_size(Vector2(100.0, 100.0))
-        //             .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
-        //             .set_inset_border(2.0)
-        //             .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
-        //     });
-        //     Rc::new(shape)
-        // });
-        // vector_editor.insert <+ vector_editor.request_new_item.map2(&new_item, |index, item|
-        //     (**index, item.downgrade())
-        // );
+        // trace vector_editor.request_new_item;
+        vector_editor.push <+ vector_editor.request_new_item.map(move |index| {
+            // let shape = RoundedRectangle(10.0).build(|t| {
+            //     t.set_size(Vector2(100.0, 100.0))
+            //         .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
+            //         .set_inset_border(2.0)
+            //         .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
+            // });
+            let slider = app.new_view::<slider::Slider>();
+            slider.set_size((200.0, 24.0));
+            // (**index, Rc::new(RefCell::new(Some(slider))))
+            Rc::new(RefCell::new(Some(slider)))
+        });
     }
 
     vector_editor.push(slider1);
@@ -126,7 +124,7 @@ pub fn main() {
 
 
     world.keep_alive_forever();
-    mem::forget(app);
+    // mem::forget(app);
     mem::forget(glob_frp);
     mem::forget(navigator);
     mem::forget(root);
