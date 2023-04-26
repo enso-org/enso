@@ -194,7 +194,9 @@ public final class EnsoDateTime implements TruffleObject {
     return Text.create(DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime));
   }
 
-  @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
+  @Builtin.Method(
+      name = "format_without_locale",
+      description = "Return this datetime to the datetime in the provided time zone.")
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public Text formatWithoutLocale(String pattern) {

@@ -6,12 +6,13 @@ import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
 from Standard.Test import Test, Test_Suite
+from project.Util import all
 
 spec =
     Test.group "Column.format" <|
         Test.specify "Date column" <|
             input = Column.from_vector "dates" [Date.new 2020 12 21, Date.new 2023 4 25]
-            expected = Column.from_vector "date" ["20201221", "20230425"]
+            expected = Column.from_vector "dates" ["20201221", "20230425"]
             actual = input.format "yyyyMMdd"
             actual . should_equal expected
 

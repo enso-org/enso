@@ -1183,13 +1183,14 @@ type Column
     format self format locale=Locale.default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         formatter = case self.value_type of
-            Date -> date_formatter self format locale problem_builder
+            Value_Type.Date ->
+                make_date_formatter format locale problem_builder
             #Date_Time -> format_as_date_time self format on_problems
             #Time -> format_as_time_of_day self format on_problems
             #Integer -> format_as_integer self format on_problems
             #Boolean,Float,Decimal
             bad_type ->
-                msg = "Cannot format a Column of type " + bad_type
+                msg = "Cannot format a Column of type " + bad_type.to_text
                 Error.throw (Illegal_Argument.Error msg)
         new_column = map_to_text_over_storage self formatter
         problem_builder.attach_problems_after on_problems new_column
@@ -1762,10 +1763,10 @@ wrap_text_argument_as_value_provider val =
 
 ## PRIVATE
    Create a `Date` formatter for the given format string.
-date_formatter : Date -> Text -> Locale -> Problem_Builder -> (Date -> Text)
-date_formatter date format locale problem_builder =
+make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
+make_date_formatter format locale problem_builder =
     _ = [problem_builder]
-    date.format format locale
+    date-> date.format format locale
 
 ## PRIVATE
    Map a text-returning function over the column values, using Storage directly.

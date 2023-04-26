@@ -680,4 +680,4 @@ type Date_Time
 
     ## PRIVATE
     format_without_locale : Text -> Text
-    format_without_locale self pattern = @Builtin_Method "Date_Time.formatWithoutLocale"
+    format_without_locale self pattern = @Builtin_Method "Date_Time.format_without_locale"
