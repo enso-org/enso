@@ -200,7 +200,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: 'IfStatement > ExpressionStatement',
-        message: 'Wrap `if` branches in `{}`'
+        message: 'Wrap `if` branches in `{}`',
     },
 ]
 
