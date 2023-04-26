@@ -1768,11 +1768,19 @@ make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_date_formatter format locale problem_builder =
     _ = [problem_builder]
     date->
-        handlr = cause->
-            problem_builder.report_other_warning (Illegal_Argument.Error cause.payload.getMessage)
-            Nothing
-        Panic.catch IllegalArgumentException handler=handlr
+        illegal_argument_to_warning problem_builder <|
             date.format format locale
+
+## PRIVATE
+   Convert a Java IllegalArgumentException to a problem warning; return Nothing
+   in that case.
+illegal_argument_to_warning : Problem_Builder -> Any -> Any
+illegal_argument_to_warning problem_builder ~action =
+    handler = cause->
+        problem_builder.report_other_warning (Illegal_Argument.Error cause.payload.getMessage)
+        Nothing
+    Panic.catch IllegalArgumentException handler=handler <|
+        action
 
 ## PRIVATE
    Map a text-returning function over the column values, using Storage directly.
