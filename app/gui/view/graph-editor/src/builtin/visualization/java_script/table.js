@@ -32,6 +32,10 @@ class TableVisualization extends Visualization {
     }
 
     onDataReceived(data) {
+        function addRowIndex(data) {
+            return data.map((row, i) => ({ ['#']: i, ...row }))
+        }
+
         function hasExactlyKeys(keys, obj) {
             return Object.keys(obj).length === keys.length && keys.every(k => obj.hasOwnProperty(k))
         }
@@ -65,44 +69,8 @@ class TableVisualization extends Visualization {
 
             if (content instanceof Object) {
                 const type = content.type
-                if (type === 'BigInt') {
-                    return BigInt(content.value)
-                } else if (content['_display_text_']) {
+                if (content['_display_text_']) {
                     return content['_display_text_']
-                } else if (type === 'Date') {
-                    return new Date(content.year, content.month - 1, content.day)
-                        .toISOString()
-                        .substring(0, 10)
-                } else if (type === 'Time_Of_Day') {
-                    const js_date = new Date(
-                        0,
-                        0,
-                        1,
-                        content.hour,
-                        content.minute,
-                        content.second,
-                        content.nanosecond / 1000000
-                    )
-                    return (
-                        js_date.toTimeString().substring(0, 8) +
-                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
-                    )
-                } else if (type === 'Date_Time') {
-                    const js_date = new Date(
-                        content.year,
-                        content.month - 1,
-                        content.day,
-                        content.hour,
-                        content.minute,
-                        content.second,
-                        content.nanosecond / 1000000
-                    )
-                    return (
-                        js_date.toISOString().substring(0, 10) +
-                        ' ' +
-                        js_date.toTimeString().substring(0, 8) +
-                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
-                    )
                 } else {
                     return `{ ${type} Object }`
                 }
@@ -136,7 +104,7 @@ class TableVisualization extends Visualization {
                     sortable: true,
                     filter: true,
                     resizable: true,
-                    minWidth: 50,
+                    minWidth: 25,
                     headerValueGetter: params => params.colDef.field,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
@@ -158,22 +126,49 @@ class TableVisualization extends Visualization {
                 },
             ])
             this.agGridOptions.api.setRowData([{ Error: parsedData.error }])
-        } else if (parsedData.json != null && isMatrix(parsedData.json)) {
-            columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
-            rowData = parsedData.json
+        } else if (parsedData.type === 'Matrix') {
+            let defs = [{ field: '#' }]
+            for (let i = 0; i < parsedData.column_count; i++) {
+                defs.push({ field: i.toString() })
+            }
+            columnDefs = defs
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null && isObjectMatrix(parsedData.json)) {
-            let firstKeys = Object.keys(parsedData.json[0])
+        } else if (parsedData.type === 'Object_Matrix') {
+            let defs = [{ field: '#' }]
+            let keys = {}
+            parsedData.json.forEach(val => {
+                if (val) {
+                    Object.keys(val).forEach(k => {
+                        if (!keys[k]) {
+                            keys[k] = true
+                            defs.push({ field: k })
+                        }
+                    })
+                }
+            })
+            columnDefs = defs
+            rowData = addRowIndex(parsedData.json)
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
+        } else if (isMatrix(parsedData.json)) {
+            // Kept to allow visualization from older versions of the backend.
+            columnDefs = [
+                { field: '#' },
+                ...parsedData.json[0].map((_, i) => ({ field: i.toString() })),
+            ]
+            rowData = addRowIndex(parsedData.json)
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
+        } else if (isObjectMatrix(parsedData.json)) {
+            // Kept to allow visualization from older versions of the backend.
+            let firstKeys = [{ field: '#' }, ...Object.keys(parsedData.json[0])]
             columnDefs = firstKeys.map(field => ({ field }))
-            rowData = parsedData.json.map(obj =>
-                firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
-            )
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null && Array.isArray(parsedData.json)) {
+        } else if (Array.isArray(parsedData.json)) {
             columnDefs = [{ field: '#' }, { field: 'Value' }]
             rowData = parsedData.json.map((row, i) => ({ ['#']: i, Value: toRender(row) }))
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null) {
+        } else if (parsedData.json !== undefined) {
             columnDefs = [{ field: 'Value' }]
             rowData = [{ Value: toRender(parsedData.json) }]
         } else {

@@ -394,6 +394,8 @@
   for thousands and decimal point automatic detection.][6253]
 - [Implemented `Table.parse_text_to_table`.][6294]
 - [Added `Table.parse_to_columns`.][6383]
+- [Added parsing methods for `Integer`, `Decimal`, `Json`, `Date`, `Date_Time`,
+  `Time_Of_Day`, `Time_Zone`, and `URI` to `Text`.][6404]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -595,6 +597,7 @@
 [6253]: https://github.com/enso-org/enso/pull/6253
 [6294]: https://github.com/enso-org/enso/pull/6294
 [6383]: https://github.com/enso-org/enso/pull/6383
+[6404]: https://github.com/enso-org/enso/pull/6404
 [6347]: https://github.com/enso-org/enso/pull/6347
 
 #### Enso Compiler

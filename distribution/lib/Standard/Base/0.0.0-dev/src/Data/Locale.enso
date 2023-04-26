@@ -413,4 +413,11 @@ type Locale
     ## PRIVATE
        Converts the locale to text.
     to_text : Text | Nothing
-    to_text self = self.java_locale.toLanguageTag
+    to_text self =
+        tag = self.java_locale.toLanguageTag
+        if tag == "" then "Default" else tag
+
+    ## PRIVATE
+       Convert Locale to a friendly string.
+    to_display_text : Text
+    to_display_text self = "Locale(" + self.to_text + ")"

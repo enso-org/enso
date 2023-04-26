@@ -1,5 +1,6 @@
-import project.Data.Vector.Vector
 import project.Data.Boolean.Boolean
+import project.Data.Text.Text
+import project.Data.Vector.Vector
 
 polyglot java import java.nio.file.attribute.PosixFilePermission
 
@@ -108,3 +109,12 @@ type File_Permissions
             others.append Permission.Execute
 
         File_Permissions.Value owner.to_vector group.to_vector others.to_vector
+
+    ## PRIVATE
+       Convert to a display representation of this File_Permissions.
+    to_display_text : Text
+    to_display_text self =
+        owner = "Owner: " + (if self.owner_read then "r" else "-") + (if self.owner_write then "w" else "-") + (if self.owner_execute then "x" else "-")
+        group = "Group: " + (if self.group_read then "r" else "-") + (if self.group_write then "w" else "-") + (if self.group_execute then "x" else "-")
+        other = "Other: " + (if self.others_read then "r" else "-") + (if self.others_write then "w" else "-") + (if self.others_execute then "x" else "-")
+        owner + ", " + group + ", " + other

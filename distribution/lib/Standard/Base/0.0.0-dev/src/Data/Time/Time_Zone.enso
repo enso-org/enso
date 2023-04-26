@@ -170,3 +170,8 @@ type Time_Zone
         type_pair = ["type", "Time_Zone"]
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
+
+    ## PRIVATE
+       Convert to a display representation of this Time_Zone.
+    to_display_text : Text
+    to_display_text self = self.to_text

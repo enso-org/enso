@@ -173,6 +173,12 @@ type Header
     text_plain : Header
     text_plain = Header.content_type "text/plain"
 
+
+    ## PRIVATE
+       Convert to a display representation of this Header.
+    to_display_text : Text
+    to_display_text self = self.name + ": " + self.value.to_display_text
+
 ## PRIVATE
 type Header_Comparator
     ## PRIVATE

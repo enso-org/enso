@@ -95,6 +95,12 @@ type Span
     to_utf_16_span self =
         Utf_16_Span.Value (range_to_char_indices self.parent self.range) self.parent
 
+    ## PRIVATE
+       Convert to a display representation of this Span.
+    to_display_text : Text
+    to_display_text self = self.text
+
+
 type Utf_16_Span
     ## A representation of a span of UTF-16 code units in Enso's `Text` type.
 
@@ -164,6 +170,11 @@ type Utf_16_Span
                        extended to contain this whole grapheme.
                     grapheme_end = grapheme_last + 1
                     Span.Value (grapheme_first.up_to grapheme_end) self.parent
+
+    ## PRIVATE
+       Convert to a display representation of this Span.
+    to_display_text : Text
+    to_display_text self = self.text
 
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
