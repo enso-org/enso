@@ -21,7 +21,7 @@ enum SpinnerState {
 // =================
 
 /** The interval between requests checking whether the IDE is ready. */
-const STATUS_CHECK_INTERVAL = 10000
+const CHECK_STATUS_INTERVAL = 10000
 
 const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
     [SpinnerState.initial]: 'dasharray-5 ease-linear',
@@ -44,7 +44,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { backend } = backendProvider.useBackend()
 
     const [state, setStateRaw] = react.useState(cloudService.ProjectState.created)
-    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(null)
+    const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     function setState(newState: cloudService.ProjectState) {
@@ -60,39 +60,44 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }
 
     react.useEffect(() => {
+        async function checkProjectStatus() {
+            const response = await backend.getProjectDetails(project.id)
+
+            setState(response.state.type)
+
+            if (response.state.type === cloudService.ProjectState.opened) {
+                setSpinnerState(SpinnerState.done)
+                setIsCheckingStatus(false)
+            }
+        }
+        if (!isCheckingStatus) {
+            return
+        } else {
+            const handle = window.setInterval(
+                () => void checkProjectStatus(),
+                CHECK_STATUS_INTERVAL
+            )
+            return () => {
+                clearInterval(handle)
+            }
+        }
+    }, [isCheckingStatus])
+
+    react.useEffect(() => {
         void (async () => {
             const projectDetails = await backend.getProjectDetails(project.id)
             setState(projectDetails.state.type)
             if (projectDetails.state.type === cloudService.ProjectState.openInProgress) {
                 setSpinnerState(SpinnerState.initial)
-                setCheckStatusInterval(
-                    window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
-                )
+                setIsCheckingStatus(true)
             }
         })()
     }, [])
 
-    async function checkProjectStatus() {
-        const response = await backend.getProjectDetails(project.id)
-
-        setState(response.state.type)
-
-        if (response.state.type === cloudService.ProjectState.opened) {
-            setCheckStatusInterval(null)
-            if (checkStatusInterval != null) {
-                clearInterval(checkStatusInterval)
-            }
-            setSpinnerState(SpinnerState.done)
-        }
-    }
-
     function closeProject() {
         setState(cloudService.ProjectState.closed)
         void backend.closeProject(project.id)
-        setCheckStatusInterval(null)
-        if (checkStatusInterval != null) {
-            clearInterval(checkStatusInterval)
-        }
+        setIsCheckingStatus(false)
     }
 
     function openProject() {
@@ -104,12 +109,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
-
         void backend.openProject(project.id)
-
-        setCheckStatusInterval(
-            window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
-        )
+        setIsCheckingStatus(true)
     }
 
     switch (state) {
