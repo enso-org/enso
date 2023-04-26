@@ -12,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @BuiltinMethod(type = "Any", name = "to_display_text")
@@ -32,6 +33,21 @@ public abstract class AnyToDisplayTextNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Specialization
+  Text convertInteger(long self) {
+    return Text.create(Long.toString(self));
+  }
+
+  @Specialization
+  Text convertDouble(double self) {
+    return Text.create(Double.toString(self));
+  }
+
+  @Specialization
+  Text convertBigInteger(EnsoBigInteger bigInteger) {
+    return Text.create(bigInteger.toString());
   }
 
   @Specialization
