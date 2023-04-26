@@ -1,4 +1,11 @@
 //! A slider UI component that allows adjusting a value through mouse interaction.
+//!
+//! # Important [WD]
+//! Please note that the implementation is not finished yet. It was refactored to make the slider
+//! implementation use the newest EnsoGL API, however, not all functionality was restored yet. As
+//! this component is not used in the application yet, it is kept as is, but should be updated
+//! before the real usage. In particualar, vertical sliders and sliders that behave as scrollbars
+//! are not working correctly now.
 
 #![recursion_limit = "512"]
 // === Standard Linter Configuration ===
@@ -212,8 +219,11 @@ ensogl_core::define_endpoints_2! {
         set_value_indicator_color(color::Lcha),
         /// Set the color of the slider's background.
         set_background_color(color::Lcha),
+        /// Allow dragging the start point of sliders track.
         enable_start_track_drag(bool),
+        /// Allow dragging the end point of sliders track.
         enable_end_track_drag(bool),
+        /// Allow dragging the sliders track by pressing in the middle of it.
         enable_middle_track_drag(bool),
         /// Set the slider value.
         set_value(f32),
@@ -288,8 +298,9 @@ ensogl_core::define_endpoints_2! {
         width(f32),
         /// The component's height.
         height(f32),
+        /// The slider track's start position.
         start_value(f32),
-        /// The slider's value.
+        /// The slider track's end position.
         end_value(f32),
         /// The slider's resolution.
         resolution(f32),
@@ -305,8 +316,6 @@ ensogl_core::define_endpoints_2! {
         disabled(bool),
         /// Indicates whether the slider's value is being edited currently.
         editing(bool),
-        // /// The orientation of the slider, either horizontal or vertical.
-        // orientation(Axis2),
     }
 }
 
@@ -662,7 +671,11 @@ impl Slider {
             eval obj.on_resized((size) model.update_size(*size));
             min_limit_anim.target <+ output.min_value;
             max_limit_anim.target <+ output.max_value;
-            indicator_pos <- all_with4(&model.start_value_animation.value, &model.end_value_animation.value, &min_limit_anim.value, &max_limit_anim.value,
+            indicator_pos <- all_with4(
+                &model.start_value_animation.value,
+                &model.end_value_animation.value,
+                &min_limit_anim.value,
+                &max_limit_anim.value,
                 |start_value, end_value, min, max| {
                     let total = max - min;
                     ((start_value - min) / total, (end_value - min) / total)
