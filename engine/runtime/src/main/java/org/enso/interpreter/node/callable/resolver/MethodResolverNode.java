@@ -49,7 +49,6 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(replaces = "resolveCached")
-  @CompilerDirectives.TruffleBoundary
   Function resolveUncached(Type self, UnresolvedSymbol symbol) {
     return symbol.resolveFor(self);
   }
