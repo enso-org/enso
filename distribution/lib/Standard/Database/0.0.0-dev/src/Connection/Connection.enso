@@ -218,3 +218,17 @@ type Connection
     drop_table : Text -> Nothing
     drop_table self table_name =
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))
+
+    ## PRIVATE
+       This is essentially an alias for `generate_sql` and `execute_update`, but
+       it is a hook notifying the connection of the table being created. The
+       connection can use that information. Any table creation should be ran
+       through this hook, instead of `execute_update` directly.
+    execute_create_table : Query -> Nothing
+    execute_create_table self create_table_query =
+        case create_table_query of
+            Query.Create_Table _ _ _ _ ->
+                statement = self.dialect.generate_sql create_table_query
+                result = self.execute_update statement
+                if result != 0 then Panic.throw (Illegal_State.Error "CREATE TABLE should have returned 0 on success, but it returned "+result.to_display_text+".")
+            _ -> Panic.throw (Illegal_Argument.Error "execute_create_table can only be used with `Query.Create_Table`.")

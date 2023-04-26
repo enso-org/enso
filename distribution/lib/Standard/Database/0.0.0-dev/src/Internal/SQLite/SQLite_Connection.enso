@@ -12,6 +12,7 @@ import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Dialect
 import project.Data.Table.Table as Database_Table
+import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
@@ -132,6 +133,15 @@ type SQLite_Connection
     drop_table : Text -> Nothing
     drop_table self table_name =
         self.connection.drop_table table_name
+
+    ## PRIVATE
+       This is essentially an alias for `generate_sql` and `execute_update`, but
+       it is a hook notifying the connection of the table being created. The
+       connection can use that information. Any table creation should be ran
+       through this hook, instead of `execute_update` directly.
+    execute_create_table : Query -> Nothing
+    execute_create_table self create_table_query =
+        self.connection.execute_create_table create_table_query
 
 ## PRIVATE
 
