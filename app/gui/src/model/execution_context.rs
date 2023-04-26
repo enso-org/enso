@@ -511,6 +511,9 @@ pub trait API: Debug {
         &'a self,
         execution_environment: ExecutionEnvironment,
     ) -> BoxFuture<'a, FallibleResult>;
+
+    /// Get the execution environment of the context.
+    fn execution_environment(&self) -> ExecutionEnvironment;
 }
 
 // Note: Needless lifetimes

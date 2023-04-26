@@ -329,6 +329,10 @@ impl model::execution_context::API for ExecutionContext {
         }
         .boxed_local()
     }
+
+    fn execution_environment(&self) -> ExecutionEnvironment {
+        self.model.execution_environment.get()
+    }
 }
 
 impl Drop for ExecutionContext {

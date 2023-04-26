@@ -287,6 +287,10 @@ impl model::execution_context::API for ExecutionContext {
         self.execution_environment.set(environment);
         futures::future::ready(Ok(())).boxed_local()
     }
+
+    fn execution_environment(&self) -> ExecutionEnvironment {
+        self.execution_environment.get()
+    }
 }
 
 
