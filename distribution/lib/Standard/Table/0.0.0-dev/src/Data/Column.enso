@@ -1766,7 +1766,7 @@ wrap_text_argument_as_value_provider val =
 make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_date_formatter format locale problem_builder =
     _ = [problem_builder]
-    date-> date.format format locale
+    _.format format locale
 
 ## PRIVATE
    Map a text-returning function over the column values, using Storage directly.
