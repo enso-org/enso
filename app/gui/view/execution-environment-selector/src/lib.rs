@@ -263,7 +263,7 @@ impl component::Frp<Model> for Frp {
             selected_id <- dropdown.frp.chosen_entry.unwrap();
             selection <- all(input.set_available_execution_environments, selected_id);
             selected_entry <- selection.map(|(entries, entry_id)| entries[*entry_id]);
-            output.selected_execution_environment <+ selected_entry;
+            output.selected_execution_environment <+ selected_entry.on_change();
 
             eval selected_entry ([model] (execution_mode) {
                 let play_button_visibility = matches!(execution_mode, ExecutionEnvironment::Design);

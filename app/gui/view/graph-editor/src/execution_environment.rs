@@ -22,7 +22,7 @@ pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
         // === Execution Environment Changes ===
 
         selector.set_available_execution_environments <+ frp.set_available_execution_environments;
-        out.execution_environment <+ selector.selected_execution_environment;
+        out.execution_environment <+ selector.selected_execution_environment.on_change();
         out.execution_environment_play_button_pressed <+ selector.play_press;
 
 
