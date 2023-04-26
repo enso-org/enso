@@ -6,6 +6,7 @@ use double_representation::identifier::Identifier;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
@@ -503,6 +504,13 @@ pub trait API: Debug {
 
     /// Adjust method pointers after the project rename action.
     fn rename_method_pointers(&self, old_project_name: String, new_project_name: String);
+
+    /// Set the execution environment of the context.
+    #[allow(clippy::needless_lifetimes)]
+    fn set_execution_environment<'a>(
+        &'a self,
+        execution_environment: ExecutionEnvironment,
+    ) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes

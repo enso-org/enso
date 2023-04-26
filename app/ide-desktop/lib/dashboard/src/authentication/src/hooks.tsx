@@ -3,6 +3,17 @@ import * as react from 'react'
 
 import * as loggerProvider from './providers/logger'
 
+// ==================
+// === useRefresh ===
+// ==================
+
+/** A hook that contains no state, and is used only to tell React when to re-render. */
+export function useRefresh() {
+    // Uses an empty object literal because every distinct literal
+    // is a new reference and therefore is not equal to any other object literal.
+    return react.useReducer(() => ({}), {})
+}
+
 // ======================
 // === useAsyncEffect ===
 // ======================

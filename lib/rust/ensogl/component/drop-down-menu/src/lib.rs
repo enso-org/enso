@@ -40,10 +40,8 @@ use ensogl_text as text;
 
 /// Invisible dummy color to catch hover events.
 const HOVER_COLOR: color::Rgba = color::Rgba::new(1.0, 0.0, 0.0, 0.000_001);
-/// The width of the visualisation selection menu.
-const MENU_WIDTH: f32 = 180.0;
-
-
+/// The default width of the selection menu.
+const DEFAULT_MENU_WIDTH: f32 = 180.0;
 
 // ==============
 // === Shapes ===
@@ -122,6 +120,7 @@ ensogl_core::define_endpoints! {
         set_menu_offset_y   (f32),
         set_menu_alignment  (Alignment),
         set_label_alignment (Alignment),
+        set_width           (f32),
     }
     Output {
         menu_visible    (bool),
@@ -270,9 +269,11 @@ impl DropDownMenu {
             // === Layouting ===
 
             let menu_height = DEPRECATED_Animation::<f32>::new(network);
+            let menu_width = frp.set_width.clone_ref();
 
-            eval menu_height.value ([model](height) {
-                model.selection_menu.frp.resize.emit(Vector2::new(MENU_WIDTH,*height));
+            resize_menu <- all(menu_width,menu_height.value);
+            eval resize_menu ([model]((width,height)) {
+                model.selection_menu.frp.resize.emit(Vector2::new(*width,*height));
                 if *height <= 0.0 {
                     model.hide_selection_menu();
                 } else if *height > 0.0 {
@@ -298,29 +299,29 @@ impl DropDownMenu {
                 model.selection_menu.set_x(x_offset);
             });
 
-            label_position <- all(model.label.frp.width,frp.input.set_icon_size,model.label.frp.height,
-                frp.input.set_label_alignment);
-            eval label_position ([model]((text_width,icon_size,text_height,alignment)) {
+            label_position <- all5(&model.label.frp.width,&frp.input.set_icon_size,&model.label.frp
+                .height,&frp.input.set_label_alignment,&menu_width);
+            eval label_position ([model]((text_width,icon_size,text_height,alignment,menu_width)) {
                 let base_offset = match alignment {
-                    Alignment::Left => -MENU_WIDTH/2.0+icon_size.x/2.0,
-                    Alignment::Right => -text_width-icon_size.x/2.0,
+                    Alignment::Left => -menu_width + icon_size.x / 2.0,
+                    Alignment::Right => -text_width-icon_size.x / 2.0,
                 };
                 model.label.set_x(base_offset);
                 // Adjust for text offset, so this appears more centered.
                 model.label.set_y(0.5 * text_height);
             });
 
-            overlay_size <- all(
-                model.label.frp.width,
-                model.label.frp.height,
-                frp.input.set_icon_size,
-                frp.input.set_icon_padding);
-            eval overlay_size ([model]((text_width,text_height,icon_size,icon_padding)) {
+            overlay_size <- all4(
+                &model.label.frp.height,
+                &frp.input.set_icon_size,
+                &frp.input.set_icon_padding,
+                &menu_width);
+            eval overlay_size ([model]((text_height,icon_size,icon_padding,menu_width)) {
                 let height = icon_size.y.max(*text_height);
-                let width = text_width + icon_size.x + icon_padding.x;
+                let width = *menu_width;
                 let size = Vector2::new(width,height);
                 model.click_overlay.set_size(size);
-                model.click_overlay.set_x(-width/2.0 + icon_size.x/2.0 - icon_padding.x);
+                model.click_overlay.set_x(-width / 2.0 + icon_size.x / 2.0 - icon_padding.x);
             });
 
 
@@ -417,7 +418,7 @@ impl DropDownMenu {
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
         model.label.set_property_default(text_color);
-
+        frp.set_width.emit(DEFAULT_MENU_WIDTH);
         self
     }
 

@@ -1,9 +1,9 @@
 /** @file Container that launches the IDE. */
 import * as react from 'react'
 
+import * as backendProvider from '../../providers/backend'
 import * as cloudService from '../cloudService'
 import * as platformModule from '../../platform'
-import * as projectManagerService from '../localService'
 
 // =================
 // === Constants ===
@@ -24,27 +24,34 @@ const JS_EXTENSION: Record<platformModule.Platform, string> = {
 interface Props {
     project: cloudService.Project
     backendPlatform: platformModule.Platform
-    backendService: cloudService.Backend | projectManagerService.Backend
 }
 
 /** Container that launches the IDE. */
 function Ide(props: Props) {
-    const { project, backendPlatform, backendService } = props
+    const { project, backendPlatform } = props
+    const { backend } = backendProvider.useBackend()
+
+    react.useEffect(() => {
+        document.getElementById(IDE_ELEMENT_ID)?.classList.remove('hidden')
+        return () => {
+            document.getElementById(IDE_ELEMENT_ID)?.classList.add('hidden')
+        }
+    }, [])
 
     react.useEffect(() => {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
-                ('listVersions' in backendService
-                    ? await backendService.listVersions({
+                ('listVersions' in backend
+                    ? await backend.listVersions({
                           versionType: cloudService.VersionType.ide,
                           default: true,
                       })
                     : null)?.[0].number.value
             const engineVersion =
                 project.engineVersion?.value ??
-                ('listVersions' in backendService
-                    ? await backendService.listVersions({
+                ('listVersions' in backend
+                    ? await backend.listVersions({
                           versionType: cloudService.VersionType.backend,
                           default: true,
                       })

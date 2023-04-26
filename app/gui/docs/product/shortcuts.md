@@ -50,6 +50,7 @@ broken and require further investigation.
 | <kbd>escape</kbd>                                                               | Cancel current action. For example, drop currently dragged connection.                                                                                                                                                                               |
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>                                    | Terminate the program execution                                                                                                                                                                                                                      |
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>                                    | Re-execute the program                                                                                                                                                                                                                               |
+| <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>e</kbd>                                    | Toggle the execution environment between Live and Design.                                                                                                                                                                                            |
 
 #### Navigation
 

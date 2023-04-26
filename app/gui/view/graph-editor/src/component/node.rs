@@ -11,11 +11,11 @@ use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
-use crate::ExecutionEnvironment;
 use crate::Type;
 use crate::WidgetUpdates;
 
 use super::edge;
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;

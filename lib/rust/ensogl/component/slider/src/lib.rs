@@ -27,10 +27,11 @@ use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::Animation;
-use ensogl_text::formatting;
+use ensogl_text::formatting::Weight;
 
 
 // ==============
@@ -49,7 +50,7 @@ pub mod model;
 /// much the value is changed per pixel dragged and how many digits are displayed after the decimal.
 const PRECISION_DEFAULT: f32 = 1.0;
 /// Default upper limit of the slider value.
-const MAX_VALUE_DEFAULT: f32 = 1.0;
+const MAX_VALUE_DEFAULT: f32 = 100.0;
 /// Default for the maximum number of digits after the decimal point that is displayed.
 const MAX_DISP_DECIMAL_PLACES_DEFAULT: usize = 8;
 /// Margin above/below the component within which vertical mouse movement will not affect slider
@@ -103,15 +104,15 @@ pub enum LabelPosition {
 // === Slider orientation ===
 // ==========================
 
-/// The orientation of the slider component.
-#[derive(Clone, Copy, Debug, Default)]
-pub enum SliderOrientation {
-    #[default]
-    /// The slider value is changed by dragging the slider horizontally.
-    Horizontal,
-    /// The slider value is changed by dragging the slider vertically.
-    Vertical,
-}
+// /// The orientation of the slider component.
+// #[derive(Clone, Copy, Debug, Default)]
+// pub enum Axis2 {
+//     #[default]
+//     /// The slider value is changed by dragging the slider horizontally.
+//     Horizontal,
+//     /// The slider value is changed by dragging the slider vertically.
+//     Vertical,
+// }
 
 
 
@@ -121,15 +122,15 @@ pub enum SliderOrientation {
 
 /// The type of element that indicates the slider's value along its length.
 #[derive(Clone, Copy, Debug, Default)]
-pub enum ValueIndicator {
+pub enum Kind {
     #[default]
     /// A track is a bar that fills the slider as the value increases. The track is empty when the
     /// slider's value is at the lower limit and filled when the value is at the upper limit.
-    Track,
+    SingleValue,
     /// A thumb is a small element that moves across the slider as the value changes. The thumb is
     /// on the left/lower end of the slider when the slider's value is at the lower limit and on
     /// the right/upper end of the slider when the value is at the upper limit.
-    Thumb,
+    Scrollbar(f32),
 }
 
 
@@ -160,15 +161,19 @@ pub enum SliderLimit {
 
 /// Adaptive upper limit adjustment.
 fn adapt_upper_limit(
-    &(value, min, max, max_ext, upper_limit): &(f32, f32, f32, f32, SliderLimit),
+    value: f32,
+    min: f32,
+    max: f32,
+    max_ext: f32,
+    upper_limit: SliderLimit,
 ) -> f32 {
     if upper_limit == SliderLimit::Adaptive && value > max {
         let range = max_ext - min;
         let extend = value > max_ext;
         let shrink = value < min + range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let max_ext = match (extend, shrink) {
-            (true, _) => adapt_upper_limit(&(value, min, max, min + range * 2.0, upper_limit)),
-            (_, true) => adapt_upper_limit(&(value, min, max, min + range * 0.5, upper_limit)),
+            (true, _) => adapt_upper_limit(value, min, max, min + range * 2.0, upper_limit),
+            (_, true) => adapt_upper_limit(value, min, max, min + range * 0.5, upper_limit),
             _ => max_ext,
         };
         max_ext.max(max) // Do no set extended limit below original `max`.
@@ -179,15 +184,19 @@ fn adapt_upper_limit(
 
 /// Adaptive lower limit adjustment.
 fn adapt_lower_limit(
-    &(value, min, max, min_ext, lower_limit): &(f32, f32, f32, f32, SliderLimit),
+    value: f32,
+    min: f32,
+    max: f32,
+    min_ext: f32,
+    lower_limit: SliderLimit,
 ) -> f32 {
     if lower_limit == SliderLimit::Adaptive && value < min {
         let range = max - min_ext;
         let extend = value < min_ext;
         let shrink = value > max - range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let min_ext = match (extend, shrink) {
-            (true, _) => adapt_lower_limit(&(value, min, max, max - range * 2.0, lower_limit)),
-            (_, true) => adapt_lower_limit(&(value, min, max, max - range * 0.5, lower_limit)),
+            (true, _) => adapt_lower_limit(value, min, max, max - range * 2.0, lower_limit),
+            (_, true) => adapt_lower_limit(value, min, max, max - range * 0.5, lower_limit),
             _ => min_ext,
         };
         min_ext.min(min) // Do no set extended limit above original `min`.
@@ -216,12 +225,12 @@ fn value_limit_clamp(
 
 ensogl_core::define_endpoints_2! {
     Input {
-        /// Set the width of the slider component.
-        set_width(f32),
-        /// Set the height of the slider component.
-        set_height(f32),
+        // /// Set the width of the slider component.
+        // set_width(f32),
+        // /// Set the height of the slider component.
+        // set_height(f32),
         /// Set the type of the slider's value indicator.
-        set_value_indicator(ValueIndicator),
+        kind(Kind),
         /// Set the color of the slider's value indicator.
         set_value_indicator_color(color::Lcha),
         /// Set the color of the slider's background.
@@ -239,7 +248,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the color of the text displaying the current value.
         set_value_text_color(color::Lcha),
         /// Set whether the slider's value text is hidden.
-        set_value_text_hidden(bool),
+        show_value(bool),
         /// Set the default precision at which the slider operates. The slider's precision
         /// determines by what increment the value will be changed on mouse movement. It also
         /// affects the number of digits after the decimal point displayed.
@@ -267,7 +276,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the position of the slider's label.
         set_label_position(LabelPosition),
         /// Set the orientation of the slider component.
-        set_orientation(SliderOrientation),
+        orientation(Axis2),
         /// Set a tooltip that pops up when the mose hovers over the component.
         set_tooltip(ImString),
         /// Set the delay of the tooltip showing after the mouse hovers over the component.
@@ -317,8 +326,8 @@ ensogl_core::define_endpoints_2! {
         disabled(bool),
         /// Indicates whether the slider's value is being edited currently.
         editing(bool),
-        /// The orientation of the slider, either horizontal or vertical.
-        orientation(SliderOrientation),
+        // /// The orientation of the slider, either horizontal or vertical.
+        // orientation(Axis2),
     }
 }
 
@@ -357,13 +366,14 @@ impl Slider {
 
     fn init(self) -> Self {
         self.init_value_update();
-        self.init_value_editing();
         self.init_limit_handling();
         self.init_value_display();
+
+        self.init_value_editing();
         self.init_precision_popup();
         self.init_information_tooltip();
         self.init_component_layout();
-        self.init_component_colors();
+        // self.init_component_colors();
         self.init_slider_defaults();
         self
     }
@@ -371,182 +381,109 @@ impl Slider {
     /// Initialize the slider value update FRP network.
     fn init_value_update(&self) {
         let network = self.frp.network();
+        let frp = &self.frp;
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
         let scene = &self.app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
         let keyboard = &scene.keyboard.frp;
-        let component_events = &model.background.events_deprecated;
+
+        let ptr_down_any = model.background.on_event::<mouse::Down>();
+        let ptr_up_any = scene.on_event::<mouse::Up>();
+        let ptr_out = model.background.on_event::<mouse::Out>();
+        let ptr_over = model.background.on_event::<mouse::Over>();
+
+        let obj = model.display_object();
 
         frp::extend! { network
-
-            // === User input ===
-
-            component_click <- component_events.mouse_down_primary
-                .gate_not(&input.set_slider_disabled);
-            component_click <- component_click.gate_not(&output.editing);
-            slider_disabled_is_true <- input.set_slider_disabled.on_true();
-            slider_editing_is_true <- output.editing.on_true();
-            component_release <- any3(
-                &component_events.mouse_release_primary,
-                &slider_disabled_is_true,
-                &slider_editing_is_true,
+            ptr_down <- ptr_down_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
+            ptr_up <- ptr_up_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
+            pos <- mouse.position.map(
+                f!([scene, model] (p) scene.screen_to_object_space(&model.background, *p))
             );
-            component_drag <- bool(&component_release, &component_click);
-            component_drag <- component_drag.gate_not(&input.set_slider_disabled);
-            component_drag <- component_drag.gate_not(&keyboard.is_control_down);
-            component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
-            drag_start_pos <- mouse.position.sample(&component_click);
-            drag_end_pos <- mouse.position.gate(&component_drag);
-            drag_end_pos <- any2(&drag_end_pos, &drag_start_pos);
-            drag_delta <- all2(&drag_end_pos, &drag_start_pos).map(|(end, start)| end - start);
-            drag_delta_primary <- all2(&drag_delta, &input.set_orientation);
-            drag_delta_primary <- drag_delta_primary.map( |(delta, orientation)|
-                match orientation {
-                    SliderOrientation::Horizontal => delta.x,
-                    SliderOrientation::Vertical => delta.y,
-                }
-            ).on_change();
-            mouse_position_click <- mouse.position.sample(&component_click);
-            mouse_position_drag <- mouse.position.gate(&component_drag);
-            mouse_position_click_or_drag <- any2(&mouse_position_click, &mouse_position_drag);
-            mouse_local <- mouse_position_click_or_drag.map(
-                f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos))
-            );
-            mouse_local_secondary <- all2(&mouse_local, &input.set_orientation);
-            mouse_local_secondary <- mouse_local_secondary.map( |(offset, orientation)|
-                match orientation {
-                    SliderOrientation::Horizontal => offset.y,
-                    SliderOrientation::Vertical => offset.x,
-                }
-            );
-            output.hovered <+ bool(&component_events.mouse_out, &component_events.mouse_over);
-            output.dragged <+ component_drag;
+            value_on_ptr_down <- output.value.sample(&ptr_down);
 
+            ptr_down <- ptr_down.gate_not(&frp.set_slider_disabled);
+            ptr_down <- ptr_down.gate_not(&output.editing);
+            on_disabled <- input.set_slider_disabled.on_true();
+            on_editing <- output.editing.on_true();
+            on_drag_start <- ptr_down.gate_not(&keyboard.is_control_down);
+            on_drag_stop <- any3(&ptr_up, &on_disabled, &on_editing);
+            dragging <- bool(&on_drag_stop, &on_drag_start);
+            drag_start <- pos.sample(&on_drag_start);
+            drag_end <- pos.gate(&dragging).any2(&drag_start);
+            drag_delta <- all2(&drag_end, &drag_start).map(|(end, start)| end - start);
+            drag_delta1 <- all_with(&drag_delta, &frp.orientation, |t, d| t.get_dim(d)).on_change();
+            orientation_orth <- frp.orientation.map(|o| o.orthogonal());
+            prec_delta <- all_with(&drag_end, &orientation_orth, |t, d| t.get_dim(d)).on_change();
 
-            // === Get slider value on drag start ===
-
-            value_reset <- input.set_default_value.sample(&component_ctrl_click);
-            value_on_click <- output.value.sample(&component_click);
-            value_on_click <- any2(&value_reset, &value_on_click);
+            output.hovered <+ bool(&ptr_out, &ptr_over);
+            output.dragged <+ dragging;
 
 
             // === Precision calculation ===
 
-            slider_length <- all3(&input.set_orientation, &input.set_width, &input.set_height);
-            slider_length <- slider_length.map( |(orientation, width, height)|
-                match orientation {
-                    SliderOrientation::Horizontal => *width,
-                    SliderOrientation::Vertical => *height,
-                }
-            );
-            slider_length <- all3(
-                &slider_length,
-                &input.set_value_indicator,
-                &input.set_thumb_size
-            );
-            slider_length <- slider_length.map(|(length, indicator, thumb_size)|
-                match indicator {
-                    ValueIndicator::Thumb => length * (1.0 - thumb_size),
-                    ValueIndicator::Track => *length,
-                }
-            );
-            min_value_on_click <- output.min_value.sample(&component_click);
-            min_value_on_click <- any2(&min_value_on_click, &input.set_min_value);
-            max_value_on_click <- output.max_value.sample(&component_click);
-            max_value_on_click <- any2(&max_value_on_click, &input.set_max_value);
-            slider_range <- all2(&min_value_on_click, &max_value_on_click);
-            slider_range <- slider_range.map(|(min, max)| max - min);
-            prec_at_mouse_speed <- all2(&slider_length, &slider_range).map(|(l, r)| r / l);
+            length <- all_with(&obj.on_resized, &frp.orientation, |size, dim| size.get_dim(dim));
+            width <- all_with(&obj.on_resized, &orientation_orth, |size, dim| size.get_dim(dim));
 
-            output.precision <+ prec_at_mouse_speed.sample(&component_click);
-            precision_adjustment_margin <- all4(
-                &input.set_width,
-                &input.set_height,
-                &input.set_precision_adjustment_margin,
-                &input.set_orientation,
-            );
-            precision_adjustment_margin <- precision_adjustment_margin.map(
-                |(width, height, margin, orientation)| match orientation {
-                    SliderOrientation::Horizontal => height / 2.0 + margin,
-                    SliderOrientation::Vertical => width / 2.0 + margin,
+            empty_space <- all_with3(&length, &frp.kind, &frp.set_thumb_size,
+                |length, indicator, _thumb_size|
+                match indicator {
+                    Kind::Scrollbar(thumb_size) => length * (1.0 - thumb_size),
+                    Kind::SingleValue => *length,
                 }
             );
-            precision_offset_steps <- all3(
-                &mouse_local_secondary,
-                &precision_adjustment_margin,
-                &input.set_precision_adjustment_step_size,
-            );
-            precision_offset_steps <- precision_offset_steps.map(
-                |(offset, margin, step_size)| {
-                    let sign = offset.signum();
-                    // Calculate mouse y-position offset beyond margin.
-                    let offset = offset.abs() - margin;
-                    if offset < 0.0 { return None } // No adjustment if offset is within margin.
-                    // Calculate number of steps and direction of the precision adjustment.
-                    let steps = (offset / step_size).ceil() * sign;
-                    match steps {
-                        // Step 0 is over the component, which returns early. Make step 0 be the
-                        // first adjustment step above the component (precision = 1.0).
-                        steps if steps > 0.0 => Some(steps - 1.0),
-                        steps => Some(steps),
-                    }
+
+            slider_range <- all_with(&output.max_value, &output.min_value, |max, min| *max - *min);
+            native_precision <- all2(&empty_space, &slider_range).map(|(l, r)| r / l);
+
+            non_native_precision <- all_with5(
+                &width,
+                &frp.set_precision_adjustment_margin,
+                &prec_delta,
+                &frp.set_precision_adjustment_step_size,
+                &frp.set_max_precision_adjustment_steps,
+            |width, margin, prec_delta, step_size, max_steps| {
+                    let prec_margin = width / 2.0 + margin;
+                    let sign = prec_delta.signum() as i32;
+                    let offset = prec_delta.abs() - prec_margin;
+                    let level = min(*max_steps as i32, (offset / step_size).ceil() as i32) * sign;
+                    (level != 0).as_some_from(|| {
+                        let exp = if level > 0 { level - 1 } else { level };
+                        let precision = 10.0_f32.powf(exp as f32);
+                        precision
+                    })
                 }
             ).on_change();
-            precision_offset_steps <- all2(
-                &precision_offset_steps,
-                &input.set_max_precision_adjustment_steps,
-            );
-            precision_offset_steps <- precision_offset_steps.map(|(step, max_step)|
-                step.map(|step| step.clamp(- (*max_step as f32), *max_step as f32))
-            );
-            precision <- all4(
-                &prec_at_mouse_speed,
-                &input.set_default_precision,
-                &precision_offset_steps,
-                &input.set_precision_adjustment_disabled,
-            );
-            precision <- precision.map(
-                |(mouse_prec, step_prec, offset, disabled)| match (offset, disabled) {
-                    // Adjust the precision by the number of offset steps.
-                    (Some(offset), false) =>
-                        *step_prec * (PRECISION_ADJUSTMENT_STEP_BASE).pow(*offset),
-                    // Set the precision for 1:1 track movement to mouse movement.
-                    _ => *mouse_prec,
-                }
-            );
+            precision <- all_with(&non_native_precision, &native_precision, |t,s| t.unwrap_or(*s));
+            output.precision <+ precision;
 
 
             // === Value calculation ===
 
-            update_value <- bool(&component_release, &value_on_click);
-            value <- all3(&value_on_click, &precision, &drag_delta_primary);
-            value <- value.gate(&update_value);
-            value <- value.map(|(value, precision, delta)| value + delta * precision);
-            value <- any2(&input.set_value, &value);
-            // Snap the slider's value to the nearest precision increment.
-            value <- all2(&value, &precision);
-            value <- value.map(|(value, precision)| (value / precision).round() * precision);
+            value <- drag_delta1.map3(&value_on_ptr_down, &precision,
+                |delta, value, precision| value + delta * precision);
+            value <- any2(&frp.set_value, &value);
             value <- all5(
                 &value,
-                &input.set_min_value,
-                &input.set_max_value,
-                &input.set_lower_limit_type,
-                &input.set_upper_limit_type,
+                &frp.set_min_value,
+                &frp.set_max_value,
+                &frp.set_lower_limit_type,
+                &frp.set_upper_limit_type,
             ).map(value_limit_clamp);
             output.value <+ value;
-            output.precision <+ precision;
 
-            model.value_animation.target <+ value;
-            small_value_step <- all2(&precision, &prec_at_mouse_speed);
-            small_value_step <- small_value_step.map(|(prec, threshold)| prec <= threshold);
-            value_adjust <- drag_delta_primary.map(|x| *x != 0.0);
-            prec_adjust <- precision.on_change();
-            prec_adjust <- bool(&value_adjust, &prec_adjust);
-            skip_value_anim <- value.constant(()).gate(&small_value_step);
-            skip_value_anim <- skip_value_anim.gate(&value_adjust).gate_not(&prec_adjust);
-            model.value_animation.skip <+ skip_value_anim;
+
+            // === Value Reset ===
+
+            reset_value <- ptr_down.gate(&keyboard.is_control_down);
+            value_on_reset <- input.set_default_value.sample(&reset_value);
+            output.value <+ value_on_reset;
+
+
+            // === Value Animation ===
+            model.value_animation.target <+ output.value;
         };
     }
 
@@ -558,35 +495,35 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            min_value <- all5(
+            min_value <- all_with5(
                 &output.value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.min_value,
                 &input.set_lower_limit_type,
-            );
-            min_value <- min_value.map(adapt_lower_limit).on_change();
+                |a,b,c,d,e| adapt_lower_limit(*a,*b,*c,*d,*e)
+            ).on_change();
             output.min_value <+ min_value;
-            max_value<- all5(
+
+            max_value <- all_with5(
                 &output.value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.max_value,
                 &input.set_upper_limit_type,
-            );
-            max_value <- max_value.map(adapt_upper_limit).on_change();
+                |a,b,c,d,e|adapt_upper_limit(*a,*b,*c,*d,*e)
+            ).on_change();
             output.max_value <+ max_value;
 
-            overflow_lower <- all2(&output.value, &output.min_value).map(|(val, min)| val < min );
-            overflow_upper <- all2(&output.value, &output.max_value).map(|(val, max)| val > max );
-            overflow_lower <- overflow_lower.on_change();
-            overflow_upper <- overflow_upper.on_change();
+            overflow_lower <- all_with(&output.value, &min_value, |v, min| v < min).on_change();
+            overflow_upper <- all_with(&output.value, &max_value, |v, max| v > max).on_change();
             eval overflow_lower((v) model.set_overflow_lower_visible(*v));
             eval overflow_upper((v) model.set_overflow_upper_visible(*v));
         };
     }
 
-    /// Initialize the value display FRP network.
+    /// Initialize the value display FRP network. Sets text to bold if the value is not the default
+    /// one and manages the value display on the slider.
     fn init_value_display(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
@@ -594,24 +531,24 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            eval input.set_value_text_hidden((v) model.set_value_text_hidden(*v));
-            value <- output.value.gate_not(&input.set_value_text_hidden).on_change();
-            precision <- output.precision.gate_not(&input.set_value_text_hidden).on_change();
-            value_is_default <- all2(&value, &input.set_default_value).map(|(val, def)| val==def);
-            value_is_default_true <- value_is_default.on_true();
-            value_is_default_false <- value_is_default.on_false();
-            eval_ value_is_default_true(model.set_value_text_property(formatting::Weight::Normal));
-            eval_ value_is_default_false(model.set_value_text_property(formatting::Weight::Bold));
+            eval input.show_value((v) model.show_value(*v));
 
-            value_text_left_right <- all3(&value, &precision, &input.set_max_disp_decimal_places);
-            value_text_left_right <- value_text_left_right.map(value_text_truncate_split);
-            value_text_left <- value_text_left_right._0();
-            value_text_right <- value_text_left_right._1();
-            model.value_text_left.set_content <+ value_text_left;
-            value_text_right_is_visible <- value_text_right.map(|t| t.is_some()).on_change();
-            value_text_right <- value_text_right.gate(&value_text_right_is_visible);
-            model.value_text_right.set_content <+ value_text_right.unwrap();
-            eval value_text_right_is_visible((v) model.set_value_text_right_visible(*v));
+            value <- output.value.sampled_gate(&input.show_value);
+            default_value <- input.set_default_value.sampled_gate(&input.show_value);
+            is_default <- all_with(&value, &default_value, |val, def| val == def);
+            text_weight <- switch_constant(&is_default, Weight::Bold, Weight::Normal);
+            eval text_weight ((v) model.set_value_text_property(*v));
+
+            precision <- output.precision.sampled_gate(&input.show_value);
+            max_decimal_places <- input.set_max_disp_decimal_places.sampled_gate(&input.show_value);
+            text <- all_with3(&value, &precision, &max_decimal_places, display_value);
+            text_left <- text._0();
+            text_right <- text._1();
+            model.value_text_left.set_content <+ text_left;
+            text_right_visible <- text_right.map(|t| t.is_some()).on_change();
+            new_text_right <= text_right.gate(&text_right_visible);
+            model.value_text_right.set_content <+ new_text_right;
+            eval text_right_visible((v) model.set_value_text_right_visible(*v));
         };
     }
 
@@ -689,17 +626,19 @@ impl Slider {
         let min_limit_anim = Animation::new_non_init(network);
         let max_limit_anim = Animation::new_non_init(network);
 
+        let obj = model.display_object();
+
         frp::extend! { network
-            comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
-            eval comp_size((size) model.update_size(*size));
-            eval input.set_value_indicator((i) model.set_value_indicator(i));
-            output.width <+ input.set_width;
-            output.height <+ input.set_height;
+            // comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
+            eval obj.on_resized((size) model.update_size(*size));
+            eval input.kind((i) model.kind(i));
+            // output.width <+ input.set_width;
+            // output.height <+ input.set_height;
             min_limit_anim.target <+ output.min_value;
             max_limit_anim.target <+ output.max_value;
             indicator_pos <- all3(&model.value_animation.value, &min_limit_anim.value, &max_limit_anim.value);
             indicator_pos <- indicator_pos.map(|(value, min, max)| (value - min) / (max - min));
-            indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.set_orientation);
+            indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.orientation);
             eval indicator_pos((v) model.set_indicator_position(v));
 
             value_text_left_pos_x <- all3(
@@ -722,28 +661,28 @@ impl Slider {
             eval model.value_text_edit.width((w) model.value_text_edit.set_x(-*w / 2.0));
             eval model.value_text_edit.height((h) model.value_text_edit.set_y(*h / 2.0));
 
-            overflow_marker_position <- all3(
-                &input.set_width,
-                &input.set_height,
-                &input.set_orientation,
-            );
-            eval overflow_marker_position((p) model.set_overflow_marker_position(p));
-            overflow_marker_shape <- all2(&model.value_text_left.height, &input.set_orientation);
-            eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));
+            // overflow_marker_position <- all3(
+            //     &input.set_width,
+            //     &input.set_height,
+            //     &input.orientation,
+            // );
+            // eval overflow_marker_position((p) model.set_overflow_marker_position(p));
+            // overflow_marker_shape <- all2(&model.value_text_left.height, &input.orientation);
+            // eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));
+            //
+            // eval input.set_label_hidden((v) model.set_label_hidden(*v));
+            // model.label.set_content <+ input.set_label;
+            // label_position <- all6(
+            //     &input.set_width,
+            //     &input.set_height,
+            //     &model.label.width,
+            //     &model.label.height,
+            //     &input.set_label_position,
+            //     &input.orientation,
+            // );
+            // eval label_position((p) model.set_label_position(p));
 
-            eval input.set_label_hidden((v) model.set_label_hidden(*v));
-            model.label.set_content <+ input.set_label;
-            label_position <- all6(
-                &input.set_width,
-                &input.set_height,
-                &model.label.width,
-                &model.label.height,
-                &input.set_label_position,
-                &input.set_orientation,
-            );
-            eval label_position((p) model.set_label_position(p));
-
-            output.orientation <+ input.set_orientation;
+            // output.orientation <+ input.orientation;
         };
     }
 
@@ -785,7 +724,7 @@ impl Slider {
 
         frp::extend! { network
             start_editing <- input.start_value_editing.gate_not(&output.disabled);
-            start_editing <- start_editing.gate_not(&input.set_value_text_hidden);
+            start_editing <- start_editing.gate(&input.show_value);
             value_on_edit <- output.value.sample(&start_editing);
             prec_on_edit <- output.precision.sample(&start_editing);
             max_places_on_edit <-
@@ -835,6 +774,8 @@ impl Slider {
         self.frp.set_tooltip_delay(INFORMATION_TOOLTIP_DELAY);
         self.frp.set_precision_popup_duration(PRECISION_ADJUSTMENT_POPUP_DURATION);
         self.frp.set_thumb_size(THUMB_SIZE_DEFAULT);
+        self.show_value(true);
+        self.orientation(Axis2::X);
     }
 }
 
@@ -904,9 +845,7 @@ fn value_text_truncate((value, precision, max_digits): &(f32, f32, usize)) -> St
 
 /// Rounds a floating point value to a specified precision and provides two strings: one with the
 /// digits left of the decimal point, and one optional with the digits right of the decimal point.
-fn value_text_truncate_split(
-    (value, precision, max_digits): &(f32, f32, usize),
-) -> (ImString, Option<ImString>) {
+fn display_value(value: &f32, precision: &f32, max_digits: &usize) -> (ImString, Option<ImString>) {
     let text = value_text_truncate(&(*value, *precision, *max_digits));
     let mut text_iter = text.split('.');
     let text_left = text_iter.next().map(|s| s.to_im_string()).unwrap_or_default();
@@ -953,42 +892,42 @@ mod tests {
 
     #[test]
     fn test_high_precision() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.01, 8));
+        let (left, right) = display_value(&123.4567, &0.01, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("46".to_im_string()));
     }
 
     #[test]
     fn test_low_precision() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 10.0, 8));
+        let (left, right) = display_value(&123.4567, &10.0, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_precision_is_zero() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.0, 8));
+        let (left, right) = display_value(&123.4567, &0.0, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("45670319".to_im_string()));
     }
 
     #[test]
     fn test_precision_is_nan() {
-        let (left, right) = value_text_truncate_split(&(123.4567, NAN, 8));
+        let (left, right) = display_value(&123.4567, &NAN, &8);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_value_is_nan() {
-        let (left, right) = value_text_truncate_split(&(NAN, 0.01, 8));
+        let (left, right) = display_value(&NAN, &0.01, &8);
         assert_eq!(left, "NaN".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_zero_decimal_places() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.01, 0));
+        let (left, right) = display_value(&123.4567, &0.01, &0);
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
