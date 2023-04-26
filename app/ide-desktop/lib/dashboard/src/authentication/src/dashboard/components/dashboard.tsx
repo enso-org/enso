@@ -617,7 +617,7 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    const getNewProjectName = (templateName?: string | null): string => {
+    function getNewProjectName(templateName?: string | null): string {
         const prefix = `${templateName ?? 'New_Project'}_`
         const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
         let highestProjectIndex = 0
@@ -630,7 +630,7 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    const handleCreateProject = async (templateName: string | null) => {
+    async function handleCreateProject(templateName: string | null) {
         const projectName = getNewProjectName(templateName)
         switch (platform) {
             case platformModule.Platform.cloud: {
@@ -638,7 +638,7 @@ function Dashboard(props: DashboardProps) {
                     projectName,
                     projectTemplateName:
                         templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
-                    parentDirectoryId: null,
+                    parentDirectoryId: directoryId,
                 }
                 if (templateName) {
                     body.projectTemplateName = templateName.replace(/_/g, '').toLocaleLowerCase()
