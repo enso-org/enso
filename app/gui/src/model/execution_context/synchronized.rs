@@ -11,6 +11,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
 use engine_protocol::language_server;
+use engine_protocol::language_server::ExecutionEnvironment;
 
 
 
@@ -298,7 +299,11 @@ impl model::execution_context::API for ExecutionContext {
         async move {
             self.language_server
                 .client
-                .recompute(&self.id, &language_server::InvalidatedExpressions::All)
+                .recompute(
+                    &self.id,
+                    &language_server::InvalidatedExpressions::All,
+                    &Some(self.model.execution_environment.get()),
+                )
                 .await?;
             Ok(())
         }
@@ -307,6 +312,22 @@ impl model::execution_context::API for ExecutionContext {
 
     fn rename_method_pointers(&self, old_project_name: String, new_project_name: String) {
         self.model.rename_method_pointers(old_project_name, new_project_name);
+    }
+
+    fn set_execution_environment(
+        &self,
+        execution_environment: ExecutionEnvironment,
+    ) -> BoxFuture<FallibleResult> {
+        self.model.execution_environment.set(execution_environment);
+        async move {
+            info!("Setting execution environment to {execution_environment:?}.");
+            self.language_server
+                .client
+                .set_execution_environment(&self.id, &execution_environment)
+                .await?;
+            Ok(())
+        }
+        .boxed_local()
     }
 }
 
