@@ -214,16 +214,18 @@ function Dashboard(props: DashboardProps) {
     >([])
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.compact)
 
-    const [projectAssets, setProjectAssets] = react.useState<
+    const [projectAssets, setProjectAssetsRaw] = react.useState<
         backend.Asset<backend.AssetType.project>[]
     >([])
-    const [directoryAssets, setDirectoryAssets] = react.useState<
+    const [directoryAssets, setDirectoryAssetsRaw] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
     >([])
-    const [secretAssets, setSecretAssets] = react.useState<
+    const [secretAssets, setSecretAssetsRaw] = react.useState<
         backend.Asset<backend.AssetType.secret>[]
     >([])
-    const [fileAssets, setFileAssets] = react.useState<backend.Asset<backend.AssetType.file>[]>([])
+    const [fileAssets, setFileAssetsRaw] = react.useState<backend.Asset<backend.AssetType.file>[]>(
+        []
+    )
     const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
         backend.Asset<backend.AssetType.project>[]
     >([])
@@ -245,6 +247,23 @@ function Dashboard(props: DashboardProps) {
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
+
+    function setProjectAssets(newProjectAssets: backend.Asset<backend.AssetType.project>[]) {
+        setProjectAssetsRaw(newProjectAssets)
+        setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
+    }
+    function setDirectoryAssets(newDirectoryAssets: backend.Asset<backend.AssetType.directory>[]) {
+        setDirectoryAssetsRaw(newDirectoryAssets)
+        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
+    }
+    function setSecretAssets(newSecretAssets: backend.Asset<backend.AssetType.secret>[]) {
+        setSecretAssetsRaw(newSecretAssets)
+        setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
+    }
+    function setFileAssets(newFileAssets: backend.Asset<backend.AssetType.file>[]) {
+        setFileAssetsRaw(newFileAssets)
+        setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
+    }
 
     function exitDirectory() {
         setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
@@ -528,10 +547,6 @@ function Dashboard(props: DashboardProps) {
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
         setFileAssets(newFileAssets)
-        setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
-        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
-        setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
-        setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
     }
 
     hooks.useAsyncEffect(
@@ -629,8 +644,8 @@ function Dashboard(props: DashboardProps) {
                     body.projectTemplateName = templateName.replace(/_/g, '').toLocaleLowerCase()
                 }
                 const projectAsset = await backendService.createProject(body)
-                setProjectAssets(oldProjectAssets => [
-                    ...oldProjectAssets,
+                setProjectAssets([
+                    ...projectAssets,
                     {
                         type: backend.AssetType.project,
                         title: projectAsset.name,
@@ -647,8 +662,8 @@ function Dashboard(props: DashboardProps) {
                     ...(templateName ? { projectTemplate: templateName } : {}),
                 })
                 const newProject = result.result
-                setProjectAssets(oldProjectAssets => [
-                    ...oldProjectAssets,
+                setProjectAssets([
+                    ...projectAssets,
                     {
                         type: backend.AssetType.project,
                         title: projectName,
