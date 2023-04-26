@@ -167,7 +167,6 @@ impl Presenter {
             root_frp.switch_view_to_project <+ welcome_view_frp.open_project.constant(());
         }
 
-
         Self { model, network }.init()
     }
 

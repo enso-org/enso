@@ -16,6 +16,7 @@ import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -54,17 +55,37 @@ public abstract class PrintlnNode extends Node {
       State state,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
-      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
-      @Cached ExpectStringNode expectStringNode) {
-    var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
+      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
+    Object probablyStr = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
+    if (warnings.hasWarnings(probablyStr)) {
+      try {
+        probablyStr = warnings.removeWarnings(probablyStr);
+      } catch (UnsupportedMessageException e) {
+        throw CompilerDirectives.shouldNotReachHere(e);
+      }
+    }
+
+    String str;
+    if (strings.isString(probablyStr)) {
+      try {
+        str = strings.asString(probablyStr);
+      } catch (UnsupportedMessageException e) {
+        throw CompilerDirectives.shouldNotReachHere(e);
+      }
+    } else {
+      str = fallbackToString(probablyStr);
+    }
+
     EnsoContext ctx = EnsoContext.get(this);
-    print(ctx.getOut(), expectStringNode.execute(str));
+    print(ctx.getOut(), str);
     return ctx.getNothing();
   }
 
-  boolean isText(Object o) {
-    return TypesGen.isText(o);
+  @CompilerDirectives.TruffleBoundary
+  private String fallbackToString(Object obj) {
+    return obj.toString();
   }
 
   @CompilerDirectives.TruffleBoundary

@@ -158,14 +158,26 @@ export interface CreatedProject extends BaseProject {
     packageName: string
 }
 
+/** A `Project` returned by the `listProjects` endpoint. */
+export interface ListedProjectRaw extends CreatedProject {
+    address: Address | null
+}
+
 /** A `Project` returned by `listProjects`. */
 export interface ListedProject extends CreatedProject {
-    address: Address | null
+    binaryAddress: Address | null
+    jsonAddress: Address | null
 }
 
 /** A `Project` returned by `updateProject`. */
 export interface UpdatedProject extends BaseProject {
     ami: Ami | null
+    ideVersion: VersionNumber | null
+    engineVersion: VersionNumber | null
+}
+
+/** A user/organization's project containing and/or currently executing code. */
+export interface ProjectRaw extends ListedProjectRaw {
     ideVersion: VersionNumber | null
     engineVersion: VersionNumber | null
 }
@@ -303,7 +315,7 @@ export interface UserPermission {
 }
 
 /** Metadata uniquely identifying a directory entry.
- * Thes can be Projects, Files, Secrets, or other directories. */
+ * These can be Projects, Files, Secrets, or other directories. */
 interface BaseAsset {
     title: string
     id: string
@@ -326,15 +338,13 @@ export interface IdType {
 }
 
 /** Metadata uniquely identifying a directory entry.
- * Thes can be Projects, Files, Secrets, or other directories. */
+ * These can be Projects, Files, Secrets, or other directories. */
 export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
     type: Type
     id: IdType[Type]
 }
 
-// This is an alias.
-// It should be a separate type because it is the return value of one of the APIs.
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+/** The type returned from the "create directory" endpoint. */
 export interface Directory extends Asset<AssetType.directory> {}
 
 // =================
@@ -350,14 +360,14 @@ export interface CreateUserRequestBody {
 /** HTTP request body for the "create directory" endpoint. */
 export interface CreateDirectoryRequestBody {
     title: string
-    parentId?: DirectoryId
+    parentId: DirectoryId | null
 }
 
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
     projectName: string
-    projectTemplateName?: string
-    parentDirectoryId?: DirectoryId
+    projectTemplateName: string | null
+    parentDirectoryId: DirectoryId | null
 }
 
 /**
@@ -379,7 +389,7 @@ export interface OpenProjectRequestBody {
 export interface CreateSecretRequestBody {
     secretName: string
     secretValue: string
-    parentDirectoryId?: DirectoryId
+    parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -419,7 +429,7 @@ interface ListDirectoryResponseBody {
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListProjectsResponseBody {
-    projects: ListedProject[]
+    projects: ListedProjectRaw[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
@@ -544,7 +554,17 @@ export class Backend {
         if (response.status !== STATUS_OK) {
             return this.throw('Unable to list projects.')
         } else {
-            return (await response.json()).projects
+            return (await response.json()).projects.map(project => ({
+                ...project,
+                jsonAddress:
+                    project.address != null
+                        ? newtype.asNewtype<Address>(`${project.address}json`)
+                        : null,
+                binaryAddress:
+                    project.address != null
+                        ? newtype.asNewtype<Address>(`${project.address}binary`)
+                        : null,
+            }))
         }
     }
 
@@ -576,11 +596,22 @@ export class Backend {
      *
      * @throws An error if a 401 or 404 status code was received. */
     async getProjectDetails(projectId: ProjectId): Promise<Project> {
-        const response = await this.get<Project>(getProjectDetailsPath(projectId))
+        const response = await this.get<ProjectRaw>(getProjectDetailsPath(projectId))
         if (response.status !== STATUS_OK) {
             return this.throw(`Unable to get details of project with ID '${projectId}'.`)
         } else {
-            return await response.json()
+            const project = await response.json()
+            return {
+                ...project,
+                jsonAddress:
+                    project.address != null
+                        ? newtype.asNewtype<Address>(`${project.address}json`)
+                        : null,
+                binaryAddress:
+                    project.address != null
+                        ? newtype.asNewtype<Address>(`${project.address}binary`)
+                        : null,
+            }
         }
     }
 

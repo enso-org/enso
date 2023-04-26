@@ -926,13 +926,14 @@ type Integer
 
        Arguments:
        - text: The text to parse into a integer.
-       - radix: The number base to use for parsing (defaults to 10).
+       - radix: The number base to use for parsing (defaults to 10). `radix`
+         must be between 2 and 36 (inclusive) -- see https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
 
        > Example
          Parse the text "20220216" into an integer number.
 
             Integer.parse "20220216"
-    parse : Text -> Text -> Integer ! Number_Parse_Error
+    parse : Text -> Integer -> Integer ! Number_Parse_Error
     parse text (radix=10) = Integer.parse_builtin text radix
 
     ## PRIVATE

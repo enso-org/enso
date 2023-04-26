@@ -140,8 +140,7 @@ type SQLite_Dialect
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        _ = infer_result_type_from_database_callback
+    make_cast self column target_type _ =
         mapping = self.get_type_mapping
         sql_type_text = mapping.sql_type_to_text target_type
         new_expression = SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
@@ -172,8 +171,8 @@ type SQLite_Dialect
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
-        minimized_context = context.set_limit 1
-        self.generate_sql (Query.Select [["typed_column", expression]] minimized_context)
+        _ = [expression, context]
+        Panic.throw (Illegal_State.Error "Type inference by asking the Database for the expected types is not supported in SQLite since it tended to give wrong results. This should have never been called - if it was - that is a bug in the Database library.")
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation

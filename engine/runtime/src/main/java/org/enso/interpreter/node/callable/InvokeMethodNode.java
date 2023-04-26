@@ -620,9 +620,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode anyResolverNode) {
+      @Cached MethodResolverNode resolverNode) {
     var ctx = EnsoContext.get(this);
-    Function function = anyResolverNode.expectNonNull(self, ctx.getBuiltins().any(), symbol);
+    Function function = resolverNode.expectNonNull(self, ctx.getBuiltins().function(), symbol);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 

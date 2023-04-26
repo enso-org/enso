@@ -72,26 +72,20 @@
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
 
-import * as electron from 'electron'
-import opener from 'opener'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 
+import * as electron from 'electron'
+import opener from 'opener'
+
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+import * as urlAssociations from 'url-associations'
 
 import * as ipc from 'ipc'
 
 const logger = contentConfig.logger
-
-// =================
-// === Constants ===
-// =================
-
-/** Name of the Electron event that is emitted when a URL is opened in Electron (e.g., when the user
- * clicks a link in the dashboard). */
-const OPEN_URL_EVENT = 'open-url'
 
 // ========================================
 // === Initialize Authentication Module ===
@@ -121,7 +115,11 @@ export function initModule(window: () => electron.BrowserWindow) {
  * This functionality is necessary because we don't want to run the OAuth flow in the app. Users
  * don't trust Electron apps to handle their credentials. */
 function initIpc() {
-    electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => opener(url))
+    electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
+        logger.log(`Opening URL in system browser: '${url}'.`)
+        urlAssociations.setAsUrlHandler()
+        opener(url)
+    })
 }
 
 /** Registers a listener that fires a callback for `open-url` events, when the URL is a deep link.
@@ -132,16 +130,26 @@ function initIpc() {
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link common.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
 function initOpenUrlListener(window: () => electron.BrowserWindow) {
-    electron.app.on(OPEN_URL_EVENT, (event, url) => {
-        const parsedUrl = new URL(url)
-        /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
-        event.preventDefault()
-        if (parsedUrl.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
-            logger.error(`${url} is not a deep link, ignoring.`)
-        } else {
-            window().webContents.send(ipc.Channel.openDeepLink, url)
-        }
+    urlAssociations.registerUrlCallback(url => {
+        onOpenUrl(url, window)
     })
+}
+
+/**
+ * Handles the 'open-url' event by parsing the received URL, checking if it is a deep link, and
+ * sending it to the appropriate BrowserWindow via IPC.
+ *
+ * @param url - The URL to handle.
+ * @param window - A function that returns the BrowserWindow to send the parsed URL to.
+ */
+export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
+    logger.log(`Received 'open-url' event for '${url.toString()}'.`)
+    if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
+        logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
+    } else {
+        logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
+        window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+    }
 }
 
 /** Registers a listener that fires a callback for `save-access-token` events.
@@ -158,15 +166,15 @@ function initSaveAccessTokenListener() {
         /** System agnostic credentials directory home path. */
         const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
 
-        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, err => {
-            if (err) {
+        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, error => {
+            if (error) {
                 logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
             } else {
                 fs.writeFile(
                     path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
                     accessToken,
-                    err => {
-                        if (err) {
+                    innerError => {
+                        if (innerError) {
                             logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
                         }
                     }
