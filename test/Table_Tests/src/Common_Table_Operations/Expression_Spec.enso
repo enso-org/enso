@@ -102,11 +102,12 @@ spec detailed setup =
         Test.specify "should sanitize names" <|
             t = table_builder [["X", ['\0', 'x', '']]]
             c = t.compute '[X] == \'\0\'' . catch SQL_Error
-            c.name . should_equal "[X] == '\0'"
-            case c.to_vector . catch SQL_Error of
-                # We ignore the SQL error upon materialization - some backends just do not support `\0` in query parameters. This is not the main point of this test.
+            # We ignore the SQL error - some backends just do not support `\0` values. This is not the main point of this test.
+            case c of
                 _ : SQL_Error -> Nothing
-                vec -> vec.should_equal [True, False, False]
+                _ ->
+                    c.name.should_equal "[X] == '\0'"
+                    c.to_vector.should_equal [True, False, False]
 
     Test.group prefix+"Expression Nothing literals" <|
         specify_test "should be able to add an nothing column" expression_test->

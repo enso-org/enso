@@ -59,9 +59,9 @@ type SQLite_Type_Mapping
             Value_Type.Float _ -> SQLite_Types.real
             Value_Type.Decimal _ _ -> SQLite_Types.numeric
             Value_Type.Char _ _ -> SQLite_Types.text
-            Value_Type.Time -> SQLite_Types.blob
-            Value_Type.Date -> SQLite_Types.blob
-            Value_Type.Date_Time _ -> SQLite_Types.blob
+            Value_Type.Time -> SQLite_Types.text
+            Value_Type.Date -> SQLite_Types.text
+            Value_Type.Date_Time _ -> SQLite_Types.text
             Value_Type.Binary _ _ -> SQLite_Types.blob
             Value_Type.Mixed -> SQLite_Types.text
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
