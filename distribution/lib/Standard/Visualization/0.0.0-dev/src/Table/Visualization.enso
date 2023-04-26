@@ -36,7 +36,7 @@ prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
             make_json_for_table dataframe [index] all_rows_count
         _ : Database_Column -> prepare_visualization x.to_table max_rows
         _ : Database_Table ->
-            dataframe = x.take max_rows
+            dataframe = x.read max_rows
             all_rows_count = x.row_count
             make_json_for_table dataframe [] all_rows_count
         _ ->
