@@ -38,7 +38,7 @@ function Rows<T>(props: Props<T>) {
     ))
     const itemRows =
         items.length === 0 ? (
-            <tr>
+            <tr className="h-10">
                 <td colSpan={columns.length}>{placeholder}</td>
             </tr>
         ) : (
@@ -52,7 +52,7 @@ function Rows<T>(props: Props<T>) {
                     onContextMenu={event => {
                         onContextMenu(item, event)
                     }}
-                    className="transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
+                    className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
                 >
                     {columns.map(({ id, render }) => (
                         <td key={id} className="px-4 border-0 border-r">

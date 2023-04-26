@@ -15,7 +15,6 @@ import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
-import Label, * as label from './label'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
@@ -45,9 +44,15 @@ export enum Tab {
 }
 
 enum ColumnDisplayMode {
+    /** Show only columns which are ready for release. */
+    release = 'release',
+    /** Show all columns. */
     all = 'all',
+    /** Show only name and metadata. */
     compact = 'compact',
+    /** Show only columns relevant to documentation editors. */
     docs = 'docs',
+    /** Show only name, metadata, and configuration options. */
     settings = 'settings',
 }
 
@@ -76,6 +81,13 @@ export interface CreateFormProps {
 // =================
 // === Constants ===
 // =================
+
+/** Enables features which are not ready for release,
+ * and so are intentionally disabled for release builds. */
+// This type annotation is explicit to undo TypeScript narrowing to `false`,
+// which result in errors about unused code.
+// eslint-disable-next-line @typescript-eslint/no-inferrable-types
+const EXPERIMENTAL: boolean = true
 
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
@@ -136,6 +148,7 @@ const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions
 
 /** The list of columns displayed on each `ColumnDisplayMode`. */
 const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
+    [ColumnDisplayMode.release]: [Column.name, Column.lastModified, Column.sharedWith],
     [ColumnDisplayMode.all]: [
         Column.name,
         Column.lastModified,
@@ -212,7 +225,8 @@ function Dashboard(props: DashboardProps) {
     const [directoryStack, setDirectoryStack] = react.useState<
         backend.Asset<backend.AssetType.directory>[]
     >([])
-    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.compact)
+    // Defined by the spec as `compact` by default, however it is not ready yet.
+    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
 
     const [projectAssets, setProjectAssetsRaw] = react.useState<
         backend.Asset<backend.AssetType.project>[]
@@ -384,7 +398,7 @@ function Dashboard(props: DashboardProps) {
                             <RenameModal
                                 assetType={file.type}
                                 name={file.title}
-                                // FIXME[sb]: Wait for backend implementation.
+                                // TODO: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
                             />
@@ -403,7 +417,7 @@ function Dashboard(props: DashboardProps) {
         Exclude<Column, Column.name>,
         (asset: backend.Asset) => JSX.Element
     > = {
-        [Column.lastModified]: () => <>aa</>,
+        [Column.lastModified]: () => <></>,
         [Column.sharedWith]: asset => (
             <>
                 {(asset.permissions ?? []).map(user => (
@@ -419,7 +433,7 @@ function Dashboard(props: DashboardProps) {
                 ))}
             </>
         ),
-        [Column.docs]: () => <>aa</>,
+        [Column.docs]: () => <></>,
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
             // eslint-disable-next-line no-restricted-syntax
@@ -431,7 +445,7 @@ function Dashboard(props: DashboardProps) {
                         <ContextMenuEntry
                             disabled
                             onClick={() => {
-                                // TODO[sb]: AAA
+                                // TODO: Wait for backend implementation.
                             }}
                         >
                             Rename label
@@ -439,50 +453,12 @@ function Dashboard(props: DashboardProps) {
                     </ContextMenu>
                 ))
             }
-            return (
-                <>
-                    <Label status={label.Status.warning} onContextMenu={onContextMenu}>
-                        outdated version
-                    </Label>
-                    <Label status={label.Status.severeWarning} onContextMenu={onContextMenu}>
-                        low resources
-                    </Label>
-                    <Label onContextMenu={onContextMenu}>do not change</Label>
-                </>
-            )
+            return <></>
         },
-        [Column.dataAccess]: () => (
-            <>
-                <PermissionDisplay permissions={{ type: permissionDisplay.Permission.admin }}>
-                    <div className="px-4 py-1">./user_data</div>
-                </PermissionDisplay>
-                <PermissionDisplay
-                    permissions={{
-                        type: permissionDisplay.Permission.regular,
-                        write: true,
-                        read: true,
-                        exec: true,
-                        docsWrite: true,
-                    }}
-                >
-                    <div className="px-4 py-1">this folder</div>
-                </PermissionDisplay>
-                <PermissionDisplay
-                    permissions={{
-                        type: permissionDisplay.Permission.regular,
-                        write: false,
-                        read: false,
-                        exec: false,
-                        docsWrite: false,
-                    }}
-                >
-                    <div className="px-4 py-1">no access</div>
-                </PermissionDisplay>
-            </>
-        ),
-        [Column.usagePlan]: () => <>aa</>,
-        [Column.engine]: () => <>aa</>,
-        [Column.ide]: () => <>aa</>,
+        [Column.dataAccess]: () => <></>,
+        [Column.usagePlan]: () => <></>,
+        [Column.engine]: () => <></>,
+        [Column.ide]: () => <></>,
     }
 
     function renderer<Type extends backend.AssetType>(column: Column, assetType: Type) {
@@ -754,62 +730,66 @@ function Dashboard(props: DashboardProps) {
                                 {svg.DOWNLOAD_ICON}
                             </button>
                         </div>
-                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
-                            <button
-                                className={`${
-                                    columnDisplayMode === ColumnDisplayMode.all
-                                        ? 'bg-white shadow-soft'
-                                        : 'opacity-50'
-                                } rounded-full px-1.5`}
-                                onClick={() => {
-                                    setColumnDisplayMode(ColumnDisplayMode.all)
-                                }}
-                            >
-                                All
-                            </button>
-                            <button
-                                className={`${
-                                    columnDisplayMode === ColumnDisplayMode.compact
-                                        ? 'bg-white shadow-soft'
-                                        : 'opacity-50'
-                                } rounded-full px-1.5`}
-                                onClick={() => {
-                                    setColumnDisplayMode(ColumnDisplayMode.compact)
-                                }}
-                            >
-                                Compact
-                            </button>
-                            <button
-                                className={`${
-                                    columnDisplayMode === ColumnDisplayMode.docs
-                                        ? 'bg-white shadow-soft'
-                                        : 'opacity-50'
-                                } rounded-full px-1.5`}
-                                onClick={() => {
-                                    setColumnDisplayMode(ColumnDisplayMode.docs)
-                                }}
-                            >
-                                Docs
-                            </button>
-                            <button
-                                className={`${
-                                    columnDisplayMode === ColumnDisplayMode.settings
-                                        ? 'bg-white shadow-soft'
-                                        : 'opacity-50'
-                                } rounded-full px-1.5`}
-                                onClick={() => {
-                                    setColumnDisplayMode(ColumnDisplayMode.settings)
-                                }}
-                            >
-                                Settings
-                            </button>
-                        </div>
+                        {EXPERIMENTAL && (
+                            <>
+                                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
+                                    <button
+                                        className={`${
+                                            columnDisplayMode === ColumnDisplayMode.all
+                                                ? 'bg-white shadow-soft'
+                                                : 'opacity-50'
+                                        } rounded-full px-1.5`}
+                                        onClick={() => {
+                                            setColumnDisplayMode(ColumnDisplayMode.all)
+                                        }}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        className={`${
+                                            columnDisplayMode === ColumnDisplayMode.compact
+                                                ? 'bg-white shadow-soft'
+                                                : 'opacity-50'
+                                        } rounded-full px-1.5`}
+                                        onClick={() => {
+                                            setColumnDisplayMode(ColumnDisplayMode.compact)
+                                        }}
+                                    >
+                                        Compact
+                                    </button>
+                                    <button
+                                        className={`${
+                                            columnDisplayMode === ColumnDisplayMode.docs
+                                                ? 'bg-white shadow-soft'
+                                                : 'opacity-50'
+                                        } rounded-full px-1.5`}
+                                        onClick={() => {
+                                            setColumnDisplayMode(ColumnDisplayMode.docs)
+                                        }}
+                                    >
+                                        Docs
+                                    </button>
+                                    <button
+                                        className={`${
+                                            columnDisplayMode === ColumnDisplayMode.settings
+                                                ? 'bg-white shadow-soft'
+                                                : 'opacity-50'
+                                        } rounded-full px-1.5`}
+                                        onClick={() => {
+                                            setColumnDisplayMode(ColumnDisplayMode.settings)
+                                        }}
+                                    >
+                                        Settings
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
             <table className="items-center w-full bg-transparent border-collapse">
                 <tbody>
-                    <tr className="h-8" />
+                    <tr className="h-10" />
                     <Rows<backend.Asset<backend.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
@@ -889,7 +869,7 @@ function Dashboard(props: DashboardProps) {
                     />
                     {platform === platformModule.Platform.cloud && (
                         <>
-                            <tr className="h-8" />
+                            <tr className="h-10" />
                             <Rows<backend.Asset<backend.AssetType.directory>>
                                 items={visibleDirectoryAssets}
                                 getKey={dir => dir.id}
@@ -913,7 +893,7 @@ function Dashboard(props: DashboardProps) {
                                     setModal(() => <ContextMenu event={event}></ContextMenu>)
                                 }}
                             />
-                            <tr className="h-8" />
+                            <tr className="h-10" />
                             <Rows<backend.Asset<backend.AssetType.secret>>
                                 items={visibleSecretAssets}
                                 getKey={secret => secret.id}
@@ -957,7 +937,7 @@ function Dashboard(props: DashboardProps) {
                                     ))
                                 }}
                             />
-                            <tr className="h-8" />
+                            <tr className="h-10" />
                             <Rows<backend.Asset<backend.AssetType.file>>
                                 items={visibleFileAssets}
                                 getKey={file => file.id}
