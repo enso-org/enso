@@ -1966,6 +1966,8 @@ lazy val `enso-test-java-helpers` = project
       result
     }.value
   )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
 
 lazy val `std-table` = project
   .in(file("std-bits") / "table")

@@ -51,7 +51,7 @@ from project.Errors import all
      If an error has been raised, the table is not created (that may not always
      apply to `SQL_Error`).
 In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Non_Unique_Primary_Key | SQL_Error
-In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning =
+In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
     checked_primary_key = case primary_key of
         Nothing -> Nothing
         _ : Vector -> if primary_key.is_empty then Nothing else
@@ -60,7 +60,7 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
                 self.at name . name
             # And this makes sure that no duplicate columns get selected.
             checked.if_not_error <|
-                unique_key = self.select_columns primary_key reorder=True
+                unique_key = self.select_columns primary_key reorder=True . column_names
                 check_primary_key_is_unique self unique_key . if_not_error <|
                     unique_key
 
@@ -79,15 +79,16 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
     create_statement = connection.dialect.generate_sql <|
         Query.Create_Table effective_table_name column_descriptors checked_primary_key temporary
 
-    connection.jdbc_connection.run_within_transaction <|
-        connection.execute_update create_statement
+    upload_status = create_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
+        Panic.rethrow <| connection.execute_update create_statement
         if structure_only.not then
             column_names = column_descriptors.map .first
             insert_template = make_batched_insert_template connection effective_table_name column_names
             statement_setter = connection.dialect.get_statement_setter
             connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
 
-    connection.query (SQL_Query.Table_Name effective_table_name)
+    upload_status.if_not_error <|
+        connection.query (SQL_Query.Table_Name effective_table_name)
 
 ## PRIVATE
    Checks if the specified primary key uniquely identifies all rows in the table.
