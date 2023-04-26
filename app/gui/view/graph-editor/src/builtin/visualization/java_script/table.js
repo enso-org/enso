@@ -32,6 +32,10 @@ class TableVisualization extends Visualization {
     }
 
     onDataReceived(data) {
+        function addRowIndex(data) {
+            return data.map((row, i) => ({ ['#']: i, ...row }))
+        }
+
         function hasExactlyKeys(keys, obj) {
             return Object.keys(obj).length === keys.length && keys.every(k => obj.hasOwnProperty(k))
         }
@@ -123,15 +127,15 @@ class TableVisualization extends Visualization {
             ])
             this.agGridOptions.api.setRowData([{Error: parsedData.error}])
         } else if (parsedData.type === "Matrix") {
-            let defs = []
+            let defs = [{ field: '#' }]
             for (let i = 0; i < parsedData.column_count; i++) {
                 defs.push({ field: i.toString() })
             }
             columnDefs = defs
-            rowData = parsedData.json
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.type === "Object_Matrix") {
-            let defs = []
+            let defs = [{ field: '#' }]
             let keys = {}
             parsedData.json.forEach(val => {
                 if (val) {
@@ -144,18 +148,16 @@ class TableVisualization extends Visualization {
                 }
             })
             columnDefs = defs
-            rowData = parsedData.json
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && isMatrix(parsedData.json)) {
-            columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
-            rowData = parsedData.json
+            columnDefs = [{ field: '#' }, ...parsedData.json[0].map((_, i) => ({ field: i.toString() }))]
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && isObjectMatrix(parsedData.json)) {
-            let firstKeys = Object.keys(parsedData.json[0])
+            let firstKeys = [{ field: '#' }, ...Object.keys(parsedData.json[0])]
             columnDefs = firstKeys.map(field => ({ field }))
-            rowData = parsedData.json.map(obj =>
-                firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
-            )
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (parsedData.json != null && Array.isArray(parsedData.json)) {
             columnDefs = [{ field: '#' }, { field: 'Value' }]
