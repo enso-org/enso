@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
 
 spec =
@@ -26,5 +26,13 @@ spec =
             input.format "d. MMMM yyyy" (Locale.default) . should_equal expected_default
             input.format "d. MMMM yyyy" (Locale.new "gb") . should_equal expected_gb
             input.format "d. MMMM yyyy" (Locale.new "fr") . should_equal expected_fr
+
+        Test.specify "Bad format" <|
+            input = Column.from_vector "dates" [Date.new 2020 6 21, Date.new 2023 4 25]
+            expected = Column.from_vector "dates" [Nothing, Nothing]
+            action = input.format "DDDDD" on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error 'Too many pattern letters: D']
+            Problems.test_problem_handling action problems tester
 
 main = Test_Suite.run_main spec

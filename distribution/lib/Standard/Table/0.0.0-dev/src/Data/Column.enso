@@ -25,6 +25,7 @@ from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion
 from project.Internal.Java_Exports import make_string_builder
 
+polyglot java import java.lang.IllegalArgumentException
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -1766,7 +1767,12 @@ wrap_text_argument_as_value_provider val =
 make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_date_formatter format locale problem_builder =
     _ = [problem_builder]
-    _.format format locale
+    date->
+        handlr = cause->
+            problem_builder.report_other_warning (Illegal_Argument.Error cause.payload.getMessage)
+            Nothing
+        Panic.catch IllegalArgumentException handler=handlr
+            date.format format locale
 
 ## PRIVATE
    Map a text-returning function over the column values, using Storage directly.
