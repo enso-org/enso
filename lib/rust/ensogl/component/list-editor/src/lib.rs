@@ -263,24 +263,44 @@ ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
         /// Push a new element to the end of the list.
         push(Rc<RefCell<Option<T>>>),
 
+        /// Insert a new element in the given position. If the index is bigger than the list length,
+        /// the item will be placed at the end of the list.
         insert((Index, Rc<RefCell<Option<T>>>)),
 
         /// Remove the element at the given index. If the index is invalid, nothing will happen.
         remove(Index),
 
+        /// Set the spacing between elements.
         gap(f32),
 
+        /// The distance the user needs to drag the element along secondary axis to start dragging
+        /// the element. See docs of this module to learn more.
         secondary_axis_drag_threshold(f32),
+
+        /// The distance the user needs to drag the element along primary axis to consider it not a
+        /// drag movement and thus to pass mouse events to the item. See docs of this module to
+        /// learn more.
         primary_axis_no_drag_threshold(f32),
+
+        /// The time in which the `primary_axis_no_drag_threshold` drops to zero.
         primary_axis_no_drag_threshold_decay_time(f32),
+
+        /// Controls the distance an item needs to be dragged out of the list for it to be trashed.
+        /// See docs of this module to learn more.
         thrashing_offset_ratio(f32),
+
+        /// Enable insertion points (plus icons) when moving mouse next to any of the list items.
         enable_all_insertion_points(bool),
+
+        /// Enable insertion points (plus icons) when moving mouse after the last list item.
         enable_last_insertion_point(bool),
     }
     Output {
         /// Fires whenever a new element was added to the list.
         on_item_added(Response<Index>),
 
+        /// Fires whenever an element was removed from the list. This can happen when dragging the
+        /// element to switch its position.
         on_item_removed(Response<(Index, Rc<RefCell<Option<T>>>)>),
 
         /// Request new item to be inserted at the provided index. In most cases, this happens after
