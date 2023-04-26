@@ -312,11 +312,11 @@ impl Model {
         }
     }
 
-    fn activate_execution(&self) {
+    fn trigger_clean_live_execution(&self) {
         let graph_controller = self.graph_controller.clone_ref();
         executor::global::spawn(async move {
-            if let Err(err) = graph_controller.start_execution().await {
-                error!("Error starting execution: {err}");
+            if let Err(err) = graph_controller.trigger_clean_live_execution().await {
+                error!("Error starting clean live execution: {err}");
             }
         });
     }
@@ -419,7 +419,7 @@ impl Project {
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(env));
-            eval_ graph_view.execution_environment_play_button_pressed( model.activate_execution());
+            eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

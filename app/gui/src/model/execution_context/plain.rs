@@ -288,7 +288,7 @@ impl model::execution_context::API for ExecutionContext {
         futures::future::ready(Ok(())).boxed_local()
     }
 
-    fn start_execution(&self) -> LocalBoxFuture<FallibleResult> {
+    fn trigger_clean_live_execution(&self) -> LocalBoxFuture<FallibleResult> {
         futures::future::ready(Ok(())).boxed_local()
     }
 }

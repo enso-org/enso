@@ -330,7 +330,7 @@ impl model::execution_context::API for ExecutionContext {
         .boxed_local()
     }
 
-    fn start_execution(&self) -> BoxFuture<FallibleResult> {
+    fn trigger_clean_live_execution(&self) -> BoxFuture<FallibleResult> {
         async move {
             self.language_server
                 .client

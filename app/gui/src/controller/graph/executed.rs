@@ -366,9 +366,10 @@ impl Handle {
         Ok(())
     }
 
-    /// Trigger the execution of the current graph.
-    pub async fn start_execution(&self) -> FallibleResult {
-        self.execution_ctx.start_execution().await?;
+    /// Trigger a clean execution of the current graph with the "live" execution environment. That
+    /// means old computations and caches will be discarded.
+    pub async fn trigger_clean_live_execution(&self) -> FallibleResult {
+        self.execution_ctx.trigger_clean_live_execution().await?;
         Ok(())
     }
 }
