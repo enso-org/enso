@@ -83,8 +83,9 @@ postgres_specific_spec connection db_name setup =
             tables.at "Schema" . to_vector . at 0 . should_equal "public"
             tables.at "Name" . to_vector . at 0 . should_equal tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
+
             connection.tables "TestT_ble%" . row_count . should_equal 1
-            connection.tables "Temporary%ble" . row_count . should_equal 1
+            connection.tables "Temporary%ble%" . row_count . should_equal 1
             connection.tables "N_nexistent%" . row_count . should_equal 0
 
         Test.specify "should be able to filter tables by type" <|

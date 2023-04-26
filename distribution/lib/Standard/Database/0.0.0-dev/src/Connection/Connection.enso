@@ -146,7 +146,7 @@ type Connection
     query_implementation self query alias known_table_names = case query of
         _ : Text ->
             result = self.query alias=alias <|
-                if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
+                if known_table_names.contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
             result.catch SQL_Error sql_error->
                 case self.dialect.is_probably_a_query query of
