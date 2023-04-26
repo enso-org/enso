@@ -387,16 +387,21 @@ impl DropdownValue for Entry {
 /// Widget FRP endpoints that can be used by widget views, and go straight to the root.
 #[derive(Debug, Clone, CloneRef)]
 pub struct WidgetsFrp {
-    pub(super) set_ports_visible:      frp::Sampler<bool>,
-    pub(super) set_read_only:          frp::Sampler<bool>,
-    pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
-    pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
-    pub(super) value_changed:          frp::Any<(span_tree::Crumbs, Option<ImString>)>,
-    pub(super) request_import:         frp::Any<ImString>,
-    pub(super) on_port_hover:          frp::Any<Switch<span_tree::Crumbs>>,
-    pub(super) on_port_press:          frp::Any<span_tree::Crumbs>,
-    pub(super) pointer_style:          frp::Any<cursor::Style>,
-    pub(super) connected_port_updated: frp::Any<()>,
+    pub(super) set_ports_visible:         frp::Sampler<bool>,
+    pub(super) set_read_only:             frp::Sampler<bool>,
+    pub(super) set_view_mode:             frp::Sampler<crate::view::Mode>,
+    pub(super) set_profiling_status:      frp::Sampler<crate::node::profiling::Status>,
+    /// Remove given widget's reference from the widget tree. This will effectively give up tree's
+    /// ownership of that widget, and will prevent its view from being reused.
+    ///
+    /// NOTE: Calling this during rebuild will have no effect.
+    pub(super) transfer_widget_ownership: frp::Any<WidgetIdentity>,
+    pub(super) value_changed:             frp::Any<(span_tree::Crumbs, Option<ImString>)>,
+    pub(super) request_import:            frp::Any<ImString>,
+    pub(super) on_port_hover:             frp::Any<Switch<span_tree::Crumbs>>,
+    pub(super) on_port_press:             frp::Any<span_tree::Crumbs>,
+    pub(super) pointer_style:             frp::Any<cursor::Style>,
+    pub(super) connected_port_updated:    frp::Any<()>,
 }
 
 
@@ -434,6 +439,8 @@ impl Tree {
 
         frp::extend! { network
             frp.private.output.rebuild_required <+ frp.marked_dirty_sync.debounce();
+            transfer_widget_ownership <- any(...);
+            eval transfer_widget_ownership((id) model.remove_widget(id));
 
             set_ports_visible <- frp.set_ports_visible.sampler();
             set_read_only <- frp.set_read_only.sampler();
@@ -455,6 +462,7 @@ impl Tree {
             set_read_only,
             set_view_mode,
             set_profiling_status,
+            transfer_widget_ownership,
             value_changed,
             request_import,
             on_port_hover,
@@ -741,6 +749,13 @@ impl TreeModel {
         })
     }
 
+    /// Prevent a widget from being reused in future rebuild. Allows its parent to take ownership
+    /// of its display object.
+    fn remove_widget(&self, widget: &WidgetIdentity) {
+        let mut nodes_map = self.nodes_map.borrow_mut();
+        nodes_map.remove(widget);
+    }
+
     #[profile(Task)]
     fn rebuild_tree(
         &self,
@@ -1014,7 +1029,7 @@ impl NestingLevel {
 /// A stable identifier to a span tree node. Uniquely determines a main widget of specific node in
 /// the span tree. It is a base of a widget stable identity, and allows widgets to be reused when
 /// rebuilding the tree.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StableSpanIdentity {
     /// AST ID of either the node itself, or the closest ancestor node which has one. Is [`None`]
     /// when there is no such parent with assigned AST id.
@@ -1049,7 +1064,7 @@ impl StableSpanIdentity {
 /// create a child widget on the same span tree node, so we need to be able to distinguish between
 /// them. Note that only one widget created for a given span tree node will be able to receive a
 /// port. The port is assigned to the first widget at given span that wants to receive it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, Default)]
 pub struct WidgetIdentity {
     /// The pointer to the main widget of this widget's node.
     #[deref]

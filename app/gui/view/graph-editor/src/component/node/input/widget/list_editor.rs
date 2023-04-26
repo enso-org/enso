@@ -20,7 +20,7 @@ use ensogl::display::shape::StyleWatch;
 use ensogl_component::list_editor::ListEditor;
 use ensogl_component::text::Text;
 use ensogl_hardcoded_theme as theme;
-
+use span_tree::node::InsertionPointType;
 
 
 // ==============
@@ -30,40 +30,9 @@ use ensogl_hardcoded_theme as theme;
 ensogl::define_endpoints_2! {
     Input {
         current_value(Option<ImString>),
-        current_crumbs(span_tree::Crumbs),
+        elements_default_value(ImString),
     }
 }
-
-// #[derive(Clone, CloneRef, Debug, Deref)]
-// struct Element {
-//     #[deref]
-//     display_object: display::object::Instance,
-//     widget:         Rc<RefCell<super::Child>>,
-// }
-//
-// impl Element {
-//     fn new(widget: super::Child) -> Self {
-//         let display_object = display::object::Instance::new();
-//         display_object.add_child(&widget.root_object);
-//         let widget = Rc::new(RefCell::new(widget));
-//         Self { display_object, widget }
-//     }
-//
-//     fn set_widget(&self, widget: super::Child) {
-//         self.display_object.replace_children(&[widget.root_object.clone_ref()]);
-//         *self.widget.borrow_mut() = widget;
-//     }
-//
-//     fn widget_id(&self) -> WidgetIdentity {
-//         self.widget.borrow().id
-//     }
-// }
-//
-// impl display::Object for Element {
-//     fn display_object(&self) -> &display::object::Instance {
-//         &self.display_object
-//     }
-// }
 
 /// A model for the vector editor widget.
 ///
@@ -73,10 +42,11 @@ ensogl::define_endpoints_2! {
 ///
 /// The component does not handle nested arrays well. They should be fixed once [integrated into
 /// new widget hierarchy](https://github.com/enso-org/enso/issues/5923).
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, Debug)]
 pub struct Widget {
-    config_frp: Frp,
-    list:       ListEditor<display::object::Instance>,
+    config_frp:       Frp,
+    list:             ListEditor<display::object::Instance>,
+    insertion_points: Rc<RefCell<HashMap<usize, span_tree::Crumbs>>>,
 }
 
 impl Widget {
@@ -87,41 +57,35 @@ impl Widget {
         let config_frp = &self.config_frp;
         let network = &config_frp.network;
         let list = &self.list;
-        frp::extend! { network
-            init <- source_();
+        let insertion_points = &self.insertion_points;
+
+
+
+        frp::extend! { TRACE_ALL network
+            // Inserting elements.
+            trace list.on_item_added;
+            trace list.on_item_removed;
+            trace list.request_new_item;
+
+            inserted_by_user <- list.on_item_added.filter_map(|resp| resp.clone().gui_interaction_payload());
+            inserted_by_user_index <- inserted_by_user._0();
+            requested_insert <- list.request_new_item.filter_map(|resp| resp.clone().gui_interaction_payload());
+            insert <- any(inserted_by_user_index, requested_insert);
+            insert_st_crumb <- insert.filter_map(f!((index) insertion_points.borrow().get(index).cloned()));
+            widgets_frp.value_changed <+ insert_st_crumb.map2(&config_frp.elements_default_value, |crumb, val| (crumb.clone(), Some(val.clone_ref())));
+
+            // Removing elements.
+            removed_by_user <- list.on_item_removed.filter_map(|resp| resp.clone().gui_interaction_payload());
+            remove <- removed_by_user._0();
+            remove_st_crumb <- remove.filter_map(f!((index) insertion_points.borrow().get(index).cloned()));
+            widgets_frp.value_changed <+ remove_st_crumb.map(|crumb| (crumb.clone(), None));
         }
-        init.emit(());
         self
     }
 
     fn update_list(&mut self, children: impl Iterator<Item = super::Child>) {
-        // let mut widgets_kept = 0;
-        // let mut children = children.fuse();
-        // for element in self.list.items() {
-        //     match children.next() {
-        //         Some(child) => {
-        //             widgets_kept += 1;
-        //             if child.id != element.widget_id() {
-        //                 element.set_widget(child);
-        //             }
-        //         }
-        //         None => {
-        //             self.list.remove(widgets_kept);
-        //         }
-        //     }
-        // }
-        // for child in children {
-        //     let element = Element::new(child);
-        //     self.list.push(element);
-        // }
         self.list.replace_list(children.map(|child| child.root_object));
     }
-
-    // fn construct_code(list: &ListEditor<>) -> String {
-    //     let subwidgets = list.items().into_iter();
-    //     let mut subwidgets_codes = subwidgets.map(|sub| sub.content.value().to_string());
-    //     format!("[{}]", subwidgets_codes.join(","))
-    // }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -146,19 +110,41 @@ impl super::SpanWidget for Widget {
     fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
         let list = ListEditor::new(&ctx.app().cursor);
         let config_frp = Frp::new();
-        Self { config_frp, list } //.init_list_updates(app, widgets_frp)
+        let insertion_points = default();
+        Self { config_frp, list, insertion_points } //.init_list_updates(app, widgets_frp)
     }
 
     fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
         let current_value: Option<ImString> = Some(ctx.expression_at(ctx.span_node.span()).into());
         self.config_frp.current_value(current_value);
-        self.config_frp.current_crumbs(ctx.span_node.crumbs.clone());
+        self.config_frp.elements_default_value(&cfg.item_default);
 
         let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
-        let children_iter = ctx.span_node.children_iter();
-        let children = children_iter.filter(|node| node.is_argument()).map(|node| {
+        let children_iter = ctx.span_node.clone().children_iter();
+        let children = children_iter.filter(|node| !node.is_token()).map(|node| {
             ctx.builder.child_widget_of_type(node, child_level, cfg.item_widget.as_deref())
         });
         self.update_list(children);
+
+        let element_count =
+            ctx.span_node.clone().children_iter().filter(|node| node.is_argument()).count();
+        use span_tree::node::InsertionPoint;
+        use span_tree::node::InsertionPointType;
+        use span_tree::node::Kind;
+        let insertion_points = ctx
+            .span_node
+            .children_iter()
+            .filter_map(|node| match node.kind {
+                Kind::InsertionPoint(InsertionPoint {
+                    kind: InsertionPointType::BeforeArgument(index),
+                    ..
+                }) => Some((index, node.crumbs.clone())),
+                Kind::InsertionPoint(InsertionPoint {
+                    kind: InsertionPointType::Append, ..
+                }) => Some((element_count, node.crumbs.clone())),
+                _ => None,
+            })
+            .collect();
+        *self.insertion_points.borrow_mut() = insertion_points;
     }
 }

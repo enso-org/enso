@@ -108,7 +108,7 @@ pub mod placeholder;
 // =================
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
 pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
 
@@ -152,6 +152,10 @@ impl<T> Response<T> {
     /// Constructor indicating that the response was triggered by a GUI interaction.
     pub fn gui(payload: T) -> Self {
         Self::new(payload, true)
+    }
+
+    pub fn gui_interaction_payload(self) -> Option<T> {
+        self.gui_interaction.then_some(self.payload)
     }
 }
 

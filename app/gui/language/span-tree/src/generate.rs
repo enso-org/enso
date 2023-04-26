@@ -821,7 +821,7 @@ fn tree_generate_node<T: Payload>(
         let mut parent_offset = ByteDiff::from(0);
         let mut sibling_offset = ByteDiff::from(0);
         let first_token_or_child =
-            tree.span_info.iter().filter(|span| !matches!(span, SpanSeed::Space(_))).next();
+            tree.span_info.iter().find(|span| !matches!(span, SpanSeed::Space(_)));
         let is_array = matches!(first_token_or_child, Some(SpanSeed::Token(ast::SpanSeedToken { token })) if token == "[");
         let last_children_index =
             tree.span_info.iter().rposition(|span| matches!(span, SpanSeed::Child(_)));
@@ -852,7 +852,7 @@ fn tree_generate_node<T: Payload>(
                         sibling_offset = 0.byte_diff();
                     }
 
-                    let kind = node::Kind::argument();
+                    let kind = node::Kind::argument().with_removable(is_array);
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
