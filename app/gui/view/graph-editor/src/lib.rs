@@ -588,8 +588,11 @@ ensogl::define_endpoints_2! {
 
         // === Execution Environment ===
 
-        /// Set the execution environmenta available to the graph.
+        /// Set the execution environments available to the graph.
         set_available_execution_environments          (Rc<Vec<ExecutionEnvironment>>),
+        switch_to_design_execution_environment(),
+        switch_to_live_execution_environment(),
+
 
         // === Debug ===
 
