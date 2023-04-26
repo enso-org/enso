@@ -30,6 +30,7 @@ use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_list_editor::ListEditor;
 use ensogl_slider as slider;
+use ensogl_text_msdf::run_once_initialized;
 
 
 
@@ -44,6 +45,10 @@ ensogl_core::define_endpoints_2! {}
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    run_once_initialized(run);
+}
+
+fn run() {
     let app = Application::new("root");
     let world = app.display.clone();
     let scene = &world.default_scene;
