@@ -53,8 +53,8 @@ type HoverShapeView = shape::compound::rectangle::shape::Shape;
 /// priority to receive mouse events.
 #[derive(Clone, CloneRef)]
 struct PortLayers {
-    port_layer: display::scene::Layer,
-    hover_layer:     display::scene::Layer,
+    port_layer:  display::scene::Layer,
+    hover_layer: display::scene::Layer,
     partitions: Rc<
         RefCell<Vec<(LayerSymbolPartition<PortShapeView>, LayerSymbolPartition<HoverShapeView>)>>,
     >,
