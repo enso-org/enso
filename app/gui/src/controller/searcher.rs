@@ -1029,9 +1029,6 @@ impl Searcher {
         }
         let libraries_cat =
             libraries_root_cat.add_category("Libraries", libraries_icon.clone_ref());
-        if should_add_additional_entries {
-            Self::add_enso_project_entries(&libraries_cat);
-        }
         let entries = completion_response.results.iter().filter_map(|id| {
             self.database
                 .lookup(*id)
@@ -1092,34 +1089,6 @@ impl Searcher {
 
     fn module_qualified_name(&self) -> QualifiedName {
         self.graph.module_qualified_name(&*self.project)
-    }
-
-    /// Add to the action list the special mocked entry of `Enso_Project.data`.
-    ///
-    /// This is a workaround for Engine bug https://github.com/enso-org/enso/issues/1605.
-    //TODO[ao] this is a temporary workaround.
-    fn add_enso_project_entries(libraries_cat_builder: &action::CategoryBuilder) {
-        // We may unwrap here, because the constant is tested to be convertible to
-        // [`QualifiedName`].
-        let module = QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
-        let self_type = module.clone();
-        for method in &["data", "root"] {
-            let entry = model::suggestion_database::Entry {
-                name:          (*method).to_owned(),
-                kind:          model::suggestion_database::entry::Kind::Method,
-                defined_in:    module.clone(),
-                arguments:     vec![],
-                return_type:   "Standard.Base.System.File.File".try_into().unwrap(),
-                documentation: vec![],
-                self_type:     Some(self_type.clone()),
-                is_static:     true,
-                scope:         model::suggestion_database::entry::Scope::Everywhere,
-                icon_name:     None,
-                reexported_in: None,
-            };
-            let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
-            libraries_cat_builder.add_action(action);
-        }
     }
 }
 
