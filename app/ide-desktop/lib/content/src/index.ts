@@ -8,8 +8,6 @@ import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
-import * as projectManager from './project_manager'
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
@@ -25,6 +23,8 @@ const ESBUILD_EVENT_NAME = 'change'
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
+/** The `id` attribute of the element that the IDE will be rendered into. */
+const IDE_ELEMENT_ID = 'root'
 
 // ===================
 // === Live reload ===
@@ -119,104 +119,132 @@ function displayDeprecatedVersionDialog() {
 }
 
 // ========================
-// === Main Entry Point ===
+// === Main entry point ===
 // ========================
 
 interface StringConfig {
     [key: string]: StringConfig | string
 }
 
-class Main {
-    async main(inputConfig: StringConfig) {
-        const config = Object.assign(
-            {
-                loader: {
-                    wasmUrl: 'pkg-opt.wasm',
-                    jsUrl: 'pkg.js',
-                    assetsUrl: 'dynamic-assets',
-                },
-            },
-            inputConfig
-        )
+// Hack to mutate `configOptions.OPTIONS`
+let currentAppInstance: app.App | null = new app.App({
+    config: {
+        loader: {
+            wasmUrl: 'pkg-opt.wasm',
+            jsUrl: 'pkg.js',
+            assetsUrl: 'dynamic-assets',
+        },
+    },
+    configOptions: contentConfig.OPTIONS,
+    packageInfo: {
+        version: BUILD_INFO.version,
+        engineVersion: BUILD_INFO.engineVersion,
+    },
+})
 
-        const appInstance = new app.App({
-            config,
-            configOptions: contentConfig.OPTIONS,
-            packageInfo: {
-                version: BUILD_INFO.version,
-                engineVersion: BUILD_INFO.engineVersion,
-            },
-        })
+function tryStopProject() {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    currentAppInstance?.wasm?.drop?.()
+}
 
-        if (appInstance.initialized) {
-            if (contentConfig.OPTIONS.options.dataCollection.value) {
-                // TODO: Add remote-logging here.
-            }
-            if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
-                displayDeprecatedVersionDialog()
-            } else {
-                if (
-                    (contentConfig.OPTIONS.options.authentication.value ||
-                        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) &&
-                    contentConfig.OPTIONS.groups.startup.options.entry.value ===
-                        contentConfig.OPTIONS.groups.startup.options.entry.default
-                ) {
-                    const hideAuth = () => {
-                        const auth = document.getElementById('dashboard')
-                        const ide = document.getElementById('root')
-                        if (auth) auth.style.display = 'none'
-                        if (ide) ide.style.display = ''
-                    }
-                    /** This package is an Electron desktop app (i.e., not in the Cloud), so
-                     * we're running on the desktop. */
-                    /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
-                     * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
-                     * should only have one entry point. Right now, we have two. One for the cloud
-                     * and one for the desktop. Once these are merged, we can't hardcode the
-                     * platform here, and need to detect it from the environment. */
-                    const platform = authentication.Platform.desktop
-                    /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
-                     * React hooks rerender themselves multiple times. It is resulting in multiple
-                     * Enso main scene being initialized. As a temporary workaround we check whether
-                     * appInstance was already ran. Target solution should move running appInstance
-                     * where it will be called only once. */
-                    let appInstanceRan = false
-                    const onAuthenticated = () => {
-                        if (
-                            !contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
-                        ) {
-                            hideAuth()
-                            if (!appInstanceRan) {
-                                appInstanceRan = true
-                                void appInstance.run()
-                            }
-                        }
-                    }
-                    authentication.run({
-                        logger,
-                        platform,
-                        projectManager: projectManager.ProjectManager.default(),
-                        showDashboard:
-                            contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-                        onAuthenticated,
-                    })
-                } else {
-                    void appInstance.run()
-                }
-                const email = contentConfig.OPTIONS.groups.authentication.options.email.value
-                // The default value is `""`, so a truthiness check is most appropriate here.
-                if (email) {
-                    logger.log(`User identified as '${email}'.`)
-                }
-            }
+async function runProject(inputConfig?: StringConfig) {
+    tryStopProject()
+    const rootElement = document.getElementById(IDE_ELEMENT_ID)
+    if (!rootElement) {
+        logger.error(`The root element (the element with ID '${IDE_ELEMENT_ID}') was not found.`)
+    } else {
+        while (rootElement.firstChild) {
+            rootElement.removeChild(rootElement.firstChild)
+        }
+    }
+
+    const config = Object.assign(
+        {
+            loader: {
+                wasmUrl: 'pkg-opt.wasm',
+                jsUrl: 'pkg.js',
+                assetsUrl: 'dynamic-assets',
+            },
+        },
+        inputConfig
+    )
+
+    currentAppInstance = new app.App({
+        config,
+        configOptions: contentConfig.OPTIONS,
+        packageInfo: {
+            version: BUILD_INFO.version,
+            engineVersion: BUILD_INFO.engineVersion,
+        },
+    })
+    console.log('bruh', currentAppInstance)
+
+    if (!currentAppInstance.initialized) {
+        console.error('Failed to initialize the application.')
+    } else {
+        if (contentConfig.OPTIONS.options.dataCollection.value) {
+            // TODO: Add remote-logging here.
+        }
+        if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
+            displayDeprecatedVersionDialog()
         } else {
-            console.error('Failed to initialize the application.')
+            const email = contentConfig.OPTIONS.groups.authentication.options.email.value
+            // The default value is `""`, so a truthiness check is most appropriate here.
+            if (email) {
+                logger.log(`User identified as '${email}'.`)
+            }
+            void currentAppInstance.run()
         }
     }
 }
 
-const API = new Main()
-
-// @ts-expect-error `globalConfig.windowAppScopeName` is not known at typecheck time.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-window[GLOBAL_CONFIG.windowAppScopeName] = API
+if (
+    (contentConfig.OPTIONS.options.authentication.value ||
+        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) &&
+    contentConfig.OPTIONS.groups.startup.options.entry.value ===
+        contentConfig.OPTIONS.groups.startup.options.entry.default
+) {
+    window.tryStopProject = tryStopProject
+    window.runProject = runProject
+    const hideAuth = () => {
+        const auth = document.getElementById('dashboard')
+        const ide = document.getElementById('root')
+        if (auth) {
+            auth.style.display = 'none'
+        }
+        if (ide) {
+            ide.hidden = false
+        }
+    }
+    /** This package is an Electron desktop app (i.e., not in the Cloud), so
+     * we're running on the desktop. */
+    /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+     * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+     * should only have one entry point. Right now, we have two. One for the cloud
+     * and one for the desktop. Once these are merged, we can't hardcode the
+     * platform here, and need to detect it from the environment. */
+    const platform = authentication.Platform.desktop
+    /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+     * React hooks rerender themselves multiple times. It is resulting in multiple
+     * Enso main scene being initialized. As a temporary workaround we check whether
+     * appInstance was already ran. Target solution should move running appInstance
+     * where it will be called only once. */
+    let appInstanceRan = false
+    const onAuthenticated = () => {
+        if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+            hideAuth()
+            if (!appInstanceRan) {
+                appInstanceRan = true
+                void runProject()
+            }
+        }
+    }
+    authentication.run({
+        logger,
+        platform,
+        showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+        onAuthenticated,
+    })
+} else {
+    void runProject()
+}

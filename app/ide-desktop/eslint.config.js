@@ -198,6 +198,10 @@ const RESTRICTED_SYNTAXES = [
             'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
         message: 'Use type assertions to specific types instead of `unknown`, `any` or `never`',
     },
+    {
+        selector: 'IfStatement > ExpressionStatement',
+        message: 'Wrap `if` branches in `{}`',
+    },
 ]
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -269,6 +273,7 @@ export default [
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
+            '@typescript-eslint/no-empty-interface': 'off',
             '@typescript-eslint/no-extraneous-class': 'error',
             '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
             // React 17 and later supports async functions as event handlers, so we need to disable this

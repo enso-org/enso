@@ -300,7 +300,6 @@ type Value_Type
     to_js_object : JS_Object
     to_js_object self =
         constructor_name = Meta.meta self . constructor . name
-        display_text = self.to_display_text
         additional_fields = case self of
             Value_Type.Integer size ->
                 [["bits", size.to_bits]]
@@ -316,7 +315,7 @@ type Value_Type
                 [["type_name", type_name]]
             _ -> []
         JS_Object.from_pairs <|
-            [["type", "Value_Type"], ["constructor", constructor_name], ["_display_text_", display_text]] + additional_fields
+            [["type", "Value_Type"], ["constructor", constructor_name]] + additional_fields
 
 ## The type representing inferring the column type automatically based on values
    present in the column.

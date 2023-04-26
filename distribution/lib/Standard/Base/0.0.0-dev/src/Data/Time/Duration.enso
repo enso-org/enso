@@ -4,6 +4,8 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
+import project.Data.Text.Extensions
+import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
@@ -262,3 +264,17 @@ type Duration
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
         JS_Object.from_pairs b.to_vector
+
+    ## PRIVATE
+       Convert Duration to a friendly string.
+    to_display_text : Text
+    to_display_text self = if self == Duration.zero then "0s" else
+        h = if self.hours == 0 then "" else self.hours.to_text + "h "
+
+        s = if self.seconds == 0 && self.nanoseconds == 0 then "" else
+            seconds = self.seconds + self.nanoseconds/1000000000
+            seconds.format "00.##########" + "s"
+
+        m = if self.minutes == 0 && (h=="" || s=="") then "" else self.minutes.to_text + "m "
+
+        (h+m+s).trim

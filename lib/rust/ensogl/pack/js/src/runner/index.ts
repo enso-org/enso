@@ -202,8 +202,9 @@ export class App {
             if (inputConfig != null) {
                 this.config = inputConfig
             }
+            const unrecognized = this.config.loadAll([opts?.config, host.urlParams()])
             logger.log(this.config.prettyPrint())
-            return this.config.loadAll([opts?.config, host.urlParams()])
+            return unrecognized
         })
         if (unrecognized.length > 0) {
             logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
