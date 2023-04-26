@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
@@ -7,6 +9,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.lang.ref.WeakReference;
 import java.util.Optional;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -28,6 +31,14 @@ public abstract class EnsoProjectNode extends Node {
   }
 
   /**
+   * It is OK to cache EnsoContext and project description atom here, since this node should be
+   * cloned into every separate caller's AST.
+   */
+  @CompilationFinal private WeakReference<EnsoContext> previousCtx = new WeakReference<>(null);
+
+  @CompilationFinal private WeakReference<Object> cachedProjectDescr = new WeakReference<>(null);
+
+  /**
    * @param module Either {@code Nothing}, or a module.
    */
   public abstract Object execute(Object module);
@@ -40,46 +51,51 @@ public abstract class EnsoProjectNode extends Node {
    * @param nothing Nothing, or interop null.
    */
   @Specialization(guards = "isNothing(interop, nothing)")
-  @TruffleBoundary
   public Object getCurrentProjectDescr(
       Object nothing, @CachedLibrary(limit = "5") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
-    // Find the caller of `enso_project`, i.e., of this node, and find in which package
-    // it is located. The first frame is skipped, because it is always `Enso_Project.enso_project`,
-    // i.e., the first frame is always call of this specialization.
-    Optional<Package<TruffleFile>> pkgOpt =
-        Truffle.getRuntime()
-            .iterateFrames(
-                frame -> {
-                  var callNode = frame.getCallNode();
-                  assert callNode != null
-                      : "Should skip the first frame, therefore, callNode should not be null";
-                  var callRootNode = callNode.getRootNode();
-                  assert callRootNode != null
-                      : "Should be called only from Enso code, and thus, should always have a root node";
-                  if (callRootNode instanceof EnsoRootNode ensoRootNode) {
-                    var pkg = ensoRootNode.getModuleScope().getModule().getPackage();
-                    // Don't return null, as that would signal to Truffle that we want to
-                    // continue the iteration.
-                    if (pkg != null) {
-                      return Optional.of(pkg);
+    if (previousCtx.get() == null || cachedProjectDescr.get() == null || previousCtx.get() != ctx) {
+      CompilerDirectives.transferToInterpreter();
+      previousCtx = new WeakReference<>(ctx);
+      // Find the caller of `enso_project`, i.e., of this node, and find in which package
+      // it is located. The first frame is skipped, because it is always
+      // `Enso_Project.enso_project`,
+      // i.e., the first frame is always call of this specialization.
+      Optional<Package<TruffleFile>> pkgOpt =
+          Truffle.getRuntime()
+              .iterateFrames(
+                  frame -> {
+                    var callNode = frame.getCallNode();
+                    assert callNode != null
+                        : "Should skip the first frame, therefore, callNode should not be null";
+                    var callRootNode = callNode.getRootNode();
+                    assert callRootNode != null
+                        : "Should be called only from Enso code, and thus, should always have a root node";
+                    if (callRootNode instanceof EnsoRootNode ensoRootNode) {
+                      var pkg = ensoRootNode.getModuleScope().getModule().getPackage();
+                      // Don't return null, as that would signal to Truffle that we want to
+                      // continue the iteration.
+                      if (pkg != null) {
+                        return Optional.of(pkg);
+                      } else {
+                        return Optional.empty();
+                      }
                     } else {
-                      return Optional.empty();
+                      throw new IllegalStateException(
+                          "Should not reach here: callRootNode = "
+                              + callRootNode
+                              + ". Probably not called from Enso?");
                     }
-                  } else {
-                    throw new IllegalStateException(
-                        "Should not reach here: callRootNode = "
-                            + callRootNode
-                            + ". Probably not called from Enso?");
-                  }
-                },
-                // The first frame is always Enso_Project.enso_project
-                1);
-    if (pkgOpt.isPresent()) {
-      return createProjectDescriptionAtom(ctx, pkgOpt.get());
-    } else {
-      return notInModuleError(ctx);
+                  },
+                  // The first frame is always Enso_Project.enso_project
+                  1);
+      if (pkgOpt.isPresent()) {
+        cachedProjectDescr = new WeakReference<>(createProjectDescriptionAtom(ctx, pkgOpt.get()));
+      } else {
+        cachedProjectDescr = new WeakReference<>(notInModuleError(ctx));
+      }
     }
+    return cachedProjectDescr.get();
   }
 
   @Specialization(guards = "!isNothing(interop, module)")
