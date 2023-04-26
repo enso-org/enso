@@ -142,9 +142,13 @@ let currentAppInstance: app.App | null = new app.App({
     },
 })
 
-async function runProject(inputConfig?: StringConfig) {
+function tryStopProject() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     currentAppInstance?.wasm?.drop?.()
+}
+
+async function runProject(inputConfig?: StringConfig) {
+    tryStopProject()
     const rootElement = document.getElementById(IDE_ELEMENT_ID)
     if (!rootElement) {
         logger.error(`The root element (the element with ID '${IDE_ELEMENT_ID}') was not found.`)
@@ -200,6 +204,7 @@ if (
     contentConfig.OPTIONS.groups.startup.options.entry.value ===
         contentConfig.OPTIONS.groups.startup.options.entry.default
 ) {
+    window.tryStopProject = tryStopProject
     window.runProject = runProject
     const hideAuth = () => {
         const auth = document.getElementById('dashboard')
