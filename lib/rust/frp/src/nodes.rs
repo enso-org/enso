@@ -478,6 +478,23 @@ impl Network {
         stream
     }
 
+    /// Whenever the incoming value is `true`, emit constant value. Otherwise, emit `None`.
+    pub fn then_constant<Cond, T>(&self, label: Label, check: &Cond, t: T) -> Stream<Option<T>>
+    where
+        Cond: EventOutput<Output = bool>,
+        T: Data, {
+        self.switch_constant(label, check, None, Some(t))
+    }
+
+    /// Emit the first input value if it is `Some`. Otherwise, emit the second input value.
+    pub fn unwrap_or<T, T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<T>
+    where
+        T1: EventOutput<Output = Option<T>>,
+        T2: EventOutput<Output = T>,
+        T: Data, {
+        self.all_with(label, t1, t2, |t1, t2| t1.as_ref().unwrap_or(t2).clone())
+    }
+
     // === Any ===
 
     /// Merges multiple input streams into a single output stream. All input streams have to share

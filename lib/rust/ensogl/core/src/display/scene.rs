@@ -602,6 +602,7 @@ pub struct HardcodedLayers {
     pub viz:                Layer,
     pub below_main:         Layer,
     pub main:               Layer,
+    pub port:               Layer,
     pub port_selection:     Layer,
     pub label:              Layer,
     pub port_hover:         Layer,
@@ -644,6 +645,7 @@ impl HardcodedLayers {
         let viz = root.create_sublayer("viz");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
+        let port = root.create_sublayer("port");
         let port_selection =
             root.create_sublayer_with_camera("port_selection", &port_selection_cam);
         let label = root.create_sublayer("label");
@@ -669,6 +671,7 @@ impl HardcodedLayers {
             viz,
             below_main,
             main,
+            port,
             port_selection,
             label,
             port_hover,

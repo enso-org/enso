@@ -198,6 +198,7 @@ pub mod shape {
 
 crate::define_endpoints_2! {
     Input {
+        set_style_override (Option<Style>),
         set_style (Style),
     }
 
@@ -342,7 +343,8 @@ impl Cursor {
                 color::Rgba::new(color.red,color.green,color.blue,color.alpha*w)
             });
 
-            eval frp.set_style([host_attached_weight,size,offset,model] (new_style) {
+            style <- frp.set_style_override.unwrap_or(&frp.set_style);
+            eval style([host_attached_weight,size,offset,model] (new_style) {
                 host_attached_weight.stop_and_rewind(0.0);
                 if new_style.host.is_some() { host_attached_weight.target(1.0) }
 

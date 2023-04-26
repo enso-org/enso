@@ -391,7 +391,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
         frp::extend! { network
-            cursor.frp.set_style <+ all [insert_pointer_style, trash_pointer_style].fold();
+            cursor.frp.set_style_override <+ all [insert_pointer_style, trash_pointer_style].fold();
         }
         self
     }
@@ -401,7 +401,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         on_up: &frp::Stream<Event<mouse::Up>>,
         pos_on_move: &frp::Stream<Vector2>,
         is_dragging: &frp::Stream<bool>,
-    ) -> frp::Stream<cursor::Style> {
+    ) -> frp::Stream<Option<cursor::Style>> {
         let on_up = on_up.clone_ref();
         let pos_on_move = pos_on_move.clone_ref();
         let is_dragging = is_dragging.clone_ref();
@@ -436,7 +436,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             );
             index <= opt_index;
             enabled <- opt_index.is_some();
-            pointer_style <- opt_index.map(|t| t.if_some_or_default(cursor::Style::plus));
+            pointer_style <- enabled.then_constant(cursor::Style::plus());
             on_up_in_gap <- on_up.gate(&enabled);
             insert_in_gap <- index.sample(&on_up_in_gap);
             frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
@@ -518,7 +518,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
         &self,
         on_up: &frp::Stream<Event<mouse::Up>>,
         drag_diff: &frp::Stream<Vector2>,
-    ) -> (frp::Stream<bool>, frp::Stream<cursor::Style>) {
+    ) -> (frp::Stream<bool>, frp::Stream<Option<cursor::Style>>) {
         let on_up = on_up.clone_ref();
         let drag_diff = drag_diff.clone_ref();
         let model = &self.model;
@@ -532,7 +532,7 @@ impl<T: display::Object + CloneRef> ListEditor<T> {
             status <- drag_diff.map2(&required_offset, |t, m| t.y.abs() >= *m).on_change();
             status_on_up <- on_up.constant(false);
             status_cleaning_phase <- any(&status, &status_on_up).on_change();
-            cursor_style <- status_cleaning_phase.default_or(cursor::Style::trash());
+            cursor_style <- status_cleaning_phase.then_constant(cursor::Style::trash());
             on <- status.on_true();
             perform <- on_up.gate(&status);
             eval_ on (model.collapse_all_placeholders());

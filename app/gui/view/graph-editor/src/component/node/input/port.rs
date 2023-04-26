@@ -36,44 +36,59 @@ pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_H
 
 
 
-// ============================
-// === Shapes / HoverLayers ===
-// ============================
+// ===========================
+// === Shapes / PortLayers ===
+// ===========================
 
 type PortShape = shape::compound::rectangle::Rectangle;
+type PortShapeView = shape::compound::rectangle::shape::Shape;
 
 /// Shape used for handling mouse events in the port, such as hovering or dropping an edge.
 pub type HoverShape = shape::compound::rectangle::Rectangle;
 type HoverShapeView = shape::compound::rectangle::shape::Shape;
 
-/// An scene extension that maintains layer partitions for port hover shapes. It is shared by all
-/// ports in the scene. The hover shapes are partitioned by span tree depth, so that the hover area
-/// of ports deeper in the tree will always be displayed on top, giving them priority to receive
-/// mouse events.
+/// An scene extension that maintains layer partitions for port shapes. It is shared by all ports in
+/// the scene. The port selection and hover shapes are partitioned by span tree depth, so that the
+/// ports deeper in the tree will always be displayed on top. For hover layers, that gives them
+/// priority to receive mouse events.
 #[derive(Clone, CloneRef)]
-struct HoverLayers {
-    hover_layer:      display::scene::Layer,
-    hover_partitions: Rc<RefCell<Vec<LayerSymbolPartition<HoverShapeView>>>>,
+struct PortLayers {
+    port_layer: display::scene::Layer,
+    hover_layer:     display::scene::Layer,
+    partitions: Rc<
+        RefCell<Vec<(LayerSymbolPartition<PortShapeView>, LayerSymbolPartition<HoverShapeView>)>>,
+    >,
 }
 
-impl display::scene::Extension for HoverLayers {
+impl display::scene::Extension for PortLayers {
     fn init(scene: &display::Scene) -> Self {
+        let port_layer = scene.layers.port.clone_ref();
         let hover_layer = scene.layers.port_hover.clone_ref();
-        Self { hover_layer, hover_partitions: default() }
+        Self { port_layer, hover_layer, partitions: default() }
     }
 }
 
-impl HoverLayers {
+impl PortLayers {
     /// Add a display object to the partition at given depth, effectively setting its display order.
     /// If the partition does not exist yet, it will be created.
-    fn add_to_partition(&self, object: &display::object::Instance, depth: usize) {
-        let mut hover_partitions = self.hover_partitions.borrow_mut();
-        if hover_partitions.len() <= depth {
-            hover_partitions.resize_with(depth + 1, || {
-                self.hover_layer.create_symbol_partition("input port hover")
+    fn add_to_partition(
+        &self,
+        port: &display::object::Instance,
+        hover: &display::object::Instance,
+        depth: usize,
+    ) {
+        let mut partitions = self.partitions.borrow_mut();
+        if partitions.len() <= depth {
+            partitions.resize_with(depth + 1, || {
+                (
+                    self.port_layer.create_symbol_partition("input port"),
+                    self.hover_layer.create_symbol_partition("input port hover"),
+                )
             })
         }
-        hover_partitions[depth].add(object);
+        let (port_partition, hover_partition) = &partitions[depth];
+        port_partition.add(port);
+        hover_partition.add(hover);
     }
 }
 
@@ -129,8 +144,8 @@ impl Port {
             .set_margin_right(-PORT_PADDING_X)
             .set_alignment_left_center();
 
-        let layers = app.display.default_scene.extension::<HoverLayers>();
-        layers.add_to_partition(hover_shape.display_object(), 0);
+        let layers = app.display.default_scene.extension::<PortLayers>();
+        layers.add_to_partition(port_shape.display_object(), hover_shape.display_object(), 0);
 
         let mouse_enter = hover_shape.on_event::<mouse::Enter>();
         let mouse_leave = hover_shape.on_event::<mouse::Leave>();
@@ -227,8 +242,10 @@ impl Port {
         let node_depth = ctx.span_node.crumbs.len();
         if self.current_depth != node_depth {
             self.current_depth = node_depth;
-            let layers = ctx.app().display.default_scene.extension::<HoverLayers>();
-            layers.add_to_partition(self.hover_shape.display_object(), node_depth);
+            let layers = ctx.app().display.default_scene.extension::<PortLayers>();
+            let port_shape = self.port_shape.display_object();
+            let hover_shape = self.hover_shape.display_object();
+            layers.add_to_partition(port_shape, hover_shape, node_depth);
         }
 
         let is_primary = ctx.info.nesting_level.is_primary();
