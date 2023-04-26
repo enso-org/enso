@@ -2068,7 +2068,7 @@ impl InstanceDef {
 
     /// Get reversed parent chain of this display object (`[root, child_of root, ..., parent,
     /// self]`). The last item is this object.
-    fn rev_parent_chain(&self) -> Vec<Instance> {
+    pub fn rev_parent_chain(&self) -> Vec<Instance> {
         let mut vec = default();
         Self::build_rev_parent_chain(&mut vec, Some(self.clone_ref().into()));
         vec

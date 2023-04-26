@@ -3,7 +3,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use crate::Kind;
 use crate::LabelPosition;
 
 use ensogl_core::application::Application;
@@ -83,36 +82,13 @@ mod track {
     }
 }
 
-/// Thumb shape that moves along the slider proportional to the slider value.
-mod thumb {
-    use super::*;
-
-    ensogl_core::shape! {
-        above = [background];
-        pointer_events = false;
-        alignment = center;
-        (style:Style, slider_fraction:f32, thumb_width:f32, thumb_height:f32, color:Vector4) {
-            let Background{width,height,shape: background} = Background::new();
-            let thumb_width = &width * &thumb_width;
-            let thumb_height = &height * &thumb_height;
-            let thumb = Rect((&thumb_width, &thumb_height));
-            let thumb = thumb.corners_radius(&thumb_height / 2.0);
-            let range_x = &width - &thumb_width;
-            let range_y = &height - &thumb_height;
-            let thumb = thumb.translate_x(-&range_x * 0.5 + &range_x * &slider_fraction);
-            let thumb = thumb.translate_y(-&range_y * 0.5 + &range_y * &slider_fraction);
-            let thumb = thumb.intersection(background).fill(color);
-            thumb.into()
-        }
-    }
-}
 
 /// Triangle shape used as an overflow indicator on either side of the range.
 mod overflow {
     use super::*;
 
     ensogl_core::shape! {
-        above = [background, track, thumb];
+        above = [background, track];
         pointer_events = false;
         alignment = center;
         (style:Style, color:Vector4) {
@@ -141,8 +117,6 @@ pub struct Model {
     pub background:            background::View,
     /// Slider track element that fills the slider proportional to the slider value.
     pub track:                 track::View,
-    /// Slider thumb element that moves across the slider proportional to the slider value.
-    pub thumb:                 thumb::View,
     /// Indicator for overflow when the value is below the lower limit.
     pub overflow_lower:        overflow::View,
     /// Indicator for overflow when the value is above the upper limit.
@@ -164,12 +138,14 @@ pub struct Model {
     pub end_value_animation:   Animation<f32>,
     /// Root of the display object.
     pub root:                  display::object::Instance,
+    pub value:                 display::object::Instance,
 }
 
 impl Model {
     /// Create a new slider model.
     pub fn new(app: &Application, frp_network: &frp::Network) -> Self {
         let root = display::object::Instance::new();
+        let value = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
         let value_text_left = app.new_view::<text::Text>();
         let value_text_dot = app.new_view::<text::Text>();
@@ -180,7 +156,6 @@ impl Model {
         let end_value_animation = Animation::new_non_init(frp_network);
         let background = background::View::new();
         let track = track::View::new();
-        let thumb = thumb::View::new();
         let overflow_lower = overflow::View::new();
         let overflow_upper = overflow::View::new();
         let scene = &app.display.default_scene;
@@ -189,9 +164,10 @@ impl Model {
         root.add_child(&background);
         root.add_child(&track);
         root.add_child(&label);
-        root.add_child(&value_text_left);
-        root.add_child(&value_text_dot);
-        root.add_child(&value_text_right);
+        root.add_child(&value);
+        value.add_child(&value_text_left);
+        value.add_child(&value_text_dot);
+        value.add_child(&value_text_right);
         app.display.default_scene.add_child(&tooltip);
 
         value_text_left.add_to_scene_layer(&scene.layers.label);
@@ -203,7 +179,6 @@ impl Model {
         let model = Self {
             background,
             track,
-            thumb,
             overflow_lower,
             overflow_upper,
             label,
@@ -215,6 +190,7 @@ impl Model {
             start_value_animation,
             end_value_animation,
             root,
+            value,
         };
         model.init(style)
     }
@@ -230,7 +206,6 @@ impl Model {
         self.label.set_font(text::font::DEFAULT_FONT);
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
-        self.thumb.color.set(track_color.into());
         self.update_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
         self
@@ -240,16 +215,14 @@ impl Model {
     pub fn update_size(&self, size: Vector2<f32>) {
         self.background.set_size(size);
         self.track.set_size(size);
-        self.thumb.set_size(size);
         self.background.set_x(size.x / 2.0);
         self.track.set_x(size.x / 2.0);
-        self.thumb.set_x(size.x / 2.0);
+        self.value.set_x(size.x / 2.0);
     }
 
     /// Set the color of the slider track or thumb.
     pub fn set_indicator_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
-        self.thumb.color.set(color::Rgba::from(color).into());
     }
 
     /// Set the color of the slider background.
@@ -257,35 +230,16 @@ impl Model {
         self.background.color.set(color::Rgba::from(color).into());
     }
 
-    /// Set whether the lower overfow marker is visible.
-    pub fn kind(&self, indicator: &Kind) {
-        match indicator {
-            Kind::SingleValue => {
-                self.root.add_child(&self.track);
-                self.root.remove_child(&self.thumb);
-            }
-            Kind::Scrollbar(_) => {
-                self.root.add_child(&self.thumb);
-                self.root.remove_child(&self.track);
-            }
-        }
-    }
-
     /// Set the position of the value indicator.
     pub fn set_indicator_position(&self, start: f32, fraction: f32, size: f32, orientation: Axis2) {
         console_log!("start: {}", start);
-        self.thumb.slider_fraction.set(fraction);
         match orientation {
             Axis2::X => {
                 self.track.start.set(start.clamp(0.0, 1.0));
                 self.track.end.set(fraction.clamp(0.0, 1.0));
-                // self.thumb.thumb_width.set(size);
-                // self.thumb.thumb_height.set(1.0);
             }
             Axis2::Y => {
                 self.track.end.set(1.0);
-                self.thumb.thumb_width.set(1.0);
-                self.thumb.thumb_height.set(size);
             }
         }
     }
@@ -380,13 +334,9 @@ impl Model {
     /// Set whether the slider value text is hidden.
     pub fn show_value(&self, visible: bool) {
         if visible {
-            self.root.add_child(&self.value_text_left);
-            self.root.add_child(&self.value_text_dot);
-            self.root.add_child(&self.value_text_right);
+            self.root.add_child(&self.value);
         } else {
-            self.root.remove_child(&self.value_text_left);
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
+            self.root.remove_child(&self.value);
         }
     }
 
@@ -403,19 +353,17 @@ impl Model {
     /// field to enter a new value.
     pub fn set_edit_mode(&self, (editing, precision): &(bool, f32)) {
         if *editing {
-            self.root.remove_child(&self.value_text_left);
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
+            self.root.remove_child(&self.value);
             self.root.add_child(&self.value_text_edit);
             self.value_text_edit.deprecated_focus();
             self.value_text_edit.add_cursor_at_front();
             self.value_text_edit.cursor_select_to_text_end();
         } else {
-            self.root.add_child(&self.value_text_left);
-            if *precision < 1.0 {
-                self.root.add_child(&self.value_text_dot);
-                self.root.add_child(&self.value_text_right);
-            }
+            self.root.add_child(&self.value);
+            // if *precision < 1.0 {
+            //     self.root.add_child(&self.value_text_dot);
+            //     self.root.add_child(&self.value_text_right);
+            // }
             self.root.remove_child(&self.value_text_edit);
             self.value_text_edit.deprecated_defocus();
             self.value_text_edit.remove_all_cursors();
@@ -425,11 +373,11 @@ impl Model {
     /// Set whether the value display decimal point and the text right of it are visible.
     pub fn set_value_text_right_visible(&self, enabled: bool) {
         if enabled {
-            self.root.add_child(&self.value_text_dot);
-            self.root.add_child(&self.value_text_right);
+            self.value.add_child(&self.value_text_dot);
+            self.value.add_child(&self.value_text_right);
         } else {
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
+            self.value.remove_child(&self.value_text_dot);
+            self.value.remove_child(&self.value_text_right);
         }
     }
 
