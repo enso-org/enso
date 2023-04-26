@@ -2135,10 +2135,10 @@ class RuntimeVisualizationsTest
           contextId,
           visualisationId,
           idMain,
-          "42 (Integer)",
+          "42",
           Some(
             Api.ExecutionResult.Diagnostic.error(
-              message = "42 (Integer)",
+              message = "42",
               file    = Some(mainFile),
               location =
                 Some(model.Range(model.Position(3, 4), model.Position(3, 18))),
