@@ -73,6 +73,11 @@
 
 /* End of fonts */
 
+html,
+body {
+  height: 100vh;
+}
+
 body {
   margin: 0;
   overscroll-behavior: none;

@@ -9,8 +9,7 @@ import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
 import * as authServiceModule from '../service'
-import * as backendProvider from '../../providers/backend'
-import * as cloudService from '../../dashboard/cloudService'
+import * as backendService from '../../dashboard/service'
 import * as errorModule from '../../error'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
@@ -50,7 +49,7 @@ export interface FullUserSession {
     /** User's email address. */
     email: string
     /** User's organization information. */
-    organization: cloudService.UserOrOrganization
+    organization: backendService.UserOrOrganization
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -139,7 +138,6 @@ export function AuthProvider(props: AuthProviderProps) {
     const { authService, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
-    const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
     const onAuthenticated = react.useCallback(props.onAuthenticated, [])
@@ -159,8 +157,7 @@ export function AuthProvider(props: AuthProviderProps) {
             } else {
                 const { accessToken, email } = session.val
 
-                const backend = cloudService.createBackend(accessToken, logger)
-                setBackend(backend)
+                const backend = backendService.createBackend(accessToken, logger)
                 const organization = await backend.usersMe()
                 let newUserSession: UserSession
                 if (!organization) {
@@ -256,11 +253,11 @@ export function AuthProvider(props: AuthProviderProps) {
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
          * The API client is reinitialised on every request. That is an inefficient way of usage.
          * Fix it by using React context and implementing it as a singleton. */
-        const backend = cloudService.createBackend(accessToken, logger)
+        const backend = backendService.createBackend(accessToken, logger)
 
         await backend.createUser({
             userName: username,
-            userEmail: newtype.asNewtype<cloudService.EmailAddress>(email),
+            userEmail: newtype.asNewtype<backendService.EmailAddress>(email),
         })
         navigate(app.DASHBOARD_PATH)
         toast.success(MESSAGES.setUsernameSuccess)
