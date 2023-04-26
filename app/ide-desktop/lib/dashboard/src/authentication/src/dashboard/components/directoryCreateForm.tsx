@@ -2,14 +2,14 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as backendModule from '../service'
+import * as cloudService from '../cloudService'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import CreateForm, * as createForm from './createForm'
 
 export interface DirectoryCreateFormProps extends createForm.CreateFormPassthroughProps {
-    backend: backendModule.Backend
-    directoryId: backendModule.DirectoryId
+    backend: cloudService.Backend
+    directoryId: cloudService.DirectoryId
     onSuccess: () => void
 }
 
