@@ -33,7 +33,7 @@ use ensogl::display::camera::Camera2d;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
 use ensogl_gui_component::component;
-use ensogl_hardcoded_theme::graph_editor::execution_mode_selector as theme;
+use ensogl_hardcoded_theme::graph_editor::execution_environment_selector as theme;
 
 
 
@@ -41,7 +41,7 @@ use ensogl_hardcoded_theme::graph_editor::execution_mode_selector as theme;
 // === Style ===
 // ==============
 
-/// Theme specification for the execution mode selector.
+/// Theme specification for the execution environment selector.
 #[derive(Debug, Clone, Copy, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
@@ -73,17 +73,23 @@ impl Style {
 // === FRP ===
 // ===========
 
-/// An identifier of a execution mode.
-pub type ExecutionMode = String;
-/// A list of execution modes.
-pub type ExecutionModes = Rc<Vec<ExecutionMode>>;
+/// An identifier of a execution environment.
+pub type ExecutionEnvironment = ImString;
+/// A list of execution environments.
+pub type ExecutionEnvironments = Rc<Vec<ExecutionEnvironment>>;
+
+/// Provide a dummy list of execution environments. Used for testing and demo scenes.
+pub fn make_dummy_execution_environments() -> ExecutionEnvironments {
+    Rc::new(vec!["Design".to_string().into(), "Live".to_string().into()])
+}
 
 ensogl::define_endpoints_2! {
     Input {
-        set_available_execution_modes      (ExecutionModes),
+        set_available_execution_environments      (ExecutionEnvironments),
+        set_execution_environment                 (ExecutionEnvironment),
     }
     Output {
-        selected_execution_mode (ExecutionMode),
+        selected_execution_environment (ExecutionEnvironment),
         play_press(),
         size                    (Vector2),
     }
@@ -95,13 +101,13 @@ ensogl::define_endpoints_2! {
 // === Model ===
 // =============
 
-/// The model of the execution mode selector.
+/// The model of the execution environment selector.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Model {
-    /// Main root object for the execution mode selector exposed for external positioning.
+    /// Main root object for the execution environment selector exposed for external positioning.
     display_object: display::object::Instance,
-    /// Inner root that will be used for positioning the execution mode selector relative to the
-    /// window
+    /// Inner root that will be used for positioning the execution environment selector relative to
+    /// the window
     inner_root:     display::object::Instance,
     background:     display::shape::compound::rectangle::Rectangle,
     divider:        display::shape::compound::rectangle::Rectangle,
@@ -113,6 +119,7 @@ impl Model {
     fn update_dropdown_style(&self, style: &Style) {
         self.dropdown.set_menu_offset_y(style.menu_offset);
         self.dropdown.set_x(style.overall_width() / 2.0 - style.divider_offset);
+        self.dropdown.set_width(style.dropdown_width);
         self.dropdown.set_label_color(Rgba::white());
         self.dropdown.set_icon_size(Vector2::new(1.0, 1.0));
         self.dropdown.set_menu_alignment(ensogl_drop_down_menu::Alignment::Right);
@@ -148,7 +155,7 @@ impl Model {
         self.inner_root.set_y(y.round());
     }
 
-    fn set_entries(&self, entries: Rc<Vec<ExecutionMode>>) {
+    fn set_entries(&self, entries: Rc<Vec<ExecutionEnvironment>>) {
         let provider = ensogl_list_view::entry::AnyModelProvider::from(entries.clone_ref());
         self.dropdown.set_entries(provider);
         self.dropdown.set_selected(0);
@@ -173,13 +180,13 @@ impl display::Object for Model {
 
 
 
-// =============================
-// === ExecutionModeDropdown ===
-// =============================
+// ====================================
+// === ExecutionEnvironmentDropdown ===
+// ====================================
 
 impl component::Model for Model {
     fn label() -> &'static str {
-        "ExecutionModeDropdown"
+        "ExecutionEnvironmentDropdown"
     }
 
     fn new(app: &Application) -> Self {
@@ -244,23 +251,20 @@ impl component::Frp<Model> for Frp {
 
             // == Inputs ==
 
-            eval input.set_available_execution_modes ((entries) model.set_entries(entries.clone()));
+            eval input.set_available_execution_environments ((entries) model.set_entries(entries.clone()));
+
+            update_selected_entry <- input.set_execution_environment.map2(&input.set_available_execution_environments, |entry, entries| {
+                    entries.iter().position(|mode| mode == entry)
+            });
+            dropdown.frp.set_selected <+ update_selected_entry;
 
             selected_id <- dropdown.frp.chosen_entry.unwrap();
-            selection <- all(input.set_available_execution_modes, selected_id);
+            selection <- all(input.set_available_execution_environments, selected_id);
             selected_entry <- selection.map(|(entries, entry_id)| entries[*entry_id].clone());
-            output.selected_execution_mode <+ selected_entry;
+            output.selected_execution_environment <+ selected_entry;
 
             eval selected_entry ([model] (execution_mode) {
-                // TODO(#5930): Revisit when connecting with externally set execution mode
-                let play_button_visibility = match execution_mode.as_str() {
-                    "design" => true,
-                    "live" => false,
-                    _ => {
-                        error!("Play button: invalid execution mode");
-                        false
-                    }
-                };
+                let play_button_visibility = matches!(execution_mode.to_lowercase().as_str(), "design");
                 model.set_play_button_visibility(play_button_visibility);
             });
             play_button.reset <+ selected_entry.constant(());
@@ -276,6 +280,6 @@ impl component::Frp<Model> for Frp {
     }
 }
 
-/// ExecutionModeSelector is a component that allows the user to select the execution mode of the
-/// graph.
-pub type ExecutionModeSelector = component::ComponentView<Model, Frp>;
+/// ExecutionEnvironmentSelector is a component that allows the user to select the execution
+/// environment of the graph.
+pub type ExecutionEnvironmentSelector = component::ComponentView<Model, Frp>;

@@ -34,6 +34,7 @@ pub mod component;
 pub mod automation;
 pub mod builtin;
 pub mod data;
+pub mod execution_environment;
 pub mod new_node_position;
 #[warn(missing_docs)]
 pub mod profiling;
@@ -42,6 +43,7 @@ pub mod view;
 
 #[warn(missing_docs)]
 mod selection;
+mod shortcuts;
 
 use crate::application::command::FrpNetworkProvider;
 use crate::component::node;
@@ -50,12 +52,12 @@ use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::data::enso;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
+use engine_protocol::language_server::ExecutionEnvironment;
 
 use application::tooltip;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
-use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -75,7 +77,8 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
-use ide_view_execution_mode_selector as execution_mode_selector;
+use ide_view_execution_environment_selector as execution_environment_selector;
+use ide_view_execution_environment_selector::ExecutionEnvironmentSelector;
 
 
 // ===============
@@ -585,9 +588,11 @@ ensogl::define_endpoints_2! {
 
         // === Execution Environment ===
 
-        set_execution_environment(ExecutionEnvironment),
         // TODO(#5930): Temporary shortcut for testing different execution environments
         toggle_execution_environment(),
+        /// Set the execution environmenta available to the graph.
+        set_available_execution_environments          (Rc<Vec<execution_environment_selector::ExecutionEnvironment>>),
+        set_execution_environment                     (ExecutionEnvironment),
 
 
         // === Debug ===
@@ -656,10 +661,6 @@ ensogl::define_endpoints_2! {
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
-
-        /// Set the execution modes available to the graph.
-        set_available_execution_modes          (Rc<Vec<execution_mode_selector::ExecutionMode>>),
-
     }
 
     Output {
@@ -765,10 +766,10 @@ ensogl::define_endpoints_2! {
         default_y_gap_between_nodes (f32),
         min_x_spacing_for_new_nodes (f32),
 
-        /// The selected execution mode.
-        execution_mode (execution_mode_selector::ExecutionMode),
-        /// A press of the execution mode selector play button.
-        execution_mode_play_button_pressed (),
+        /// The selected environment mode.
+        execution_environment (execution_environment_selector::ExecutionEnvironment),
+        /// A press of the execution environment selector play button.
+        execution_environment_play_button_pressed (),
     }
 }
 
@@ -1782,26 +1783,26 @@ impl GraphEditorModelWithNetwork {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
-    pub display_object:      display::object::Instance,
-    pub app:                 Application,
-    pub breadcrumbs:         component::Breadcrumbs,
-    pub cursor:              cursor::Cursor,
-    pub nodes:               Nodes,
-    pub edges:               Edges,
-    pub vis_registry:        visualization::Registry,
-    pub drop_manager:        ensogl_drop_manager::Manager,
-    pub navigator:           Navigator,
-    pub add_node_button:     Rc<component::add_node_button::AddNodeButton>,
-    tooltip:                 Tooltip,
-    touch_state:             TouchState,
-    visualisations:          Visualisations,
-    frp:                     api::Private,
-    frp_public:              api::Public,
-    profiling_statuses:      profiling::Statuses,
-    profiling_button:        component::profiling::Button,
-    styles_frp:              StyleWatchFrp,
-    selection_controller:    selection::Controller,
-    execution_mode_selector: execution_mode_selector::ExecutionModeSelector,
+    pub display_object: display::object::Instance,
+    pub app: Application,
+    pub breadcrumbs: component::Breadcrumbs,
+    pub cursor: cursor::Cursor,
+    pub nodes: Nodes,
+    pub edges: Edges,
+    pub vis_registry: visualization::Registry,
+    pub drop_manager: ensogl_drop_manager::Manager,
+    pub navigator: Navigator,
+    pub add_node_button: Rc<component::add_node_button::AddNodeButton>,
+    tooltip: Tooltip,
+    touch_state: TouchState,
+    visualisations: Visualisations,
+    frp: api::Private,
+    frp_public: api::Public,
+    profiling_statuses: profiling::Statuses,
+    profiling_button: component::profiling::Button,
+    styles_frp: StyleWatchFrp,
+    selection_controller: selection::Controller,
+    execution_environment_selector: ExecutionEnvironmentSelector,
 }
 
 
@@ -1819,7 +1820,8 @@ impl GraphEditorModel {
         let visualisations = default();
         let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
-        let execution_mode_selector = execution_mode_selector::ExecutionModeSelector::new(app);
+        let execution_environment_selector =
+            execution_environment_selector::ExecutionEnvironmentSelector::new(app);
 
         let app = app.clone_ref();
         let navigator = Navigator::new(scene, &scene.camera());
@@ -1858,7 +1860,7 @@ impl GraphEditorModel {
             frp_public: frp.public.clone_ref(),
             styles_frp,
             selection_controller,
-            execution_mode_selector,
+            execution_environment_selector,
         }
         .init()
     }
@@ -1866,7 +1868,7 @@ impl GraphEditorModel {
     fn init(self) -> Self {
         let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
 
-        self.add_child(&self.execution_mode_selector);
+        self.add_child(&self.execution_environment_selector);
 
         self.add_child(&self.breadcrumbs);
         self.breadcrumbs.set_x(x_offset);
@@ -2678,67 +2680,8 @@ impl application::View for GraphEditor {
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
-        use shortcut::ActionType::*;
-        [
-            (Press, "!node_editing & !read_only", "tab", "start_node_creation"),
-            (Press, "!node_editing & !read_only", "enter", "start_node_creation"),
-            // === Drag ===
-            (Press, "", "left-mouse-button", "node_press"),
-            (Release, "", "left-mouse-button", "node_release"),
-            (Press, "!node_editing & !read_only", "backspace", "remove_selected_nodes"),
-            (Press, "!node_editing & !read_only", "delete", "remove_selected_nodes"),
-            (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-            (Press, "!read_only", "cmd g", "collapse_selected_nodes"),
-            // === Visualization ===
-            (Press, "!node_editing", "space", "press_visualization_visibility"),
-            (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
-            (Release, "!node_editing", "space", "release_visualization_visibility"),
-            (Press, "", "cmd i", "reload_visualization_registry"),
-            (Press, "is_fs_visualization_displayed", "space", "close_fullscreen_visualization"),
-            (Press, "", "cmd", "enable_quick_visualization_preview"),
-            (Release, "", "cmd", "disable_quick_visualization_preview"),
-            // === Selection ===
-            (Press, "", "shift", "enable_node_multi_select"),
-            (Press, "", "shift left-mouse-button", "enable_node_multi_select"),
-            (Release, "", "shift", "disable_node_multi_select"),
-            (Release, "", "shift left-mouse-button", "disable_node_multi_select"),
-            (Press, "", "shift ctrl", "toggle_node_merge_select"),
-            (Release, "", "shift ctrl", "toggle_node_merge_select"),
-            (Press, "", "shift alt", "toggle_node_subtract_select"),
-            (Release, "", "shift alt", "toggle_node_subtract_select"),
-            (Press, "", "shift ctrl alt", "toggle_node_inverse_select"),
-            (Release, "", "shift ctrl alt", "toggle_node_inverse_select"),
-            // === Navigation ===
-            (
-                Press,
-                "!is_fs_visualization_displayed",
-                "ctrl space",
-                "cycle_visualization_for_selected_node",
-            ),
-            (DoublePress, "!read_only", "left-mouse-button", "enter_hovered_node"),
-            (DoublePress, "!read_only", "left-mouse-button", "start_node_creation_from_port"),
-            (Press, "!read_only", "right-mouse-button", "start_node_creation_from_port"),
-            (Press, "!node_editing & !read_only", "cmd enter", "enter_selected_node"),
-            (Press, "!read_only", "alt enter", "exit_node"),
-            // === Node Editing ===
-            (Press, "!read_only", "cmd", "edit_mode_on"),
-            (Release, "!read_only", "cmd", "edit_mode_off"),
-            (Press, "!read_only", "cmd left-mouse-button", "edit_mode_on"),
-            (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
-            (Press, "node_editing & !read_only", "cmd enter", "stop_editing"),
-            // === Profiling Mode ===
-            (Press, "", "cmd p", "toggle_profiling_mode"),
-            // === Debug ===
-            (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
-            (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
-            (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
-            (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
-            // TODO(#5930): Temporary shortcut for testing different execution environments
-            (Press, "", "cmd shift c", "toggle_execution_environment"),
-        ]
-        .iter()
-        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-        .collect()
+        use crate::shortcuts::SHORTCUTS;
+        SHORTCUTS.iter().map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b)).collect()
     }
 }
 
@@ -3906,30 +3849,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Execution Mode Selection ===
     // ================================
 
-    let execution_mode_selector = &model.execution_mode_selector;
-    frp::extend! { network
-
-        execution_mode_selector.set_available_execution_modes <+ frp.set_available_execution_modes;
-        out.execution_mode <+ execution_mode_selector.selected_execution_mode;
-        out.execution_mode_play_button_pressed <+ execution_mode_selector.play_press;
-
-        // === Layout ===
-        init <- source::<()>();
-        size_update <- all(init,execution_mode_selector.size,inputs.space_for_window_buttons);
-        eval size_update ([model]((_,size,gap_size)) {
-            let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
-            let traffic_light_width = traffic_lights_gap_width();
-
-            let execution_mode_selector_x = gap_size.x + traffic_light_width;
-            model.execution_mode_selector.set_x(execution_mode_selector_x);
-            let breadcrumb_gap_width = execution_mode_selector_x + size.x + TOP_BAR_ITEM_MARGIN;
-            model.breadcrumbs.gap_width(breadcrumb_gap_width);
-
-            model.execution_mode_selector.set_y(y_offset + size.y / 2.0);
-            model.breadcrumbs.set_y(y_offset + component::breadcrumbs::HEIGHT / 2.0);
-        });
-    }
-    init.emit(());
+    execution_environment::init_frp(&frp, &model);
 
 
     // ==================
@@ -3959,48 +3879,6 @@ impl display::Object for GraphEditor {
         self.model.display_object()
     }
 }
-
-
-
-// =============================
-// === Execution Environment ===
-// =============================
-
-// TODO(#5930): Move me once we synchronise the execution environment with the language server.
-/// The execution environment which controls the global execution of functions with side effects.
-///
-/// For more information, see
-/// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
-#[derive(Debug, Clone, CloneRef, Copy, Default)]
-pub enum ExecutionEnvironment {
-    /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
-    /// changes.
-    #[default]
-    Design,
-    /// Unrestricted, live editing of data.
-    Live,
-}
-
-impl ExecutionEnvironment {
-    /// Returns whether the output context is enabled for this execution environment.
-    pub fn output_context_enabled(&self) -> bool {
-        match self {
-            Self::Design => false,
-            Self::Live => true,
-        }
-    }
-}
-
-impl Display for ExecutionEnvironment {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            Self::Design => "design",
-            Self::Live => "live",
-        };
-        write!(f, "{name}")
-    }
-}
-
 
 
 // =============

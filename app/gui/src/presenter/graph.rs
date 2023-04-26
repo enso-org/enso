@@ -12,6 +12,7 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
@@ -19,7 +20,6 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-use view::graph_editor::ExecutionEnvironment;
 use view::graph_editor::WidgetUpdates;
 
 

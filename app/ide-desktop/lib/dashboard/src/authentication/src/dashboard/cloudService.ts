@@ -315,7 +315,7 @@ export interface UserPermission {
 }
 
 /** Metadata uniquely identifying a directory entry.
- * Thes can be Projects, Files, Secrets, or other directories. */
+ * These can be Projects, Files, Secrets, or other directories. */
 interface BaseAsset {
     title: string
     id: string
@@ -338,15 +338,13 @@ export interface IdType {
 }
 
 /** Metadata uniquely identifying a directory entry.
- * Thes can be Projects, Files, Secrets, or other directories. */
+ * These can be Projects, Files, Secrets, or other directories. */
 export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
     type: Type
     id: IdType[Type]
 }
 
-// This is an alias.
-// It should be a separate type because it is the return value of one of the APIs.
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+/** The type returned from the "create directory" endpoint. */
 export interface Directory extends Asset<AssetType.directory> {}
 
 // =================
@@ -362,14 +360,14 @@ export interface CreateUserRequestBody {
 /** HTTP request body for the "create directory" endpoint. */
 export interface CreateDirectoryRequestBody {
     title: string
-    parentId?: DirectoryId
+    parentId: DirectoryId | null
 }
 
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
     projectName: string
-    projectTemplateName?: string
-    parentDirectoryId?: DirectoryId
+    projectTemplateName: string | null
+    parentDirectoryId: DirectoryId | null
 }
 
 /**
@@ -391,7 +389,7 @@ export interface OpenProjectRequestBody {
 export interface CreateSecretRequestBody {
     secretName: string
     secretValue: string
-    parentDirectoryId?: DirectoryId
+    parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */

@@ -29,6 +29,7 @@ use ensogl_core::application::Application;
 use ensogl_core::application::View;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_slider as slider;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -41,10 +42,10 @@ use ensogl_text_msdf::run_once_initialized;
 /// Create a basic slider.
 fn make_slider(app: &Application) -> slider::Slider {
     let slider = app.new_view::<slider::Slider>();
-    slider.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
-    slider.frp.set_max_value(5.0);
-    slider.frp.set_default_value(1.0);
-    slider.frp.set_value(1.0);
+    // slider.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
+    // slider.frp.set_max_value(5.0);
+    // slider.frp.set_default_value(1.0);
+    // slider.frp.set_value(1.0);
     slider
 }
 
@@ -58,17 +59,22 @@ fn make_slider(app: &Application) -> slider::Slider {
 #[derive(Debug, Clone, CloneRef)]
 pub struct Model {
     /// Vector that holds example sliders until they are dropped.
-    sliders: Rc<RefCell<Vec<slider::Slider>>>,
-    app:     Application,
-    root:    display::object::Instance,
+    sliders:   Rc<RefCell<Vec<slider::Slider>>>,
+    app:       Application,
+    root:      display::object::Instance,
+    navigator: Navigator,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
+        let world = app.display.clone();
+        let scene = &world.default_scene;
+        let camera = scene.camera().clone_ref();
+        let navigator = Navigator::new(scene, &camera);
         let sliders = Rc::new(RefCell::new(Vec::new()));
         let root = display::object::Instance::new();
-        let model = Self { app, sliders, root };
+        let model = Self { app, sliders, root, navigator };
         model.init_sliders();
         model
     }
@@ -76,8 +82,7 @@ impl Model {
     /// Add example sliders to scene.
     fn init_sliders(&self) {
         let slider1 = make_slider(&self.app);
-        slider1.frp.set_width(400.0);
-        slider1.frp.set_height(50.0);
+        slider1.set_size((200.0, 24.0));
         slider1.set_y(-120.0);
         slider1.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
         slider1.frp.set_label("Soft limits + tooltip");
@@ -88,8 +93,7 @@ impl Model {
         self.sliders.borrow_mut().push(slider1);
 
         let slider2 = make_slider(&self.app);
-        slider2.frp.set_width(400.0);
-        slider2.frp.set_height(50.0);
+        slider2.set_size((400.0, 50.0));
         slider2.set_y(-60.0);
         slider2.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
         slider2.frp.set_slider_disabled(true);
@@ -98,8 +102,7 @@ impl Model {
         self.sliders.borrow_mut().push(slider2);
 
         let slider3 = make_slider(&self.app);
-        slider3.frp.set_width(400.0);
-        slider3.frp.set_height(50.0);
+        slider3.set_size((400.0, 50.0));
         slider3.set_y(0.0);
         slider3.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
         slider3.frp.set_default_value(100.0);
@@ -111,8 +114,7 @@ impl Model {
         self.sliders.borrow_mut().push(slider3);
 
         let slider4 = make_slider(&self.app);
-        slider4.frp.set_width(400.0);
-        slider4.frp.set_height(50.0);
+        slider4.set_size((400.0, 50.0));
         slider4.set_y(60.0);
         slider4.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
         slider4.frp.set_label("Adaptive upper limit");
@@ -122,20 +124,18 @@ impl Model {
         self.sliders.borrow_mut().push(slider4);
 
         let slider5 = make_slider(&self.app);
-        slider5.frp.set_width(75.0);
-        slider5.frp.set_height(230.0);
+        slider5.set_size((75.0, 230.0));
         slider5.set_y(-35.0);
         slider5.set_x(275.0);
         slider5.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
         slider5.frp.set_label("Hard limits");
-        slider5.frp.set_orientation(slider::SliderOrientation::Vertical);
+        slider5.frp.orientation(Axis2::Y);
         slider5.frp.set_max_disp_decimal_places(4);
         self.root.add_child(&slider5);
         self.sliders.borrow_mut().push(slider5);
 
         let slider6 = make_slider(&self.app);
-        slider6.frp.set_width(75.0);
-        slider6.frp.set_height(230.0);
+        slider6.set_size((75.0, 230.0));
         slider6.set_y(-35.0);
         slider6.set_x(375.0);
         slider6.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
@@ -143,57 +143,53 @@ impl Model {
         slider6.frp.set_label_position(slider::LabelPosition::Inside);
         slider6.frp.set_lower_limit_type(slider::SliderLimit::Soft);
         slider6.frp.set_upper_limit_type(slider::SliderLimit::Soft);
-        slider6.frp.set_orientation(slider::SliderOrientation::Vertical);
+        slider6.frp.orientation(Axis2::Y);
         slider6.frp.set_max_disp_decimal_places(4);
         self.root.add_child(&slider6);
         self.sliders.borrow_mut().push(slider6);
 
         let slider7 = make_slider(&self.app);
-        slider7.frp.set_width(400.0);
-        slider7.frp.set_height(10.0);
+        slider7.set_size((400.0, 10.0));
         slider7.set_y(-160.0);
         slider7.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider7.frp.set_value_text_hidden(true);
+        slider7.frp.show_value(false);
         slider7.frp.set_precision_adjustment_disabled(true);
-        slider7.frp.set_value_indicator(slider::ValueIndicator::Thumb);
+        slider7.frp.kind(slider::Kind::Scrollbar(0.1));
         slider7.frp.set_thumb_size(0.1);
         self.root.add_child(&slider7);
         self.sliders.borrow_mut().push(slider7);
 
         let slider8 = make_slider(&self.app);
-        slider8.frp.set_width(400.0);
-        slider8.frp.set_height(10.0);
+        slider8.set_size((400.0, 10.0));
         slider8.set_y(-180.0);
         slider8.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider8.frp.set_value_text_hidden(true);
+        slider8.frp.show_value(false);
         slider8.frp.set_precision_adjustment_disabled(true);
-        slider8.frp.set_value_indicator(slider::ValueIndicator::Thumb);
+        slider8.frp.kind(slider::Kind::Scrollbar(0.25));
         slider8.frp.set_thumb_size(0.25);
         self.root.add_child(&slider8);
         self.sliders.borrow_mut().push(slider8);
 
         let slider9 = make_slider(&self.app);
-        slider9.frp.set_width(400.0);
-        slider9.frp.set_height(10.0);
+        slider9.set_size((400.0, 10.0));
         slider9.set_y(-200.0);
         slider9.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider9.frp.set_value_text_hidden(true);
+        slider9.frp.show_value(false);
         slider9.frp.set_precision_adjustment_disabled(true);
-        slider9.frp.set_value_indicator(slider::ValueIndicator::Thumb);
+        slider9.frp.kind(slider::Kind::Scrollbar(0.5));
         slider9.frp.set_thumb_size(0.5);
         self.root.add_child(&slider9);
         self.sliders.borrow_mut().push(slider9);
 
         let slider10 = make_slider(&self.app);
-        slider10.frp.set_width(10.0);
-        slider10.frp.set_height(230.0);
+        slider10.set_size((10.0, 230));
         slider10.set_y(-35.0);
         slider10.set_x(430.0);
         slider10.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-        slider10.frp.set_value_text_hidden(true);
+        slider10.frp.show_value(false);
         slider10.frp.set_precision_adjustment_disabled(true);
-        slider10.frp.set_value_indicator(slider::ValueIndicator::Thumb);
-        slider10.frp.set_orientation(slider::SliderOrientation::Vertical);
+        slider10.frp.kind(slider::Kind::Scrollbar(0.1));
+        slider10.frp.orientation(Axis2::Y);
         self.root.add_child(&slider10);
         self.sliders.borrow_mut().push(slider10);
     }
