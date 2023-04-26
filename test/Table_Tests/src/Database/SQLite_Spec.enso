@@ -115,7 +115,7 @@ sqlite_spec connection prefix =
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
-        in_mem_table.create_database_table connection name
+        in_mem_table.create_database_table connection name primary_key=Nothing
     materialize = .read
 
     Common_Spec.spec prefix connection
@@ -133,8 +133,8 @@ sqlite_spec connection prefix =
          the missing statistics.
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = agg_in_memory_table.create_database_table connection (Name_Generator.random_name "Agg1")
-    empty_agg_table = (agg_in_memory_table.take (First 0)).create_database_table connection (Name_Generator.random_name "Agg_Empty")
+    agg_table = agg_in_memory_table.create_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+    empty_agg_table = (agg_in_memory_table.take (First 0)).create_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
     Common_Table_Operations.Main.spec setup
