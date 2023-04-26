@@ -1736,7 +1736,8 @@ class RuntimeVisualizationsTest
           "Method `does_not_exist` of Main could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
-              message = "Method `does_not_exist` of type Main could not be found.",
+              message =
+                "Method `does_not_exist` of type Main could not be found.",
               stack = Vector(
                 Api.StackTraceElement("<eval>", None, None, None),
                 Api.StackTraceElement("Debug.eval", None, None, None)
