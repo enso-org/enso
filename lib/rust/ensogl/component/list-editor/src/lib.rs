@@ -355,10 +355,6 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let on_move = scene.on_event::<mouse::Move>();
 
         frp::extend! { network
-
-            // Do not pass events to children, as we don't know whether we are about to drag
-            // them yet.
-
             target <= on_down.map(|event| event.target());
 
             on_up <- on_up_source.identity();
@@ -390,6 +386,8 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         frp::extend! { network
             cursor.frp.set_style <+ all [insert_pointer_style, trash_pointer_style].fold();
             on_down_drag <- on_down.gate_not(&no_drag);
+            // Do not pass events to children, as we don't know whether we are about to drag
+            // them yet.
             eval on_down_drag ([] (event) event.stop_propagation());
             _eval <- no_drag.on_true().map3(&on_down, &target, |_, event, target| {
                 target.emit_event(event.payload.clone());
@@ -453,11 +451,11 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let network = self.frp.network();
 
         frp::extend! { network
-            push_ix <= frp.push.map(f!((item) model.push_weak(item)));
+            push_ix <= frp.push.map(f!((item) model.push_cell(item)));
             on_pushed <- push_ix.map(|ix| Response::api(*ix));
             frp.private.output.on_item_added <+ on_pushed;
 
-            insert_ix <= frp.insert.map(f!(((index, item)) model.insert_weak(*index, item)));
+            insert_ix <= frp.insert.map(f!(((index, item)) model.insert_cell(*index, item)));
             on_inserted <- insert_ix.map(|ix| Response::api(*ix));
             frp.private.output.on_item_added <+ on_inserted;
 
@@ -615,7 +613,7 @@ impl<T: display::Object + CloneRef + 'static> SharedModel<T> {
         self.borrow_mut().push(item)
     }
 
-    fn push_weak(&self, item: &Rc<RefCell<Option<T>>>) -> Option<Index> {
+    fn push_cell(&self, item: &Rc<RefCell<Option<T>>>) -> Option<Index> {
         let item = mem::take(&mut *item.borrow_mut());
         item.map(|item| self.push(item))
     }
@@ -624,7 +622,7 @@ impl<T: display::Object + CloneRef + 'static> SharedModel<T> {
         self.borrow_mut().insert(index, item)
     }
 
-    fn insert_weak(&self, index: Index, item: &Rc<RefCell<Option<T>>>) -> Option<Index> {
+    fn insert_cell(&self, index: Index, item: &Rc<RefCell<Option<T>>>) -> Option<Index> {
         let item = mem::take(&mut *item.borrow_mut());
         item.map(|item| self.insert(index, item))
     }

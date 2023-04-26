@@ -75,6 +75,11 @@ impl Model {
         slider1.frp.set_tooltip("Slider information tooltip.");
         self.root.add_child(&slider1);
         self.sliders.borrow_mut().push(slider1);
+
+        // # IMPORTANT
+        // This code is commented because the slider implementation is not finished yet. Please
+        // refer to the doc comments in the slider's module to learn more.
+
         //
         // let slider2 = self.app.new_view::<slider::Slider>();
         // slider2.set_size((400.0, 50.0));

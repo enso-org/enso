@@ -55,7 +55,7 @@ pub mod model;
 
 /// Default slider resolution when slider dragging is initiated. The resolution indicates both how
 /// much the value is changed per pixel dragged and how many digits are displayed after the decimal.
-const PRECISION_DEFAULT: f32 = 1.0;
+const RESOLUTION_DEFAULT: f32 = 1.0;
 /// Default upper limit of the slider value.
 const MAX_VALUE_DEFAULT: f32 = 100.0;
 /// Default for the maximum number of digits after the decimal point that is displayed.
@@ -242,7 +242,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the default resolution at which the slider operates. The slider's resolution
         /// determines by what increment the value will be changed on mouse movement. It also
         /// affects the number of digits after the decimal point displayed.
-        set_default_precision(f32),
+        set_default_resolution(f32),
         /// The slider's resolution can be adjusted by dragging the mouse in the vertical direction.
         /// The `adjustment_margin` defines a margin above/below the slider within which no
         /// resolution adjustment will be performed.
@@ -784,7 +784,7 @@ impl Slider {
             edit_success <- value_after_edit.map(|v| v.is_some());
             value_after_edit <- value_after_edit.map(|v| v.unwrap_or_default());
             prec_after_edit <- value_text_after_edit.map(|s| get_value_text_precision(s));
-            prec_after_edit <- all2(&prec_after_edit, &input.set_default_precision);
+            prec_after_edit <- all2(&prec_after_edit, &input.set_default_resolution);
             prec_after_edit <- prec_after_edit.map(|(prec, default_prec)| prec.min(*default_prec));
             value_after_edit <- all5(
                 &value_after_edit,
@@ -807,7 +807,7 @@ impl Slider {
 
     /// Initialize the compinent with default values.
     fn init_slider_defaults(&self) {
-        self.frp.set_default_precision(PRECISION_DEFAULT);
+        self.frp.set_default_resolution(RESOLUTION_DEFAULT);
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
         self.frp.set_max_precision_adjustment_steps(MAX_PRECISION_ADJUSTMENT_STEPS);
