@@ -273,7 +273,8 @@ function Dashboard(props: DashboardProps) {
     react.useEffect(() => {
         function onKeyDown(event: KeyboardEvent) {
             if (
-                event.key === 'd' &&
+                // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
+                (event.key === 'd' || event.key === '∂') &&
                 event.ctrlKey &&
                 event.altKey &&
                 !event.shiftKey &&
