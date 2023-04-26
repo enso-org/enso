@@ -14,7 +14,7 @@ import java.util.List;
 public class ExplodingStorage extends Storage<Long> {
   private final long[] array;
   private final long explodingIndex;
-  
+
   public ExplodingStorage(long[] array, long explodingIndex) {
     this.array = array;
     this.explodingIndex = explodingIndex;
@@ -63,12 +63,14 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return null;
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return null;
   }
 
