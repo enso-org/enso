@@ -30,10 +30,7 @@ spec prefix connection =
         run_tests prefix connection upload
 
 run_tests prefix connection upload =
-    ## We have to upload the table as non-temporary, because otherwise it will
-       not be visible in the list of tables and make `Table.query` confused.
-       TODO [RW] remove temporary=False once #6398 is done.
-    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]]) temporary=False
+    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
     Test.group prefix+"Basic Table Access" <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.read
