@@ -1,6 +1,8 @@
 import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.Data.Text.Extensions
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
@@ -247,6 +249,17 @@ type Pair
         f self.first
         f self.second
         Nothing
+
+    ## PRIVATE
+       Convert to a display representation of this Pair.
+    to_display_text : Text
+    to_display_text self =
+        first = self.first.to_display_text
+        second = self.second.to_display_text
+        if first.length + second.length < 73 then "Pair(" + first + ", " + second + ")" else
+            first_trim = if first.length > 36 then first.take 34 + " …" else first
+            second_trim = if second.length > 36 then second.take 34 + " …" else second
+            "Pair(" + first_trim + ", " + second_trim + ")"
 
 ## PRIVATE
 check_start_valid start function max=3 =

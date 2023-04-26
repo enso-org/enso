@@ -544,6 +544,12 @@ type Date
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
     ## PRIVATE
+       Convert to a display representation of this Date.
+    to_display_text : Text
+    to_display_text self =
+        self.format "yyyy-MM-dd"
+
+    ## PRIVATE
        Convert to a JS_Object representing this Date.
 
        > Example
@@ -595,7 +601,6 @@ type Date
              example_format = Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
     format self pattern = Time_Utils.local_date_format self pattern
-
 
 ## PRIVATE
 week_days_between start end =

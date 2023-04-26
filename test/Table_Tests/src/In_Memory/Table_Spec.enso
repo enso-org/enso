@@ -525,12 +525,14 @@ spec =
 
         Test.specify "should work happily with mixed types" <|
             c_0 = ['A', ["H", "B", "C"]]
+            c_00 = ['AA', ["", "B", "C"]]
             c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [1, 2, 3]]
             c_3 = ['Y', [5.3, 56.2, 6.3]]
             c_4 = ['Z', [True, False, True]]
-            table = Table.new [c_0, c_1, c_2, c_3, c_4]
-            expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] <| table.use_first_row_as_names
+            c_5 = ['ZZ', [Nothing, False, True]]
+            table = Table.new [c_0, c_00, c_1, c_2, c_3, c_4, c_5]
+            expect_column_names ["H", "Column_1", "1980-01-01", "1", "5.3", "True", "Column_2"] table.use_first_row_as_names
 
         Test.specify "should correctly handle problems: invalid names ''" <|
             c_0 = ['A', ["", "B", "C"]]

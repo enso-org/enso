@@ -10,9 +10,10 @@ from project.Data.Boolean import Boolean, True, False
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
-polyglot java import java.lang.String
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
+polyglot java import java.text.DecimalFormat
+polyglot java import java.text.DecimalFormatSymbols
 polyglot java import java.text.NumberFormat
 polyglot java import java.text.ParseException
 
@@ -263,20 +264,21 @@ type Number
     log : Number -> Decimal
     log self base = self.ln / base.ln
 
-    ## UNSTABLE This API is not user-friendly and will be improved in the future.
-
-       Converts a numeric value to a string, using the Java string formatting
-       syntax.
+    ## Converts a numeric value to a string, using the Java DecimalFormat
+       formatter.
 
        Arguments:
-       - fmt: The java-style formatting specifier.
+       - format: The java-style formatting specifier.
 
        > Example
-         Convert the value 5 to a string.
+         Convert the value 5000 to a string.
 
-             5.format "%x"
-    format : Text -> Text
-    format self fmt = String.format fmt self
+             5000.format "#,##0"
+    format : Text -> Locale -> Text
+    format self format locale=Locale.default =
+        symbols = DecimalFormatSymbols.new locale.java_locale
+        formatter = DecimalFormat.new format symbols
+        formatter.format self
 
     ## Checks equality of numbers, using an `epsilon` value.
 

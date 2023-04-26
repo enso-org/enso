@@ -50,7 +50,7 @@ type Too_Many_Column_Names_Provided
 
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names
-    Error (column_names : [Text])
+    Error (column_names : Vector Text)
 
     ## PRIVATE
 
