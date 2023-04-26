@@ -59,6 +59,8 @@ new_builtin year month day = @Builtin_Method "Date.new_builtin"
    ? Pattern Syntax
      Patterns are based on a simple sequence of letters and symbols. For
      example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+     See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
 
    ? Default Date Formatting
      Unless you provide a custom format, the text must represent a valid date
@@ -146,8 +148,10 @@ type Date
        provided `pattern`.
 
        ? Pattern Syntax
-         Patterns are based on a simple sequence of letters and symbols. For
-         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        ? Default Date Formatting
          Unless you provide a custom format, the text must represent a valid date
@@ -558,8 +562,10 @@ type Date
        - pattern: The text specifying the format for formatting the date.
 
        ? Pattern Syntax
-         Patterns are based on a simple sequence of letters and symbols. For
-         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        > Example
          Format "2020-06-02" as "2 June 2020"

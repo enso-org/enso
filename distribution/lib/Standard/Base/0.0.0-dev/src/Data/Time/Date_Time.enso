@@ -172,12 +172,17 @@ type Date_Time
        - locale: The locale in which the pattern should be interpreted.
 
        ? Pattern Syntax
-         For the list of accepted symbols in pattern refer to `Time.format` doc.
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        ? Default Date_Time Format
-         The text must represent a valid date-time and is parsed using the ISO-8601
-         extended offset date-time format to add the timezone. The section in square
-         brackets is not part of the ISO-8601 standard. The format consists of:
+         The text must represent a valid date-time as defined by the ISO-8601
+         format. (See https://en.wikipedia.org/wiki/ISO_8601.) If a time zone is
+         present, it must be in the ISO-8601 Extended Date/Time Format (EDTF).
+         (See https://en.wikipedia.org/wiki/ISO_8601#EDTF.) The time zone format
+         consists of:
 
          - The ISO offset date time.
          - If the zone ID is not available or is a zone offset then the format is
@@ -603,50 +608,10 @@ type Date_Time
        - pattern: The pattern that specifies how to format the time.
 
        ? Pattern Syntax
-         Patterns are based on a simple sequence of letters and symbols. For
-         example, "d MMM uuuu" will format "2011-12-03" as "3 Dec 2011".
-
-         The list of accepted symbols with examples:
-
-         - 'G', era, "AD; Anno Domini"
-         - 'u', year, "2004; 04"
-         - 'y', year-of-era, "2004; 04"
-         - 'D', day-of-year, "189"
-         - 'M/L', month-of-year, "7; 07; Jul; July; J"
-         - 'd', day-of-month, "10"
-         - 'g', modified-julian-day, "2451334"
-         - 'Q/q', quarter-of-year, "3; 03; Q3; 3rd quarter"
-         - 'Y', week-based-year, "1996; 96"
-         - 'w', week-of-week-based-year, "27"
-         - 'W', week-of-month, "4"
-         - 'E', day-of-week, "Tue; Tuesday; T"
-         - 'e/c', localized day-of-week, "2; 02; Tue; Tuesday; T"
-         - 'F', day-of-week-in-month, "3"
-         - 'a', am-pm-of-day, "PM"
-         - 'h', clock-hour-of-am-pm (1-12), "12"
-         - 'K', hour-of-am-pm (0-11), "0"
-         - 'k', clock-hour-of-day (1-24), "24"
-         - 'H', hour-of-day (0-23), "0"
-         - 'm', minute-of-hour, "30"
-         - 's', second-of-minute, "55"
-         - 'S', fraction-of-second, "978"
-         - 'A', milli-of-day, "1234"
-         - 'n', nano-of-second, "987654321"
-         - 'N', nano-of-day, "1234000000"
-         - 'V', timezone ID, "America/Los_Angeles; Z; -08:30"
-         - 'v', generic timezone name, "Pacific Time; PT"
-         - 'z', timezone name, "Pacific Standard Time; PST"
-         - 'O', localized zone-offset, "GMT+8; GMT+08:00; UTC-08:00"
-         - 'X', zone-offset 'Z' for zero, "Z; -08; -0830; -08:30; -083015; -08:30:15"
-         - 'x', zone-offset, "+0000; -08; -0830; -08:30; -083015; -08:30:15"
-         - 'Z', zone-offset, "+0000; -0800; -08:00"
-         - 'p', pad next, "1"
-         - ''', (single quote) escape for text, "'Text'"
-         - '''', (double quote) single quote, "'"
-         - '[', optional section start
-         - ']', optional section end
-
-         The count of pattern letters determines the format.
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as

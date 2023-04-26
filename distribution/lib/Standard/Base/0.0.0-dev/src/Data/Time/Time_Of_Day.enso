@@ -114,7 +114,10 @@ type Time_Of_Day
        default format.
 
        ? Pattern Syntax
-         For the list of accepted symbols in pattern refer to `Time.format` doc.
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        ? Default Time Format
          The text must represent a valid time and is parsed using the ISO-8601
@@ -303,11 +306,10 @@ type Time_Of_Day
        - pattern: The pattern specifying how to format the time of day.
 
        ? Pattern Syntax
-         Patterns are based on a simple sequence of letters and symbols. For
-         example, "HH-mm-ss.SSS" will format "16:21:10" as "16-21-10.323".
-
-         For the list of accepted symbols in pattern refer to the
-         `Base.Data.Time.format` doc.
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        > Example
          Format "16:21:10" as "16:21:00.1234"
