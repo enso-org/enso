@@ -198,10 +198,6 @@ const RESTRICTED_SYNTAXES = [
             'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
         message: 'Use type assertions to specific types instead of `unknown`, `any` or `never`',
     },
-    {
-        selector: 'IfStatement > ExpressionStatement',
-        message: 'Wrap `if` branches in `{}`',
-    },
 ]
 
 /* eslint-disable @typescript-eslint/naming-convention */
