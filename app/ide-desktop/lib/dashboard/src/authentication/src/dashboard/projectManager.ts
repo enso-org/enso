@@ -6,6 +6,10 @@ import * as newtype from '../newtype'
 // =================
 
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
+/** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
+const RETRY_INTERVAL = 1000
+/** Duration after which the {@link ProjectManager} stops re-trying to create a WebSocket. */
+const STOP_TRYING_AFTER = 10000
 
 // =============
 // === Types ===
@@ -119,7 +123,7 @@ export class ProjectManager {
     protected id = 0
     protected resolvers = new Map<number, (value: never) => void>()
     protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
-    protected socket: WebSocket
+    protected socketPromise: Promise<WebSocket>
 
     constructor(protected readonly connectionUrl: string) {
         const createSocket = () => {
@@ -129,23 +133,36 @@ export class ProjectManager {
             for (const reject of oldRejecters.values()) {
                 reject()
             }
-            const socket = new WebSocket(this.connectionUrl)
-            socket.onmessage = event => {
-                // There is no way to avoid this as `JSON.parse` returns `any`.
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
-                const message: JSONRPCResponse<never> = JSON.parse(event.data)
-                if ('result' in message) {
-                    this.resolvers.get(message.id)?.(message.result)
-                } else {
-                    this.rejecters.get(message.id)?.(message.error)
-                }
-            }
-            socket.onerror = createSocket
-            socket.onclose = createSocket
-            this.socket = socket
-            return socket
+            this.socketPromise = new Promise<WebSocket>((resolve, reject) => {
+                const handle = setInterval(() => {
+                    try {
+                        const socket = new WebSocket(this.connectionUrl)
+                        clearInterval(handle)
+                        socket.onmessage = event => {
+                            // There is no way to avoid this as `JSON.parse` returns `any`.
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+                            const message: JSONRPCResponse<never> = JSON.parse(event.data)
+                            if ('result' in message) {
+                                this.resolvers.get(message.id)?.(message.result)
+                            } else {
+                                this.rejecters.get(message.id)?.(message.error)
+                            }
+                        }
+                        socket.onerror = createSocket
+                        socket.onclose = createSocket
+                        resolve(socket)
+                    } catch {
+                        // Ignored; the `setInterval` will retry again eventually.
+                    }
+                }, RETRY_INTERVAL)
+                setTimeout(() => {
+                    clearInterval(handle)
+                    reject()
+                }, STOP_TRYING_AFTER)
+            })
+            return this.socketPromise
         }
-        this.socket = createSocket()
+        this.socketPromise = createSocket()
     }
 
     /** Open an existing project. */
@@ -193,8 +210,9 @@ export class ProjectManager {
 
     /** Send a JSON-RPC request to the project manager. */
     private async sendRequest<T = void>(method: string, params: unknown): Promise<T> {
+        const socket = await this.socketPromise
         const id = this.id++
-        this.socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
+        socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
         return new Promise<T>((resolve, reject) => {
             this.resolvers.set(id, value => {
                 this.cleanup(id)
