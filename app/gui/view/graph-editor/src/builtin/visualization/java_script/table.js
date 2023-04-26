@@ -150,20 +150,20 @@ class TableVisualization extends Visualization {
             columnDefs = defs
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null && isMatrix(parsedData.json)) {
+        } else if (isMatrix(parsedData.json)) {
             columnDefs = [{ field: '#' }, ...parsedData.json[0].map((_, i) => ({ field: i.toString() }))]
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null && isObjectMatrix(parsedData.json)) {
+        } else if (isObjectMatrix(parsedData.json)) {
             let firstKeys = [{ field: '#' }, ...Object.keys(parsedData.json[0])]
             columnDefs = firstKeys.map(field => ({ field }))
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null && Array.isArray(parsedData.json)) {
+        } else if (Array.isArray(parsedData.json)) {
             columnDefs = [{ field: '#' }, { field: 'Value' }]
             rowData = parsedData.json.map((row, i) => ({ ['#']: i, Value: toRender(row) }))
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null) {
+        } else if (parsedData.json !== undefined) {
             columnDefs = [{ field: 'Value' }]
             rowData = [{ Value: toRender(parsedData.json) }]
         } else {
