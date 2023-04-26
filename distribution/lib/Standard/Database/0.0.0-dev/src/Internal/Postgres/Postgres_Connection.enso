@@ -123,7 +123,10 @@ type Postgres_Connection
        - alias: optionally specify a friendly alias for the query.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     query : Text | SQL_Query -> Text -> Database_Table
-    query self query alias="" = self.connection.query query alias
+    query self query alias="" =
+        # This calls our overridden implementation that will include the temporary tables too.
+        known_table_names = self.tables.at 'Name' . to_vector
+        self.connection.query_implementation query alias known_table_names
 
     ## Execute the query and load the results into memory as a Table.
 
@@ -170,7 +173,7 @@ type Postgres_Connection
     execute_create_table self create_table_query =
         result = self.connection.execute_create_table create_table_query
         result.if_not_error <|
-            case create_table_statement of
+            case create_table_query of
                 Query.Create_Table table_name _ _ temporary ->
                     if temporary then
                         self.known_temporary_tables.append table_name
@@ -195,8 +198,8 @@ create url properties make_new =
    table names.
 build_tables_listing database schema table_type table_names =
     rows = table_names.map table_name->
-        [database, self.schema, table_name, "TEMPORARY TABLE", Nothing]
-    Table.from_rows ["Database", "Schema", "Name", "Type", "Description"] rows_to_add
+        [database, schema, table_name, table_type, Nothing]
+    Materialized_Table.from_rows ["Database", "Schema", "Name", "Type", "Description"] rows
 
 ## PRIVATE
 temporary_table_type = "TEMPORARY TABLE"
@@ -205,7 +208,7 @@ temporary_table_type = "TEMPORARY TABLE"
    This is a workaround for an issue in Postgres where temporary tables are not
    listed by the `DatabaseMetadata.getTables` method. We add any missing tables
    thanks to the `known_temporary_tables` property.
-extend_jdbc_tables_with_temporary connection base_result name_like
+extend_jdbc_tables_with_temporary connection base_result name_like =
     known_temporary_tables = connection.known_temporary_tables.to_vector
 
     # We check if some of the tables are by any chance included in the existing result, to avoid duplicates.

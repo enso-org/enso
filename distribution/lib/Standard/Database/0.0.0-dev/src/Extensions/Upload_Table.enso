@@ -69,7 +69,11 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
         Pair.new name sql_type_text
     create_query = Query.Create_Table effective_table_name column_descriptors checked_primary_key temporary
 
-    upload_status = create_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
+    ## `create_query.if_not_error` is used to ensure that if there are any
+       dataflow errors up to this point, we want to propagate them and not
+       continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
+       raised as panics.
+    upload_status = create_query.if_not_error <| connection.jdbc_connection.run_within_transaction <|
         Panic.rethrow <| connection.execute_create_table create_query
         if structure_only.not then
             column_names = column_descriptors.map .first
