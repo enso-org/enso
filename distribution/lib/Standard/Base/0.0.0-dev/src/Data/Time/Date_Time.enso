@@ -589,7 +589,7 @@ type Date_Time
     to_display_text : Text
     to_display_text self =
         time_format = if self.nanosecond == 0 then "HH:mm:ss" else "HH:mm:ss.n"
-        self.format "yyyy-MM-dd "+time_format+" Z"
+        self.format "yyyy-MM-dd "+time_format+" VV"
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.

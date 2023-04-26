@@ -114,7 +114,7 @@ type File_Permissions
        Convert to a display representation of this File_Permissions.
     to_display_text : Text
     to_display_text self =
-        owner = "Owner: " + (if self.owner_execute then "x" else "-") + (if self.owner_write then "w" else "-") + (if self.owner_read then "r" else "-")
-        group = "Group: " + (if self.group_execute then "x" else "-") + (if self.group_write then "w" else "-") + (if self.group_read then "r" else "-")
-        others = "Other: " + (if self.others_execute then "x" else "-") + (if self.others_write then "w" else "-") + (if self.others_read then "r" else "-")
-        owner + ", " + group + ", " + others
+        owner = "Owner: " + (if self.owner_read then "r" else "-") + (if self.owner_write then "w" else "-") + (if self.owner_execute then "x" else "-")
+        group = "Group: " + (if self.group_read then "r" else "-") + (if self.group_write then "w" else "-") + (if self.group_execute then "x" else "-")
+        other = "Other: " + (if self.others_read then "r" else "-") + (if self.others_write then "w" else "-") + (if self.others_execute then "x" else "-")
+        owner + ", " + group + ", " + other

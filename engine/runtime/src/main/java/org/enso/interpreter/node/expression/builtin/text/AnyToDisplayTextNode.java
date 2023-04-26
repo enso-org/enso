@@ -36,11 +36,13 @@ public abstract class AnyToDisplayTextNode extends Node {
   }
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   Text convertInteger(long self) {
     return Text.create(Long.toString(self));
   }
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   Text convertDouble(double self) {
     return Text.create(Double.toString(self));
   }
