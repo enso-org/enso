@@ -2266,7 +2266,7 @@ impl InstanceDef {
         if event.captures.get() {
             for object in &rev_parent_chain {
                 if !event.is_cancelled() {
-                    event.set_current_target(object);
+                    event.set_current_target(Some(object));
                     object.event.capturing_fan.emit(&event.data);
                 } else {
                     break;
@@ -2282,13 +2282,14 @@ impl InstanceDef {
         if event.bubbles.get() {
             for object in rev_parent_chain.iter().rev() {
                 if !event.is_cancelled() {
-                    event.set_current_target(object);
+                    event.set_current_target(Some(object));
                     object.event.bubbling_fan.emit(&event.data);
                 } else {
                     break;
                 }
             }
         }
+        event.set_current_target(None);
     }
 
     fn new_event<T>(&self, payload: T) -> event::SomeEvent

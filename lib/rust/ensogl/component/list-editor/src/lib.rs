@@ -263,7 +263,7 @@ ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
         /// Push a new element to the end of the list.
         push(Rc<RefCell<Option<T>>>),
 
-        insert((Index, Weak<T>)),
+        insert((Index, Rc<RefCell<Option<T>>>)),
 
         /// Remove the element at the given index. If the index is invalid, nothing will happen.
         remove(Index),
@@ -281,7 +281,7 @@ ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
         /// Fires whenever a new element was added to the list.
         on_item_added(Response<Index>),
 
-        on_item_removed(Response<(Index, Weak<T>)>),
+        on_item_removed(Response<(Index, Rc<RefCell<Option<T>>>)>),
 
         /// Request new item to be inserted at the provided index. In most cases, this happens after
         /// clicking a "plus" icon to add new element to the list. As a response, you should use the
@@ -359,12 +359,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
 
-            sub_target <= on_down.map(|event| event.target());
-
-            indexed_target <= sub_target.map(f!([model] (t) {
-                let objs = t.rev_parent_chain();
-                objs.into_iter().find_map(|t| model.borrow().item_index_of(&t).map(|i| (i, t)))
-            }));
+            target <= on_down.map(|event| event.target());
 
             on_up <- on_up_source.identity();
             on_up_cleaning_phase <- on_up_source.identity();
@@ -387,7 +382,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
         self.init_add_and_remove();
         let (is_dragging, drag_diff, no_drag) =
-            self.init_dragging(&on_up, &on_down, &indexed_target, &pos_diff);
+            self.init_dragging(&on_up, &on_down, &target, &pos_diff);
         let (is_trashing, trash_pointer_style) = self.init_trashing(&on_up, &drag_diff);
         self.init_dropping(&on_up, &pos_on_move_down, &is_trashing);
         let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
@@ -396,7 +391,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             cursor.frp.set_style <+ all [insert_pointer_style, trash_pointer_style].fold();
             on_down_drag <- on_down.gate_not(&no_drag);
             eval on_down_drag ([] (event) event.stop_propagation());
-            _eval <- no_drag.on_true().map3(&on_down, &sub_target, |_, event, target| {
+            _eval <- no_drag.on_true().map3(&on_down, &target, |_, event, target| {
                 target.emit_event(event.payload.clone());
             });
         }
@@ -459,17 +454,17 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
         frp::extend! { network
             push_ix <= frp.push.map(f!((item) model.push_weak(item)));
-            on_pushed <- frp.push.map2(&push_ix, |t, ix| Response::api(*ix));
+            on_pushed <- push_ix.map(|ix| Response::api(*ix));
             frp.private.output.on_item_added <+ on_pushed;
 
             insert_ix <= frp.insert.map(f!(((index, item)) model.insert_weak(*index, item)));
-            on_inserted <- frp.insert.map2(&insert_ix, |t, ix| Response::api(*ix));
+            on_inserted <- insert_ix.map(|ix| Response::api(*ix));
             frp.private.output.on_item_added <+ on_inserted;
 
             let on_item_removed = &frp.private.output.on_item_removed;
             eval frp.remove([model, on_item_removed] (index) {
                 if let Some(item) = model.borrow_mut().trash_item_at(*index) {
-                    on_item_removed.emit(Response::api((*index, Rc::new(item).downgrade())));
+                    on_item_removed.emit(Response::api((*index, Rc::new(RefCell::new(Some(item))))));
                 }
             });
         }
@@ -480,7 +475,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         &self,
         on_up: &frp::Stream<Event<mouse::Up>>,
         on_down: &frp::Stream<Event<mouse::Down>>,
-        target: &frp::Stream<((Index, ItemOrPlaceholderIndex), display::object::Instance)>,
+        target: &frp::Stream<display::object::Instance>,
         pos_diff: &frp::Stream<Vector2>,
     ) -> (frp::Stream<bool>, frp::Stream<Vector2>, frp::Stream<bool>) {
         let model = &self.model;
@@ -514,7 +509,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             let on_item_removed = &frp.private.output.on_item_removed;
             eval target_on_start([model, on_item_removed] (t) {
                 if let Some((index, item)) = model.borrow_mut().start_item_drag(t) {
-                    on_item_removed.emit(Response::gui((index, Rc::new(item).downgrade())));
+                    on_item_removed.emit(Response::gui((index, Rc::new(RefCell::new(Some(item))))));
                 }
             });
         }
@@ -579,7 +574,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
             let on_item_added = &frp.private.output.on_item_added;
             eval insert_index_on_drop ([model, on_item_added] (index)
-                if let Some((index, item)) = model.borrow_mut().place_dragged_item(*index) {
+                if let Some(index) = model.borrow_mut().place_dragged_item(*index) {
                     on_item_added.emit(Response::gui(index));
                 }
             );
@@ -629,8 +624,9 @@ impl<T: display::Object + CloneRef + 'static> SharedModel<T> {
         self.borrow_mut().insert(index, item)
     }
 
-    fn insert_weak(&self, index: Index, item: &Weak<T>) -> Option<Index> {
-        item.upgrade().map(|item| self.insert(index, (*item).clone_ref()))
+    fn insert_weak(&self, index: Index, item: &Rc<RefCell<Option<T>>>) -> Option<Index> {
+        let item = mem::take(&mut *item.borrow_mut());
+        item.map(|item| self.insert(index, item))
     }
 
     fn insert_index(&self, x: f32, center_points: &[f32]) -> ItemOrPlaceholderIndex {
@@ -849,14 +845,15 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// be reused and scaled to cover the size of the dragged element.
     ///
     /// See docs of [`Self::start_item_drag_at`] for more information.
-    fn start_item_drag(
-        &mut self,
-        target: &((Index, ItemOrPlaceholderIndex), display::object::Instance),
-    ) -> Option<(Index, T)> {
-        // FIXME: ugly
-        let (index, index_or_placeholder_index) = target.0;
-        let item = &target.1;
-        self.start_item_drag_at(index_or_placeholder_index).map(|item| (index, item))
+    fn start_item_drag(&mut self, target: &display::object::Instance) -> Option<(Index, T)> {
+        let objs = target.rev_parent_chain();
+        let tarrget_index = objs.into_iter().find_map(|t| self.item_index_of(&t));
+        if let Some((index, index_or_placeholder_index)) = tarrget_index {
+            self.start_item_drag_at(index_or_placeholder_index).map(|item| (index, item))
+        } else {
+            warn!("Could not find the item to drag.");
+            None
+        }
     }
 
     /// Remove the selected item from the item list and mark it as an element being dragged. In the
@@ -950,7 +947,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// Place the currently dragged element in the given index. The item will be enclosed in the
     /// [`Item`] object, will handles its animation. See the documentation of
     /// [`ItemOrPlaceholder`] to learn more.
-    fn place_dragged_item(&mut self, index: ItemOrPlaceholderIndex) -> Option<(Index, T)> {
+    fn place_dragged_item(&mut self, index: ItemOrPlaceholderIndex) -> Option<Index> {
         if let Some(item) = self.cursor.stop_drag_if_is::<T>() {
             self.collapse_all_placeholders_no_margin_update();
             if let Some((index, placeholder)) = self.get_indexed_merged_placeholder_at(index) {
@@ -967,7 +964,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
                 warn!("An element was inserted without a placeholder. This should not happen.");
             }
             self.reposition_items();
-            self.item_or_placeholder_index_to_index(index).map(|index| (index, item))
+            self.item_or_placeholder_index_to_index(index)
         } else {
             warn!("Called function to insert dragged element, but no element is being dragged.");
             None

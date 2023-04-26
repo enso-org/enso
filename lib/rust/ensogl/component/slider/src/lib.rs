@@ -100,6 +100,24 @@ pub enum LabelPosition {
 
 
 
+// ==================
+// === DragHandle ===
+// ==================
+
+/// Defines which part of the slider is being dragged by the user. In case the slider allows
+/// dragging both of its ends and the middle of the track, this struct determines which part is
+/// being dragged.
+#[allow(missing_docs)]
+#[derive(Debug, Copy, Clone, Default)]
+pub enum DragHandle {
+    Start,
+    Middle,
+    #[default]
+    End,
+}
+
+
+
 // =============================
 // === Slider limit behavior ===
 // =============================
@@ -293,13 +311,6 @@ ensogl_core::define_endpoints_2! {
 }
 
 
-#[derive(Debug, Copy, Clone, Default)]
-pub enum DragHandle {
-    Start,
-    Middle,
-    #[default]
-    End,
-}
 
 // ========================
 // === Slider component ===
@@ -648,10 +659,7 @@ impl Slider {
         let obj = model.display_object();
 
         frp::extend! { network
-            // comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
             eval obj.on_resized((size) model.update_size(*size));
-            // output.width <+ input.set_width;
-            // output.height <+ input.set_height;
             min_limit_anim.target <+ output.min_value;
             max_limit_anim.target <+ output.max_value;
             indicator_pos <- all_with4(&model.start_value_animation.value, &model.end_value_animation.value, &min_limit_anim.value, &max_limit_anim.value,
@@ -659,8 +667,8 @@ impl Slider {
                     let total = max - min;
                     ((start_value - min) / total, (end_value - min) / total)
             });
-            indicator_pos <- all_with3(&indicator_pos, &input.set_thumb_size, &input.orientation,
-                f!((a, b, c) model.set_indicator_position(a.0, a.1, *b, *c)));
+            _eval <- all_with(&indicator_pos, &input.orientation,
+                f!((a, c) model.set_indicator_position(a.0, a.1, *c)));
 
             value_text_left_pos_x <- all3(
                 &model.value_text_left.width,

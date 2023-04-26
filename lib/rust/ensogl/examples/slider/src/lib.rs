@@ -1,4 +1,4 @@
-//! A debug scene which shows the slider component
+//! An example scene showing the slider component usage.
 
 // === Features ===
 #![feature(associated_type_defaults)]

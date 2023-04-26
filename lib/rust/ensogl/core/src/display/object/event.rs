@@ -72,8 +72,10 @@ impl SomeEvent {
         self.bubbles.set(value);
     }
 
-    pub fn set_current_target(&self, target: &Instance) {
-        self.current_target.replace(Some(target.downgrade()));
+    /// Set the current target of the event. This is internal function and should not be used
+    /// directly.
+    pub(crate) fn set_current_target(&self, target: Option<&Instance>) {
+        self.current_target.replace(target.map(|t| t.downgrade()));
     }
 }
 
@@ -161,6 +163,14 @@ impl<T> Event<T> {
         self.data.target.as_ref().and_then(|t| t.upgrade())
     }
 
+    /// The current target for the event, as the event traverses the display object hierarchy. It
+    /// always refers to the element to which the event handler has been attached, as opposed to
+    /// [`Self::target`], which identifies the element on which the event occurred and which may be
+    /// its descendant.
+    ///
+    /// # Important Note
+    /// The value of [`Self::current_target`] is only available while the event is being handled. If
+    /// store the event in a variable and read this property later, the value will be [`None`].
     pub fn current_target(&self) -> Option<Instance> {
         self.data.current_target.borrow().as_ref().and_then(|t| t.upgrade())
     }

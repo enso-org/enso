@@ -1,3 +1,5 @@
+//! An example scene showing the list editor component usage.
+
 // === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
@@ -24,28 +26,19 @@ use std::mem;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
-use ensogl_core::control::io::mouse;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_list_editor::ListEditor;
 use ensogl_slider as slider;
+
 
 
 // ===================
 // === Entry Point ===
 // ===================
 
-pub mod glob {
-    use super::*;
-    ensogl_core::define_endpoints_2! {
-        Input {
-        }
-        Output {
-        }
-    }
-}
+// A global FRP network used to handle events from the list editor.
+ensogl_core::define_endpoints_2! {}
 
 /// The example entry point.
 #[entry_point]
@@ -54,12 +47,9 @@ pub fn main() {
     let app = Application::new("root");
     let world = app.display.clone();
     let scene = &world.default_scene;
-
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-
     let vector_editor = ListEditor::new(&app.cursor);
-
 
     let slider1 = app.new_view::<slider::Slider>();
     slider1.set_size((200.0, 24.0));
@@ -70,45 +60,14 @@ pub fn main() {
     let slider3 = app.new_view::<slider::Slider>();
     slider3.set_size((200.0, 24.0));
 
+    let frp = Frp::new();
+    let network = frp.network();
 
-    // let shape1 = Circle().build(|t| {
-    //     t.set_size(Vector2(60.0, 100.0))
-    //         .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
-    //         .set_inset_border(2.0)
-    //         .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5))
-    //         .keep_bottom_left_quarter();
-    // });
-    // let shape2 = RoundedRectangle(10.0).build(|t| {
-    //     t.set_size(Vector2(120.0, 100.0))
-    //         .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
-    //         .set_inset_border(2.0)
-    //         .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
-    // });
-    // let shape3 = RoundedRectangle(10.0).build(|t| {
-    //     t.set_size(Vector2(240.0, 100.0))
-    //         .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
-    //         .set_inset_border(2.0)
-    //         .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
-    // });
-
-
-    let glob_frp = glob::Frp::new();
-    let glob_frp_network = glob_frp.network();
-
-    // let shape1_down = shape1.on_event::<mouse::Down>();
-    frp::extend! { glob_frp_network
-        // trace vector_editor.request_new_item;
-        vector_editor.push <+ vector_editor.request_new_item.map(move |index| {
-            // let shape = RoundedRectangle(10.0).build(|t| {
-            //     t.set_size(Vector2(100.0, 100.0))
-            //         .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.1))
-            //         .set_inset_border(2.0)
-            //         .set_border_color(color::Rgba::new(0.0, 0.0, 0.0, 0.5));
-            // });
+    frp::extend! { network
+        vector_editor.insert <+ vector_editor.request_new_item.map(move |index| {
             let slider = app.new_view::<slider::Slider>();
             slider.set_size((200.0, 24.0));
-            // (**index, Rc::new(RefCell::new(Some(slider))))
-            Rc::new(RefCell::new(Some(slider)))
+            (**index, Rc::new(RefCell::new(Some(slider))))
         });
     }
 
@@ -121,11 +80,8 @@ pub fn main() {
     root.add_child(&vector_editor);
     world.add_child(&root);
 
-
-
     world.keep_alive_forever();
-    // mem::forget(app);
-    mem::forget(glob_frp);
+    mem::forget(frp);
     mem::forget(navigator);
     mem::forget(root);
     mem::forget(vector_editor);

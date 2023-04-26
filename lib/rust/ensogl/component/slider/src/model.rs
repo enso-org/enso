@@ -133,11 +133,13 @@ pub struct Model {
     pub value_text_edit:       text::Text,
     /// Tooltip component showing either a tooltip message or slider precision changes.
     pub tooltip:               Tooltip,
+    /// Animation component that smoothly adjusts the slider start value on large jumps.
     pub start_value_animation: Animation<f32>,
-    /// Animation component that smoothly adjusts the slider value on large jumps.
+    /// Animation component that smoothly adjusts the slider end value on large jumps.
     pub end_value_animation:   Animation<f32>,
     /// Root of the display object.
     pub root:                  display::object::Instance,
+    /// The display object containing the text value of the slider.
     pub value:                 display::object::Instance,
 }
 
@@ -231,8 +233,7 @@ impl Model {
     }
 
     /// Set the position of the value indicator.
-    pub fn set_indicator_position(&self, start: f32, fraction: f32, size: f32, orientation: Axis2) {
-        console_log!("start: {}", start);
+    pub fn set_indicator_position(&self, start: f32, fraction: f32, orientation: Axis2) {
         match orientation {
             Axis2::X => {
                 self.track.start.set(start.clamp(0.0, 1.0));
@@ -351,7 +352,7 @@ impl Model {
 
     /// Set whether the value is being edited. This hides the value display and shows a text editor
     /// field to enter a new value.
-    pub fn set_edit_mode(&self, (editing, precision): &(bool, f32)) {
+    pub fn set_edit_mode(&self, (editing, _precision): &(bool, f32)) {
         if *editing {
             self.root.remove_child(&self.value);
             self.root.add_child(&self.value_text_edit);
