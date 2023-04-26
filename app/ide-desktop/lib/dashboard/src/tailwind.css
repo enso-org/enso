@@ -4,7 +4,8 @@ body {
   margin: 0;
 }
 
-/* These styles MUST still be copied as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
+/* These styles MUST still be copied
+ * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
 .enso-dashboard {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
