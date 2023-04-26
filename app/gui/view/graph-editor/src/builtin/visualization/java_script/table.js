@@ -122,11 +122,11 @@ class TableVisualization extends Visualization {
             this.agGridOptions.api.setColumnDefs([
                 {
                     field: 'Error',
-                    cellStyle: {'white-space': 'normal'},
+                    cellStyle: { 'white-space': 'normal' },
                 },
             ])
-            this.agGridOptions.api.setRowData([{Error: parsedData.error}])
-        } else if (parsedData.type === "Matrix") {
+            this.agGridOptions.api.setRowData([{ Error: parsedData.error }])
+        } else if (parsedData.type === 'Matrix') {
             let defs = [{ field: '#' }]
             for (let i = 0; i < parsedData.column_count; i++) {
                 defs.push({ field: i.toString() })
@@ -134,7 +134,7 @@ class TableVisualization extends Visualization {
             columnDefs = defs
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.type === "Object_Matrix") {
+        } else if (parsedData.type === 'Object_Matrix') {
             let defs = [{ field: '#' }]
             let keys = {}
             parsedData.json.forEach(val => {
@@ -151,7 +151,10 @@ class TableVisualization extends Visualization {
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (isMatrix(parsedData.json)) {
-            columnDefs = [{ field: '#' }, ...parsedData.json[0].map((_, i) => ({ field: i.toString() }))]
+            columnDefs = [
+                { field: '#' },
+                ...parsedData.json[0].map((_, i) => ({ field: i.toString() })),
+            ]
             rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
         } else if (isObjectMatrix(parsedData.json)) {
