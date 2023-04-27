@@ -589,11 +589,10 @@ ensogl::define_endpoints_2! {
 
         // === Execution Environment ===
 
-        // TODO(#5930): Temporary shortcut for testing different execution environments
-        toggle_execution_environment(),
-        /// Set the execution environmenta available to the graph.
-        set_available_execution_environments          (Rc<Vec<execution_environment_selector::ExecutionEnvironment>>),
-        set_execution_environment                     (ExecutionEnvironment),
+        /// Set the execution environments available to the graph.
+        set_available_execution_environments          (Rc<Vec<ExecutionEnvironment>>),
+        switch_to_design_execution_environment(),
+        switch_to_live_execution_environment(),
         execution_finished(),
 
 
@@ -771,7 +770,7 @@ ensogl::define_endpoints_2! {
         min_x_spacing_for_new_nodes (f32),
 
         /// The selected environment mode.
-        execution_environment (execution_environment_selector::ExecutionEnvironment),
+        execution_environment (ExecutionEnvironment),
         /// A press of the execution environment selector play button.
         execution_environment_play_button_pressed (),
     }
@@ -1750,7 +1749,7 @@ impl GraphEditorModelWithNetwork {
 
                 // === Execution Environment ===
 
-                node.set_execution_environment <+ self.model.frp.input.set_execution_environment;
+                node.set_execution_environment <+ self.model.frp.output.execution_environment;
             }
 
 

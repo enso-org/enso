@@ -296,20 +296,16 @@ impl Model {
 
     fn execution_environment_changed(
         &self,
-        execution_environment: &ide_view::execution_environment_selector::ExecutionEnvironment,
+        execution_environment: ide_view::execution_environment_selector::ExecutionEnvironment,
     ) {
-        if let Ok(execution_environment) = execution_environment.as_str().try_into() {
-            let graph_controller = self.graph_controller.clone_ref();
-            executor::global::spawn(async move {
-                if let Err(err) =
-                    graph_controller.set_execution_environment(execution_environment).await
-                {
-                    error!("Error setting execution environment: {err}");
-                }
-            });
-        } else {
-            error!("Invalid execution environment: {execution_environment:?}");
-        }
+        let graph_controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) =
+                graph_controller.set_execution_environment(execution_environment).await
+            {
+                error!("Error setting execution environment: {err}");
+            }
+        });
     }
 
     fn trigger_clean_live_execution(&self) {
@@ -418,7 +414,7 @@ impl Project {
             eval_ view.execution_context_restart(model.execution_context_restart());
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
-            eval graph_view.execution_environment((env) model.execution_environment_changed(env));
+            eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
         }
 
@@ -433,7 +429,7 @@ impl Project {
     /// Initialises execution environment.
     fn init_execution_environments(self) -> Self {
         let graph = &self.model.view.graph();
-        let entries = Rc::new(ExecutionEnvironment::list_all_as_imstrings());
+        let entries = Rc::new(ExecutionEnvironment::list_all());
         graph.set_available_execution_environments(entries);
         self
     }

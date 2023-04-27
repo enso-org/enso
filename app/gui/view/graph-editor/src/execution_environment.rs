@@ -4,22 +4,11 @@ use super::*;
 
 use crate::Frp;
 
-use ide_view_execution_environment_selector::ExecutionEnvironment;
-
 
 
 // =============================
 // === Execution Environment ===
 // =============================
-
-fn get_next_execution_environment(
-    current: &ExecutionEnvironment,
-    available: &[ExecutionEnvironment],
-) -> Option<ExecutionEnvironment> {
-    let index = available.iter().position(|mode| mode == current)?;
-    let next_index = (index + 1) % available.len();
-    Some(available[next_index].clone())
-}
 
 /// Initialise the FRP logic for the execution environment selector.
 pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
@@ -34,20 +23,15 @@ pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
         // === Execution Environment Changes ===
 
         selector.set_available_execution_environments <+ frp.set_available_execution_environments;
-        selected_environment <- frp.set_execution_environment.map(|env| (*env).into());
-        environment_state
-            <- all(out.execution_environment,frp.set_available_execution_environments);
 
-        environment_toggled <- environment_state.sample(&frp.toggle_execution_environment);
-        toggled_execution_environment <- environment_toggled.map(|(mode,available)|
-            get_next_execution_environment(mode,available)).unwrap();
-
-        external_update <- any(selected_environment,toggled_execution_environment);
+        switch_to_live <-
+            frp.switch_to_live_execution_environment.constant(ExecutionEnvironment::Live);
+        switch_to_design <-
+            frp.switch_to_design_execution_environment.constant(ExecutionEnvironment::Design);
+        external_update <- any(switch_to_live,switch_to_design);
         selector.set_execution_environment <+ external_update;
 
-        execution_environment_update
-            <- any(selector.selected_execution_environment,external_update);
-        out.execution_environment <+ execution_environment_update;
+        out.execution_environment <+ selector.selected_execution_environment.on_change();
         out.execution_environment_play_button_pressed <+ selector.play_press;
         frp.set_read_only <+ selector.play_press.constant(true);
 

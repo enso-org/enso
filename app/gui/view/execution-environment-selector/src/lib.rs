@@ -74,13 +74,14 @@ impl Style {
 // ===========
 
 /// An identifier of a execution environment.
-pub type ExecutionEnvironment = ImString;
+pub type ExecutionEnvironment = engine_protocol::language_server::ExecutionEnvironment;
+
 /// A list of execution environments.
 pub type ExecutionEnvironments = Rc<Vec<ExecutionEnvironment>>;
 
 /// Provide a dummy list of execution environments. Used for testing and demo scenes.
 pub fn make_dummy_execution_environments() -> ExecutionEnvironments {
-    Rc::new(vec!["Design".to_string().into(), "Live".to_string().into()])
+    Rc::new(ExecutionEnvironment::list_all())
 }
 
 ensogl::define_endpoints_2! {
@@ -157,7 +158,9 @@ impl Model {
     }
 
     fn set_entries(&self, entries: Rc<Vec<ExecutionEnvironment>>) {
-        let provider = ensogl_list_view::entry::AnyModelProvider::from(entries.clone_ref());
+        let labels = entries.iter().map(|e| e.to_string().capitalize_first_letter()).collect_vec();
+        let labels = Rc::new(labels);
+        let provider = ensogl_list_view::entry::AnyModelProvider::from(labels);
         self.dropdown.set_entries(provider);
         self.dropdown.set_selected(0);
     }
@@ -261,11 +264,11 @@ impl component::Frp<Model> for Frp {
 
             selected_id <- dropdown.frp.chosen_entry.unwrap();
             selection <- all(input.set_available_execution_environments, selected_id);
-            selected_entry <- selection.map(|(entries, entry_id)| entries[*entry_id].clone());
-            output.selected_execution_environment <+ selected_entry;
+            selected_entry <- selection.map(|(entries, entry_id)| entries[*entry_id]);
+            output.selected_execution_environment <+ selected_entry.on_change();
 
             eval selected_entry ([model] (execution_mode) {
-                let play_button_visibility = matches!(execution_mode.to_lowercase().as_str(), "design");
+                let play_button_visibility = matches!(execution_mode, ExecutionEnvironment::Design);
                 model.set_play_button_visibility(play_button_visibility);
             });
             play_button.reset <+ selected_entry.constant(());

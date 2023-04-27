@@ -4418,6 +4418,7 @@ dependencies = [
 name = "ide-view-execution-environment-selector"
 version = "0.1.0"
 dependencies = [
+ "engine-protocol",
  "enso-frp",
  "enso-prelude",
  "ensogl",
