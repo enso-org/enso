@@ -1,13 +1,10 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -15,10 +12,12 @@ import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ListTest {
+public class ListTest extends TestBase {
   private Context ctx;
   private final int size = 100_000;
   private Value generator;
@@ -31,15 +30,7 @@ public class ListTest {
 
   @Before
   public void prepareCtx() throws Exception {
-    this.ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .logHandler(new ByteArrayOutputStream())
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
+    this.ctx = createDefaultContext();
 
     final Map<String, Language> langs = ctx.getEngine().getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
@@ -72,6 +63,11 @@ public class ListTest {
     init = evalCode(code, "init");
     asVector = evalCode(code, "as_vector");
     asText = evalCode(code, "as_text");
+  }
+
+  @After
+  public void disposeCtx() {
+    this.ctx.close();
   }
 
   @Test

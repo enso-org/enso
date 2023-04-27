@@ -6,33 +6,21 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
-import java.io.OutputStream;
-import java.nio.file.Paths;
-
-public class WarningsTest {
+public class WarningsTest extends TestBase {
 
   private static Context ctx;
 
   @BeforeClass
   public static void initEnsoContext() {
-    ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .logHandler(OutputStream.nullOutputStream())
-            .allowAllAccess(true)
-            .build();
-    assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
+    ctx = createDefaultContext();
   }
 
   @AfterClass

@@ -28,8 +28,8 @@ import org.graalvm.collections.EconomicSet;
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public final class Array implements TruffleObject {
   private final Object[] items;
-  private @CompilerDirectives.CompilationFinal Boolean withWarnings;
-  private @CompilerDirectives.CompilationFinal(dimensions = 1) Warning[] cachedWarnings;
+  private Boolean withWarnings;
+  private Warning[] cachedWarnings;
 
   /**
    * Creates a new array

@@ -16,20 +16,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MetaObjectTest extends TestBase {
-  private Context ctx;
+  private static Context ctx;
 
-  @Before
-  public void prepareCtx() {
+  @BeforeClass
+  public static void prepareCtx() {
     ctx = createDefaultContext();
   }
 
-  @After
-  public void disposeCtx() {
+  @AfterClass
+  public static void disposeCtx() {
     ctx.close();
   }
 
