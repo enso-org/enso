@@ -35,26 +35,31 @@ use crate::gui::component::AnyShapeView;
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct CacheShapesPass {
-    scene:               Scene,
-    framebuffer:         Option<pass::Framebuffer>,
-    texture:             Option<crate::system::gpu::data::uniform::AnyTextureUniform>,
+    scene: Scene,
+    framebuffer: Option<pass::Framebuffer>,
+    texture: Option<crate::system::gpu::data::uniform::AnyTextureUniform>,
     #[derivative(Debug = "ignore")]
-    shapes_to_render:    Vec<Rc<dyn AnyShapeView>>,
+    shapes_to_render: Vec<Rc<dyn AnyShapeView>>,
     /// Texture size in device pixels.
     texture_size_device: Vector2<i32>,
-    layer:               Layer,
+    layer: Layer,
+    camera_ready: Rc<Cell<bool>>,
+    #[derivative(Debug = "ignore")]
+    display_object_update_handler: Option<Rc<enso_callback::Handle>>,
 }
 
 impl CacheShapesPass {
     /// Constructor.
     pub fn new(scene: &Scene) -> Self {
         Self {
-            framebuffer:         default(),
-            texture:             default(),
-            shapes_to_render:    default(),
-            layer:               Layer::new("Cached Shapes"),
-            scene:               scene.clone_ref(),
+            framebuffer: default(),
+            texture: default(),
+            shapes_to_render: default(),
+            layer: Layer::new("Cached Shapes"),
+            scene: scene.clone_ref(),
             texture_size_device: default(),
+            camera_ready: default(),
+            display_object_update_handler: default(),
         }
     }
 }
@@ -85,6 +90,19 @@ impl pass::Definition for CacheShapesPass {
         self.layer.camera().update(&self.scene);
         self.scene.display_object.update(&self.scene);
         self.layer.update();
+        // The asynchronous update of the scene's display object initiated above will eventually
+        // set our layer's camera's transformation. Handle the camera update when all
+        // previously-initiated FRP events finish being processed.
+        let handle = frp::microtasks::next_microtask({
+            let camera = self.layer.camera();
+            let scene = self.scene.clone_ref();
+            let camera_ready = Rc::clone(&self.camera_ready);
+            move || {
+                camera.update(&scene);
+                camera_ready.set(true);
+            }
+        });
+        self.display_object_update_handler = Some(Rc::new(handle));
 
         let output = pass::OutputDefinition::new_rgba("cached_shapes");
         let texture =
@@ -94,6 +112,10 @@ impl pass::Definition for CacheShapesPass {
     }
 
     fn run(&mut self, instance: &Instance, _update_status: UpdateStatus) {
+        if !self.camera_ready.get() {
+            // We cannot render before the camera's transformation matrix has been set.
+            return;
+        }
         let is_shader_compiled =
             |shape: &mut Rc<dyn AnyShapeView>| shape.sprite().symbol.shader().program().is_some();
         let mut ready_to_render = self.shapes_to_render.drain_filter(is_shader_compiled).peekable();
