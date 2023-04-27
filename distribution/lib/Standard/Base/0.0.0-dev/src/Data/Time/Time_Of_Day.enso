@@ -349,9 +349,5 @@ type Time_Of_Day
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> (Locale | Nothing) -> Text
     format self pattern locale=Nothing = case locale of
-        Nothing -> self.format_without_locale pattern
-        _ -> Time_Utils.time_of_day_format_with_locale self pattern locale.java_locale
-
-    ## PRIVATE
-    format_without_locale : Text -> Text
-    format_without_locale self pattern = @Builtin_Method "Time_Of_Day.format_without_locale"
+        Nothing -> Time_Utils.time_of_day_format self pattern
+        _ -> Time_Utils.time_of_day_format self pattern locale.java_locale
