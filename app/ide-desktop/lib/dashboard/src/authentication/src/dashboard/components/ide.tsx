@@ -93,6 +93,7 @@ function Ide(props: Props) {
                 }
                 if (backend.platform === platformModule.Platform.desktop) {
                     await runNewProject()
+                    return
                 } else {
                     const script = document.createElement('script')
                     script.src = `${IDE_CDN_URL}/${engineVersion}/index.js.gz`
@@ -107,8 +108,14 @@ function Ide(props: Props) {
                         history.replaceState(null, '', originalUrl)
                     }
                     document.body.appendChild(script)
+                    const style = document.createElement('link')
+                    style.rel = 'stylesheet'
+                    style.href = `${IDE_CDN_URL}/${engineVersion}/style.css`
+                    document.body.appendChild(style)
+                    return () => {
+                        style.remove()
+                    }
                 }
-                return
             }
         })()
     }, [project])

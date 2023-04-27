@@ -634,7 +634,12 @@ function Dashboard(props: DashboardProps) {
             className={`select-none text-primary text-xs min-h-screen ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
-            onClick={unsetModal}
+            onClick={event => {
+                unsetModal()
+                if (!event.shiftKey) {
+                    setSelectedAssets([])
+                }
+            }}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
@@ -806,8 +811,11 @@ function Dashboard(props: DashboardProps) {
                             heading: ColumnHeading(column, cloudService.AssetType.project),
                             render: renderer(column, cloudService.AssetType.project),
                         }))}
-                        onClick={projectAsset => {
-                            setSelectedAssets([projectAsset])
+                        onClick={(projectAsset, event) => {
+                            event.stopPropagation()
+                            setSelectedAssets(
+                                event.shiftKey ? [...selectedAssets, projectAsset] : [projectAsset]
+                            )
                         }}
                         onContextMenu={(projectAsset, event) => {
                             event.preventDefault()
@@ -897,8 +905,13 @@ function Dashboard(props: DashboardProps) {
                                         ),
                                         render: renderer(column, cloudService.AssetType.directory),
                                     }))}
-                                    onClick={directoryAsset => {
-                                        setSelectedAssets([directoryAsset])
+                                    onClick={(directoryAsset, event) => {
+                                        event.stopPropagation()
+                                        setSelectedAssets(
+                                            event.shiftKey
+                                                ? [...selectedAssets, directoryAsset]
+                                                : [directoryAsset]
+                                        )
                                     }}
                                     onContextMenu={(_directory, event) => {
                                         event.preventDefault()
@@ -924,8 +937,11 @@ function Dashboard(props: DashboardProps) {
                                         ),
                                         render: renderer(column, cloudService.AssetType.secret),
                                     }))}
-                                    onClick={secret => {
-                                        setSelectedAssets([secret])
+                                    onClick={(secret, event) => {
+                                        event.stopPropagation()
+                                        setSelectedAssets(
+                                            event.shiftKey ? [...selectedAssets, secret] : [secret]
+                                        )
                                     }}
                                     onContextMenu={(secret, event) => {
                                         event.preventDefault()
@@ -968,8 +984,11 @@ function Dashboard(props: DashboardProps) {
                                         heading: ColumnHeading(column, cloudService.AssetType.file),
                                         render: renderer(column, cloudService.AssetType.file),
                                     }))}
-                                    onClick={file => {
-                                        setSelectedAssets([file])
+                                    onClick={(file, event) => {
+                                        event.stopPropagation()
+                                        setSelectedAssets(
+                                            event.shiftKey ? [...selectedAssets, file] : [file]
+                                        )
                                     }}
                                     onContextMenu={(file, event) => {
                                         event.preventDefault()

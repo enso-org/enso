@@ -1,12 +1,6 @@
-/** @file A service worker that redirects paths without extensions to `/index.html`. */
+/** @file A service worker that redirects paths without extensions to `/index.html`.
+ * This is only used in the cloud frontend. */
 /// <reference lib="WebWorker" />
-
-// =================
-// === Constants ===
-// =================
-
-const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
-const FALLBACK_VERSION = '2023.1.1-nightly.2023.4.13'
 
 // =====================
 // === Fetch handler ===
@@ -24,9 +18,6 @@ self.addEventListener('fetch', event => {
         url.pathname !== '/esbuild'
     ) {
         event.respondWith(fetch('/index.html'))
-        return
-    } else if (url.hostname === 'localhost' && url.pathname === '/style.css') {
-        event.respondWith(fetch(`${IDE_CDN_URL}/${FALLBACK_VERSION}/style.css`))
         return
     } else {
         return false
