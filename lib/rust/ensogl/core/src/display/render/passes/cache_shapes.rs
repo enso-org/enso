@@ -37,6 +37,7 @@ use crate::gui::component::AnyShapeView;
 pub struct CacheShapesPass {
     scene:               Scene,
     framebuffer:         Option<pass::Framebuffer>,
+    texture:             Option<crate::system::gpu::data::uniform::AnyTextureUniform>,
     #[derivative(Debug = "ignore")]
     shapes_to_render:    Vec<Rc<dyn AnyShapeView>>,
     /// Texture size in device pixels.
@@ -49,6 +50,7 @@ impl CacheShapesPass {
     pub fn new(scene: &Scene) -> Self {
         Self {
             framebuffer:         default(),
+            texture:             default(),
             shapes_to_render:    default(),
             layer:               Layer::new("Cached Shapes"),
             scene:               scene.clone_ref(),
@@ -88,6 +90,7 @@ impl pass::Definition for CacheShapesPass {
         let texture =
             instance.new_texture(&output, self.texture_size_device.x, self.texture_size_device.y);
         self.framebuffer = Some(instance.new_framebuffer(&[&texture]));
+        self.texture = Some(texture);
     }
 
     fn run(&mut self, instance: &Instance, _update_status: UpdateStatus) {
