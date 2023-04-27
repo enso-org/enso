@@ -117,7 +117,7 @@ pub fn below_line_and_left_aligned(
     line_y: f32,
     align_x: f32,
 ) -> Vector2 {
-    let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
+    let y_gap = graph_editor.frp_public.output.default_y_gap_between_nodes.value();
     let y_offset = y_gap + node::HEIGHT / 2.0;
     let starting_point = Vector2(align_x, line_y - y_offset);
     let direction = Vector2(-1.0, 0.0);
@@ -245,10 +245,10 @@ pub fn on_ray(
     starting_point: Vector2,
     direction: Vector2,
 ) -> Option<Vector2> {
-    let x_gap = graph_editor.frp.default_x_gap_between_nodes.value();
-    let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
+    let x_gap = graph_editor.frp_public.output.default_x_gap_between_nodes.value();
+    let y_gap = graph_editor.frp_public.output.default_y_gap_between_nodes.value();
     // This is how much horizontal space we are looking for.
-    let min_spacing = graph_editor.frp.min_x_spacing_for_new_nodes.value();
+    let min_spacing = graph_editor.frp_public.output.min_x_spacing_for_new_nodes.value();
     let nodes = graph_editor.nodes.all.raw.borrow();
     // The "occupied area" for given node consists of:
     // - area taken by node view (obviously);

@@ -107,3 +107,8 @@ type Encoding
     ## Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
     windows_1258 = Encoding.Value "windows-1258"
+
+    ## PRIVATE
+       Convert Encoding to a friendly string.
+    to_display_text : Text
+    to_display_text self = self.character_set

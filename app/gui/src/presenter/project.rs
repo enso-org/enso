@@ -7,6 +7,7 @@ use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
 
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use ensogl::system::js;
 use ide_view as view;
@@ -287,6 +288,24 @@ impl Model {
             view.show_graph_editor();
         })
     }
+
+    fn execution_environment_changed(
+        &self,
+        execution_environment: &ide_view::execution_environment_selector::ExecutionEnvironment,
+    ) {
+        if let Ok(execution_environment) = execution_environment.as_str().try_into() {
+            let graph_controller = self.graph_controller.clone_ref();
+            executor::global::spawn(async move {
+                if let Err(err) =
+                    graph_controller.set_execution_environment(execution_environment).await
+                {
+                    error!("Error setting execution environment: {err}");
+                }
+            });
+        } else {
+            error!("Invalid execution environment: {execution_environment:?}");
+        }
+    }
 }
 
 
@@ -385,22 +404,22 @@ impl Project {
             eval_ view.execution_context_restart(model.execution_context_restart());
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
+            eval graph_view.execution_environment((env) model.execution_environment_changed(env));
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
 
         self.init_analytics()
-            .init_execution_modes()
+            .init_execution_environments()
             .setup_notification_handler()
             .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
     }
 
-    /// Initialises execution modes. Currently a dummy implementqation to be replaced during
-    /// implementation of #5930.
-    fn init_execution_modes(self) -> Self {
+    /// Initialises execution environment.
+    fn init_execution_environments(self) -> Self {
         let graph = &self.model.view.graph();
-        let entries = Rc::new(vec!["design".to_string(), "live".to_string()]);
-        graph.set_available_execution_modes(entries);
+        let entries = Rc::new(ExecutionEnvironment::list_all_as_imstrings());
+        graph.set_available_execution_environments(entries);
         self
     }
 

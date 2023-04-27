@@ -7,6 +7,7 @@ import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
+
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
 import SvgIcon from './svgIcon'
@@ -14,9 +15,6 @@ import SvgIcon from './svgIcon'
 // =================
 // === Constants ===
 // =================
-
-const BUTTON_CLASS_NAME =
-    'relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200'
 
 const LOGIN_QUERY_PARAMS = {
     email: 'email',
@@ -51,7 +49,7 @@ function Login() {
                         event.preventDefault()
                         await signInWithGoogle()
                     }}
-                    className={BUTTON_CLASS_NAME}
+                    className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
                     <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
                     <span>Login with Google</span>
@@ -61,7 +59,7 @@ function Login() {
                         event.preventDefault()
                         await signInWithGitHub()
                     }}
-                    className={BUTTON_CLASS_NAME}
+                    className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
                     <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
                     <span>Login with Github</span>
