@@ -5,6 +5,7 @@ import * as newtype from '../newtype'
 // === Constants ===
 // =================
 
+/** The address of the socket for the project manager. */
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL = 1000
@@ -117,15 +118,16 @@ export interface ListSamplesParams {
 // === Project Manager ===
 // =======================
 
-/** A WebSocket endpoint to the project manager. */
+/** A {@link WebSocket} endpoint to the project manager. */
 export class ProjectManager {
-    static default = new ProjectManager(PROJECT_MANAGER_ENDPOINT)
+    private static instance: ProjectManager
     protected id = 0
     protected resolvers = new Map<number, (value: never) => void>()
     protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
     protected socketPromise: Promise<WebSocket>
 
-    constructor(protected readonly connectionUrl: string) {
+    /** Create a {@link ProjectManager} */
+    private constructor(protected readonly connectionUrl: string) {
         const createSocket = () => {
             this.resolvers = new Map()
             const oldRejecters = this.rejecters
@@ -163,6 +165,14 @@ export class ProjectManager {
             return this.socketPromise
         }
         this.socketPromise = createSocket()
+    }
+
+    /** Lazy initialization for the singleton instance. */
+    static default() {
+        // `this.instance` is initially undefined as an instance should only be created
+        // if a `ProjectManager` is actually needed.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return (this.instance ??= new ProjectManager(PROJECT_MANAGER_ENDPOINT))
     }
 
     /** Open an existing project. */

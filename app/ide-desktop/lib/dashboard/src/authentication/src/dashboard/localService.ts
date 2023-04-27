@@ -24,7 +24,7 @@ interface CurrentlyOpenProjectInfo {
 }
 
 export class Backend implements Partial<cloudService.Backend> {
-    private readonly projectManager = projectManager.ProjectManager.default
+    private readonly projectManager = projectManager.ProjectManager.default()
     private currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
 
     async listDirectory(): Promise<cloudService.Asset[]> {
