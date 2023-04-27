@@ -1631,11 +1631,11 @@ pub mod test {
         assert!(searcher.actions().is_loading());
         fixture.test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
-        // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
-        // and all of these are repeated in "All Search Result" category.
-        assert_eq!(list.len(), 8);
-        assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(test_function_1)));
-        assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
+        // There are 4 entries, because: 2 were returned from `completion` method, and two are
+        // mocked.
+        assert_eq!(list.len(), 4);
+        assert_eq!(list[0], Action::Suggestion(action::Suggestion::FromDatabase(test_function_1)));
+        assert_eq!(list[1], Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
     }
