@@ -159,7 +159,7 @@ public class ExcelWriter {
           throw new IllegalArgumentException("Cannot append by name when headers are not present in the existing data.");
         }
         String[] currentHeaders = sheet.get(expanded.getTopRow()).getCellsAsText(expanded.getLeftColumn(), expanded.getRightColumn());
-        yield ColumnMapper.mapColumnsByName(table, new NameDeduplicator().makeUnique(currentHeaders));
+        yield ColumnMapper.mapColumnsByName(table, new NameDeduplicator().makeUniqueArray(currentHeaders));
       }
       default ->
           throw new IllegalArgumentException("Internal Error: appendRangeWithTable called with illegal existing data mode '" + existingDataMode + "'.");
