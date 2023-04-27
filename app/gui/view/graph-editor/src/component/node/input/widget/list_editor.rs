@@ -68,9 +68,8 @@ impl Widget {
             trace list.request_new_item;
 
             inserted_by_user <- list.on_item_added.filter_map(|resp| resp.clone().gui_interaction_payload());
-            inserted_by_user_index <- inserted_by_user._0();
             requested_insert <- list.request_new_item.filter_map(|resp| resp.clone().gui_interaction_payload());
-            insert <- any(inserted_by_user_index, requested_insert);
+            insert <- any(inserted_by_user, requested_insert);
             insert_st_crumb <- insert.filter_map(f!((index) insertion_points.borrow().get(index).cloned()));
             widgets_frp.value_changed <+ insert_st_crumb.map2(&config_frp.elements_default_value, |crumb, val| (crumb.clone(), Some(val.clone_ref())));
 
@@ -126,24 +125,16 @@ impl super::SpanWidget for Widget {
         });
         self.update_list(children);
 
-        let element_count =
-            ctx.span_node.clone().children_iter().filter(|node| node.is_argument()).count();
         use span_tree::node::InsertionPoint;
         use span_tree::node::InsertionPointType;
         use span_tree::node::Kind;
         let insertion_points = ctx
             .span_node
             .children_iter()
-            .filter_map(|node| match node.kind {
-                Kind::InsertionPoint(InsertionPoint {
-                    kind: InsertionPointType::BeforeArgument(index),
-                    ..
-                }) => Some((index, node.crumbs.clone())),
-                Kind::InsertionPoint(InsertionPoint {
-                    kind: InsertionPointType::Append, ..
-                }) => Some((element_count, node.crumbs.clone())),
-                _ => None,
-            })
+            .filter(|node| !node.is_token())
+            .enumerate()
+            .filter(|(_, node)| node.is_insertion_point())
+            .map(|(index, node)| (index, node.crumbs.clone()))
             .collect();
         *self.insertion_points.borrow_mut() = insertion_points;
     }
