@@ -307,9 +307,7 @@ impl Model {
                         // If we are still using this edge (e.g. when dragging it), we need to
                         // update its target endpoint. Otherwise it will not reflect expression
                         // update performed on the target node.
-                        let edge = self.view.model.edges.get_cloned_ref(&id)?;
-                        let outdated_target = edge.target()?;
-                        edge.set_target(EdgeEndpoint::new(outdated_target.node_id, crumbs));
+                        self.view.replace_detached_edge_target((id, crumbs));
                         Some(())
                     });
                 }))

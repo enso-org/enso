@@ -619,8 +619,7 @@ ensogl::define_endpoints_2! {
         set_detached_edge_sources    (EdgeEndpoint),
         set_edge_source              ((EdgeId, EdgeEndpoint)),
         set_edge_target              ((EdgeId, EdgeEndpoint)),
-        unset_edge_source            (EdgeId),
-        unset_edge_target            (EdgeId),
+        replace_detached_edge_target ((EdgeId, span_tree::Crumbs)),
         connect_nodes                ((EdgeEndpoint,EdgeEndpoint)),
         deselect_all_nodes           (),
         press_node_input             (EdgeEndpoint),
@@ -2183,6 +2182,22 @@ impl GraphEditorModel {
         }
     }
 
+    fn replace_detached_edge_target(&self, edge_id: EdgeId, crumbs: &span_tree::Crumbs) {
+        if !self.edges.detached_source.contains(&edge_id) {
+            return;
+        }
+
+        if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
+            if let Some(target) = edge.take_target() {
+                self.set_input_connected(&target, None);
+                let port = crumbs.clone();
+                let new_target = EdgeEndpoint { port, ..target };
+                edge.set_target(new_target);
+                self.refresh_edge_position(edge_id);
+            }
+        }
+    }
+
     fn take_edges_with_detached_targets(&self) -> HashSet<EdgeId> {
         let edges = self.edges.detached_target.mem_take();
         self.check_edge_attachment_status_and_emit_events();
@@ -3647,6 +3662,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     eval out.on_edge_source_unset (((id,_)) model.remove_edge_source(*id));
     eval out.on_edge_target_unset (((id,_)) model.remove_edge_target(*id));
+    eval inputs.replace_detached_edge_target (((id,tgt)) model.replace_detached_edge_target(*id,tgt));
 
     is_only_tgt_not_set <-
         out.on_edge_source_set.map(f!(((id,_)) model.with_edge_map_target(*id,|_|()).is_none()));
@@ -3660,6 +3676,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.on_edge_only_source_not_set <+ out.on_edge_target_set_with_source_not_set._0();
     out.on_edge_only_source_not_set <+ out.on_edge_source_unset._0();
 
+    eval inputs.replace_detached_edge_target ([model,neutral_color]((id, _))
+        model.refresh_edge_color(*id,neutral_color.value().into()));
     eval out.on_edge_source_set ([model,neutral_color]((id, _))
         model.refresh_edge_color(*id,neutral_color.value().into()));
     eval out.on_edge_target_set ([model,neutral_color]((id, _))

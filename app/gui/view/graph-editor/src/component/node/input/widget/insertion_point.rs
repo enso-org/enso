@@ -20,7 +20,7 @@ use ensogl::display::object;
 pub struct Config;
 
 
-/// Insertion point widget. Displays nothing.
+/// Insertion point widget. Displays nothing when not connected.
 #[derive(Clone, Debug)]
 pub struct Widget {
     root: object::Instance,
@@ -35,6 +35,7 @@ impl super::SpanWidget for Widget {
 
     fn new(_: &Config, _: &super::ConfigContext) -> Self {
         let root = object::Instance::new();
+        root.set_size(Vector2::<f32>::zero());
         Self { root }
     }
 

@@ -252,7 +252,12 @@ impl Configuration {
     /// Derive widget configuration from Enso expression, node data in span tree and inferred value
     /// type. When no configuration is provided with an override, this function will be used to
     /// create a default configuration.
-    fn from_node(span_node: &SpanRef, usage_type: Option<crate::Type>, expression: &str) -> Self {
+    fn from_node(
+        span_node: &SpanRef,
+        usage_type: Option<crate::Type>,
+        expression: &str,
+        is_directly_connected: bool,
+    ) -> Self {
         use span_tree::node::Kind;
 
         let kind = &span_node.kind;
@@ -286,20 +291,26 @@ impl Configuration {
                 },
             Kind::Token | Kind::Operation if !has_children => Self::inert(label::Config::default()),
             Kind::NamedArgument => Self::inert(hierarchy::Config),
-            Kind::InsertionPoint(_) => Self::inert(insertion_point::Config),
+            Kind::InsertionPoint(_) =>
+                Self::maybe_with_port(insertion_point::Config, is_directly_connected),
             _ if has_children => Self::always(hierarchy::Config),
             _ => Self::always(label::Config::default()),
         }
     }
 
+    const fn maybe_with_port<C>(kind: C, has_port: bool) -> Self
+    where C: ~const Into<DynConfig> {
+        Self { display: Display::Always, kind: kind.into(), has_port }
+    }
+
     const fn always<C>(kind: C) -> Self
     where C: ~const Into<DynConfig> {
-        Self { display: Display::Always, kind: kind.into(), has_port: true }
+        Self::maybe_with_port(kind, true)
     }
 
     const fn inert<C>(kind: C) -> Self
     where C: ~const Into<DynConfig> {
-        Self { display: Display::Always, kind: kind.into(), has_port: false }
+        Self::maybe_with_port(kind, false)
     }
 
     /// Widget configuration for static dropdown, based on the tag values provided by suggestion
@@ -696,6 +707,7 @@ impl TreeModel {
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
     fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) -> bool {
+        warn!("set_connected({:?}, {:?})", crumbs, status);
         let mut map = self.connected_map.borrow_mut();
         let dirty = map.synchronize_entry(crumbs.clone(), status);
         self.mark_dirty_flag(dirty)
@@ -771,6 +783,8 @@ impl TreeModel {
         let usage_type_map = self.usage_type_map.borrow();
         let old_nodes = self.nodes_map.take();
         let node_disabled = self.node_disabled.get();
+
+        warn!("REBUILD. Connected: {:?}", connected_map);
 
         // Old hierarchy is not used during the rebuild, so we might as well reuse the allocation.
         let mut hierarchy = self.hierarchy.take();
@@ -1203,6 +1217,12 @@ impl<'a> TreeBuilder<'a> {
         let sibling_offset = span_node.sibling_offset.as_usize();
         let usage_type = main_ptr.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
+        // Prepare the widget node info and build context.
+        let connection_color = self.connected_map.get(&span_node.crumbs);
+        let connection = connection_color.map(|&color| EdgeData { color, depth });
+        let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
+        let subtree_connection = connection.or(parent_connection);
+
         // Get widget configuration. There are three potential sources for configuration, that are
         // used in order, whichever is available first:
         // 1. The `config_override` argument, which can be set by the parent widget if it wants to
@@ -1223,7 +1243,9 @@ impl<'a> TreeBuilder<'a> {
             Some(config) => config,
             None => {
                 let ty = usage_type.clone();
-                inferred_config = Configuration::from_node(&span_node, ty, self.node_expression);
+                let expr = &self.node_expression;
+                let connected = connection.is_some();
+                inferred_config = Configuration::from_node(&span_node, ty, expr, connected);
                 &inferred_config
             }
         };
@@ -1239,12 +1261,6 @@ impl<'a> TreeBuilder<'a> {
         });
 
         let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
-
-        // Prepare the widget node info and build context.
-        let connection_color = self.connected_map.get(&span_node.crumbs);
-        let connection = connection_color.map(|&color| EdgeData { color, depth });
-        let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
-        let subtree_connection = connection.or(parent_connection);
 
         let disabled = self.node_disabled;
         let info = NodeInfo {
