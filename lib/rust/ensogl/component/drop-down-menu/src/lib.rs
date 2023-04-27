@@ -361,8 +361,8 @@ impl DropDownMenu {
             chosen_entry_unmasked <- model.selection_menu.chosen_entry.map(f!((entry_id)
                 model.get_unmasked_index(*entry_id))
             );
-            frp.source.chosen_entry <+ chosen_entry_unmasked;
             set_selected            <- any(frp.input.set_selected, chosen_entry_unmasked);
+            frp.source.chosen_entry <+ set_selected;
 
             eval set_selected([model](entry_id) {
                 if let Some(entry_id) = entry_id {
