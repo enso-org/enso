@@ -237,7 +237,7 @@ public class PrintTest {
         IO.println a
     """;
 
-    checkPrint(code, "My_Object.type.to_text[test:6-16]");
+    checkPrint(code, "My_Object");
     // We would want the following result:
     //checkPrint(code, "My_Object");
   }

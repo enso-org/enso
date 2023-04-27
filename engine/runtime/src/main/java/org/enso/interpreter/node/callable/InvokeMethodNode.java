@@ -132,9 +132,12 @@ public abstract class InvokeMethodNode extends BaseNode {
     Builtins builtins = ctx.getBuiltins();
     Type any = builtins.any();
     Type warning = builtins.warning();
+    Type panic = builtins.panic();
     return methodOwnerType.isEigenType()
+
             && builtins.nothing() != methodOwnerType
             && any.getEigentype() != methodOwnerType
+            && panic.getEigentype() != methodOwnerType
             && warning.getEigentype() != methodOwnerType;
   }
 
