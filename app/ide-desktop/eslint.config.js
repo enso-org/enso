@@ -35,7 +35,6 @@ const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
-const WITH_ROUTER = 'CallExpression[callee.name=withRouter]'
 
 // Extracted to a variable because it needs to be used twice:
 // - once as-is for `.d.ts`
@@ -113,7 +112,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches functions and arrow functions, but not methods.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX}, ${WITH_ROUTER})))`,
+        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX})))`,
         message: 'Use `PascalCase` for React components',
     },
     {
@@ -123,7 +122,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression, ${WITH_ROUTER})))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression)))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
@@ -230,7 +229,7 @@ export default [
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
-            'require-jsdoc': [
+            'jsdoc/require-jsdoc': [
                 'error',
                 {
                     require: {
@@ -240,6 +239,7 @@ export default [
                         ArrowFunctionExpression: false,
                         FunctionExpression: true,
                     },
+                    contexts: ['TSEnumDeclaration'],
                 },
             ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
@@ -285,6 +285,7 @@ export default [
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
+            '@typescript-eslint/no-empty-interface': 'off',
             '@typescript-eslint/no-extraneous-class': 'error',
             '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
             // React 17 and later supports async functions as event handlers, so we need to disable this

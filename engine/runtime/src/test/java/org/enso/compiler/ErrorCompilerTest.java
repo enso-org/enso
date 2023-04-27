@@ -193,6 +193,14 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void malformedTypeException() throws Exception {
+    var ir = parse("""
+    fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> | Nothing -> Problem_Behavior -> Table | Nothing
+    """);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 48, 119);
+  }
+
+  @Test
   public void malformedImport11() throws Exception {
     var ir = parse("from import all");
     assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 4, 4);

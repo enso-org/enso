@@ -7,28 +7,7 @@ import project.Errors.Unimplemented.Unimplemented
 polyglot java import java.lang.Long
 polyglot java import java.util.Random
 
-## PRIVATE
-
-   The interface for the noise generator abstraction.
-
-   To be a valid generator, it must provide the `step` method as described
-   below.
-type Generator
-    ## PRIVATE
-
-      Step the generator to produce the next value..
-
-       Arguments:
-       - The input number, which is intended for use as a seed.
-       - A range for output values, which should range over the chosen output
-         type.
-
-       The return type may be chosen freely by the generator implementation, as
-       it usually depends on the generator and its intended use.
-    step : Number -> Interval -> Any
-    step self _ _ = Unimplemented.throw "Only intended to demonstrate an interface."
-
-## A noise generator that implements a seeded deterministic random peterbation
+## A noise generator that implements a seeded deterministic random perturbation
    of the input.
 
    It produces what is commonly termed "white" noise, where any value in the
@@ -73,6 +52,6 @@ type Deterministic_Random
    > Example
      Deterministically perturb the input number 1.
          1.noise
-Number.noise : Interval -> Generator -> Any
+Number.noise : Interval -> Deterministic_Random -> Any
 Number.noise self (interval = Interval.exclusive 0 1) gen=Deterministic_Random =
     gen.step self interval

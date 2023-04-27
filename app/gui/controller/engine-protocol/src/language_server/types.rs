@@ -1155,6 +1155,72 @@ pub struct LibraryComponentGroup {
 }
 
 
+
+// =============================
+// === Execution Environment ===
+// =============================
+
+/// The execution environment which controls the global execution of functions with side effects.
+///
+/// For more information, see
+/// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
+pub enum ExecutionEnvironment {
+    /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
+    /// changes.
+    Design,
+    /// Unrestricted, live editing of data.
+    Live,
+}
+
+impl Default for ExecutionEnvironment {
+    fn default() -> Self {
+        ExecutionEnvironment::Design
+    }
+}
+
+impl ExecutionEnvironment {
+    /// List all available execution environments.
+    pub fn list_all() -> Vec<Self> {
+        vec![ExecutionEnvironment::Design, ExecutionEnvironment::Live]
+    }
+
+    /// List all available execution environments as ImStrings. Useful for UI.
+    pub fn list_all_as_imstrings() -> Vec<ImString> {
+        Self::list_all().iter().map(|env| (*env).into()).collect()
+    }
+}
+
+impl From<ExecutionEnvironment> for ImString {
+    fn from(env: ExecutionEnvironment) -> Self {
+        ImString::new(env.to_string())
+    }
+}
+
+impl TryFrom<&str> for ExecutionEnvironment {
+    type Error = ();
+
+    fn try_from(value: &str) -> core::result::Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "design" => Ok(ExecutionEnvironment::Design),
+            "live" => Ok(ExecutionEnvironment::Live),
+            _ => Err(()),
+        }
+    }
+}
+
+impl ExecutionEnvironment {
+    /// Returns whether the output context is enabled for this execution environment.
+    pub fn output_context_enabled(&self) -> bool {
+        match self {
+            Self::Design => false,
+            Self::Live => true,
+        }
+    }
+}
+
+
+
 // ======================
 // === Test Utilities ===
 // ======================
