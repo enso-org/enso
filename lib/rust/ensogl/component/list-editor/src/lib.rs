@@ -548,7 +548,8 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
             let on_item_removed = &frp.private.output.on_item_removed;
             eval frp.remove([model, on_item_removed] (index) {
-                if let Some(item) = model.borrow_mut().trash_item_at(*index) {
+                let item = model.borrow_mut().trash_item_at(*index);
+                if let Some(item) = item {
                     on_item_removed.emit(Response::api((*index, Rc::new(RefCell::new(Some(item))))));
                 }
             });
@@ -595,10 +596,9 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             start <- status.on_true();
             target_on_start <- target.sample(&start);
             let on_item_removed = &frp.private.output.on_item_removed;
-            eval target_on_start([model, on_item_removed, cursor] (t) {
-                let indexed_item = model.borrow_mut().start_item_drag(t);
-                if let Some((index, item)) = indexed_item {
-                    cursor.start_drag(item.clone_ref());
+            eval target_on_start([model, on_item_removed] (t) {
+                let item = model.borrow_mut().start_item_drag(t);
+                if let Some((index, item)) = item {
                     on_item_removed.emit(Response::gui((index, Rc::new(RefCell::new(Some(item))))));
                 }
             });
@@ -941,8 +941,8 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// See docs of [`Self::start_item_drag_at`] for more information.
     fn start_item_drag(&mut self, target: &display::object::Instance) -> Option<(Index, T)> {
         let objs = target.rev_parent_chain().reversed();
-        let tarrget_index = objs.into_iter().find_map(|t| self.item_index_of(&t));
-        if let Some((index, index_or_placeholder_index)) = tarrget_index {
+        let target_index = objs.into_iter().find_map(|t| self.item_index_of(&t));
+        if let Some((index, index_or_placeholder_index)) = target_index {
             self.start_item_drag_at(index_or_placeholder_index).map(|item| (index, item))
         } else {
             warn!("Could not find the item to drag.");
