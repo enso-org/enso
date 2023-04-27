@@ -243,6 +243,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 let code = root.repr();
                 let msg = self.span_tree.debug_print(&code);
                 error!("span_tree: \n{msg}");
+                error!("Ast crumbs: {:?}", self.ast_crumbs);
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
@@ -313,10 +314,18 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     while let Some(node) = next_parent {
                         // We're only interested in nodes inside the prefix chain.
                         error!("kind: {:?}", node.node.kind);
-                        if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
-                            break;
-                        }
+                        error!("crumbs: {:?}", node.crumbs);
+                        error!("ast_crumbs: {:?}", node.ast_crumbs);
+                        // if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
+                        //     break;
+                        // }
                         next_parent = node.parent()?;
+                        // let argument_node = node.children_iter().find(|ch| {
+                        //     error!("ast_crumbs: {:?}", ch.ast_crumbs);
+                        //     error!("crumbs: {:?}", ch.crumbs);
+                        //     ch.ast_crumbs == &[Crumb::Prefix(PrefixCrumb::Arg)]
+                        // });
+                        error!("Right before argument node!");
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());
@@ -351,6 +360,9 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 }
 
                 let new_span_tree = SpanTree::<()>::new(&new_root, context)?;
+                let code = new_root.repr();
+                let msg = new_span_tree.debug_print(&code);
+                error!("new_span_tree: \n{msg}");
 
                 // For resolved arguments, the valid insertion point of this argument is its
                 // placeholder. The position of placeholder is not guaranteed to be in the same

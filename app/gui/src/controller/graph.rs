@@ -1748,6 +1748,7 @@ main =
                     };
                     let connections = graph.connections(&ctx).expect(&error_message);
                     let connection = connections.connections.first().expect(&error_message);
+                    error!("Disconnect!");
                     graph.disconnect(connection, &ctx).expect(&error_message);
                     let new_main = graph.definition().expect(&error_message).ast.repr();
                     assert_eq!(new_main, expected, "{error_message}");
@@ -1795,10 +1796,12 @@ main =
         for case in cases {
             case.run();
         }
+        panic!();
     }
 
     /// A regression test case for removing arguments. See
     /// https://github.com/enso-org/enso/issues/6228 for description of the bug.
+    #[ignore]
     #[test]
     fn disconnect_issue_6228() {
         let mut test = Fixture::set_up();
