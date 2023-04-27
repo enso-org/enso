@@ -12,5 +12,4 @@ final class InliningBuiltinsNeedNotNode extends Node {
     assertNotNull("Some frame is still provided", frame);
     return a + b;
   }
-
 }

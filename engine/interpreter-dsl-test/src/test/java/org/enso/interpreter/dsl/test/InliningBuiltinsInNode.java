@@ -9,5 +9,4 @@ final class InliningBuiltinsInNode extends Node {
   long execute(long a, long b) {
     return a + b;
   }
-
 }
