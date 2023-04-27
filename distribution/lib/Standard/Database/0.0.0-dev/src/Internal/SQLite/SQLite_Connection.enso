@@ -17,7 +17,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Connection.Connection import default_table_types, make_table_types_selector, make_schema_selector
+from project.Connection.Connection import default_table_types, make_table_types_selector, make_schema_selector, make_table_name_selector
 from project.Errors import SQL_Error
 
 type SQLite_Connection
@@ -105,7 +105,7 @@ type SQLite_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
-    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
+    @query make_table_name_selector
     query : Text | SQL_Query -> Text -> Database_Table
     query self query alias="" = self.connection.query query alias
 
@@ -115,7 +115,7 @@ type SQLite_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
+    @query make_table_name_selector
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing = self.connection.read query limit
 

@@ -131,12 +131,6 @@ type Connection
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
 
     ## PRIVATE
-    all_known_table_names : Vector Text
-    all_known_table_names self =
-        tables = self.tables name_like=Nothing database=self.database schema=Nothing types=default_table_types all_fields=False
-        tables.at "Name" . to_vector
-
-    ## PRIVATE
        Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
 
@@ -153,11 +147,12 @@ type Connection
            raised.
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
+    @query make_table_name_selector
     query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
-                if self.all_known_table_names.contains query then (SQL_Query.Table_Name query) else
+                if (all_known_table_names self).contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
             result.catch SQL_Error sql_error->
                 case self.dialect.is_probably_a_query query of
@@ -187,6 +182,7 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
+    @query make_table_name_selector
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing =
         self.query query . read max_rows=limit
@@ -252,3 +248,12 @@ make_table_types_selector connection =
 make_schema_selector connection =
     schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
     Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
+
+## PRIVATE
+all_known_table_names connection =
+    tables = connection.tables name_like=Nothing database=connection.database schema=Nothing types=default_table_types all_fields=False
+    tables.at "Name" . to_vector
+
+## PRIVATE
+make_table_name_selector connection =
+    Single_Choice display=Display.Always values=((all_known_table_names connection).map t-> Option t t.pretty)
