@@ -594,6 +594,7 @@ ensogl::define_endpoints_2! {
         /// Set the execution environmenta available to the graph.
         set_available_execution_environments          (Rc<Vec<execution_environment_selector::ExecutionEnvironment>>),
         set_execution_environment                     (ExecutionEnvironment),
+        execution_finished(),
 
 
         // === Debug ===

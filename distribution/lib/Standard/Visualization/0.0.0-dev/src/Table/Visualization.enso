@@ -20,7 +20,7 @@ import project.Helpers
 
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Text
-prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
+prepare_visualization y max_rows=1000 =
     x = Warning.set y []
 
     result = case x of

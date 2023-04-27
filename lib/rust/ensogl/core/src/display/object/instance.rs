@@ -2217,7 +2217,7 @@ impl InstanceDef {
 
     /// Get reversed parent chain of this display object (`[root, child_of root, ..., parent,
     /// self]`). The last item is this object.
-    fn rev_parent_chain(&self) -> Vec<Instance> {
+    pub fn rev_parent_chain(&self) -> Vec<Instance> {
         let mut vec = default();
         Self::build_rev_parent_chain(&mut vec, Some(self.clone_ref().into()));
         vec
@@ -2415,6 +2415,7 @@ impl InstanceDef {
         if event.captures.get() {
             for object in &rev_parent_chain {
                 if !event.is_cancelled() {
+                    event.set_current_target(Some(object));
                     object.event.capturing_fan.emit(&event.data);
                 } else {
                     break;
@@ -2430,12 +2431,14 @@ impl InstanceDef {
         if event.bubbles.get() {
             for object in rev_parent_chain.iter().rev() {
                 if !event.is_cancelled() {
+                    event.set_current_target(Some(object));
                     object.event.bubbling_fan.emit(&event.data);
                 } else {
                     break;
                 }
             }
         }
+        event.set_current_target(None);
     }
 
     fn new_event<T>(&self, payload: T) -> event::SomeEvent

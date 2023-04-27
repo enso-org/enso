@@ -329,6 +329,21 @@ impl model::execution_context::API for ExecutionContext {
         }
         .boxed_local()
     }
+
+    fn trigger_clean_live_execution(&self) -> BoxFuture<FallibleResult> {
+        async move {
+            self.language_server
+                .client
+                .recompute(
+                    &self.id,
+                    &language_server::InvalidatedExpressions::All,
+                    &Some(ExecutionEnvironment::Live),
+                )
+                .await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
 }
 
 impl Drop for ExecutionContext {
