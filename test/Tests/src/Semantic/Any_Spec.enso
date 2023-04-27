@@ -55,5 +55,6 @@ spec =
             Any.x (My_Type.Value 22) . should_equal "Any:(My_Type.Value 22)"
             Any.x (With_X.Value 22) . should_equal "Any:(With_X.Value 22)"
             Any.x (With_Y.Value 22) . should_equal "Any:With_Y(22)"
+            Date.to_display_text . should_equal "Date"
 
 main = Test_Suite.run_main spec

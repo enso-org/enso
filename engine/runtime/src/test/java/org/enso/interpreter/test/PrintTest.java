@@ -238,7 +238,5 @@ public class PrintTest {
     """;
 
     checkPrint(code, "My_Object");
-    // We would want the following result:
-    //checkPrint(code, "My_Object");
   }
 }
