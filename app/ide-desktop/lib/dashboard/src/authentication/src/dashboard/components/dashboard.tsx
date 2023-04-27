@@ -74,7 +74,6 @@ enum Column {
 export interface CreateFormProps {
     left: number
     top: number
-    backend: cloudService.Backend
     directoryId: cloudService.DirectoryId
     onSuccess: () => void
 }
@@ -193,18 +192,6 @@ function rootDirectoryId(userOrOrganizationId: cloudService.UserOrOrganizationId
     )
 }
 
-// FIXME[sb]: While this works, throwing a runtime error can be avoided
-// if types are properly narrowed, e.g. using a type guard instead.
-function asCloudBackend(
-    backend: cloudService.Backend | localService.Backend
-): cloudService.Backend {
-    if (!('checkResources' in backend)) {
-        throw new Error('This functionality only works with the cloud backend.')
-    } else {
-        return backend
-    }
-}
-
 // =================
 // === Dashboard ===
 // =================
@@ -226,7 +213,6 @@ function Dashboard(props: DashboardProps) {
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
-    const [backendPlatform, setBackendPlatform] = react.useState(platformModule.Platform.cloud)
     const [refresh, doRefresh] = hooks.useRefresh()
 
     const [query, setQuery] = react.useState('')
@@ -474,7 +460,7 @@ function Dashboard(props: DashboardProps) {
         [Column.docs]: () => <></>,
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
-            // eslint-disable-next-line no-restricted-syntax
+            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
             function onContextMenu(event: react.MouseEvent) {
                 event.preventDefault()
                 event.stopPropagation()
@@ -527,8 +513,6 @@ function Dashboard(props: DashboardProps) {
                             <CreateForm
                                 left={buttonPosition.left}
                                 top={buttonPosition.top}
-                                // FIXME[sb]: Don't pass outdated `doRefresh` - maybe `backendService` too.
-                                backend={asCloudBackend(backend)}
                                 directoryId={directoryId}
                                 onSuccess={doRefresh}
                             />
@@ -674,9 +658,7 @@ function Dashboard(props: DashboardProps) {
                             }
                         }
                     }}
-                    backendPlatform={backendPlatform}
                     setBackendPlatform={newBackendPlatform => {
-                        setBackendPlatform(newBackendPlatform)
                         setProjectAssets([])
                         setDirectoryAssets([])
                         setSecretAssets([])
@@ -693,10 +675,7 @@ function Dashboard(props: DashboardProps) {
                     query={query}
                     setQuery={setQuery}
                 />
-                <Templates
-                    backendPlatform={backendPlatform}
-                    onTemplateClick={handleCreateProject}
-                />
+                <Templates onTemplateClick={handleCreateProject} />
                 <div className="flex flex-row flex-nowrap">
                     <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                     <div className="flex flex-row flex-nowrap mx-4">
@@ -724,7 +703,7 @@ function Dashboard(props: DashboardProps) {
                         <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                             <button
                                 className={`mx-1 ${
-                                    backendPlatform === platformModule.Platform.desktop
+                                    backend.platform === platformModule.Platform.desktop
                                         ? 'opacity-50'
                                         : ''
                                 }`}
@@ -732,7 +711,6 @@ function Dashboard(props: DashboardProps) {
                                     event.stopPropagation()
                                     setModal(() => (
                                         <UploadFileModal
-                                            backend={asCloudBackend(backend)}
                                             directoryId={directoryId}
                                             onSuccess={doRefresh}
                                         />
@@ -931,16 +909,18 @@ function Dashboard(props: DashboardProps) {
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
                             function doDelete() {
-                                setModal(() => (
-                                    <ConfirmDeleteModal
-                                        name={projectAsset.title}
-                                        assetType={projectAsset.type}
-                                        doDelete={() =>
-                                            asCloudBackend(backend).deleteProject(projectAsset.id)
-                                        }
-                                        onSuccess={doRefresh}
-                                    />
-                                ))
+                                // The button is disabled when using the desktop backend,
+                                // so this condition should never be `false`.
+                                if (backend.platform === platformModule.Platform.cloud) {
+                                    setModal(() => (
+                                        <ConfirmDeleteModal
+                                            name={projectAsset.title}
+                                            assetType={projectAsset.type}
+                                            doDelete={() => backend.deleteProject(projectAsset.id)}
+                                            onSuccess={doRefresh}
+                                        />
+                                    ))
+                                }
                             }
                             setModal(() => (
                                 <ContextMenu event={event}>
@@ -953,153 +933,162 @@ function Dashboard(props: DashboardProps) {
                                     <ContextMenuEntry disabled onClick={doRename}>
                                         Rename
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry onClick={doDelete}>
+                                    <ContextMenuEntry
+                                        disabled={
+                                            backend.platform === platformModule.Platform.desktop
+                                        }
+                                        onClick={doDelete}
+                                    >
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
                             ))
                         }}
                     />
-                    {backendPlatform === platformModule.Platform.cloud && (
-                        <>
-                            <tr className="h-10" />
-                            <Rows<cloudService.Asset<cloudService.AssetType.directory>>
-                                items={visibleDirectoryAssets}
-                                getKey={dir => dir.id}
-                                placeholder={
-                                    <span className="opacity-75">
-                                        This directory does not contain any subdirectories
-                                        {query ? ' matching your query' : ''}.
-                                    </span>
-                                }
-                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                    id: column,
-                                    heading: ColumnHeading(
-                                        column,
-                                        cloudService.AssetType.directory
-                                    ),
-                                    render: renderer(column, cloudService.AssetType.directory),
-                                }))}
-                                onClick={directoryAsset => {
-                                    setSelectedAssets([directoryAsset])
-                                }}
-                                onContextMenu={(_directory, event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    setModal(() => <ContextMenu event={event}></ContextMenu>)
-                                }}
-                            />
-                            <tr className="h-10" />
-                            <Rows<cloudService.Asset<cloudService.AssetType.secret>>
-                                items={visibleSecretAssets}
-                                getKey={secret => secret.id}
-                                placeholder={
-                                    <span className="opacity-75">
-                                        This directory does not contain any secrets
-                                        {query ? ' matching your query' : ''}.
-                                    </span>
-                                }
-                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                    id: column,
-                                    heading: ColumnHeading(column, cloudService.AssetType.secret),
-                                    render: renderer(column, cloudService.AssetType.secret),
-                                }))}
-                                onClick={secret => {
-                                    setSelectedAssets([secret])
-                                }}
-                                onContextMenu={(secret, event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    // This is not a React component even though it contains JSX.
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    function doDelete() {
+                    {backend.platform === platformModule.Platform.cloud &&
+                        (cloudBackend => (
+                            <>
+                                <tr className="h-10" />
+                                <Rows<cloudService.Asset<cloudService.AssetType.directory>>
+                                    items={visibleDirectoryAssets}
+                                    getKey={dir => dir.id}
+                                    placeholder={
+                                        <span className="opacity-75">
+                                            This directory does not contain any subdirectories
+                                            {query ? ' matching your query' : ''}.
+                                        </span>
+                                    }
+                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                        id: column,
+                                        heading: ColumnHeading(
+                                            column,
+                                            cloudService.AssetType.directory
+                                        ),
+                                        render: renderer(column, cloudService.AssetType.directory),
+                                    }))}
+                                    onClick={directoryAsset => {
+                                        setSelectedAssets([directoryAsset])
+                                    }}
+                                    onContextMenu={(_directory, event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        setModal(() => <ContextMenu event={event}></ContextMenu>)
+                                    }}
+                                />
+                                <tr className="h-10" />
+                                <Rows<cloudService.Asset<cloudService.AssetType.secret>>
+                                    items={visibleSecretAssets}
+                                    getKey={secret => secret.id}
+                                    placeholder={
+                                        <span className="opacity-75">
+                                            This directory does not contain any secrets
+                                            {query ? ' matching your query' : ''}.
+                                        </span>
+                                    }
+                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                        id: column,
+                                        heading: ColumnHeading(
+                                            column,
+                                            cloudService.AssetType.secret
+                                        ),
+                                        render: renderer(column, cloudService.AssetType.secret),
+                                    }))}
+                                    onClick={secret => {
+                                        setSelectedAssets([secret])
+                                    }}
+                                    onContextMenu={(secret, event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        // This is not a React component even though it contains JSX.
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        function doDelete() {
+                                            setModal(() => (
+                                                <ConfirmDeleteModal
+                                                    name={secret.title}
+                                                    assetType={secret.type}
+                                                    doDelete={() =>
+                                                        cloudBackend.deleteSecret(secret.id)
+                                                    }
+                                                    onSuccess={doRefresh}
+                                                />
+                                            ))
+                                        }
                                         setModal(() => (
-                                            <ConfirmDeleteModal
-                                                name={secret.title}
-                                                assetType={secret.type}
-                                                doDelete={() =>
-                                                    asCloudBackend(backend).deleteSecret(secret.id)
-                                                }
-                                                onSuccess={doRefresh}
-                                            />
+                                            <ContextMenu event={event}>
+                                                <ContextMenuEntry onClick={doDelete}>
+                                                    <span className="text-red-700">Delete</span>
+                                                </ContextMenuEntry>
+                                            </ContextMenu>
                                         ))
+                                    }}
+                                />
+                                <tr className="h-10" />
+                                <Rows<cloudService.Asset<cloudService.AssetType.file>>
+                                    items={visibleFileAssets}
+                                    getKey={file => file.id}
+                                    placeholder={
+                                        <span className="opacity-75">
+                                            This directory does not contain any files
+                                            {query ? ' matching your query' : ''}.
+                                        </span>
                                     }
-                                    setModal(() => (
-                                        <ContextMenu event={event}>
-                                            <ContextMenuEntry onClick={doDelete}>
-                                                <span className="text-red-700">Delete</span>
-                                            </ContextMenuEntry>
-                                        </ContextMenu>
-                                    ))
-                                }}
-                            />
-                            <tr className="h-10" />
-                            <Rows<cloudService.Asset<cloudService.AssetType.file>>
-                                items={visibleFileAssets}
-                                getKey={file => file.id}
-                                placeholder={
-                                    <span className="opacity-75">
-                                        This directory does not contain any files
-                                        {query ? ' matching your query' : ''}.
-                                    </span>
-                                }
-                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                    id: column,
-                                    heading: ColumnHeading(column, cloudService.AssetType.file),
-                                    render: renderer(column, cloudService.AssetType.file),
-                                }))}
-                                onClick={file => {
-                                    setSelectedAssets([file])
-                                }}
-                                onContextMenu={(file, event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    function doCopy() {
-                                        /** TODO: Call endpoint for copying file. */
-                                    }
-                                    function doCut() {
-                                        /** TODO: Call endpoint for downloading file. */
-                                    }
-                                    // This is not a React component even though it contains JSX.
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    function doDelete() {
+                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                        id: column,
+                                        heading: ColumnHeading(column, cloudService.AssetType.file),
+                                        render: renderer(column, cloudService.AssetType.file),
+                                    }))}
+                                    onClick={file => {
+                                        setSelectedAssets([file])
+                                    }}
+                                    onContextMenu={(file, event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        function doCopy() {
+                                            /** TODO: Wait for backend endpoint. */
+                                        }
+                                        function doCut() {
+                                            /** TODO: Wait for backend endpoint. */
+                                        }
+                                        // This is not a React component even though it contains JSX.
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        function doDelete() {
+                                            setModal(() => (
+                                                <ConfirmDeleteModal
+                                                    name={file.title}
+                                                    assetType={file.type}
+                                                    doDelete={() =>
+                                                        cloudBackend.deleteFile(file.id)
+                                                    }
+                                                    onSuccess={doRefresh}
+                                                />
+                                            ))
+                                        }
+                                        function doDownload() {
+                                            /** TODO: Wait for backend endpoint. */
+                                        }
                                         setModal(() => (
-                                            <ConfirmDeleteModal
-                                                name={file.title}
-                                                assetType={file.type}
-                                                doDelete={() =>
-                                                    asCloudBackend(backend).deleteFile(file.id)
-                                                }
-                                                onSuccess={doRefresh}
-                                            />
+                                            <ContextMenu event={event}>
+                                                <ContextMenuEntry disabled onClick={doCopy}>
+                                                    Copy
+                                                </ContextMenuEntry>
+                                                <ContextMenuEntry disabled onClick={doCut}>
+                                                    Cut
+                                                </ContextMenuEntry>
+                                                <ContextMenuEntry onClick={doDelete}>
+                                                    <span className="text-red-700">Delete</span>
+                                                </ContextMenuEntry>
+                                                <ContextMenuEntry disabled onClick={doDownload}>
+                                                    Download
+                                                </ContextMenuEntry>
+                                            </ContextMenu>
                                         ))
-                                    }
-                                    function doDownload() {
-                                        /** TODO: Call endpoint for downloading file. */
-                                    }
-                                    setModal(() => (
-                                        <ContextMenu event={event}>
-                                            <ContextMenuEntry disabled onClick={doCopy}>
-                                                Copy
-                                            </ContextMenuEntry>
-                                            <ContextMenuEntry disabled onClick={doCut}>
-                                                Cut
-                                            </ContextMenuEntry>
-                                            <ContextMenuEntry onClick={doDelete}>
-                                                <span className="text-red-700">Delete</span>
-                                            </ContextMenuEntry>
-                                            <ContextMenuEntry disabled onClick={doDownload}>
-                                                Download
-                                            </ContextMenuEntry>
-                                        </ContextMenu>
-                                    ))
-                                }}
-                            />
-                        </>
-                    )}
+                                    }}
+                                />
+                            </>
+                        ))(backend)}
                 </tbody>
             </table>
-            {isFileBeingDragged && backendPlatform === platformModule.Platform.cloud ? (
+            {isFileBeingDragged && backend.platform === platformModule.Platform.cloud ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                     onDragLeave={() => {
@@ -1112,7 +1101,7 @@ function Dashboard(props: DashboardProps) {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
                         await uploadMultipleFiles.uploadMultipleFiles(
-                            asCloudBackend(backend),
+                            backend,
                             directoryId,
                             Array.from(event.dataTransfer.files)
                         )
@@ -1123,7 +1112,7 @@ function Dashboard(props: DashboardProps) {
                 </div>
             ) : null}
             {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
-            {project && <Ide backendPlatform={backendPlatform} project={project} />}
+            {project && <Ide project={project} />}
             {modal && <>{modal}</>}
         </div>
     )

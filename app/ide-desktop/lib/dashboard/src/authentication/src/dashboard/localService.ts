@@ -4,6 +4,7 @@
  * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
 import * as cloudService from './cloudService'
 import * as newtype from '../newtype'
+import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
 
 // ========================
@@ -23,7 +24,8 @@ interface CurrentlyOpenProjectInfo {
     project: projectManager.OpenProject
 }
 
-export class Backend implements Partial<cloudService.Backend> {
+export class Backend implements Partial<Omit<cloudService.Backend, 'platform'>> {
+    readonly platform = platformModule.Platform.desktop
     private readonly projectManager = projectManager.ProjectManager.default()
     private currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
 

@@ -1,4 +1,5 @@
 /** @file Renders the list of templates from which a project can be created. */
+import * as backendProvider from '../../providers/backend'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
@@ -142,18 +143,19 @@ function TemplatesRender(props: TemplatesRenderProps) {
 
 /** The `TemplatesRender`'s container. */
 interface TemplatesProps {
-    backendPlatform: platformModule.Platform
     onTemplateClick: (name?: string | null) => void
 }
 
 function Templates(props: TemplatesProps) {
-    const { backendPlatform, onTemplateClick } = props
+    const { onTemplateClick } = props
+    const { backend } = backendProvider.useBackend()
+
     return (
         <div className="bg-white">
             <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     <TemplatesRender
-                        templates={TEMPLATES[backendPlatform]}
+                        templates={TEMPLATES[backend.platform]}
                         onTemplateClick={onTemplateClick}
                     />
                 </div>

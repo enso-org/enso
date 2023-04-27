@@ -6,6 +6,7 @@ import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
+import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
@@ -466,6 +467,8 @@ export function assetIsType<Type extends AssetType>(type: Type) {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class Backend {
+    readonly platform = platformModule.Platform.cloud
+
     /** Creates a new instance of the {@link Backend} API client.
      *
      * @throws An error if the `Authorization` header is not set on the given `client`. */

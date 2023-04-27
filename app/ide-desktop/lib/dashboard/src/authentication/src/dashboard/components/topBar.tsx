@@ -3,6 +3,7 @@ import * as dashboard from './dashboard'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
+import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
 import UserMenu from './userMenu'
@@ -16,7 +17,6 @@ interface TopBarProps {
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
-    backendPlatform: platformModule.Platform
     setBackendPlatform: (backendPlatform: platformModule.Platform) => void
     query: string
     setQuery: (value: string) => void
@@ -27,17 +27,9 @@ interface TopBarProps {
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const {
-        platform,
-        projectName,
-        tab,
-        toggleTab,
-        backendPlatform,
-        setBackendPlatform,
-        query,
-        setQuery,
-    } = props
+    const { platform, projectName, tab, toggleTab, setBackendPlatform, query, setQuery } = props
     const { setModal } = modalProvider.useSetModal()
+    const { backend } = backendProvider.useBackend()
 
     return (
         <div className="flex m-2 h-8">
@@ -49,7 +41,7 @@ function TopBar(props: TopBarProps) {
                                 setBackendPlatform(platformModule.Platform.desktop)
                             }}
                             className={`${
-                                backendPlatform === platformModule.Platform.desktop
+                                backend.platform === platformModule.Platform.desktop
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-1.5 py-1`}
@@ -61,7 +53,7 @@ function TopBar(props: TopBarProps) {
                                 setBackendPlatform(platformModule.Platform.cloud)
                             }}
                             className={`${
-                                backendPlatform === platformModule.Platform.cloud
+                                backend.platform === platformModule.Platform.cloud
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-1.5 py-1`}
