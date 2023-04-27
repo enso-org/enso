@@ -4,9 +4,7 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Map;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
@@ -31,9 +29,6 @@ public class ListTest extends TestBase {
   @Before
   public void prepareCtx() throws Exception {
     this.ctx = createDefaultContext();
-
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
 
     final String code = """
     from Standard.Base.Data.List.List import Cons, Nil

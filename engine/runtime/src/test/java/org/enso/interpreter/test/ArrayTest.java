@@ -1,29 +1,24 @@
 package org.enso.interpreter.test;
 
 import java.net.URI;
-import java.util.Map;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ArrayTest extends TestBase {
-  private Context ctx;
+  private static Context ctx;
 
-  @Before
-  public void prepareCtx() {
-    this.ctx = createDefaultContext();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+  @BeforeClass
+  public static void prepareCtx() {
+    ctx = createDefaultContext();
   }
 
-  @After
-  public void disposeCtx() {
+  @AfterClass
+  public static void disposeCtx() {
     ctx.close();
   }
 
