@@ -2839,6 +2839,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         edit_mode     <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
+        // Deselect nodes when the project name is edited.
+        frp.deselect_all_nodes <+ model.breadcrumbs.project_mouse_down;
     }
 
 
