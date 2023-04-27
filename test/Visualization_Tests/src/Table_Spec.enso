@@ -35,7 +35,7 @@ visualization_spec connection =
         JS_Object.from_pairs pairs . to_text
 
     Test.group "Table Visualization" <|
-        Test.specify "should wrap internal errors" <|
+        Test.specify "should forward internal errors" <|
             bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
             result = Panic.catch Any (Visualization.prepare_visualization bad_table 2) caught_panic->
                 caught_panic.payload
