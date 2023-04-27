@@ -124,11 +124,6 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
-// Load command line arguments into `configOptions.OPTIONS`.
-new app.App({
-    configOptions: contentConfig.OPTIONS,
-})
-
 // This is intended to be reassigned.
 // eslint-disable-next-line no-restricted-syntax
 let dropPreviousInstance = () => {
@@ -193,12 +188,18 @@ async function runApp(inputConfig?: StringConfig) {
 }
 
 function main() {
+    // Load command line arguments into `configOptions.OPTIONS`.
+    new app.App({
+        configOptions: contentConfig.OPTIONS,
+    })
+
     const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
     const isUsingNewDashboard =
         contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
     const isOpeningIde =
         contentConfig.OPTIONS.groups.startup.options.entry.value ===
         contentConfig.OPTIONS.groups.startup.options.entry.default
+
     if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningIde) {
         window.tryStopApp = tryStopApp
         window.runApp = runApp
