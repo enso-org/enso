@@ -96,7 +96,7 @@ run_tests prefix connection upload =
                Also, the table name cannot be too long as Postgres truncates at
                63 chars (and we append 37 chars of uniqueness suffix) and the
                test logic will break then.
-            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]]) temporary=False
+            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]])
             t5 = connection.query t4.name
             m5 = t5.read
             m5.column_names . should_equal ["X", "Y"]

@@ -86,6 +86,7 @@ postgres_specific_spec connection db_name setup =
 
             connection.tables "TestT_ble%" . row_count . should_equal 1
             connection.tables "Temporary%ble%" . row_count . should_equal 1
+            connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY TABLE"]
             connection.tables "N_nexistent%" . row_count . should_equal 0
 
         Test.specify "should be able to filter tables by type" <|
