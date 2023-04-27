@@ -162,18 +162,18 @@ public @interface Builtin {
     boolean autoRegister() default true;
 
     /**
-     * Needs own frame or not. This argument doesn't need to be specified. If it is missing, its
-     * <em>effective value</em> is derived from the arguments of the annotated method. When the
-     * {@code execute} method requires {@link VirtualFrame} as one of its arguments the value of
-     * unspecified {@link #needsFrame()} is {@code true}. When no {@link VirtualFrame} is needed,
-     * the value is assumed to be {@code false}.
+     * Allow aggressive inlining or not. This argument doesn't need to be specified. If it is
+     * missing, its <em>effective value</em> is derived from the arguments of the annotated method.
+     * When the annotated method requires {@link VirtualFrame} as one of its arguments the value of
+     * unspecified {@link #inlineable()} is {@code false}. When no {@link VirtualFrame} is needed,
+     * the value is assumed to be {@code true}.
      *
-     * @return explicitly specify whether the builtin needs its own {@link VirtualFrame} or can
-     *     share the one of a caller.
+     * @return explicitly specify whether the builtin can be inline and use caller's {@link
+     *     VirtualFrame}
      * @see BuiltinMethod
-     * @see BuiltinMethod#needsFrame
+     * @see BuiltinMethod#inlineable()
      */
-    boolean needsFrame() default false;
+    boolean inlineable() default true;
   }
 
   /**

@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.state.State;
     name = "with_interrupt_handler",
     description = "Runs a computation with a handler for thread interrupts.",
     autoRegister = false,
-    needsFrame = false)
+    inlineable = true)
 public class WithInterruptHandlerNode extends Node {
   private @Child ThunkExecutorNode actExecutorNode = ThunkExecutorNode.build();
   private @Child ThunkExecutorNode handlerExecutorNode = ThunkExecutorNode.build();

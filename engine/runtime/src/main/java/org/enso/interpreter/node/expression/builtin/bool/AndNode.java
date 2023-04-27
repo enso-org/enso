@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.state.State;
     type = "Boolean",
     name = "&&",
     description = "Computes the logical conjunction of two booleans",
-    needsFrame = false)
+    inlineable = true)
 public abstract class AndNode extends Node {
 
   private final ConditionProfile conditionProfile = ConditionProfile.createCountingProfile();

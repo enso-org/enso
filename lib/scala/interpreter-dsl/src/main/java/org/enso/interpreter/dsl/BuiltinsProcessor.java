@@ -258,16 +258,15 @@ public class BuiltinsProcessor extends AbstractProcessor {
   }
 
   static Boolean checkNeedsFrame(Element element) {
-    Boolean needsFrame = null;
     for (var m : element.getAnnotationMirrors()) {
       for (var entry : m.getElementValues().entrySet()) {
         var name = entry.getKey().getSimpleName().toString();
-        if (name.equals("needsFrame")) {
-          needsFrame = (Boolean) entry.getValue().getValue();
+        if (name.equals("inlineable")) {
+          return !(Boolean) entry.getValue().getValue();
         }
       }
     }
-    return needsFrame;
+    return null;
   }
 
   /**

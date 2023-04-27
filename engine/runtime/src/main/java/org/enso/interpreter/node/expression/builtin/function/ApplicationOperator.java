@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.state.State;
     type = "Function",
     name = "<|",
     description = "Takes a function and an argument and applies the function to the argument.",
-    needsFrame = false)
+    inlineable = true)
 public class ApplicationOperator extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 

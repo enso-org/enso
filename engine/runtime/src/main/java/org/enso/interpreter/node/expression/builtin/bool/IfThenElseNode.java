@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.state.State;
     type = "Boolean",
     name = "if_then_else",
     description = "Performs the standard if-then-else control flow operation.",
-    needsFrame = false)
+    inlineable = true)
 public final class IfThenElseNode extends Node {
   private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();
   private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build();

@@ -23,7 +23,7 @@ import org.enso.interpreter.runtime.state.State;
         Gets a value from the map on the specified key, or the given default.
         """,
     autoRegister = false,
-    needsFrame = false
+    inlineable = true
 )
 @GenerateUncached
 public abstract class HashMapGetNode extends Node {

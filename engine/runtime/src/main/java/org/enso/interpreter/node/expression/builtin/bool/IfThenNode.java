@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.state.State;
     type = "Boolean",
     name = "if_then",
     description = "Performs the standard if-then control flow operation.",
-    needsFrame = false)
+    inlineable = true)
 public abstract class IfThenNode extends Node {
   private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
