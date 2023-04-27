@@ -10,9 +10,11 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime.Context
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 
+from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Array_Builder
 
@@ -40,8 +42,24 @@ polyglot java import org.enso.base.Array_Builder
 Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
 Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Problem_Behavior.Report_Warning =
     bytes = self.bytes encoding on_problems
-    file = File.new path
-    r = on_existing_file.write file stream->
+
+    actual = File.new path
+
+    is_enabled = Context.Output.is_enabled
+
+    if_existing = if is_enabled then on_existing_file else
+        case on_existing_file of
+            Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
+            Existing_File_Behavior.Error -> if actual.exists then Error.throw (File_Error.Already_Exists actual) else Existing_File_Behavior.Overwrite
+            _ -> on_existing_file
+
+    file = if is_enabled then actual else
+        temp = File.create_temporary_file actual.name actual.extension
+        if actual.exists && on_existing_file == Existing_File_Behavior.Append then
+            actual.copy_to temp replace_existing=True
+        temp
+
+    r = if_existing.write file stream->
         bytes.if_not_error <|
             stream.write_bytes bytes
     r.if_not_error file
