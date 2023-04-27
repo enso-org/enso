@@ -86,20 +86,16 @@ fn run() {
     let navigator = Navigator::new(scene, &camera);
 
     let list_editor1 = new_list_editor(&app);
+    list_editor1.debug(true);
+    world.add_child(&list_editor1);
+    mem::forget(list_editor1);
+
     // let list_editor2 = new_list_editor(&app);
     // list_editor2.set_y(50.0);
-
-    list_editor1.debug(true);
-
-    let root = display::object::Instance::new();
-    root.set_size(Vector2(300.0, 100.0));
-    root.add_child(&list_editor1);
-    // root.add_child(&list_editor2);
-    world.add_child(&root);
+    // world.add_child(&list_editor2);
+    // // list_editor2.debug(true);
+    // mem::forget(list_editor2);
 
     world.keep_alive_forever();
     mem::forget(navigator);
-    mem::forget(root);
-    mem::forget(list_editor1);
-    // mem::forget(list_editor2);
 }

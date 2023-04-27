@@ -434,7 +434,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
                     *dragged_item_network.borrow_mut() = Some(subnet);
                 }
             });
-            trace dragged_item_offset;
+            // trace dragged_item_offset;
 
             this_bbox <- on_resized.map(|t| BoundingBox::from_size(*t));
             dragged_item_bbox <- all_with3(&dragged_item_size, &dragged_item_offset, &pos_on_move,
@@ -442,7 +442,8 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             );
             // trace dragged_item_bbox;
             is_close2 <- all_with(&this_bbox, &dragged_item_bbox, |a, b| a.intersects(b));
-            trace is_close2;
+            dragged_item_bbox_center <- dragged_item_bbox.map(|bbox| bbox.center());
+            // trace is_close2;
         }
 
         self.init_add_and_remove();
@@ -458,9 +459,8 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             on_up_dragging <- on_up.gate(&is_dragging);
         }
         let (is_trashing, trash_pointer_style) = self.init_trashing(&on_up, &drag_diff);
-        self.init_dropping(&on_up_dragging, &pos_on_move, &is_close2, &is_trashing);
-        let insert_pointer_style =
-            self.init_insertion_points(&on_up_dragging, &pos_on_move, &is_dragging);
+        self.init_dropping(&on_up_dragging, &dragged_item_bbox_center, &is_close2, &is_trashing);
+        let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
         frp::extend! { network
             cursor.frp.set_style_override <+ all [insert_pointer_style, trash_pointer_style].fold();
@@ -518,6 +518,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             pointer_style <- enabled.then_constant(cursor::Style::plus());
             on_up_in_gap <- on_up.gate(&enabled);
             insert_in_gap <- index.sample(&on_up_in_gap);
+            trace on_up;
             frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
         }
         pointer_style
@@ -653,7 +654,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             // insert_index <- insert_index.sampled_gate_not(&is_trashing);
             insert_index <- insert_index.sampled_gate(&is_close);
 
-            _eval <- insert_index.trace_if(&frp.debug);
+            // _eval <- insert_index.trace_if(&frp.debug);
 
             eval_ on_far (model.collapse_all_placeholders());
             eval insert_index ((i) model.borrow_mut().add_insertion_point_if_type_match(*i));
