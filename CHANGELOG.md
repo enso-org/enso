@@ -132,6 +132,8 @@
   quickly understand each button's function.
 - [File associations are created on Windows and macOS][6077]. This allows
   opening Enso files by double-clicking them in the file explorer.
+- [Added capability to create node widgets with complex UI][6347]. Node widgets
+  such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
   sending messages to the backend.][6341].
 
@@ -596,6 +598,7 @@
 [6294]: https://github.com/enso-org/enso/pull/6294
 [6383]: https://github.com/enso-org/enso/pull/6383
 [6404]: https://github.com/enso-org/enso/pull/6404
+[6347]: https://github.com/enso-org/enso/pull/6347
 
 #### Enso Compiler
 

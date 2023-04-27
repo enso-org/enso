@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Data.Table.Table as Dataframe_Table
 import Standard.Table.Data.Column.Column as Dataframe_Column
@@ -21,46 +22,109 @@ import project.Helpers
 prepare_visualization : Any -> Integer -> Text
 prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
     x = Warning.set y []
-    case x of
+
+    result = case x of
+        _ : Vector -> make_json_for_vector x max_rows
+        _ : Array -> prepare_visualization x.to_vector max_rows
+        _ : Map -> make_json_for_map x max_rows
+        _ : JS_Object -> make_json_for_js_object x max_rows
+        _ : Dataframe_Column -> prepare_visualization x.to_table max_rows
         _ : Dataframe_Table ->
-            dataframe = x.take (First max_rows)
+            dataframe = x.take max_rows
             all_rows_count = x.row_count
-            included_rows = dataframe.row_count
-            index = Dataframe_Column.from_vector "#" (Vector.new included_rows i->i)
-
-            make_json dataframe [index] all_rows_count
-
+            index = Dataframe_Column.from_vector "#" (Vector.new dataframe.row_count i->i)
+            make_json_for_table dataframe [index] all_rows_count
+        _ : Database_Column -> prepare_visualization x.to_table max_rows
         _ : Database_Table ->
-            df = x.read max_rows
+            dataframe = x.read max_rows
             all_rows_count = x.row_count
-
-            make_json df [] all_rows_count
-
-        # We display columns as 1-column tables.
-        _ : Dataframe_Column ->
-            prepare_visualization x.to_table max_rows
-        _ : Database_Column ->
-            prepare_visualization x.to_table max_rows
-
-        # TODO [RW] Should we truncate Vectors?
-        # We also visualize Vectors and arrays
-        _ : Vector ->
-            truncated = x.take (First max_rows)
-            JS_Object.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
-        _ : Array ->
-            prepare_visualization (Vector.from_polyglot_array x) max_rows
-
-        # Serialize Maps
-        _ : Map ->
-            map_vector = Warning.clear (x.to_vector.take max_rows)
-            header = ["header", ["key", "value"]]
-            data = ["data", [map_vector.map .first, map_vector.map .second]]
-            all_rows = ["all_rows_count", x.size]
-            JS_Object.from_pairs [header, data, all_rows] . to_text
-
-        # Anything else will be visualized with the JSON or matrix visualization
+            make_json_for_table dataframe [] all_rows_count
         _ ->
-            JS_Object.from_pairs [["json", x]] . to_text
+            js_value = x.to_js_object
+            value = if js_value.is_a JS_Object . not then js_value else
+                pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
+                JS_Object.from_pairs pairs
+            JS_Object.from_pairs [["json", value]]
+
+    result.to_text
+
+## Column Limit
+max_columns = 250
+
+## PRIVATE
+   Render Vector to JSON
+make_json_for_vector : Vector -> Integer -> JS_Object
+make_json_for_vector vector max_rows =
+    all_rows = ["all_rows_count", vector.length]
+    truncated = vector.take max_rows
+
+    matrix = make_json_for_matrix (Vector.new_builder truncated.length) truncated
+    if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
+        object_matrix = make_json_for_object_matrix (Vector.new_builder truncated.length) truncated
+        if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
+            JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
+
+## PRIVATE
+   Render Vector of Vector / Array to JSON
+make_json_for_matrix : Builder -> Vector -> Integer -> Vector | Nothing
+make_json_for_matrix current vector idx=0 = if idx == vector.length then current.to_vector else
+    row = vector.at idx
+    to_append = case row of
+        Nothing -> Nothing
+        _ : Vector -> row.take max_columns . map make_json_for_value
+        _ : Array -> row.to_vector.take max_columns . map make_json_for_value
+        _ -> False
+    if to_append == False then Nothing else
+        next = current.append to_append
+        @Tail_Call make_json_for_matrix next vector idx+1
+
+## PRIVATE
+   Render Vector of Objects to JSON
+make_json_for_object_matrix : Builder -> Vector -> Integer -> Vector | Nothing
+make_json_for_object_matrix current vector idx=0 = if idx == vector.length then current.to_vector else
+    row = vector.at idx
+    to_append = case row of
+        Nothing -> Nothing
+        _ : Date -> False
+        _ : Time_Of_Day -> False
+        _ : Date_Time -> False
+        _ : Duration -> False
+        _ : Period -> False
+        _ : Map ->
+            pairs = row.keys.map k-> [k.to_text, make_json_for_value (row.get k)]
+            JS_Object.from_pairs pairs
+        _ ->
+            js_object = row.to_js_object
+            if js_object.is_a JS_Object . not then False else
+                if js_object.field_names.sort == ["type" , "constructor"] then False else
+                    pairs = js_object.field_names.map f-> [f, make_json_for_value (js_object.get f)]
+                    JS_Object.from_pairs pairs
+    if to_append == False then Nothing else
+        next = current.append to_append
+        @Tail_Call make_json_for_object_matrix next vector idx+1
+
+## PRIVATE
+   Render Map to JSON
+make_json_for_map : Map -> Integer -> JS_Object
+make_json_for_map map max_items =
+    header = ["header", ["key", "value"]]
+    all_rows = ["all_rows_count", map.size]
+    map_vector = Warning.clear (map.to_vector.take max_items)
+    mapped = map_vector . map p-> [p.first.to_text, make_json_for_value p.second]
+    data = ["data", [mapped.map .first, mapped.map .second]]
+    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
+
+## PRIVATE
+   Render JS_Object to JSON
+make_json_for_js_object : JS_Object -> Integer -> JS_Object
+make_json_for_js_object js_object max_items =
+    fields = js_object.field_names
+    header = ["header", ["key", "value"]]
+    all_rows = ["all_rows_count", fields.length]
+    map_vector = Warning.clear (fields.take max_items)
+    mapped = map_vector . map p-> [p, make_json_for_value (js_object.get p)]
+    data = ["data", [mapped.map .first, mapped.map .second]]
+    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
@@ -73,14 +137,51 @@ prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
      `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json : (Dataframe_Table | Database_Table) -> Vector Dataframe_Column -> Integer -> Text
-make_json dataframe indices all_rows_count =
-    get_vector c = Warning.set c.to_vector []
+make_json_for_table : Dataframe_Table -> Vector Dataframe_Column -> Integer -> JS_Object
+make_json_for_table dataframe indices all_rows_count =
+    get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
     header      = ["header", columns.map .name]
     data        = ["data",   columns.map get_vector]
     all_rows    = ["all_rows_count", all_rows_count]
     ixes        = ["indices", indices.map get_vector]
     ixes_header = ["indices_header", indices.map .name]
-    pairs       = [header, data, all_rows, ixes, ixes_header]
-    JS_Object.from_pairs pairs . to_text
+    pairs       = [header, data, all_rows, ixes, ixes_header, ["type", "Table"]]
+    JS_Object.from_pairs pairs
+
+## PRIVATE
+   Create JSON serialization of values for the table.
+make_json_for_value : Any -> Integer -> Text
+make_json_for_value val level=0 = case val of
+    Nothing -> Nothing
+    _ : Text -> val
+    _ : Number ->
+        js_version = val.to_js_object
+        if js_version.is_a JS_Object . not then js_version else
+            pairs = [['_display_text_', val.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
+            JS_Object.from_pairs pairs
+    _ : Boolean -> val
+    _ : Vector ->
+        if level != 0 then "[… "+val.length.to_text+" items]" else
+            truncated = val.take 5 . map v-> (make_json_for_value v level+1).to_text
+            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
+            "[" + (prepared.join ", ") + "]"
+    _ : Array -> make_json_for_value val.to_vector level
+    _ : Map ->
+        if level != 0 then "{… "+val.size.to_text+" items}" else
+            truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
+            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
+            "{" + (prepared.join ", ") + "}"
+    _ : Dataframe_Column -> make_json_for_value val.to_table level
+    _ : Database_Column -> make_json_for_value val.to_table level
+    _ : Dataframe_Table ->
+        if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
+            truncated = val.columns.take 5 . map _.name
+            prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
+            "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
+    _ : Database_Table ->
+        if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
+            truncated = val.columns.take 5 . map _.name
+            prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
+            "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
+    _ -> val.to_display_text

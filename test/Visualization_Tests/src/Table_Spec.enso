@@ -31,14 +31,14 @@ visualization_spec connection =
         p_all_rows    = ["all_rows_count", all_rows]
         p_ixes        = ["indices", ixes]
         p_ixes_header = ["indices_header", ixes_header]
-        pairs    = [p_header, p_data, p_all_rows, p_ixes, p_ixes_header]
+        pairs    = [p_header, p_data, p_all_rows, p_ixes, p_ixes_header, ["type", "Table"]]
         JS_Object.from_pairs pairs . to_text
 
     Test.group "Table Visualization" <|
         Test.specify "should wrap internal errors" <|
             bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
             vis = Visualization.prepare_visualization bad_table 2
-            json = JS_Object.from_pairs [["error", "Method `set_limit` of Nothing could not be found."]]
+            json = JS_Object.from_pairs [["error", "Method `set_limit` of type Nothing could not be found."]]
             vis . should_equal json.to_text
 
         Test.specify "should visualize database tables" <|
@@ -69,30 +69,34 @@ visualization_spec connection =
 
         Test.specify "should handle Vectors" <|
             vis = Visualization.prepare_visualization [1, 2, 3] 2
-            json = JS_Object.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
+            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]]]
             vis . should_equal json.to_text
 
             vis2 = Visualization.prepare_visualization [[1, 2], [3, 4]] 2
-            json2 = JS_Object.from_pairs [["json", [[1, 2], [3, 4]]], ["all_rows_count", 2]]
+            json2 = JS_Object.from_pairs [["type", "Matrix"], ["all_rows_count", 2], ["json", [[1, 2], [3, 4]]], ["column_count", 2]]
             vis2 . should_equal json2.to_text
 
         Test.specify "should handle Arrays" <|
             vis = Visualization.prepare_visualization ([1, 2, 3] . to_array) 2
-            json = JS_Object.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
+            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]]]
             vis . should_equal json.to_text
 
         Test.specify "should handle other datatypes" <|
             vis = Visualization.prepare_visualization (Foo.Value 42) 2
-            json = JS_Object.from_pairs [["json", (Foo.Value 42)]]
+            json = JS_Object.from_pairs [["json", JS_Object.from_pairs [["_display_text_", (Foo.Value 42).to_display_text],["x", 42]]]]
             vis . should_equal json.to_text
 
         Test.specify "should visualize value type info" <|
-            Value_Type.Boolean.to_json . should_equal '{"type":"Value_Type","constructor":"Boolean","_display_text_":"Boolean"}'
-            Value_Type.Float.to_json . should_equal '{"type":"Value_Type","constructor":"Float","_display_text_":"Float (64 bits)","bits":64}'
-            Value_Type.Decimal.to_json . should_equal '{"type":"Value_Type","constructor":"Decimal","_display_text_":"Decimal (precision=Nothing, scale=Nothing)","precision":null,"scale":null}'
-            Value_Type.Char.to_json . should_equal '{"type":"Value_Type","constructor":"Char","_display_text_":"Char (max_size=Nothing, variable_length=True)","size":null,"variable_length":true}'
-            Value_Type.Unsupported_Data_Type.to_json . should_equal '{"type":"Value_Type","constructor":"Unsupported_Data_Type","_display_text_":"Unsupported_Data_Type","type_name":null}'
+            make_json vt =
+                js_object = vt.to_js_object
+                pairs = [["_display_text_", vt.to_display_text]] + vt.to_js_object.field_names.map f-> [f, js_object.get f]
+                JS_Object.from_pairs [["json", JS_Object.from_pairs pairs]] . to_text
 
+            Visualization.prepare_visualization Value_Type.Boolean . should_equal (make_json Value_Type.Boolean)
+            Visualization.prepare_visualization Value_Type.Float . should_equal (make_json Value_Type.Float)
+            Visualization.prepare_visualization Value_Type.Decimal . should_equal (make_json Value_Type.Decimal)
+            Visualization.prepare_visualization Value_Type.Char . should_equal (make_json Value_Type.Char)
+            Visualization.prepare_visualization Value_Type.Unsupported_Data_Type . should_equal (make_json Value_Type.Unsupported_Data_Type)
 
 spec =
     enso_project.data.create_directory

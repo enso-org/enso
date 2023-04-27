@@ -1,5 +1,5 @@
 [package]
-name = "ensogl-example-vector-editor"
+name = "ensogl-example-list-editor"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
@@ -8,9 +8,11 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
-wasm-bindgen = { workspace = true }
-ensogl-hardcoded-theme = { path = "../../../ensogl/app/theme/hardcoded" }
+ensogl-list-editor = { path = "../../component/list-editor" }
+ensogl-slider = { path = "../../component/slider" }
+ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
 [package.metadata.wasm-pack.profile.release]

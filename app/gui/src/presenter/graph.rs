@@ -20,7 +20,7 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-use view::graph_editor::WidgetUpdates;
+use view::graph_editor::CallWidgetsConfig;
 
 
 // ==============
@@ -264,13 +264,13 @@ impl Model {
     }
 
     /// Map widget controller update data to the node views.
-    fn map_widget_update_data(
+    fn map_widget_configuration(
         &self,
         node_id: AstNodeId,
-        updates: WidgetUpdates,
-    ) -> Option<(ViewNodeId, WidgetUpdates)> {
+        config: CallWidgetsConfig,
+    ) -> Option<(ViewNodeId, CallWidgetsConfig)> {
         let node_id = self.state.view_id_of_ast_node(node_id)?;
-        Some((node_id, updates))
+        Some((node_id, config))
     }
 
     /// Node was removed in view.
@@ -835,7 +835,7 @@ impl Graph {
             widget.request_widgets <+ widget_request;
             widget.retain_node_expressions <+ widget_refresh._0().unwrap();
             view.update_node_widgets <+ widget.widget_data.filter_map(
-                f!(((id, updates)) model.map_widget_update_data(*id, updates.clone()))
+                f!(((id, data)) model.map_widget_configuration(*id, data.clone()))
             );
         }
     }

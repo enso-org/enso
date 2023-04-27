@@ -200,6 +200,37 @@ type Filter_Condition
         Not_In values -> elem -> values.contains elem . not
 
     ## PRIVATE
+       Convert to a display representation of this Filter_Condition.
+    to_display_text : Text
+    to_display_text self =
+        render_case case_sensitivity =
+            if case_sensitivity == Case_Sensitivity.Default then "" else " Case " + case_sensitivity.to_display_text
+
+        condition = case self of
+            Less value -> "<" + value.to_display_text
+            Equal_Or_Less value -> "<=" + value.to_display_text
+            Equal value -> "==" + value.to_display_text
+            Equal_Or_Greater value -> ">=" + value.to_display_text
+            Greater value -> ">" + value.to_display_text
+            Not_Equal value -> "!=" + value.to_display_text
+            Between lower upper -> "Between " + lower.to_display_text + " And " + upper.to_display_text
+            Starts_With prefix case_sensitivity -> "Starts With " + prefix.to_display_text + (render_case case_sensitivity)
+            Ends_With suffix case_sensitivity -> "Ends With " + suffix.to_display_text + (render_case case_sensitivity)
+            Contains substring case_sensitivity -> "Contains " + substring.to_display_text + (render_case case_sensitivity)
+            Not_Contains substring case_sensitivity -> "Not Contains " + substring.to_display_text + (render_case case_sensitivity)
+            Is_Nothing -> "is Nothing"
+            Not_Nothing -> "is Not Nothing"
+            Is_True -> "is True"
+            Is_False -> "is False"
+            Is_Empty -> "is Empty"
+            Not_Empty -> "is Not Empty"
+            Like sql_pattern -> "Like " + sql_pattern.to_display_text
+            Not_Like sql_pattern -> "Not Like " + sql_pattern.to_display_text
+            Is_In values -> "is in " + values.to_display_text
+            Not_In values -> "is not in " + values.to_display_text
+        "Filter Condition: " + condition
+
+    ## PRIVATE
        Gets a widget set up for a Filter_Condition.
     default_widget =
         names = ["Equal", "Not Equal", "Is In", "Not In", "Is True", "Is False", "Is Nothing", "Not Nothing", "Is Empty", "Not Empty", "Less", "Equal Or Less", "Greater", "Equal Or Greater", "Between", "Starts With", "Ends With", "Contains", "Not Contains", "Like", "Not Like"]

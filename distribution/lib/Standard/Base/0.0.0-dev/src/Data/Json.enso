@@ -180,6 +180,12 @@ type JS_Object
     to_text : Text
     to_text self = Json.stringify self
 
+    ## PRIVATE
+       Convert JS_Object to a friendly string.
+    to_display_text : Text
+    to_display_text self =
+        self.to_text.to_display_text
+
     ## Convert to a JSON representation.
     to_json : Text
     to_json self = self.to_text

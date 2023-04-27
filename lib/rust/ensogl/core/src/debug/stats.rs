@@ -143,7 +143,7 @@ impl<T: TimeProvider> FramedStatsData<T> {
     /// Clean the per-frame statistics, such as the per-frame number of draw calls. This function
     /// should be called before any rendering calls were made.
     fn reset_per_frame_statistics(&mut self) {
-        self.stats_data.draw_calls = default();
+        self.stats_data.draw_calls.clear();
         self.stats_data.shader_compile_count = 0;
         self.stats_data.data_upload_count = 0;
         self.stats_data.data_upload_size = 0;
