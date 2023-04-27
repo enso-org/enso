@@ -40,7 +40,7 @@ public class NameDeduplicator {
     return names.stream().map(this::makeUnique).collect(Collectors.toList());
   }
 
-  public String[] makeUniqueVector(String[] names) {
+  public String[] makeUniqueArray(String[] names) {
     return Arrays.stream(names).map(this::makeUnique).toArray(String[]::new);
   }
 
