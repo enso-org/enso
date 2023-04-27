@@ -87,7 +87,7 @@ export interface CreateFormProps {
 // This type annotation is explicit to undo TypeScript narrowing to `false`,
 // which result in errors about unused code.
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
-const EXPERIMENTAL: boolean = true
+const EXPERIMENTAL: boolean = false
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
@@ -786,75 +786,6 @@ function Dashboard(props: DashboardProps) {
                                 </div>
                             </>
                         )}
-                    </div>
-                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1 mx-4">
-                        <button
-                            className="mx-1"
-                            onClick={() => {
-                                /* TODO */
-                            }}
-                        >
-                            {svg.UPLOAD_ICON}
-                        </button>
-                        <button
-                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                            disabled={selectedAssets.length === 0}
-                            onClick={() => {
-                                /* TODO */
-                            }}
-                        >
-                            {svg.DOWNLOAD_ICON}
-                        </button>
-                    </div>
-                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.all
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.all)
-                            }}
-                        >
-                            All
-                        </button>
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.compact
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.compact)
-                            }}
-                        >
-                            Compact
-                        </button>
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.docs
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.docs)
-                            }}
-                        >
-                            Docs
-                        </button>
-                        <button
-                            className={`${
-                                columnDisplayMode === ColumnDisplayMode.settings
-                                    ? 'bg-white shadow-soft'
-                                    : 'opacity-50'
-                            } rounded-full px-1.5`}
-                            onClick={() => {
-                                setColumnDisplayMode(ColumnDisplayMode.settings)
-                            }}
-                        >
-                            Settings
-                        </button>
                     </div>
                 </div>
             </div>
