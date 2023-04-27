@@ -40,6 +40,15 @@ type Text_Sub_Range
        Select an empty string if the input does not contain `delimiter`.
     After_Last (delimiter : Text)
 
+    ## PRIVATE
+       Convert to a display representation of this Index_Sub_Range.
+    to_display_text : Text
+    to_display_text self = case self of
+        Text_Sub_Range.Before delimiter -> "Before " + delimiter.to_display_text
+        Text_Sub_Range.Before_Last delimiter -> "Before Last " + delimiter.to_display_text
+        Text_Sub_Range.After delimiter -> "After " + delimiter.to_display_text
+        Text_Sub_Range.After_Last delimiter -> "After Last " + delimiter.to_display_text
+
 type Codepoint_Ranges
     ## PRIVATE
        A list of codepoint ranges corresponding to the matched parts of the

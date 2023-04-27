@@ -118,7 +118,7 @@ public class TypeMembersTest {
           v.invokeMember(k);
           fail("Invoking " + k + " on " + v + " shall fail");
         } catch (PolyglotException ex) {
-          assertEquals("No_Such_Field.Error", ex.getMessage());
+          assertEquals("Field `" + k + "` of IntList could not be found.", ex.getMessage());
         }
       } else {
         assertNotNull(msg + " - can be invoked", v.invokeMember(k));

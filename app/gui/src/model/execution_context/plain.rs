@@ -11,6 +11,7 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
@@ -61,6 +62,8 @@ pub struct ExecutionContext {
     pub is_ready: crate::sync::Synchronized<bool>,
     /// Component groups defined in libraries imported into the execution context.
     pub component_groups: RefCell<Rc<Vec<ComponentGroup>>>,
+    /// Execution environment of the context.
+    pub execution_environment: Cell<ExecutionEnvironment>,
 }
 
 impl ExecutionContext {
@@ -72,6 +75,7 @@ impl ExecutionContext {
         let computed_value_info_registry = default();
         let is_ready = default();
         let component_groups = default();
+        let execution_environment = default();
         Self {
             entry_point,
             stack,
@@ -79,6 +83,7 @@ impl ExecutionContext {
             computed_value_info_registry,
             is_ready,
             component_groups,
+            execution_environment,
         }
     }
 
@@ -272,6 +277,15 @@ impl model::execution_context::API for ExecutionContext {
         self.stack.borrow_mut().iter_mut().for_each(|local_call| {
             local_call.definition = update_method_pointer(&mut local_call.definition)
         });
+    }
+
+    fn set_execution_environment(
+        &self,
+        environment: ExecutionEnvironment,
+    ) -> BoxFuture<FallibleResult> {
+        info!("Setting execution environment to {environment:?}.");
+        self.execution_environment.set(environment);
+        futures::future::ready(Ok(())).boxed_local()
     }
 }
 
