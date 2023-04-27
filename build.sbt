@@ -1085,12 +1085,12 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.beachape" %% "enumeratum-circe" % enumeratumCirceVersion,
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "commons-io" % "commons-io" % commonsIoVersion,
-      akkaTestkit                   % Test,
-      "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
-      "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
-      "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
-      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided",
-      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion
+      akkaTestkit % Test,
+      "com.typesafe.akka" %% "akka-http-testkit" % akkaHTTPVersion % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % "provided",
+      "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
