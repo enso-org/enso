@@ -50,9 +50,8 @@ public abstract class EnsoProjectNode extends Node {
    *
    * @param nothing Nothing, or interop null.
    */
-  @Specialization(guards = "isNothing(interop, nothing)")
-  public Object getCurrentProjectDescr(
-      Object nothing, @CachedLibrary(limit = "5") InteropLibrary interop) {
+  @Specialization(guards = "isNothing(nothing)")
+  public Object getCurrentProjectDescr(Object nothing) {
     var ctx = EnsoContext.get(this);
     if (previousCtx.get() == null || cachedProjectDescr.get() == null || previousCtx.get() != ctx) {
       CompilerDirectives.transferToInterpreter();
@@ -98,11 +97,10 @@ public abstract class EnsoProjectNode extends Node {
     return cachedProjectDescr.get();
   }
 
-  @Specialization(guards = "!isNothing(interop, module)")
+  @Specialization(guards = "!isNothing(module)")
   @TruffleBoundary
   public Object getOtherProjectDescr(
       Object module,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
       @CachedLibrary(limit = "5") TypesLibrary typesLib) {
     var ctx = EnsoContext.get(this);
     if (!typesLib.hasType(module)) {
@@ -145,7 +143,7 @@ public abstract class EnsoProjectNode extends Node {
         ctx.getBuiltins().error().makeModuleNotInPackageError(), this);
   }
 
-  boolean isNothing(InteropLibrary interop, Object object) {
-    return interop.isNull(object);
+  boolean isNothing(Object object) {
+    return EnsoContext.get(this).getBuiltins().nothing() == object;
   }
 }
