@@ -645,6 +645,7 @@ type Date_Time
          Format "2020-06-21T16:41:13+03:00" with French locale as "21. juin 2020"
 
              from Standard.Base import Date_Time
+             import Standard.Base.Data.Locale.Locale
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
