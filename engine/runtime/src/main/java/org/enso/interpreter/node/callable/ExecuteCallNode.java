@@ -9,15 +9,16 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.node.InlineableRootNode;
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.node.InlineableNode;
 
 /**
- * This node is responsible for optimising function calls.
- *
- * <p>Where possible, it will make the call as a direct call, with potential for inlining.
+ * This node is responsible for optimising function calls. Where possible, it will handle the call via:
+ * <ul>
+ *  <li>{@link InlineableNode} to force inlining</li>
+ *  <li>{@link DirectCallNode} with potential for inlining</li>
+ * </ul>
  */
 @NodeInfo(shortName = "ExecCall", description = "Optimises function calls")
 @GenerateUncached
@@ -40,6 +41,7 @@ public abstract class ExecuteCallNode extends Node {
    * <p>This specialisation comes into play where the call target for the provided function is
    * already cached. THis means that the call can be made quickly.
    *
+   * @param frame current frame
    * @param function the function to execute
    * @param callerInfo the caller info to pass to the function
    * @param state the current state value
@@ -48,7 +50,10 @@ public abstract class ExecuteCallNode extends Node {
    * @param callNode the cached call node for {@code cachedTarget}
    * @return the result of executing {@code function} on {@code arguments}
    */
-  @Specialization(guards = "function.getCallTarget() == cachedTarget")
+  @Specialization(guards = {
+    "function.getCallTarget() == cachedTarget",
+    "callNode != null"
+  })
   protected Object callDirect(
       VirtualFrame frame,
       Function function,
@@ -56,17 +61,34 @@ public abstract class ExecuteCallNode extends Node {
       Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
-      @Cached("createCallNode(cachedTarget)") DirectCallNode callNode) {
+      @Cached("createInlineableNode(cachedTarget)") InlineableNode callNode) {
     var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments);
-    if (callNode instanceof BuiltinRootNode.InlinedCallNode in) {
-      return in.callWithFrame(frame, args);
-    } else {
-      return callNode.call(args);
-    }
+    return callNode.call(frame, args);
   }
 
-  static DirectCallNode createCallNode(RootCallTarget t) {
-    return InlineableRootNode.create(t);
+  @Specialization(guards = {
+    "function.getCallTarget() == cachedTarget",
+  })
+  protected Object callDirect(
+      Function function,
+      CallerInfo callerInfo,
+      Object state,
+      Object[] arguments,
+      @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
+      @Cached("createDirectCallNode(cachedTarget)") DirectCallNode callNode) {
+    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments);
+    return callNode.call(args);
+  }
+
+  static InlineableNode createInlineableNode(RootCallTarget t) {
+    if (t.getRootNode() instanceof InlineableNode.Root inlineNodeProvider) {
+      return inlineNodeProvider.createInlineableNode();
+    }
+    return null;
+  }
+
+  static DirectCallNode createDirectCallNode(RootCallTarget t) {
+    return DirectCallNode.create(t);
   }
 
   /**
