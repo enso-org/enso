@@ -66,6 +66,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(
+            callerFrame,
             function.getSchema(),
             argumentMapping,
             argumentsExecutionMode,

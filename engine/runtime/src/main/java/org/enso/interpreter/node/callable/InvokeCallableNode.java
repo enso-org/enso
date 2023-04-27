@@ -215,8 +215,8 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
-        thatArgument = thatExecutor.executeThunk(thatArgument, state, TailStatus.NOT_TAIL);
+        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
+        thatArgument = thatExecutor.executeThunk(callerFrame, thatArgument, state, TailStatus.NOT_TAIL);
 
         arguments[thisArgumentPosition] = selfArgument;
         arguments[thatArgumentPosition] = thatArgument;
@@ -248,7 +248,7 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
+        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = selfArgument;
       }
       return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);

@@ -66,7 +66,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
         }
       }
       return next.executeDispatch(
-          null, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
     }
   }
 }

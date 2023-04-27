@@ -178,7 +178,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[arguments.length - 1];
     for (int i = 0; i < arguments.length - 1; i++) {
-      var r = argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
+      var r =
+          argExecutor.executeThunk(frame, arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
         return r;
       }

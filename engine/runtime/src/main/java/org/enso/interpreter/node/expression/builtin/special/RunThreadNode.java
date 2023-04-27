@@ -2,6 +2,8 @@ package org.enso.interpreter.node.expression.builtin.special;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
@@ -16,11 +18,11 @@ public abstract class RunThreadNode extends Node {
     return RunThreadNodeGen.create();
   }
 
-  abstract Thread execute(State state, @Suspend Object self);
+  abstract Thread execute(VirtualFrame frame, State state, @Suspend Object self);
 
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Thread doExecute(State state, Object self) {
+  Thread doExecute(MaterializedFrame frame, State state, Object self) {
     EnsoContext ctx = EnsoContext.get(this);
     Thread thread =
         ctx.getEnvironment()
@@ -29,7 +31,7 @@ public abstract class RunThreadNode extends Node {
                   Object p = ctx.getThreadManager().enter();
                   try {
                     ThunkExecutorNodeGen.getUncached()
-                        .executeThunk(self, state, BaseNode.TailStatus.NOT_TAIL);
+                        .executeThunk(frame, self, state, BaseNode.TailStatus.NOT_TAIL);
                   } finally {
                     ctx.getThreadManager().leave(p);
                   }

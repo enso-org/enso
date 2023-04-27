@@ -3,6 +3,7 @@ package org.enso.interpreter.node.callable.argument;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -35,6 +36,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
 
   @ExplodeLoop
   private void executeArguments(
+      VirtualFrame frame,
       ArgumentMapping mapping,
       Object[] arguments,
       State state,
@@ -42,7 +44,8 @@ public abstract class IndirectArgumentSorterNode extends Node {
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (mapping.getArgumentShouldExecute()[i]) {
         arguments[i] =
-            thunkExecutorNode.executeThunk(arguments[i], state, BaseNode.TailStatus.NOT_TAIL);
+            thunkExecutorNode.executeThunk(
+                frame, arguments[i], state, BaseNode.TailStatus.NOT_TAIL);
       }
     }
   }
@@ -50,6 +53,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
   /**
    * Reorders and executes the provided arguments in a way suitable for the called function.
    *
+   * @param frame current frame
    * @param preApplicationSchema the function schema before applying the arguments
    * @param mapping the pre-computed argument mapping for the function
    * @param argumentsExecutionMode whether arguments should be executed or not
@@ -59,6 +63,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
   public abstract ArgumentSorterNode.MappedArguments execute(
+      VirtualFrame frame,
       FunctionSchema preApplicationSchema,
       ArgumentMapping mapping,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
@@ -68,6 +73,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
 
   @Specialization
   ArgumentSorterNode.MappedArguments doExecute(
+      VirtualFrame frame,
       FunctionSchema preApplicationSchema,
       ArgumentMapping mapping,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
@@ -77,7 +83,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
       @Cached ThunkExecutorNode thunkExecutorNode) {
     FunctionSchema postApplicationSchema = mapping.getPostApplicationSchema();
     if (argumentsExecutionMode.shouldExecute()) {
-      executeArguments(mapping, arguments, state, thunkExecutorNode);
+      executeArguments(frame, mapping, arguments, state, thunkExecutorNode);
     }
     Object[] mappedAppliedArguments =
         ArgumentSorterNode.prepareArguments(
