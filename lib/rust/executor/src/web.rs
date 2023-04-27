@@ -62,14 +62,18 @@ impl EventLoopExecutor {
     /// attempt achieving as much progress on this executor's tasks as possible
     /// without stalling.
     pub fn runner(&self) -> impl FnMut(animation::TimeInfo) {
-        let executor = self.executor.clone();
+        // We pass weak handle to the runner to ensure all scheduled futures will be dropped
+        // once executor is dropped.
+        let executor = Rc::downgrade(&self.executor);
         move |_| {
             let _profiler =
                 profiler::start_debug!(profiler::APP_LIFETIME, "EventLoopExecutor::runner");
-            // Safe, because this is the only place borrowing executor and loop
-            // callback shall never be re-entrant.
-            let mut executor = executor.borrow_mut();
-            executor.run_until_stalled();
+            if let Some(executor) = executor.upgrade() {
+                // Safe, because this is the only place borrowing executor and loop
+                // callback shall never be re-entrant.
+                let mut executor = executor.borrow_mut();
+                executor.run_until_stalled();
+            }
         }
     }
 

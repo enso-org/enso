@@ -642,12 +642,12 @@ define_themes! { [light:0, dark:1]
                 color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
             }
         }
-        execution_mode_selector {
+        execution_environment_selector {
             background = Rgb::from_base_255(100.0, 181.0, 38.0), Rgb::from_base_255(100.0, 181.0, 38.0);
             divider = Rgba::black_with_alpha(0.12), Rgba::black_with_alpha(0.12);
             divider_offset = 32.5, 32.5;
             divider_padding = 10.0, 10.0;
-            dropdown_width = 95.0, 95.0;
+            dropdown_width = 75.0, 75.0;
             height = 24.0, 24.0;
             menu_offset = 20.0, 20.0;
             play_button {
@@ -664,6 +664,10 @@ define_themes! { [light:0, dark:1]
         }
     }
     widget {
+        activation_shape {
+            base      = Lcha(0.56708, 0.23249, 0.71372, 1.0), Lcha(0.56708, 0.23249, 0.71372, 1.0);
+            connected = graph_editor::node::background , graph_editor::node::background;
+        }
         list_view {
             background = graph_editor::node::background , graph_editor::node::background;
             highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)

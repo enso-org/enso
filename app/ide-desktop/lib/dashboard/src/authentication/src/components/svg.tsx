@@ -101,7 +101,7 @@ export const SECRET_ICON = (
         <path
             d="M10.3 13a4 4 0 1 1 0-2h10a1 1 0 0 1 1 1v3a1 1 0 0 1-2 0v-2h-2v2a1 1 0 0 1-2 0v-2ZM3.5 12a1 1 0 1 1 2 0a1 1 0 1 1-2 0"
             fill="currentColor"
-            fill-rule="evenodd"
+            fillRule="evenodd"
         />
     </svg>
 )
@@ -164,6 +164,17 @@ export const ARROW_UP_ICON = (
     </svg>
 )
 
+/** `+`-shaped icon representing creation of an item. */
+export const ADD_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
+        <g opacity={0.66}>
+            <rect x={11} y={6} width={2} height={12} fill="currentColor" />
+            <rect x={6} y={11} width={12} height={2} fill="currentColor" />
+        </g>
+    </svg>
+)
+
 /** An icon representing creation of an item. */
 export const CIRCLED_PLUS_ICON = (
     <svg
@@ -200,7 +211,7 @@ export const MAGNIFYING_GLASS_ICON = (
                 d="M11.4142 10L15.6569 14.2426L14.2426 15.6569L10 11.4142L11.4142 10Z"
                 fill="currentColor"
             />
-            <circle cx={7} cy={7} r={5} stroke="currentColor" stroke-width={2} />
+            <circle cx={7} cy={7} r={5} stroke="currentColor" strokeWidth={2} />
         </g>
     </svg>
 )
@@ -210,6 +221,17 @@ export const SPEECH_BUBBLE_ICON = (
     <svg width={16} height={17} viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
         <ellipse cx={8} cy={8} rx={8} ry={7.5} fill="white" />
         <path d="M4.17269e-05 16.5L2 10.5L5.50006 14L4.17269e-05 16.5Z" fill="white" />
+    </svg>
+)
+
+/** `x`-shaped icon representing the closing of a window. */
+export const CLOSE_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
+        <g opacity={0.66} transform="rotate(45 12 12)">
+            <rect x={11} y={6} width={2} height={12} fill="currentColor" />
+            <rect x={6} y={11} width={12} height={2} fill="currentColor" />
+        </g>
     </svg>
 )
 

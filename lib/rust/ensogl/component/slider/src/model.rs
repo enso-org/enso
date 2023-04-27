@@ -3,9 +3,8 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::Kind;
 use crate::LabelPosition;
-use crate::SliderOrientation;
-use crate::ValueIndicator;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -264,13 +263,13 @@ impl Model {
     }
 
     /// Set whether the lower overfow marker is visible.
-    pub fn set_value_indicator(&self, indicator: &ValueIndicator) {
+    pub fn kind(&self, indicator: &Kind) {
         match indicator {
-            ValueIndicator::Track => {
+            Kind::SingleValue => {
                 self.root.add_child(&self.track);
                 self.root.remove_child(&self.thumb);
             }
-            ValueIndicator::Thumb => {
+            Kind::Scrollbar(_) => {
                 self.root.add_child(&self.thumb);
                 self.root.remove_child(&self.track);
             }
@@ -278,19 +277,16 @@ impl Model {
     }
 
     /// Set the position of the value indicator.
-    pub fn set_indicator_position(
-        &self,
-        (fraction, size, orientation): &(f32, f32, SliderOrientation),
-    ) {
+    pub fn set_indicator_position(&self, (fraction, size, orientation): &(f32, f32, Axis2)) {
         self.thumb.slider_fraction.set(*fraction);
         match orientation {
-            SliderOrientation::Horizontal => {
+            Axis2::X => {
                 self.track.slider_fraction_horizontal.set(fraction.clamp(0.0, 1.0));
                 self.track.slider_fraction_vertical.set(1.0);
                 self.thumb.thumb_width.set(*size);
                 self.thumb.thumb_height.set(1.0);
             }
-            SliderOrientation::Vertical => {
+            Axis2::Y => {
                 self.track.slider_fraction_horizontal.set(1.0);
                 self.track.slider_fraction_vertical.set(fraction.clamp(0.0, 1.0));
                 self.thumb.thumb_width.set(1.0);
@@ -300,17 +296,17 @@ impl Model {
     }
 
     /// Set the size and orientation of the overflow markers.
-    pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, SliderOrientation)) {
+    pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, Axis2)) {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
         let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE + margin;
         self.overflow_lower.set_size(size);
         self.overflow_upper.set_size(size);
         match orientation {
-            SliderOrientation::Horizontal => {
+            Axis2::X => {
                 self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
                 self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
             }
-            SliderOrientation::Vertical => {
+            Axis2::Y => {
                 self.overflow_lower.set_rotation_z(std::f32::consts::PI);
                 self.overflow_upper.set_rotation_z(0.0);
             }
@@ -320,17 +316,17 @@ impl Model {
     /// Set the position of the overflow markers.
     pub fn set_overflow_marker_position(
         &self,
-        (comp_width, comp_height, orientation): &(f32, f32, SliderOrientation),
+        (comp_width, comp_height, orientation): &(f32, f32, Axis2),
     ) {
         match orientation {
-            SliderOrientation::Horizontal => {
+            Axis2::X => {
                 let pos_x = comp_width / 2.0 - comp_height / 4.0;
                 self.overflow_lower.set_x(-pos_x);
                 self.overflow_lower.set_y(0.0);
                 self.overflow_upper.set_x(pos_x);
                 self.overflow_upper.set_y(0.0);
             }
-            SliderOrientation::Vertical => {
+            Axis2::Y => {
                 let pos_y = comp_height / 2.0 - comp_width / 4.0;
                 self.overflow_lower.set_x(0.0);
                 self.overflow_lower.set_y(-pos_y);
@@ -367,19 +363,19 @@ impl Model {
             f32,
             f32,
             LabelPosition,
-            SliderOrientation,
+            Axis2,
         ),
     ) {
         let label_position_x = match orientation {
-            SliderOrientation::Horizontal => match position {
+            Axis2::X => match position {
                 LabelPosition::Inside => -comp_width / 2.0 + comp_height / 2.0,
                 LabelPosition::Outside => -comp_width / 2.0 - comp_height / 2.0 - lab_width,
             },
-            SliderOrientation::Vertical => -lab_width / 2.0,
+            Axis2::Y => -lab_width / 2.0,
         };
         let label_position_y = match orientation {
-            SliderOrientation::Horizontal => lab_height / 2.0,
-            SliderOrientation::Vertical => match position {
+            Axis2::X => lab_height / 2.0,
+            Axis2::Y => match position {
                 LabelPosition::Inside => comp_height / 2.0 - comp_width / 2.0,
                 LabelPosition::Outside => comp_height / 2.0 + comp_width / 2.0 + lab_height,
             },
@@ -388,15 +384,15 @@ impl Model {
     }
 
     /// Set whether the slider value text is hidden.
-    pub fn set_value_text_hidden(&self, hidden: bool) {
-        if hidden {
-            self.root.remove_child(&self.value_text_left);
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
-        } else {
+    pub fn show_value(&self, visible: bool) {
+        if visible {
             self.root.add_child(&self.value_text_left);
             self.root.add_child(&self.value_text_dot);
             self.root.add_child(&self.value_text_right);
+        } else {
+            self.root.remove_child(&self.value_text_left);
+            self.root.remove_child(&self.value_text_dot);
+            self.root.remove_child(&self.value_text_right);
         }
     }
 

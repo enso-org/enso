@@ -41,4 +41,13 @@ spec =
             ((Period.new years=1 days=10) == (Period.new years=1 days=10)) . should_be_true
             ((Period.new days=1) != (Period.new months=1)) . should_be_true
 
+        Test.specify "should render a friendly to display text" <|
+            Period.new . to_display_text . should_equal "0D"
+            Period.new years=2 . to_display_text . should_equal "2Y"
+            Period.new months=24 . to_display_text . should_equal "2Y"
+            Period.new months=4 . to_display_text . should_equal "4M"
+            Period.new months=18 . to_display_text . should_equal "1Y 6M"
+            Period.new years=2 days=3 . to_display_text . should_equal "2Y 0M 3D"
+            Period.new days=18 . to_display_text . should_equal "18D"
+
 main = Test_Suite.run_main spec
