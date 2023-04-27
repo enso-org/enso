@@ -11,15 +11,20 @@ import org.scalatest._
   */
 trait FlakySpec extends TestSuite {
 
-  /** Tags test as _flaky_. */
+  /** Tags test as conditionally _flaky_. */
   object Flaky extends Tag("org.enso.test.flaky") {
     val isEnabled = sys.env.contains("CI_TEST_FLAKY_ENABLE")
   }
+
+  /** Tags test as pending on failure */
+  object SkipOnFailure extends Tag("org.enso.test.skiponfailure")
 
   override def withFixture(test: NoArgTest): Outcome =
     super.withFixture(test) match {
       case Failed(_) | Canceled(_)
           if Flaky.isEnabled && test.tags.contains(Flaky.name) =>
+        Pending
+      case Failed(_) | Canceled(_) if test.tags.contains(SkipOnFailure.name) =>
         Pending
       case outcome =>
         outcome
