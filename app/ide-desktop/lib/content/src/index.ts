@@ -23,8 +23,6 @@ const ESBUILD_EVENT_NAME = 'change'
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
-/** The `id` attribute of the element that the IDE will be rendered into. */
-const IDE_ELEMENT_ID = 'root'
 
 // ===================
 // === Live reload ===
@@ -126,38 +124,29 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
-// `new app.App` must be run at least once so that the command line arguments are applied to
-// `configOptions.OPTIONS`.
-let currentAppInstance: app.App | null = new app.App({
-    config: {
-        loader: {
-            wasmUrl: 'pkg-opt.wasm',
-            jsUrl: 'pkg.js',
-            assetsUrl: 'dynamic-assets',
-        },
-    },
+// Load command line arguments into `configOptions.OPTIONS`.
+new app.App({
     configOptions: contentConfig.OPTIONS,
-    packageInfo: {
-        version: BUILD_INFO.version,
-        engineVersion: BUILD_INFO.engineVersion,
-    },
 })
 
-function tryStopEnso() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    currentAppInstance?.wasm?.drop?.()
+// This is intended to be reassigned.
+// eslint-disable-next-line no-restricted-syntax
+let dropPreviousInstance = () => {
+    // Intentionally a no-op when there is no instance to drop.
 }
 
-async function runEnso(inputConfig?: StringConfig) {
-    tryStopEnso()
-    const rootElement = document.getElementById(IDE_ELEMENT_ID)
-    if (!rootElement) {
-        logger.error(`The root element (the element with ID '${IDE_ELEMENT_ID}') was not found.`)
-    } else {
-        while (rootElement.firstChild) {
-            rootElement.removeChild(rootElement.firstChild)
-        }
+// This must be separate from `dropPreviousInstance` as `dropPreviousInstance` gets reassigned,
+// while `tryStopApp` is attached onto the window.
+/** Stop the app if one is currently running. */
+function tryStopApp() {
+    dropPreviousInstance()
+    dropPreviousInstance = () => {
+        // Intentionally a no-op when there is no instance to drop.
     }
+}
+
+async function runApp(inputConfig?: StringConfig) {
+    tryStopApp()
 
     const config = Object.assign(
         {
@@ -170,7 +159,7 @@ async function runEnso(inputConfig?: StringConfig) {
         inputConfig
     )
 
-    currentAppInstance = new app.App({
+    const appInstance = new app.App({
         config,
         configOptions: contentConfig.OPTIONS,
         packageInfo: {
@@ -179,7 +168,7 @@ async function runEnso(inputConfig?: StringConfig) {
         },
     })
 
-    if (!currentAppInstance.initialized) {
+    if (!appInstance.initialized) {
         console.error('Failed to initialize the application.')
     } else {
         if (contentConfig.OPTIONS.options.dataCollection.value) {
@@ -193,58 +182,68 @@ async function runEnso(inputConfig?: StringConfig) {
             if (email) {
                 logger.log(`User identified as '${email}'.`)
             }
-            void currentAppInstance.run()
+            void appInstance.run()
+            dropPreviousInstance = () => {
+                // The `any` is unavoidable as `App.wasm` is typed as `any`.
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+                appInstance.wasm?.drop?.()
+            }
         }
     }
 }
 
-if (
-    (contentConfig.OPTIONS.options.authentication.value ||
-        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) &&
-    contentConfig.OPTIONS.groups.startup.options.entry.value ===
+function main() {
+    const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
+    const isUsingNewDashboard =
+        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+    const isOpeningIde =
+        contentConfig.OPTIONS.groups.startup.options.entry.value ===
         contentConfig.OPTIONS.groups.startup.options.entry.default
-) {
-    window.tryStopEnso = tryStopEnso
-    window.runEnso = runEnso
-    const hideAuth = () => {
-        const auth = document.getElementById('dashboard')
-        const ide = document.getElementById('root')
-        if (auth) {
-            auth.style.display = 'none'
-        }
-        if (ide) {
-            ide.hidden = false
-        }
-    }
-    /** This package is an Electron desktop app (i.e., not in the Cloud), so
-     * we're running on the desktop. */
-    /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
-     * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
-     * should only have one entry point. Right now, we have two. One for the cloud
-     * and one for the desktop. Once these are merged, we can't hardcode the
-     * platform here, and need to detect it from the environment. */
-    const platform = authentication.Platform.desktop
-    /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
-     * React hooks rerender themselves multiple times. It is resulting in multiple
-     * Enso main scene being initialized. As a temporary workaround we check whether
-     * appInstance was already ran. Target solution should move running appInstance
-     * where it will be called only once. */
-    let appInstanceRan = false
-    const onAuthenticated = () => {
-        if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-            hideAuth()
-            if (!appInstanceRan) {
-                appInstanceRan = true
-                void runEnso()
+    if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningIde) {
+        window.tryStopApp = tryStopApp
+        window.runApp = runApp
+        const hideAuth = () => {
+            const auth = document.getElementById('dashboard')
+            const ide = document.getElementById('root')
+            if (auth) {
+                auth.style.display = 'none'
+            }
+            if (ide) {
+                ide.hidden = false
             }
         }
+        /** This package is an Electron desktop app (i.e., not in the Cloud), so
+         * we're running on the desktop. */
+        /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+         * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+         * should only have one entry point. Right now, we have two. One for the cloud
+         * and one for the desktop. Once these are merged, we can't hardcode the
+         * platform here, and need to detect it from the environment. */
+        const platform = authentication.Platform.desktop
+        /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+         * React hooks rerender themselves multiple times. It is resulting in multiple
+         * Enso main scene being initialized. As a temporary workaround we check whether
+         * appInstance was already ran. Target solution should move running appInstance
+         * where it will be called only once. */
+        let appInstanceRan = false
+        const onAuthenticated = () => {
+            if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+                hideAuth()
+                if (!appInstanceRan) {
+                    appInstanceRan = true
+                    void runApp()
+                }
+            }
+        }
+        authentication.run({
+            logger,
+            platform,
+            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+            onAuthenticated,
+        })
+    } else {
+        void runApp()
     }
-    authentication.run({
-        logger,
-        platform,
-        showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-        onAuthenticated,
-    })
-} else {
-    void runEnso()
 }
+
+main()

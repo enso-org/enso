@@ -38,8 +38,6 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
-import * as app from '../../../../../../../../target/ensogl-pack/linked-dist/index'
-
 import * as authService from '../authentication/service'
 import * as platformModule from '../platform'
 
@@ -86,7 +84,6 @@ export interface AppProps {
     platform: platformModule.Platform
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
-    ide?: app.App
     onAuthenticated: () => void
 }
 
