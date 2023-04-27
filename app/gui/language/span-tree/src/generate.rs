@@ -5,7 +5,6 @@ use enso_text::unit::*;
 
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
-use crate::node::InsertionPoint;
 use crate::node::InsertionPointType;
 use crate::node::Payload;
 use crate::ArgumentInfo;

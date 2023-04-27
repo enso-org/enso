@@ -970,6 +970,7 @@ impl SceneData {
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
         self.layers.iter_sublayers_and_masks_nested(|layer| {
             let dirty = layer.camera().update(scene);
+            layer.update_debug_view();
             was_dirty = was_dirty || dirty;
         });
 

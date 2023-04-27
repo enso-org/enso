@@ -749,7 +749,6 @@ impl TreeModel {
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
     fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) -> bool {
-        warn!("set_connected({:?}, {:?})", crumbs, status);
         let mut map = self.connected_map.borrow_mut();
         let dirty = map.synchronize_entry(crumbs.clone(), status);
         self.mark_dirty_flag(dirty)
@@ -829,8 +828,6 @@ impl TreeModel {
         let usage_type_map = self.usage_type_map.borrow();
         let old_nodes = self.nodes_map.take();
         let node_disabled = self.node_disabled.get();
-
-        warn!("REBUILD. Connected: {:?}", connected_map);
 
         // Old hierarchy is not used during the rebuild, so we might as well reuse the allocation.
         let mut hierarchy = self.hierarchy.take();
