@@ -607,7 +607,7 @@ type Date_Time
        Arguments:
        - pattern: The pattern that specifies how to format the time.
        - locale: The locale in which the format should be interpreted.
-         (Optional.)
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time

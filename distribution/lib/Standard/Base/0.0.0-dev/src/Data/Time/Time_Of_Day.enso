@@ -305,7 +305,7 @@ type Time_Of_Day
        Arguments:
        - pattern: The pattern specifying how to format the time of day.
        - locale: The locale in which the format should be interpreted.
-         (Optional.)
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time

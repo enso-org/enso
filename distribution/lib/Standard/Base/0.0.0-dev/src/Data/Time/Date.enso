@@ -560,6 +560,8 @@ type Date
 
        Arguments:
        - pattern: The text specifying the format for formatting the date.
+       - locale: The locale in which the format should be interpreted.
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time
