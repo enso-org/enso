@@ -525,31 +525,47 @@ spec =
 
         Test.specify "should work happily with mixed types" <|
             c_0 = ['A', ["H", "B", "C"]]
-            c_00 = ['AA', ["", "B", "C"]]
             c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [1, 2, 3]]
             c_3 = ['Y', [5.3, 56.2, 6.3]]
             c_4 = ['Z', [True, False, True]]
-            c_5 = ['ZZ', [Nothing, False, True]]
-            table = Table.new [c_0, c_00, c_1, c_2, c_3, c_4, c_5]
-            expect_column_names ["H", "Column_1", "1980-01-01", "1", "5.3", "True", "Column_2"] table.use_first_row_as_names
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
+            expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] table.use_first_row_as_names
 
         Test.specify "should correctly handle problems: invalid names ''" <|
             c_0 = ['A', ["", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [1, 2, 3]]
-            table = Table.new [c_0, c_2]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["Column_1", "1"]
+            tester = expect_column_names ["Column_1", "1980-01-01", "1", "5.3", "True"]
             problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
             c_0 = ['A', ["A", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [Nothing, 2, 3]]
-            table = Table.new [c_0, c_2]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "Column_1"]
+            tester = expect_column_names ["A", "1980-01-01", "Column_1", "5.3", "True"]
             problems = [Invalid_Output_Column_Names.Error [Nothing]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: multiple invalid names" <|
+            c_0 = ['A', ["", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
+            c_2 = ['x', [Nothing, 2, 3]]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
+            action = table.use_first_row_as_names on_problems=_
+            tester = expect_column_names ["Column_1", "1980-01-01", "Column_2", "5.3", "True"]
+            problems = [Invalid_Output_Column_Names.Error ["", Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
