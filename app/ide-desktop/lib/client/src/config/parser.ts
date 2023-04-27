@@ -45,6 +45,7 @@ class Section<T> {
     entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []
 }
 
+/** Configuration options controlling how the help information is displayed. */
 interface PrintHelpConfig {
     args: config.Args
     groupsOrdering: string[]
@@ -229,6 +230,7 @@ function fixArgvNoPrefix(argv: string[]): string[] {
     })
 }
 
+/** Command line options, split into regular arguments and Chrome options. */
 interface ArgvAndChromeOptions {
     argv: string[]
     chromeOptions: ChromeOption[]
@@ -311,6 +313,7 @@ export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMEN
 
     // === Parsing ===
 
+    /** Command line arguments after being parsed by `yargs`. */
     interface YargsArgs {
         // We don't control the naming of this third-party API.
         /* eslint-disable @typescript-eslint/naming-convention */

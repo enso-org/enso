@@ -56,6 +56,7 @@ function run(props: app.AppProps) {
     }
 }
 
+/** Global configuration for the {@link App} component. */
 export type AppProps = app.AppProps
 // This export should be `PascalCase` because it is a re-export.
 // eslint-disable-next-line no-restricted-syntax

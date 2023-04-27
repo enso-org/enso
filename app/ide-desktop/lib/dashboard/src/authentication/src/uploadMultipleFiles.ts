@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 
 import * as backend from './dashboard/service'
 
+/** Uploads multiple files to the backend, showing a continuously updated toast notification. */
 export async function uploadMultipleFiles(
     backendService: backend.Backend,
     directoryId: backend.DirectoryId,

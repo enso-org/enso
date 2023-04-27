@@ -122,6 +122,17 @@ function isAuthError(error: unknown): error is AuthError {
     }
 }
 
+// ====================
+// === CognitoError ===
+// ====================
+
+/** Base interface for all errors output from this module.
+ * Every user-facing error MUST extend this interface. */
+interface CognitoError {
+    kind: string
+    message: string
+}
+
 // ===============
 // === Cognito ===
 // ===============
@@ -289,7 +300,7 @@ async function getAmplifyCurrentSession() {
     return currentSession.mapErr(intoCurrentSessionErrorKind)
 }
 
-/** Parse a `CognitoUserSession` into a `UserSession`.
+/** Parse a `CognitoUserSession` into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
 function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     const payload: Record<string, unknown> = session.getIdToken().payload
@@ -308,6 +319,7 @@ const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
     kind: 'NoCurrentUser',
 } as const
 
+/** Internal IDs of errors that may occur when getting the current session. */
 type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
 
 /** Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
@@ -325,8 +337,8 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 // === SignUp ===
 // ==============
 
-/** A wrapper around the Amplify sign up endpoint
- * that converts known errors to {@link SignUpError}s. */
+/** A wrapper around the Amplify "sign up" endpoint that converts known errors
+ * to {@link SignUpError}s. */
 async function signUp(username: string, password: string, platform: platformModule.Platform) {
     const result = await results.Result.wrapAsync(async () => {
         const params = intoSignUpParams(username, password, platform)
@@ -376,12 +388,14 @@ const SIGN_UP_INVALID_PASSWORD_ERROR = {
     kind: 'InvalidPassword',
 } as const
 
+/** Internal IDs of errors that may occur when signing up. */
 type SignUpErrorKind =
     | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
     | (typeof SIGN_UP_INVALID_PASSWORD_ERROR)['kind']
     | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
 
-export interface SignUpError {
+/** An error that may occur when signing up. */
+export interface SignUpError extends CognitoError {
     kind: SignUpErrorKind
     message: string
 }
@@ -414,8 +428,8 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 // === ConfirmSignUp ===
 // =====================
 
-/** A wrapper around the Amplify confirm sign up endpoint
- * that converts known errors to {@link ConfirmSignUpError}s. */
+/** A wrapper around the Amplify "confirm sign up" endpoint that converts known errors
+ * to {@link ConfirmSignUpError}s. */
 async function confirmSignUp(email: string, code: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.confirmSignUp(email, code)
@@ -428,9 +442,11 @@ const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     kind: 'UserAlreadyConfirmed',
 } as const
 
+/** Internal IDs of errors that may occur when confirming registration. */
 type ConfirmSignUpErrorKind = (typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR)['kind']
 
-export interface ConfirmSignUpError {
+/** An error that may occur when confirming registration. */
+export interface ConfirmSignUpError extends CognitoError {
     kind: ConfirmSignUpErrorKind
     message: string
 }
@@ -459,7 +475,7 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
 // === SignInWithGoogle ===
 // ========================
 
-/** A wrapper around the Amplify sign in with Google endpoint. */
+/** A wrapper around the Amplify "sign in with Google" endpoint. */
 async function signInWithGoogle(customState: string | null) {
     const provider = amplify.CognitoHostedUIIdentityProvider.Google
     const options = {
@@ -473,7 +489,7 @@ async function signInWithGoogle(customState: string | null) {
 // === SignInWithGoogle ===
 // ========================
 
-/** A wrapper around the Amplify confirm sign in with GitHub endpoint. */
+/** A wrapper around the Amplify confirm "sign in with GitHub" endpoint. */
 async function signInWithGitHub() {
     await amplify.Auth.federatedSignIn({
         customProvider: GITHUB_PROVIDER,
@@ -484,8 +500,8 @@ async function signInWithGitHub() {
 // === SignInWithPassword ===
 // ==========================
 
-/** A wrapper around the Amplify sign in with password endpoint
- * that converts known errors to {@link SignInWithPasswordError}s. */
+/** A wrapper around the Amplify "sign in with password" endpoint that converts known errors
+ * to {@link SignInWithPasswordError}s. */
 async function signInWithPassword(username: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
         await amplify.Auth.signIn(username, password)
@@ -493,9 +509,11 @@ async function signInWithPassword(username: string, password: string) {
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
 }
 
+/** Internal IDs of errors that may occur when signing in with a password. */
 type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
 
-export interface SignInWithPasswordError {
+/** An error that may occur when signing in with a password. */
+export interface SignInWithPasswordError extends CognitoError {
     kind: SignInWithPasswordErrorKind
     message: string
 }
@@ -535,17 +553,26 @@ const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
         'Cannot reset password for the user as there is no registered/verified email or phone_number',
 } as const
 
-/** A wrapper around the Amplify forgot password endpoint
- * that converts known errors to {@link ForgotPasswordError}s. */
+const FORGOT_PASSWORD_USER_NOT_FOUND_ERROR = {
+    internalCode: 'UserNotFoundException',
+    kind: 'UserNotFound',
+} as const
+
+/** A wrapper around the Amplify "forgot password" endpoint that converts known errors
+ * to {@link ForgotPasswordError}s. */
 async function forgotPassword(email: string) {
     return results.Result.wrapAsync(async () => {
         await amplify.Auth.forgotPassword(email)
     }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow))
 }
 
-type ForgotPasswordErrorKind = 'UserNotConfirmed' | 'UserNotFound'
+/** Internal IDs of errors that may occur when requesting a password reset. */
+type ForgotPasswordErrorKind =
+    | (typeof FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR)['kind']
+    | (typeof FORGOT_PASSWORD_USER_NOT_FOUND_ERROR)['kind']
 
-export interface ForgotPasswordError {
+/** An error that may occur when requesting a password reset. */
+export interface ForgotPasswordError extends CognitoError {
     kind: ForgotPasswordErrorKind
     message: string
 }
@@ -554,9 +581,9 @@ export interface ForgotPasswordError {
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
 function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
-    if (error.code === 'UserNotFoundException') {
+    if (error.code === FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.internalCode) {
         return {
-            kind: 'UserNotFound',
+            kind: FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.kind,
             message: MESSAGES.forgotPassword.userNotFound,
         }
     } else if (
@@ -576,8 +603,8 @@ function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordErro
 // === ForgotPasswordSubmit ===
 // ============================
 
-/** A wrapper around the Amplify forgot password submit endpoint
- * that converts known errors to {@link ForgotPasswordSubmitError}s. */
+/** A wrapper around the Amplify "forgot password submit" endpoint that converts known errors
+ * to {@link ForgotPasswordSubmitError}s. */
 async function forgotPasswordSubmit(email: string, code: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
         await amplify.Auth.forgotPasswordSubmit(email, code, password)
@@ -585,9 +612,11 @@ async function forgotPasswordSubmit(email: string, code: string, password: strin
     return result.mapErr(intoForgotPasswordSubmitErrorOrThrow)
 }
 
+/** Internal IDs of errors that may occur when resetting a password. */
 type ForgotPasswordSubmitErrorKind = 'AmplifyError' | 'AuthError'
 
-export interface ForgotPasswordSubmitError {
+/** An error that may occur when resetting a password. */
+export interface ForgotPasswordSubmitError extends CognitoError {
     kind: ForgotPasswordSubmitErrorKind
     message: string
 }
@@ -615,7 +644,7 @@ function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSub
 // === SignOut ===
 // ===============
 
-/** A wrapper around the Amplify sign out endpoint. */
+/** A wrapper around the Amplify "sign out" endpoint. */
 async function signOut(logger: loggerProvider.Logger) {
     // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
     // For some reason, the redirect back to the IDE from the browser doesn't work correctly so this
@@ -639,8 +668,8 @@ async function signOut(logger: loggerProvider.Logger) {
 // === ChangePassword ===
 // ======================
 
-/** A wrapper around the Amplify current authenticated user endpoint
- * that converts known errors to {@link AmplifyError}s. */
+/** A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
+ * to {@link AmplifyError}s. */
 async function currentAuthenticatedUser() {
     const result = await results.Result.wrapAsync(
         /** The interface provided by Amplify declares that the return type is `Promise<CognitoUser | any>`,
@@ -652,8 +681,8 @@ async function currentAuthenticatedUser() {
     return result.mapErr(intoAmplifyErrorOrThrow)
 }
 
-/** A wrapper around the Amplify change password submit endpoint
- * that converts known errors to {@link AmplifyError}s. */
+/** A wrapper around the Amplify "change password submit" endpoint that converts known errors
+ * to {@link AmplifyError}s. */
 async function changePassword(oldPassword: string, newPassword: string) {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {

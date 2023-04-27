@@ -7,12 +7,14 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import CreateForm, * as createForm from './createForm'
 
+/** Props for a {@link SecretCreateForm}. */
 export interface SecretCreateFormProps extends createForm.CreateFormPassthroughProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A form to create a secret. */
 function SecretCreateForm(props: SecretCreateFormProps) {
     const { backend, directoryId, onSuccess, ...passThrough } = props
     const { unsetModal } = modalProvider.useSetModal()
@@ -20,7 +22,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
     const [name, setName] = react.useState<string | null>(null)
     const [value, setValue] = react.useState<string | null>(null)
 
-    async function onSubmit(event: react.FormEvent) {
+    const onSubmit = async (event: react.FormEvent) => {
         event.preventDefault()
         if (!name) {
             toast.error('Please provide a secret name.')

@@ -33,6 +33,7 @@ const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
 // === Environment variables ===
 // =============================
 
+/** Mandatory build options. */
 export interface Arguments {
     /** Path where bundled files are output. */
     outputPath: string
@@ -57,6 +58,7 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
+            /** An entry in the cache of already processed CSS files. */
             interface CacheEntry {
                 contents: string
                 lastModified: number

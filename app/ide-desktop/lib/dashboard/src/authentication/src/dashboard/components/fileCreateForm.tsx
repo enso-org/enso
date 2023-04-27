@@ -7,19 +7,21 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import CreateForm, * as createForm from './createForm'
 
+/** Props for a {@link FileCreateForm}. */
 export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A form to create a file. */
 function FileCreateForm(props: FileCreateFormProps) {
     const { backend, directoryId, onSuccess, ...passThrough } = props
     const { unsetModal } = modalProvider.useSetModal()
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
 
-    async function onSubmit(event: react.FormEvent) {
+    const onSubmit = async (event: react.FormEvent) => {
         event.preventDefault()
         if (file == null) {
             // TODO[sb]: Uploading a file may be a mistake when creating a new file.

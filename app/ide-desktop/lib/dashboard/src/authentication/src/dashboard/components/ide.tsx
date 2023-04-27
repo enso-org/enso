@@ -15,13 +15,14 @@ const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
 // === Component ===
 // =================
 
-interface Props {
+/** Props for an {@link Ide}. */
+export interface IdeProps {
     project: service.Project
     backendService: service.Backend
 }
 
-/** Container that launches the IDE. */
-function Ide(props: Props) {
+/** The container that launches the IDE. */
+function Ide(props: IdeProps) {
     const { project, backendService } = props
     const [ideElement] = react.useState(() => document.querySelector(IDE_ELEMENT_ID))
     const [[loaded, resolveLoaded]] = react.useState((): [Promise<void>, () => void] => {

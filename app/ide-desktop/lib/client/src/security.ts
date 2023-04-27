@@ -94,7 +94,8 @@ function preventNavigation() {
  * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows. */
 function disableNewWindowsCreation() {
     electron.app.on('web-contents-created', (_event, contents) => {
-        contents.setWindowOpenHandler(({ url }) => {
+        contents.setWindowOpenHandler(details => {
+            const { url } = details
             console.error(`Blocking new window creation request to '${url}'.`)
             return { action: 'deny' }
         })

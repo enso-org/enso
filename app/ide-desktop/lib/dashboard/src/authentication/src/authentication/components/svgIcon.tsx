@@ -4,7 +4,8 @@
 // === SvgIcon ===
 // ===============
 
-interface SvgIconProps {
+/** Props for a {@link SvgIcon}. */
+export interface SvgIconProps {
     svg: JSX.Element
 }
 

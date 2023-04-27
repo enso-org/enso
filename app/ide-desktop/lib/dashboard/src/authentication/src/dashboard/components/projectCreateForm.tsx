@@ -7,13 +7,14 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import CreateForm, * as createForm from './createForm'
 
+/** Props for a {@link ProjectCreateForm}. */
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
-// FIXME[sb]: Extract shared shape to a common component.
+/** A form to create a project. */
 function ProjectCreateForm(props: ProjectCreateFormProps) {
     const { backend, directoryId, onSuccess, ...passThrough } = props
     const { unsetModal } = modalProvider.useSetModal()
@@ -21,7 +22,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     const [name, setName] = react.useState<string | null>(null)
     const [template, setTemplate] = react.useState<string | null>(null)
 
-    async function onSubmit(event: react.FormEvent) {
+    const onSubmit = async (event: react.FormEvent) => {
         event.preventDefault()
         if (name == null) {
             toast.error('Please provide a project name.')

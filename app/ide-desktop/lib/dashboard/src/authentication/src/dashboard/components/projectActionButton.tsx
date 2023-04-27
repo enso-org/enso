@@ -74,6 +74,7 @@ function StopIcon(spinnerState: SpinnerState) {
 // === Component ===
 // =================
 
+/** Props for a {@link ProjectActionButton}. */
 export interface ProjectActionButtonProps {
     project: backend.Asset<backend.AssetType.project>
     openIde: () => void

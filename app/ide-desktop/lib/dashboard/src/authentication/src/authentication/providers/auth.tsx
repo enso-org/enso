@@ -37,6 +37,8 @@ const MESSAGES = {
 
 // === UserSession ===
 
+/** A user session for a user that may be either fully registered,
+ * or in the process of registering. */
 export type UserSession = FullUserSession | PartialUserSession
 
 /** Object containing the currently signed-in user's session data. */
@@ -127,6 +129,7 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 // === AuthProvider ===
 // ====================
 
+/** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */

@@ -36,6 +36,7 @@ const STATUS_ICON: Record<Status, JSX.Element | null> = {
 // === Component ===
 // =================
 
+/** Props for a {@link Label}. */
 export interface LabelProps {
     status?: Status
     onContextMenu?: react.MouseEventHandler<HTMLDivElement>

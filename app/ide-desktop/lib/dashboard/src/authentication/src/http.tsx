@@ -86,9 +86,12 @@ export class Client {
             const contentType = mimetype ?? 'application/json'
             headers.set('Content-Type', contentType)
         }
+
+        /** A {@link Response} with a properly typed return type for `response.json()`. */
         interface ResponseWithTypedJson<U> extends Response {
             json: () => Promise<U>
         }
+
         // This is an UNSAFE type assertion, however this is a HTTP client
         // and should only be used to query APIs with known response types.
         // eslint-disable-next-line no-restricted-syntax

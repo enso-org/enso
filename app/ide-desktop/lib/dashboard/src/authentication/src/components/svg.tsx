@@ -239,8 +239,8 @@ export const CLOSE_ICON = (
 // === Svg ===
 // ===========
 
-/** Props for the `Svg` component. */
-interface SvgProps {
+/** Props for a {@link Svg}. */
+export interface SvgProps {
     path: string
 }
 

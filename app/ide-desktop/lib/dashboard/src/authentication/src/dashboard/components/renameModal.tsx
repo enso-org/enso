@@ -7,6 +7,7 @@ import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
+/** Props for a {@link RenameModal}. */
 export interface RenameModalProps {
     assetType: string
     name: string
@@ -14,6 +15,7 @@ export interface RenameModalProps {
     onSuccess: () => void
 }
 
+/** A modal for renaming an asset. */
 function RenameModal(props: RenameModalProps) {
     const { assetType, name, doRename, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()

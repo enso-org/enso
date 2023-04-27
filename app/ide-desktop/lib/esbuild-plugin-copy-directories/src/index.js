@@ -67,7 +67,8 @@ export default function esbuildPluginCopyDirectories(options) {
                 })
                 unwatchers.add(() => void watcher.close())
             }
-            build.onResolve({ filter: directoryFilter }, async ({ path, kind }) => {
+            build.onResolve({ filter: directoryFilter }, async info => {
+                const { path, kind } = info
                 if (kind === 'entry-point') {
                     if (!watchingPath[path]) {
                         watchingPath[path] = true

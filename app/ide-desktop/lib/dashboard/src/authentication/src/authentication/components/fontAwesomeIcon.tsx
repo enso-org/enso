@@ -6,6 +6,7 @@ import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 // === FontAwesomeIcon ===
 // =======================
 
+/** Props for a {@link FontAwesomeIcon}. */
 export interface FontAwesomeIconProps {
     icon: fontawesomeIcons.IconDefinition
 }

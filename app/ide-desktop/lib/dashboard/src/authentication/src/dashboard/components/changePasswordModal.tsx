@@ -13,7 +13,7 @@ import Modal from './modal'
 // === ResetPasswordModal ===
 // ==========================
 
-/** A modal to change the user's password. */
+/** A modal for changing the user's password. */
 function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()

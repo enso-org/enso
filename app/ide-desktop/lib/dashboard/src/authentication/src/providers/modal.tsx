@@ -1,9 +1,11 @@
 /** @file  */
 import * as react from 'react'
 
+/** The type of a modal. */
 export type Modal = () => JSX.Element
 
-export interface ModalContextType {
+/** State contained in a `ModalContext`. */
+interface ModalContextType {
     modal: Modal | null
     setModal: (modal: Modal | null) => void
 }
@@ -16,9 +18,7 @@ const ModalContext = react.createContext<ModalContextType>({
     },
 })
 
-// React components should always have a sibling `Props` interface
-// if they accept props.
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+/** Props for a {@link ModalProvider}. */
 export interface ModalProviderProps extends React.PropsWithChildren<object> {}
 
 /** A React provider containing the currently active modal. */

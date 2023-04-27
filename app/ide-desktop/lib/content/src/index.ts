@@ -123,6 +123,7 @@ function displayDeprecatedVersionDialog() {
 // === Main Entry Point ===
 // ========================
 
+/** Nested configuration options with `string` values. */
 interface StringConfig {
     [key: string]: StringConfig | string
 }

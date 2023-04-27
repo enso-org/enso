@@ -79,7 +79,8 @@ export const SET_USERNAME_PATH = '/set-username'
 // === App ===
 // ===========
 
-interface BaseAppProps {
+/** Props for {@link App}s that are common to all platforms. */
+interface AppPropsBase {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
     /** Whether the dashboard should be rendered. */
@@ -87,17 +88,19 @@ interface BaseAppProps {
     onAuthenticated: () => void
 }
 
-interface DesktopAppProps extends BaseAppProps {
+/** Props for an {@link App}, when on the desktop platform. */
+interface AppPropsDesktop extends AppPropsBase {
     platform: platformModule.Platform.desktop
     projectManager: projectManagerModule.ProjectManager
 }
 
-interface OtherAppProps extends BaseAppProps {
+/** Props for an {@link App}, when on a platform that is not the desktop platform. */
+interface AppPropsOther extends AppPropsBase {
     platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
 }
 
-/** Global configuration for the `App` component. */
-export type AppProps = DesktopAppProps | OtherAppProps
+/** Global configuration for the {@link App} component. */
+export type AppProps = AppPropsDesktop | AppPropsOther
 
 /** Component called by the parent module, returning the root React component for this
  * package.

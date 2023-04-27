@@ -201,6 +201,14 @@ const RESTRICTED_SYNTAXES = [
         selector: ':matches(MethodDeclaration, FunctionDeclaration) FunctionDeclaration',
         message: 'Use arrow functions for nested functions',
     },
+    {
+        selector: ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/Props$/]',
+        message: 'All React component `Props` types must be exported',
+    },
+    {
+        selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
+        message: 'Avoid destructuring parameters in the parameter list',
+    },
 ]
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -239,7 +247,14 @@ export default [
                         ArrowFunctionExpression: false,
                         FunctionExpression: true,
                     },
-                    contexts: ['TSEnumDeclaration'],
+                    // Top-level constants should require JSDoc as well,
+                    // however it does not seem like there is a way to do this.
+                    contexts: [
+                        'TSInterfaceDeclaration',
+                        'TSEnumDeclaration',
+                        'TSTypeAliasDeclaration',
+                        'TSMethodSignature',
+                    ],
                 },
             ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],

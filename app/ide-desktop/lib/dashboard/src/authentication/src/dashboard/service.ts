@@ -117,8 +117,10 @@ export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
 /** An AWS S3 file path. */
 export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
 
+/** A machine image ID. */
 export type Ami = newtype.Newtype<string, 'Ami'>
 
+/** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
 
 /** An RFC 3339 DateTime string. */
@@ -187,8 +189,7 @@ export interface File {
 
 /** Metadata uniquely identifying an uploaded file. */
 export interface FileInfo {
-    /* TODO: Should potentially be S3FilePath,
-     * but it's just string on the backend. */
+    /* TODO: Should potentially be S3FilePath, but it is just string on the backend. */
     path: string
     id: FileId
 }
@@ -212,6 +213,7 @@ export interface SecretInfo {
     id: SecretId
 }
 
+/** The type of asset a tag applies to. */
 export enum TagObjectType {
     file = 'File',
     project = 'Project',
@@ -281,6 +283,7 @@ export interface ResourceUsage {
     storage: number
 }
 
+/** Metadata uniquely identifying a user. */
 export interface User {
     /* eslint-disable @typescript-eslint/naming-convention */
     pk: Subject
@@ -290,6 +293,7 @@ export interface User {
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+/** Permissions that a user can have. */
 export enum PermissionAction {
     own = 'Own',
     execute = 'Execute',
@@ -297,6 +301,7 @@ export enum PermissionAction {
     read = 'Read',
 }
 
+/** Permissions for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
@@ -311,6 +316,7 @@ interface BaseAsset {
     permissions: UserPermission[] | null
 }
 
+/** Type of asset. */
 export enum AssetType {
     project = 'project',
     file = 'file',
@@ -318,6 +324,7 @@ export enum AssetType {
     directory = 'directory',
 }
 
+/** The corresponding ID type for each {@link AssetType}. */
 export interface IdType {
     [AssetType.project]: ProjectId
     [AssetType.file]: FileId
@@ -388,6 +395,7 @@ export interface CreateTagRequestBody {
     objectId: string
 }
 
+/** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId?: string
 }

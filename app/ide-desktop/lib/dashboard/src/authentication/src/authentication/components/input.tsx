@@ -5,12 +5,13 @@ import * as react from 'react'
 // === Input ===
 // =============
 
+/** Props for an {@link Input}. */
 export interface InputProps extends react.InputHTMLAttributes<HTMLInputElement> {
     value: string
     setValue: (value: string) => void
 }
 
-/** A component for authentiation from inputs, with preset styles. */
+/** A component for authentication from inputs, with preset styles. */
 function Input(props: InputProps) {
     const { setValue, ...passThrough } = props
     return (

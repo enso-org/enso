@@ -7,18 +7,20 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import CreateForm, * as createForm from './createForm'
 
+/** Props for a {@link DirectoryCreateForm}. */
 export interface DirectoryCreateFormProps extends createForm.CreateFormPassthroughProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A form to create a directory. */
 function DirectoryCreateForm(props: DirectoryCreateFormProps) {
     const { backend, directoryId, onSuccess, ...passThrough } = props
     const { unsetModal } = modalProvider.useSetModal()
     const [name, setName] = react.useState<string | null>(null)
 
-    async function onSubmit(event: react.FormEvent) {
+    const onSubmit = async (event: react.FormEvent) => {
         event.preventDefault()
         if (name == null) {
             toast.error('Please provide a directory name.')

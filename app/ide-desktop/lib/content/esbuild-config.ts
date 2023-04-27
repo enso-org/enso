@@ -32,6 +32,7 @@ export const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath
 // === Environment variables ===
 // =============================
 
+/** Mandatory build options. */
 export interface Arguments {
     /** List of files to be copied from WASM artifacts. */
     wasmArtifacts: string
@@ -114,10 +115,13 @@ export function bundlerOptions(args: Arguments) {
                 // in `ensogl/pack/js/src/runner/index.ts`
                 name: 'pkg-js-is-cjs',
                 setup: build => {
-                    build.onLoad({ filter: /[/\\]pkg.js$/ }, async ({ path }) => ({
-                        contents: await fs.readFile(path),
-                        loader: 'copy',
-                    }))
+                    build.onLoad({ filter: /[/\\]pkg.js$/ }, async info => {
+                        const { path } = info
+                        return {
+                            contents: await fs.readFile(path),
+                            loader: 'copy',
+                        }
+                    })
                 },
             },
             esbuildPluginCopyDirectories(),

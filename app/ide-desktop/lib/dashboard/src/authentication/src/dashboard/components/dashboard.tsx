@@ -192,26 +192,30 @@ function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
 // === Dashboard ===
 // =================
 
-interface BaseDashboardProps {
+/** Props for {@link Dashboard}s that are common to all platforms. */
+interface DashboardPropsBase {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
 }
 
-interface DesktopDashboardProps extends BaseDashboardProps {
+/** Props for a {@link Dashboard}, when on the desktop platform. */
+interface DashboardPropsDesktop extends DashboardPropsBase {
     platform: platformModule.Platform.desktop
     projectManager: projectManagerModule.ProjectManager
 }
 
-interface OtherDashboardProps extends BaseDashboardProps {
+/** Props for a {@link Dashboard}, when on a platform that is not the desktop platform. */
+interface DashboardPropsOther extends DashboardPropsBase {
     platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
 }
 
-export type DashboardProps = DesktopDashboardProps | OtherDashboardProps
+/** Props for a {@link Dashboard}. */
+export type DashboardProps = DashboardPropsDesktop | DashboardPropsOther
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
-/** The component containing the entire UI. */
+/** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
     const { logger, platform } = props
 
@@ -442,7 +446,7 @@ function Dashboard(props: DashboardProps) {
         [Column.docs]: () => <></>,
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
-            // eslint-disable-next-line no-restricted-syntax
+            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
             const onContextMenu = (event: react.MouseEvent) => {
                 event.preventDefault()
                 event.stopPropagation()

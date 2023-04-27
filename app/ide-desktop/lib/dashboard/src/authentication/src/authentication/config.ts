@@ -105,10 +105,12 @@ export interface AmplifyConfig {
 // === NestedAmplifyConfig ===
 // ===========================
 
+/** Configuration options for a {@link OauthAmplifyConfig}. */
 interface OauthAmplifyConfigOptions {
     urlOpener?: OAuthUrlOpener
 }
 
+/** OAuth configuration for a {@link NestedAmplifyConfig}. */
 interface OauthAmplifyConfig {
     options: OauthAmplifyConfigOptions
     domain: OAuthDomain

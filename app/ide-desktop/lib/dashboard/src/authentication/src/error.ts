@@ -4,8 +4,11 @@
 // === Type assertions (unsafe) ===
 // ================================
 
+/** Used to enforce a parameter must be `any`. This is useful to verify that the value comes
+ * from an API that returns `any`. */
 type MustBeAny<T> = never extends T ? (T & 1 extends 0 ? T : never) : never
 
+/** Assumes an unknown value is an {@link Error}. */
 export function unsafeAsError<T>(error: MustBeAny<T>) {
     // This is UNSAFE - errors can be any value.
     // Usually they *do* extend `Error`,
@@ -14,6 +17,7 @@ export function unsafeAsError<T>(error: MustBeAny<T>) {
     return error as Error
 }
 
+/** Extracts the `message` property of a value, by first assuming it is an {@link Error}. */
 export function unsafeIntoErrorMessage<T>(error: MustBeAny<T>) {
     return unsafeAsError(error).message
 }

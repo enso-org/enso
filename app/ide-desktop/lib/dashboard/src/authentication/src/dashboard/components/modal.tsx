@@ -7,6 +7,7 @@ import * as modalProvider from '../../providers/modal'
 // === Component ===
 // =================
 
+/** Props for a {@link Modal}. */
 export interface ModalProps extends react.PropsWithChildren {
     className?: string
 }

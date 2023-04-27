@@ -21,13 +21,14 @@ export interface CreateFormProps extends CreateFormPassthroughProps, react.Props
     onSubmit: (event: react.FormEvent) => Promise<void>
 }
 
+/** A form to create an element. */
 function CreateForm(props: CreateFormProps) {
-    const { title, left, top, children, onSubmit: wrapperOnSubmit } = props
+    const { title, left, top, children, onSubmit: innerOnSubmit } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    async function onSubmit(event: react.FormEvent) {
+    const onSubmit = async (event: react.FormEvent) => {
         event.preventDefault()
-        await wrapperOnSubmit(event)
+        await innerOnSubmit(event)
     }
 
     return (

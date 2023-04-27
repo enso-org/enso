@@ -7,21 +7,27 @@ const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 // === Types ===
 // =============
 
+/** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
     fail = 'Fail',
     install = 'Install',
     forceInstallBroken = 'ForceInstallBroken',
 }
 
+/** The return value of a JSON-RPC call. */
 interface Result<T> {
     result: T
 }
 
 // This intentionally has the same brand as in the cloud backend API.
+/** An ID of a project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+/** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
+/** A UTC value containing a date and a time. */
 export type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
 
+/** Details for a project. */
 interface ProjectMetadata {
     name: ProjectName
     namespace: string
@@ -30,19 +36,23 @@ interface ProjectMetadata {
     lastOpened: UTCDateTime | null
 }
 
+/** A value specifying a socket's hostname and port. */
 interface IpWithSocket {
     host: string
     port: number
 }
 
+/** The return value of the "list projects" endpoint. */
 interface ProjectList {
     projects: ProjectMetadata[]
 }
 
+/** The return value of the "create project" endpoint. */
 interface CreateProject {
     projectId: ProjectId
 }
 
+/** The return value of the "open project" endpoint. */
 interface OpenProject {
     engineVersion: string
     languageServerJsonAddress: IpWithSocket
@@ -55,19 +65,23 @@ interface OpenProject {
 // === Parameters for endpoints ===
 // ================================
 
+/** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
     projectId: ProjectId
     missingComponentAction: MissingComponentAction
 }
 
+/** Parameters for the "close project" endpoint. */
 export interface CloseProjectParams {
     projectId: ProjectId
 }
 
+/** Parameters for the "list projects" endpoint. */
 export interface ListProjectsParams {
     numberOfProjects?: number
 }
 
+/** Parameters for the "create project" endpoint. */
 export interface CreateProjectParams {
     name: ProjectName
     projectTemplate?: string
@@ -75,15 +89,18 @@ export interface CreateProjectParams {
     missingComponentAction?: MissingComponentAction
 }
 
+/** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
     projectId: ProjectId
     name: ProjectName
 }
 
+/** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
     projectId: ProjectId
 }
 
+/** Parameters for the "list samples" endpoint. */
 export interface ListSamplesParams {
     projectId: ProjectId
 }
@@ -97,7 +114,7 @@ export class ProjectManager {
     /** Creates a {@link ProjectManager}. */
     constructor(protected readonly connectionUrl: string) {}
 
-    /** Returns the singleton instance of the {@link ProjectManager}. */
+    /** The returns the singleton instance of the {@link ProjectManager}. */
     static default() {
         return new ProjectManager(PROJECT_MANAGER_ENDPOINT)
     }

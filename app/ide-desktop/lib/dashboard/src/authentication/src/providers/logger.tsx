@@ -29,7 +29,8 @@ const LoggerContext = react.createContext<Logger>({} as Logger)
 // === LoggerProvider ===
 // ======================
 
-interface LoggerProviderProps {
+/** Props for a {@link LoggerProvider}. */
+export interface LoggerProviderProps {
     children: react.ReactNode
     logger: Logger
 }

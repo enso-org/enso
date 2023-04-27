@@ -593,5 +593,7 @@ CONFIG.groups.startup.options.platform.value = process.platform
 
 CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
+/** The type of the full configuration object. */
 export type Args = typeof CONFIG
+/** A configuration option. */
 export type Option<T> = contentConfig.Option<T>

@@ -6,6 +6,7 @@ import * as react from 'react'
 // === Component ===
 // =================
 
+/** Props for a {@link ContextMenu}. */
 export interface ContextMenuProps {
     // `left: number` and `top: number` may be more correct,
     // however passing an event eliminates the chance
@@ -13,6 +14,7 @@ export interface ContextMenuProps {
     event: react.MouseEvent
 }
 
+/** A context menu that opens at the current mouse position. */
 function ContextMenu(props: react.PropsWithChildren<ContextMenuProps>) {
     const { children, event } = props
     return (

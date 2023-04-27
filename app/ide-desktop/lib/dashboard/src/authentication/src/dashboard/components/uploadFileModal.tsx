@@ -9,12 +9,14 @@ import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
+/** Props for an {@link UploadFileModal}. */
 export interface UploadFileModalProps {
     backend: backendModule.Backend
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A modal for uploading a file. */
 function UploadFileModal(props: UploadFileModalProps) {
     const { backend, directoryId, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
@@ -22,7 +24,7 @@ function UploadFileModal(props: UploadFileModalProps) {
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
 
-    async function onSubmit() {
+    const onSubmit = async () => {
         if (file == null) {
             toast.error('Please select a file to upload.')
         } else {
