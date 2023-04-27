@@ -128,6 +128,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.profiles.ConditionProfile",
           "java.nio.file.OpenOption",
           "org.enso.interpreter.EnsoLanguage",
+          "org.enso.interpreter.node.InlineableNode",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
           "org.enso.interpreter.runtime.callable.function.Function",
@@ -158,7 +159,11 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println("@NodeInfo(");
       out.println("  shortName = \"" + methodDefinition.getDeclaredName() + "\",");
       out.println("  description = \"\"\"\n" + methodDefinition.getDescription() + "\"\"\")");
-      out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
+      if (methodDefinition.needsFrame()) {
+        out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
+      } else {
+        out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode implements InlineableNode.Root {");
+      }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
@@ -232,13 +237,12 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println();
       if (!methodDefinition.needsFrame()) {
         out.println("  @Override");
-        out.println("  public final InlinedCallNode createDirectCallNode() {");
-        out.println("    var n = " + methodDefinition.getConstructorExpression() + ";");
-        out.println("    return new InlinedCallNode<>(new Internals(internals.staticOfInstanceMethod), n) {");
-        out.println("      public Object call(Object[] args) {");
-        out.println("        return handleExecute(null, extra, body, args);");
-        out.println("      }");
-        out.println("      public Object callWithFrame(VirtualFrame frame, Object[] args) {");
+        out.println("  public final InlineableNode createInlineableNode() {");
+        out.println("    return new InlineableNode() {");
+        out.println("      private final Internals extra = new Internals(internals.staticOfInstanceMethod);");
+        out.println("      private @Child " + methodDefinition.getOriginalClassName() + " body = " + methodDefinition.getConstructorExpression() + ";");
+        out.println("      @Override");
+        out.println("      public Object call(VirtualFrame frame, Object[] args) {");
         out.println("        return handleExecute(frame, extra, body, args);");
         out.println("      }");
         out.println("    };");
