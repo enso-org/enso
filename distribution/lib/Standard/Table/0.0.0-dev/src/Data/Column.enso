@@ -1193,7 +1193,7 @@ type Column
             bad_type ->
                 msg = "Cannot format a Column of type " + bad_type.to_text
                 Error.throw (Illegal_Argument.Error msg)
-        new_column = map_to_text_over_storage self formatter
+        new_column = map_over_storage self formatter make_string_builder
         problem_builder.attach_problems_after on_problems new_column
 
     ## ALIAS Transform Column
@@ -1785,11 +1785,11 @@ illegal_argument_to_warning problem_builder ~action =
 ## PRIVATE
    Map a text-returning function over the column values, using Storage directly.
    The output column has the same name as the input.
-map_to_text_over_storage : Column -> (Any -> Text) -> Boolean -> Column
-map_to_text_over_storage input_column function skip_nothing=True =
+map_over_storage : Column -> (Any -> Text) -> (Integer -> Any) -> Boolean -> Column
+map_over_storage input_column function builder skip_nothing=True =
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size
-    output_storage_builder = make_string_builder num_input_rows
+    output_storage_builder = builder num_input_rows
     0.up_to num_input_rows . each i->
         input_value = input_storage.getItemBoxed i
         if skip_nothing && input_value.is_nothing then output_storage_builder.append Nothing else
@@ -1801,15 +1801,15 @@ map_to_text_over_storage input_column function skip_nothing=True =
 ## PRIVATE
    Map a text-returning function over the values of two columns, using Storage
    directly. The output column has the same name as the first input column.
-map_2_to_text_over_storage : Column -> Column -> (Any -> Any -> Text) -> Boolean -> Column
-map_2_to_text_over_storage input_column_0 input_column_1 function skip_nothing=True =
+map_2_over_storage : Column -> Column -> (Any -> Any -> Text) -> (Integer -> Any) -> Boolean -> Column
+map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=True =
     input_storage_0 = input_column_0.java_column.getStorage
     input_storage_1 = input_column_1.java_column.getStorage
     if input_storage_0.size != input_storage_1.size then
         msg = "Column lengths differ: " + input_storage_0.size.to_text + " != " + input_storage_1.size
         Error.throw (Illegal_Argument.new msg)
     num_input_rows = input_storage_0.size
-    output_storage_builder = make_string_builder num_input_rows
+    output_storage_builder = builder num_input_rows
     0.up_to num_input_rows . each i->
         input_value_0 = input_storage_0.getItemBoxed i
         input_value_1 = input_storage_1.getItemBoxed i
