@@ -150,9 +150,11 @@ export class ProjectManager {
                                 this.rejecters.get(message.id)?.(message.error)
                             }
                         }
+                        socket.onopen = () => {
+                            resolve(socket)
+                        }
                         socket.onerror = createSocket
                         socket.onclose = createSocket
-                        resolve(socket)
                     } catch {
                         // Ignored; the `setInterval` will retry again eventually.
                     }
