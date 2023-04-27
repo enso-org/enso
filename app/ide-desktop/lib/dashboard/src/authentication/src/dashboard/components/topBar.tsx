@@ -1,7 +1,9 @@
 /** @file The top-bar of dashboard. */
 import * as dashboard from './dashboard'
-import * as modalProvider from '../../providers/modal'
+import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
+
+import * as modalProvider from '../../providers/modal'
 
 import UserMenu from './userMenu'
 
@@ -10,9 +12,12 @@ import UserMenu from './userMenu'
 // ==============
 
 interface TopBarProps {
+    platform: platformModule.Platform
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
+    backendPlatform: platformModule.Platform
+    setBackendPlatform: (backendPlatform: platformModule.Platform) => void
     query: string
     setQuery: (value: string) => void
 }
@@ -22,12 +27,49 @@ interface TopBarProps {
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { projectName, tab, toggleTab, query, setQuery } = props
+    const {
+        platform,
+        projectName,
+        tab,
+        toggleTab,
+        backendPlatform,
+        setBackendPlatform,
+        query,
+        setQuery,
+    } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
         <div className="flex m-2 h-8">
             <div className="flex text-primary">
+                {platform === platformModule.Platform.desktop && (
+                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
+                        <button
+                            onClick={() => {
+                                setBackendPlatform(platformModule.Platform.desktop)
+                            }}
+                            className={`${
+                                backendPlatform === platformModule.Platform.desktop
+                                    ? 'bg-white shadow-soft'
+                                    : 'opacity-50'
+                            } rounded-full px-1.5 py-1`}
+                        >
+                            {svg.COMPUTER_ICON}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setBackendPlatform(platformModule.Platform.cloud)
+                            }}
+                            className={`${
+                                backendPlatform === platformModule.Platform.cloud
+                                    ? 'bg-white shadow-soft'
+                                    : 'opacity-50'
+                            } rounded-full px-1.5 py-1`}
+                        >
+                            {svg.CLOUD_ICON}
+                        </button>
+                    </div>
+                )}
                 <div
                     className={`flex items-center bg-label rounded-full pl-1
                                 pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
