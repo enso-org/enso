@@ -75,7 +75,7 @@ function Ide(props: Props) {
                     }
                 })()
                 const runNewProject = async () => {
-                    await window.runProject({
+                    await window.runEnso({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,

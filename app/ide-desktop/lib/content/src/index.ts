@@ -126,7 +126,8 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
-// Hack to mutate `configOptions.OPTIONS`
+// `new app.App` must be run at least once so that the command line arguments are applied to
+// `configOptions.OPTIONS`.
 let currentAppInstance: app.App | null = new app.App({
     config: {
         loader: {
@@ -142,13 +143,13 @@ let currentAppInstance: app.App | null = new app.App({
     },
 })
 
-function tryStopProject() {
+function tryStopEnso() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     currentAppInstance?.wasm?.drop?.()
 }
 
-async function runProject(inputConfig?: StringConfig) {
-    tryStopProject()
+async function runEnso(inputConfig?: StringConfig) {
+    tryStopEnso()
     const rootElement = document.getElementById(IDE_ELEMENT_ID)
     if (!rootElement) {
         logger.error(`The root element (the element with ID '${IDE_ELEMENT_ID}') was not found.`)
@@ -177,7 +178,6 @@ async function runProject(inputConfig?: StringConfig) {
             engineVersion: BUILD_INFO.engineVersion,
         },
     })
-    console.log('bruh', currentAppInstance)
 
     if (!currentAppInstance.initialized) {
         console.error('Failed to initialize the application.')
@@ -204,8 +204,8 @@ if (
     contentConfig.OPTIONS.groups.startup.options.entry.value ===
         contentConfig.OPTIONS.groups.startup.options.entry.default
 ) {
-    window.tryStopProject = tryStopProject
-    window.runProject = runProject
+    window.tryStopEnso = tryStopEnso
+    window.runEnso = runEnso
     const hideAuth = () => {
         const auth = document.getElementById('dashboard')
         const ide = document.getElementById('root')
@@ -235,7 +235,7 @@ if (
             hideAuth()
             if (!appInstanceRan) {
                 appInstanceRan = true
-                void runProject()
+                void runEnso()
             }
         }
     }
@@ -246,5 +246,5 @@ if (
         onAuthenticated,
     })
 } else {
-    void runProject()
+    void runEnso()
 }

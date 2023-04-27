@@ -84,7 +84,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     function closeProject() {
         setState(cloudService.ProjectState.closed)
-        window.tryStopProject()
+        window.tryStopEnso()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
     }
