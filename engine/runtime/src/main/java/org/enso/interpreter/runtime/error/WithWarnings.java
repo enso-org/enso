@@ -16,7 +16,6 @@ import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
 
 import java.util.Arrays;
-import java.util.function.Function;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
@@ -147,14 +146,14 @@ public final class WithWarnings implements TruffleObject {
     @Override
     public boolean equals(Object a, Object b) {
       if (a instanceof Warning thisObj && b instanceof Warning thatObj) {
-        return thisObj.getCreationTime() == thatObj.getCreationTime();
+        return thisObj.getSequenceId() == thatObj.getSequenceId();
       }
       return false;
     }
 
     @Override
     public int hashCode(Object o) {
-      return (int)((Warning)o).getCreationTime();
+      return (int)((Warning)o).getSequenceId();
     }
   }
 
