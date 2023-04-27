@@ -10,11 +10,9 @@ from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
-from project.Database.Postgres_Spec import test_with_connection
+from project.Database.Postgres_Spec import create_connection_builder
 
-spec connection db_name =
-    _ = db_name
-
+spec connection =
     make_table prefix columns =
         name = Name_Generator.random_name prefix
         column_exprs = columns.map col_def->
@@ -130,7 +128,9 @@ spec connection db_name =
             t2.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             Problems.expect_warning Inexact_Type_Coercion t2
 
-main = Test_Suite.run_main (test_with_connection spec)
+main = Test_Suite.run_main <|
+    connection = create_connection_builder Nothing
+    spec connection
 
 max_int4 = 2147483647
 default_text = Value_Type.Char size=Nothing variable_length=True

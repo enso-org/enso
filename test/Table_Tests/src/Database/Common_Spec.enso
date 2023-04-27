@@ -18,12 +18,21 @@ spec prefix connection =
     tables_to_clean = Vector.new_builder
     upload prefix data temporary=True =
         name = Name_Generator.random_name prefix
-        table = connection.upload_table name data temporary=temporary
-        tables_to_clean.append name
+        table = data.create_database_table connection name temporary=temporary primary_key=Nothing
+        tables_to_clean.append table.name
         table
 
+    clean_tables =
+        tables_to_clean.to_vector.each name->
+            Panic.catch Any (connection.drop_table name) caught_panic->
+                IO.println "Failed to drop table: " + name + " because of: " + caught_panic.payload.to_display_text
+    Panic.with_finalizer clean_tables <|
+        run_tests prefix connection upload
+
+run_tests prefix connection upload =
     ## We have to upload the table as non-temporary, because otherwise it will
        not be visible in the list of tables and make `Table.query` confused.
+       TODO [RW] remove temporary=False once #6398 is done.
     t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]]) temporary=False
     Test.group prefix+"Basic Table Access" <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
@@ -265,11 +274,6 @@ spec prefix connection =
     Test.group prefix+"Table.filter" <|
         Test.specify "report error when trying to filter by a custom predicate" <|
             t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation
-
-    clean_table name = Panic.recover Any <|
-        sql = 'DROP TABLE "' + name + '"'
-        Panic.rethrow <| connection.execute_update sql
-    tables_to_clean.to_vector.each clean_table
 
 main = Test_Suite.run_main <|
     spec "[SQLite] " (Database.connect (SQLite In_Memory))

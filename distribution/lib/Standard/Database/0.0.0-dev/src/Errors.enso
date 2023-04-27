@@ -134,3 +134,31 @@ type Table_Not_Found
     to_display_text self = case self.treated_as_query of
         True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."
         False -> "Table " + self.name + " was not found in the database."
+
+type Table_Already_Exists
+    ## PRIVATE
+       Indicates that a table already exists in the database.
+
+       Arguments:
+       - table_name: The name of the table that already exists.
+    Error table_name:Text
+
+    ## PRIVATE
+       Pretty print the table already exists error.
+    to_display_text : Text
+    to_display_text self = "Table " + self.table_name.pretty + " already exists in the database."
+
+type Non_Unique_Primary_Key
+    ## PRIVATE
+       Indicates that the columns selected for the primary key do not uniquely
+       identify rows in the table.
+
+       Arguments:
+       - primary_key: The primary key that is not unique.
+    Error (primary_key : Vector Text)
+
+    ## PRIVATE
+       Pretty print the non-unique primary key error.
+    to_display_text : Text
+    to_display_text self =
+        "The primary key " + self.primary_key.to_display_text + " is not unique."

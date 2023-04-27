@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Decimal
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
@@ -11,6 +12,7 @@ import project.System
 
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random
+polyglot java import java.util.UUID
 polyglot java import org.enso.base.Random_Utils
 
 ## UNSTABLE
@@ -83,3 +85,9 @@ random_indices : Integer -> Integer -> Random_Number_Generator -> Vector Integer
 random_indices n k rng =
     array = Random_Utils.random_indices n k rng.java_random
     Vector.from_polyglot_array array
+
+## PRIVATE
+   Generates a text representation of a randomly generated UUID.
+random_uuid : Text
+random_uuid =
+    UUID.randomUUID.to_text

@@ -2,8 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Table, Aggregate_Column, Value_Type
 
-from Standard.Database import SQLite
-from Standard.Database import Database
+from Standard.Database import all
 import Standard.Database.Data.Table.Table as Database_Table
 
 import Standard.Visualization.Table.Visualization
@@ -23,7 +22,8 @@ type Foo
     to_js_object self = JS_Object.from_pairs [["x", self.x]]
 
 visualization_spec connection =
-    t = connection.upload_table "T" <| Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
+    in_mem = Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
+    t = in_mem.create_database_table connection "T" primary_key=Nothing temporary=True
 
     make_json header data all_rows ixes_header ixes =
         p_header      = ["header", header]
