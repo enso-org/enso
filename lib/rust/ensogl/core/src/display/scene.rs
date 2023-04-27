@@ -1024,15 +1024,21 @@ impl SceneData {
         let layer = object.display_layer();
         let camera = layer.map_or(self.camera(), |l| l.camera());
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = object.transformation_matrix().try_inverse().unwrap();
-
-        let shape = camera.screen();
-        let clip_space_z = origin_clip_space.z;
-        let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
-        let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
-        let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
-        let world_space = camera.inversed_view_projection_matrix() * clip_space;
-        (inv_object_matrix * world_space).xy()
+        if let Some(inv_object_matrix) = object.transformation_matrix().try_inverse() {
+            let shape = camera.screen();
+            let clip_space_z = origin_clip_space.z;
+            let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
+            let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
+            let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
+            let world_space = camera.inversed_view_projection_matrix() * clip_space;
+            (inv_object_matrix * world_space).xy()
+        } else {
+            warn!(
+                "The object transformation matrix is not invertible, \
+                this can cause visual artifacts."
+            );
+            default()
+        }
     }
 }
 

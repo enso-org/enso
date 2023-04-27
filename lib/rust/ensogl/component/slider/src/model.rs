@@ -3,7 +3,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use crate::Kind;
 use crate::LabelPosition;
 
 use ensogl_core::application::Application;
@@ -21,8 +20,6 @@ use ensogl_tooltip::Tooltip;
 // === Constants ===
 // =================
 
-/// Size of the margin around the component's shapes for proper anti-aliasing.
-const COMPONENT_MARGIN: f32 = 4.0;
 /// Default component width on initialization.
 const COMPONENT_WIDTH_DEFAULT: f32 = 200.0;
 /// Default component height on initialization.
@@ -47,8 +44,6 @@ impl Background {
     fn new() -> Self {
         let width: Var<Pixels> = "input_size.x".into();
         let height: Var<Pixels> = "input_size.y".into();
-        let width = width - COMPONENT_MARGIN.px() * 2.0;
-        let height = height - COMPONENT_MARGIN.px() * 2.0;
         let shape = Rect((&width, &height)).corners_radius(&height / 2.0);
         let shape = shape.into();
         Background { width, height, shape }
@@ -72,62 +67,33 @@ mod background {
 /// Track shape that fills the slider proportional to the slider value.
 mod track {
     use super::*;
-
     ensogl_core::shape! {
         above = [background];
         pointer_events = false;
         alignment = center;
-        (style:Style, slider_fraction_horizontal:f32, slider_fraction_vertical:f32, color:Vector4) {
+        (style:Style, start: f32, end:f32, color:Vector4) {
             let Background{width,height,shape: background} = Background::new();
-            let track = Rect((
-                &width * &slider_fraction_horizontal,
-                &height * &slider_fraction_vertical,
-            ));
-            let track = track.translate_x(&width * (&slider_fraction_horizontal - 1.0) * 0.5);
-            let track = track.translate_y(&height * (&slider_fraction_vertical - 1.0) * 0.5);
+            let length = &end - &start;
+            let track = Rect((&width * &length, &height));
+            let track = track.translate_x(&width * (length - 1.0) * 0.5 + &width * start);
             let track = track.intersection(background).fill(color);
             track.into()
         }
     }
 }
 
-/// Thumb shape that moves along the slider proportional to the slider value.
-mod thumb {
-    use super::*;
-
-    ensogl_core::shape! {
-        above = [background];
-        pointer_events = false;
-        alignment = center;
-        (style:Style, slider_fraction:f32, thumb_width:f32, thumb_height:f32, color:Vector4) {
-            let Background{width,height,shape: background} = Background::new();
-            let thumb_width = &width * &thumb_width;
-            let thumb_height = &height * &thumb_height;
-            let thumb = Rect((&thumb_width, &thumb_height));
-            let thumb = thumb.corners_radius(&thumb_height / 2.0);
-            let range_x = &width - &thumb_width;
-            let range_y = &height - &thumb_height;
-            let thumb = thumb.translate_x(-&range_x * 0.5 + &range_x * &slider_fraction);
-            let thumb = thumb.translate_y(-&range_y * 0.5 + &range_y * &slider_fraction);
-            let thumb = thumb.intersection(background).fill(color);
-            thumb.into()
-        }
-    }
-}
 
 /// Triangle shape used as an overflow indicator on either side of the range.
 mod overflow {
     use super::*;
 
     ensogl_core::shape! {
-        above = [background, track, thumb];
+        above = [background, track];
         pointer_events = false;
         alignment = center;
         (style:Style, color:Vector4) {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = "input_size.y".into();
-            let width = width - COMPONENT_MARGIN.px() * 2.0;
-            let height = height - COMPONENT_MARGIN.px() * 2.0;
 
             let color = style.get_color(theme::overflow::color);
             let triangle = Triangle(width, height);
@@ -148,70 +114,66 @@ mod overflow {
 #[derive(Debug)]
 pub struct Model {
     /// Background element
-    pub background:       background::View,
+    pub background:            background::View,
     /// Slider track element that fills the slider proportional to the slider value.
-    pub track:            track::View,
-    /// Slider thumb element that moves across the slider proportional to the slider value.
-    pub thumb:            thumb::View,
+    pub track:                 track::View,
     /// Indicator for overflow when the value is below the lower limit.
-    pub overflow_lower:   overflow::View,
+    pub overflow_lower:        overflow::View,
     /// Indicator for overflow when the value is above the upper limit.
-    pub overflow_upper:   overflow::View,
+    pub overflow_upper:        overflow::View,
     /// Slider label that is shown next to the slider.
-    pub label:            text::Text,
+    pub label:                 text::Text,
     /// Textual representation of the slider value, only part left of the decimal point.
-    pub value_text_left:  text::Text,
+    pub value_text_left:       text::Text,
     /// Decimal point that is used to display non-integer slider values.
-    pub value_text_dot:   text::Text,
+    pub value_text_dot:        text::Text,
     /// Textual representation of the slider value, only part right of the decimal point.
-    pub value_text_right: text::Text,
+    pub value_text_right:      text::Text,
     /// Textual representation of the slider value used when editing the value as text input.
-    pub value_text_edit:  text::Text,
+    pub value_text_edit:       text::Text,
     /// Tooltip component showing either a tooltip message or slider precision changes.
-    pub tooltip:          Tooltip,
-    /// Animation component that smoothly adjusts the slider value on large jumps.
-    pub value_animation:  Animation<f32>,
+    pub tooltip:               Tooltip,
+    /// Animation component that smoothly adjusts the slider start value on large jumps.
+    pub start_value_animation: Animation<f32>,
+    /// Animation component that smoothly adjusts the slider end value on large jumps.
+    pub end_value_animation:   Animation<f32>,
     /// Root of the display object.
-    pub root:             display::object::Instance,
+    pub root:                  display::object::Instance,
+    /// The display object containing the text value of the slider.
+    pub value:                 display::object::Instance,
 }
 
 impl Model {
     /// Create a new slider model.
     pub fn new(app: &Application, frp_network: &frp::Network) -> Self {
         let root = display::object::Instance::new();
+        let value = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
         let value_text_left = app.new_view::<text::Text>();
         let value_text_dot = app.new_view::<text::Text>();
         let value_text_right = app.new_view::<text::Text>();
         let value_text_edit = app.new_view::<text::Text>();
         let tooltip = Tooltip::new(app);
-        let value_animation = Animation::new_non_init(frp_network);
+        let start_value_animation = Animation::new_non_init(frp_network);
+        let end_value_animation = Animation::new_non_init(frp_network);
         let background = background::View::new();
         let track = track::View::new();
-        let thumb = thumb::View::new();
         let overflow_lower = overflow::View::new();
         let overflow_upper = overflow::View::new();
-        let scene = &app.display.default_scene;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
         root.add_child(&background);
         root.add_child(&track);
         root.add_child(&label);
-        root.add_child(&value_text_left);
-        root.add_child(&value_text_dot);
-        root.add_child(&value_text_right);
+        root.add_child(&value);
+        value.add_child(&value_text_left);
+        value.add_child(&value_text_dot);
+        value.add_child(&value_text_right);
         app.display.default_scene.add_child(&tooltip);
-
-        value_text_left.add_to_scene_layer(&scene.layers.label);
-        value_text_dot.add_to_scene_layer(&scene.layers.label);
-        value_text_right.add_to_scene_layer(&scene.layers.label);
-        value_text_edit.add_to_scene_layer(&scene.layers.label);
-        label.add_to_scene_layer(&scene.layers.label);
 
         let model = Self {
             background,
             track,
-            thumb,
             overflow_lower,
             overflow_upper,
             label,
@@ -220,8 +182,10 @@ impl Model {
             value_text_right,
             value_text_edit,
             tooltip,
-            value_animation,
+            start_value_animation,
+            end_value_animation,
             root,
+            value,
         };
         model.init(style)
     }
@@ -237,7 +201,6 @@ impl Model {
         self.label.set_font(text::font::DEFAULT_FONT);
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
-        self.thumb.color.set(track_color.into());
         self.update_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
         self
@@ -245,16 +208,16 @@ impl Model {
 
     /// Set the component size.
     pub fn update_size(&self, size: Vector2<f32>) {
-        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        self.background.set_size(size + margin);
-        self.track.set_size(size + margin);
-        self.thumb.set_size(size + margin);
+        self.background.set_size(size);
+        self.track.set_size(size);
+        self.background.set_x(size.x / 2.0);
+        self.track.set_x(size.x / 2.0);
+        self.value.set_x(size.x / 2.0);
     }
 
     /// Set the color of the slider track or thumb.
     pub fn set_indicator_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
-        self.thumb.color.set(color::Rgba::from(color).into());
     }
 
     /// Set the color of the slider background.
@@ -262,43 +225,22 @@ impl Model {
         self.background.color.set(color::Rgba::from(color).into());
     }
 
-    /// Set whether the lower overfow marker is visible.
-    pub fn kind(&self, indicator: &Kind) {
-        match indicator {
-            Kind::SingleValue => {
-                self.root.add_child(&self.track);
-                self.root.remove_child(&self.thumb);
-            }
-            Kind::Scrollbar(_) => {
-                self.root.add_child(&self.thumb);
-                self.root.remove_child(&self.track);
-            }
-        }
-    }
-
     /// Set the position of the value indicator.
-    pub fn set_indicator_position(&self, (fraction, size, orientation): &(f32, f32, Axis2)) {
-        self.thumb.slider_fraction.set(*fraction);
+    pub fn set_indicator_position(&self, start: f32, fraction: f32, orientation: Axis2) {
         match orientation {
             Axis2::X => {
-                self.track.slider_fraction_horizontal.set(fraction.clamp(0.0, 1.0));
-                self.track.slider_fraction_vertical.set(1.0);
-                self.thumb.thumb_width.set(*size);
-                self.thumb.thumb_height.set(1.0);
+                self.track.start.set(start.clamp(0.0, 1.0));
+                self.track.end.set(fraction.clamp(0.0, 1.0));
             }
             Axis2::Y => {
-                self.track.slider_fraction_horizontal.set(1.0);
-                self.track.slider_fraction_vertical.set(fraction.clamp(0.0, 1.0));
-                self.thumb.thumb_width.set(1.0);
-                self.thumb.thumb_height.set(*size);
+                self.track.end.set(1.0);
             }
         }
     }
 
     /// Set the size and orientation of the overflow markers.
     pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, Axis2)) {
-        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE + margin;
+        let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE;
         self.overflow_lower.set_size(size);
         self.overflow_upper.set_size(size);
         match orientation {
@@ -386,13 +328,9 @@ impl Model {
     /// Set whether the slider value text is hidden.
     pub fn show_value(&self, visible: bool) {
         if visible {
-            self.root.add_child(&self.value_text_left);
-            self.root.add_child(&self.value_text_dot);
-            self.root.add_child(&self.value_text_right);
+            self.root.add_child(&self.value);
         } else {
-            self.root.remove_child(&self.value_text_left);
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
+            self.root.remove_child(&self.value);
         }
     }
 
@@ -407,21 +345,19 @@ impl Model {
 
     /// Set whether the value is being edited. This hides the value display and shows a text editor
     /// field to enter a new value.
-    pub fn set_edit_mode(&self, (editing, precision): &(bool, f32)) {
+    pub fn set_edit_mode(&self, (editing, _precision): &(bool, f32)) {
         if *editing {
-            self.root.remove_child(&self.value_text_left);
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
+            self.root.remove_child(&self.value);
             self.root.add_child(&self.value_text_edit);
             self.value_text_edit.deprecated_focus();
             self.value_text_edit.add_cursor_at_front();
             self.value_text_edit.cursor_select_to_text_end();
         } else {
-            self.root.add_child(&self.value_text_left);
-            if *precision < 1.0 {
-                self.root.add_child(&self.value_text_dot);
-                self.root.add_child(&self.value_text_right);
-            }
+            self.root.add_child(&self.value);
+            // if *precision < 1.0 {
+            //     self.root.add_child(&self.value_text_dot);
+            //     self.root.add_child(&self.value_text_right);
+            // }
             self.root.remove_child(&self.value_text_edit);
             self.value_text_edit.deprecated_defocus();
             self.value_text_edit.remove_all_cursors();
@@ -431,11 +367,11 @@ impl Model {
     /// Set whether the value display decimal point and the text right of it are visible.
     pub fn set_value_text_right_visible(&self, enabled: bool) {
         if enabled {
-            self.root.add_child(&self.value_text_dot);
-            self.root.add_child(&self.value_text_right);
+            self.value.add_child(&self.value_text_dot);
+            self.value.add_child(&self.value_text_right);
         } else {
-            self.root.remove_child(&self.value_text_dot);
-            self.root.remove_child(&self.value_text_right);
+            self.value.remove_child(&self.value_text_dot);
+            self.value.remove_child(&self.value_text_right);
         }
     }
 

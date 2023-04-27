@@ -1,4 +1,11 @@
 //! A slider UI component that allows adjusting a value through mouse interaction.
+//!
+//! # Important [WD]
+//! Please note that the implementation is not finished yet. It was refactored to make the slider
+//! implementation use the newest EnsoGL API, however, not all functionality was restored yet. As
+//! this component is not used in the application yet, it is kept as is, but should be updated
+//! before the real usage. In particualar, vertical sliders and sliders that behave as scrollbars
+//! are not working correctly now.
 
 #![recursion_limit = "512"]
 // === Standard Linter Configuration ===
@@ -46,30 +53,30 @@ pub mod model;
 // === Constants ===
 // =================
 
-/// Default slider precision when slider dragging is initiated. The precision indicates both how
+/// Default slider resolution when slider dragging is initiated. The resolution indicates both how
 /// much the value is changed per pixel dragged and how many digits are displayed after the decimal.
-const PRECISION_DEFAULT: f32 = 1.0;
+const RESOLUTION_DEFAULT: f32 = 1.0;
 /// Default upper limit of the slider value.
 const MAX_VALUE_DEFAULT: f32 = 100.0;
 /// Default for the maximum number of digits after the decimal point that is displayed.
 const MAX_DISP_DECIMAL_PLACES_DEFAULT: usize = 8;
 /// Margin above/below the component within which vertical mouse movement will not affect slider
-/// precision.
+/// resolution.
 const PRECISION_ADJUSTMENT_MARGIN: f32 = 10.0;
-/// The vertical mouse movement (in pixels) needed to change the slider precision by one step.
-/// Dragging the mouse upward beyond the margin will decrease the precision by one step for every
+/// The vertical mouse movement (in pixels) needed to change the slider resolution by one step.
+/// Dragging the mouse upward beyond the margin will decrease the resolution by one step for every
 /// `STEP_SIZE` pixels and adjust the slider value more quickly. Dragging the mouse downwards will
-/// increase the precision and change the value more slowly.
+/// increase the resolution and change the value more slowly.
 const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
-/// The actual slider precision changes exponentially with each adjustment step. When the adjustment
-/// is changed by one step, the slider's precision is changed to the next power of `STEP_BASE`. A
-/// `STEP_BASE` of 10.0 results in the precision being powers of 10 for consecutive steps, e.g [1.0,
-/// 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the
-/// precision.
+/// The actual slider resolution changes exponentially with each adjustment step. When the
+/// adjustment is changed by one step, the slider's resolution is changed to the next power of
+/// `STEP_BASE`. A `STEP_BASE` of 10.0 results in the resolution being powers of 10 for consecutive
+/// steps, e.g [1.0, 10.0, 100.0, ...] when decreasing the resolution and [0.1, 0.01, 0.001, ...]
+/// when increasing the resolution.
 const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
-/// Limit the number of precision steps to prevent overflow or rounding to zero of the precision.
+/// Limit the number of resolution steps to prevent overflow or rounding to zero of the resolution.
 const MAX_PRECISION_ADJUSTMENT_STEPS: usize = 8;
-/// A pop-up is displayed whenever the slider's precision is changed. This is the duration for
+/// A pop-up is displayed whenever the slider's resolution is changed. This is the duration for
 /// which the pop-up is visible.
 const PRECISION_ADJUSTMENT_POPUP_DURATION: f32 = 1000.0;
 /// The delay before an information tooltip is displayed when hovering over a slider component.
@@ -100,37 +107,20 @@ pub enum LabelPosition {
 
 
 
-// ==========================
-// === Slider orientation ===
-// ==========================
+// ==================
+// === DragHandle ===
+// ==================
 
-// /// The orientation of the slider component.
-// #[derive(Clone, Copy, Debug, Default)]
-// pub enum Axis2 {
-//     #[default]
-//     /// The slider value is changed by dragging the slider horizontally.
-//     Horizontal,
-//     /// The slider value is changed by dragging the slider vertically.
-//     Vertical,
-// }
-
-
-
-// =================================
-// === Slider position indicator ===
-// =================================
-
-/// The type of element that indicates the slider's value along its length.
-#[derive(Clone, Copy, Debug, Default)]
-pub enum Kind {
+/// Defines which part of the slider is being dragged by the user. In case the slider allows
+/// dragging both of its ends and the middle of the track, this struct determines which part is
+/// being dragged.
+#[allow(missing_docs)]
+#[derive(Debug, Copy, Clone, Default)]
+pub enum DragHandle {
+    Start,
+    Middle,
     #[default]
-    /// A track is a bar that fills the slider as the value increases. The track is empty when the
-    /// slider's value is at the lower limit and filled when the value is at the upper limit.
-    SingleValue,
-    /// A thumb is a small element that moves across the slider as the value changes. The thumb is
-    /// on the left/lower end of the slider when the slider's value is at the lower limit and on
-    /// the right/upper end of the slider when the value is at the upper limit.
-    Scrollbar(f32),
+    End,
 }
 
 
@@ -225,16 +215,16 @@ fn value_limit_clamp(
 
 ensogl_core::define_endpoints_2! {
     Input {
-        // /// Set the width of the slider component.
-        // set_width(f32),
-        // /// Set the height of the slider component.
-        // set_height(f32),
-        /// Set the type of the slider's value indicator.
-        kind(Kind),
         /// Set the color of the slider's value indicator.
         set_value_indicator_color(color::Lcha),
         /// Set the color of the slider's background.
         set_background_color(color::Lcha),
+        /// Allow dragging the start point of sliders track.
+        enable_start_track_drag(bool),
+        /// Allow dragging the end point of sliders track.
+        enable_end_track_drag(bool),
+        /// Allow dragging the sliders track by pressing in the middle of it.
+        enable_middle_track_drag(bool),
         /// Set the slider value.
         set_value(f32),
         /// Set the default value to reset a slider to when `ctrl` + `click`-ed.
@@ -249,22 +239,22 @@ ensogl_core::define_endpoints_2! {
         set_value_text_color(color::Lcha),
         /// Set whether the slider's value text is hidden.
         show_value(bool),
-        /// Set the default precision at which the slider operates. The slider's precision
+        /// Set the default resolution at which the slider operates. The slider's resolution
         /// determines by what increment the value will be changed on mouse movement. It also
         /// affects the number of digits after the decimal point displayed.
-        set_default_precision(f32),
-        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
+        set_default_resolution(f32),
+        /// The slider's resolution can be adjusted by dragging the mouse in the vertical direction.
         /// The `adjustment_margin` defines a margin above/below the slider within which no
-        /// precision adjustment will be performed.
+        /// resolution adjustment will be performed.
         set_precision_adjustment_margin(f32),
-        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
+        /// The slider's resolution can be adjusted by dragging the mouse in the vertical direction.
         /// The `adjustment_step_size` defines the distance the mouse must be moved to increase or
-        /// decrease the precision by one step.
+        /// decrease the resolution by one step.
         set_precision_adjustment_step_size(f32),
-        /// Set the maximum number of precision steps to prevent overflow or rounding to zero of the
-        /// precision increments.
+        /// Set the maximum number of resolution steps to prevent overflow or rounding to zero of the
+        /// resolution increments.
         set_max_precision_adjustment_steps(usize),
-        /// Set whether the precision adjustment mechansim is disabled.
+        /// Set whether the resolution adjustment mechansim is disabled.
         set_precision_adjustment_disabled(bool),
         /// Set the slider's label. The label will be displayed to the left of the slider's value
         /// display.
@@ -281,7 +271,7 @@ ensogl_core::define_endpoints_2! {
         set_tooltip(ImString),
         /// Set the delay of the tooltip showing after the mouse hovers over the component.
         set_tooltip_delay(f32),
-        /// A pop-up is displayed whenever the slider's precision is changed. This is the duration
+        /// A pop-up is displayed whenever the slider's resolution is changed. This is the duration
         /// for which the pop-up is visible.
         set_precision_popup_duration(f32),
         /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed
@@ -308,10 +298,12 @@ ensogl_core::define_endpoints_2! {
         width(f32),
         /// The component's height.
         height(f32),
-        /// The slider's value.
-        value(f32),
-        /// The slider's precision.
-        precision(f32),
+        /// The slider track's start position.
+        start_value(f32),
+        /// The slider track's end position.
+        end_value(f32),
+        /// The slider's resolution.
+        resolution(f32),
         /// The slider value's lower limit. This takes into account limit extension if an adaptive
         /// slider limit is set.
         min_value(f32),
@@ -319,15 +311,11 @@ ensogl_core::define_endpoints_2! {
         /// slider limit is set.
         max_value(f32),
         /// Indicates whether the mouse is currently hovered over the component.
-        hovered(bool),
-        /// Indicates whether the slider is currently being dragged.
         dragged(bool),
         /// Indicates whether the slider is disabled.
         disabled(bool),
         /// Indicates whether the slider's value is being edited currently.
         editing(bool),
-        // /// The orientation of the slider, either horizontal or vertical.
-        // orientation(Axis2),
     }
 }
 
@@ -341,9 +329,9 @@ ensogl_core::define_endpoints_2! {
 /// slider in a horizontal direction changes the value, limited to a range between `min_value` and
 /// `max_value`. The selected value is displayed, and a track fills the slider proportional to the
 /// value within the specified range. Dragging the slider in a vertical direction adjusts the
-/// precision of the slider. The precision affects the increments by which the value changes when
+/// resolution of the slider. The resolution affects the increments by which the value changes when
 /// the mouse is moved.
-#[derive(Debug, Deref, Clone)]
+#[derive(Debug, Deref, Clone, CloneRef)]
 pub struct Slider {
     /// Public FRP api of the component.
     #[deref]
@@ -391,18 +379,21 @@ impl Slider {
 
         let ptr_down_any = model.background.on_event::<mouse::Down>();
         let ptr_up_any = scene.on_event::<mouse::Up>();
-        let ptr_out = model.background.on_event::<mouse::Out>();
-        let ptr_over = model.background.on_event::<mouse::Over>();
-
         let obj = model.display_object();
 
         frp::extend! { network
             ptr_down <- ptr_down_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
             ptr_up <- ptr_up_any.map(|e| e.button() == mouse::PrimaryButton).on_true();
             pos <- mouse.position.map(
-                f!([scene, model] (p) scene.screen_to_object_space(&model.background, *p))
+                f!([scene, model] (p) scene.screen_to_object_space(model.display_object(), *p))
             );
-            value_on_ptr_down <- output.value.sample(&ptr_down);
+
+            orientation_orth <- frp.orientation.map(|o| o.orthogonal());
+            length <- all_with(&obj.on_resized, &frp.orientation, |size, dim| size.get_dim(dim));
+            width <- all_with(&obj.on_resized, &orientation_orth, |size, dim| size.get_dim(dim));
+
+            start_value_on_ptr_down <- output.start_value.sample(&ptr_down);
+            end_value_on_ptr_down <- output.end_value.sample(&ptr_down);
 
             ptr_down <- ptr_down.gate_not(&frp.set_slider_disabled);
             ptr_down <- ptr_down.gate_not(&output.editing);
@@ -410,35 +401,65 @@ impl Slider {
             on_editing <- output.editing.on_true();
             on_drag_start <- ptr_down.gate_not(&keyboard.is_control_down);
             on_drag_stop <- any3(&ptr_up, &on_disabled, &on_editing);
-            dragging <- bool(&on_drag_stop, &on_drag_start);
+            output.dragged <+ bool(&on_drag_stop, &on_drag_start);
             drag_start <- pos.sample(&on_drag_start);
-            drag_end <- pos.gate(&dragging).any2(&drag_start);
+            drag_end <- pos.gate(&output.dragged).any2(&drag_start);
             drag_delta <- all2(&drag_end, &drag_start).map(|(end, start)| end - start);
             drag_delta1 <- all_with(&drag_delta, &frp.orientation, |t, d| t.get_dim(d)).on_change();
-            orientation_orth <- frp.orientation.map(|o| o.orthogonal());
             prec_delta <- all_with(&drag_end, &orientation_orth, |t, d| t.get_dim(d)).on_change();
 
-            output.hovered <+ bool(&ptr_out, &ptr_over);
-            output.dragged <+ dragging;
+            handle <- drag_start.map9(
+                &length,
+                &start_value_on_ptr_down,
+                &end_value_on_ptr_down,
+                &output.min_value,
+                &output.max_value,
+                &frp.enable_start_track_drag,
+                &frp.enable_middle_track_drag,
+                &frp.enable_end_track_drag,
+                |pos, length, start, end, min, max, enable_start, enable_middle, enable_end| {
+                    match (enable_start, enable_middle, enable_end) {
+                        (false, false, false) => None,
+                        (true, false, false) => Some(DragHandle::Start),
+                        (false, true, false) => Some(DragHandle::Middle),
+                        (false, false, true) => Some(DragHandle::End),
+                        (true, true, false) => {
+                            let val_range = max - min;
+                            let start_pos = start / val_range * length;
+                            if pos.x < start_pos { Some(DragHandle::Start) }
+                            else { Some(DragHandle::Middle) }
+                        }
+                        (true, false, true) => {
+                            let val_range = max - min;
+                            let mid_pos = (start + end) / 2.0 / val_range * length;
+                            if pos.x < mid_pos { Some(DragHandle::Start) }
+                            else { Some(DragHandle::End) }
+                        }
+                        (false, true, true) => {
+                            let val_range = max - min;
+                            let end_pos = end / val_range * length;
+                            if pos.x < end_pos { Some(DragHandle::Middle) }
+                            else { Some(DragHandle::End) }
+                        }
+                        (true, true, true) => {
+                            let val_range = max - min;
+                            let start_pos = start / val_range * length;
+                            let end_pos = end / val_range * length;
+                            if pos.x < start_pos { Some(DragHandle::Start) }
+                            else if pos.x > end_pos { Some(DragHandle::End) }
+                            else { Some(DragHandle::Middle) }
+                        }
+                    }
+                }
+            );
 
 
             // === Precision calculation ===
 
-            length <- all_with(&obj.on_resized, &frp.orientation, |size, dim| size.get_dim(dim));
-            width <- all_with(&obj.on_resized, &orientation_orth, |size, dim| size.get_dim(dim));
-
-            empty_space <- all_with3(&length, &frp.kind, &frp.set_thumb_size,
-                |length, indicator, _thumb_size|
-                match indicator {
-                    Kind::Scrollbar(thumb_size) => length * (1.0 - thumb_size),
-                    Kind::SingleValue => *length,
-                }
+            native_resolution <- all_with3(&length, &output.max_value, &output.min_value,
+                |len, max, min| (max - min) / len
             );
-
-            slider_range <- all_with(&output.max_value, &output.min_value, |max, min| *max - *min);
-            native_precision <- all2(&empty_space, &slider_range).map(|(l, r)| r / l);
-
-            non_native_precision <- all_with5(
+            non_native_resolution <- all_with5(
                 &width,
                 &frp.set_precision_adjustment_margin,
                 &prec_delta,
@@ -451,39 +472,57 @@ impl Slider {
                     let level = min(*max_steps as i32, (offset / step_size).ceil() as i32) * sign;
                     (level != 0).as_some_from(|| {
                         let exp = if level > 0 { level - 1 } else { level };
-                        let precision = 10.0_f32.powf(exp as f32);
-                        precision
+                        10.0_f32.powf(exp as f32)
                     })
                 }
             ).on_change();
-            precision <- all_with(&non_native_precision, &native_precision, |t,s| t.unwrap_or(*s));
-            output.precision <+ precision;
+            resolution <- all_with(&non_native_resolution, &native_resolution, |t,s| t.unwrap_or(*s));
+            output.resolution <+ resolution;
 
 
             // === Value calculation ===
 
-            value <- drag_delta1.map3(&value_on_ptr_down, &precision,
-                |delta, value, precision| value + delta * precision);
-            value <- any2(&frp.set_value, &value);
-            value <- all5(
-                &value,
-                &frp.set_min_value,
-                &frp.set_max_value,
-                &frp.set_lower_limit_type,
-                &frp.set_upper_limit_type,
-            ).map(value_limit_clamp);
-            output.value <+ value;
+            values <- drag_delta1.map5(
+                &handle,
+                &start_value_on_ptr_down,
+                &end_value_on_ptr_down,
+                &resolution,
+                |delta, handle, start_value, end_value, resolution| {
+                    let diff = delta * resolution;
+                    if let Some(handle) = handle {
+                        match handle {
+                            DragHandle::Start => (Some(start_value + diff), None),
+                            DragHandle::End => (None, Some(end_value + diff)),
+                            DragHandle::Middle => (Some(start_value + diff), Some(end_value + diff))
+                        }
+                    } else {
+                        (None, None)
+                    }
+            });
+            start_value <= values._0();
+            end_value <= values._1();
+            value <- any2(&frp.set_value, &end_value);
+            // value <- all5(
+            //     &value,
+            //     &frp.set_min_value,
+            //     &frp.set_max_value,
+            //     &frp.set_lower_limit_type,
+            //     &frp.set_upper_limit_type,
+            // ).map(value_limit_clamp);
+            output.start_value <+ start_value;
+            output.end_value <+ value;
 
 
             // === Value Reset ===
 
             reset_value <- ptr_down.gate(&keyboard.is_control_down);
             value_on_reset <- input.set_default_value.sample(&reset_value);
-            output.value <+ value_on_reset;
+            output.end_value <+ value_on_reset;
 
 
             // === Value Animation ===
-            model.value_animation.target <+ output.value;
+            model.start_value_animation.target <+ output.start_value;
+            model.end_value_animation.target <+ output.end_value;
         };
     }
 
@@ -496,7 +535,7 @@ impl Slider {
 
         frp::extend! { network
             min_value <- all_with5(
-                &output.value,
+                &output.end_value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.min_value,
@@ -506,7 +545,7 @@ impl Slider {
             output.min_value <+ min_value;
 
             max_value <- all_with5(
-                &output.value,
+                &output.end_value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.max_value,
@@ -515,8 +554,8 @@ impl Slider {
             ).on_change();
             output.max_value <+ max_value;
 
-            overflow_lower <- all_with(&output.value, &min_value, |v, min| v < min).on_change();
-            overflow_upper <- all_with(&output.value, &max_value, |v, max| v > max).on_change();
+            overflow_lower <- all_with(&output.end_value, &min_value, |v, min| v < min).on_change();
+            overflow_upper <- all_with(&output.end_value, &max_value, |v, max| v > max).on_change();
             eval overflow_lower((v) model.set_overflow_lower_visible(*v));
             eval overflow_upper((v) model.set_overflow_upper_visible(*v));
         };
@@ -533,15 +572,15 @@ impl Slider {
         frp::extend! { network
             eval input.show_value((v) model.show_value(*v));
 
-            value <- output.value.sampled_gate(&input.show_value);
+            value <- output.end_value.sampled_gate(&input.show_value);
             default_value <- input.set_default_value.sampled_gate(&input.show_value);
             is_default <- all_with(&value, &default_value, |val, def| val == def);
             text_weight <- switch_constant(&is_default, Weight::Bold, Weight::Normal);
             eval text_weight ((v) model.set_value_text_property(*v));
 
-            precision <- output.precision.sampled_gate(&input.show_value);
+            resolution <- output.resolution.sampled_gate(&input.show_value);
             max_decimal_places <- input.set_max_disp_decimal_places.sampled_gate(&input.show_value);
-            text <- all_with3(&value, &precision, &max_decimal_places, display_value);
+            text <- all_with3(&value, &resolution, &max_decimal_places, display_value);
             text_left <- text._0();
             text_right <- text._1();
             model.value_text_left.set_content <+ text_left;
@@ -552,7 +591,7 @@ impl Slider {
         };
     }
 
-    /// Initialize the precision pop-up FRP network.
+    /// Initialize the resolution pop-up FRP network.
     fn init_precision_popup(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
@@ -567,16 +606,16 @@ impl Slider {
                 &component_events.mouse_release_primary,
                 &component_events.mouse_down_primary
             );
-            precision <- output.precision.on_change().gate(&component_drag);
-            model.tooltip.frp.set_style <+ precision.map(|precision| {
+            resolution <- output.resolution.on_change().gate(&component_drag);
+            model.tooltip.frp.set_style <+ resolution.map(|resolution| {
                 let prec_text = format!(
-                    "Precision: {precision:.MAX_DISP_DECIMAL_PLACES_DEFAULT$}",
+                    "Precision: {resolution:.MAX_DISP_DECIMAL_PLACES_DEFAULT$}",
                 );
                 let prec_text = prec_text.trim_end_matches('0');
                 let prec_text = prec_text.trim_end_matches('.');
                 tooltip::Style::set_label(prec_text.into())
             });
-            precision_changed <- precision.constant(());
+            precision_changed <- resolution.constant(());
             popup_anim.reset <+ precision_changed;
             popup_anim.start <+ precision_changed;
             popup_hide <- any2(&popup_anim.on_end, &component_events.mouse_release_primary);
@@ -629,25 +668,28 @@ impl Slider {
         let obj = model.display_object();
 
         frp::extend! { network
-            // comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
             eval obj.on_resized((size) model.update_size(*size));
-            eval input.kind((i) model.kind(i));
-            // output.width <+ input.set_width;
-            // output.height <+ input.set_height;
             min_limit_anim.target <+ output.min_value;
             max_limit_anim.target <+ output.max_value;
-            indicator_pos <- all3(&model.value_animation.value, &min_limit_anim.value, &max_limit_anim.value);
-            indicator_pos <- indicator_pos.map(|(value, min, max)| (value - min) / (max - min));
-            indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.orientation);
-            eval indicator_pos((v) model.set_indicator_position(v));
+            indicator_pos <- all_with4(
+                &model.start_value_animation.value,
+                &model.end_value_animation.value,
+                &min_limit_anim.value,
+                &max_limit_anim.value,
+                |start_value, end_value, min, max| {
+                    let total = max - min;
+                    ((start_value - min) / total, (end_value - min) / total)
+            });
+            _eval <- all_with(&indicator_pos, &input.orientation,
+                f!((a, c) model.set_indicator_position(a.0, a.1, *c)));
 
             value_text_left_pos_x <- all3(
                 &model.value_text_left.width,
                 &model.value_text_dot.width,
-                &output.precision,
+                &output.resolution,
             );
             value_text_left_pos_x <- value_text_left_pos_x.map(
-                // Center text if precision higher than 1.0 (integer display), else align to dot.
+                // Center text if resolution higher than 1.0 (integer display), else align to dot.
                 |(left, dot, prec)| if *prec >= 1.0 {- *left / 2.0} else {- *left - *dot / 2.0}
             );
             eval value_text_left_pos_x((x) model.value_text_left.set_x(*x));
@@ -725,8 +767,8 @@ impl Slider {
         frp::extend! { network
             start_editing <- input.start_value_editing.gate_not(&output.disabled);
             start_editing <- start_editing.gate(&input.show_value);
-            value_on_edit <- output.value.sample(&start_editing);
-            prec_on_edit <- output.precision.sample(&start_editing);
+            value_on_edit <- output.end_value.sample(&start_editing);
+            prec_on_edit <- output.resolution.sample(&start_editing);
             max_places_on_edit <-
                 input.set_max_disp_decimal_places.sample(&start_editing);
             value_text_on_edit <- all3(&value_on_edit, &prec_on_edit, &max_places_on_edit);
@@ -742,7 +784,7 @@ impl Slider {
             edit_success <- value_after_edit.map(|v| v.is_some());
             value_after_edit <- value_after_edit.map(|v| v.unwrap_or_default());
             prec_after_edit <- value_text_after_edit.map(|s| get_value_text_precision(s));
-            prec_after_edit <- all2(&prec_after_edit, &input.set_default_precision);
+            prec_after_edit <- all2(&prec_after_edit, &input.set_default_resolution);
             prec_after_edit <- prec_after_edit.map(|(prec, default_prec)| prec.min(*default_prec));
             value_after_edit <- all5(
                 &value_after_edit,
@@ -753,19 +795,19 @@ impl Slider {
             ).map(value_limit_clamp);
 
             output.editing <+ editing;
-            output.precision <+ prec_after_edit.gate(&edit_success);
+            output.resolution <+ prec_after_edit.gate(&edit_success);
             value_after_edit <- value_after_edit.gate(&edit_success);
-            output.value <+ value_after_edit;
-            model.value_animation.target <+ value_after_edit;
+            output.end_value <+ value_after_edit;
+            model.end_value_animation.target <+ value_after_edit;
             editing_event <- any2(&start_editing, &stop_editing);
-            editing <- all2(&editing, &output.precision).sample(&editing_event);
+            editing <- all2(&editing, &output.resolution).sample(&editing_event);
             eval editing((t) model.set_edit_mode(t));
         };
     }
 
     /// Initialize the compinent with default values.
     fn init_slider_defaults(&self) {
-        self.frp.set_default_precision(PRECISION_DEFAULT);
+        self.frp.set_default_resolution(RESOLUTION_DEFAULT);
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
         self.frp.set_max_precision_adjustment_steps(MAX_PRECISION_ADJUSTMENT_STEPS);
@@ -776,6 +818,9 @@ impl Slider {
         self.frp.set_thumb_size(THUMB_SIZE_DEFAULT);
         self.show_value(true);
         self.orientation(Axis2::X);
+        self.enable_start_track_drag(true);
+        self.enable_end_track_drag(true);
+        self.enable_middle_track_drag(true);
     }
 }
 
@@ -832,10 +877,10 @@ impl application::View for Slider {
 // === Value text formatting ===
 // =============================
 
-/// Rounds and truncates a floating point value to a specified precision.
-fn value_text_truncate((value, precision, max_digits): &(f32, f32, usize)) -> String {
-    if *precision < 1.0 || *max_digits == 0 {
-        let digits = (-precision.log10()).ceil() as usize;
+/// Rounds and truncates a floating point value to a specified resolution.
+fn value_text_truncate((value, resolution, max_digits): &(f32, f32, usize)) -> String {
+    if *resolution < 1.0 || *max_digits == 0 {
+        let digits = (-resolution.log10()).ceil() as usize;
         let digits = digits.min(*max_digits);
         format!("{value:.digits$}")
     } else {
@@ -843,17 +888,21 @@ fn value_text_truncate((value, precision, max_digits): &(f32, f32, usize)) -> St
     }
 }
 
-/// Rounds a floating point value to a specified precision and provides two strings: one with the
+/// Rounds a floating point value to a specified resolution and provides two strings: one with the
 /// digits left of the decimal point, and one optional with the digits right of the decimal point.
-fn display_value(value: &f32, precision: &f32, max_digits: &usize) -> (ImString, Option<ImString>) {
-    let text = value_text_truncate(&(*value, *precision, *max_digits));
+fn display_value(
+    value: &f32,
+    resolution: &f32,
+    max_digits: &usize,
+) -> (ImString, Option<ImString>) {
+    let text = value_text_truncate(&(*value, *resolution, *max_digits));
     let mut text_iter = text.split('.');
     let text_left = text_iter.next().map(|s| s.to_im_string()).unwrap_or_default();
     let text_right = text_iter.next().map(|s| s.to_im_string());
     (text_left, text_right)
 }
 
-/// Get the precision of a string containing a decimal value.
+/// Get the resolution of a string containing a decimal value.
 fn get_value_text_precision(text: &str) -> f32 {
     let mut text_iter = text.split('.').skip(1);
     let text_right_len = text_iter.next().map(|t| t.len());
