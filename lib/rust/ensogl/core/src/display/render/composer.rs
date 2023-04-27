@@ -51,12 +51,28 @@ impl {
         self.init_passes();
     }
 
-    /// Resize the composer and reinitialize all of its layers.
+    /// Resize the composer and reinitialize all of its screen-size-dependent layers.
     pub fn resize(&mut self, width: i32, height: i32, pixel_ratio: f32) {
+        if width == self.width && height == self.height && pixel_ratio == self.pixel_ratio {
+            // Some resize events are spurious; it is not necessary to reinitialize the passes if
+            // the size hasn't actually changed.
+            return;
+        }
         self.width = width;
         self.height = height;
         self.pixel_ratio = pixel_ratio;
-        self.init_passes();
+        let ctx = &self.context;
+        let vars = &self.variables;
+        let defs = self.pipeline.passes_clone();
+        let old_passes = self.passes.drain(..);
+        let passes = defs.into_iter().zip(old_passes).map(|(def, pass)| {
+            if def.is_screen_size_independent() {
+                pass
+            } else {
+                ComposerPass::new(ctx, vars, def, width, height, pixel_ratio)
+            }
+        }).collect_vec();
+        self.passes = passes;
     }
 
     /// Initialize all pass definitions from the [`Pipeline`].

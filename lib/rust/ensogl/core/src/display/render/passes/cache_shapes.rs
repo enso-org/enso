@@ -115,6 +115,10 @@ impl pass::Definition for CacheShapesPass {
             }
         }
     }
+
+    fn is_screen_size_independent(&self) -> bool {
+        true
+    }
 }
 
 fn with_display_mode<R>(mode: DisplayModes, f: impl FnOnce() -> R) -> R {
