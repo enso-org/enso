@@ -1,4 +1,5 @@
 import project.Data.Numbers.Number
+import project.Data.Text.Text
 
 from project.Data.Boolean import Boolean, False
 
@@ -136,3 +137,15 @@ type Interval
              example_not_empty = Interval.inclusive 0 0.001 . not_empty
     not_empty : Boolean
     not_empty self = self.is_empty.not
+
+    ## PRIVATE
+       Convert to a display representation of this Interval.
+    to_display_text : Text
+    to_display_text self =
+        prefix = case self.start of
+            Bound.Exclusive s -> "(" + s.to_display_text + ", "
+            Bound.Inclusive s -> "[" + s.to_display_text + ", "
+        suffix = case self.end of
+            Bound.Exclusive e -> e.to_display_text + ")"
+            Bound.Inclusive e -> e.to_display_text + "]"
+        prefix + suffix

@@ -37,12 +37,13 @@ pub enum State {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct SomeEvent {
-    pub data:     frp::AnyData,
-    state:        Rc<Cell<State>>,
+    pub data:       frp::AnyData,
+    state:          Rc<Cell<State>>,
+    current_target: Rc<RefCell<Option<WeakInstance>>>,
     /// Indicates whether the event participates in the capturing phase.
-    pub captures: Rc<Cell<bool>>,
+    pub captures:   Rc<Cell<bool>>,
     /// Indicates whether the event participates in the bubbling phase.
-    pub bubbles:  Rc<Cell<bool>>,
+    pub bubbles:    Rc<Cell<bool>>,
 }
 
 impl SomeEvent {
@@ -50,9 +51,10 @@ impl SomeEvent {
     pub fn new<T: 'static>(target: Option<WeakInstance>, payload: T) -> Self {
         let event = Event::new(target, payload);
         let state = event.state.clone_ref();
+        let current_target = event.current_target.clone_ref();
         let captures = Rc::new(Cell::new(true));
         let bubbles = Rc::new(Cell::new(true));
-        Self { data: frp::AnyData::new(event), state, captures, bubbles }
+        Self { data: frp::AnyData::new(event), state, current_target, captures, bubbles }
     }
 
     /// The [`State]` of the event.
@@ -68,6 +70,12 @@ impl SomeEvent {
     /// Enables or disables bubbling for this event.
     pub fn set_bubbling(&self, value: bool) {
         self.bubbles.set(value);
+    }
+
+    /// Set the current target of the event. This is internal function and should not be used
+    /// directly.
+    pub(crate) fn set_current_target(&self, target: Option<&Instance>) {
+        self.current_target.replace(target.map(|t| t.downgrade()));
     }
 }
 
@@ -113,9 +121,10 @@ impl<T: Debug> Debug for Event<T> {
 #[derivative(Default(bound = "T: Default"))]
 pub struct EventData<T> {
     #[deref]
-    pub payload: T,
-    target:      Option<WeakInstance>,
-    state:       Rc<Cell<State>>,
+    pub payload:    T,
+    target:         Option<WeakInstance>,
+    current_target: Rc<RefCell<Option<WeakInstance>>>,
+    state:          Rc<Cell<State>>,
 }
 
 impl<T: Debug> Debug for EventData<T> {
@@ -130,7 +139,8 @@ impl<T: Debug> Debug for EventData<T> {
 impl<T> Event<T> {
     fn new(target: Option<WeakInstance>, payload: T) -> Self {
         let state = default();
-        let data = Rc::new(EventData { payload, target, state });
+        let current_target = Rc::new(RefCell::new(target.clone()));
+        let data = Rc::new(EventData { payload, target, current_target, state });
         Self { data }
     }
 
@@ -151,6 +161,18 @@ impl<T> Event<T> {
     /// See: https://developer.mozilla.org/en-US/docs/Web/API/Event/target.
     pub fn target(&self) -> Option<Instance> {
         self.data.target.as_ref().and_then(|t| t.upgrade())
+    }
+
+    /// The current target for the event, as the event traverses the display object hierarchy. It
+    /// always refers to the element to which the event handler has been attached, as opposed to
+    /// [`Self::target`], which identifies the element on which the event occurred and which may be
+    /// its descendant.
+    ///
+    /// # Important Note
+    /// The value of [`Self::current_target`] is only available while the event is being handled. If
+    /// store the event in a variable and read this property later, the value will be [`None`].
+    pub fn current_target(&self) -> Option<Instance> {
+        self.data.current_target.borrow().as_ref().and_then(|t| t.upgrade())
     }
 }
 

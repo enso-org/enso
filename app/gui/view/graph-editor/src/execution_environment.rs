@@ -33,7 +33,10 @@ pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
 
         out.execution_environment <+ selector.selected_execution_environment.on_change();
         out.execution_environment_play_button_pressed <+ selector.play_press;
+        frp.set_read_only <+ selector.play_press.constant(true);
 
+        // === Play Button ===
+        selector.reset_play_button_state <+ frp.execution_finished;
 
         // === Layout ===
 

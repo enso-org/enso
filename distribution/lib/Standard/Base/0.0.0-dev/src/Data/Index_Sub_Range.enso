@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Range.Extensions
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
@@ -54,6 +55,17 @@ type Index_Sub_Range
        - first: The first entry to include. If it is outside of bounds of the
          input, an error is raised.
     Every (step:Integer) (first:Integer=0)
+
+    ## PRIVATE
+       Convert to a display representation of this Index_Sub_Range.
+    to_display_text : Text
+    to_display_text self = case self of
+        Index_Sub_Range.First count -> "First " + count.to_display_text
+        Index_Sub_Range.Last count -> "Last " + count.to_display_text
+        Index_Sub_Range.While f -> "While " + f.to_display_text
+        Index_Sub_Range.By_Index indexes -> "By_Index " + indexes.to_display_text
+        Index_Sub_Range.Sample count _ -> "Sample " + count.to_display_text
+        Index_Sub_Range.Every step first -> "Every " + step.to_display_text + (if first == 0 then "" else " from " + first.to_display_text)
 
 ## PRIVATE
    Resolves a vector of ranges or indices into a vector of ranges that fit

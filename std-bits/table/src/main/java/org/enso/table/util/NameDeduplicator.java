@@ -36,11 +36,11 @@ public class NameDeduplicator {
     return input;
   }
 
-  public List<String> makeUnique(List<String> names) {
+  public List<String> makeUniqueList(List<String> names) {
     return names.stream().map(this::makeUnique).collect(Collectors.toList());
   }
 
-  public String[] makeUnique(String[] names) {
+  public String[] makeUniqueArray(String[] names) {
     return Arrays.stream(names).map(this::makeUnique).toArray(String[]::new);
   }
 

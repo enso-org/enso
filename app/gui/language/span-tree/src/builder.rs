@@ -22,15 +22,23 @@ pub trait Builder<T: Payload>: Sized {
     /// Add new AST-type child to node. Returns the child's builder which may be used to further
     /// extend this branch of the tree.
     fn add_child(
-        self,
-        offset: usize,
+        mut self,
+        parent_offset: usize,
         len: usize,
         kind: impl Into<node::Kind>,
         crumbs: impl IntoCrumbs,
     ) -> ChildBuilder<Self, T> {
         let kind = kind.into();
         let node = Node::<T>::new().with_kind(kind).with_size(len.into());
-        let child = node::Child { node, offset: offset.into(), ast_crumbs: crumbs.into_crumbs() };
+        let prev_child = self.node_being_built().children.last();
+        let prev_child_end = prev_child.map_or(0, |c| (c.parent_offset + c.node.size).as_usize());
+        let sibling_offset = parent_offset.saturating_sub(prev_child_end);
+        let child = node::Child {
+            node,
+            parent_offset: parent_offset.into(),
+            sibling_offset: sibling_offset.into(),
+            ast_crumbs: crumbs.into_crumbs(),
+        };
         ChildBuilder { built: child, parent: self }
     }
 
@@ -46,14 +54,8 @@ pub trait Builder<T: Payload>: Sized {
     }
 
     /// Add an Empty-type child to node.
-    fn add_empty_child(mut self, offset: usize, kind: impl Into<node::Kind>) -> Self {
-        let child = node::Child {
-            node:       Node::<T>::new().with_kind(kind),
-            offset:     offset.into(),
-            ast_crumbs: vec![],
-        };
-        self.node_being_built().children.push(child);
-        self
+    fn add_empty_child(self, offset: usize, kind: impl Into<node::Kind>) -> Self {
+        self.add_leaf(offset, 0, kind, ast::crumbs![])
     }
 
     /// Set expression id for this node.
@@ -65,9 +67,9 @@ pub trait Builder<T: Payload>: Sized {
 
 
 
-/// ================
-/// === Builders ===
-/// ================
+// ================
+// === Builders ===
+// ================
 
 // === SpanTree Builder ===
 

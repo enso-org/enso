@@ -419,18 +419,18 @@ pub fn expression_mock_trim() -> Expression {
         tag_values: vec![
             TagValue {
                 required_import: None,
-                expression:      "Location.Start".into(),
-                label:           Some("Start".into()),
+                expression:      "Standard.Base.Data.Text.Location.Start".into(),
+                label:           Some("Location.Start".into()),
             },
             TagValue {
                 required_import: None,
-                expression:      "Location.End".into(),
-                label:           Some("End".into()),
+                expression:      "Standard.Base.Data.Text.Location.End".into(),
+                label:           Some("Location.End".into()),
             },
             TagValue {
                 required_import: None,
-                expression:      "Location.Both".into(),
-                label:           Some("Both".into()),
+                expression:      "Standard.Base.Data.Text.Location.Both".into(),
+                label:           Some("Location.Both".into()),
             },
         ],
         ..default()

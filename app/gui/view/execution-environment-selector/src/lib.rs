@@ -88,11 +88,12 @@ ensogl::define_endpoints_2! {
     Input {
         set_available_execution_environments      (ExecutionEnvironments),
         set_execution_environment                 (ExecutionEnvironment),
+        reset_play_button_state (),
     }
     Output {
         selected_execution_environment (ExecutionEnvironment),
         play_press(),
-        size                    (Vector2),
+        size(Vector2),
     }
 }
 
@@ -270,6 +271,7 @@ impl component::Frp<Model> for Frp {
                 model.set_play_button_visibility(play_button_visibility);
             });
             play_button.reset <+ selected_entry.constant(());
+            play_button.reset <+ input.reset_play_button_state;
 
             // == Outputs ==
 

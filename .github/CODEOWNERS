@@ -29,16 +29,16 @@ Cargo.toml
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
 /build.sbt @4e6 @jaroslavtulach @hubertp
-/distribution/ @4e6 @jdunkerley @radeusgd
+/distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis
 /engine/ @4e6 @jaroslavtulach @hubertp
 /project/ @4e6 @jaroslavtulach @hubertp
-/test/ @jdunkerley @radeusgd
+/test/ @jdunkerley @radeusgd @GregoryTravis
 /tools/ @4e6 @jaroslavtulach @radeusgd
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
-/distribution/lib/ @jdunkerley @radeusgd
-/std-bits/ @jdunkerley @radeusgd
+/distribution/lib/ @jdunkerley @radeusgd @GregoryTravis
+/std-bits/ @jdunkerley @radeusgd @GregoryTravis
 
 # Cloud Dashboard & Authentication
 /app/ide-desktop/lib/dashboard @PabloBuchu @indiv0 @somebody1234
