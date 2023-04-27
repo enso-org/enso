@@ -10,7 +10,6 @@ use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
 
 use breadcrumbs::Breadcrumbs;
-use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::import;
@@ -49,12 +48,6 @@ pub use action::Action;
 /// needed. Currently enabled to trigger engine's caching of user-added nodes.
 /// See: https://github.com/enso-org/ide/issues/1067
 pub const ASSIGN_NAMES_FOR_NODES: bool = true;
-
-/// The special module used for mock `Enso_Project.data` entry.
-/// See also [`Searcher::add_enso_project_entries`].
-const ENSO_PROJECT_SPECIAL_MODULE: &str =
-    concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
-
 
 
 // ==============
@@ -862,13 +855,7 @@ impl Searcher {
             })
             .flatten();
         let mut module = self.module();
-        // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
-        //     documentation.
-        let enso_project_special_import = suggestion_database::entry::Import::Qualified {
-            module: ENSO_PROJECT_SPECIAL_MODULE.try_into().unwrap(),
-        };
-        let without_enso_project = imports.filter(|i| *i != enso_project_special_import);
-        for entry_import in without_enso_project {
+        for entry_import in imports {
             let already_imported =
                 module.iter_imports().any(|existing| entry_import.covered_by(&existing));
             let import: import::Info = entry_import.into();
@@ -1314,13 +1301,6 @@ pub mod test {
     use json_rpc::expect_call;
     use parser::Parser;
     use std::assert_matches::assert_matches;
-
-
-    #[test]
-    fn enso_project_special_module_is_convertible_to_qualified_names() {
-        QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)
-            .expect("ENSO_PROJECT_SPECIAL_MODULE should be convertible to QualifiedName.");
-    }
 
     pub fn completion_response(results: &[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
