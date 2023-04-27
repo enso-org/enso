@@ -76,7 +76,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     react.useEffect(() => {
         async function checkProjectResources() {
             if (!('checkResources' in backend)) {
+                setState(cloudService.ProjectState.opened)
                 setIsCheckingResources(false)
+                setSpinnerState(SpinnerState.done)
             } else {
                 try {
                     // This call will error if the VM is not ready yet.
