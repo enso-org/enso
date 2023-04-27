@@ -24,11 +24,11 @@ pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
 
         selector.set_available_execution_environments <+ frp.set_available_execution_environments;
 
-        toggle_to_live <-
+        switch_to_live <-
             frp.switch_to_live_execution_environment.constant(ExecutionEnvironment::Live);
-        toggle_to_design <-
+        switch_to_design <-
             frp.switch_to_design_execution_environment.constant(ExecutionEnvironment::Design);
-        external_update <- any(toggle_to_live,toggle_to_design);
+        external_update <- any(switch_to_live,switch_to_design);
         selector.set_execution_environment <+ external_update;
 
         out.execution_environment <+ selector.selected_execution_environment.on_change();

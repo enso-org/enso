@@ -158,7 +158,8 @@ impl Model {
     }
 
     fn set_entries(&self, entries: Rc<Vec<ExecutionEnvironment>>) {
-        let labels = Rc::new(entries.iter().map(|e| e.to_string()).collect_vec());
+        let labels = entries.iter().map(|e| e.to_string().capitalize_first_letter()).collect_vec();
+        let labels = Rc::new(labels);
         let provider = ensogl_list_view::entry::AnyModelProvider::from(labels);
         self.dropdown.set_entries(provider);
         self.dropdown.set_selected(0);

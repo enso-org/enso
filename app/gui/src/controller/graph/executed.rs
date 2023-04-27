@@ -370,7 +370,7 @@ impl Handle {
     pub fn execution_environment(&self) -> ExecutionEnvironment {
         self.execution_ctx.execution_environment()
     }
-    
+
     /// Trigger a clean execution of the current graph with the "live" execution environment. That
     /// means old computations and caches will be discarded.
     pub async fn trigger_clean_live_execution(&self) -> FallibleResult {
