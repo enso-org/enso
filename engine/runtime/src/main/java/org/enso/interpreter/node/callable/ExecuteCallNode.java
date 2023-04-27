@@ -36,10 +36,7 @@ public abstract class ExecuteCallNode extends Node {
   }
 
   /**
-   * Calls the function directly.
-   *
-   * <p>This specialisation comes into play where the call target for the provided function is
-   * already cached. THis means that the call can be made quickly.
+   * Inlines the function if its root node implements {@link InlineableNode.Root}.
    *
    * @param frame current frame
    * @param function the function to execute
@@ -54,7 +51,7 @@ public abstract class ExecuteCallNode extends Node {
     "function.getCallTarget() == cachedTarget",
     "callNode != null"
   })
-  protected Object callDirect(
+  protected Object callInlineable(
       VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
@@ -66,6 +63,20 @@ public abstract class ExecuteCallNode extends Node {
     return callNode.call(frame, args);
   }
 
+  /**
+   * Calls the function directly.
+   *
+   * <p>This specialisation comes into play where the call target for the provided function is
+   * already cached. This means that the call can be made quickly.
+   *
+   * @param function the function to execute
+   * @param callerInfo the caller info to pass to the function
+   * @param state the current state value
+   * @param arguments the arguments passed to {@code function} in the expected positional order
+   * @param cachedTarget the cached call target for {@code function}
+   * @param callNode the cached call node for {@code cachedTarget}
+   * @return the result of executing {@code function} on {@code arguments}
+   */
   @Specialization(guards = {
     "function.getCallTarget() == cachedTarget",
   })
