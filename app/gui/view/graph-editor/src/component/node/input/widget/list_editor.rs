@@ -14,6 +14,7 @@ use crate::component::node::input::widget::TreeNode;
 use crate::component::node::input::widget::WidgetIdentity;
 use crate::component::node::input::widget::WidgetsFrp;
 
+use crate::component::node::input::area::TEXT_SIZE;
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::display;
@@ -137,14 +138,10 @@ impl Widget {
         frp::extend! { network
             // Inserting elements.
             inserted_by_user <- list.on_item_added.filter_map(|resp| resp.clone().gui_interaction_payload());
-            trace inserted_by_user;
             code_inserted_by_user <- inserted_by_user.filter_map(f!([list](index) list.items().get(*index).map(|e| e.code.clone_ref())));
-            trace code_inserted_by_user;
             requested_insert <- list.request_new_item.filter_map(|resp| resp.clone().gui_interaction_payload());
             default_code <- config_frp.elements_default_value.sample(&requested_insert);
-            trace default_code;
             code_to_insert <- any(code_inserted_by_user, default_code);
-            trace code_to_insert;
             insert <- any(inserted_by_user, requested_insert);
             insert_st_crumb <- insert.filter_map(f!((index) crumbs_to_insert.borrow().get(index).cloned()));
             widgets_frp.value_changed <+ insert_st_crumb.map2(&code_to_insert, |crumb, val| (crumb.clone(), Some(val.clone_ref())));
@@ -161,49 +158,27 @@ impl Widget {
         }
         self
     }
-}
 
-#[derive(Debug, Clone, PartialEq)]
-/// VectorEditor widget configuration options.
-pub struct Config {
-    /// Configuration of inner element widgets. If not present, the child widget types have to be
-    /// automatically inferred.
-    #[allow(dead_code)]
-    pub item_widget:  Option<Rc<Configuration>>,
-    /// Default expression to insert when adding new elements.
-    #[allow(dead_code)]
-    pub item_default: ImString,
-}
+    fn configure_insertion_point(&mut self, cfg: &Config, ctx: super::ConfigContext) {
+        self.config_frp.elements_default_value(format!("[{}]", cfg.item_default));
 
-impl super::SpanWidget for Widget {
-    type Config = Config;
+        *self.crumbs_to_insert.borrow_mut() =
+            [(0, ctx.span_node.crumbs.clone())].into_iter().collect();
+        self.crumbs_to_remove.borrow_mut().clear();
+        self.elements.clear();
+        self.list.replace_list(iter::empty());
 
-    fn root_object(&self) -> &display::object::Instance {
-        &self.display_object
+        let insertion_point = ctx.builder.child_widget_of_type(
+            ctx.span_node,
+            ctx.info.nesting_level,
+            Some(&super::Configuration::always(super::label::Config)),
+        );
+        self.display_object
+            .replace_children(&[self.list.display_object(), &insertion_point.root_object]);
+        self.insertion_point_append = Some(insertion_point.root_object);
     }
 
-    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
-        let display_object = display::object::Instance::new();
-        let list = ListEditor::new(&ctx.app().cursor);
-        display_object.use_auto_layout().set_alignment_left_center();
-        display_object.add_child(&list);
-
-        let widgets_frp = &ctx.builder.frp;
-        Self {
-            config_frp: Frp::new(),
-            display_object,
-            list,
-            insertion_point_append: None,
-            crumbs_to_insert: default(),
-            crumbs_to_remove: default(),
-            elements: default(),
-        }
-        .init_list_updates(ctx, widgets_frp)
-    }
-
-    fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
-        let current_value: Option<ImString> = Some(ctx.expression_at(ctx.span_node.span()).into());
-        self.config_frp.current_value(current_value);
+    fn configure_vector(&mut self, cfg: &Config, ctx: super::ConfigContext) {
         self.config_frp.elements_default_value(&cfg.item_default);
 
         let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
@@ -246,6 +221,7 @@ impl super::SpanWidget for Widget {
                         insertion_point_before.root_object,
                     ),
                 };
+                self.elements.insert(*element.widget_id, element.clone_ref());
                 element
             });
         self.list.replace_list(children);
@@ -278,6 +254,58 @@ impl super::SpanWidget for Widget {
             .map(|(index, node)| (index, node.crumbs.clone()))
             .collect();
         *self.crumbs_to_remove.borrow_mut() = crumbs_to_remove
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// VectorEditor widget configuration options.
+pub struct Config {
+    /// Configuration of inner element widgets. If not present, the child widget types have to be
+    /// automatically inferred.
+    #[allow(dead_code)]
+    pub item_widget:  Option<Rc<Configuration>>,
+    /// Default expression to insert when adding new elements.
+    #[allow(dead_code)]
+    pub item_default: ImString,
+}
+
+impl super::SpanWidget for Widget {
+    type Config = Config;
+
+    fn root_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
+
+    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
+        let display_object = display::object::Instance::new();
+        let list = ListEditor::new(&ctx.app().cursor);
+        // list.push(Element::new(default(), default(), default(), default()));
+        // list.replace_list(iter::empty());
+        list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
+        display_object.use_auto_layout().set_alignment_left_center();
+        display_object.add_child(&list);
+
+        let widgets_frp = &ctx.builder.frp;
+        Self {
+            config_frp: Frp::new(),
+            display_object,
+            list,
+            insertion_point_append: None,
+            crumbs_to_insert: default(),
+            crumbs_to_remove: default(),
+            elements: default(),
+        }
+        .init_list_updates(ctx, widgets_frp)
+    }
+
+    fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
+        let current_value: Option<ImString> = Some(ctx.expression_at(ctx.span_node.span()).into());
+        self.config_frp.current_value(current_value);
+        if ctx.span_node.is_insertion_point() {
+            self.configure_insertion_point(cfg, ctx)
+        } else {
+            self.configure_vector(cfg, ctx)
+        }
     }
 
     fn receive_ownership(&mut self, node: TreeNode, node_identity: WidgetIdentity) {

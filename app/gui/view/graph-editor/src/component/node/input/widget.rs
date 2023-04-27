@@ -276,26 +276,26 @@ impl Configuration {
 
         const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
         let is_list_editor_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
-        let is_vector = |arg: &span_tree::node::Argument| {
-            let type_matches = usage_type
+        let node_expr = &expression[span_node.span()];
+        let looks_like_vector = node_expr.starts_with('[') && node_expr.ends_with(']');
+        let type_is_vector = |tp: &Option<String>| {
+            usage_type
                 .as_ref()
                 .map(|t| t.as_str())
-                .or(arg.tp.as_deref())
-                .map_or(false, |tp| tp.contains(VECTOR_TYPE));
-            if type_matches {
-                let node_expr = &expression[span_node.span()];
-                node_expr.starts_with('[') && node_expr.ends_with(']')
-            } else {
-                false
-            }
+                .or(tp.as_deref())
+                .map_or(false, |tp| tp.contains(VECTOR_TYPE))
         };
 
         match kind {
             Kind::Argument(arg) if !arg.tag_values.is_empty() =>
                 Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Argument(arg) if is_list_editor_enabled && is_vector(arg) => Self::list_editor(),
+            Kind::Argument(arg) if is_list_editor_enabled && looks_like_vector =>
+                Self::list_editor(),
+            Kind::Root if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
             Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
-                if !arg.tag_values.is_empty() {
+                if is_list_editor_enabled && (type_is_vector(&arg.tp) || looks_like_vector) {
+                    Self::list_editor()
+                } else if !arg.tag_values.is_empty() {
                     Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
                 } else {
                     Self::always(label::Config::default())
