@@ -208,6 +208,8 @@ crate::define_endpoints_2! {
         scene_position        (Vector3),
          /// Change between the current and the previous scene position.
         scene_position_delta  (Vector3),
+        start_drag (),
+        stop_drag()
     }
 }
 
@@ -227,7 +229,7 @@ pub struct CursorModel {
     pub view:           shape::View,
     pub port_selection: shape::View,
     pub style:          Rc<RefCell<Style>>,
-    pub dragged_item:   Rc<RefCell<Option<Box<dyn Any>>>>,
+    pub dragged_item:   Rc<RefCell<Option<(Box<dyn Any>, display::object::Instance)>>>,
 }
 
 impl CursorModel {
@@ -543,8 +545,8 @@ impl Cursor {
         if self.model.dragged_item.borrow().is_some() {
             warn!("Can't start dragging an item because another item is already being dragged.");
         } else {
-            let object = target.display_object();
-            self.model.dragged_elem.add_child(object);
+            let object = target.display_object().clone();
+            self.model.dragged_elem.add_child(&object);
             let target_position = object.global_position().xy();
             let cursor_position = self.frp.scene_position.value().xy();
             object.set_xy(target_position - cursor_position);
@@ -553,7 +555,9 @@ impl Cursor {
             let camera = scene.camera();
             let zoom = camera.zoom();
             self.model.dragged_elem.set_scale_xy((zoom, zoom));
-            *self.model.dragged_item.borrow_mut() = Some(Box::new(target));
+            *self.model.dragged_item.borrow_mut() = Some((Box::new(target), object));
+
+            self.frp.private.output.start_drag.emit(());
         }
     }
 
@@ -565,7 +569,7 @@ impl Cursor {
 
     /// Check whether the dragged item is of a particular type. If it is, remove and return it.
     pub fn stop_drag_if_is<T: 'static>(&self) -> Option<T> {
-        if let Some(item) = mem::take(&mut *self.model.dragged_item.borrow_mut()) {
+        if let Some((item, obj)) = mem::take(&mut *self.model.dragged_item.borrow_mut()) {
             match item.downcast::<T>() {
                 Ok(item) => {
                     let elems = self.model.dragged_elem.remove_all_children();
@@ -573,10 +577,11 @@ impl Cursor {
                     for elem in &elems {
                         elem.update_xy(|t| t + cursor_position);
                     }
+                    self.frp.private.output.stop_drag.emit(());
                     Some(*item)
                 }
                 Err(item) => {
-                    *self.model.dragged_item.borrow_mut() = Some(item);
+                    *self.model.dragged_item.borrow_mut() = Some((item, obj));
                     None
                 }
             }
@@ -586,16 +591,20 @@ impl Cursor {
         }
     }
 
+    pub fn dragged_display_object(&self) -> Option<display::object::Instance> {
+        self.model.dragged_item.borrow().as_ref().map(|t| t.1.clone())
+    }
+
     /// Check whether the dragged item is of a particular type.
     pub fn dragged_item_is<T: 'static>(&self) -> bool {
-        self.model.dragged_item.borrow().as_ref().map(|item| item.is::<T>()).unwrap_or(false)
+        self.model.dragged_item.borrow().as_ref().map(|item| item.0.is::<T>()).unwrap_or(false)
     }
 
     /// Check whether the dragged item is of a particular type. If it is, call the provided function
     /// on it's reference.
     pub fn with_dragged_item_if_is<T, Out>(&self, f: impl FnOnce(&T) -> Out) -> Option<Out>
     where T: 'static {
-        self.model.dragged_item.borrow().as_ref().and_then(|item| item.downcast_ref::<T>().map(f))
+        self.model.dragged_item.borrow().as_ref().and_then(|item| item.0.downcast_ref::<T>().map(f))
     }
 }
 

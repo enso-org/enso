@@ -55,6 +55,10 @@ impl BoundingBox {
         Self::from_corners(position - size / 2.0, position + size / 2.0)
     }
 
+    pub fn from_size(size: Vector2) -> Self {
+        Self::from_corners(Vector2::zeros(), size)
+    }
+
     /// Check whether the given `pos` lies within the bounding box.
     pub fn contains(&self, pos: Vector2) -> bool {
         self.contains_x(pos.x) && self.contains_y(pos.y)

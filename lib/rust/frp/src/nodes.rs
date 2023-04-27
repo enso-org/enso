@@ -64,6 +64,14 @@ impl Network {
         self.register(OwnedTrace::new(label, src))
     }
 
+    /// Print the incoming events to console and pass them to output.
+    pub fn trace_if<B, T>(&self, label: Label, src: &T, gate: &B) -> Stream<Output<T>>
+    where
+        B: EventOutput<Output = bool>,
+        T: EventOutput, {
+        self.register(OwnedTraceIf::new(label, gate, src))
+    }
+
     /// Profile the event resolution from this node onwards and log the result in the profiling
     /// framework.
     pub fn profile<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
@@ -146,6 +154,22 @@ impl Network {
     {
         let value = self.gate(label, event, behavior);
         let on_gate_pass = self.on_true(label, behavior);
+        let value2 = self.sample(label, event, &on_gate_pass);
+        self.any(label, &value, &value2)
+    }
+
+    pub fn sampled_gate_not<T1, T2>(
+        &self,
+        label: Label,
+        event: &T1,
+        behavior: &T2,
+    ) -> Stream<Output<T1>>
+    where
+        T1: EventOutput,
+        T2: EventOutput<Output = bool>,
+    {
+        let value = self.gate_not(label, event, behavior);
+        let on_gate_pass = self.on_false(label, behavior);
         let value2 = self.sample(label, event, &on_gate_pass);
         self.any(label, &value, &value2)
     }
@@ -2147,6 +2171,57 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
 
 
 // ===============
+// === TraceIf ===
+// ===============
+
+#[derive(Debug)]
+pub struct TraceIfData<B, T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src:      T,
+    behavior: watch::Ref<B>,
+}
+pub type OwnedTraceIf<B, T> = stream::Node<TraceIfData<B, T>>;
+pub type TraceIf<B, T> = stream::WeakNode<TraceIfData<B, T>>;
+
+impl<B, T: EventOutput> HasOutput for TraceIfData<B, T> {
+    type Output = Output<T>;
+}
+
+impl<B: EventOutput<Output = bool>, T: EventOutput> OwnedTraceIf<B, T> {
+    /// Constructor.
+    pub fn new(label: Label, gate: &B, src1: &T) -> Self {
+        let src = src1.clone_ref();
+        let behavior = watch_stream(gate);
+        let def = TraceIfData { src, behavior };
+        Self::construct_and_connect(label, src1, def)
+    }
+}
+
+impl<B: EventOutput<Output = bool>, T: EventOutput> stream::EventConsumer<Output<T>>
+    for OwnedTraceIf<B, T>
+{
+    fn on_event(&self, stack: CallStack, event: &Output<T>) {
+        if self.behavior.value() {
+            console_log!("[FRP] {}: {:?}", self.label(), event);
+        }
+        // warn!("[FRP] {}", stack);
+        self.emit_event(stack, event);
+    }
+}
+
+impl<B, T> stream::InputBehaviors for TraceIfData<B, T>
+where B: EventOutput
+{
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![Link::behavior(&self.behavior)]
+    }
+}
+
+
+
+// ===============
 // === Profile ===
 // ===============
 
@@ -2878,6 +2953,8 @@ impl<Out: Data> Any<Out> {
         src.register_target(self.into());
         self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
     }
+
+    pub fn detach_all(&self) {}
 
     /// Emit new event. It's questionable if this node type should expose the `emit` functionality,
     /// but the current usage patterns proven it is a very handy utility. This node is used to

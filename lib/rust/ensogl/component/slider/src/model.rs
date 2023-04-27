@@ -213,6 +213,9 @@ impl Model {
         self.background.set_x(size.x / 2.0);
         self.track.set_x(size.x / 2.0);
         self.value.set_x(size.x / 2.0);
+        self.background.set_y(size.y / 2.0);
+        self.track.set_y(size.y / 2.0);
+        self.value.set_y(size.y / 2.0);
     }
 
     /// Set the color of the slider track or thumb.
