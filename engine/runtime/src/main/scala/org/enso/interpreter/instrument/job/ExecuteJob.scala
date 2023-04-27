@@ -46,15 +46,13 @@ class ExecuteJob(
             Api.Response(Api.ExecutionFailed(contextId, failure))
           )
       }
-      ctx.endpoint.sendToClient(
-        Api.Response(Api.ExecutionComplete(contextId))
-      )
-      StartBackgroundProcessingJob.startBackgroundJobs()
     } finally {
       originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseContextLock(contextId)
     }
+    ctx.endpoint.sendToClient(Api.Response(Api.ExecutionComplete(contextId)))
+    StartBackgroundProcessingJob.startBackgroundJobs()
   }
 
 }
