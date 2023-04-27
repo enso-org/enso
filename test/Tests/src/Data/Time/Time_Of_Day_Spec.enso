@@ -34,6 +34,13 @@ specWith name create_new_time parse_time =
             text = create_new_time 12 20 44 . format "HHmmss"
             text . should_equal "122044"
 
+        Test.specify "should format using provided pattern and locale" <|
+            d = create_new_time 12 20 44
+            # Note that the results are all the same.
+            d.format "HH:mm" . should_equal "12:20"
+            d.format "HH:mm" (Locale.new "gb") . should_equal "12:20"
+            d.format "HH:mm" (Locale.new "fr") . should_equal "12:20"
+
         Test.specify "should format local time using default pattern" <|
             text = create_new_time 12 20 44 . to_text
             text . should_equal "12:20:44"
