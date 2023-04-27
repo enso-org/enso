@@ -102,7 +102,7 @@ check_primary_key_is_unique table primary_key =
    Generates a random table name if it was nothing, if it is allowed (temporary=True).
 resolve_effective_table_name table_name temporary = case table_name of
     Nothing -> if temporary then "temporary-table-"+random_uuid else
-        Error.throw (Illegal_Argument.Error "A table name must be provided if temporary=False.")
+        Error.throw (Illegal_Argument.Error "A name must be provided when creating a non-temporary table.")
     _ : Text -> table_name
 
 ## PRIVATE
