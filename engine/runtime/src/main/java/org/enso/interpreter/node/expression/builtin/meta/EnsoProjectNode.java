@@ -34,9 +34,11 @@ public abstract class EnsoProjectNode extends Node {
    * It is OK to cache EnsoContext and project description atom here, since this node should be
    * cloned into every separate caller's AST.
    */
-  @CompilationFinal private WeakReference<EnsoContext> previousCtx = new WeakReference<>(null);
+  @CompilationFinal
+  private WeakReference<EnsoContext> previousCtxRef = new WeakReference<>(null);
 
-  @CompilationFinal private WeakReference<Object> cachedProjectDescr = new WeakReference<>(null);
+  @CompilationFinal
+  private WeakReference<Object> cachedProjectDescrRef = new WeakReference<>(null);
 
   /**
    * @param module Either {@code Nothing}, or a module.
@@ -53,9 +55,11 @@ public abstract class EnsoProjectNode extends Node {
   @Specialization(guards = "isNothing(nothing)")
   public Object getCurrentProjectDescr(Object nothing) {
     var ctx = EnsoContext.get(this);
-    if (previousCtx.get() == null || cachedProjectDescr.get() == null || previousCtx.get() != ctx) {
+    var previousCtx = previousCtxRef.get();
+    var cachedProjectDescr = cachedProjectDescrRef.get();
+    if (previousCtx == null || cachedProjectDescr == null || previousCtx != ctx) {
       CompilerDirectives.transferToInterpreter();
-      previousCtx = new WeakReference<>(ctx);
+      previousCtxRef = new WeakReference<>(ctx);
       // Find the caller of `enso_project`, i.e., of this node, and find in which package
       // it is located. The first frame is skipped, because it is always
       // `Enso_Project.enso_project`,
@@ -89,12 +93,13 @@ public abstract class EnsoProjectNode extends Node {
                   // The first frame is always Enso_Project.enso_project
                   1);
       if (pkgOpt.isPresent()) {
-        cachedProjectDescr = new WeakReference<>(createProjectDescriptionAtom(ctx, pkgOpt.get()));
+        cachedProjectDescrRef = new WeakReference<>(
+            createProjectDescriptionAtom(ctx, pkgOpt.get()));
       } else {
-        cachedProjectDescr = new WeakReference<>(notInModuleError(ctx));
+        cachedProjectDescrRef = new WeakReference<>(notInModuleError(ctx));
       }
     }
-    return cachedProjectDescr.get();
+    return cachedProjectDescr;
   }
 
   @Specialization(guards = "!isNothing(module)")
@@ -134,7 +139,7 @@ public abstract class EnsoProjectNode extends Node {
             .getBuiltins()
             .error()
             .makeUnsupportedArgumentsError(
-                new Object[] {moduleActual}, "The `module` argument does not refer to a module"),
+                new Object[]{moduleActual}, "The `module` argument does not refer to a module"),
         this);
   }
 
