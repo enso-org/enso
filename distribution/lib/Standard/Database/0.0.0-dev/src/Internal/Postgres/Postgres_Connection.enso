@@ -30,11 +30,7 @@ type Postgres_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-       - known_temporary_tables: a list of temporary tables that have been
-         created with this connection. Note that this list may get out of date
-         if the user manually performs CREATE TEMPORARY TABLE or DROP TABLE
-         through `execute_update`.
-    Value connection make_new known_temporary_tables
+    Value connection make_new
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -165,22 +161,6 @@ type Postgres_Connection
     drop_table self table_name =
         self.connection.drop_table table_name
 
-    ## PRIVATE
-       This is essentially an alias for `generate_sql` and `execute_update`, but
-       it is a hook notifying the connection of the table being created. The
-       connection can use that information. Any table creation should be ran
-       through this hook, instead of `execute_update` directly.
-    execute_create_table : Query -> Nothing
-    execute_create_table self create_table_query =
-        result = self.connection.execute_create_table create_table_query
-        result.if_not_error <|
-            case create_table_query of
-                Query.Create_Table table_name _ _ temporary ->
-                    if temporary then
-                        self.known_temporary_tables.append table_name
-                _ -> Panic.throw (Illegal_State.Error "Impossible: Unexpected query type in execute_create_table.")
-            result
-
 ## PRIVATE
 
    Creates a Postgres connection based on a URL, properties and a dialect.
@@ -192,4 +172,4 @@ type Postgres_Connection
 create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Connection
 create url properties make_new =
     jdbc_connection = JDBC_Connection.create url properties
-    Postgres_Connection.Value (Connection.Value jdbc_connection Dialect.postgres) make_new Vector.new_builder
+    Postgres_Connection.Value (Connection.Value jdbc_connection Dialect.postgres) make_new

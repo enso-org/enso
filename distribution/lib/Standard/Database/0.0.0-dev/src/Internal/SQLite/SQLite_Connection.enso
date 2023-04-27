@@ -144,15 +144,6 @@ type SQLite_Connection
     drop_table self table_name =
         self.connection.drop_table table_name
 
-    ## PRIVATE
-       This is essentially an alias for `generate_sql` and `execute_update`, but
-       it is a hook notifying the connection of the table being created. The
-       connection can use that information. Any table creation should be ran
-       through this hook, instead of `execute_update` directly.
-    execute_create_table : Query -> Nothing
-    execute_create_table self create_table_query =
-        self.connection.execute_create_table create_table_query
-
 ## PRIVATE
 
    Creates a SQLite connection based on a JDBC URL and properties.
