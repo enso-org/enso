@@ -27,6 +27,7 @@ interface CurrentlyOpenProjectInfo {
 export class Backend implements Partial<Omit<cloudService.Backend, 'platform'>> {
     readonly platform = platformModule.Platform.desktop
     private readonly projectManager = projectManager.ProjectManager.default()
+    private currentlyOpeningProjectId: string | null = null
     private currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
 
     async listDirectory(): Promise<cloudService.Asset[]> {
@@ -105,7 +106,10 @@ export class Backend implements Partial<Omit<cloudService.Backend, 'platform'>> 
                     packageName: project.name,
                     projectId,
                     state: {
-                        type: cloudService.ProjectState.closed,
+                        type:
+                            projectId === this.currentlyOpeningProjectId
+                                ? cloudService.ProjectState.openInProgress
+                                : cloudService.ProjectState.closed,
                     },
                 })
             }
@@ -134,6 +138,7 @@ export class Backend implements Partial<Omit<cloudService.Backend, 'platform'>> 
     }
 
     async openProject(projectId: cloudService.ProjectId): Promise<void> {
+        this.currentlyOpeningProjectId = projectId
         const project = await this.projectManager.openProject({
             projectId,
             missingComponentAction: projectManager.MissingComponentAction.install,

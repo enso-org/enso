@@ -3,6 +3,7 @@ import * as react from 'react'
 
 import * as backendProvider from '../../providers/backend'
 import * as cloudService from '../cloudService'
+import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 // =============
@@ -51,18 +52,18 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
-        async function checkProjectStatus() {
-            const response = await backend.getProjectDetails(project.id)
-            if (response.state.type === cloudService.ProjectState.opened) {
-                setIsCheckingStatus(false)
-                setIsCheckingResources(true)
-            } else {
-                setState(response.state.type)
-            }
-        }
         if (!isCheckingStatus) {
             return
         } else {
+            const checkProjectStatus = async () => {
+                const response = await backend.getProjectDetails(project.id)
+                if (response.state.type === cloudService.ProjectState.opened) {
+                    setIsCheckingStatus(false)
+                    setIsCheckingResources(true)
+                } else {
+                    setState(response.state.type)
+                }
+            }
             const handle = window.setInterval(
                 () => void checkProjectStatus(),
                 CHECK_STATUS_INTERVAL
@@ -74,26 +75,26 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [isCheckingStatus])
 
     react.useEffect(() => {
-        async function checkProjectResources() {
-            if (!('checkResources' in backend)) {
-                setState(cloudService.ProjectState.opened)
-                setIsCheckingResources(false)
-                setSpinnerState(SpinnerState.done)
-            } else {
-                try {
-                    // This call will error if the VM is not ready yet.
-                    await backend.checkResources(project.id)
-                    setState(cloudService.ProjectState.opened)
-                    setIsCheckingResources(false)
-                    setSpinnerState(SpinnerState.done)
-                } catch {
-                    // Ignored.
-                }
-            }
-        }
         if (!isCheckingResources) {
             return
         } else {
+            const checkProjectResources = async () => {
+                if (!('checkResources' in backend)) {
+                    setState(cloudService.ProjectState.opened)
+                    setIsCheckingResources(false)
+                    setSpinnerState(SpinnerState.done)
+                } else {
+                    try {
+                        // This call will error if the VM is not ready yet.
+                        await backend.checkResources(project.id)
+                        setState(cloudService.ProjectState.opened)
+                        setIsCheckingResources(false)
+                        setSpinnerState(SpinnerState.done)
+                    } catch {
+                        // Ignored.
+                    }
+                }
+            }
             const handle = window.setInterval(
                 () => void checkProjectResources(),
                 CHECK_RESOURCES_INTERVAL
@@ -122,7 +123,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setIsCheckingStatus(false)
     }
 
-    function openProject() {
+    async function openProject() {
         setState(cloudService.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
@@ -131,8 +132,17 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
-        void backend.openProject(project.id)
-        setIsCheckingStatus(true)
+        switch (backend.platform) {
+            case platform.Platform.cloud:
+                await backend.openProject(project.id)
+                setIsCheckingStatus(true)
+                break
+            case platform.Platform.desktop:
+                await backend.openProject(project.id)
+                setState(cloudService.ProjectState.opened)
+                setSpinnerState(SpinnerState.done)
+                break
+        }
     }
 
     switch (state) {
