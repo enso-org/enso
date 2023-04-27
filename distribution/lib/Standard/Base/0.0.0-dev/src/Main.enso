@@ -12,7 +12,6 @@ import project.Function
 import project.IO
 import project.Math
 import project.Meta
-import project.Meta.Enso_Project
 from project.Meta.Enso_Project import enso_project
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -44,7 +43,6 @@ export project.Errors
 export project.IO
 export project.Math
 export project.Meta
-export project.Meta.Enso_Project
 from project.Meta.Enso_Project export enso_project
 export project.Nothing.Nothing
 export project.Panic.Panic
