@@ -95,6 +95,15 @@ class App {
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
+    /**
+     * Sets the project to be opened on application startup.
+     *
+     * This method should be called before the application is ready, as it only
+     * modifies the startup options. If the application is already initialized,
+     * an error will be logged, and the method will have no effect.
+     *
+     * @param idOfProjectToOpen - The ID of the project to be opened on startup.
+     */
     setProjectToOpenOnStartup(idOfProjectToOpen: string) {
         // Make sure that we are not initialized yet, as this method should be called before the
         // application is ready.
@@ -103,7 +112,8 @@ class App {
             this.args.groups.startup.options.project.value = idOfProjectToOpen
         } else {
             logger.error(
-                `Cannot set project to open on startup: ${idOfProjectToOpen}, as the application is already initialized.`
+                `Cannot set project to open on startup: ${idOfProjectToOpen},` +
+                    ` as the application is already initialized.`
             )
         }
     }
