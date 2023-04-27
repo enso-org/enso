@@ -117,8 +117,8 @@ type Connection
          be obtained using the `table_types` method. Defaults to a set of most
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
-    @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
-    @schema (self-> Single_Choice values=(self.schemas.map t-> Option t t.pretty)+[Option "any schema" "Nothing"])
+    @types make_table_types_selector
+    @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=Nothing types=default_table_types all_fields=False =
         types_array = if types.is_nothing then Nothing else types.to_array
@@ -243,3 +243,12 @@ type Connection
    The default types we want to include in `tables`.
 default_table_types =
     ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE", "GLOBAL TEMPORARY"]
+
+## PRIVATE
+make_table_types_selector connection =
+    Single_Choice values=(connection.table_types.map t-> Option t t.pretty)
+
+## PRIVATE
+make_schema_selector connection =
+    schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
+    Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]

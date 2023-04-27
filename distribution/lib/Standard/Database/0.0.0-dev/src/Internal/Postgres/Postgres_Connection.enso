@@ -17,7 +17,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Connection.Connection import default_table_types
+from project.Connection.Connection import default_table_types, make_table_types_selector, make_schema_selector
 from project.Errors import SQL_Error
 from project.Internal.Result_Set import read_column
 
@@ -99,8 +99,8 @@ type Postgres_Connection
          be obtained using the `table_types` method. Defaults to a set of most
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
-    @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
-    @schema (self-> Single_Choice values=(self.schemas.map t-> Option t t.pretty)+[Option "any schema" "Nothing"])
+    @types make_table_types_selector
+    @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=Nothing types=default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields
