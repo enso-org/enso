@@ -1183,17 +1183,31 @@ type Column
     format : Text | Column -> Locale -> Problem_Behavior -> Column
     format self format locale=Locale.default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
-        formatter = case self.value_type of
-            Value_Type.Date ->
-                make_date_formatter format locale problem_builder
-            #Date_Time -> format_as_date_time self format on_problems
-            #Time -> format_as_time_of_day self format on_problems
-            #Integer -> format_as_integer self format on_problems
-            #Boolean,Float,Decimal
-            bad_type ->
-                msg = "Cannot format a Column of type " + bad_type.to_text
-                Error.throw (Illegal_Argument.Error msg)
-        new_column = map_over_storage self formatter make_string_builder
+        new_column = case format of
+            _ : Text ->
+                formatter = case self.value_type of
+                    Value_Type.Date ->
+                        make_date_formatter format locale problem_builder
+                    #Date_Time -> format_as_date_time self format on_problems
+                    #Time -> format_as_time_of_day self format on_problems
+                    #Integer -> format_as_integer self format on_problems
+                    #Boolean,Float,Decimal
+                    bad_type ->
+                        msg = "Cannot format a Column of type " + bad_type.to_text
+                        Error.throw (Illegal_Argument.Error msg)
+                map_over_storage self formatter make_string_builder
+            format_column : Column ->
+                formatter = case self.value_type of
+                    Value_Type.Date ->
+                        make_date_with_column_formatter locale problem_builder
+                    #Date_Time -> format_as_date_time self format on_problems
+                    #Time -> format_as_time_of_day self format on_problems
+                    #Integer -> format_as_integer self format on_problems
+                    #Boolean,Float,Decimal
+                    bad_type ->
+                        msg = "Cannot format a Column of type " + bad_type.to_text
+                        Error.throw (Illegal_Argument.Error msg)
+                map_2_over_storage self format_column formatter make_string_builder
         problem_builder.attach_problems_after on_problems new_column
 
     ## ALIAS Transform Column
@@ -1768,6 +1782,16 @@ make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_date_formatter format locale problem_builder =
     _ = [problem_builder]
     date->
+        illegal_argument_to_warning problem_builder <|
+            date.format format locale
+
+## PRIVATE
+   Create a `Date` formatter that takes the format string as the second
+   parameter.
+make_date_with_column_formatter : Locale -> Problem_Builder -> (Date -> Text -> Text)
+make_date_with_column_formatter locale problem_builder =
+    _ = [problem_builder]
+    date-> format->
         illegal_argument_to_warning problem_builder <|
             date.format format locale
 
