@@ -523,7 +523,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             ).on_change();
             index <= opt_index;
             enabled <- opt_index.is_some();
-            pointer_style <- enabled.then_constant(cursor::Style::plus());
+            pointer_style <- enabled.then_constant(cursor::Style::plus()).on_change();
             on_up_in_gap <- on_up.gate(&enabled);
             insert_in_gap <- index.sample(&on_up_in_gap);
             frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
