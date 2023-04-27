@@ -225,6 +225,11 @@ impl Model {
         self.view.graph().model.breadcrumbs.set_project_changed(changed);
     }
 
+    fn execution_finished(&self) {
+        self.view.graph().frp.set_read_only(false);
+        self.view.graph().frp.execution_finished.emit(());
+    }
+
     fn execution_context_interrupt(&self) {
         let controller = self.graph_controller.clone_ref();
         executor::global::spawn(async move {
@@ -305,6 +310,15 @@ impl Model {
         } else {
             error!("Invalid execution environment: {execution_environment:?}");
         }
+    }
+
+    fn trigger_clean_live_execution(&self) {
+        let graph_controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = graph_controller.trigger_clean_live_execution().await {
+                error!("Error starting clean live execution: {err}");
+            }
+        });
     }
 }
 
@@ -405,6 +419,7 @@ impl Project {
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(env));
+            eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
@@ -460,6 +475,9 @@ impl Project {
                 }
                 Notification::VcsStatusChanged(VcsStatus::Clean) => {
                     model.set_project_changed(false);
+                }
+                Notification::ExecutionFinished => {
+                    model.execution_finished();
                 }
             };
             std::future::ready(())
