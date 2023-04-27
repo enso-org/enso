@@ -20,7 +20,9 @@ use crate::system::gpu::data::texture::class::TextureOps;
 pub trait Definition: CloneBoxedForDefinition + Debug + 'static {
     fn initialize(&mut self, _instance: &Instance) {}
     fn run(&mut self, _instance: &Instance, update_status: UpdateStatus);
-    fn is_screen_size_independent(&self) -> bool { false }
+    fn is_screen_size_independent(&self) -> bool {
+        false
+    }
 }
 
 clone_boxed!(Definition);
