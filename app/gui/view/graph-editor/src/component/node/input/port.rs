@@ -23,9 +23,13 @@ use ensogl::display::shape;
 // === Constants ===
 // =================
 
-/// The horizontal padding of ports. It affects how the port hover should extend the target text
+/// The horizontal padding of ports. It affects how the port shape should extend the target text
 /// boundary on both sides.
 pub const PORT_PADDING_X: f32 = 4.0;
+
+/// The horizontal padding of port hover areas. It affects how the port hover should extend the
+/// target text boundary on both sides.
+pub const HOVER_PADDING_X: f32 = 2.0;
 
 /// The minimum size of the port visual area.
 pub const BASE_PORT_HEIGHT: f32 = 18.0;
@@ -140,8 +144,8 @@ impl Port {
         hover_shape
             .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
-            .set_margin_left(-PORT_PADDING_X)
-            .set_margin_right(-PORT_PADDING_X)
+            .set_margin_left(-HOVER_PADDING_X)
+            .set_margin_right(-HOVER_PADDING_X)
             .set_alignment_left_center();
 
         let layers = app.display.default_scene.extension::<PortLayers>();
@@ -262,6 +266,18 @@ impl Port {
     /// can be reinserted into the display hierarchy of widget tree.
     pub(super) fn into_widget(self) -> DynWidget {
         self.widget
+    }
+
+    /// Get a reference to a widget currently wrapped by the port. The widget may change during
+    /// the next tree rebuild.
+    pub(super) fn widget(&self) -> &DynWidget {
+        &self.widget
+    }
+
+    /// Get a mutable reference to a widget currently wrapped by the port. The widget may change
+    /// during the next tree rebuild.
+    pub(super) fn widget_mut(&mut self) -> &mut DynWidget {
+        &mut self.widget
     }
 
     /// Get the port's hover shape. Used for testing to simulate mouse events.

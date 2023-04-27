@@ -134,6 +134,11 @@ pub trait SpanWidget {
     fn new(config: &Self::Config, ctx: &ConfigContext) -> Self;
     /// Update configuration for existing widget.
     fn configure(&mut self, config: &Self::Config, ctx: ConfigContext);
+    /// Receive a reference of the tree item for which the ownership transfer was requested. Called
+    /// by the tree when [`WidgetsFrp::transfer_ownership`] signal is used.
+    fn receive_ownership(&mut self, node: TreeNode, node_identity: WidgetIdentity) {
+        _ = (node, node_identity);
+    }
 }
 
 
@@ -207,6 +212,12 @@ macro_rules! define_widget_modules(
                         *this = SpanWidget::new(config, &ctx);
                         this.configure(config, ctx)
                     },
+                }
+            }
+
+            fn receive_ownership(&mut self, node: TreeNode, node_identity: WidgetIdentity) {
+                match (self) {
+                    $(DynWidget::$name(model) => model.receive_ownership(node, node_identity),)*
                 }
             }
         }
@@ -398,21 +409,35 @@ impl DropdownValue for Entry {
 /// Widget FRP endpoints that can be used by widget views, and go straight to the root.
 #[derive(Debug, Clone, CloneRef)]
 pub struct WidgetsFrp {
-    pub(super) set_ports_visible:         frp::Sampler<bool>,
-    pub(super) set_read_only:             frp::Sampler<bool>,
-    pub(super) set_view_mode:             frp::Sampler<crate::view::Mode>,
-    pub(super) set_profiling_status:      frp::Sampler<crate::node::profiling::Status>,
-    /// Remove given widget's reference from the widget tree. This will effectively give up tree's
-    /// ownership of that widget, and will prevent its view from being reused.
+    pub(super) set_ports_visible:      frp::Sampler<bool>,
+    pub(super) set_read_only:          frp::Sampler<bool>,
+    pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
+    pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
+    /// Remove given tree node's reference from the widget tree, and send its only remaining strong
+    /// reference to a new widget owner using [`SpanWidget::receive_ownership`] method. This will
+    /// effectively give up tree's ownership of that node, and will prevent its view from being
+    /// reused.
     ///
     /// NOTE: Calling this during rebuild will have no effect.
-    pub(super) transfer_widget_ownership: frp::Any<WidgetIdentity>,
-    pub(super) value_changed:             frp::Any<(span_tree::Crumbs, Option<ImString>)>,
-    pub(super) request_import:            frp::Any<ImString>,
-    pub(super) on_port_hover:             frp::Any<Switch<span_tree::Crumbs>>,
-    pub(super) on_port_press:             frp::Any<span_tree::Crumbs>,
-    pub(super) pointer_style:             frp::Any<cursor::Style>,
-    pub(super) connected_port_updated:    frp::Any<()>,
+    pub(super) transfer_ownership:     frp::Any<TransferRequest>,
+    pub(super) value_changed:          frp::Any<(span_tree::Crumbs, Option<ImString>)>,
+    pub(super) request_import:         frp::Any<ImString>,
+    pub(super) on_port_hover:          frp::Any<Switch<span_tree::Crumbs>>,
+    pub(super) on_port_press:          frp::Any<span_tree::Crumbs>,
+    pub(super) pointer_style:          frp::Any<cursor::Style>,
+    pub(super) connected_port_updated: frp::Any<()>,
+}
+
+/// A request for widget tree item ownership transfer. See [`WidgetsFrp::transfer_ownership`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+pub struct TransferRequest {
+    /// The widget ID that will receive the ownership of the node. Usually this is the ID of the
+    /// widget that sends the request, which can be obtained from [`NodeInfo::identity`], which is
+    /// provided on [`ConfigContext`].
+    pub new_owner:   WidgetIdentity,
+    /// The ID of the node that should be transferred. Usually one of the node's children, which
+    /// can be obtained from [`Child`] instance returned from [`TreeBuilder::child_widget`].
+    pub to_transfer: WidgetIdentity,
 }
 
 
@@ -450,8 +475,8 @@ impl Tree {
 
         frp::extend! { network
             frp.private.output.rebuild_required <+ frp.marked_dirty_sync.debounce();
-            transfer_widget_ownership <- any(...);
-            eval transfer_widget_ownership((id) model.remove_widget(id));
+            transfer_ownership <- any(...);
+            eval transfer_ownership((request) model.transfer_ownership(*request));
 
             set_ports_visible <- frp.set_ports_visible.sampler();
             set_read_only <- frp.set_read_only.sampler();
@@ -473,7 +498,7 @@ impl Tree {
             set_read_only,
             set_view_mode,
             set_profiling_status,
-            transfer_widget_ownership,
+            transfer_ownership,
             value_changed,
             request_import,
             on_port_hover,
@@ -580,7 +605,7 @@ impl Tree {
 /// `Port` struct and stored in `Port` variant. Otherwise, the widget will be stored directly using
 /// the `Widget` node variant.
 #[derive(Debug)]
-pub(super) enum TreeNode {
+pub enum TreeNode {
     /// A tree node that contains a port. The port wraps a widget.
     Port(Port),
     /// A tree node without a port, directly containing a widget.
@@ -588,10 +613,27 @@ pub(super) enum TreeNode {
 }
 
 impl TreeNode {
-    fn port(&self) -> Option<&Port> {
+    #[allow(missing_docs)]
+    pub fn port(&self) -> Option<&Port> {
         match self {
             TreeNode::Port(port) => Some(port),
             TreeNode::Widget(_) => None,
+        }
+    }
+
+    #[allow(missing_docs)]
+    pub fn widget(&self) -> &DynWidget {
+        match self {
+            TreeNode::Port(port) => port.widget(),
+            TreeNode::Widget(widget) => widget,
+        }
+    }
+
+    #[allow(missing_docs)]
+    pub fn widget_mut(&mut self) -> &mut DynWidget {
+        match self {
+            TreeNode::Port(port) => port.widget_mut(),
+            TreeNode::Widget(widget) => widget,
         }
     }
 }
@@ -761,11 +803,15 @@ impl TreeModel {
         })
     }
 
-    /// Prevent a widget from being reused in future rebuild. Allows its parent to take ownership
-    /// of its display object.
-    fn remove_widget(&self, widget: &WidgetIdentity) {
+    /// Prevent a widget from being reused in future rebuild. Send its only remaining strong
+    /// reference to the new owner.
+    fn transfer_ownership(&self, request: TransferRequest) {
         let mut nodes_map = self.nodes_map.borrow_mut();
-        nodes_map.remove(widget);
+        if let Some(TreeEntry { node, .. }) = nodes_map.remove(&request.to_transfer) {
+            if let Some(owner) = nodes_map.get_mut(&request.new_owner) {
+                owner.node.widget_mut().receive_ownership(node, request.to_transfer);
+            }
+        }
     }
 
     #[profile(Task)]
