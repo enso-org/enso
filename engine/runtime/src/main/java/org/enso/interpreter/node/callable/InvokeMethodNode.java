@@ -118,6 +118,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     Function function = methodResolverNode.expectNonNull(self, selfTpe, symbol);
 
     RootNode where = function.getCallTarget().getRootNode();
+    // If both Any and the type where `function` is declared, define `symbol`
+    // and the method is invoked statically, i.e. type of self is the eigentype,
+    // then we want to disambiguate method resolution by always resolved to the one in Any.
     if (where instanceof MethodRootNode node && typeCanOverride(node, EnsoContext.get(this))) {
       Function anyFun = symbol.getScope().lookupMethodDefinition(EnsoContext.get(this).getBuiltins().any(), symbol.getName());
       if (anyFun != null) {
