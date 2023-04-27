@@ -17,9 +17,9 @@ import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Internal.Result_Set import read_column
-
+from project.Connection.Connection import default_table_types
 from project.Errors import SQL_Error
+from project.Internal.Result_Set import read_column
 
 type Postgres_Connection
 
@@ -103,14 +103,7 @@ type Postgres_Connection
     @schema (self-> Single_Choice values=(self.schemas.map t-> Option t t.pretty)+[Option "any schema" "Nothing"])
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=Nothing types=default_table_types all_fields=False =
-        base_result = self.connection.tables name_like database schema types all_fields
-        is_current = self.database == database && self.schema == schema
-        case is_current of
-            False -> base_result
-            True -> base_result.if_not_error <|
-                add_temporary_tables = types.is_nothing || types.contains temporary_table_type
-                if add_temporary_tables.not then base_result else
-                    extend_jdbc_tables_with_temporary self base_result name_like
+        self.connection.tables name_like database schema types all_fields
 
     ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
 
@@ -120,10 +113,7 @@ type Postgres_Connection
        - alias: optionally specify a friendly alias for the query.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     query : Text | SQL_Query -> Text -> Database_Table
-    query self query alias="" =
-        # This calls our overridden implementation that will include the temporary tables too.
-        known_table_names = self.tables.at 'Name' . to_vector
-        self.connection.query_implementation query alias known_table_names
+    query self query alias="" = self.connection.query query alias
 
     ## Execute the query and load the results into memory as a Table.
 
