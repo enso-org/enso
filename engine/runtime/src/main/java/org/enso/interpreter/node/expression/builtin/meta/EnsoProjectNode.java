@@ -6,7 +6,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.lang.ref.WeakReference;
@@ -26,6 +25,7 @@ import org.enso.pkg.Package;
     name = "enso_project_builtin",
     description = "Returns the project description of the project given as the argument")
 public abstract class EnsoProjectNode extends Node {
+
   public static EnsoProjectNode build() {
     return EnsoProjectNodeGen.create();
   }
@@ -98,7 +98,9 @@ public abstract class EnsoProjectNode extends Node {
       } else {
         cachedProjectDescrRef = new WeakReference<>(notInModuleError(ctx));
       }
+      cachedProjectDescr = cachedProjectDescrRef.get();
     }
+    assert cachedProjectDescr != null;
     return cachedProjectDescr;
   }
 
