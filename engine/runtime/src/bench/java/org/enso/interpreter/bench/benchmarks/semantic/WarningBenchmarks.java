@@ -3,17 +3,21 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -36,25 +40,11 @@ public class WarningBenchmarks extends TestBase {
 
     private Value elemWithWarning;
 
-    private OutputStream out = new ByteArrayOutputStream();
     private String benchmarkName;
 
     @Setup
     public void initializeBench(BenchmarkParams params) throws IOException {
-        ctx = Context.newBuilder("enso")
-                .allowAllAccess(true)
-                .logHandler(out)
-                .out(out)
-                .err(out)
-                .allowIO(true)
-                .allowExperimentalOptions(true)
-                .option(
-                        "enso.languageHomeOverride",
-                        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-                )
-                .option("engine.MultiTier", "true")
-                .option("engine.BackgroundCompilation", "true")
-                .build();
+        ctx = createDefaultContext();
 
         benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
 
