@@ -23,7 +23,7 @@ enum SpinnerState {
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL = 10000
 /** The interval between requests checking whether the VM is ready. */
-const CHECK_RESOURCES_INTERVAL = 2500
+const CHECK_RESOURCES_INTERVAL = 5000
 
 const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
     [SpinnerState.initial]: 'dasharray-5 ease-linear',
