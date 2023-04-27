@@ -86,26 +86,27 @@ type Postgres_Connection
     table_types : Vector Text
     table_types self = self.connection.table_types
 
-    ## Returns a materialised Table of all the matching views and tables.
+    ## Returns a materialized Table of all the matching views and tables.
 
        ? Temporary Tables
 
-         The Postgres table listing does not include temporary tables by
-         default. Our connection uses a workaround, manually keeping the created
-         temporary tables, to include them. Note, however, that our workaround
-         will not be able to detect tables created manually using
-         `execute_update` nor will it react correctly to tables created by
-         `create_database_table` being manually dropped by `execute_update`.
+         Note that the temporary tables may be created in a different schema
+         than the current one, so take this into account when filtering by schema.
 
        Arguments:
-       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
+         means all tables are selected.
        - database: The database name to search in (default is current database).
-       - schema: The schema name to search in (defaults to current schema).
-       - types: The table types to search for. The list of values can be obtained using the `table_types` method.
+       - schema: The schema name to search in (defaults to `Nothing`, meaning all
+         schemas are searched).
+       - types: The table types to search for. The list of possible values can
+         be obtained using the `table_types` method. Defaults to a set of most
+         commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
     @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
+    @schema (self-> Single_Choice values=(self.schemas.map t-> Option t t.pretty)+[Option "any schema" "Nothing"])
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
-    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+    tables self name_like=Nothing database=self.database schema=Nothing types=default_table_types all_fields=False =
         base_result = self.connection.tables name_like database schema types all_fields
         is_current = self.database == database && self.schema == schema
         case is_current of
@@ -192,38 +193,3 @@ create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Con
 create url properties make_new =
     jdbc_connection = JDBC_Connection.create url properties
     Postgres_Connection.Value (Connection.Value jdbc_connection Dialect.postgres) make_new Vector.new_builder
-
-## PRIVATE
-   Builds a Table like the one returned by `.tables`, from a custom list of
-   table names.
-build_tables_listing database schema table_type table_names =
-    rows = table_names.map table_name->
-        [database, schema, table_name, table_type, Nothing]
-    Materialized_Table.from_rows ["Database", "Schema", "Name", "Type", "Description"] rows
-
-## PRIVATE
-temporary_table_type = "TEMPORARY TABLE"
-
-## PRIVATE
-   This is a workaround for an issue in Postgres where temporary tables are not
-   listed by the `DatabaseMetadata.getTables` method. We add any missing tables
-   thanks to the `known_temporary_tables` property.
-extend_jdbc_tables_with_temporary connection base_result name_like =
-    known_temporary_tables = connection.known_temporary_tables.to_vector
-
-    # We check if some of the tables are by any chance included in the existing result, to avoid duplicates.
-    existing_tables = Map.from_vector allow_duplicates=True <|
-        base_result.at "Name" . to_vector . map [_, True]
-    missing_temporary_tables = known_temporary_tables.filter name->
-        already_included = existing_tables.get name False
-        already_included.not
-
-    filtered_tables = if name_like.is_nothing then missing_temporary_tables else
-        missing_temporary_tables.filter (Filter_Condition.Like name_like)
-
-    # Currently, the Postgres `tables` listing always puts `Nothing` for database, so we try to be consistent.
-    temporary_tables = build_tables_listing database=Nothing schema=connection.schema temporary_table_type filtered_tables
-    unioned = base_result.union temporary_tables on_problems=Problem_Behavior.Report_Error
-    unioned.catch Any error->
-        Panic.throw (Illegal_State.Error "Unexpected error in Postgres_Connection.tables. This is a bug in the Database library. The underlying error was: "+error.to_display_text cause=error)
-    unioned
