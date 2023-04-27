@@ -3,7 +3,7 @@ from Standard.Base.Random import random_uuid
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
-from Standard.Table.Errors import Inexact_Type_Coercion
+from Standard.Table.Errors import all
 from Standard.Table import Aggregate_Column
 
 import project.Connection.Connection.Connection
@@ -42,7 +42,7 @@ from project.Errors import all
      - If a column type is not supported and there is no replacement (e.g.
        native Enso types), an `Unsupported_Type` error is raised.
      - If the provided primary key columns are not present in the source table,
-       `No_Such_Column` error is raised.
+       `Missing_Input_Columns` error is raised.
      - If the selected primary key columns are not unique, a
        `Non_Unique_Primary_Key` error is raised.
      - An `SQL_Error` may be reported if there is a failure on the database
@@ -50,24 +50,15 @@ from project.Errors import all
 
      If an error has been raised, the table is not created (that may not always
      apply to `SQL_Error`).
-In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Non_Unique_Primary_Key | SQL_Error
+In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
 In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
-    checked_primary_key = case primary_key of
-        Nothing -> Nothing
-        _ : Vector -> if primary_key.is_empty then Nothing else
-            checked = primary_key.map name->
-                # This ensures that each column exists in the table.
-                self.at name . name
-            # And this makes sure that no duplicate columns get selected.
-            checked.if_not_error <|
-                unique_key = self.select_columns primary_key reorder=True . column_names
-                check_primary_key_is_unique self unique_key . if_not_error <|
-                    unique_key
+    resolved_primary_key = resolve_primary_key self primary_key
+    checked_primary_key = case resolved_primary_key of
+        Nothing -> resolved_primary_key
+        _ -> check_primary_key_is_unique self resolved_primary_key . if_not_error <|
+            resolved_primary_key
 
-    effective_table_name = case table_name of
-        Nothing -> if temporary then "temporary-table-"+random_uuid else
-            Error.throw (Illegal_Argument.Error "A table name must be provided if temporary=False.")
-        _ : Text -> table_name
+    effective_table_name = resolve_effective_table_name table_name temporary
 
     type_mapping = connection.dialect.get_type_mapping
     column_descriptors = self.columns.map column->
@@ -91,6 +82,14 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
         connection.query (SQL_Query.Table_Name effective_table_name)
 
 ## PRIVATE
+   Ensures that provided primary key columns are present in the table and that
+   there are no duplicates.
+resolve_primary_key table primary_key = case primary_key of
+    Nothing -> Nothing
+    _ : Vector -> if primary_key.is_empty then Nothing else
+        table.select_columns primary_key reorder=True . column_names
+
+## PRIVATE
    Checks if the specified primary key uniquely identifies all rows in the table.
 
    If the key is not unique, it will raise a `Non_Unique_Primary_Key` error.
@@ -98,6 +97,13 @@ check_primary_key_is_unique table primary_key =
     deduplicated = table.distinct primary_key
     if deduplicated.row_count != table.row_count then
         Error.throw (Non_Unique_Primary_Key.Error primary_key)
+
+## PRIVATE
+   Generates a random table name if it was nothing, if it is allowed (temporary=True).
+resolve_effective_table_name table_name temporary = case table_name of
+    Nothing -> if temporary then "temporary-table-"+random_uuid else
+        Error.throw (Illegal_Argument.Error "A table name must be provided if temporary=False.")
+    _ : Text -> table_name
 
 ## PRIVATE
    The recommended batch size seems to be between 50 and 100.
