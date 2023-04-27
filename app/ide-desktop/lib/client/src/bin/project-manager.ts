@@ -29,7 +29,7 @@ export function pathOrPanic(args: config.Args): string {
     }
 }
 
-/** Executes the Project Manager with given arguments. */
+/** Execute the Project Manager with given arguments. */
 async function exec(args: config.Args, processArgs: string[]) {
     const binPath = pathOrPanic(args)
     return await execFile(binPath, processArgs)

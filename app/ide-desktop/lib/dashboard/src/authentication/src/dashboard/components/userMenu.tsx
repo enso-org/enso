@@ -38,8 +38,7 @@ function UserMenu() {
     const { accessToken, organization } = auth.useFullUserSession()
     const { setModal } = modalProvider.useSetModal()
 
-    /** Redirect to the user profile page. */
-    function goToProfile() {
+    const goToProfile = () => {
         // TODO: Implement this when the backend endpoints are implemented.
     }
 

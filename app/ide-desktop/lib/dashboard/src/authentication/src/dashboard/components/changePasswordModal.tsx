@@ -22,8 +22,7 @@ function ChangePasswordModal() {
     const [newPassword, setNewPassword] = react.useState('')
     const [confirmNewPassword, setConfirmNewPassword] = react.useState('')
 
-    /** Submit the form to the backend and update the UI. */
-    async function handleSubmit() {
+    const handleSubmit = async () => {
         if (newPassword !== confirmNewPassword) {
             toast.error('Passwords do not match.')
         } else {

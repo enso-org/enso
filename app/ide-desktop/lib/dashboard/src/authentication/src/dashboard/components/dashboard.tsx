@@ -161,19 +161,19 @@ function columnName(column: Column, assetType: backend.AssetType) {
     return column === Column.name ? ASSET_TYPE_NAME[assetType] : COLUMN_NAME[column]
 }
 
-/** Returns the id of the root directory for a user or organization. */
+/** Return the id of the root directory for a user or organization. */
 function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
     return newtype.asNewtype<backend.DirectoryId>(
         userOrOrganizationId.replace(/^organization-/, `${backend.AssetType.directory}-`)
     )
 }
 
-/** Returns the file extension of a file name. */
+/** Extract the file extension from a file name. */
 function fileExtension(fileName: string) {
     return fileName.match(/\.(.+?)$/)?.[1] ?? ''
 }
 
-/** Returns the appropriate icon for a specific file extension. */
+/** Return the appropriate icon for a specific file extension. */
 function fileIcon(_extension: string) {
     return svg.FILE_ICON
 }
@@ -279,8 +279,7 @@ function Dashboard(props: DashboardProps) {
         ),
     }
 
-    /** Returns a function that returns JSX for the specified {@link Column}. */
-    function renderer<Type extends backend.AssetType>(column: Column, assetType: Type) {
+    const renderer = <Type extends backend.AssetType>(column: Column, assetType: Type) => {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax

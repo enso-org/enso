@@ -91,7 +91,7 @@ const logger = contentConfig.logger
 // === Initialize Authentication Module ===
 // ========================================
 
-/** Configures all the functionality that must be set up in the Electron app to support
+/** Configure all the functionality that must be set up in the Electron app to support
  * authentication-related flows. Must be called in the Electron app `whenReady` event.
  *
  * @param window - A function that returns the main Electron window. This argument is a lambda and
@@ -104,7 +104,7 @@ export function initModule(window: () => electron.BrowserWindow) {
     initSaveAccessTokenListener()
 }
 
-/** Registers an Inter-Process Communication (IPC) channel between the Electron application and the
+/** Register an Inter-Process Communication (IPC) channel between the Electron application and the
  * served website.
  *
  * This channel listens for {@link ipc.Channel.openUrlInSystemBrowser} events. When this kind of
@@ -122,7 +122,7 @@ function initIpc() {
     })
 }
 
-/** Registers a listener that fires a callback for `open-url` events, when the URL is a deep link.
+/** Register a listener that fires a callback for `open-url` events, when the URL is a deep link.
  *
  * This listener is used to open a page in *this* application window, when the user is
  * redirected to a URL with a protocol supported by this application.
@@ -152,7 +152,7 @@ export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
     }
 }
 
-/** Registers a listener that fires a callback for `save-access-token` events.
+/** Register a listener that fires a callback for `save-access-token` events.
  *
  * This listener is used to save given access token to credentials file to be later used by enso backend.
  *

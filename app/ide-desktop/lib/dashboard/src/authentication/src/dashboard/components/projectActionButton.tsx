@@ -97,8 +97,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })()
     }, [])
 
-    /** Closes project and sets UI state. */
-    function closeProject() {
+    const closeProject = () => {
         setState(backend.ProjectState.closed)
         void backendService.closeProject(project.id)
 
@@ -110,8 +109,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })
     }
 
-    /** Opens project and sets UI state. */
-    function openProject() {
+    const openProject = () => {
         setState(backend.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
@@ -123,8 +121,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
         void backendService.openProject(project.id)
 
-        /** Fetches project details from the backend. */
-        async function checkProjectStatus() {
+        const checkProjectStatus = async () => {
             const response = await backendService.getProjectDetails(project.id)
 
             setState(response.state.type)

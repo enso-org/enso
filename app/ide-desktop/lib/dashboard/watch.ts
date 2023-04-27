@@ -34,7 +34,7 @@ OPTS.loader = { '.html': 'copy' }
 // === Watcher ===
 // ===============
 
-/** Starts the esbuild watcher. */
+/** Start the esbuild watcher. */
 async function watch() {
     const builder = await esbuild.context(OPTS)
     await builder.watch()

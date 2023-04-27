@@ -35,7 +35,7 @@ function blobToBase64(blob: Blob) {
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export class Client {
-    /** Creates a new HTTP client with the specified headers to be sent on every request. */
+    /** Create a new HTTP client with the specified headers to be sent on every request. */
     constructor(
         /** A map of default headers that are included in every HTTP request sent by this client.
          *
@@ -44,17 +44,17 @@ export class Client {
         public defaultHeaders: Headers
     ) {}
 
-    /** Sends an HTTP GET request to the specified URL. */
+    /** Send an HTTP GET request to the specified URL. */
     get<T = void>(url: string) {
         return this.request<T>(HttpMethod.get, url)
     }
 
-    /** Sends a JSON HTTP POST request to the specified URL. */
+    /** Send a JSON HTTP POST request to the specified URL. */
     post<T = void>(url: string, payload: object) {
         return this.request<T>(HttpMethod.post, url, JSON.stringify(payload), 'application/json')
     }
 
-    /** Sends a base64-encoded binary HTTP POST request to the specified URL. */
+    /** Send a base64-encoded binary HTTP POST request to the specified URL. */
     async postBase64<T = void>(url: string, payload: Blob) {
         return await this.request<T>(
             HttpMethod.post,
@@ -64,17 +64,17 @@ export class Client {
         )
     }
 
-    /** Sends a JSON HTTP PUT request to the specified URL. */
+    /** Send a JSON HTTP PUT request to the specified URL. */
     put<T = void>(url: string, payload: object) {
         return this.request<T>(HttpMethod.put, url, JSON.stringify(payload), 'application/json')
     }
 
-    /** Sends an HTTP DELETE request to the specified URL. */
+    /** Send an HTTP DELETE request to the specified URL. */
     delete<T = void>(url: string) {
         return this.request<T>(HttpMethod.delete, url)
     }
 
-    /** Executes an HTTP request to the specified URL, with the given HTTP method. */
+    /** Execute an HTTP request to the specified URL, with the given HTTP method. */
     private request<T = void>(
         method: HttpMethod,
         url: string,

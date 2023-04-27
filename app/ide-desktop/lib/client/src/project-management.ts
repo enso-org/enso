@@ -26,7 +26,7 @@ const logger = config.logger
 // === Project Import ===
 // ======================
 
-/** Opens a project from the given path. Path can be either a source file under the project root, or the project
+/** Open a project from the given path. Path can be either a source file under the project root, or the project
  * bundle. If needed, the project will be imported into the Project Manager-enabled location.
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
@@ -56,7 +56,7 @@ export function importProjectFromPath(openedPath: string): string {
     }
 }
 
-/** Imports the project from a bundle.
+/** Import the project from a bundle.
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
@@ -71,9 +71,9 @@ export function importBundle(bundlePath: string): string {
     //   to generate a new target directory name;
     // * contain the project files directly - in this case, the archive filename will be used
     //   to generate a new target directory name.
-    // We try to tell apart these two cases
-    // by looking at the common prefix of the paths of the files in the archive.
-    // If there is any, everything is under a single directory, and we need to strip it.
+    // We try to tell apart these two cases by looking at the common prefix of the paths
+    // of the files in the archive. If there is any, everything is under a single directory,
+    // and we need to strip it.
     tar.x({
         file: bundlePath,
         cwd: targetDirectory,
@@ -83,7 +83,7 @@ export function importBundle(bundlePath: string): string {
     return updateId(targetDirectory)
 }
 
-/** Imports the project so it becomes visible to the Project Manager.
+/** Import the project so it becomes visible to the Project Manager.
  *
  * @param rootPath - The path to the project root.
  * @returns The project ID (from the Project Manager's metadata) identifying the imported project.
@@ -139,12 +139,12 @@ function isProjectMetadata(value: unknown): value is ProjectMetadata {
     )
 }
 
-/** Gets the ID from the project metadata. */
+/** Get the ID from the project metadata. */
 export function getProjectId(projectRoot: string): string {
     return getMetadata(projectRoot).id
 }
 
-/** Retrieves the project's metadata.
+/** Retrieve the project's metadata.
  *
  * @throws {Error} if the metadata file is missing or ill-formed. */
 export function getMetadata(projectRoot: string): ProjectMetadata {
@@ -158,13 +158,13 @@ export function getMetadata(projectRoot: string): ProjectMetadata {
     }
 }
 
-/** Writes the project's metadata. */
+/** Write the project's metadata. */
 export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
     const metadataPath = pathModule.join(projectRoot, paths.PROJECT_METADATA_RELATIVE)
     fss.writeFileSync(metadataPath, JSON.stringify(metadata, null, utils.INDENT_SIZE))
 }
 
-/** Updates the project's metadata.
+/** Update the project's metadata.
  * If the provided updater does not return anything, the metadata file is left intact.
  *
  * Returns the metadata returned from the updater function. */
@@ -215,11 +215,13 @@ export function directoryWithinBundle(bundlePath: string): string | null {
     return commonPrefix ? pathModule.basename(commonPrefix) : null
 }
 
-/** Generates a name for a project using given base string. Suffixes are added if there is a collision.
+/** Generate a name for a project using given base string. A suffix is added if there is a
+ * collision.
  *
  * For example `Name` will become `Name_1` if there's already a directory named `Name`.
- * If given a name like `Name_1` it will become `Name_2` if there is already a directory named `Name_1`.
- * If a path containing multiple components is given, only the last component is used for the name. */
+ * If given a name like `Name_1` it will become `Name_2` if there is already a directory named
+ * `Name_1`. If a path containing multiple components is given, only the last component is used
+ * for the name. */
 export function generateDirectoryName(name: string): string {
     // Use only the last path component.
     name = pathModule.parse(name).name
@@ -248,7 +250,7 @@ export function generateDirectoryName(name: string): string {
     // Unreachable.
 }
 
-/** Takes a path to a file, presumably located in a project's subtree. Returns the path to the project's root directory
+/** Take a path to a file, presumably located in a project's subtree. Returns the path to the project's root directory
  * or `null` if the file is not located in a project. */
 export function getProjectRoot(subtreePath: string): string | null {
     let currentPath = subtreePath
@@ -263,12 +265,12 @@ export function getProjectRoot(subtreePath: string): string | null {
     return currentPath
 }
 
-/** Gets the directory that stores Enso projects. */
+/** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
     return pathModule.join(electron.app.getPath('home'), 'enso', 'projects')
 }
 
-/** Checks if the given project is installed, i.e. can be opened with the Project Manager. */
+/** Check if the given project is installed, i.e. can be opened with the Project Manager. */
 export function isProjectInstalled(projectRoot: string): boolean {
     // Project can be opened by project manager only if its root directory is directly under the projects directory.
     const projectsDirectory = getProjectsDirectory()
@@ -281,12 +283,12 @@ export function isProjectInstalled(projectRoot: string): boolean {
 // === Project ID ===
 // ==================
 
-/** Generates a unique UUID for a project. */
+/** Generate a unique UUID for a project. */
 export function generateId(): string {
     return crypto.randomUUID()
 }
 
-/** Updates the project's ID to a new, unique value. */
+/** Update the project's ID to a new, unique value. */
 export function updateId(projectRoot: string): string {
     return updateMetadata(projectRoot, metadata => ({
         ...metadata,

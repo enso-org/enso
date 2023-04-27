@@ -109,7 +109,7 @@ export interface AuthService {
     registerAuthEventListener: listen.ListenFunction
 }
 
-/** Creates an instance of the authentication service.
+/** Create an instance of the authentication service.
  *
  * # Warning
  *
@@ -125,7 +125,7 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
     }
 }
 
-/** Returns the appropriate Amplify configuration for the current  */
+/** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
     logger: loggerProvider.Logger,
     platform: platformModule.Platform,
@@ -164,12 +164,12 @@ function loadAmplifyConfig(
     }
 }
 
-/** Opens a URL with the user's default browser. */
+/** Open a URL with the user's default browser. */
 function openUrlWithExternalBrowser(url: string) {
     window.authenticationApi.openUrlInSystemBrowser(url)
 }
 
-/** Saves the access token to a file. */
+/** Save the access token to a file. */
 function saveAccessToken(accessToken: string) {
     window.authenticationApi.saveAccessToken(accessToken)
 }
@@ -192,7 +192,6 @@ function saveAccessToken(accessToken: string) {
  * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
  * ignored by this handler. */
 function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
-    /** Handles incoming deep links. */
     const onDeepLink = (url: string) => {
         const parsedUrl = new URL(url)
         logger.log(`Parsed pathname: ${parsedUrl.pathname}`)

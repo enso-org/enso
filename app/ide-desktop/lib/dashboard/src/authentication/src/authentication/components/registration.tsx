@@ -20,8 +20,7 @@ function Registration() {
     const [password, setPassword] = react.useState('')
     const [confirmPassword, setConfirmPassword] = react.useState('')
 
-    /** Submit the form to the backend. */
-    function handleSubmit() {
+    const handleSubmit = () => {
         /** The password & confirm password fields must match. */
         if (password !== confirmPassword) {
             toast.error('Passwords do not match.')

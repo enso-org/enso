@@ -7,7 +7,7 @@ import * as bundler from './esbuild-config.js'
 const PORT = 8080
 const HTTP_STATUS_OK = 200
 
-/** Starts the esbuild watcher. */
+/** Start the esbuild watcher. */
 async function watch() {
     const opts = bundler.bundleOptions()
     const builder = await esbuild.context(opts)

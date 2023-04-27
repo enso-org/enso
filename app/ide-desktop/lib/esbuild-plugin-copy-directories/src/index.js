@@ -37,12 +37,12 @@ export default function esbuildPluginCopyDirectories(options) {
             const outputDir =
                 build.initialOptions.outdir ?? error('Output directory must be given.')
             /** @param {string} root - Path to the directory to watch. */
-            function continuouslySync(root) {
+            const continuouslySync = root => {
                 // It's theoretically possible to use a single `chokidar` instance,
                 // however the root directory path is needed for calculating the destination path.
                 const watcher = chokidar.watch(root, { cwd: root })
                 /** @param {string} path - Path to the file to be copied. */
-                function copy(path) {
+                const copy = path => {
                     void (async () => {
                         const source = pathModule.resolve(root, path)
                         const destination = pathModule.join(outputDir, path)

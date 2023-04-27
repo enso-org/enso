@@ -56,7 +56,7 @@ export function SessionProvider(props: SessionProviderProps) {
     /** Produces a new object every time.
      * This is not equal to any other empty object because objects are compared by reference.
      * Because it is not equal to the old value, React re-renders the component. */
-    function newRefresh() {
+    const newRefresh = () => {
         return {}
     }
 

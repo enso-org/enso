@@ -126,7 +126,7 @@ export interface NestedAmplifyConfig {
     oauth: OauthAmplifyConfig
 }
 
-/** Converts the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
+/** Convert the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
  *
  * We use a flattened form of the config for easier object manipulation, but the AWS Amplify library
  * expects a nested form. */

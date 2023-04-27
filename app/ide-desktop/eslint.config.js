@@ -198,6 +198,10 @@ const RESTRICTED_SYNTAXES = [
             'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
         message: 'Use type assertions to specific types instead of `unknown`, `any` or `never`',
     },
+    {
+        selector: ':matches(MethodDeclaration, FunctionDeclaration) FunctionDeclaration',
+        message: 'Use arrow functions for nested functions',
+    },
 ]
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -233,7 +237,7 @@ export default [
                         FunctionDeclaration: true,
                         MethodDefinition: true,
                         ClassDeclaration: true,
-                        ArrowFunctionExpression: true,
+                        ArrowFunctionExpression: false,
                         FunctionExpression: true,
                     },
                 },

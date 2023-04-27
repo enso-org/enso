@@ -199,7 +199,7 @@ export const SPEECH_BUBBLE_ICON = (
 // ===========
 
 /** Props for the `Svg` component. */
-interface Props {
+interface SvgProps {
     path: string
 }
 
@@ -207,7 +207,7 @@ interface Props {
  *
  * @param props - Extra props for the SVG path. The `props.data` field in particular contains the
  * SVG path data. */
-function Svg(props: Props) {
+function Svg(props: SvgProps) {
     return (
         <svg
             className="h-6 w-6"

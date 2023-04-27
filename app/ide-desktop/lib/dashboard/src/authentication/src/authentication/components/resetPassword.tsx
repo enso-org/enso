@@ -35,8 +35,7 @@ function ResetPassword() {
     const [newPassword, setNewPassword] = react.useState('')
     const [newPasswordConfirm, setNewPasswordConfirm] = react.useState('')
 
-    /** Submit the form to the backend. */
-    function handleSubmit() {
+    const handleSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
             toast.error('Passwords do not match')
             return Promise.resolve()

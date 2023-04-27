@@ -25,7 +25,7 @@ const DEFAULT_PORT = 8080
 /** Window size (width and height). */
 export class WindowSize {
     static separator = 'x'
-    /** Constructs a new {@link WindowSize}. */
+    /** Create a new {@link WindowSize}. */
     constructor(public width: number, public height: number) {}
 
     /** Constructor of the default window size. */
@@ -33,7 +33,7 @@ export class WindowSize {
         return new WindowSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
     }
 
-    /** Parses the input text in form of `<width>x<height>`. */
+    /** Parse the input text in form of `<width>x<height>`. */
     static parse(arg: string): Error | WindowSize {
         const size = arg.split(WindowSize.separator)
         const widthStr = size[0]
@@ -47,7 +47,7 @@ export class WindowSize {
         }
     }
 
-    /** Returns window size in a form of `<width>x<height>`. */
+    /** Return window size in a form of `<width>x<height>`. */
     pretty(): string {
         return `${this.width}${WindowSize.separator}${this.height}`
     }

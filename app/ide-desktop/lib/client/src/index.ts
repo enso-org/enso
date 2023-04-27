@@ -44,7 +44,7 @@ class App {
     args: config.Args = config.CONFIG
     isQuitting = false
 
-    /** Initializes and runs the Electron application. */
+    /** Initialize and run the Electron application. */
     async run() {
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
@@ -77,7 +77,7 @@ class App {
         }
     }
 
-    /** Processes the command line arguments. */
+    /** Process the command line arguments. */
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
@@ -116,11 +116,14 @@ class App {
         }
     }
 
-    /** Sets Chrome options based on the app configuration. For comprehensive list of available
+    /** Set Chrome options based on the app configuration. For comprehensive list of available
      * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
     setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
-        /** Adds the specified Chrome option when the specified command line option is enabled. */
-        function addIf(opt: contentConfig.Option<boolean>, chromeOptName: string, value?: string) {
+        const addIf = (
+            opt: contentConfig.Option<boolean>,
+            chromeOptName: string,
+            value?: string
+        ) => {
             if (opt.value) {
                 const chromeOption = new configParser.ChromeOption(chromeOptName, value)
                 const chromeOptionStr = chromeOption.display()
@@ -129,8 +132,7 @@ class App {
                 chromeOptions.push(chromeOption)
             }
         }
-        /** Adds the specified Chrome option. */
-        function add(option: string, value?: string) {
+        const add = (option: string, value?: string) => {
             chromeOptions.push(new configParser.ChromeOption(option, value))
         }
         logger.groupMeasured('Setting Chrome options', () => {
@@ -331,7 +333,7 @@ class App {
         }
     }
 
-    /** Prints the version of the frontend and the backend. */
+    /** Print the version of the frontend and the backend. */
     async printVersion(): Promise<void> {
         const indent = ' '.repeat(utils.INDENT_SIZE)
         let maxNameLen = 0
@@ -357,7 +359,7 @@ class App {
         }
     }
 
-    /** Registers keyboard shortcuts. */
+    /** Register keyboard shortcuts. */
     registerShortcuts() {
         electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
             webContents.on('before-input-event', (_beforeInputEvent, input) => {
