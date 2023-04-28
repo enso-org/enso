@@ -433,7 +433,7 @@ impl<'a, T> Ref<'a, T> {
         self,
         ast_crumbs: &'b [ast::Crumb],
     ) -> Option<NodeFoundByAstCrumbs<'a, 'b, T>> {
-        error!("get_descendant_by_ast_crumbs {ast_crumbs:?}");
+        // error!("get_descendant_by_ast_crumbs {ast_crumbs:?}");
         if self.node.children.is_empty() || ast_crumbs.is_empty() {
             let node = self;
             let remaining_ast_crumbs = ast_crumbs;
@@ -441,14 +441,14 @@ impl<'a, T> Ref<'a, T> {
         } else {
             // Please be advised, that the `ch.ast_crumbs` is not a field of Ref, but Child, and
             // therefore have different meaning!
-            error!("Self kind: {:?}", self.node.kind);
+            // error!("Self kind: {:?}", self.node.kind);
             let next = self
                 .node
                 .children
                 .iter()
                 .find_position(|ch| {
-                    error!("Ast crumbs: {:?}", ch.ast_crumbs);
-                    error!("Kind: {:?}", ch.kind);
+                    // error!("Ast crumbs: {:?}", ch.ast_crumbs);
+                    // error!("Kind: {:?}", ch.kind);
                     !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
                 })
                 .or_else(|| {
@@ -459,13 +459,13 @@ impl<'a, T> Ref<'a, T> {
                     // TODO[ao]: As implementation of SpanTree will extend there may be some day
                     // more  cases. Should be reconsidered in https://github.com/enso-org/ide/issues/787
                     self.node.children.iter().find_position(|ch| {
-                        error!("Ast crumbs: {:?}", ch.ast_crumbs);
-                        error!("Kind: {:?}", ch.kind);
+                        // error!("Ast crumbs: {:?}", ch.ast_crumbs);
+                        // error!("Kind: {:?}", ch.kind);
                         ch.ast_crumbs.is_empty() && !ch.kind.is_insertion_point()
                     })
                 });
             next.and_then(|(id, child)| {
-                error!("And then");
+                // error!("And then");
                 let ast_subcrumbs = &ast_crumbs[child.ast_crumbs.len()..];
                 self.child(id).unwrap().get_descendant_by_ast_crumbs(ast_subcrumbs)
             })

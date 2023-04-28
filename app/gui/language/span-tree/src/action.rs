@@ -313,9 +313,9 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     // 4. Update `next_parent` to be the parent of the current node.
                     while let Some(node) = next_parent {
                         // We're only interested in nodes inside the prefix chain.
-                        error!("kind: {:?}", node.node.kind);
-                        error!("crumbs: {:?}", node.crumbs);
-                        error!("ast_crumbs: {:?}", node.ast_crumbs);
+                        // error!("kind: {:?}", node.node.kind);
+                        // error!("crumbs: {:?}", node.crumbs);
+                        // error!("ast_crumbs: {:?}", node.ast_crumbs);
                         // if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
                         //     break;
                         // }
@@ -325,14 +325,19 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         //     error!("crumbs: {:?}", ch.crumbs);
                         //     ch.ast_crumbs == &[Crumb::Prefix(PrefixCrumb::Arg)]
                         // });
-                        error!("Right before argument node!");
+                        // error!("Right before argument node!");
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());
 
+                        error!(
+                            "Arg kind: {:?}",
+                            argument_node.as_ref().map(|f| f.node.kind.clone())
+                        );
                         match argument_node {
                             Some(found) if found.node.is_argument() =>
                                 if let Some(arg_name) = found.node.kind.argument_name() {
+                                    error!("Argument: {arg_name}");
                                     let def_idx = found.node.kind.definition_index();
                                     let need_rewrite =
                                         def_idx.map_or(false, |idx| idx > erased_definition_index);
