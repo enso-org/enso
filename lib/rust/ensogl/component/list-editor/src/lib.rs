@@ -1040,14 +1040,18 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// Place the currently dragged element in the given index. The item will be enclosed in the
     /// [`Item`] object, will handles its animation. See the documentation of
     /// [`ItemOrPlaceholder`] to learn more.
-    fn place_dragged_item(&mut self, index: ItemOrPlaceholderIndex) -> Option<Index> {
+    fn place_dragged_item(&mut self, index: ItemOrPlaceholderIndex) -> Option<Index>
+    where T: Debug {
         if let Some(item) = self.cursor.stop_drag_if_is::<T>() {
             self.collapse_all_placeholders_no_margin_update();
-            if let Some((index, placeholder)) = self.get_indexed_merged_placeholder_at(index) {
+            let actual_index = if let Some((index, placeholder)) =
+                self.get_indexed_merged_placeholder_at(index)
+            {
                 placeholder.set_target_size(placeholder.computed_size().x);
                 item.update_xy(|t| t - placeholder.global_position().xy());
                 self.items[index] =
                     Item::new_from_placeholder(item.clone_ref(), placeholder).into();
+                index
             } else {
                 // This branch should never be reached, as when dragging an item we always create
                 // a placeholder for it (see the [`Self::add_insertion_point_if_type_match`]
@@ -1055,9 +1059,10 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
                 // provide the user with the correct outcome.
                 self.items.insert(index, Item::new(item.clone_ref()).into());
                 warn!("An element was inserted without a placeholder. This should not happen.");
-            }
+                index
+            };
             self.reposition_items();
-            self.item_or_placeholder_index_to_index(index)
+            self.item_or_placeholder_index_to_index(actual_index)
         } else {
             warn!("Called function to insert dragged element, but no element is being dragged.");
             None
