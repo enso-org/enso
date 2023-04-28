@@ -57,8 +57,8 @@ public abstract class ExecuteCallNode extends Node {
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
-      @Cached(value = "function.getCallTarget()", allowUncached = true) RootCallTarget cachedTarget,
-      @Cached(value = "createInlineableNode(cachedTarget)", allowUncached = true) InlineableNode callNode) {
+      @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
+      @Cached("createInlineableNode(cachedTarget)") InlineableNode callNode) {
     var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments);
     return callNode.call(frame, args);
   }
@@ -115,7 +115,7 @@ public abstract class ExecuteCallNode extends Node {
    * @param callNode the cached call node for making indirect calls
    * @return the result of executing {@code function} on {@code arguments}
    */
-  @Specialization(replaces = "callDirect")
+  @Specialization(replaces = { "callDirect", "callInlineable" })
   protected Object callIndirect(
       Function function,
       CallerInfo callerInfo,
