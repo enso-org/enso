@@ -297,7 +297,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (result instanceof DataflowError) {
         return result;
       } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.prepend(extracted);
+        return withWarnings.append(extracted);
       } else {
         return WithWarnings.wrap(result, extracted);
       }

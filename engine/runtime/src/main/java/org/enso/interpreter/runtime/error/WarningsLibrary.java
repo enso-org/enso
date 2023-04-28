@@ -42,7 +42,7 @@ public abstract class WarningsLibrary extends Library {
   }
 
   /**
-   * Returns all warnings associated with the receiver.
+   * Returns all unique warnings associated with the receiver.
    *
    * @param receiver the receiver to analyze
    * @param location optional parameter specifying the node to which the warnings should be
