@@ -126,7 +126,7 @@
         },
         "profiling": {
           "value": false,
-          "description": "Enable the option to profile workflows.",
+          "description": "Enable the button to profile workflows.",
           "primary": false
         }
       }
