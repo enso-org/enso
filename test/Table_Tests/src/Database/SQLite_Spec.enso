@@ -180,7 +180,7 @@ spec =
         Test.specify 'should not duplicate warnings' <|
             c = Database.connect (SQLite In_Memory)
             t0 = Table.new [["X", ["a", "bc", "def"]]]
-            t1 = c.upload_table "Tabela" t0
+            t1 = t0.create_database_table c "Tabela"
             t2 = t1.cast "X" (Value_Type.Char size=1)
             Warning.get_all t2 . length . should_equal 1
 
