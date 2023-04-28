@@ -9,14 +9,15 @@ public class DryRunFileManager {
   static final Map<String, String> files = new HashMap<>();
 
   /**
-   * Creates a temporary file for the given name.
+   * Creates a temporary file for the given path. If the path is already a
+   * dry run temporary file, the same path will be returned.
    *
-   * @param name the path to the file to make a temporary file of.
+   * @param path the path to the file to make a temporary file of.
    * @return the path to the temporary file.
    */
-  public static String getTemporaryFile(String name) {
+  public static String getTemporaryFile(String path) {
     return files.computeIfAbsent(
-        name,
+        path,
         k -> {
           if (files.containsValue(k)) {
             // Existing temporary file so return this.
