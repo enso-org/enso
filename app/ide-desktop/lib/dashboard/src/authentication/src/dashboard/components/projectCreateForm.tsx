@@ -14,7 +14,6 @@ export interface ProjectCreateFormProps extends createForm.CreateFormPassthrough
     onSuccess: () => void
 }
 
-// FIXME[sb]: Extract shared shape to a common component.
 function ProjectCreateForm(props: ProjectCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
