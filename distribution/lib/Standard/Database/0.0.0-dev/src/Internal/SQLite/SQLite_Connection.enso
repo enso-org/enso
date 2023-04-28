@@ -17,7 +17,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Connection.Connection import default_table_types, make_table_types_selector, make_schema_selector, make_table_name_selector
+from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector
 from project.Errors import SQL_Error
 
 type SQLite_Connection
@@ -96,7 +96,7 @@ type SQLite_Connection
     @types make_table_types_selector
     @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
-    tables self name_like=Nothing database=self.database schema=Nothing types=default_table_types all_fields=False =
+    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
     ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.

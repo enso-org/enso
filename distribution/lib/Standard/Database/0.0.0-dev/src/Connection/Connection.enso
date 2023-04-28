@@ -120,7 +120,7 @@ type Connection
     @types make_table_types_selector
     @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
-    tables self name_like=Nothing database=self.database schema=Nothing types=default_table_types all_fields=False =
+    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
@@ -235,11 +235,6 @@ type Connection
     drop_table self table_name =
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))
 
-## ADVANCED
-   The default types we want to include in `tables`.
-default_table_types =
-    ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE", "GLOBAL TEMPORARY"]
-
 ## PRIVATE
 make_table_types_selector connection =
     Single_Choice values=(connection.table_types.map t-> Option t t.pretty)
@@ -251,7 +246,7 @@ make_schema_selector connection =
 
 ## PRIVATE
 all_known_table_names connection =
-    tables = connection.tables name_like=Nothing database=connection.database schema=Nothing types=default_table_types all_fields=False
+    tables = connection.tables name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False
     tables.at "Name" . to_vector
 
 ## PRIVATE
