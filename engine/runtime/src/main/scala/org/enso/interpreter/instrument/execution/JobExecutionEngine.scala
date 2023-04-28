@@ -175,7 +175,7 @@ final class JobExecutionEngine(
     runtimeContext.executionService.getContext.getThreadManager
       .interruptThreads()
     jobExecutor.shutdownNow()
-    backgroundJobExecutor.shutdown()
+    backgroundJobExecutor.shutdownNow()
   }
 
   /** Submit background jobs preserving the stable order. */
