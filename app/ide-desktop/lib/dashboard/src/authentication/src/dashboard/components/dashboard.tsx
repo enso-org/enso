@@ -633,7 +633,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`select-none text-primary text-xs min-h-screen ${
+            className={`select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -645,158 +645,154 @@ function Dashboard(props: DashboardProps) {
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
-            <div>
-                <TopBar
-                    platform={platform}
-                    projectName={project?.name ?? null}
-                    tab={tab}
-                    toggleTab={() => {
-                        if (project && tab === Tab.dashboard) {
-                            setTab(Tab.ide)
-                            const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                            if (ideElement) {
-                                ideElement.hidden = false
-                            }
-                        } else {
-                            setTab(Tab.dashboard)
-                            const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                            if (ideElement) {
-                                ideElement.hidden = true
-                            }
+            <TopBar
+                platform={platform}
+                projectName={project?.name ?? null}
+                tab={tab}
+                toggleTab={() => {
+                    if (project && tab === Tab.dashboard) {
+                        setTab(Tab.ide)
+                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                        if (ideElement) {
+                            ideElement.hidden = false
                         }
-                    }}
-                    setBackendPlatform={newBackendPlatform => {
-                        setProjectAssets([])
-                        setDirectoryAssets([])
-                        setSecretAssets([])
-                        setFileAssets([])
-                        switch (newBackendPlatform) {
-                            case platformModule.Platform.desktop:
-                                setBackend(localService.createBackend())
-                                break
-                            case platformModule.Platform.cloud:
-                                setBackend(cloudService.createBackend(accessToken, logger))
-                                break
+                    } else {
+                        setTab(Tab.dashboard)
+                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                        if (ideElement) {
+                            ideElement.hidden = true
                         }
-                    }}
-                    query={query}
-                    setQuery={setQuery}
-                />
-                <Templates onTemplateClick={handleCreateProject} />
-                <div className="flex flex-row flex-nowrap">
-                    <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
-                    <div className="flex flex-row flex-nowrap mx-4">
-                        <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                            {directory && (
-                                <>
-                                    <button className="mx-2" onClick={exitDirectory}>
-                                        {parentDirectory?.title ?? '/'}
-                                    </button>
-                                    {svg.SMALL_RIGHT_ARROW_ICON}
-                                </>
-                            )}
-                            <span className="mx-2">{directory?.title ?? '/'}</span>
-                        </div>
-                        <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                            <div className="m-2">Shared with</div>
-                            <div className="-m-1">
-                                <PermissionDisplay
-                                    permissions={{ type: permissionDisplay.Permission.admin }}
-                                >
-                                    marketing
-                                </PermissionDisplay>
-                            </div>
-                        </div>
-                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                            <button
-                                className={`mx-1 ${
-                                    backend.platform === platformModule.Platform.desktop
-                                        ? 'opacity-50'
-                                        : ''
-                                }`}
-                                onClick={event => {
-                                    event.stopPropagation()
-                                    setModal(() => (
-                                        <UploadFileModal
-                                            directoryId={directoryId}
-                                            onSuccess={doRefresh}
-                                        />
-                                    ))
-                                }}
-                            >
-                                {svg.UPLOAD_ICON}
-                            </button>
-                            <button
-                                className={`mx-1 ${
-                                    selectedAssets.length === 0 ? 'opacity-50' : ''
-                                }`}
-                                disabled={selectedAssets.length === 0}
-                                onClick={event => {
-                                    event.stopPropagation()
-                                    /* TODO */
-                                }}
-                            >
-                                {svg.DOWNLOAD_ICON}
-                            </button>
-                        </div>
-                        {EXPERIMENTAL && (
+                    }
+                }}
+                setBackendPlatform={newBackendPlatform => {
+                    setProjectAssets([])
+                    setDirectoryAssets([])
+                    setSecretAssets([])
+                    setFileAssets([])
+                    switch (newBackendPlatform) {
+                        case platformModule.Platform.desktop:
+                            setBackend(localService.createBackend())
+                            break
+                        case platformModule.Platform.cloud:
+                            setBackend(cloudService.createBackend(accessToken, logger))
+                            break
+                    }
+                }}
+                query={query}
+                setQuery={setQuery}
+            />
+            <Templates onTemplateClick={handleCreateProject} />
+            <div className="flex flex-row flex-nowrap my-2">
+                <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
+                <div className="flex flex-row flex-nowrap mx-4">
+                    <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
+                        {directory && (
                             <>
-                                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.all
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.all)
-                                        }}
-                                    >
-                                        All
-                                    </button>
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.compact
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.compact)
-                                        }}
-                                    >
-                                        Compact
-                                    </button>
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.docs
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.docs)
-                                        }}
-                                    >
-                                        Docs
-                                    </button>
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.settings
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.settings)
-                                        }}
-                                    >
-                                        Settings
-                                    </button>
-                                </div>
+                                <button className="mx-2" onClick={exitDirectory}>
+                                    {parentDirectory?.title ?? '/'}
+                                </button>
+                                {svg.SMALL_RIGHT_ARROW_ICON}
                             </>
                         )}
+                        <span className="mx-2">{directory?.title ?? '/'}</span>
                     </div>
+                    <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
+                        <div className="m-2">Shared with</div>
+                        <div className="-m-1">
+                            <PermissionDisplay
+                                permissions={{ type: permissionDisplay.Permission.admin }}
+                            >
+                                marketing
+                            </PermissionDisplay>
+                        </div>
+                    </div>
+                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
+                        <button
+                            className={`mx-1 ${
+                                backend.platform === platformModule.Platform.desktop
+                                    ? 'opacity-50'
+                                    : ''
+                            }`}
+                            onClick={event => {
+                                event.stopPropagation()
+                                setModal(() => (
+                                    <UploadFileModal
+                                        directoryId={directoryId}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
+                            }}
+                        >
+                            {svg.UPLOAD_ICON}
+                        </button>
+                        <button
+                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
+                            disabled={selectedAssets.length === 0}
+                            onClick={event => {
+                                event.stopPropagation()
+                                /* TODO */
+                            }}
+                        >
+                            {svg.DOWNLOAD_ICON}
+                        </button>
+                    </div>
+                    {EXPERIMENTAL && (
+                        <>
+                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.all
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.all)
+                                    }}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.compact
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.compact)
+                                    }}
+                                >
+                                    Compact
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.docs
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.docs)
+                                    }}
+                                >
+                                    Docs
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.settings
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.settings)
+                                    }}
+                                >
+                                    Settings
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
-            <table className="items-center w-full bg-transparent border-collapse m-2">
+            <table className="items-center w-full bg-transparent border-collapse mt-2">
                 <tbody>
                     <tr className="h-10" />
                     <Rows<cloudService.Asset<cloudService.AssetType.project>>

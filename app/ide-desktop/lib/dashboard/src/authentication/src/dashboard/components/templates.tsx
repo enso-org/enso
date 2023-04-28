@@ -151,7 +151,7 @@ function Templates(props: TemplatesProps) {
     const { backend } = backendProvider.useBackend()
 
     return (
-        <div className="bg-white">
+        <div className="bg-white my-2">
             <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     <TemplatesRender
