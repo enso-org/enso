@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.graalvm.collections.EconomicSet;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -27,18 +28,18 @@ public final class Warning implements TruffleObject {
   private final Object value;
   private final Object origin;
   private final ArrayRope<Reassignment> reassignments;
-  private final long creationTime;
+  private final long sequenceId;
 
-  public Warning(Object value, Object origin, long creationTime) {
-    this(value, origin, creationTime, new ArrayRope<>());
+  private Warning(Object value, Object origin, long sequenceId) {
+    this(value, origin, sequenceId, new ArrayRope<>());
   }
 
-  public Warning(
-      Object value, Object origin, long creationTime, ArrayRope<Reassignment> reassignments) {
+  private Warning(
+      Object value, Object origin, long sequenceId, ArrayRope<Reassignment> reassignments) {
     this.value = value;
     this.origin = origin;
     this.reassignments = reassignments;
-    this.creationTime = creationTime;
+    this.sequenceId = sequenceId;
   }
 
   @Builtin.Method(name = "value", description = "Gets the payload of the warning.")
@@ -57,7 +58,7 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   public static Warning create(EnsoContext ctx, Object payload, Object origin) {
-    return new Warning(payload, origin, ctx.clockTick());
+    return new Warning(payload, origin, ctx.nextSequenceId());
   }
 
   @Builtin.Method(description = "Gets the list of locations where the warnings was reassigned.")
@@ -73,7 +74,7 @@ public final class Warning implements TruffleObject {
   @Builtin.Specialize
   public static WithWarnings attach(
       EnsoContext ctx, WithWarnings value, Object warning, Object origin) {
-    return value.prepend(new Warning(warning, origin, ctx.clockTick()));
+    return value.append(new Warning(warning, origin, ctx.nextSequenceId()));
   }
 
   @Builtin.Method(
@@ -82,7 +83,7 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static WithWarnings attach(EnsoContext ctx, Object value, Object warning, Object origin) {
-    return WithWarnings.wrap(value, new Warning(warning, origin, ctx.clockTick()));
+    return WithWarnings.wrap(value, new Warning(warning, origin, ctx.nextSequenceId()));
   }
 
   @Builtin.Method(
@@ -93,10 +94,8 @@ public final class Warning implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib);
-    Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
-    Object[] result = new Object[warnings.length];
-    System.arraycopy(warnings, 0, result, 0, warnings.length);
-    return new Array(result);
+    sortArray(warnings);
+    return new Array((Object[]) warnings);
   }
 
   @Builtin.Method(
@@ -107,13 +106,26 @@ public final class Warning implements TruffleObject {
   public static Array getAll(Object value, WarningsLibrary warnings) {
     if (warnings.hasWarnings(value)) {
       try {
-        return new Array((Object[]) warnings.getWarnings(value, null));
+        Warning[] arr = warnings.getWarnings(value, null);
+        sortArray(arr);
+        return new Array((Object[]) arr);
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
     } else {
       return new Array();
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static void sortArray(Warning[] arr) {
+    Arrays.sort(arr, Comparator.comparing(Warning::getSequenceId).reversed());
+  }
+
+  /** Converts set to an array behing a truffle boundary. */
+  @CompilerDirectives.TruffleBoundary
+  public static Warning[] fromSetToArray(EconomicSet<Warning> set) {
+    return set.toArray(new Warning[set.size()]);
   }
 
   @Builtin.Method(
@@ -185,8 +197,8 @@ public final class Warning implements TruffleObject {
     }
   }
 
-  public long getCreationTime() {
-    return creationTime;
+  public long getSequenceId() {
+    return sequenceId;
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -194,7 +206,7 @@ public final class Warning implements TruffleObject {
     RootNode root = location.getRootNode();
     SourceSection section = location.getEncapsulatingSourceSection();
     Reassignment reassignment = new Reassignment(root.getName(), section);
-    return new Warning(value, origin, creationTime, reassignments.prepend(reassignment));
+    return new Warning(value, origin, sequenceId, reassignments.prepend(reassignment));
   }
 
   @ExportMessage

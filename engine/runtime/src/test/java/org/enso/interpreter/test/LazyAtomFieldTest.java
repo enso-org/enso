@@ -4,39 +4,35 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.enso.polyglot.MethodNames;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class LazyAtomFieldTest {
+public class LazyAtomFieldTest extends TestBase {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-  private Context ctx;
+  private static Context ctx;
+
+  @BeforeClass
+  public static void prepareCtx() {
+    ctx = createDefaultContext(out);
+  }
 
   @Before
-  public void prepareCtx() {
-    this.ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .logHandler(new ByteArrayOutputStream())
-      .out(out)
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+  public void resetOut() {
     out.reset();
+  }
+
+  @AfterClass
+  public static void disposeCtx() {
+    ctx.close();
   }
 
   @Test

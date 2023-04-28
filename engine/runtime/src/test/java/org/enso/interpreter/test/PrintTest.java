@@ -1,11 +1,10 @@
 package org.enso.interpreter.test;
 
 import org.enso.polyglot.MethodNames;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,30 +12,22 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class PrintTest {
+public class PrintTest extends TestBase {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
   private Context ctx;
 
   @Before
   public void prepareCtx() {
-    this.ctx = Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .allowIO(true)
-        .allowAllAccess(true)
-        .logHandler(new ByteArrayOutputStream())
-        .out(out)
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        ).build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    ctx = createDefaultContext(out);
     out.reset();
+  }
+
+  @After
+  public void disposeCtx() {
+    ctx.close();
   }
 
   private void checkPrint(String code, String expected) throws Exception {

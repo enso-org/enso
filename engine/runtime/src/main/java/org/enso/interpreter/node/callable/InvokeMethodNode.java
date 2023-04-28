@@ -275,7 +275,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     arguments[thisArgumentPosition] = selfWithoutWarnings;
 
     Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-    return WithWarnings.prependTo(result, arrOfWarnings);
+    return WithWarnings.appendTo(result, arrOfWarnings);
   }
 
   @ExplodeLoop
@@ -327,7 +327,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
-      res = WithWarnings.prependTo(res, accumulatedWarnings);
+      res = WithWarnings.appendTo(res, accumulatedWarnings);
     }
     return res;
   }

@@ -177,4 +177,11 @@ spec =
 
         file.delete_if_exists
 
+        Test.specify 'should not duplicate warnings' <|
+            c = Database.connect (SQLite In_Memory)
+            t0 = Table.new [["X", ["a", "bc", "def"]]]
+            t1 = c.upload_table "Tabela" t0
+            t2 = t1.cast "X" (Value_Type.Char size=1)
+            Warning.get_all t2 . length . should_equal 1
+
 main = Test_Suite.run_main spec

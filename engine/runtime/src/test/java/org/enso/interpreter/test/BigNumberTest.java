@@ -1,41 +1,34 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Map;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.Before;
+
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class BigNumberTest {
-  private Context ctx;
+public class BigNumberTest extends TestBase {
+  private static Context ctx;
 
-  @Before
-  public void prepareCtx() {
-    this.ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .logHandler(new ByteArrayOutputStream())
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+  @BeforeClass
+  public static void prepareCtx() {
+    ctx = createDefaultContext();
   }
+
+  @AfterClass
+  public static void disposeCtx() {
+    ctx.close();
+  }
+
 
   @Test
   public void evaluation() throws Exception {

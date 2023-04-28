@@ -1,40 +1,24 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNotNull;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.file.Paths;
-import java.util.Map;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ForeignMethodInvokeTest {
-  private Context ctx;
+public class ForeignMethodInvokeTest extends TestBase {
+  private static Context ctx;
 
-  @Before
-  public void prepareCtx() {
-    this.ctx = Context.newBuilder("enso")
-        .allowExperimentalOptions(true)
-        .allowIO(true)
-        .allowAllAccess(true)
-        .logHandler(new ByteArrayOutputStream())
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        ).build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assumeNotNull("Enso not found: " + langs, langs.get("enso"));
+  @BeforeClass
+  public static void prepareCtx() {
+    ctx = createDefaultContext();
   }
 
-  @After
-  public void disposeCtx() {
-    this.ctx.close();
+  @AfterClass
+  public static void disposeCtx() {
+    ctx.close();
   }
 
   @Test
