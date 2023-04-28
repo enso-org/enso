@@ -1810,16 +1810,15 @@ illegal_argument_to_warning problem_builder format_string ~action =
         action
 
 ## PRIVATE
-   Remove duplicate problems, and use AggregateProblems to reduce problem count.
+   Use AggregateProblems to reduce problem count.
 condense_problems : Problem_Behavior -> Problem_Builder -> Any -> Integer -> Any
 condense_problems on_problems problem_builder value max_count=10 =
     with_all_warnings = problem_builder.attach_problems_after on_problems value
     all_warnings = Warning.get_all with_all_warnings
-    all_warnings_dedup = all_warnings.distinct
-    all_warnings_condensed = if all_warnings_dedup.length <= max_count then all_warnings_dedup else
+    all_warnings_condensed = if all_warnings.length <= max_count then all_warnings else
         some_warnings = all_warnings.take max_count
         additional_warnings = Additional_Warnings.Error (all_warnings.length - max_count)
-        some_warnings + [additional_warnings]
+        some_warnings # + [additional_warnings]
     Warning.set value all_warnings_condensed
 
 ## PRIVATE
