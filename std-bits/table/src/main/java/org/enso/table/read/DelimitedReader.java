@@ -327,7 +327,7 @@ public class DelimitedReader {
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
 
     NameDeduplicator deduplicator = new NameDeduplicator();
-    List<String> names = deduplicator.makeUnique(preprocessedHeaders);
+    List<String> names = deduplicator.makeUniqueList(preprocessedHeaders);
     return new WithProblems<>(names, deduplicator.getProblems());
   }
 

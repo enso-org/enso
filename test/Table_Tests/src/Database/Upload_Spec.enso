@@ -1,0 +1,136 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Column, Value_Type, Column_Selector
+from Standard.Table.Errors import Missing_Input_Columns
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+from Standard.Database.Internal.Result_Set import result_set_to_table
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+import project.Database.Helpers.Name_Generator
+
+polyglot java import org.enso.table_test_helpers.ExplodingStorage
+polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
+
+main = Test_Suite.run_main <|
+    spec (_ -> Database.connect (SQLite In_Memory)) "[SQLite] " persistent_connector=False
+
+## PRIVATE
+   Tests uploading tables.
+
+   Arguments:
+   - make_new_connection: a function that takes `Nothing` and returns a new
+     connection.
+   - prefix: a string that will be prepended to the test names.
+   - persistent_connector: specifies if the database is persisted between
+     connections. Should be `True` for all databases except SQLite in the
+     `In_Memory` mode in which every re-connect creates a separate in-memory
+     database, so features relying on persistence cannot really be tested.
+spec make_new_connection prefix persistent_connector=True =
+    connection = make_new_connection Nothing
+    Test.group prefix+"Uploading an in-memory Table" <|
+        in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+        Test.specify "should include the created table in the tables directory" <|
+            db_table = in_memory_table.create_database_table connection (Name_Generator.random_name "permanent_table_1") temporary=False
+            Panic.with_finalizer (connection.drop_table db_table.name) <|
+                db_table.at "X" . to_vector . should_equal [1, 2, 3]
+
+                connection.tables.at "Name" . to_vector . should_contain db_table.name
+                connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
+
+        postgres_pending = if prefix.contains "Postgre" then "TODO: See issue https://github.com/enso-org/enso/issues/6398"
+        Test.specify "should include the temporary table in the tables directory" pending=postgres_pending <|
+            db_table = in_memory_table.create_database_table connection (Name_Generator.random_name "temporary_table_1") temporary=True
+            db_table.at "X" . to_vector . should_equal [1, 2, 3]
+            connection.tables.at "Name" . to_vector . should_contain db_table.name
+            connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
+
+        if persistent_connector then
+            Test.specify "should drop the temporary table after the connection is closed" <|
+                tmp_connection = make_new_connection Nothing
+                db_table = in_memory_table.create_database_table tmp_connection (Name_Generator.random_name "temporary_table_2") temporary=True
+                name = db_table.name
+                tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+                tmp_connection.close
+                connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+
+            Test.specify "should preserve the regular table after the connection is closed" <|
+                tmp_connection = make_new_connection Nothing
+                db_table = in_memory_table.create_database_table tmp_connection (Name_Generator.random_name "permanent_table_1") temporary=False
+                name = db_table.name
+                Panic.with_finalizer (connection.drop_table name) <|
+                    tmp_connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+                    tmp_connection.close
+                    connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
+
+        Test.specify "should rollback the table creation if create_database_table fails" <|
+            normal_column = Column.from_vector "Y" ((100+0).up_to (100+1000)).to_vector
+            exploding_column = make_mock_column "X" (0.up_to 1000).to_vector 512
+            exploding_table = Table.new [normal_column, exploding_column]
+            name = Name_Generator.random_name "rolling-back-table"
+            connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+            Test.expect_panic_with matcher=ExplodingStoragePayload <|
+                exploding_table.create_database_table connection name temporary=False primary_key=Nothing
+            connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+
+        Test.specify "should set a primary key for the table" <|
+            t1 = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
+            db_table_1 = t1.create_database_table connection (Name_Generator.random_name "primary-key-1") primary_key=["Y", "X"]
+            Panic.with_finalizer (connection.drop_table db_table_1.name) <|
+                db_table_1.at "X" . to_vector . should_equal [1, 2, 3]
+                get_primary_key connection db_table_1.name . should_equal ["Y", "X"]
+
+            db_table_2 = t1.create_database_table connection (Name_Generator.random_name "primary-key-2")
+            Panic.with_finalizer (connection.drop_table db_table_2.name) <|
+                db_table_2.at "X" . to_vector . should_equal [1, 2, 3]
+                get_primary_key connection db_table_2.name . should_equal ["X"]
+
+            db_table_3 = t1.create_database_table connection (Name_Generator.random_name "primary-key-3") primary_key=Nothing
+            Panic.with_finalizer (connection.drop_table db_table_3.name) <|
+                db_table_3.at "X" . to_vector . should_equal [1, 2, 3]
+                get_primary_key connection db_table_3.name . should_equal Nothing
+
+        Test.specify "should ensure that primary key columns are valid" <|
+            r1 = in_memory_table.create_database_table connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
+            r1.should_fail_with Missing_Input_Columns
+
+            db_table_2 = in_memory_table.create_database_table connection (Name_Generator.random_name "primary-key-5") primary_key=["X", 0]
+            Panic.with_finalizer (connection.drop_table db_table_2.name) <|
+                get_primary_key connection db_table_2.name . should_equal ["X"]
+
+        Test.specify "should fail if the primary key is not unique" <|
+            t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
+            r1 = t1.create_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["X"]
+            r1.should_fail_with Non_Unique_Primary_Key
+            r2 = t1.create_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["Y"]
+            r2.should_fail_with Non_Unique_Primary_Key
+            r3 = t1.create_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
+            r3.at "X" . to_vector . should_equal [1, 2, 1]
+
+            t2 = Table.new [["X", [1, 2, 1]], ["Y", ['a', 'b', 'a']]]
+            r4 = t2.create_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
+            r4.should_fail_with Non_Unique_Primary_Key
+
+## PRIVATE
+   Creates a mock column containing `values`.
+
+   If `exploding_index` is accessed, an exception will be thrown.
+make_mock_column name values exploding_index =
+    storage = ExplodingStorage.new values.to_array exploding_index
+    Column.from_storage name storage
+
+## PRIVATE
+
+   This method may not work correctly with temporary tables, possibly resulting
+   in `SQL_Error` as such tables may not be found.
+get_primary_key connection table_name =
+    connection.jdbc_connection.with_connection java_connection->
+        rs = java_connection.getMetaData.getPrimaryKeys Nothing connection.schema table_name
+        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+        key_column_names = selected.order_by 1 . at 0 . to_vector
+        if key_column_names.is_empty then Nothing else key_column_names

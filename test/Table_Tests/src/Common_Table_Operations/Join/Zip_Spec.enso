@@ -19,7 +19,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    db_todo = if prefix.contains "In-Memory" then Nothing else "Table.zip is still WIP for the DB backend."
+    db_todo = if setup.is_database.not then Nothing else "Table.zip is still WIP for the DB backend."
     Test.group prefix+"Table.zip" pending=db_todo <|
         if setup.is_database.not then
             Test.specify "should allow to zip two tables, preserving memory layout order" <|

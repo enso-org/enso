@@ -127,6 +127,31 @@ type Panic
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
     catch panic_type ~action handler = @Builtin_Method "Panic.catch"
 
+    ## PRIVATE
+       Runs the provided `action` ensuring that the `finalize` block is called
+       regardless of if the action succeeds or fails.
+
+       This emulates the `finally` clause in Java.
+
+       If an exception occurs in the `finalizer`, it is propagated. If `action`
+       throws an exception and the `finalizer` also throws an exception, the
+       exception thrown by `finalizer` takes precedence.
+
+       > Example
+         Print the `Cleaning...` message regardless of if the action succeeds.
+             do_cleanup =
+                 IO.println "Cleaning..."
+             Panic.with_finally do_cleanup <|
+                 Panic.throw (Illegal_State.Error "Foo")
+    with_finalizer : Any -> Any -> Any
+    with_finalizer ~finalizer ~action =
+        handle_panic caught_panic =
+            finalizer
+            Panic.throw caught_panic
+        result = Panic.catch Any action handle_panic
+        finalizer
+        result
+
     ## Executes the provided action and converts a possible panic matching any of
        the provided types into a dataflow Error.
 

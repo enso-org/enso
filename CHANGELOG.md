@@ -396,6 +396,8 @@
 - [Added `Table.parse_to_columns`.][6383]
 - [Added parsing methods for `Integer`, `Decimal`, `Json`, `Date`, `Date_Time`,
   `Time_Of_Day`, `Time_Zone`, and `URI` to `Text`.][6404]
+- [Implemented `create_database_table` allowing upload of in-memory
+  tables.][6429]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -599,6 +601,7 @@
 [6383]: https://github.com/enso-org/enso/pull/6383
 [6404]: https://github.com/enso-org/enso/pull/6404
 [6347]: https://github.com/enso-org/enso/pull/6347
+[6429]: https://github.com/enso-org/enso/pull/6429
 
 #### Enso Compiler
 
@@ -688,7 +691,7 @@
 - [Optimize Atom storage layouts][3862]
 - [Make instance methods callable like statics for builtin types][4077]
 - [Convert large longs to doubles, safely, for host calls][4099]
-- [Consistent ordering with comparators](4067)
+- [Consistent ordering with comparators][4067]
 - [Profile engine startup][4110]
 - [Report type of polyglot values][4111]
 - [Engine can now recover from serialization failures][5591]
@@ -706,6 +709,7 @@
 - [Vector.sort handles incomparable types][5998]
 - [Removing need for asynchronous thread to execute ResourceManager
   finalizers][6335]
+- [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -795,9 +799,9 @@
 [4048]: https://github.com/enso-org/enso/pull/4048
 [4049]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
+[4067]: https://github.com/enso-org/enso/pull/4067
 [4077]: https://github.com/enso-org/enso/pull/4077
 [4099]: https://github.com/enso-org/enso/pull/4099
-[4067]: https://github.com/enso-org/enso/pull/4067
 [4110]: https://github.com/enso-org/enso/pull/4110
 [4111]: https://github.com/enso-org/enso/pull/4111
 [5591]: https://github.com/enso-org/enso/pull/5591
@@ -809,12 +813,14 @@
 [5791]: https://github.com/enso-org/enso/pull/5791
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
+[5998]: https://github.com/enso-org/enso/pull/5998
 [6067]: https://github.com/enso-org/enso/pull/6067
 [6151]: https://github.com/enso-org/enso/pull/6151
 [6171]: https://github.com/enso-org/enso/pull/6171
-[5998]: https://github.com/enso-org/enso/pull/5998
 [6335]: https://github.com/enso-org/enso/pull/6335
+[6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
+
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

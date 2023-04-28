@@ -391,7 +391,8 @@ type Table
     rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
-        new_names.if_not_error (self.updated_columns (self.internal_columns.map c-> c.rename (new_names.at c.name)))
+        Warning.with_suspended new_names names->
+            self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
     ## PRIVATE
 
