@@ -599,6 +599,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             eval target_on_start([model, on_item_removed] (t) {
                 let item = model.borrow_mut().start_item_drag(t);
                 if let Some((index, item)) = item {
+                    cursor.start_drag(item.clone_ref());
                     on_item_removed.emit(Response::gui((index, Rc::new(RefCell::new(Some(item))))));
                 }
             });
