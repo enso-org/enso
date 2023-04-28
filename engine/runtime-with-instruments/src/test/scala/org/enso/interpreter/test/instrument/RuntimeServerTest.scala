@@ -2989,7 +2989,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected a function, but got 42 (Integer).",
+              "Type error: expected a function, but got 42.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
               None,
@@ -3136,7 +3136,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `+` of x (Unresolved_Symbol) could not be found.",
+              "Method `+` of type Function could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
               None,
@@ -3440,7 +3440,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `pi` of Number could not be found.",
+              "Method `pi` of type Number.type could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
               None,

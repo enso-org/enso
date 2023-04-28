@@ -40,6 +40,7 @@ public class IfVsCaseBenchmarks extends TestBase {
   private Value ifBench3;
   private Value caseBench3;
   private Value ifBench6;
+  private Value ifBench6In;
   private Value caseBench6;
   private Value createVec;
   private Value inputVec;
@@ -98,6 +99,17 @@ public class IfVsCaseBenchmarks extends TestBase {
                                     if curr.f6.not then acc else
                                         acc + 1
 
+        if_bench_6_in : Vector My_Type -> Integer
+        if_bench_6_in vec =
+            vec.fold 0 acc-> curr->
+                curr.f1.not.if_then_else acc <|
+                    curr.f2.not.if_then_else acc <|
+                        curr.f3.not.if_then_else acc <|
+                            curr.f4.not.if_then_else acc <|
+                                curr.f5.not.if_then_else acc <|
+                                    curr.f6.not.if_then_else acc <|
+                                        acc + 1
+
         case_bench_6 : Vector My_Type -> Integer
         case_bench_6 vec =
             vec.fold 0 acc-> curr->
@@ -130,6 +142,7 @@ public class IfVsCaseBenchmarks extends TestBase {
     ifBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_3"));
     caseBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_3"));
     ifBench6 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_6"));
+    ifBench6In = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_6_in"));
     caseBench6 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_6"));
     createVec = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "create_vec"));
     // So far, input is a vector of My_Type.Value with all fields set to True
@@ -153,6 +166,12 @@ public class IfVsCaseBenchmarks extends TestBase {
   @Benchmark
   public void ifBench6() {
     Value res = ifBench6.execute(inputVec);
+    checkResult(res);
+  }
+
+  @Benchmark
+  public void ifBench6In() {
+    Value res = ifBench6In.execute(inputVec);
     checkResult(res);
   }
 

@@ -413,6 +413,7 @@ spec =
             pUS2.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
             Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["12,34,56"]) pUS2
 
+            ## Reject minus sign if already seen a bracket form
             cUS3 = Column.from_vector "ints" ["1", "(000,123)", "-1,234", "1,234,567", "12,34,56"]
             pUS3 = cUS3.parse type=Value_Type.Integer
             pUS3.to_vector . should_equal [1, -123, Nothing, 1234567, Nothing]
@@ -422,6 +423,12 @@ spec =
             pUS4 = cUS4.parse type=Value_Type.Integer
             pUS4.to_vector . should_equal [1234, 1234, 1234567, -1234, Nothing]
             Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["($1,234,567)"]) pUS4
+
+            ## Reject bracket notation for negative numbers if already seen a minus sign
+            cUS5 = Column.from_vector "ints" ["1", "000123", "-1,234", "1,234,567", "(123,456)"]
+            pUS5 = cUS5.parse type=Value_Type.Integer
+            pUS5.to_vector . should_equal [1, 123, -1234, 1234567, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "ints" Value_Type.Integer ["(123,456)"]) pUS5
 
         Test.specify "should correctly parse integers in European formats" <|
             cDE = Column.from_vector "ints" ["1", "000123", "-1.234", "1.234.567", "12.34.56"]
@@ -470,6 +477,7 @@ spec =
             pUS2.to_vector . should_equal [1.23, 123, -1234.567, 1234567.789, Nothing]
             Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["12,34.56"]) pUS2
 
+            ## Reject minus sign if already seen a bracket form
             cUS3 = Column.from_vector "floats" ["1.23", "(000,123)", "-1,234.567", "1,234,567.789", "12,34.56"]
             pUS3 = cUS3.parse type=Value_Type.Float
             pUS3.to_vector . should_equal [1.23, -123, Nothing, 1234567.789, Nothing]
@@ -479,6 +487,12 @@ spec =
             pUS4 = cUS4.parse type=Value_Type.Float
             pUS4.to_vector . should_equal [12.34, 1234, 1234567.789, -1234.96, Nothing]
             Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["($1,234,567)"]) pUS4
+
+            ## Reject bracket notation for negative numbers if already seen a minus sign
+            cUS5 = Column.from_vector "floats" ["1.23", "000123", "-1,234.567", "1,234,567.789", "(123,456)"]
+            pUS5 = cUS5.parse type=Value_Type.Float
+            pUS5.to_vector . should_equal [1.23, 123, -1234.567, 1234567.789, Nothing]
+            Problems.expect_warning (Invalid_Format.Error "floats" Value_Type.Float ["(123,456)"]) pUS5
 
         Test.specify "should correctly parse decimals in European formats" <|
             cDE = Column.from_vector "floats" ["1,23", "000123", "-1.234,567", "1.234.567,789", "12.34,56"]

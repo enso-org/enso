@@ -676,6 +676,11 @@ type File
     to_text : Text
     to_text self = self.absolute . path
 
+    ## PRIVATE
+       Convert to a display representation of this File.
+    to_display_text : Text
+    to_display_text self = self.to_text
+
 ## PRIVATE
    An output stream, allowing for interactive writing of contents into an
    open file.

@@ -740,11 +740,17 @@ impl TextModel {
         let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
-        let lines = Lines::new(Self::new_line_helper(
+
+        let default_size = buffer.formatting.font_size().default.value;
+        let first_line = Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
             &display_object,
-            buffer.formatting.font_size().default.value,
-        ));
+            default_size,
+        );
+        first_line.set_baseline((-default_size).round());
+        first_line.skip_baseline_animation();
+
+        let lines = Lines::new(first_line);
         let width_dirty = default();
         let height_dirty = default();
         let shaped_lines = default();

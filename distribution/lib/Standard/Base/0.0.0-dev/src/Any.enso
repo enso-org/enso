@@ -371,25 +371,6 @@ type Any
         Nothing -> Nothing
         a -> f a
 
-    ## Applies the function `self` to the provided argument.
-
-       Arguments:
-       - argument: The argument to apply `self` to.
-
-       ? Piping Blocks to Functions
-         This construction is particularly useful for passing a block as an argument
-         to a function. This means that you can compute more sophisticated values
-         in-line, as shown in the example below.
-
-       > Example
-         Applying a function to a block.
-
-             (x -> x + 1) <|
-                y = 1 ^ 3
-                3 + y
-    <| : Any -> Any
-    <| self ~argument = self argument
-
     ## Applies the function on the right hand side to the argument on the left.
 
        Arguments
@@ -410,32 +391,6 @@ type Any
              1 |> (* 2) |> (/ 100) |> .to_text
     |> : (Any -> Any) -> Any
     |> self ~function = function self
-
-    ## Composes two functions together, for `f << g` creating the function
-       composition `f ∘ g` (equivalent to `x -> f (g x)`).
-
-       Arguments:
-       - that: The function to compose with `self`.
-
-       > Example
-         Multiply by 2 and then add 1 as a function applied to 2.
-
-             (+1 << *2) 2
-    << : (Any -> Any) -> (Any -> Any)
-    << self ~that = x -> self (that x)
-
-    ## Composes two functions together in the forward direction, for `f >> g`
-       creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
-
-       Arguments:
-       - that: The function to compose with `self`.
-
-       > Example
-         Add one and then multiply by two as a function applied to 2.
-
-             (+1 >> *2) 2
-    >> : (Any -> Any) -> (Any -> Any)
-    >> self ~that = x -> that (self x)
 
     ## Checks if any warnings (either all or of a specified type) are attached to the value.
 

@@ -16,6 +16,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
 use double_representation::name::QualifiedName;
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
@@ -354,6 +355,27 @@ impl Handle {
         } else {
             self.graph.borrow().disconnect(connection, self)
         }
+    }
+
+    /// Set the execution environment.
+    pub async fn set_execution_environment(
+        &self,
+        execution_environment: ExecutionEnvironment,
+    ) -> FallibleResult {
+        self.execution_ctx.set_execution_environment(execution_environment).await?;
+        Ok(())
+    }
+
+    /// Get the current execution environment.
+    pub fn execution_environment(&self) -> ExecutionEnvironment {
+        self.execution_ctx.execution_environment()
+    }
+
+    /// Trigger a clean execution of the current graph with the "live" execution environment. That
+    /// means old computations and caches will be discarded.
+    pub async fn trigger_clean_live_execution(&self) -> FallibleResult {
+        self.execution_ctx.trigger_clean_live_execution().await?;
+        Ok(())
     }
 }
 

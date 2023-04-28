@@ -1,7 +1,12 @@
 //! Widget controller.
 //!
 //! The Widget Controller is responsible for querying the language server for information about
-//! the node's widget metadata or resolving it from local cache.
+//! the node's widget configuration or resolving it from local cache.
+
+
+
+mod configuration;
+mod response;
 
 use crate::prelude::*;
 
@@ -13,18 +18,17 @@ use crate::model::execution_context::VisualizationUpdateData;
 
 use engine_protocol::language_server::SuggestionId;
 use ensogl::define_endpoints_2;
-use ide_view::graph_editor::component::node::input::widget;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Metadata;
 use ide_view::graph_editor::data::enso::Code;
-use ide_view::graph_editor::WidgetUpdate;
-use ide_view::graph_editor::WidgetUpdates;
+use ide_view::graph_editor::ArgumentWidgetConfig;
+use ide_view::graph_editor::CallWidgetsConfig;
 
 
 
-/// =================
-/// === Constants ===
-/// =================
+// =================
+// === Constants ===
+// =================
 
 /// A module containing the widget visualization method.
 const WIDGET_VISUALIZATION_MODULE: &str = "Standard.Visualization.Widgets";
@@ -59,15 +63,15 @@ define_endpoints_2! {
     }
     Output {
         /// Emitted when the node's visualization has been set.
-        widget_data(NodeId, WidgetUpdates),
+        widget_data(NodeId, CallWidgetsConfig),
     }
 }
 
-/// Graph widgets controller. Handles requests for widget metadata using visualizations. Maps
+/// Graph widgets controller. Handles requests for widget configuration using visualizations. Maps
 /// response data to the relevant node Id updates, and dispatches them over the FRP output.
 /// Guarantees that each individual query eventually receives an update. It internally caches the
-/// results of the last queries, so that the metadata can be delivered to the presenter even when no
-/// visualization change is necessary.
+/// results of the last queries, so that the configuration can be delivered to the presenter even
+/// when no visualization change is necessary.
 #[derive(Debug, Deref)]
 pub struct Controller {
     #[deref]
@@ -144,7 +148,7 @@ impl Model {
     fn handle_notification(
         &mut self,
         notification: Notification,
-    ) -> Option<(NodeId, WidgetUpdates)> {
+    ) -> Option<(NodeId, CallWidgetsConfig)> {
         let report_error = |message, error| {
             error!("{message}: {error}");
             None
@@ -167,26 +171,26 @@ impl Model {
         &mut self,
         target: ast::Id,
         data: VisualizationUpdateData,
-    ) -> Option<(NodeId, WidgetUpdates)> {
+    ) -> Option<(NodeId, CallWidgetsConfig)> {
         let query_data = self.widget_queries.get_mut(&target)?;
 
-        let (updates, errors) = VisualizationData::try_deserialize(&data);
+        let (definitions, errors) = configuration::deserialize_widget_definitions(&data);
 
         for error in errors {
             error!("{:?}", error);
         }
 
-        trace!("Widget updates: {updates:?}");
-        let updates = Rc::new(updates);
-        query_data.last_updates = Some(updates.clone());
+        trace!("Widget definitions: {definitions:?}");
+        let definitions = Rc::new(definitions);
+        query_data.last_definitions = Some(definitions.clone());
 
         let call_id = query_data.call_expression;
-        Some((query_data.node_id, WidgetUpdates { call_id, updates }))
+        Some((query_data.node_id, CallWidgetsConfig { call_id, definitions }))
     }
 
     /// Handle a widget request from presenter. Returns the widget updates if the request can be
     /// immediately fulfilled from the cache.
-    fn request_widget(&mut self, request: &Request) -> Option<(NodeId, WidgetUpdates)> {
+    fn request_widget(&mut self, request: &Request) -> Option<(NodeId, CallWidgetsConfig)> {
         let suggestion_db = self.graph.suggestion_db();
         let suggestion = suggestion_db.lookup(request.call_suggestion).ok()?;
 
@@ -212,7 +216,7 @@ impl Model {
                     // the last known visualization data. Each widget request needs to be responded
                     // to, otherwise the widget might not be displayed after the widget view has
                     // been temporarily removed and created again.
-                    query.last_updates()
+                    query.last_definitions()
                 }
             }
             Entry::Vacant(vacant) => {
@@ -248,9 +252,9 @@ impl Model {
 
 
 
-/// ============================
-/// === NodeToWidgetsMapping ===
-/// ============================
+// ============================
+// === NodeToWidgetsMapping ===
+// ============================
 
 /// A map of widgets attached to nodes. Used to perform cleanup of node widget queries when node is
 /// removed.
@@ -295,9 +299,9 @@ impl NodeToWidgetsMapping {
 
 
 
-/// ===============
-/// === Request ===
-/// ===============
+// ===============
+// === Request ===
+// ===============
 
 /// Definition of a widget request. Defines the node subexpression that the widgets will be attached
 /// to, and the method call that corresponds to that expression.
@@ -316,19 +320,19 @@ pub struct Request {
 
 
 
-/// =================
-/// === QueryData ===
-/// =================
+// =================
+// === QueryData ===
+// =================
 
 /// Data of ongoing widget query. Defines which expressions a visualization query is attached to,
 /// and maintains enough data to correlate the response with respective widget view.
 #[derive(Debug)]
 struct QueryData {
-    node_id:         NodeId,
-    call_expression: ExpressionId,
-    method_name:     ImString,
-    arguments:       Vec<ImString>,
-    last_updates:    Option<Rc<Vec<WidgetUpdate>>>,
+    node_id:          NodeId,
+    call_expression:  ExpressionId,
+    method_name:      ImString,
+    arguments:        Vec<ImString>,
+    last_definitions: Option<Rc<Vec<ArgumentWidgetConfig>>>,
 }
 
 impl QueryData {
@@ -337,8 +341,8 @@ impl QueryData {
         let arguments = suggestion.arguments.iter().map(|arg| arg.name.clone().into()).collect();
         let method_name = suggestion.name.clone().into();
         let call_expression = req.call_expression;
-        let last_updates = None;
-        QueryData { node_id, arguments, method_name, call_expression, last_updates }
+        let last_definitions = None;
+        QueryData { node_id, arguments, method_name, call_expression, last_definitions }
     }
 
     /// Update existing query data on new request. Returns true if the visualization query needs to
@@ -365,18 +369,18 @@ impl QueryData {
         visualization_modified
     }
 
-    fn last_updates(&self) -> Option<(NodeId, WidgetUpdates)> {
-        self.last_updates.as_ref().map(|updates| {
+    fn last_definitions(&self) -> Option<(NodeId, CallWidgetsConfig)> {
+        self.last_definitions.as_ref().map(|definitions| {
             let call_id = self.call_expression;
-            let updates = WidgetUpdates { call_id, updates: updates.clone() };
-            (self.node_id, updates)
+            let config = CallWidgetsConfig { call_id, definitions: definitions.clone() };
+            (self.node_id, config)
         })
     }
 
     fn request_visualization(&mut self, manager: &Rc<Manager>, target_expression: ast::Id) {
         // When visualization is requested, remove stale queried value to prevent updates  while
         // language server request is pending.
-        self.last_updates.take();
+        self.last_definitions.take();
         let vis_metadata = self.visualization_metadata();
         manager.request_visualization(target_expression, vis_metadata);
     }
@@ -414,79 +418,5 @@ impl QueryData {
         }
         buffer.push(']');
         buffer
-    }
-}
-
-
-
-/// ===============================
-/// === WidgetVisualizationData ===
-/// ===============================
-
-/// A type representing the data received from the widget visualization for a single widget.
-///
-/// The structure of this struct is dictated by the expected widget visualization JSON result shape.
-#[derive(Debug, serde::Deserialize)]
-struct VisualizationData {
-    constructor: widget::Kind,
-    display:     VisualizationDataDisplay,
-    values:      Vec<VisualizationDataChoice>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct VisualizationDataDisplay {
-    constructor: widget::Display,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct VisualizationDataChoice {
-    value: String,
-    label: Option<String>,
-}
-
-impl From<&VisualizationDataChoice> for widget::Entry {
-    fn from(choice: &VisualizationDataChoice) -> Self {
-        let value: ImString = (&choice.value).into();
-        let label = choice.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
-        Self { required_import: None, value, label }
-    }
-}
-
-impl VisualizationData {
-    fn into_metadata(self) -> widget::Metadata {
-        let kind = self.constructor;
-        let display = self.display.constructor;
-        let dynamic_entries = self.values.iter().map(Into::into).collect();
-        widget::Metadata { kind, display, dynamic_entries }
-    }
-
-    /// Try to deserialize widget visualization update data. If deserialization fails for only part
-    /// of the response, the rest of the response is still processed, while errors are returned
-    /// separately for each failed widget.
-    fn try_deserialize(data: &VisualizationUpdateData) -> (Vec<WidgetUpdate>, Vec<failure::Error>) {
-        let arguments: Vec<(String, serde_json::Value)> = match serde_json::from_slice(data) {
-            Ok(args) => args,
-            Err(err) => {
-                let err = err
-                    .context("Failed to deserialize a list of arguments in widget response")
-                    .into();
-                return (default(), vec![err]);
-            }
-        };
-
-        let updates = arguments.into_iter().map(
-            |(argument_name, meta_json)| -> FallibleResult<WidgetUpdate> {
-                let deserialized = serde_json::from_value(meta_json);
-                let deserialized: Option<VisualizationData> = deserialized.map_err(|e| {
-                    let message =
-                        format!("Failed to deserialize widget data for argument '{argument_name}'");
-                    e.context(message)
-                })?;
-                let meta = deserialized.map(VisualizationData::into_metadata);
-                Ok(WidgetUpdate { argument_name, meta })
-            },
-        );
-
-        updates.partition_result()
     }
 }

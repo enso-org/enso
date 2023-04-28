@@ -3,6 +3,7 @@ import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+
 from project.Data.Boolean import True, False
 
 polyglot java import java.lang.ClassCastException
@@ -161,7 +162,9 @@ type No_Such_Method
     ## PRIVATE
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Method `"+self.method_name+"` of "+self.target.to_display_text+" could not be found."
+    to_display_text self =
+        target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
+        "Method `"+self.method_name+"` of type "+target_type_name+" could not be found."
 
 @Builtin_Type
 type No_Such_Field
@@ -174,6 +177,12 @@ type No_Such_Field
        - field_name: The name of the field that was being accessed.
     Error value field_name
 
+    ## PRIVATE
+       Convert the No_Such_Method error to a human-readable format.
+    to_display_text : Text
+    to_display_text self =
+        value_type_name = if Meta.is_polyglot self.value then self.value.to_display_text else (Meta.type_of self.value).to_display_text
+        "Field `"+self.field_name+"` of "+value_type_name+" could not be found."
 
 @Builtin_Type
 type Module_Not_In_Package_Error
@@ -214,7 +223,7 @@ type Incomparable_Values
     to_display_text : Text
     to_display_text self =
         case self.left.is_nothing && self.right.is_nothing of
-            True -> "Incomparable_Values.Error"
+            True -> "Incomparable_Values"
             False -> "Cannot compare `" + self.left.to_text + "` with `" + self.right.to_text + "`"
 
     ## PRIVATE

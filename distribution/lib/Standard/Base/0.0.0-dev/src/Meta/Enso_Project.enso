@@ -12,7 +12,6 @@ type Project_Description
        - prim_config: The primitive config of the project.
     Value prim_root_file prim_config
 
-
     ## Returns the root directory of the project.
 
        > Example

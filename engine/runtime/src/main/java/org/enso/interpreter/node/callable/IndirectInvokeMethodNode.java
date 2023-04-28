@@ -121,7 +121,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition,
       @Cached IndirectInvokeMethodNode childDispatch) {
     arguments[thisArgumentPosition] = self.getValue();
-    ArrayRope<Warning> warnings = self.getReassignedWarnings(this);
+    ArrayRope<Warning> warnings = self.getReassignedWarningsAsRope(this);
     Object result =
         childDispatch.execute(
             frame,
@@ -134,7 +134,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return WithWarnings.prependTo(result, warnings);
+    return WithWarnings.appendTo(result, warnings);
   }
 
   @Specialization

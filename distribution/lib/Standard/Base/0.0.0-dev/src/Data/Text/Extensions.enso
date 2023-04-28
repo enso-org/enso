@@ -4,7 +4,6 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
-import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
@@ -20,16 +19,25 @@ import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Syntax_Error
 import project.Error.Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Time_Error.Time_Error
 import project.Meta
+import project.Network.URI.URI
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Json import Json, Invalid_JSON, JS_Object
+from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
@@ -1361,6 +1369,317 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
         used = if used_start == self.length-1 then self else self.take used_start+1
         span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
+
+## ALIAS Decimal From Text
+
+   Parses a textual representation of a decimal into a decimal number, returning
+   a `Number_Parse_Error` if the text does not represent a valid decimal.
+
+   Arguments:
+   - locale: The locale that specifies the format to use when parsing
+
+   > Example
+     Parse the text "7.6" into a decimal number.
+
+         "7.6".parse_decimal
+Text.parse_decimal : Locale | Nothing -> Decimal ! Number_Parse_Error
+Text.parse_decimal self locale=Nothing = Decimal.parse self locale
+
+## ALIAS Integer From Text
+
+   Parses a textual representation of an integer into an integer number, returning
+   a `Number_Parse_Error` if the text does not represent a valid integer.
+
+   Arguments:
+   - radix: The number base to use for parsing (defaults to 10). `radix`
+     must be between 2 and 36 (inclusive) -- see https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
+
+   > Example
+     Parse the text "20220216" into an integer number.
+
+        "20220216".parse
+Text.parse_integer : Integer -> Integer ! Number_Parse_Error
+Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
+
+## ALIAS JSON From Text
+
+   Parse a Text value into a `JS_Object` or an Enso primitive value (like
+   `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
+
+   > Example
+    Parse the text "[null, null, true, false]".
+
+        "[null, null, true, false]".parse_json
+Text.parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
+Text.parse_json self = Json.parse self
+
+## ALIAS Date from Text
+
+   Converts text containing a date into a Date object.
+
+   Arguments:
+   - format: An optional format describing how to parse the text.
+
+   Returns a `Time_Error` if `self`` cannot be parsed using the provided
+   `format`.
+
+   ? Format Syntax
+     A custom format string consists of one or more custom date and time format
+     specifiers. For example, "d MMM yyyy" will format "2011-12-03" as
+     "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
+
+   ? Default Date Formatting
+     Unless you provide a custom format, the text must represent a valid date
+     that can be parsed using the ISO-8601 extended local date format. The
+     format consists of:
+
+     - Four digits or more for the year. Years in the range 0000 to 9999
+       will be pre-padded by zero to ensure four digits. Years outside
+       that range will have a prefixed positive or negative symbol.
+     - A dash
+     - Two digits for the month-of-year. This is pre-padded by zero to ensure
+       two digits.
+     - A dash
+     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+       digits.
+
+   > Example
+     Parse the date of 23rd December 2020.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-12-23".parse_date
+
+   > Example
+     Recover from an error due to a wrong format.
+
+         import Standard.Base.Data.Text.Extensions
+         from Standard.Base.Errors.Common import Time_Error
+
+         example_parse_err = "my birthday".parse_date . catch Time_Error _->
+             Date.new 2000 1 1
+
+   > Example
+     Parse "1999-1-1" as Date using a custom format.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "1999-1-1".parse_date "yyyy-M-d"
+
+   > Example
+     Recover from the parse error.
+
+         import Standard.Base.Data.Text.Extensions
+         from Standard.Base.Errors.Common import Time_Error
+
+         example_parse_err =
+             date = "1999-1-1".parse_date "yyyy-MM-dd"
+             date.catch Time_Error (_->Date.new 2000 1 1)
+Text.parse_date : (Text | Nothing) -> Date ! Time_Error
+Text.parse_date self format=Nothing = Date.parse self format
+
+## ALIAS Date_Time from Text
+
+   Obtains an instance of `Date_Time` from a text such as
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+   Arguments:
+   - format: The format to use for parsing the input text.
+   - locale: The locale in which the format should be interpreted.
+
+   ? Format Syntax
+     A custom format string consists of one or more custom date and time format
+     specifiers. For example, "d MMM yyyy" will format "2011-12-03" as
+     "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
+
+   ? Default Date_Time Format
+     The text must represent a valid date-time as defined by the ISO-8601
+     format. (See https://en.wikipedia.org/wiki/ISO_8601.) If a time zone is
+     present, it must be in the ISO-8601 Extended Date/Time Format (EDTF).
+     (See https://en.wikipedia.org/wiki/ISO_8601#EDTF.) The time zone format
+     consists of:
+
+     - The ISO offset date time.
+     - If the zone ID is not available or is a zone offset then the format is
+       complete.
+     - An open square bracket '['.
+     - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+       sensitive.
+     - A close square bracket ']'.
+
+   This method will return a `Time_Error` if the provided time cannot be parsed
+   using the above format.
+
+   > Example
+     Parse UTC time.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12Z".parse_date_time
+
+   > Example
+     Parse UTC-04:00 time.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12-04:00".parse_date_time
+
+   > Example
+     Parse UTC-04:00 time specifying New York timezone.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
+
+   > Example
+     Parse UTC-04:00 time with nanoseconds.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01T04:11:12.177528-04:00".parse_date_time
+
+   > Example
+     Recover from the parse error.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-10-01".parse_date_time . catch Time_Error (_->Date_Time.now)
+
+   > Example
+     Parse "2020-05-06 04:30:20" as Date_Time
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "2020-05-06 04:30:20".parse_date_time "yyyy-MM-dd HH:mm:ss"
+
+   > Example
+     Parse "06 of May 2020 at 04:30AM" as Date_Tme
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse =
+            "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
+Text.parse_date_time : Text | Nothing -> Locale -> Date_Time ! Time_Error
+Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse self format locale
+
+## ALIAS Time_Of_Day from Text
+
+   Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+
+   Arguments:
+   - format: The format to use for parsing the input text.
+   - locale: The locale in which the format should be interpreted.
+
+   Returns a `Time_Error` if the provided text cannot be parsed using the
+   default format.
+
+   ? Format Syntax
+     A custom format string consists of one or more custom date and time format
+     specifiers. For example, "d MMM yyyy" will format "2011-12-03" as
+     "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
+
+   ? Default Time Format
+     The text must represent a valid time and is parsed using the ISO-8601
+     extended local time format. The format consists of:
+
+     - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+       digits.
+     - A colon
+     - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
+       two digits.
+     - If the second-of-minute is not available then the format is complete.
+     - A colon
+     - Two digits for the second-of-minute. This is pre-padded by zero to ensure
+       two digits.
+     - If the nano-of-second is zero or not available then the format is
+       complete.
+     - A decimal point
+     - One to nine digits for the nano-of-second. As many digits will be output
+       as required.
+
+   > Example
+     Get the time 15:05:30.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "15:05:30".parse_time_of_day
+
+   > Example
+     Recover from the parse error.
+
+         import Standard.Base.Data.Text.Extensions
+         from Standard.Base.Errors.Common import Time_Error
+
+         example_parse = "half twelve".parse_time_of_day . catch Time_Error _->
+             Time_Of_Day.new
+
+   > Example
+     Parse "04:30:20" as Time_Of_Day.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "04:30:20".parse_time_of_day "HH:mm:ss"
+
+   > Example
+     Parse "4:30AM" as Time_Of_Day
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "4:30AM".parse_time_of_day "h:mma"
+Text.parse_time_of_day : Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
+Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.parse self format locale
+
+## ALIAS Time_Zone from Text
+
+   This method parses the ID producing a `Time_Zone`.
+
+   > Example
+     Get Central European Time.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "CET".parse_time_zone
+
+   > Example
+     Get Moscow time.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "Europe/Moscow".parse_time_zone
+
+   > Example
+     Get time zone -06:00.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "-06:00".parse_time_zone
+
+   > Example
+     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "+03:02:01".parse_time_zone
+Text.parse_time_zone : Time_Zone ! Time_Error
+Text.parse_time_zone self = Time_Zone.parse self
+
+## ALIAS URI from Text
+
+   Parse a URI from a `Text`.
+
+   Throws a Syntax_Error when the text cannot be parsed as a URI.
+
+   > Example
+     Parse URI text.
+
+         import Standard.Base.Data.Text.Extensions
+
+         example_parse = "http://example.com".parse_uri
+Text.parse_uri : URI ! Syntax_Error
+Text.parse_uri self = URI.parse self
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided

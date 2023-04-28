@@ -1,5 +1,6 @@
 import project.Data.Locale.Locale
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Text.Text
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
@@ -46,3 +47,9 @@ type Text_Ordering
         Text_Ordering.Default _ -> Case_Sensitivity.Default
         Text_Ordering.Case_Sensitive _ -> Case_Sensitivity.Sensitive
         Text_Ordering.Case_Insensitive locale _ -> Case_Sensitivity.Insensitive locale
+
+    ## PRIVATE
+       Convert Text_Ordering to a friendly string.
+    to_display_text : Text
+    to_display_text self =
+        self.case_sensitivity.to_display_text + if self.sort_digits_as_numbers then " (Natural Order)" else ""

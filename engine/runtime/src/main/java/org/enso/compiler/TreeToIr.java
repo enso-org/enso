@@ -1084,6 +1084,9 @@ final class TreeToIr {
       }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
+        if (op == null) {
+          yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);

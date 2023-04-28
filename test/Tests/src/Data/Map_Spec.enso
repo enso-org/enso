@@ -250,7 +250,7 @@ spec =
             vec = [[0, 0], [3, -5], [1, 2], [0, 1]]
             m1 = Map.from_vector vec
             m1.should_fail_with Illegal_Argument
-            m1.catch.message . should_equal "`Map.from_vector` encountered duplicate key: 0 (Integer)"
+            m1.catch.message . should_equal "`Map.from_vector` encountered duplicate key: 0"
 
             m2 = Map.from_vector vec allow_duplicates=True
             Problems.assume_no_problems m2
@@ -304,7 +304,7 @@ spec =
             m = Map.from_vector [[1, 2], [11, 3]]
             m2 = m.transform (k -> v -> [k % 10, v*2])
             m2.should_fail_with Illegal_Argument
-            m2.catch.message . should_equal "`Map.transform` encountered duplicate key: 1 (Integer)"
+            m2.catch.message . should_equal "`Map.transform` encountered duplicate key: 1"
 
         Test.specify "should allow mapping over values" <|
             m = Map.empty . insert 1 2 . insert 2 4

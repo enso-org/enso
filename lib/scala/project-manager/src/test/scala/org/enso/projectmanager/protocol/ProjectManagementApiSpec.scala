@@ -343,6 +343,9 @@ class ProjectManagementApiSpec
 
       //teardown
       deleteProject(projectId)
+      FileUtils.deleteQuietly(projectDir)
+      FileUtils.deleteQuietly(projectDirWithSuffix1)
+      FileUtils.deleteQuietly(projectDirWithSuffix2)
     }
 
   }
