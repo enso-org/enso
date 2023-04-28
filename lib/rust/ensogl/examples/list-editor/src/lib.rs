@@ -90,11 +90,11 @@ fn run() {
     world.add_child(&list_editor1);
     mem::forget(list_editor1);
 
-    // let list_editor2 = new_list_editor(&app);
-    // list_editor2.set_y(50.0);
-    // world.add_child(&list_editor2);
-    // // list_editor2.debug(true);
-    // mem::forget(list_editor2);
+    let list_editor2 = new_list_editor(&app);
+    list_editor2.set_y(50.0);
+    world.add_child(&list_editor2);
+    // list_editor2.debug(true);
+    mem::forget(list_editor2);
 
     world.keep_alive_forever();
     mem::forget(navigator);
