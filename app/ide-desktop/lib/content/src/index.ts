@@ -127,15 +127,19 @@ interface StringConfig {
 class Main implements AppRunner {
     app: app.App | null = null
 
-    tryStopApp() {
+    stopApp() {
         // The `any` is unavoidable as `App.wasm` is typed as `any`.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        this.app?.wasm?.drop()
+        this.app?.stop()
     }
 
     async runApp(inputConfig?: StringConfig) {
-        this.tryStopApp()
+        this.stopApp()
 
+        /** FIXME: https://github.com/enso-org/enso/issues/6475
+         * Default values names are out of sync with values used in code.
+         * Rather than setting fixed values here we need to fix default values in config.
+         */
         const config = Object.assign(
             {
                 loader: {
@@ -201,7 +205,12 @@ class Main implements AppRunner {
              * should only have one entry point. Right now, we have two. One for the cloud
              * and one for the desktop. Once these are merged, we can't hardcode the
              * platform here, and need to detect it from the environment. */
-            const platform = authentication.Platform.desktop
+            const currentPlatform = contentConfig.OPTIONS.groups.startup.options.platform.value
+            const webPlatform = contentConfig.OPTIONS.groups.startup.options.platform.default
+            let platform = authentication.Platform.desktop
+            if (currentPlatform === webPlatform) {
+                platform = authentication.Platform.cloud
+            }
             /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
              * React hooks rerender themselves multiple times. It is resulting in multiple
              * Enso main scene being initialized. As a temporary workaround we check whether

@@ -191,6 +191,9 @@ export class App {
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
     progressIndicator: wasm.ProgressIndicator | null = null
     initialized = false
+    /** Field indicating that application was stopped and any long running process (like wasm compilation) should be aborted.
+     * Currently, we initialize application fully before using stop, but in future we need to support interruption feature. */
+    stopped = false
 
     constructor(opts?: {
         configOptions?: config.Options
@@ -270,8 +273,16 @@ export class App {
             logger.log("App wasn't initialized properly. Skipping run.")
         } else {
             await this.loadAndInitWasm()
-            await this.runEntryPoints()
+            if (!this.stopped) {
+                await this.runEntryPoints()
+            }
         }
+    }
+    /** Sets application stop to true and calls drop method which removes all rust memory references
+     *  and calls all destructors. */
+    stop() {
+        this.stopped = true
+        this.wasm?.drop()
     }
 
     /** Compiles and runs the downloaded WASM file. */

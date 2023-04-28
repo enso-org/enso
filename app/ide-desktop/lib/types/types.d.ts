@@ -5,6 +5,6 @@ interface StringConfig {
 }
 
 interface AppRunner {
-    tryStopApp: () => void
+    stopApp: () => void
     runApp: (config?: StringConfig) => Promise<void>
 }
