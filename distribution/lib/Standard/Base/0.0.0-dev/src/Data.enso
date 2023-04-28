@@ -81,6 +81,7 @@ read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
          import Standard.Examples
 
          example_read = Data.read_text Examples.csv_path
+@encoding Encoding.default_widget
 read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read_text encoding on_problems

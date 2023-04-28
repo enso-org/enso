@@ -3,6 +3,7 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
@@ -78,10 +79,11 @@ spec =
             f.exists.should_be_false
 
         Test.specify "should handle exceptions when deleting a missing file" <|
-            file = File.new "does_not_exist.txt"
-            result = file.delete
-            result.should_fail_with File_Error
-            result.catch.should_be_a File_Error.Not_Found
+            Context.Output.with_enabled <|
+                file = File.new "does_not_exist.txt"
+                result = file.delete
+                result.should_fail_with File_Error
+                result.catch.should_be_a File_Error.Not_Found
 
         if Platform.is_unix then
             Test.specify "should allow to check file permissions" <|
@@ -132,13 +134,14 @@ spec =
         Test.specify "should allow to read last n bytes from a file" <|
             file = enso_project.data / "transient" / "bytes.txt"
             data = [1, 0, 0, 1, 2, 100, 20]
-            data.write_bytes file
-            file.read_last_bytes 0 . should_equal []
-            file.read_last_bytes 1 . should_equal [20]
-            file.read_last_bytes 2 . should_equal [100, 20]
-            file.read_last_bytes 5 . should_equal [0, 1, 2, 100, 20]
-            file.read_last_bytes 1000 . should_equal data
-            file.delete
+            Context.Output.with_enabled <|
+                data.write_bytes file
+                file.read_last_bytes 0 . should_equal []
+                file.read_last_bytes 1 . should_equal [20]
+                file.read_last_bytes 2 . should_equal [100, 20]
+                file.read_last_bytes 5 . should_equal [0, 1, 2, 100, 20]
+                file.read_last_bytes 1000 . should_equal data
+                file.delete
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
@@ -203,7 +206,7 @@ spec =
             contents_2 = Data.read_text file
             contents_2.should_start_with "Cupcake ipsum dolor sit amet."
 
-    Test.group "write operations" <|
+    Test.group "write operations" <| Context.Output.with_enabled <|
         data = [32, 127, -128, 0]
         data_2 = [10, 15, 20, 30]
 

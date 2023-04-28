@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Runtime.Context
 
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
@@ -10,7 +11,7 @@ import Standard.Test.Extensions
 import project.Util
 
 
-spec = Test.group 'Various File Format support on Table' <|
+spec = Test.group 'Various File Format support on Table' <| Context.Output.with_enabled <|
     t1 = Table.new [["X", [1, 2, 3]]]
     transient = enso_project.data / "transient"
     simple_empty = enso_project.data/'simple_empty.csv' . read
