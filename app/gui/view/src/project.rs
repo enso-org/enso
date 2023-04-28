@@ -388,7 +388,7 @@ impl View {
 
         let shape = scene.shape().clone_ref();
 
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
             init <- source::<()>();
             shape <- all(shape, init)._0();
             eval shape ((shape) model.on_dom_shape_changed(shape));
