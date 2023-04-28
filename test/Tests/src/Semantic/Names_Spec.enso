@@ -1,13 +1,13 @@
 from Standard.Base import all
 
-from project.Semantic.Names.Definitions import another_method, another_constant, method_with_local_vars, Bar_Data, Bar
-import project.Semantic.Names.Definitions
+from project.Semantic.Definitions.Names import another_method, another_constant, method_with_local_vars, Bar_Data, Bar
+import project.Semantic.Definitions.Names
 
 from Standard.Test import Test
 import Standard.Test.Extensions
 
-Definitions.Foo.my_method self = case self of
-    Definitions.Foo.Value x y z -> x * y * z
+Names.Foo.my_method self = case self of
+    Names.Foo.Value x y z -> x * y * z
 
 get_foo module = module.Foo
 
@@ -18,14 +18,14 @@ add_one (x = 0) = x + 1
 spec =
     Test.group "Qualified Names" <|
         Test.specify "should allow to call constructors in a qualified manner" <|
-            Definitions.Foo.Value 1 2 3 . sum . should_equal 6
+            Names.Foo.Value 1 2 3 . sum . should_equal 6
         Test.specify "should allow pattern matching in a qualified manner" <|
-            v = Definitions.Foo.Value 1 2 3
+            v = Names.Foo.Value 1 2 3
             res = case v of
-                Definitions.Foo.Value a b c -> a + b + c
+                Names.Foo.Value a b c -> a + b + c
             res.should_equal 6
         Test.specify "should allow defining methods on qualified names" <|
-            v = Definitions.Foo.Value 2 3 5
+            v = Names.Foo.Value 2 3 5
             v.my_method.should_equal 30
     Test.group "Lowercase Methods" <|
         Test.specify "should allow calling methods without a target" <|
@@ -38,8 +38,8 @@ spec =
             another_method 10 . should_equal 10
             another_constant . should_equal 10
         Test.specify "should allow calling methods with fully qualified module name" <|
-            (Definitions.another_method 10).should_equal 10
-            v = Definitions.another_method
+            (Names.another_method 10).should_equal 10
+            v = Names.another_method
             v 10 . should_equal 10
         Test.specify "should be resolved correctly in the presence of variables with the same name" <|
             method_with_local_vars 1 . should_equal 13

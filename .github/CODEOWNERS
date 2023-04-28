@@ -15,7 +15,7 @@ Cargo.toml
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon @kazcw
 /lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
 /integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw
-/tools/build-performance/ @kazcw @mwu-tow @wdanilo
+/tools/build-performance/ @kazcw @mwu-tow @wdanilo @Akirathan
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
@@ -28,9 +28,9 @@ Cargo.toml
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
-/build.sbt @4e6 @jaroslavtulach @hubertp
+/build.sbt @4e6 @jaroslavtulach @hubertp @Akirathan
 /distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis
-/engine/ @4e6 @jaroslavtulach @hubertp
+/engine/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /project/ @4e6 @jaroslavtulach @hubertp
 /test/ @jdunkerley @radeusgd @GregoryTravis
 /tools/ @4e6 @jaroslavtulach @radeusgd

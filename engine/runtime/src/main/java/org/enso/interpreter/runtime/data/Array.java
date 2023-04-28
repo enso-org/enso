@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.graalvm.collections.EconomicSet;
 
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
@@ -28,6 +29,7 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 public final class Array implements TruffleObject {
   private final Object[] items;
   private Boolean withWarnings;
+  private Warning[] cachedWarnings;
 
   /**
    * Creates a new array
@@ -203,13 +205,22 @@ public final class Array implements TruffleObject {
   @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    ArrayRope<Warning> ropeOfWarnings = new ArrayRope<>();
+    if (cachedWarnings == null) {
+      cachedWarnings = Warning.fromSetToArray(collectAllWarnings(warnings, location));
+    }
+    return cachedWarnings;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
+      throws UnsupportedMessageException {
+    EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
     for (int i = 0; i < items.length; i++) {
       if (warnings.hasWarnings(items[i])) {
-        ropeOfWarnings = ropeOfWarnings.prepend(warnings.getWarnings(items[i], location));
+        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(items[i], location)));
       }
     }
-    return ropeOfWarnings.toArray(Warning[]::new);
+    return setOfWarnings;
   }
 
   @ExportMessage
