@@ -25,7 +25,6 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
-use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_list_editor::ListEditor;
 use ensogl_slider as slider;

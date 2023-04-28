@@ -84,7 +84,6 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::gui::cursor::Trash;
-use ensogl_core::Animation;
 use ensogl_core::Easing;
 use item::Item;
 use placeholder::Placeholder;
@@ -380,7 +379,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
 
-        let mut dragged_item_network: Rc<RefCell<Option<frp::Network>>> = default();
+        let dragged_item_network: Rc<RefCell<Option<frp::Network>>> = default();
 
         let on_resized = model.borrow().layout.on_resized.clone_ref();
 
@@ -408,15 +407,15 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
             eval frp.gap((t) model.borrow_mut().set_gap(*t));
 
-            pos_on_move_is_close <- all_with3(&pos_on_move, &frp.gap, &model.borrow().layout.on_resized,
-                |pos, gap, size| {
-                    let is_close_x = pos.x > -gap && pos.x < size.x + gap;
-                    let is_close_y = pos.y > -gap && pos.y < size.y + gap;
-                    is_close_x && is_close_y
-                }
-            );
+            // pos_on_move_is_close <- all_with3(&pos_on_move, &frp.gap, &model.borrow().layout.on_resized,
+            //     |pos, gap, size| {
+            //         let is_close_x = pos.x > -gap && pos.x < size.x + gap;
+            //         let is_close_y = pos.y > -gap && pos.y < size.y + gap;
+            //         is_close_x && is_close_y
+            //     }
+            // );
             // trace pos_on_move;
-            pos_on_move_if_close <- pos_on_move.gate(&pos_on_move_is_close);
+            // pos_on_move_if_close <- pos_on_move.gate(&pos_on_move_is_close);
 
 
 
@@ -456,14 +455,8 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         }
 
         self.init_add_and_remove();
-        let (is_dragging, drag_diff, no_drag) = self.init_dragging(
-            &cursor,
-            &on_up,
-            &on_up_cleaning_phase,
-            &on_down,
-            &target,
-            &pos_diff,
-        );
+        let (is_dragging, _drag_diff, no_drag) =
+            self.init_dragging(cursor, &on_up, &on_up_cleaning_phase, &on_down, &target, &pos_diff);
         frp::extend! { network
             on_up_dragging <- on_up.gate(&is_close2);
         }
@@ -473,6 +466,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
         frp::extend! { network
+            cursor.frp.set_style_override <+ insert_pointer_style;
             // cursor.frp.set_style_override <+ all [insert_pointer_style, trash_pointer_style].fold();
             on_down_drag <- on_down.gate_not(&no_drag);
             // Do not pass events to children, as we don't know whether we are about to drag
@@ -993,10 +987,11 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// ╰─────╯ ╰╌╌╌╌╯ ╰─────╯ ╰╌╌╌╌╯ ╰─────╯             ╰─────╯ ╰╌╌╌╌╌╌╌╌╌╌╌╌◀╌╯ ╰─────╯
     /// ```   
     fn start_item_drag_at(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {
-        self.replace_item_with_placeholder(index).map(|item| {
-            // self.cursor.start_drag(item.clone_ref());
-            item
-        })
+        self.replace_item_with_placeholder(index)
+        //     .map(|item| {
+        //     // self.cursor.start_drag(item.clone_ref());
+        //     item
+        // })
     }
 
     fn replace_item_with_placeholder(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {

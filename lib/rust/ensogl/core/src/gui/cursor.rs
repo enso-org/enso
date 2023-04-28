@@ -653,6 +653,7 @@ impl CursorModel {
         self.frp.private.output.stop_drag.emit(());
     }
 
+    /// The display object of the dragged item, if any.
     pub fn dragged_display_object(&self) -> Option<display::object::Instance> {
         self.dragged_item.borrow().as_ref().map(|t| t.1.clone())
     }
@@ -669,6 +670,7 @@ impl CursorModel {
         self.dragged_item.borrow().as_ref().and_then(|item| item.0.downcast_ref::<T>().map(f))
     }
 
+    /// Trash the dragged item.
     pub fn trash_dragged_item(&self) {
         let obj = self.dragged_display_object();
         if let Some(obj) = obj {
@@ -685,12 +687,26 @@ impl display::Object for Cursor {
 }
 
 
+
+// ==================
+// === DragTarget ===
+// ==================
+
+/// Abstraction for display elements that can handle dragged item drop.
+///
+/// If a display element wants to handle dragged item, for example after the mouse hovers it, it
+/// should have an instance of this struct and use the [`Cursor::switch_drag_target`] FRP endpoint
+/// to notify the cursor that it wants to handle the drop. Only one drag target can be registered
+/// globally at a time. If your drag target was granted the permission to handle the drop, the
+/// [`Self::granted`] event will be set to `true`. In case another drag target was granted the
+/// permission, your drag target's [`Self::granted`] event will turn false.
 #[derive(Debug, Clone, CloneRef, Deref, Default)]
 pub struct DragTarget {
     model: Rc<DragTargetModel>,
 }
 
 impl DragTarget {
+    /// Constructor.
     pub fn new() -> Self {
         Self::default()
     }
@@ -702,6 +718,8 @@ impl PartialEq for DragTarget {
     }
 }
 
+/// Internal representation of [`DragTarget`].
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct DragTargetModel {
     network:     frp::Network,
@@ -711,6 +729,7 @@ pub struct DragTargetModel {
 }
 
 impl DragTargetModel {
+    /// Constructor.
     pub fn new() -> Self {
         let network = frp::Network::new("DragTarget");
         frp::extend! { network
@@ -737,6 +756,8 @@ mod trash {
     use super::*;
     crate::define_endpoints_2! {}
 
+    /// A wrapper over any display object. After construction, the display object will be gradually
+    /// scaled to zero and then will be removed.
     #[derive(Debug, CloneRef, Derivative)]
     #[derivative(Clone(bound = ""))]
     pub struct Trash<T> {
@@ -750,6 +771,7 @@ mod trash {
     }
 
     impl<T: display::Object + 'static> Trash<T> {
+        /// Constructor.
         pub fn new(elem: T) -> Self {
             let self_ref = Rc::new(RefCell::new(None));
             let _frp = Frp::new();
@@ -759,6 +781,7 @@ mod trash {
             // scale_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
             frp::extend! { network
                 eval scale_animation.value ((t) display_object.set_scale_xy(Vector2(*t,*t)));
+                // FIXME: does it handle detaching display object?
                 eval_ scale_animation.on_end (self_ref.borrow_mut().take(););
             }
             scale_animation.target.emit(0.0);

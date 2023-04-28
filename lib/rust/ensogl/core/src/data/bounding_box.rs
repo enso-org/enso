@@ -55,6 +55,8 @@ impl BoundingBox {
         Self::from_corners(position - size / 2.0, position + size / 2.0)
     }
 
+    /// Constructor of the bounding box with left bottom corner placed at the origin and the given
+    /// size.
     pub fn from_size(size: Vector2) -> Self {
         Self::from_corners(Vector2::zeros(), size)
     }
