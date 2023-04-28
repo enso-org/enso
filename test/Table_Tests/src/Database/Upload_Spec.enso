@@ -175,9 +175,9 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should be able to specify a primary key" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
             db_table = t.create_database_table connection (Name_Generator.random_name "source-table") temporary=True
-            db_table_2 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["X"]
-
-            get_primary_key connection db_table_2.name . should_equal ["X"]
+            db_table_2 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") primary_key=["X"]
+            Panic.with_finalizer (connection.drop_table db_table_2.name) <|
+                get_primary_key connection db_table_2.name . should_equal ["X"]
 
         Test.specify "should ensure that primary key columns are valid" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -207,9 +207,20 @@ make_mock_column name values exploding_index =
 
    This method may not work correctly with temporary tables, possibly resulting
    in `SQL_Error` as such tables may not be found.
+
+   ! Temporary Tables in SQLite
+
+     The temporary tables in SQLite live in a `temp` database. There is a bug in
+     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
+     which contains schemas of only permanent tables. For now, we just adapt to
+     it and check primary keys for non-temporary tables only. If we ever want to
+     use the primary key information in the actual product, we will likely need
+     to reimplement this by ourselves and UNION both `sqlite_schema` and
+     `temp.sqlite_schema` tables to get results for both temporary and permanent
+     tables.
 get_primary_key connection table_name =
     connection.jdbc_connection.with_connection java_connection->
-        rs = java_connection.getMetaData.getPrimaryKeys Nothing connection.schema table_name
+        rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
         keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
         # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
         selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True

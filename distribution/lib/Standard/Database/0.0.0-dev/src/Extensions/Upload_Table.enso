@@ -116,13 +116,8 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
 Database_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
 Database_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
     resolved_primary_key = resolve_primary_key self primary_key
-    checked_primary_key = case resolved_primary_key of
-        Nothing -> resolved_primary_key
-        _ -> check_primary_key_is_unique self resolved_primary_key . if_not_error <|
-            resolved_primary_key
-
     effective_table_name = resolve_effective_table_name table_name temporary
-    create_table_statement = prepare_create_table_statement connection effective_table_name self.columns checked_primary_key temporary on_problems
+    create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
 
     upload_status = create_table_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
         Panic.rethrow <| connection.execute_update create_table_statement
