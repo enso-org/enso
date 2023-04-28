@@ -1784,7 +1784,7 @@ make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_date_formatter format locale problem_builder =
     _ = [problem_builder]
     date->
-        illegal_argument_to_warning problem_builder <|
+        illegal_argument_to_warning problem_builder format <|
             date.format format locale
 
 ## PRIVATE
