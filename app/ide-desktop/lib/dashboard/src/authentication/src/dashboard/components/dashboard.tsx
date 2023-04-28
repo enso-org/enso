@@ -698,13 +698,7 @@ function Dashboard(props: DashboardProps) {
                     </div>
                     <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
                         <div className="m-2">Shared with</div>
-                        <div className="-m-1">
-                            <PermissionDisplay
-                                permissions={{ type: permissionDisplay.Permission.admin }}
-                            >
-                                marketing
-                            </PermissionDisplay>
-                        </div>
+                        <div></div>
                     </div>
                     <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                         <button
