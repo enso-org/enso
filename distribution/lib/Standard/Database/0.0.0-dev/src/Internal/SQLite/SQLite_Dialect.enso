@@ -18,6 +18,7 @@ import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.IR.Context.Context
+import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -29,6 +30,7 @@ import project.Internal.Common.Database_Join_Helper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
+import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
@@ -213,6 +215,9 @@ type SQLite_Dialect
     default_table_types self =
         ["TABLE", "VIEW", "GLOBAL TEMPORARY"]
 
+    ## PRIVATE
+    get_error_mapper : Error_Mapper
+    get_error_mapper self = SQLite_Error_Mapper
 
 ## PRIVATE
 make_internal_generator_dialect =

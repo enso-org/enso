@@ -54,24 +54,21 @@ from project.Errors import all
 In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
 In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
     resolved_primary_key = resolve_primary_key self primary_key
-    checked_primary_key = case resolved_primary_key of
-        Nothing -> resolved_primary_key
-        _ -> check_primary_key_is_unique self resolved_primary_key . if_not_error <|
-            resolved_primary_key
-
     effective_table_name = resolve_effective_table_name table_name temporary
-    create_table_statement = prepare_create_table_statement connection effective_table_name self.columns checked_primary_key temporary on_problems
+    create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
 
     ## `create_table_statement.if_not_error` is used to ensure that if there are
        any dataflow errors up to this point, we want to propagate them and not
        continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
        raised as panics.
-    upload_status = create_table_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
-        Panic.rethrow <| connection.execute_update create_table_statement
-        if structure_only.not then
-            insert_template = make_batched_insert_template connection effective_table_name self.column_names
-            statement_setter = connection.dialect.get_statement_setter
-            connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
+    upload_status = create_table_statement.if_not_error <|
+        translate_upload_known_errors connection resolved_primary_key <|
+            connection.jdbc_connection.run_within_transaction <|
+                Panic.rethrow <| connection.execute_update create_table_statement
+                if structure_only.not then
+                    insert_template = make_batched_insert_template connection effective_table_name self.column_names
+                    statement_setter = connection.dialect.get_statement_setter
+                    connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
 
     upload_status.if_not_error <|
         connection.query (SQL_Query.Table_Name effective_table_name)
@@ -119,15 +116,17 @@ Database_Table.create_database_table self connection table_name=Nothing primary_
     effective_table_name = resolve_effective_table_name table_name temporary
     create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
 
-    upload_status = create_table_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
-        Panic.rethrow <| connection.execute_update create_table_statement
-        if structure_only.not then
-            ## We need to ensure that the columns in this statement are matching
-               positionally the columns in `create_table_statement`. But we
-               create both from the same table, so that is guaranteed.
-            copy_into_statement = connection.dialect.generate_sql <|
-                Query.Insert_From_Select effective_table_name self.to_select_query
-            Panic.rethrow <| connection.execute_update copy_into_statement
+    upload_status = create_table_statement.if_not_error <|
+        translate_upload_known_errors connection resolved_primary_key <|
+            connection.jdbc_connection.run_within_transaction <|
+                Panic.rethrow <| connection.execute_update create_table_statement
+                if structure_only.not then
+                    ## We need to ensure that the columns in this statement are matching
+                       positionally the columns in `create_table_statement`. But we
+                       create both from the same table, so that is guaranteed.
+                    copy_into_statement = connection.dialect.generate_sql <|
+                        Query.Insert_From_Select effective_table_name self.to_select_query
+                    Panic.rethrow <| connection.execute_update copy_into_statement
 
     upload_status.if_not_error <|
         connection.query (SQL_Query.Table_Name effective_table_name)
@@ -141,13 +140,16 @@ resolve_primary_key table primary_key = case primary_key of
         table.select_columns primary_key reorder=True . column_names
 
 ## PRIVATE
-   Checks if the specified primary key uniquely identifies all rows in the table.
-
-   If the key is not unique, it will raise a `Non_Unique_Primary_Key` error.
-check_primary_key_is_unique table primary_key =
-    deduplicated = table.distinct primary_key
-    if deduplicated.row_count != table.row_count then
-        Error.throw (Non_Unique_Primary_Key.Error primary_key)
+   Inspects any `SQL_Error` thrown and replaces it with a more precise error
+   type when available.
+translate_upload_known_errors connection primary_key ~action =
+    handler caught_panic =
+        error_mapper = connection.dialect.get_error_mapper
+        sql_error = caught_panic.payload
+        case error_mapper.is_primary_key_violation sql_error of
+            True -> Error.throw (Non_Unique_Primary_Key.Error primary_key)
+            False -> Panic.throw caught_panic
+    Panic.catch SQL_Error action handler
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the

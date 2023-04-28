@@ -191,7 +191,6 @@ spec make_new_connection prefix persistent_connector=True =
             Problems.assume_no_problems db_table
 
             r1 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["X"]
-            # TODO?
             r1.should_fail_with Non_Unique_Primary_Key
 
 
