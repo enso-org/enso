@@ -133,7 +133,7 @@ public class IfVsCaseBenchmarks extends TestBase {
 
         """;
 
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var src = SrcUtil.source(benchmarkName, code);
     Value module = ctx.eval(src);
     ifBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_3"));

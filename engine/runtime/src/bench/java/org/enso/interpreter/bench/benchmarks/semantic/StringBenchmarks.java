@@ -53,7 +53,7 @@ public class StringBenchmarks {
             v = Vector.new len (_ -> s)
             v
         """;
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var src = SrcUtil.source(benchmarkName, code);
     var module = ctx.eval(src);
 

@@ -59,7 +59,7 @@ public class ArrayProxyBenchmarks {
         make_delegating_vector n =
             Vector.from_polyglot_array (make_delegating_proxy n)
         """;
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var src = SrcUtil.source(benchmarkName, code);
     var module = ctx.eval(src);
 

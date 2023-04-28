@@ -61,7 +61,7 @@ public class TypePatternBenchmarks {
         match_dec = v -> case v of
             n : Decimal -> n + 1
         """;
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var src = SrcUtil.source(benchmarkName, code);
     var module = ctx.eval(src);
 
@@ -70,7 +70,7 @@ public class TypePatternBenchmarks {
 
     var length = 100;
     this.vec = getMethod.apply("gen_vec").execute(self, length, 1.1);
-    switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
+    switch (SrcUtil.findName(params)) {
       case "matchOverAny":
         this.patternMatch = getMethod.apply("match_any");
         break;
