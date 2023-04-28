@@ -38,9 +38,9 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 // =================
 
 export interface ProjectActionButtonProps {
-    project: backendModule.Asset<backendModule.AssetType.project>
-    appRunner: AppRunner | null
+    project: backendModule.ProjectAsset
     onClose: () => void
+    appRunner: AppRunner | null
     openIde: () => void
 }
 

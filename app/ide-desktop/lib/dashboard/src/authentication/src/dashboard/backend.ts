@@ -260,6 +260,18 @@ export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
     id: IdType[Type]
 }
 
+/** A convenience alias for {@link Asset}<{@link AssetType.project}>. */
+export interface ProjectAsset extends Asset<AssetType.project> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
+export interface DirectoryAsset extends Asset<AssetType.directory> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
+export interface SecretAsset extends Asset<AssetType.secret> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
+export interface FileAsset extends Asset<AssetType.file> {}
+
 /** The type returned from the "create directory" endpoint. */
 export interface Directory extends Asset<AssetType.directory> {}
 

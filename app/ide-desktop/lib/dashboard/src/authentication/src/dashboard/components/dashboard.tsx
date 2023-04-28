@@ -219,9 +219,7 @@ function Dashboard(props: DashboardProps) {
 
     const [query, setQuery] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
-    const [directoryStack, setDirectoryStack] = react.useState<
-        backendModule.Asset<backendModule.AssetType.directory>[]
-    >([])
+    const [directoryStack, setDirectoryStack] = react.useState<backendModule.DirectoryAsset[]>([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
     const [tab, setTab] = react.useState(Tab.dashboard)
@@ -229,30 +227,14 @@ function Dashboard(props: DashboardProps) {
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
-    const [projectAssets, setProjectAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.project>[]
-    >([])
-    const [directoryAssets, setDirectoryAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.directory>[]
-    >([])
-    const [secretAssets, setSecretAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.secret>[]
-    >([])
-    const [fileAssets, setFileAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.file>[]
-    >([])
-    const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.project>[]
-    >([])
-    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.directory>[]
-    >([])
-    const [visibleSecretAssets, setVisibleSecretAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.secret>[]
-    >([])
-    const [visibleFileAssets, setVisibleFileAssets] = react.useState<
-        backendModule.Asset<backendModule.AssetType.file>[]
-    >([])
+    const [projectAssets, setProjectAssets] = react.useState<backendModule.ProjectAsset[]>([])
+    const [directoryAssets, setDirectoryAssets] = react.useState<backendModule.DirectoryAsset[]>([])
+    const [secretAssets, setSecretAssets] = react.useState<backendModule.SecretAsset[]>([])
+    const [fileAssets, setFileAssets] = react.useState<backendModule.FileAsset[]>([])
+    const [visibleProjectAssets, setVisibleProjectAssets] = react.useState(projectAssets)
+    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState(directoryAssets)
+    const [visibleSecretAssets, setVisibleSecretAssets] = react.useState(secretAssets)
+    const [visibleFileAssets, setVisibleFileAssets] = react.useState(fileAssets)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -291,7 +273,7 @@ function Dashboard(props: DashboardProps) {
         if (cachedDirectoryStackJson) {
             // The JSON was inserted by the code below, so it will always have the right type.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const cachedDirectoryStack: backendModule.Asset<backendModule.AssetType.directory>[] =
+            const cachedDirectoryStack: backendModule.DirectoryAsset[] =
                 JSON.parse(cachedDirectoryStackJson)
             setDirectoryStack(cachedDirectoryStack)
             const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
@@ -351,9 +333,7 @@ function Dashboard(props: DashboardProps) {
         [accessToken, directoryId, refresh, backend]
     )
 
-    const enterDirectory = (
-        directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
-    ) => {
+    const enterDirectory = (directoryAsset: backendModule.DirectoryAsset) => {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
@@ -786,7 +766,7 @@ function Dashboard(props: DashboardProps) {
             <table className="items-center w-full bg-transparent border-collapse mt-2">
                 <tbody>
                     <tr className="h-10" />
-                    <Rows<backendModule.Asset<backendModule.AssetType.project>>
+                    <Rows<backendModule.ProjectAsset>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
                         placeholder={
@@ -877,7 +857,7 @@ function Dashboard(props: DashboardProps) {
                         (remoteBackend => (
                             <>
                                 <tr className="h-10" />
-                                <Rows<backendModule.Asset<backendModule.AssetType.directory>>
+                                <Rows<backendModule.DirectoryAsset>
                                     items={visibleDirectoryAssets}
                                     getKey={dir => dir.id}
                                     placeholder={
@@ -909,7 +889,7 @@ function Dashboard(props: DashboardProps) {
                                     }}
                                 />
                                 <tr className="h-10" />
-                                <Rows<backendModule.Asset<backendModule.AssetType.secret>>
+                                <Rows<backendModule.SecretAsset>
                                     items={visibleSecretAssets}
                                     getKey={secret => secret.id}
                                     placeholder={
@@ -959,7 +939,7 @@ function Dashboard(props: DashboardProps) {
                                     }}
                                 />
                                 <tr className="h-10" />
-                                <Rows<backendModule.Asset<backendModule.AssetType.file>>
+                                <Rows<backendModule.FileAsset>
                                     items={visibleFileAssets}
                                     getKey={file => file.id}
                                     placeholder={
