@@ -9,8 +9,8 @@ public class DryRunFileManager {
   static final Map<String, String> files = new HashMap<>();
 
   /**
-   * Creates a temporary file for the given path. If the path is already a
-   * dry run temporary file, the same path will be returned.
+   * Creates a temporary file for the given path. If the path is already a dry run temporary file,
+   * the same path will be returned.
    *
    * @param path the path to the file to make a temporary file of.
    * @return the path to the temporary file.
