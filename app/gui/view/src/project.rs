@@ -23,12 +23,15 @@ use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::system::web;
-use ensogl::system::web::dom;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
+
+
+
+mod dashboard_button;
 
 
 
@@ -40,6 +43,9 @@ use ide_view_graph_editor::NodeSource;
 /// to send `searcher_input_changed` event. The delay ensures we don't needlessly update Component
 /// Browser when user is quickly typing in the expression input.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
+
+/// The height for the top bar.
+const TOP_BAR_HEIGHT: f32 = 38.0;
 
 
 
@@ -126,6 +132,7 @@ ensogl::define_endpoints! {
         fullscreen_visualization_shown (bool),
         drop_files_enabled             (bool),
         debug_mode                     (bool),
+        dashboard_button_pressed       (),
     }
 }
 
@@ -141,6 +148,7 @@ struct Model {
     display_object:         display::object::Instance,
     /// These buttons are present only in a cloud environment.
     window_control_buttons: Immutable<Option<crate::window_control_buttons::View>>,
+    dashboard_button:       dashboard_button::View,
     graph_editor:           Rc<GraphEditor>,
     searcher:               component_browser::View,
     code_editor:            code_editor::View,
@@ -166,12 +174,14 @@ impl Model {
             window_control_buttons
         });
         let window_control_buttons = Immutable(window_control_buttons);
+        let dashboard_button = dashboard_button::View::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
+        display_object.add_child(&dashboard_button);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -180,6 +190,7 @@ impl Model {
             app,
             display_object,
             window_control_buttons,
+            dashboard_button,
             graph_editor,
             searcher,
             code_editor,
@@ -258,12 +269,27 @@ impl Model {
         }
     }
 
-    fn on_dom_shape_changed(&self, shape: &dom::shape::Shape) {
-        // Top buttons must always stay in top-left corner.
+    // Relayouts the top bar elements and returns the new width of the top bar.
+    fn relayout_top_bar(
+        &self,
+        scene_shape: &display::scene::Shape,
+        window_control_buttons_width: f32,
+        dashboard_button_width: f32,
+    ) -> f32 {
+        let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
         if let Some(window_control_buttons) = &*self.window_control_buttons {
-            let pos = Vector2(-shape.width, shape.height) / 2.0;
-            window_control_buttons.set_xy(pos);
+            window_control_buttons.set_xy(top_left);
         }
+        let gap = crate::graph_editor::TOP_BAR_ITEM_MARGIN;
+        let dashboard_button_offset_x = window_control_buttons_width + gap;
+        let dashboard_button_pos = top_left
+            + Vector2(
+                dashboard_button_offset_x + dashboard_button_width / 2.0,
+                -TOP_BAR_HEIGHT / 2.0,
+            );
+        self.dashboard_button.set_xy(dashboard_button_pos);
+        let top_bar_width = dashboard_button_offset_x + dashboard_button_width;
+        top_bar_width
     }
 
     fn on_close_clicked(&self) {
@@ -376,23 +402,55 @@ impl View {
         let input_change_delay = frp::io::timer::Timeout::new(network);
         let searcher_open_delay = frp::io::timer::Timeout::new(network);
 
-        if let Some(window_control_buttons) = &*model.window_control_buttons {
-            let initial_size = &window_control_buttons.size.value();
-            model.graph_editor.input.space_for_window_buttons(initial_size);
-            frp::extend! { network
-                graph.space_for_window_buttons <+ window_control_buttons.size;
-                eval_ window_control_buttons.close      (model.on_close_clicked());
-                eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-            }
-        }
-
-        let shape = scene.shape().clone_ref();
-
         frp::extend! { network
             init <- source::<()>();
-            shape <- all(shape, init)._0();
-            eval shape ((shape) model.on_dom_shape_changed(shape));
+        }
 
+
+        // === Top Bar ===
+
+        let window_control_buttons_width =
+            if let Some(window_control_buttons) = &*model.window_control_buttons {
+                frp::extend! { network
+                    window_control_buttons_size <- all(init, window_control_buttons.size)._1();
+                    window_control_buttons_width <- window_control_buttons_size.map(|size| size.x);
+                    eval_ window_control_buttons.close (model.on_close_clicked());
+                    eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
+                }
+                window_control_buttons_width
+            } else {
+                frp::extend! { network
+                    window_control_buttons_width <- source::<f32>();
+                    window_control_buttons_width_stream <- window_control_buttons_width.identity();
+                }
+                window_control_buttons_width.emit(0.0);
+                window_control_buttons_width_stream
+            };
+        let scene_shape = scene.shape().clone_ref();
+        let dashboard_button = &model.dashboard_button.frp;
+        frp::extend! { network
+            frp.source.dashboard_button_pressed <+ dashboard_button.pressed;
+            dashboard_button_size <- all(init, dashboard_button.size)._1();
+            dashboard_button_width <- dashboard_button_size.map(|size| size.x);
+            top_bar_update <- all(
+                init,
+                scene_shape,
+                window_control_buttons_width,
+                dashboard_button_width
+            );
+            top_bar_width <- top_bar_update.map(
+                f!([model] ((_, scene_shape, window_control_buttons_width, dashboard_button_width))
+                    model.relayout_top_bar(
+                        scene_shape,
+                        *window_control_buttons_width,
+                        *dashboard_button_width
+                    )
+                )
+            );
+            graph.top_bar_offset_x <+ top_bar_width;
+        }
+
+        frp::extend! { network
             eval_ frp.show_graph_editor(model.show_graph_editor());
             eval_ frp.hide_graph_editor(model.hide_graph_editor());
 

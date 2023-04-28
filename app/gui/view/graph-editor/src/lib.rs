@@ -114,7 +114,7 @@ const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 /// Space between items in the top bar.
-const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
+pub const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let platform_str = ARGS.groups.startup.options.platform.value.as_str();
@@ -450,7 +450,8 @@ ensogl::define_endpoints_2! {
 
 
         // === Layout ===
-        space_for_window_buttons (Vector2<f32>),
+
+        top_bar_offset_x (f32),
 
 
         // === Read-only mode ===

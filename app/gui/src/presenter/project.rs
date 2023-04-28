@@ -316,6 +316,18 @@ impl Model {
             }
         });
     }
+
+    fn close_ide(&self) {
+        let Some(window) = web_sys::window() else { return error!("Failed to get JS Window.") };
+        let Some(document) = window.document() else { return error!("Failed to get JS Document.") };
+        match web_sys::Event::new("ide-close") {
+            Ok(event) =>
+                if let Err(error) = document.dispatch_event(&event) {
+                    error!("Failed to dispatch event to close IDE. {error:?}");
+                },
+            Err(error) => error!("Failed to create event to close IDE. {error:?}"),
+        }
+    }
 }
 
 
@@ -416,6 +428,8 @@ impl Project {
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
+
+            eval_ view.dashboard_button_pressed (model.close_ide());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

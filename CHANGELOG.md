@@ -136,6 +136,10 @@
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
   sending messages to the backend.][6341].
+- [Added a button to return from an opened project back to the project
+- dashboard.][6474]
+
+[6474]: https://github.com/enso-org/enso/pull/6474
 
 #### EnsoGL (rendering engine)
 
