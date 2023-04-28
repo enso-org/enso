@@ -838,6 +838,7 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
 
             prettier::check(&ctx.repo_root).await?;
             let js_modules_root = ctx.repo_root.join("app/ide-desktop");
+            Npm.cmd()?.current_dir(&js_modules_root).args(["install"]).run_ok().await?;
             Npm.cmd()?.current_dir(&js_modules_root).args(["run", "typecheck"]).run_ok().await?;
             Npx.cmd()?.current_dir(&js_modules_root).args(["eslint", "."]).run_ok().await?;
         }
