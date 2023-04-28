@@ -168,6 +168,12 @@ type Context
     is_enabled_builtin : Text -> Boolean
     is_enabled_builtin self environment = @Builtin_Method "Context.is_enabled_builtin"
 
+    ## PRIVATE
+       Run an action with the Context enabled.
+    with_enabled : Function -> Any
+    with_enabled self ~action =
+        with_enabled_context self Runtime.current_execution_environment action
+
 
 ## PRIVATE
    ADVANCED

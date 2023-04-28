@@ -49,7 +49,8 @@ format_widget =
         ctor_name = if type_obj==JSON_Format || (type_name.ends_with "_Format" . not) then "" else
             simple_name = Meta.get_simple_type_name type_obj
             "." + simple_name.replace "_Format" ""
-        type_name + ctor_name
+        if ctor_name == "" then type_name else
+            "(" + type_name + ctor_name + ")"
     make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
     Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (make_ctor n)))
 

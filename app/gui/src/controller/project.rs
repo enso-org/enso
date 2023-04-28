@@ -135,7 +135,6 @@ impl Project {
 
         self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
         self.notify_about_compiling_process(&main_graph);
-        self.display_warning_on_unsupported_engine_version();
 
         Ok(InitializationResult { main_module_text, main_module_model, main_graph })
     }

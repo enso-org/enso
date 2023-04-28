@@ -336,3 +336,16 @@ type Forbidden_Operation
        Convert the Forbidden_Operation error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Forbidden operation: "+self.operation+"."
+
+type Dry_Run_Operation
+    ## PRIVATE
+       A warning that the operation has only been performed in a test mode.
+
+       Arguments:
+       - message: The message to be displayed.
+    Warning message
+
+    ## PRIVATE
+       Convert the Dry_Run_Operation to a human-readable format.
+    to_display_text : Text
+    to_display_text self = self.message

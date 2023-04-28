@@ -11,6 +11,7 @@ import project.Data.Text.Text
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -18,6 +19,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
@@ -123,7 +125,8 @@ type File
                  file.with_output_stream [File_Access.Create, File_Access.Write] action
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self open_options action =
-        Managed_Resource.bracket (self.new_output_stream open_options) (_.close) action
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File writing is forbidden as the Output context is disabled") else
+            Managed_Resource.bracket (self.new_output_stream open_options) (_.close) action
 
     ## PRIVATE
        Creates a new output stream for this file. Recommended to use
