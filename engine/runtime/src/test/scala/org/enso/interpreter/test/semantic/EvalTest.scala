@@ -36,6 +36,20 @@ class EvalTest extends InterpreterTest {
       consumeOut shouldEqual List("Hello World!")
     }
 
+    "have access to the caller scope with <|" in {
+      val code =
+        s"""import Standard.Base.Runtime.Debug
+           |import Standard.Base.IO
+           |
+           |main =
+           |    x = "Hello World!"
+           |    Debug.eval <| $rawTQ
+           |        IO.println x
+           |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List("Hello World!")
+    }
+
     "have access to the caller module scope" in {
       val code =
         s"""import Standard.Base.Runtime.Debug

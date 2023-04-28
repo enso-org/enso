@@ -3,13 +3,13 @@ package org.enso.interpreter.dsl.test;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.junit.Assert;
+import static org.junit.Assert.assertNotNull;
 
-@BuiltinMethod(type = "InliningBuiltins", name = "out")
-final class InliningBuiltinsOutNode extends Node {
+@BuiltinMethod(type = "InliningBuiltins", name = "need_not", inlineable = true)
+final class InliningBuiltinsNeedNotNode extends Node {
 
   long execute(VirtualFrame frame, long a, long b) {
-    Assert.assertNotNull("VirtualFrame is always provided", frame);
+    assertNotNull("Some frame is still provided", frame);
     return a + b;
   }
 }

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
@@ -74,7 +75,7 @@ public abstract class IndirectCurryNode extends Node {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         var value =
-            doCall(function, callerInfo, state, arguments, isTail, directCall, loopingCall);
+            doCall(frame, function, callerInfo, state, arguments, isTail, directCall, loopingCall);
         if (defaultsExecutionMode.isExecute()
             && (value instanceof Function || (value instanceof AtomConstructor cons
               && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
@@ -91,7 +92,7 @@ public abstract class IndirectCurryNode extends Node {
           return value;
         }
       } else {
-        var evaluatedVal = loopingCall.executeDispatch(function, callerInfo, state, arguments);
+        var evaluatedVal = loopingCall.executeDispatch(frame, function, callerInfo, state, arguments);
 
         return oversaturatedCallableNode.execute(
             evaluatedVal,
@@ -114,6 +115,7 @@ public abstract class IndirectCurryNode extends Node {
   }
 
   private Object doCall(
+      VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
       State state,
@@ -123,11 +125,11 @@ public abstract class IndirectCurryNode extends Node {
       CallOptimiserNode loopingCall) {
     switch (isTail) {
       case TAIL_DIRECT:
-        return directCall.executeCall(function, callerInfo, state, arguments);
+        return directCall.executeCall(frame, function, callerInfo, state, arguments);
       case TAIL_LOOP:
         throw new TailCallException(function, callerInfo, arguments);
       default:
-        return loopingCall.executeDispatch(function, callerInfo, state, arguments);
+        return loopingCall.executeDispatch(frame, function, callerInfo, state, arguments);
     }
   }
 }

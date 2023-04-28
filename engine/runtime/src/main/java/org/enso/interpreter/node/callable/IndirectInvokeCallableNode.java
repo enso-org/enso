@@ -182,7 +182,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
     if (canApplyThis) {
       Object self = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
-        self = thisExecutor.executeThunk(self, state, BaseNode.TailStatus.NOT_TAIL);
+        self = thisExecutor.executeThunk(callerFrame, self, state, BaseNode.TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = self;
       }
       return invokeMethodNode.execute(
