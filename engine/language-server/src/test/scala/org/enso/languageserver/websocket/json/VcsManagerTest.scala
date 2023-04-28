@@ -1460,7 +1460,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
       .setAllowEmpty(true)
       .setAll(true)
       .setMessage("Initial commit")
-      .setAuthor("Enso VCS", "vcs@enso.io")
+      .setAuthor("Enso VCS", "vcs@enso.org")
+      .setCommitter("Enso VCS", "vcs@enso.org")
       .call()
     test(client)
   }
@@ -1491,7 +1492,11 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
 
   def commit(root: File, msg: String): RevCommit = {
     val jgit = new JGit(repository(root.toPath))
-    jgit.commit.setMessage(msg).setAuthor("Enso VCS", "vcs@enso.io").call()
+    jgit.commit
+      .setMessage(msg)
+      .setAuthor("Enso VCS", "vcs@enso.org")
+      .setCommitter("Enso VCS", "vcs@enso.org")
+      .call()
   }
 
   def add(root: File, paths: Path*): Boolean = {
