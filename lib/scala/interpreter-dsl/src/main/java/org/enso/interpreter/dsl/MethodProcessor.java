@@ -238,14 +238,15 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       if (!methodDefinition.needsFrame()) {
         out.println("  @Override");
         out.println("  public final InlineableNode createInlineableNode() {");
-        out.println("    return new InlineableNode() {");
+        out.println("    class Inlineable extends InlineableNode {");
         out.println("      private final Internals extra = new Internals(internals.staticOfInstanceMethod);");
         out.println("      private @Child " + methodDefinition.getOriginalClassName() + " body = " + methodDefinition.getConstructorExpression() + ";");
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
         out.println("        return handleExecute(frame, extra, body, args);");
         out.println("      }");
-        out.println("    };");
+        out.println("    }");
+        out.println("    return new Inlineable();");
         out.println("  }");
       }
 
