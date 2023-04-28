@@ -61,7 +61,7 @@ export class Backend implements Partial<Omit<cloudService.Backend, 'platform'>> 
     ): Promise<cloudService.CreatedProject> {
         const project = await this.projectManager.createProject({
             name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
-            projectTemplate: body.projectTemplateName ?? '',
+            ...(body.projectTemplateName ? { projectTemplate: body.projectTemplateName } : {}),
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
         return {
