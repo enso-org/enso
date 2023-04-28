@@ -38,6 +38,12 @@ impl Model {
     fn new(app: &Application, network: &frp::Network) -> Self {
         let label = Label::new(app);
         label.set_opacity(0.0);
+        // Add the pop-up to the panel layer so its position is fixed. The default for Label is the
+        // tooltip layer, which moves when panning.
+        let scene = &app.display.default_scene;
+        let background_layer = &scene.layers.panel;
+        let text_layer = &scene.layers.panel_text;
+        label.set_layers(background_layer, text_layer);
 
         let opacity_animation = Animation::new(network);
         network.store(&opacity_animation);
