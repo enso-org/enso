@@ -47,7 +47,7 @@ struct Element {
     background:             display::shape::Rectangle,
     insertion_point_before: display::object::Instance,
     element:                display::object::Instance,
-    owned_element:          Rc<RefCell<Option<TreeNode>>>,
+    owned_subtree:          Rc<RefCell<Vec<(WidgetIdentity, TreeNode)>>>,
 }
 
 impl Element {
@@ -76,7 +76,7 @@ impl Element {
             background,
             element,
             insertion_point_before,
-            owned_element: default(),
+            owned_subtree: default(),
         }
     }
 
@@ -90,11 +90,11 @@ impl Element {
         self.insertion_point_before = insertion_point_before;
         self.element = element;
         self.code = code;
-        self.owned_element.take();
+        self.owned_subtree.take();
     }
 
-    fn take_ownership(&self, owned: TreeNode) {
-        *self.owned_element.borrow_mut() = Some(owned);
+    fn take_ownership(&self, owned: Vec<(WidgetIdentity, TreeNode)>) {
+        *self.owned_subtree.borrow_mut() = owned;
     }
 }
 
@@ -151,6 +151,7 @@ impl Widget {
             widgets_frp.transfer_ownership <+ removed_by_user.filter_map(move |(_, element)| Some(TransferRequest {
                 to_transfer: *element.borrow().as_ref()?.widget_id,
                 new_owner: my_id,
+                whole_subtree: true,
             }));
             remove <- removed_by_user._0();
             remove_st_crumb <- remove.filter_map(f!((index) crumbs_to_remove.borrow().get(index).cloned()));
@@ -308,9 +309,9 @@ impl super::SpanWidget for Widget {
         }
     }
 
-    fn receive_ownership(&mut self, node: TreeNode, node_identity: WidgetIdentity) {
-        if let Some(element) = self.elements.get(&node_identity) {
-            element.take_ownership(node);
+    fn receive_ownership(&mut self, req: TransferRequest, nodes: Vec<(WidgetIdentity, TreeNode)>) {
+        if let Some(element) = self.elements.get(&req.to_transfer) {
+            element.take_ownership(nodes);
         }
     }
 }

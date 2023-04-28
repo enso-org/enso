@@ -134,10 +134,14 @@ pub trait SpanWidget {
     fn new(config: &Self::Config, ctx: &ConfigContext) -> Self;
     /// Update configuration for existing widget.
     fn configure(&mut self, config: &Self::Config, ctx: ConfigContext);
-    /// Receive a reference of the tree item for which the ownership transfer was requested. Called
+    /// Receive a reference of the tree items for which the ownership transfer was requested. Called
     /// by the tree when [`WidgetsFrp::transfer_ownership`] signal is used.
-    fn receive_ownership(&mut self, node: TreeNode, node_identity: WidgetIdentity) {
-        _ = (node, node_identity);
+    fn receive_ownership(
+        &mut self,
+        original_request: TransferRequest,
+        nodes: Vec<(WidgetIdentity, TreeNode)>,
+    ) {
+        _ = (original_request, nodes);
     }
 }
 
@@ -215,9 +219,12 @@ macro_rules! define_widget_modules(
                 }
             }
 
-            fn receive_ownership(&mut self, node: TreeNode, node_identity: WidgetIdentity) {
+            fn receive_ownership(&mut self,
+                req: TransferRequest,
+                nodes: Vec<(WidgetIdentity, TreeNode)>,
+            ) {
                 match (self) {
-                    $(DynWidget::$name(model) => model.receive_ownership(node, node_identity),)*
+                    $(DynWidget::$name(model) => model.receive_ownership(req, nodes),)*
                 }
             }
         }
@@ -434,10 +441,12 @@ pub struct TransferRequest {
     /// The widget ID that will receive the ownership of the node. Usually this is the ID of the
     /// widget that sends the request, which can be obtained from [`NodeInfo::identity`], which is
     /// provided on [`ConfigContext`].
-    pub new_owner:   WidgetIdentity,
+    pub new_owner:     WidgetIdentity,
     /// The ID of the node that should be transferred. Usually one of the node's children, which
     /// can be obtained from [`Child`] instance returned from [`TreeBuilder::child_widget`].
-    pub to_transfer: WidgetIdentity,
+    pub to_transfer:   WidgetIdentity,
+    /// Whether the whole subtree should be transferred, or just the node itself.
+    pub whole_subtree: bool,
 }
 
 
@@ -777,6 +786,22 @@ impl TreeModel {
         Some(hierarchy[parent_index].identity)
     }
 
+    /// Iterate over a node with given pointer and all its descendants, if it exists in the tree.
+    #[allow(dead_code)]
+    pub fn iter_subtree(
+        &self,
+        pointer: WidgetIdentity,
+    ) -> impl Iterator<Item = WidgetIdentity> + '_ {
+        let hierarchy = self.hierarchy.borrow();
+        let nodes = self.nodes_map.borrow();
+        let total_range = nodes.get(&pointer).map_or(0..0, |entry| {
+            let start = entry.index;
+            let total_descendants = hierarchy[entry.index].total_descendants;
+            start..start + 1 + total_descendants
+        });
+        total_range.map(move |index| hierarchy[index].identity)
+    }
+
     /// Iterate children of a node under given pointer, if any exist.
     #[allow(dead_code)]
     pub fn iter_children(
@@ -805,11 +830,21 @@ impl TreeModel {
     /// Prevent a widget from being reused in future rebuild. Send its only remaining strong
     /// reference to the new owner.
     fn transfer_ownership(&self, request: TransferRequest) {
-        let mut nodes_map = self.nodes_map.borrow_mut();
-        if let Some(TreeEntry { node, .. }) = nodes_map.remove(&request.to_transfer) {
-            if let Some(owner) = nodes_map.get_mut(&request.new_owner) {
-                owner.node.widget_mut().receive_ownership(node, request.to_transfer);
+        let mut nodes = Vec::new();
+        if request.whole_subtree {
+            let iter = self.iter_subtree(request.to_transfer);
+            let mut nodes_map = self.nodes_map.borrow_mut();
+            nodes.extend(iter.filter_map(move |id| Some((id, nodes_map.remove(&id)?.node))));
+        } else {
+            let mut nodes_map = self.nodes_map.borrow_mut();
+            if let Some(entry) = nodes_map.remove(&request.to_transfer) {
+                nodes.push((request.to_transfer, entry.node));
             }
+        }
+
+        let mut nodes_map = self.nodes_map.borrow_mut();
+        if let Some(owner) = nodes_map.get_mut(&request.new_owner) {
+            owner.node.widget_mut().receive_ownership(request, nodes);
         }
     }
 
