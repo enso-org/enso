@@ -319,7 +319,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         // if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
                         //     break;
                         // }
-                        next_parent = node.parent()?;
+                        next_parent = node.ast_parent()?;
                         // let argument_node = node.children_iter().find(|ch| {
                         //     error!("ast_crumbs: {:?}", ch.ast_crumbs);
                         //     error!("crumbs: {:?}", ch.crumbs);

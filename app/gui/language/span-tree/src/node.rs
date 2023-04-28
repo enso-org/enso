@@ -383,6 +383,28 @@ impl<'a, T> Ref<'a, T> {
         }
     }
 
+    /// Get the next parent node that is a root of an AST subtree. Those nodes have non-empty
+    /// `ast_crumbs` field.
+    pub fn ast_parent(&self) -> FallibleResult<Option<Self>> {
+        match self.crumbs.split_last() {
+            Some((_, parent_crumbs)) => {
+                let mut last_num_crumbs = self.ast_crumbs.len();
+                let mut last_ast = None;
+                let mut item: Self = self.span_tree.root_ref();
+                let mut crumbs = parent_crumbs.into_iter();
+                loop {
+                    if item.ast_crumbs.len() < last_num_crumbs {
+                        last_num_crumbs = item.ast_crumbs.len();
+                        last_ast = Some(item.clone());
+                    }
+                    let Some(crumb) = crumbs.next() else { return Ok(last_ast) };
+                    item = item.child(*crumb)?;
+                }
+            }
+            None => Ok(None),
+        }
+    }
+
     /// Iterator over all direct children producing `Ref`s.
     pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> {
         let children_count = self.node.children.len();

@@ -1769,34 +1769,33 @@ main =
 
         #[rustfmt::skip]
         let cases = &[
-            // Case { info: None, dest_node_expr: "var + a", dest_node_expected: "_ + a" },
-            // Case { info: None, dest_node_expr: "a + var", dest_node_expected: "a + _" },
-            // Case { info: None, dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
-            // Case { info: None, dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
-            // Case { info: None, dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
-            // Case { info: None, dest_node_expr: "foo var", dest_node_expected: "foo _" },
-            // Case { info: None, dest_node_expr: "foo var a", dest_node_expected: "foo a" },
-            // Case { info: None, dest_node_expr: "foo a var", dest_node_expected: "foo a" },
-            // Case { info: info(), dest_node_expr: "foo var", dest_node_expected: "foo" },
+            Case { info: None, dest_node_expr: "var + a", dest_node_expected: "_ + a" },
+            Case { info: None, dest_node_expr: "a + var", dest_node_expected: "a + _" },
+            Case { info: None, dest_node_expr: "var + b + c", dest_node_expected: "b + c" },
+            Case { info: None, dest_node_expr: "a + var + c", dest_node_expected: "a + c" },
+            Case { info: None, dest_node_expr: "a + b + var", dest_node_expected: "a + b" },
+            Case { info: None, dest_node_expr: "foo var", dest_node_expected: "foo _" },
+            Case { info: None, dest_node_expr: "foo var a", dest_node_expected: "foo a" },
+            Case { info: None, dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo var", dest_node_expected: "foo" },
             Case { info: info(), dest_node_expr: "foo var a", dest_node_expected: "foo arg2=a" },
-            // Case { info: info(), dest_node_expr: "foo a var", dest_node_expected: "foo a" },
-            // Case { info: info(), dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
-            // Case { info: info(), dest_node_expr: "foo arg1=var a", dest_node_expected: "foo arg2=a" },
-            // Case {
-            //     info: info(),
-            //     dest_node_expr: "foo arg2=var a c",
-            //     dest_node_expected: "foo a arg3=c"
-            // },
-            // Case {
-            //     info: None,
-            //     dest_node_expr:     "f\n        bar a var",
-            //     dest_node_expected: "f\n        bar a _",
-            // },
+            Case { info: info(), dest_node_expr: "foo a var", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg2=var a", dest_node_expected: "foo a" },
+            Case { info: info(), dest_node_expr: "foo arg1=var a", dest_node_expected: "foo arg2=a" },
+            Case {
+                info: info(),
+                dest_node_expr: "foo arg2=var a c",
+                dest_node_expected: "foo a arg3=c"
+            },
+            Case {
+                info: None,
+                dest_node_expr:     "f\n        bar a var",
+                dest_node_expected: "f\n        bar a _",
+            },
         ];
         for case in cases {
             case.run();
         }
-        panic!();
     }
 
     /// A regression test case for removing arguments. See
