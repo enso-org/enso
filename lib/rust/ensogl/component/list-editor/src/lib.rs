@@ -93,7 +93,6 @@ use placeholder::StrongPlaceholder;
 use placeholder::WeakPlaceholder;
 
 
-
 // ==============
 // === Export ===
 // ==============
@@ -108,7 +107,7 @@ pub mod placeholder;
 // =================
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
 
 pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
 
@@ -806,29 +805,40 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
 
     fn replace_list(&mut self, elements: impl Iterator<Item = T>) {
         let mut self_position = self.layout.global_position();
-        let new_items = elements
-            .map(|elem| {
+        let self_size = self.layout.computed_size();
+        let mut new_items = elements
+            .enumerate()
+            .map(|(index, elem)| {
                 let elem_object = elem.display_object();
-                let size = elem_object.computed_size();
-                let placeholder = StrongPlaceholder::new_with_size(size.x());
+                // let size = elem_object.computed_size()
+                //     + Vector2(if index == 0 { self.gap } else { 0.0 }, 0.0);
+                let placeholder = StrongPlaceholder::new_with_size(0.0);
                 let item_position = elem_object.global_position();
-                let animate_to_position = elem.has_parent();
+                let animate_to_position = item_position != Vector2(0.0, 0.0);
                 let relative_position = if animate_to_position {
                     item_position - self_position
                 } else {
                     Vector3::zero()
                 };
-                self_position.update_x(|x| x + size.x() + self.gap);
+                // self_position.update_x(|x| x + size.x() + self.gap);
                 elem.set_position(relative_position);
                 let item = Item::new_from_placeholder(elem, placeholder);
+                // if index != 0 {
+                //     item.set_margin_left(self.gap);
+                //     item.frp.skip_margin_anim();
+                // }
                 item
             })
             .collect_vec();
-
-        self.layout.replace_children(&new_items);
+        console_log!("{:?}", self_size);
+        let mut placeholder = StrongPlaceholder::new_with_size(self_size.x());
+        let displays = new_items.iter().map(|item| item.display_object());
+        // .chain(iter::once(placeholder.display_object()));
+        self.layout.replace_children(&displays.collect_vec());
         self.items.clear();
-        self.items.extend(new_items.into_iter().map(Into::into));
-        self.recompute_margins();
+        self.items
+            .extend(new_items.into_iter().map(Into::into).chain(iter::once(placeholder.into())));
+        self.collapse_all_placeholders();
     }
 
     /// Remove all items and add them again, in order of their current position.

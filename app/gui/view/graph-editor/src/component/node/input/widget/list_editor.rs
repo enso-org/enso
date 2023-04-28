@@ -278,6 +278,7 @@ impl super::SpanWidget for Widget {
     }
 
     fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
+        console_log!("NEW");
         let display_object = display::object::Instance::new();
         let list = ListEditor::new(&ctx.app().cursor);
         // list.push(Element::new(default(), default(), default(), default()));
@@ -300,6 +301,7 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
+        console_log!("CONFIGURE");
         let current_value: Option<ImString> = Some(ctx.expression_at(ctx.span_node.span()).into());
         self.config_frp.current_value(current_value);
         if ctx.span_node.is_insertion_point() {
