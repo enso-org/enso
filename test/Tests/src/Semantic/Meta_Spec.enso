@@ -370,4 +370,5 @@ spec =
             (.is_nothing) . is_a Function . should_equal True
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
+
 main = Test_Suite.run_main spec

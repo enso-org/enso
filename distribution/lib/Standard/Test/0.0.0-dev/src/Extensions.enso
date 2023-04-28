@@ -23,9 +23,7 @@ from project.Test import Test
 Any.should_fail_with : Any -> Integer -> Test_Result
 Any.should_fail_with self matcher frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    matcher_text = case matcher.to_text of
-        text : Text -> text
-        _ -> Meta.meta matcher . to_text
+    matcher_text = matcher . to_text
     Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
 
 ## Expect a function to fail with the provided dataflow error.
@@ -48,9 +46,7 @@ Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
-        matcher_text = case matcher.to_text of
-            text : Text -> text
-            _ -> Meta.meta matcher . to_text
+        matcher_text = matcher . to_text
         Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
 ## Asserts that `self` value is equal to the expected value.

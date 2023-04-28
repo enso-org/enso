@@ -561,6 +561,8 @@ type List
 
    An error representing that the list is empty.
 type Empty_Error
+    Error
+
     ## PRIVATE
 
        Pretty prints the empty error.

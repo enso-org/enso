@@ -228,8 +228,6 @@ public class PrintTest extends TestBase {
         IO.println a
     """;
 
-    checkPrint(code, "My_Object.type.to_text[test:6-16]");
-    // We would want the following result:
-    //checkPrint(code, "My_Object");
+    checkPrint(code, "My_Object");
   }
 }

@@ -11,10 +11,12 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
@@ -102,17 +104,44 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Object execute(
       VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  @Specialization(guards = {"dispatch.hasType(self)", "!dispatch.hasSpecialDispatch(self)"})
+  @Specialization(guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
   Object doFunctionalDispatch(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
       @Cached MethodResolverNode methodResolverNode) {
-    Function function = methodResolverNode.expectNonNull(self, dispatch.getType(self), symbol);
+
+    Type selfTpe = typesLibrary.getType(self);
+    Function function = methodResolverNode.expectNonNull(self, selfTpe, symbol);
+
+    RootNode where = function.getCallTarget().getRootNode();
+    // If both Any and the type where `function` is declared, define `symbol`
+    // and the method is invoked statically, i.e. type of self is the eigentype,
+    // then we want to disambiguate method resolution by always resolved to the one in Any.
+    if (where instanceof MethodRootNode node && typeCanOverride(node, EnsoContext.get(this))) {
+      Function anyFun = symbol.getScope().lookupMethodDefinition(EnsoContext.get(this).getBuiltins().any(), symbol.getName());
+      if (anyFun != null) {
+        function = anyFun;
+      }
+    }
     return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  private boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
+    Type methodOwnerType = node.getType();
+    Builtins builtins = ctx.getBuiltins();
+    Type any = builtins.any();
+    Type warning = builtins.warning();
+    Type panic = builtins.panic();
+    return methodOwnerType.isEigenType()
+
+            && builtins.nothing() != methodOwnerType
+            && any.getEigentype() != methodOwnerType
+            && panic.getEigentype() != methodOwnerType
+            && warning.getEigentype() != methodOwnerType;
   }
 
   @Specialization

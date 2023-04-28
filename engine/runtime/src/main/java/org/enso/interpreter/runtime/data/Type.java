@@ -307,6 +307,10 @@ public final class Type implements TruffleObject {
     return eigentype;
   }
 
+  public boolean isEigenType() {
+    return eigentype == this;
+  }
+
   public void registerConstructor(AtomConstructor constructor) {
     constructors.put(constructor.getName(), constructor);
   }

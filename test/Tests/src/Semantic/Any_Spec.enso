@@ -1,10 +1,8 @@
 from Standard.Base import all
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
-
-type My_Type
-    Value a
+from project.Semantic.Definitions.Any_Types import all
 
 spec =
     Test.group "Any.map_nothing" <|
@@ -39,3 +37,24 @@ spec =
             (1 != 2) . should_be_true
             (1 != 1) . should_be_false
 
+    Test.group "Any's methods" <|
+        Test.specify "should not be overridable when called statically" <|
+            My_Type.Value 33 . x . should_equal "Any:(My_Type.Value 33)"
+            With_X.Value 44 . x . should_equal "With_X:(With_X.Value 44)"
+            With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
+            Any.x . to_text . should_equal "Any.type.x[Any_Types.enso:6-26]"
+            My_Type.x . should_equal "Any:My_Type"
+            With_X.x . to_text . should_equal "Any:With_X"
+            With_X.y . to_text . should_equal "With_X.type.y[Any_Types.enso:12-32]"
+            With_Y.x . to_text . should_equal "Any:With_Y"
+            With_Y.y . to_text . should_equal "With_Y.type.y[Any_Types.enso:18-38]"
+            With_X.to_text . to_text . should_equal "With_X"
+            With_Y.to_text . to_text . should_equal "With_Y"
+            Any.x self=With_X . should_equal "Any:With_X"
+            Any.x self=With_Y . should_equal "Any:With_Y"
+            Any.x (My_Type.Value 22) . should_equal "Any:(My_Type.Value 22)"
+            Any.x (With_X.Value 22) . should_equal "Any:(With_X.Value 22)"
+            Any.x (With_Y.Value 22) . should_equal "Any:With_Y(22)"
+            Date.to_display_text . should_equal "Date"
+
+main = Test_Suite.run_main spec
