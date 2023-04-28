@@ -347,7 +347,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
 object Git {
   private val HeadRef     = "HEAD"
   private val AuthorName  = "Enso VCS"
-  private val AuthorEmail = "vcs@enso.io"
+  private val AuthorEmail = "vcs@enso.org"
 
   private class RepoExists extends Exception
 
