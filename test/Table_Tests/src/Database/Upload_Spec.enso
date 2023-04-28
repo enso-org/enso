@@ -129,7 +129,8 @@ spec make_new_connection prefix persistent_connector=True =
                 tmp_connection.query name . at "X" . to_vector . should_equal [1, 2, 3]
                 tmp_connection.close
 
-                connection.query name . at "X" . to_vector . should_equal [1, 2, 3]
+                if persistent_connector then
+                    connection.query name . at "X" . to_vector . should_equal [1, 2, 3]
 
         Test.specify "should be able to persist a complex query with generated columns, joins etc." <|
             t1 = Table.new [["X", [1, 1, 2]], ["Y", [1, 2, 3]]]
@@ -150,7 +151,10 @@ spec make_new_connection prefix persistent_connector=True =
 
             # We check that this is indeed querying a simple DB table and not a complex query like `db_table_4` would be,
             sql = copied_table.to_sql.prepare.first
-            sql.match "SELECT .* FROM ."+copied_table.name+"." . should_be_true
+            Test.with_clue "sql="+sql <|
+                sql.contains "WHERE" . should_be_false
+                sql.contains "JOIN" . should_be_false
+                sql.contains "GROUP" . should_be_false
 
         Test.specify "should be able to create a temporary copy of a query" <|
             tmp_connection = make_new_connection Nothing
@@ -184,6 +188,8 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should fail when the primary key is not unique" <|
             t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
             db_table = t.create_database_table connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
+            Problems.assume_no_problems db_table
+
             r1 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["X"]
             # TODO?
             r1.should_fail_with Non_Unique_Primary_Key

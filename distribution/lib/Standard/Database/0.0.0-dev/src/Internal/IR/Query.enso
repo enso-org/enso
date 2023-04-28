@@ -42,10 +42,14 @@ type Query
          the responsibility of the caller to ensure that the columns in
          `primary_key` actually exist in `columns`, as otherwise the behavior is
          undefined (most likely will result in an `SQL_Error` once executed).
-       - temporary: specifies if the table should be marked as temporary.
+       - temporary: specifies if the table should be marked as temporary
     Create_Table (table_name:Text) (columns : Vector (Pair Text Text)) (primary_key : Vector Text) (temporary : Boolean)
 
     ## PRIVATE
-
        An SQL query that drops a table.
     Drop_Table (table_name:Text)
+
+    ## PRIVATE
+       An INSERT INTO ... SELECT query that allows to insert results of a query
+       into an existing table.
+    Insert_From_Select (table_name:Text) (select:Query)
