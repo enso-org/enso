@@ -23,11 +23,12 @@ const JS_EXTENSION: Record<platformModule.Platform, string> = {
 
 interface Props {
     project: cloudService.Project
+    appRunner: AppRunner
 }
 
 /** Container that launches the IDE. */
 function Ide(props: Props) {
-    const { project } = props
+    const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 
     react.useEffect(() => {
@@ -75,7 +76,7 @@ function Ide(props: Props) {
                     }
                 })()
                 const runNewProject = async () => {
-                    await window.runApp({
+                    await appRunner.runApp({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,

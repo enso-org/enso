@@ -124,127 +124,105 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
-// This is intended to be reassigned.
-// eslint-disable-next-line no-restricted-syntax
-let dropPreviousInstance = () => {
-    // Intentionally a no-op when there is no instance to drop.
-}
+class Main implements AppRunner {
+    app: app.App | null = null
 
-// This must be separate from `dropPreviousInstance` as `dropPreviousInstance` gets reassigned,
-// while `tryStopApp` is attached onto the window.
-/** Stop the app if one is currently running. */
-function tryStopApp() {
-    dropPreviousInstance()
-    dropPreviousInstance = () => {
-        // Intentionally a no-op when there is no instance to drop.
+    tryStopApp() {
+        // The `any` is unavoidable as `App.wasm` is typed as `any`.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.app?.wasm?.drop()
     }
-}
 
-async function runApp(inputConfig?: StringConfig) {
-    tryStopApp()
+    async runApp(config?: StringConfig) {
+        this.tryStopApp()
 
-    const config = Object.assign(
-        {
-            loader: {
-                wasmUrl: 'pkg-opt.wasm',
-                jsUrl: 'pkg.js',
-                assetsUrl: 'dynamic-assets',
+        this.app = new app.App({
+            config: config ?? {},
+            configOptions: contentConfig.OPTIONS,
+            packageInfo: {
+                version: BUILD_INFO.version,
+                engineVersion: BUILD_INFO.engineVersion,
             },
-        },
-        inputConfig
-    )
+        })
 
-    const appInstance = new app.App({
-        config,
-        configOptions: contentConfig.OPTIONS,
-        packageInfo: {
-            version: BUILD_INFO.version,
-            engineVersion: BUILD_INFO.engineVersion,
-        },
-    })
-
-    if (!appInstance.initialized) {
-        console.error('Failed to initialize the application.')
-    } else {
-        if (contentConfig.OPTIONS.options.dataCollection.value) {
-            // TODO: Add remote-logging here.
-        }
-        if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
-            displayDeprecatedVersionDialog()
+        if (!this.app.initialized) {
+            console.error('Failed to initialize the application.')
         } else {
-            const email = contentConfig.OPTIONS.groups.authentication.options.email.value
-            // The default value is `""`, so a truthiness check is most appropriate here.
-            if (email) {
-                logger.log(`User identified as '${email}'.`)
+            if (contentConfig.OPTIONS.options.dataCollection.value) {
+                // TODO: Add remote-logging here.
             }
-            void appInstance.run()
-            dropPreviousInstance = () => {
-                // The `any` is unavoidable as `App.wasm` is typed as `any`.
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-                appInstance.wasm?.drop?.()
+            if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
+                displayDeprecatedVersionDialog()
+            } else {
+                const email = contentConfig.OPTIONS.groups.authentication.options.email.value
+                // The default value is `""`, so a truthiness check is most appropriate here.
+                if (email) {
+                    logger.log(`User identified as '${email}'.`)
+                }
+                void this.app.run()
             }
         }
     }
-}
 
-function main() {
-    // Load command line arguments into `configOptions.OPTIONS`.
-    new app.App({
-        configOptions: contentConfig.OPTIONS,
-    })
+    main() {
+        // Load command line arguments into `configOptions.OPTIONS`.
+        new app.App({
+            configOptions: contentConfig.OPTIONS,
+        })
 
-    const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
-    const isUsingNewDashboard =
-        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
-    const isOpeningIde =
-        contentConfig.OPTIONS.groups.startup.options.entry.value ===
-        contentConfig.OPTIONS.groups.startup.options.entry.default
+        const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
+        const isUsingNewDashboard =
+            contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+        const isOpeningIde =
+            contentConfig.OPTIONS.groups.startup.options.entry.value ===
+            contentConfig.OPTIONS.groups.startup.options.entry.default
 
-    if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningIde) {
-        window.tryStopApp = tryStopApp
-        window.runApp = runApp
-        const hideAuth = () => {
-            const auth = document.getElementById('dashboard')
-            const ide = document.getElementById('root')
-            if (auth) {
-                auth.style.display = 'none'
-            }
-            if (ide) {
-                ide.hidden = false
-            }
-        }
-        /** This package is an Electron desktop app (i.e., not in the Cloud), so
-         * we're running on the desktop. */
-        /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
-         * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
-         * should only have one entry point. Right now, we have two. One for the cloud
-         * and one for the desktop. Once these are merged, we can't hardcode the
-         * platform here, and need to detect it from the environment. */
-        const platform = authentication.Platform.desktop
-        /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
-         * React hooks rerender themselves multiple times. It is resulting in multiple
-         * Enso main scene being initialized. As a temporary workaround we check whether
-         * appInstance was already ran. Target solution should move running appInstance
-         * where it will be called only once. */
-        let appInstanceRan = false
-        const onAuthenticated = () => {
-            if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-                hideAuth()
-                if (!appInstanceRan) {
-                    appInstanceRan = true
-                    void runApp()
+        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningIde) {
+            const hideAuth = () => {
+                const auth = document.getElementById('dashboard')
+                const ide = document.getElementById('root')
+                if (auth) {
+                    auth.style.display = 'none'
+                }
+                if (ide) {
+                    ide.hidden = false
                 }
             }
+            /** This package is an Electron desktop app (i.e., not in the Cloud), so
+             * we're running on the desktop. */
+            /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+             * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+             * should only have one entry point. Right now, we have two. One for the cloud
+             * and one for the desktop. Once these are merged, we can't hardcode the
+             * platform here, and need to detect it from the environment. */
+            const platform = authentication.Platform.desktop
+            /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+             * React hooks rerender themselves multiple times. It is resulting in multiple
+             * Enso main scene being initialized. As a temporary workaround we check whether
+             * appInstance was already ran. Target solution should move running appInstance
+             * where it will be called only once. */
+            let appInstanceRan = false
+            const onAuthenticated = () => {
+                if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+                    hideAuth()
+                    if (!appInstanceRan) {
+                        appInstanceRan = true
+                        void this.runApp()
+                    }
+                }
+            }
+            authentication.run({
+                appRunner: this,
+                logger,
+                platform,
+                showDashboard:
+                    contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+                onAuthenticated,
+            })
+        } else {
+            void this.runApp()
         }
-        authentication.run({
-            logger,
-            platform,
-            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-            onAuthenticated,
-        })
-    } else {
-        void runApp()
     }
 }
 
-main()
+new Main().main()

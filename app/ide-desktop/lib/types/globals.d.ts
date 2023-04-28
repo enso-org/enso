@@ -40,8 +40,6 @@ interface AuthenticationApi {
 
 declare global {
     interface Window {
-        tryStopApp: () => void
-        runApp: (inputConfig?: StringConfig) => Promise<void>
         authenticationApi: AuthenticationApi
     }
 

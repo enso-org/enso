@@ -198,13 +198,14 @@ function rootDirectoryId(userOrOrganizationId: cloudService.UserOrOrganizationId
 
 export interface DashboardProps {
     platform: platformModule.Platform
+    appRunner: AppRunner
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
 function Dashboard(props: DashboardProps) {
-    const { platform } = props
+    const { platform, appRunner } = props
 
     const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
@@ -358,6 +359,7 @@ function Dashboard(props: DashboardProps) {
             >
                 <ProjectActionButton
                     project={projectAsset}
+                    appRunner={appRunner}
                     openIde={async () => {
                         setTab(Tab.ide)
                         setProject(await backend.getProjectDetails(projectAsset.id))
@@ -1062,7 +1064,7 @@ function Dashboard(props: DashboardProps) {
                 </div>
             ) : null}
             {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
-            {project && <Ide project={project} />}
+            {project && <Ide project={project} appRunner={appRunner} />}
             {modal && <>{modal}</>}
         </div>
     )

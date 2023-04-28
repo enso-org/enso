@@ -38,12 +38,13 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 
 export interface ProjectActionButtonProps {
     project: cloudService.Asset<cloudService.AssetType.project>
+    appRunner: AppRunner
     openIde: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, openIde } = props
+    const { project, appRunner, openIde } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = react.useState(cloudService.ProjectState.created)
@@ -118,7 +119,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     function closeProject() {
         setState(cloudService.ProjectState.closed)
-        window.tryStopApp()
+        appRunner.tryStopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
     }
