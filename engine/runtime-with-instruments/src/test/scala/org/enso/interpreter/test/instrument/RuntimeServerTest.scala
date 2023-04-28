@@ -331,6 +331,10 @@ class RuntimeServerTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  override protected def afterEach(): Unit = {
+    context.executionContext.context.close()
+  }
+
   "RuntimeServer" should "push and pop functions on the stack" in {
     val contents  = context.Main.code
     val mainFile  = context.writeMain(contents)
