@@ -7,6 +7,10 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import CreateForm, * as createForm from './createForm'
 
+// ======================
+// === FileCreateForm ===
+// ======================
+
 /** Props for a {@link FileCreateForm}. */
 export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {
     backend: backendModule.Backend

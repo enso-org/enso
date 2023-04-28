@@ -2,6 +2,10 @@
  *
  * This file MUST NOT `export {}` for the modules to be visible to other files. */
 
+// ===========================
+// === Module declarations ===
+// ===========================
+
 declare module '*.yaml' {
     const DATA: unknown
     export default DATA

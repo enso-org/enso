@@ -4,8 +4,16 @@ import * as portfinder from 'portfinder'
 
 import * as bundler from './esbuild-config.js'
 
+// =================
+// === Constants ===
+// =================
+
 const PORT = 8080
 const HTTP_STATUS_OK = 200
+
+// ===============
+// === Watcher ===
+// ===============
 
 /** Start the esbuild watcher. */
 async function watch() {

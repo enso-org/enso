@@ -14,6 +14,10 @@ import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
 
+// =================
+// === Constants ===
+// =================
+
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
 /** An explicit whitelist of CommonJS modules, which do not support namespace imports.
@@ -35,6 +39,10 @@ const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
+
+// =======================================
+// === Restricted syntactic constructs ===
+// =======================================
 
 // Extracted to a variable because it needs to be used twice:
 // - once as-is for `.d.ts`
@@ -210,6 +218,10 @@ const RESTRICTED_SYNTAXES = [
         message: 'Avoid destructuring parameters in the parameter list',
     },
 ]
+
+// ============================
+// === ESLint configuration ===
+// ============================
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export default [

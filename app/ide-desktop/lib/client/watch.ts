@@ -21,6 +21,10 @@ import * as contentBundler from '../content/esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
 import * as paths from './paths'
 
+// =============
+// === Types ===
+// =============
+
 /** Set of esbuild watches for the client and content. */
 interface Watches {
     client: esbuild.BuildResult
@@ -28,8 +32,16 @@ interface Watches {
     content: esbuild.BuildResult
 }
 
+// =================
+// === Constants ===
+// =================
+
 const IDE_DIR_PATH = paths.getIdeDirectory()
 const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
+
+// =============
+// === Watch ===
+// =============
 
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
@@ -114,8 +126,9 @@ const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.ar
 
 process.on('SIGINT', () => {
     console.log('SIGINT received. Exiting.')
-    // The esbuild process seems to remain alive at this point and will keep our process from ending.
-    // Thus, we exit manually. It seems to terminate the child esbuild process as well.
+    // The `esbuild` process seems to remain alive at this point and will keep our process
+    // from ending. Thus, we exit manually. It seems to terminate the child `esbuild` process
+    // as well.
     process.exit(0)
 })
 

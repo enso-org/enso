@@ -5,6 +5,10 @@
 // eslint-disable-next-line no-restricted-syntax
 declare const self: ServiceWorkerGlobalScope
 
+// ===============================
+// === Intercept HTTP requests ===
+// ===============================
+
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
     if (

@@ -1,9 +1,12 @@
 /** @file Helper function to upload multiple files,
  * with progress being reported by a continually updating toast notification. */
-
 import toast from 'react-hot-toast'
 
 import * as backend from './dashboard/service'
+
+// ===========================
+// === uploadMultipleFiles ===
+// ===========================
 
 /** Uploads multiple files to the backend, showing a continuously updated toast notification. */
 export async function uploadMultipleFiles(

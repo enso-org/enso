@@ -7,6 +7,10 @@ import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
+// ===================
+// === RenameModal ===
+// ===================
+
 /** Props for a {@link RenameModal}. */
 export interface RenameModalProps {
     assetType: string

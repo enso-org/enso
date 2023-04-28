@@ -1,6 +1,10 @@
 /** @file  */
 import * as react from 'react'
 
+// =============
+// === Modal ===
+// =============
+
 /** The type of a modal. */
 export type Modal = () => JSX.Element
 

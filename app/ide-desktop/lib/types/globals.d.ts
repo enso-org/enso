@@ -4,6 +4,10 @@
  *
  * This file MUST `export {}` for the globals to be visible to other files. */
 
+// =============
+// === Types ===
+// =============
+
 /** Nested configuration options with `string` values. */
 interface StringConfig {
     [key: string]: StringConfig | string
@@ -44,6 +48,10 @@ interface AuthenticationApi {
     /** Saves the access token to a file. */
     saveAccessToken: (access_token: string) => void
 }
+
+// =====================================
+// === Global namespace augmentation ===
+// =====================================
 
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {

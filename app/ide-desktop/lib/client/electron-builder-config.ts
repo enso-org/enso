@@ -23,6 +23,10 @@ import signArchivesMacOs from './tasks/signArchivesMacOs'
 
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
+// =============
+// === Types ===
+// =============
+
 /** The parts of the electron-builder configuration that we want to keep configurable.
  *
  * @see `args` definition below for fields description.
@@ -37,6 +41,10 @@ export interface Arguments {
     projectManagerDist: string
     platform: electronBuilder.Platform
 }
+
+//======================================
+// === Argument parser configuration ===
+//======================================
 
 /** CLI argument parser (with support for environment variables) that provides the necessary options. */
 export const args: Arguments = await yargs(process.argv.slice(2))
@@ -78,6 +86,10 @@ export const args: Arguments = await yargs(process.argv.slice(2))
             description: 'Overwrite the platform-default target',
         },
     }).argv
+
+// ======================================
+// === Electron builder configuration ===
+// ======================================
 
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
 export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
@@ -267,6 +279,6 @@ export async function buildPackage(passedArgs: Arguments) {
     console.log('Electron Builder is done. Result:', result)
     // FIXME: https://github.com/enso-org/enso/issues/6082
     // This is workaround which fixes esbuild freezing after successfully finishing the electronBuilder.build.
-    // It's safe to exit(0) since all processes are finished.
+    // It's safe to `exit(0)` since all processes are finished.
     process.exit(0)
 }

@@ -1,4 +1,8 @@
-/** @file TypeScript's closest equivalent of `newtype`s. */
+/** @file Emulates `newtype`s in TypeScript. */
+
+// ===============
+// === Newtype ===
+// ===============
 
 /** An interface specifying the variant of a newtype. */
 interface NewtypeVariant<TypeName extends string> {

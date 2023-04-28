@@ -9,6 +9,10 @@ import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
+// =======================
+// === UploadFileModal ===
+// =======================
+
 /** Props for an {@link UploadFileModal}. */
 export interface UploadFileModalProps {
     backend: backendModule.Backend

@@ -13,6 +13,10 @@ const NAME = 'copy-directories'
 /** The esbuild namespace that the directories that will be copied are given. */
 const NAMESPACE = NAME
 
+// ========================
+// === Helper functions ===
+// ========================
+
 // This function is required. If narrowing is used instead,
 // TypeScript thinks `outputDir` may be `undefined` in functions.
 /** @param {string} message - The message with which to throw the `Error`.
@@ -21,6 +25,10 @@ const NAMESPACE = NAME
 function error(message) {
     throw new Error(message)
 }
+
+// ====================================
+// === esbuildPluginCopyDirectories ===
+// ====================================
 
 /** An esbuild plugin to copy and watch directories.
  * @param {import('./index').Options} [options] - options.

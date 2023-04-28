@@ -1,6 +1,10 @@
 /** @file An entry in a context menu. */
 import * as react from 'react'
 
+// ========================
+// === ContextMenuEntry ===
+// ========================
+
 /** Props for a {@link ContextMenuEntry}. */
 export interface ContextMenuEntryProps {
     disabled?: boolean

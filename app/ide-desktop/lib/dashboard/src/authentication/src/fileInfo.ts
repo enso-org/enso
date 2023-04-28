@@ -1,6 +1,9 @@
 /** @file Utility functions for extracting and manipulating file information. */
-
 import * as svg from './components/svg'
+
+// ================================
+// === Extract file information ===
+// ================================
 
 /** Extract the file extension from a file name. */
 export function fileExtension(fileName: string) {
@@ -11,6 +14,10 @@ export function fileExtension(fileName: string) {
 export function fileIcon(_extension: string) {
     return svg.FILE_ICON
 }
+
+// ===================================
+// === Manipulate file information ===
+// ===================================
 
 /** Convert a size in bytes to a human readable size, e.g. in mebibytes. */
 export function toReadableSize(size: number) {

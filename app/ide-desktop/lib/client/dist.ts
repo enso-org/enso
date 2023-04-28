@@ -6,4 +6,8 @@
 
 import * as electronBuilderConfig from './electron-builder-config'
 
+// ==============================
+// === Build Electron package ===
+// ==============================
+
 await electronBuilderConfig.buildPackage(electronBuilderConfig.args)
