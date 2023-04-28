@@ -251,4 +251,5 @@ all_known_table_names connection =
 
 ## PRIVATE
 make_table_name_selector connection =
-    Single_Choice display=Display.Always values=((all_known_table_names connection).map t-> Option t t.pretty)
+    tables_to_display = connection.tables.at "Name" . to_vector
+    Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)
