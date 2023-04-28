@@ -26,6 +26,7 @@ public class DryRunFileManager {
           var filename = new File(k).getName();
           var lastDot = filename.lastIndexOf('.');
           var prefix = lastDot == -1 ? filename : filename.substring(0, lastDot);
+          prefix = prefix + "_ensodryrun";
           var extension = lastDot == -1 ? "" : filename.substring(lastDot);
 
           try {

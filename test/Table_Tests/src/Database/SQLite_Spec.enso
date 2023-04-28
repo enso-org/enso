@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Runtime.Context
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
@@ -154,11 +155,11 @@ sqlite_spec connection prefix =
 spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
-    file.delete_if_exists
+    Context.Output.with_enabled <| file.delete_if_exists
     in_file_prefix = "[SQLite File] "
     sqlite_spec (Database.connect (SQLite file)) in_file_prefix
     Upload_Spec.spec (_ -> Database.connect (SQLite file)) in_file_prefix
-    file.delete
+    Context.Output.with_enabled <| file.delete
 
     in_memory_prefix = "[SQLite In-Memory] "
     sqlite_spec (Database.connect (SQLite In_Memory)) in_memory_prefix
@@ -166,7 +167,7 @@ spec =
 
     SQLite_Type_Mapping_Spec.spec
 
-    Test.group "SQLite_Format should allow connecting to SQLite files" <|
+    Test.group "SQLite_Format should allow connecting to SQLite files" <| Context.Output.with_enabled <|
         file.delete_if_exists
 
         connection = Database.connect (SQLite file)

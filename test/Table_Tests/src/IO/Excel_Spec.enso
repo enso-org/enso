@@ -679,7 +679,7 @@ spec =
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Corrupted_Format
 
-        Test.specify "should handle malformed XLS files gracefully" <|
+        Test.specify "should handle malformed XLS files gracefully" <| Context.Output.with_enabled <|
             bad_file = enso_project.data / "transient" / "malformed.xls"
             "not really an XLS file contents...".write bad_file on_existing_file=Existing_File_Behavior.Overwrite
 
