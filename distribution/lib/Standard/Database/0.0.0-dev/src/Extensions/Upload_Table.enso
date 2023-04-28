@@ -62,13 +62,13 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
        continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
        raised as panics.
     upload_status = create_table_statement.if_not_error <|
-        translate_upload_known_errors connection resolved_primary_key <|
+        translate_known_upload_errors connection resolved_primary_key <|
             connection.jdbc_connection.run_within_transaction <|
                 Panic.rethrow <| connection.execute_update create_table_statement
                 if structure_only.not then
                     insert_template = make_batched_insert_template connection effective_table_name self.column_names
                     statement_setter = connection.dialect.get_statement_setter
-                    connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
+                    Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
 
     upload_status.if_not_error <|
         connection.query (SQL_Query.Table_Name effective_table_name)
@@ -117,7 +117,7 @@ Database_Table.create_database_table self connection table_name=Nothing primary_
     create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
 
     upload_status = create_table_statement.if_not_error <|
-        translate_upload_known_errors connection resolved_primary_key <|
+        translate_known_upload_errors connection resolved_primary_key <|
             connection.jdbc_connection.run_within_transaction <|
                 Panic.rethrow <| connection.execute_update create_table_statement
                 if structure_only.not then
@@ -142,7 +142,7 @@ resolve_primary_key table primary_key = case primary_key of
 ## PRIVATE
    Inspects any `SQL_Error` thrown and replaces it with a more precise error
    type when available.
-translate_upload_known_errors connection primary_key ~action =
+translate_known_upload_errors connection primary_key ~action =
     handler caught_panic =
         error_mapper = connection.dialect.get_error_mapper
         sql_error = caught_panic.payload
