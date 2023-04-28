@@ -26,13 +26,15 @@ const logger = config.logger
 // === Project Import ===
 // ======================
 
-/** Open a project from the given path. Path can be either a source file under the project root, or the project
- * bundle. If needed, the project will be imported into the Project Manager-enabled location.
+/** Open a project from the given path. Path can be either a source file under the project root,
+ * or the project bundle. If needed, the project will be imported into the Project Manager-enabled
+ * location.
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
- * @throws `Error` if the path does not belong to a valid project. */
+ * @throws {Error} if the path does not belong to a valid project. */
 export function importProjectFromPath(openedPath: string): string {
-    if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_EXTENSION)) {
+    if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_SUFFIX)) {
+        logger.log(`Path '${openedPath}' denotes a bundled project.`)
         // The second part of condition is for the case when someone names a directory
         // like `my-project.enso-project` and stores the project there.
         // Not the most fortunate move, but...
@@ -43,7 +45,7 @@ export function importProjectFromPath(openedPath: string): string {
             return importBundle(openedPath)
         }
     } else {
-        logger.log(`Opening file: '${openedPath}'.`)
+        logger.log(`Opening non-bundled file: '${openedPath}'.`)
         const rootPath = getProjectRoot(openedPath)
         // Check if the project root is under the projects directory. If it is, we can open it.
         // Otherwise, we need to install it first.
@@ -61,6 +63,7 @@ export function importProjectFromPath(openedPath: string): string {
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
 export function importBundle(bundlePath: string): string {
+    logger.log(`Importing project from bundle: '${bundlePath}'.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
     const bundleRoot = directoryWithinBundle(bundlePath)
     const targetDirectory = generateDirectoryName(bundleRoot ?? bundlePath)

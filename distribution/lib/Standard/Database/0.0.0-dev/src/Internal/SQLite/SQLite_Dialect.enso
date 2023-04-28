@@ -9,6 +9,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table import Value_Type
 
 import project.Connection.Connection.Connection
+import project.Data.Dialect
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -205,7 +206,6 @@ type SQLite_Dialect
     is_supported : Text -> Boolean
     is_supported self operation =
         self.internal_generator_dialect.is_supported operation
-
 
 
 ## PRIVATE

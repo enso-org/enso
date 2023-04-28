@@ -93,8 +93,8 @@ function getClientArguments(): string[] {
 export function isFileOpenable(path: string): boolean {
     const extension = pathModule.extname(path).toLowerCase()
     return (
-        extension === fileAssociations.BUNDLED_PROJECT_EXTENSION ||
-        extension === fileAssociations.SOURCE_FILE_EXTENSION
+        extension === fileAssociations.BUNDLED_PROJECT_SUFFIX ||
+        extension === fileAssociations.SOURCE_FILE_SUFFIX
     )
 }
 
@@ -104,15 +104,16 @@ export function isFileOpenable(path: string): boolean {
  * we manually start a new instance of the application and pass the file path to it (using the
  * Windows-style command).
  */
-export function onFileOpened(event: Event, path: string) {
+export function onFileOpened(event: Event, path: string): string | null {
+    logger.log(`Received 'open-file' event for path '${path}'.`)
     if (isFileOpenable(path)) {
+        logger.log(`The file '${path}' is openable.`)
         // If we are not ready, we can still decide to open a project rather than enter the welcome
         // screen. However, we still check for the presence of arguments, to prevent hijacking the
         // user-spawned IDE instance (OS-spawned will not have arguments set).
         if (!electron.app.isReady() && CLIENT_ARGUMENTS.length === 0) {
             event.preventDefault()
             logger.log(`Opening file '${path}'.`)
-            // eslint-disable-next-line no-restricted-syntax
             return handleOpenFile(path)
         } else {
             // We need to start another copy of the application, as the first one is already running.
@@ -126,14 +127,34 @@ export function onFileOpened(event: Event, path: string) {
             })
             // Prevent parent (this) process from waiting for the child to exit.
             child.unref()
+            return null
         }
+    } else {
+        logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
+        return null
     }
+}
+
+/** Set up the `open-file` event handler that might import a project and invoke the given callback,
+ * if this IDE instance should load the project. See {@link onFileOpened} for more details.
+ *
+ * @param setProjectToOpen - A function that will be called with the ID of the project to open.
+ */
+export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) {
+    electron.app.on('open-file', (event, path) => {
+        const projectId = onFileOpened(event, path)
+        if (typeof projectId === 'string') {
+            setProjectToOpen(projectId)
+        }
+    })
 }
 
 /** Handle the case where IDE is invoked with a file to open.
  *
  * Imports project if necessary. Returns the ID of the project to open. In case of an error, displays an error message and rethrows the error.
  *
+ * @param openedFile - The path to the file to open.
+ * @returns The ID of the project to open.
  * @throws An `Error`, if the project from the file cannot be opened or imported. */
 export function handleOpenFile(openedFile: string): string {
     try {

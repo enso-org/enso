@@ -48,7 +48,9 @@ class App {
     async run() {
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        electron.app.on('open-file', fileAssociations.onFileOpened)
+        fileAssociations.setOpenFileEventHandler(id => {
+            this.setProjectToOpenOnStartup(id)
+        })
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
         this.handleItemOpening(fileToOpen, urlToOpen)
@@ -71,6 +73,7 @@ class App {
              * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
              * should be used here instead. */
             electron.app.on('ready', () => {
+                logger.log('Electron application is ready.')
                 void this.main(windowSize)
             })
             this.registerShortcuts()
@@ -94,6 +97,29 @@ class App {
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
+    /**
+     * Sets the project to be opened on application startup.
+     *
+     * This method should be called before the application is ready, as it only
+     * modifies the startup options. If the application is already initialized,
+     * an error will be logged, and the method will have no effect.
+     *
+     * @param idOfProjectToOpen - The ID of the project to be opened on startup.
+     */
+    setProjectToOpenOnStartup(idOfProjectToOpen: string) {
+        // Make sure that we are not initialized yet, as this method should be called before the
+        // application is ready.
+        if (!electron.app.isReady()) {
+            logger.log(`Setting project to open on startup: ${idOfProjectToOpen}.`)
+            this.args.groups.startup.options.project.value = idOfProjectToOpen
+        } else {
+            logger.error(
+                `Cannot set project to open on startup: ${idOfProjectToOpen},` +
+                    ` as the application is already initialized.`
+            )
+        }
+    }
+
     /** This method is invoked when the application was spawned due to being a default application
      * for a URL protocol or file extension. */
     handleItemOpening(fileToOpen: string | null, urlToOpen: URL | null) {
@@ -103,8 +129,8 @@ class App {
                 // This makes the IDE open the relevant project. Also, this prevents us from using this
                 // method after IDE has been fully set up, as the initializing code would have already
                 // read the value of this argument.
-                this.args.groups.startup.options.project.value =
-                    fileAssociations.handleOpenFile(fileToOpen)
+                const projectId = fileAssociations.handleOpenFile(fileToOpen)
+                this.setProjectToOpenOnStartup(projectId)
             }
 
             if (urlToOpen != null) {

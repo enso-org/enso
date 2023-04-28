@@ -1,20 +1,16 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.file.Paths;
-import java.util.Map;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class PolyglotErrorTest {
+public class PolyglotErrorTest extends TestBase {
   private Context ctx;
   private Value panic;
 
@@ -24,17 +20,7 @@ public class PolyglotErrorTest {
 
   @Before
   public void prepareCtx() throws Exception {
-    this.ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .logHandler(new ByteArrayOutputStream())
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    this.ctx = createDefaultContext();
 
     var code = """
     import Standard.Base.Panic.Panic
@@ -100,6 +86,11 @@ public class PolyglotErrorTest {
 
     this.panic = module.invokeMember("eval_expression", "panic");
     assertTrue("It is a function", this.panic.canExecute());
+  }
+
+  @After
+  public void disposeCtx() {
+    this.ctx.close();
   }
 
   @Test

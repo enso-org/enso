@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
+
 import java.util.Arrays;
 import java.util.function.Function;
 
@@ -33,6 +35,7 @@ public final class ArrayRope<T> {
     return new ArrayRope<>(new ConcatSegment<>(new ArraySegment<>(items), this.segment));
   }
 
+  @CompilerDirectives.TruffleBoundary
   public T[] toArray(Function<Integer, T[]> genArray) {
     T[] res = genArray.apply(size());
     writeArray(res);

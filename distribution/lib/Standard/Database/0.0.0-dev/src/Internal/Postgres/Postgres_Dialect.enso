@@ -199,6 +199,7 @@ type Postgres_Dialect
     is_supported self operation =
         self.internal_generator_dialect.is_supported operation
 
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
