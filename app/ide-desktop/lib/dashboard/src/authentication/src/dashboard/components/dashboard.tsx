@@ -229,16 +229,16 @@ function Dashboard(props: DashboardProps) {
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
-    const [projectAssets, setProjectAssetsRaw] = react.useState<
+    const [projectAssets, setProjectAssets] = react.useState<
         backendModule.Asset<backendModule.AssetType.project>[]
     >([])
-    const [directoryAssets, setDirectoryAssetsRaw] = react.useState<
+    const [directoryAssets, setDirectoryAssets] = react.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
-    const [secretAssets, setSecretAssetsRaw] = react.useState<
+    const [secretAssets, setSecretAssets] = react.useState<
         backendModule.Asset<backendModule.AssetType.secret>[]
     >([])
-    const [fileAssets, setFileAssetsRaw] = react.useState<
+    const [fileAssets, setFileAssets] = react.useState<
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
     const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
@@ -258,7 +258,7 @@ function Dashboard(props: DashboardProps) {
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
     react.useEffect(() => {
-        function onKeyDown(event: KeyboardEvent) {
+        const onKeyDown = (event: KeyboardEvent) => {
             if (
                 // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
                 (event.key === 'd' || event.key === '∂') &&
@@ -275,49 +275,16 @@ function Dashboard(props: DashboardProps) {
                 }
             }
         }
+        const onBlur = () => {
+            setIsFileBeingDragged(false)
+        }
         document.addEventListener('keydown', onKeyDown)
+        window.addEventListener('blur', onBlur)
         return () => {
             document.removeEventListener('keydown', onKeyDown)
+            window.removeEventListener('blur', onBlur)
         }
     }, [])
-
-    function setProjectAssets(
-        newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
-    ) {
-        setProjectAssetsRaw(newProjectAssets)
-        setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
-    }
-    function setDirectoryAssets(
-        newDirectoryAssets: backendModule.Asset<backendModule.AssetType.directory>[]
-    ) {
-        setDirectoryAssetsRaw(newDirectoryAssets)
-        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
-    }
-    function setSecretAssets(
-        newSecretAssets: backendModule.Asset<backendModule.AssetType.secret>[]
-    ) {
-        setSecretAssetsRaw(newSecretAssets)
-        setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
-    }
-    function setFileAssets(newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) {
-        setFileAssetsRaw(newFileAssets)
-        setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
-    }
-
-    function exitDirectory() {
-        setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
-        setDirectoryStack(
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            directoryStack.slice(0, -1)
-        )
-    }
-
-    function enterDirectory(
-        directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
-    ) {
-        setDirectoryId(directoryAsset.id)
-        setDirectoryStack([...directoryStack, directoryAsset])
-    }
 
     react.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
@@ -341,6 +308,63 @@ function Dashboard(props: DashboardProps) {
             localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
         }
     }, [directoryStack])
+
+    react.useEffect(() => {
+        setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
+    }, [query, projectAssets])
+
+    react.useEffect(() => {
+        setVisibleDirectoryAssets(directoryAssets.filter(asset => asset.title.includes(query)))
+    }, [query, directoryAssets])
+
+    react.useEffect(() => {
+        setVisibleSecretAssets(secretAssets.filter(asset => asset.title.includes(query)))
+    }, [query, secretAssets])
+
+    react.useEffect(() => {
+        setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
+    }, [query, fileAssets])
+
+    hooks.useAsyncEffect(
+        null,
+        async signal => {
+            const assets = await backend.listDirectory({ parentId: directoryId })
+            if (!signal.aborted) {
+                const newProjectAssets = assets.filter(
+                    backendModule.assetIsType(backendModule.AssetType.project)
+                )
+                const newDirectoryAssets = assets.filter(
+                    backendModule.assetIsType(backendModule.AssetType.directory)
+                )
+                const newSecretAssets = assets.filter(
+                    backendModule.assetIsType(backendModule.AssetType.secret)
+                )
+                const newFileAssets = assets.filter(
+                    backendModule.assetIsType(backendModule.AssetType.file)
+                )
+                setProjectAssets(newProjectAssets)
+                setDirectoryAssets(newDirectoryAssets)
+                setSecretAssets(newSecretAssets)
+                setFileAssets(newFileAssets)
+            }
+        },
+        [accessToken, directoryId, refresh, backend]
+    )
+
+    const enterDirectory = (
+        directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
+    ) => {
+        setDirectoryId(directoryAsset.id)
+        setDirectoryStack([...directoryStack, directoryAsset])
+    }
+
+    const exitDirectory = () => {
+        setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
+        setDirectoryStack(
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            directoryStack.slice(0, -1)
+        )
+    }
 
     /** React components for the name column. */
     const nameRenderers: {
@@ -451,6 +475,8 @@ function Dashboard(props: DashboardProps) {
     }
 
     /** React components for every column except for the name column. */
+    // This is not a React component even though it contains JSX.
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
         (asset: backendModule.Asset) => JSX.Element
@@ -475,7 +501,7 @@ function Dashboard(props: DashboardProps) {
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
             // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-            function onContextMenu(event: react.MouseEvent) {
+            const onContextMenu = (event: react.MouseEvent) => {
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(() => (
@@ -499,17 +525,16 @@ function Dashboard(props: DashboardProps) {
         [Column.ide]: () => <></>,
     }
 
-    function renderer<Type extends backendModule.AssetType>(column: Column, assetType: Type) {
-        return column === Column.name
+    const renderer = <Type extends backendModule.AssetType>(column: Column, assetType: Type) =>
+        column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
               (nameRenderers[assetType] as (asset: backendModule.Asset<Type>) => JSX.Element)
             : columnRenderer[column]
-    }
 
     /** Heading element for every column. */
-    function ColumnHeading(column: Column, assetType: backendModule.AssetType) {
-        return column === Column.name ? (
+    const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
+        column === Column.name ? (
             <div className="inline-flex">
                 {ASSET_TYPE_NAME[assetType]}
                 <button
@@ -539,57 +564,8 @@ function Dashboard(props: DashboardProps) {
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
-    }
 
-    // The purpose of this effect is to enable search action.
-    react.useEffect(() => {
-        setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
-        setVisibleDirectoryAssets(directoryAssets.filter(asset => asset.title.includes(query)))
-        setVisibleSecretAssets(secretAssets.filter(asset => asset.title.includes(query)))
-        setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
-    }, [query])
-
-    function setAssets(assets: backendModule.Asset[]) {
-        const newProjectAssets = assets.filter(
-            backendModule.assetIsType(backendModule.AssetType.project)
-        )
-        const newDirectoryAssets = assets.filter(
-            backendModule.assetIsType(backendModule.AssetType.directory)
-        )
-        const newSecretAssets = assets.filter(
-            backendModule.assetIsType(backendModule.AssetType.secret)
-        )
-        const newFileAssets = assets.filter(backendModule.assetIsType(backendModule.AssetType.file))
-        setProjectAssets(newProjectAssets)
-        setDirectoryAssets(newDirectoryAssets)
-        setSecretAssets(newSecretAssets)
-        setFileAssets(newFileAssets)
-    }
-
-    hooks.useAsyncEffect(
-        null,
-        async signal => {
-            const assets = await backend.listDirectory({ parentId: directoryId })
-            if (!signal.aborted) {
-                setAssets(assets)
-            }
-        },
-        [accessToken, directoryId, refresh, backend]
-    )
-
-    react.useEffect(() => {
-        function onBlur() {
-            setIsFileBeingDragged(false)
-        }
-
-        window.addEventListener('blur', onBlur)
-
-        return () => {
-            window.removeEventListener('blur', onBlur)
-        }
-    }, [])
-
-    function handleEscapeKey(event: react.KeyboardEvent<HTMLDivElement>) {
+    const handleEscapeKey = (event: react.KeyboardEvent<HTMLDivElement>) => {
         if (
             event.key === 'Escape' &&
             !event.ctrlKey &&
@@ -604,13 +580,13 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    function openDropZone(event: react.DragEvent<HTMLDivElement>) {
+    const openDropZone = (event: react.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
         }
     }
 
-    function getNewProjectName(templateName?: string | null): string {
+    const getNewProjectName = (templateName?: string | null): string => {
         const prefix = `${templateName ?? 'New_Project'}_`
         const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
         let highestProjectIndex = 0
@@ -623,7 +599,7 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    async function handleCreateProject(templateId?: string | null) {
+    const handleCreateProject = async (templateId?: string | null) => {
         const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
@@ -833,11 +809,11 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(projectAsset, event) => {
                             event.preventDefault()
                             event.stopPropagation()
-                            function doOpenForEditing() {
+                            const doOpenForEditing = () => {
                                 // FIXME[sb]: Switch to IDE tab
                                 // once merged with `show-and-open-workspace` branch.
                             }
-                            function doOpenAsFolder() {
+                            const doOpenAsFolder = () => {
                                 // FIXME[sb]: Uncomment once backend support
                                 // is in place.
                                 // The following code does not typecheck
@@ -846,7 +822,7 @@ function Dashboard(props: DashboardProps) {
                             }
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            function doRename() {
+                            const doRename = () => {
                                 setModal(() => (
                                     <RenameModal
                                         name={projectAsset.title}
@@ -860,7 +836,7 @@ function Dashboard(props: DashboardProps) {
                             }
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            function doDelete() {
+                            const doDelete = () => {
                                 // The button is disabled when using the desktop backend,
                                 // so this condition should never be `false`.
                                 if (backend.platform === platformModule.Platform.cloud) {
@@ -961,7 +937,7 @@ function Dashboard(props: DashboardProps) {
                                         event.stopPropagation()
                                         // This is not a React component even though it contains JSX.
                                         // eslint-disable-next-line no-restricted-syntax
-                                        function doDelete() {
+                                        const doDelete = () => {
                                             setModal(() => (
                                                 <ConfirmDeleteModal
                                                     name={secret.title}
@@ -1009,15 +985,15 @@ function Dashboard(props: DashboardProps) {
                                     onContextMenu={(file, event) => {
                                         event.preventDefault()
                                         event.stopPropagation()
-                                        function doCopy() {
+                                        const doCopy = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
-                                        function doCut() {
+                                        const doCut = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
                                         // This is not a React component even though it contains JSX.
                                         // eslint-disable-next-line no-restricted-syntax
-                                        function doDelete() {
+                                        const doDelete = () => {
                                             setModal(() => (
                                                 <ConfirmDeleteModal
                                                     name={file.title}
@@ -1029,7 +1005,7 @@ function Dashboard(props: DashboardProps) {
                                                 />
                                             ))
                                         }
-                                        function doDownload() {
+                                        const doDownload = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
                                         setModal(() => (
