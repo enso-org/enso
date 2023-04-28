@@ -596,7 +596,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             start <- status.on_true();
             target_on_start <- target.sample(&start);
             let on_item_removed = &frp.private.output.on_item_removed;
-            eval target_on_start([model, on_item_removed] (t) {
+            eval target_on_start([model, cursor, on_item_removed] (t) {
                 let item = model.borrow_mut().start_item_drag(t);
                 if let Some((index, item)) = item {
                     cursor.start_drag(item.clone_ref());
