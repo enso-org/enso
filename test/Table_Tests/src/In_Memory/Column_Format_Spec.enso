@@ -58,4 +58,9 @@ spec =
             problems = [Illegal_Argument.Error 'Too many pattern letters: D']
             Problems.test_problem_handling action problems tester
 
+        Test.specify "column length  mismatch" <|
+            input = Column.from_vector "dates" [Date.new 2020 6 21, Date.new 2023 4 25]
+            formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
+            input.format formats . should_fail_with Illegal_Argument
+
 main = Test_Suite.run_main spec
