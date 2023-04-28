@@ -333,6 +333,7 @@ class RuntimeServerTest
 
   override protected def afterEach(): Unit = {
     context.executionContext.context.close()
+    context.runtimeServerEmulator.terminate()
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {
