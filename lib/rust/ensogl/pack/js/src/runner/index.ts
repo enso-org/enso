@@ -22,6 +22,8 @@ export type { LogLevel } from 'runner/log/logger'
 export { logger, Logger, Consumer } from 'runner/log'
 export { Option } from 'runner/config'
 
+export const urlParams: () => config.StringConfig = host.urlParams
+
 // ==============================
 // === Files to be downloaded ===
 // ==============================

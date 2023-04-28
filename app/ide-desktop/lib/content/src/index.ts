@@ -176,18 +176,13 @@ class Main implements AppRunner {
     }
 
     main() {
-        // Load command line arguments into `configOptions.OPTIONS`.
-        new app.App({
-            configOptions: contentConfig.OPTIONS,
-        })
-
+        contentConfig.OPTIONS.loadAll([app.urlParams()])
         const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
         const isUsingNewDashboard =
             contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
         const isOpeningIde =
             contentConfig.OPTIONS.groups.startup.options.entry.value ===
             contentConfig.OPTIONS.groups.startup.options.entry.default
-
         if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningIde) {
             const hideAuth = () => {
                 const auth = document.getElementById('dashboard')
