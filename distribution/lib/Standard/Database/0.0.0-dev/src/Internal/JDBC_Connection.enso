@@ -7,11 +7,9 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
-import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table as Database_Table
-import project.Internal.Base_Generator
 import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Errors import SQL_Error, SQL_Timeout
@@ -120,31 +118,63 @@ type JDBC_Connection
                 Error.throw <| Illegal_Argument.Error 'The provided raw SQL query should not contain any holes ("?").'
 
     ## PRIVATE
+       Runs the following action with auto-commit turned off on this connection
+       and returns the result.
 
-       Given an insert query template and the associated Database_Table, and a
-       Materialized_Table of data, load to the database.
-    load_table : Text -> Statement_Setter -> Materialized_Table -> Integer -> Nothing
-    load_table self insert_template statement_setter table batch_size =
+       Afterwards, the auto-commit setting is reverted to the state before
+       running this function (so if it was off before, this method may not
+       change anything).
+    run_without_autocommit : Any -> Any
+    run_without_autocommit self ~action =
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
-            java_connection.setAutoCommit False
-            Managed_Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
-                Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
-                    num_rows = table.row_count
-                    columns = table.columns
-                    check_rows updates_array expected_size =
-                        updates = Vector.from_polyglot_array updates_array
-                        if updates.length != expected_size then Panic.throw <| Illegal_State.Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
-                            updates.each affected_rows->
-                                if affected_rows != 1 then
-                                    Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
-                    0.up_to num_rows . each row_id->
-                        values = columns.map col-> col.at row_id
-                        set_statement_values stmt statement_setter values
-                        stmt.addBatch
-                        if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
-                    if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+            Managed_Resource.bracket (java_connection.setAutoCommit False) (_ -> java_connection.setAutoCommit default_autocommit) _->
+                action
+
+    ## PRIVATE
+       Performs the given action within a transaction.
+       Once the action is completed, the transaction is committed.
+       If a panic escapes from the action, the transaction is rolled-back and
+       closed.
+       If the rollback fails and panics, the panic related to the rollback will
+       take precedence over the original panic that caused that rollback.
+    run_within_transaction : Any -> Any
+    run_within_transaction self ~action =
+        self.run_without_autocommit <|
+            self.with_connection java_connection->
+                handle_panic caught_panic =
+                    java_connection.rollback
+                    Panic.throw caught_panic
+                result = Panic.catch Any handler=handle_panic <|
+                    action
                 java_connection.commit
+                result
+
+    ## PRIVATE
+       Insert rows from an in-memory table using a prepared query template in
+       batches for efficiency.
+
+       It is the caller's responsibility to call this method from within a
+       transaction to ensure consistency.
+    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Nothing
+    batch_insert self insert_template statement_setter table batch_size =
+        self.with_connection java_connection->
+            Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+                num_rows = table.row_count
+                columns = table.columns
+                check_rows updates_array expected_size =
+                    updates = Vector.from_polyglot_array updates_array
+                    if updates.length != expected_size then Panic.throw <| Illegal_State.Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                        updates.each affected_rows->
+                            if affected_rows != 1 then
+                                Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                0.up_to num_rows . each row_id->
+                    values = columns.map col-> col.at row_id
+                    set_statement_values stmt statement_setter values
+                    stmt.addBatch
+                    if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
+                if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+            java_connection.commit
 
 ## PRIVATE
 
@@ -197,14 +227,3 @@ handle_sql_errors ~action related_query=Nothing =
 set_statement_values stmt statement_setter values =
     values.each_with_index ix-> value->
         statement_setter.fill_hole stmt (ix + 1) value
-
-## PRIVATE
-   Given a Materialized_Table, create a SQL statement to build the table.
-create_table_statement : (Value_Type -> SQL_Type) -> Text -> Materialized_Table -> Boolean -> SQL_Statement
-create_table_statement type_mapper name table temporary =
-    column_types = table.columns.map col-> type_mapper col.value_type
-    column_names = table.columns.map .name
-    col_makers = column_names.zip column_types name-> typ->
-        Base_Generator.wrap_in_quotes name ++ " " ++ typ.name
-    create_prefix = Builder.code <| if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
-    (create_prefix ++ Base_Generator.wrap_in_quotes name ++ " (" ++ (Builder.join ", " col_makers) ++ ")").build

@@ -16,7 +16,7 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Internal.Result_Set import read_column, result_set_to_table
-from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
+from project.Internal.JDBC_Connection import handle_sql_errors
 from project.Errors import SQL_Error, Table_Not_Found
 
 polyglot java import java.lang.UnsupportedOperationException
@@ -215,43 +215,6 @@ type Connection
                 stmt.executeUpdate
 
     ## PRIVATE
-       UNSTABLE
-       This is a prototype function used in our test suites. It may change.
-
-       It creates a new table in the database with the given name (will fail if
-       the table already existed), inserts the contents of the provided
-       in-memory table and returns a handle to the newly created table.
-
-       ! Temporary Tables
-
-         Note that temporary tables may not be visible in the table catalog, so
-         some features which rely on it like the `Table.query` shorthand mode
-         may not work correctly with temporary tables.
-
-       Arguments:
-       - name: The name of the table to create.
-       - table: An In-Memory table specifying the contents to upload. Schema of
-         the created database table is based on the column types of this table.
-       - temporary: Specifies whether the table should be marked as temporary. A
-         temporary table will be dropped after the connection closes and will
-         usually not be visible to other connections.
-       - batch_size: Specifies how many rows should be uploaded in a single
-         batch.
-    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Table
-    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State <|
-        type_mapping = self.dialect.get_type_mapping
-        ## TODO [RW] problem handling! probably want to add on_problems to this method?
-           This is just a prototype, so ignoring this. To be revisited as part of #5161.
-        type_mapper value_type = type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error
-        create_sql = create_table_statement type_mapper name table temporary
-        create_table = self.execute_update create_sql
-
-        db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
-        if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant Nothing]
-            insert_query = self.dialect.generate_sql <| Query.Insert name pairs
-            insert_template = insert_query.prepare.first
-            statement_setter = self.dialect.get_statement_setter
-            self.jdbc_connection.load_table insert_template statement_setter table batch_size
-
-        db_table
+    drop_table : Text -> Nothing
+    drop_table self table_name =
+        self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))

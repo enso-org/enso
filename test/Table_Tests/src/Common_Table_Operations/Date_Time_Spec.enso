@@ -133,7 +133,7 @@ spec setup =
 
     if setup.test_selection.date_time.not then
         Test.group prefix+"partial Date-Time support" <|
-            Test.specify "will fail to upload a Table containing Dates" <|
+            Test.specify "will warn when uploading a Table containing Dates" <|
                 d = Date.new 2020 10 24
                 table = table_builder [["A", [d]], ["X", [123]]]
-                table.should_fail_with Inexact_Type_Coercion
+                Problems.expect_warning Inexact_Type_Coercion table

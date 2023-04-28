@@ -30,4 +30,4 @@ ensogl-example-slider = { path = "slider" }
 ensogl-example-sprite-system = { path = "sprite-system" }
 ensogl-example-sprite-system-benchmark = { path = "sprite-system-benchmark" }
 ensogl-example-text-area = { path = "text-area" }
-ensogl-example-vector-editor = { path = "vector-editor" }
+ensogl-example-list-editor = { path = "list-editor" }

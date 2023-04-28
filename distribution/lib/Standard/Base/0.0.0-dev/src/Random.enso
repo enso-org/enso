@@ -2,13 +2,17 @@ import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Decimal
+import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Data.Json.JS_Object
+import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.System
 
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random
+polyglot java import java.util.UUID
 polyglot java import org.enso.base.Random_Utils
 
 ## UNSTABLE
@@ -53,6 +57,17 @@ type Random_Number_Generator
         if range < Java_Integer.MAX_VALUE then min + (self.java_random.nextInt range) else
             Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.")
 
+    ## PRIVATE
+       Serialise to JS_Object
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Random_Number_Generator"], ["constructor", "new"]]
+
+    ## PRIVATE
+       Convert to a display representation of this Random_Number_Generator.
+    to_display_text : Text
+    to_display_text self = "Random_Number_Generator"
+
 ## Returns a new vector containing a random sample of the input vector, without
    replacement.
 
@@ -70,3 +85,9 @@ random_indices : Integer -> Integer -> Random_Number_Generator -> Vector Integer
 random_indices n k rng =
     array = Random_Utils.random_indices n k rng.java_random
     Vector.from_polyglot_array array
+
+## PRIVATE
+   Generates a text representation of a randomly generated UUID.
+random_uuid : Text
+random_uuid =
+    UUID.randomUUID.to_text

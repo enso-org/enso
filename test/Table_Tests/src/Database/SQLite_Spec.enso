@@ -4,14 +4,15 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 
-from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 import Standard.Database.Connection.SQLite_Format.SQLite_Format
+from Standard.Database import all
 from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Database.Common_Spec
+import project.Database.Upload_Spec
 import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
@@ -114,7 +115,7 @@ sqlite_spec connection prefix =
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
-        connection.upload_table name in_mem_table
+        in_mem_table.create_database_table connection name primary_key=Nothing
     materialize = .read
 
     Common_Spec.spec prefix connection
@@ -132,8 +133,8 @@ sqlite_spec connection prefix =
          the missing statistics.
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
-    empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
+    agg_table = agg_in_memory_table.create_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+    empty_agg_table = (agg_in_memory_table.take (First 0)).create_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
     Common_Table_Operations.Main.spec setup
@@ -144,10 +145,14 @@ spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists
-    sqlite_spec (Database.connect (SQLite file)) "[SQLite] "
+    in_file_prefix = "[SQLite File] "
+    sqlite_spec (Database.connect (SQLite file)) in_file_prefix
+    Upload_Spec.spec (_ -> Database.connect (SQLite file)) in_file_prefix
     file.delete
 
-    sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
+    in_memory_prefix = "[SQLite In-Memory] "
+    sqlite_spec (Database.connect (SQLite In_Memory)) in_memory_prefix
+    Upload_Spec.spec (_ -> Database.connect (SQLite In_Memory)) in_memory_prefix persistent_connector=False
 
     SQLite_Type_Mapping_Spec.spec
 

@@ -6,17 +6,17 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First
 
-from Standard.Database import Database, Postgres, SQL_Query, Credentials, SSL_Mode
-from Standard.Database.Errors import SQL_Error
 import Standard.Database.Data.SQL_Type.SQL_Type
-
 import Standard.Database.Internal.Postgres.Pgpass
+from Standard.Database import all
+from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 import Standard.Test.Test_Environment
 
 import project.Database.Common_Spec
+import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
 import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
@@ -192,14 +192,7 @@ run_tests connection db_name =
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
-        case connection.upload_table name in_mem_table of
-            table ->
-                tables.append name
-                table
-    clean_tables table_names =
-        table_names.each name->
-            sql = 'DROP TABLE "' + name + '"'
-            Panic.rethrow <| connection.execute_update sql
+        in_mem_table.create_database_table connection name primary_key=Nothing temporary=True
     materialize = .read
 
     Common_Spec.spec prefix connection
@@ -207,16 +200,14 @@ run_tests connection db_name =
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False fixed_length_text_columns=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
+    agg_table = agg_in_memory_table.create_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
     tables.append agg_table.name
-    empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
+    empty_agg_table = (agg_in_memory_table.take (First 0)).create_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
     tables.append empty_agg_table.name
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
     postgres_specific_spec connection db_name setup
     Common_Table_Operations.Main.spec setup
-
-    clean_tables tables.to_vector
 
 table_spec =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
@@ -254,10 +245,18 @@ table_spec =
             ca_fail.is_error . should_equal True
             ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
-    test_with_connection run_tests
-    test_with_connection Postgres_Type_Mapping_Spec.spec
+    case create_connection_builder of
+        Nothing ->
+            message = "PostgreSQL test database is not configured. See README.md for instructions."
+            Test.group "[PostgreSQL] Database tests" pending=message Nothing
+        connection_builder ->
+            connection = connection_builder Nothing
+            run_tests connection db_name
+            Postgres_Type_Mapping_Spec.spec connection
 
-test_with_connection spec =
+            Upload_Spec.spec connection_builder "[PostgreSQL] "
+
+create_connection_builder =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
     db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
     db_host = db_host_port.at 0
@@ -266,13 +265,10 @@ test_with_connection spec =
     db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
 
     case db_name.is_nothing of
-        True ->
-            message = "PostgreSQL test database is not configured. See README.md for instructions."
-            Test.group "[PostgreSQL] Database tests" pending=message Nothing
+        True -> Nothing
         False ->
-            connection = Panic.rethrow <|
+            _ -> Panic.rethrow <|
                 Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password))
-            spec connection db_name
 
 pgpass_file = enso_project.data / "pgpass.conf"
 

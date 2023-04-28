@@ -83,7 +83,10 @@ export function handleOpenUrl(openedUrl: URL) {
         // If we failed to acquire the lock, it means that another instance of the application is
         // already running. In this case, we must send the URL to the existing instance and exit.
         logger.log('Another instance of the application is already running. Exiting.')
-        electron.app.quit()
+        // Note that we need here to exit rather than quit. Otherwise, the application would
+        // continue initializing and would create a new window, before quitting.
+        // We don't want anything to flash on the screen, so we just exit.
+        electron.app.exit(0)
     } else {
         // If we acquired the lock, it means that we are the first instance of the application.
         // In this case, we must wait for the application to be ready and then send the URL to the

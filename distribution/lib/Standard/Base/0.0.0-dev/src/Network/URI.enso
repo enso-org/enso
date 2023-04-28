@@ -189,6 +189,11 @@ type URI
     to_text self = self.internal_uri.toString
 
     ## PRIVATE
+       Convert to a display representation of this URI.
+    to_display_text : Text
+    to_display_text self = self.to_text.to_display_text
+
+    ## PRIVATE
        Convert to a JavaScript Object representing this URI.
 
        > Example

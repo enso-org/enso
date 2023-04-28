@@ -19,8 +19,7 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-use view::graph_editor::ExecutionEnvironment;
-use view::graph_editor::WidgetUpdates;
+use view::graph_editor::CallWidgetsConfig;
 
 
 // ==============
@@ -83,15 +82,13 @@ pub fn default_node_position() -> Vector2 {
 
 #[derive(Debug)]
 struct Model {
-    project:               model::Project,
-    controller:            controller::ExecutedGraph,
-    view:                  view::graph_editor::GraphEditor,
-    state:                 Rc<State>,
-    _visualization:        Visualization,
-    widget:                controller::Widget,
-    _execution_stack:      CallStack,
-    // TODO(#5930): Move me once we synchronise the execution environment with the language server.
-    execution_environment: Rc<Cell<ExecutionEnvironment>>,
+    project:          model::Project,
+    controller:       controller::ExecutedGraph,
+    view:             view::graph_editor::GraphEditor,
+    state:            Rc<State>,
+    _visualization:   Visualization,
+    widget:           controller::Widget,
+    _execution_stack: CallStack,
 }
 
 impl Model {
@@ -118,7 +115,6 @@ impl Model {
             _visualization: visualization,
             widget,
             _execution_stack: execution_stack,
-            execution_environment: Default::default(),
         }
     }
 
@@ -188,7 +184,7 @@ impl Model {
     /// ```
     fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
         let context = Context::Output;
-        let environment = self.execution_environment.get();
+        let environment = self.controller.execution_environment();
         let current_state = environment.output_context_enabled();
         let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
         let expr = if active {
@@ -264,13 +260,13 @@ impl Model {
     }
 
     /// Map widget controller update data to the node views.
-    fn map_widget_update_data(
+    fn map_widget_configuration(
         &self,
         node_id: AstNodeId,
-        updates: WidgetUpdates,
-    ) -> Option<(ViewNodeId, WidgetUpdates)> {
+        config: CallWidgetsConfig,
+    ) -> Option<(ViewNodeId, CallWidgetsConfig)> {
         let node_id = self.state.view_id_of_ast_node(node_id)?;
-        Some((node_id, updates))
+        Some((node_id, config))
     }
 
     /// Node was removed in view.
@@ -493,15 +489,6 @@ impl Model {
             }
         }
     }
-
-    fn toggle_execution_environment(&self) -> ExecutionEnvironment {
-        let new_environment = match self.execution_environment.get() {
-            ExecutionEnvironment::Live => ExecutionEnvironment::Design,
-            ExecutionEnvironment::Design => ExecutionEnvironment::Live,
-        };
-        self.execution_environment.set(new_environment);
-        new_environment
-    }
 }
 
 
@@ -717,15 +704,6 @@ impl Graph {
                 }
             }));
 
-
-            // === Execution Environment ===
-
-            // TODO(#5930): Delete me once we synchronise the execution environment with the
-            // language server.
-            view.set_execution_environment <+ view.toggle_execution_environment.map(
-                f_!(model.toggle_execution_environment()));
-
-
             // === Refreshing Nodes ===
 
             remove_node <= update_data.map(|update| update.remove_nodes());
@@ -835,7 +813,7 @@ impl Graph {
             widget.request_widgets <+ widget_request;
             widget.retain_node_expressions <+ widget_refresh._0().unwrap();
             view.update_node_widgets <+ widget.widget_data.filter_map(
-                f!(((id, updates)) model.map_widget_update_data(*id, updates.clone()))
+                f!(((id, data)) model.map_widget_configuration(*id, data.clone()))
             );
         }
     }
