@@ -5,11 +5,15 @@ import * as react from 'react'
 // === Types ===
 // =============
 
+export interface ColumnProps<T> {
+    item: T
+}
+
 /** Metadata describing how to render a column of the table. */
 export interface Column<T> {
     id: string
     heading: JSX.Element
-    render: (item: T, index: number) => JSX.Element
+    render: (props: ColumnProps<T>) => JSX.Element
 }
 
 // =================
@@ -28,12 +32,12 @@ interface Props<T> {
 /** Table that projects an object into each column. */
 function Rows<T>(props: Props<T>) {
     const { columns, items, getKey, placeholder, onClick, onContextMenu } = props
-    const headerRow = columns.map(({ heading }, index) => (
+    const headerRow = columns.map((column, index) => (
         <th
             key={index}
             className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
         >
-            {heading}
+            {column.heading}
         </th>
     ))
     const itemRows =
@@ -42,7 +46,7 @@ function Rows<T>(props: Props<T>) {
                 <td colSpan={columns.length}>{placeholder}</td>
             </tr>
         ) : (
-            items.map((item, index) => (
+            items.map(item => (
                 <tr
                     key={getKey(item)}
                     tabIndex={-1}
@@ -54,11 +58,16 @@ function Rows<T>(props: Props<T>) {
                     }}
                     className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
                 >
-                    {columns.map(({ id, render }) => (
-                        <td key={id} className="px-4 border-0 border-r">
-                            {render(item, index)}
-                        </td>
-                    ))}
+                    {columns.map(column => {
+                        // This is a React component even though it does not contain JSX.
+                        // eslint-disable-next-line no-restricted-syntax
+                        const Render = column.render
+                        return (
+                            <td key={column.id} className="px-4 border-0 border-r">
+                                <Render item={item} />
+                            </td>
+                        )
+                    })}
                 </tr>
             ))
         )

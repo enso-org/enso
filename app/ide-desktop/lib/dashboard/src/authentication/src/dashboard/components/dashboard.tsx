@@ -19,11 +19,11 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
+import Rows, * as rows from './rows'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
 import ProjectActionButton from './projectActionButton'
-import Rows from './rows'
 import Templates from './templates'
 import TopBar from './topBar'
 
@@ -180,6 +180,59 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
         Column.engine,
         Column.ide,
     ],
+}
+
+/** React components for every column except for the name column. */
+// This is not a React component even though it contains JSX.
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
+export const COLUMN_RENDERER: Record<
+    Exclude<Column, Column.name>,
+    (props: rows.ColumnProps<backendModule.Asset>) => JSX.Element
+> = {
+    [Column.lastModified]: () => <></>,
+    [Column.sharedWith]: props => (
+        <>
+            {(props.item.permissions ?? []).map(user => (
+                <PermissionDisplay
+                    key={user.user.organization_id}
+                    permissions={PERMISSION[user.permission]}
+                >
+                    <img
+                        className="rounded-full h-6"
+                        src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
+                    />
+                </PermissionDisplay>
+            ))}
+        </>
+    ),
+    [Column.docs]: () => <></>,
+    [Column.labels]: () => {
+        const { setModal } = modalProvider.useSetModal()
+
+        // This is not a React component even though it contains JSX.
+        // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
+        const onContextMenu = (event: react.MouseEvent) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setModal(() => (
+                <ContextMenu event={event}>
+                    <ContextMenuEntry
+                        disabled
+                        onClick={() => {
+                            // TODO: Wait for backend implementation.
+                        }}
+                    >
+                        Rename label
+                    </ContextMenuEntry>
+                </ContextMenu>
+            ))
+        }
+        return <></>
+    },
+    [Column.dataAccess]: () => <></>,
+    [Column.usagePlan]: () => <></>,
+    [Column.engine]: () => <></>,
+    [Column.ide]: () => <></>,
 }
 
 // ========================
@@ -348,17 +401,19 @@ function Dashboard(props: DashboardProps) {
 
     /** React components for the name column. */
     const nameRenderers: {
-        [Type in backendModule.AssetType]: (asset: backendModule.Asset<Type>) => JSX.Element
+        [Type in backendModule.AssetType]: (
+            props: rows.ColumnProps<backendModule.Asset<Type>>
+        ) => JSX.Element
     } = {
-        [backendModule.AssetType.project]: projectAsset => (
+        [backendModule.AssetType.project]: innerProps => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
                         setModal(() => (
                             <RenameModal
-                                assetType={projectAsset.type}
-                                name={projectAsset.title}
+                                assetType={innerProps.item.type}
+                                name={innerProps.item.title}
                                 // TODO: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
@@ -368,15 +423,15 @@ function Dashboard(props: DashboardProps) {
                 }}
             >
                 <ProjectActionButton
-                    project={projectAsset}
+                    project={innerProps.item}
                     appRunner={appRunner}
                     onClose={() => {
                         setProject(null)
                     }}
                     openIde={async () => {
                         setTab(Tab.ide)
-                        if (project?.projectId !== projectAsset.id) {
-                            setProject(await backend.getProjectDetails(projectAsset.id))
+                        if (project?.projectId !== innerProps.item.id) {
+                            setProject(await backend.getProjectDetails(innerProps.item.id))
                         }
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
@@ -385,18 +440,18 @@ function Dashboard(props: DashboardProps) {
                         }
                     }}
                 />
-                <span className="px-2">{projectAsset.title}</span>
+                <span className="px-2">{innerProps.item.title}</span>
             </div>
         ),
-        [backendModule.AssetType.directory]: directoryAsset => (
+        [backendModule.AssetType.directory]: innerProps => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
                         setModal(() => (
                             <RenameModal
-                                assetType={directoryAsset.type}
-                                name={directoryAsset.title}
+                                assetType={innerProps.item.type}
+                                name={innerProps.item.title}
                                 // TODO: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
@@ -405,21 +460,21 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
                 onDoubleClick={() => {
-                    enterDirectory(directoryAsset)
+                    enterDirectory(innerProps.item)
                 }}
             >
-                {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
+                {svg.DIRECTORY_ICON} <span className="px-2">{innerProps.item.title}</span>
             </div>
         ),
-        [backendModule.AssetType.secret]: secret => (
+        [backendModule.AssetType.secret]: innerProps => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
                         setModal(() => (
                             <RenameModal
-                                assetType={secret.type}
-                                name={secret.title}
+                                assetType={innerProps.item.type}
+                                name={innerProps.item.title}
                                 // FIXME[sb]: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
@@ -428,18 +483,18 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
             >
-                {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
+                {svg.SECRET_ICON} <span className="px-2">{innerProps.item.title}</span>
             </div>
         ),
-        [backendModule.AssetType.file]: file => (
+        [backendModule.AssetType.file]: innerProps => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
                     if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
                         setModal(() => (
                             <RenameModal
-                                assetType={file.type}
-                                name={file.title}
+                                assetType={innerProps.item.type}
+                                name={innerProps.item.title}
                                 // TODO: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
@@ -448,69 +503,20 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
             >
-                {fileInfo.fileIcon(fileInfo.fileExtension(file.title))}{' '}
-                <span className="px-2">{file.title}</span>
+                {fileInfo.fileIcon(fileInfo.fileExtension(innerProps.item.title))}{' '}
+                <span className="px-2">{innerProps.item.title}</span>
             </div>
         ),
-    }
-
-    /** React components for every column except for the name column. */
-    // This is not a React component even though it contains JSX.
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-    const columnRenderer: Record<
-        Exclude<Column, Column.name>,
-        (asset: backendModule.Asset) => JSX.Element
-    > = {
-        [Column.lastModified]: () => <></>,
-        [Column.sharedWith]: asset => (
-            <>
-                {(asset.permissions ?? []).map(user => (
-                    <PermissionDisplay
-                        key={user.user.organization_id}
-                        permissions={PERMISSION[user.permission]}
-                    >
-                        <img
-                            className="rounded-full h-6"
-                            src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
-                        />
-                    </PermissionDisplay>
-                ))}
-            </>
-        ),
-        [Column.docs]: () => <></>,
-        [Column.labels]: () => {
-            // This is not a React component even though it contains JSX.
-            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-            const onContextMenu = (event: react.MouseEvent) => {
-                event.preventDefault()
-                event.stopPropagation()
-                setModal(() => (
-                    <ContextMenu event={event}>
-                        <ContextMenuEntry
-                            disabled
-                            onClick={() => {
-                                // TODO: Wait for backend implementation.
-                            }}
-                        >
-                            Rename label
-                        </ContextMenuEntry>
-                    </ContextMenu>
-                ))
-            }
-            return <></>
-        },
-        [Column.dataAccess]: () => <></>,
-        [Column.usagePlan]: () => <></>,
-        [Column.engine]: () => <></>,
-        [Column.ide]: () => <></>,
     }
 
     const renderer = <Type extends backendModule.AssetType>(column: Column, assetType: Type) =>
         column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
-              (nameRenderers[assetType] as (asset: backendModule.Asset<Type>) => JSX.Element)
-            : columnRenderer[column]
+              (nameRenderers[assetType] as (
+                  props: rows.ColumnProps<backendModule.Asset<Type>>
+              ) => JSX.Element)
+            : COLUMN_RENDERER[column]
 
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
