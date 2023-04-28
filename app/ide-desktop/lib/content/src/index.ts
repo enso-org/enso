@@ -133,11 +133,22 @@ class Main implements AppRunner {
         this.app?.wasm?.drop()
     }
 
-    async runApp(config?: StringConfig) {
+    async runApp(inputConfig?: StringConfig) {
         this.tryStopApp()
 
+        const config = Object.assign(
+            {
+                loader: {
+                    wasmUrl: 'pkg-opt.wasm',
+                    jsUrl: 'pkg.js',
+                    assetsUrl: 'dynamic-assets',
+                },
+            },
+            inputConfig
+        )
+
         this.app = new app.App({
-            config: config ?? {},
+            config,
             configOptions: contentConfig.OPTIONS,
             packageInfo: {
                 version: BUILD_INFO.version,
