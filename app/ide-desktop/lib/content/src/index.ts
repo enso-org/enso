@@ -8,6 +8,7 @@ import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
@@ -128,8 +129,6 @@ class Main implements AppRunner {
     app: app.App | null = null
 
     stopApp() {
-        // The `any` is unavoidable as `App.wasm` is typed as `any`.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         this.app?.stop()
     }
 
@@ -138,8 +137,7 @@ class Main implements AppRunner {
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
          * Default values names are out of sync with values used in code.
-         * Rather than setting fixed values here we need to fix default values in config.
-         */
+         * Rather than setting fixed values here we need to fix default values in config. */
         const config = Object.assign(
             {
                 loader: {
@@ -179,15 +177,15 @@ class Main implements AppRunner {
         }
     }
 
-    main() {
+    main(inputConfig?: StringConfig) {
         contentConfig.OPTIONS.loadAll([app.urlParams()])
         const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
         const isUsingNewDashboard =
             contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
-        const isOpeningIde =
+        const isOpeningMainEntryPoint =
             contentConfig.OPTIONS.groups.startup.options.entry.value ===
             contentConfig.OPTIONS.groups.startup.options.entry.default
-        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningIde) {
+        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
             const hideAuth = () => {
                 const auth = document.getElementById('dashboard')
                 const ide = document.getElementById('root')
@@ -203,12 +201,10 @@ class Main implements AppRunner {
             /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
              * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
              * should only have one entry point. Right now, we have two. One for the cloud
-             * and one for the desktop. Once these are merged, we can't hardcode the
-             * platform here, and need to detect it from the environment. */
+             * and one for the desktop. */
             const currentPlatform = contentConfig.OPTIONS.groups.startup.options.platform.value
-            const webPlatform = contentConfig.OPTIONS.groups.startup.options.platform.default
             let platform = authentication.Platform.desktop
-            if (currentPlatform === webPlatform) {
+            if (currentPlatform === 'web') {
                 platform = authentication.Platform.cloud
             }
             /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
@@ -222,7 +218,7 @@ class Main implements AppRunner {
                     hideAuth()
                     if (!appInstanceRan) {
                         appInstanceRan = true
-                        void this.runApp()
+                        void this.runApp(inputConfig)
                     }
                 }
             }
@@ -235,9 +231,11 @@ class Main implements AppRunner {
                 onAuthenticated,
             })
         } else {
-            void this.runApp()
+            void this.runApp(inputConfig)
         }
     }
 }
 
-new Main().main()
+// @ts-expect-error `globalConfig.windowAppScopeName` is not known at typecheck time.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+window[GLOBAL_CONFIG.windowAppScopeName] = new Main()

@@ -1,16 +1,20 @@
-/** @file This module defines the Project Manager endpoint. */
+/** @file This module defines the Project Manager endpoint.
+ *
+ * It should always be in sync with the Rust interface at
+ * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 import * as newtype from '../newtype'
 
 // =================
 // === Constants ===
 // =================
 
-/** The address of the socket for the project manager. */
+/** The address of the socket for the project manager.
+ * This MUST be kept in sync with the corresponding value in `app/gui/src/constants.rs`. */
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
-const RETRY_INTERVAL = 1000
+const RETRY_INTERVAL_MS = 1000
 /** Duration after which the {@link ProjectManager} stops re-trying to create a WebSocket. */
-const STOP_TRYING_AFTER = 10000
+const STOP_TRYING_AFTER_MS = 10000
 
 // =============
 // === Types ===
@@ -118,7 +122,10 @@ export interface ListSamplesParams {
 // === Project Manager ===
 // =======================
 
-/** A {@link WebSocket} endpoint to the project manager. */
+/** A {@link WebSocket} endpoint to the project manager.
+ *
+ * It should always be in sync with the Rust interface at
+ * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export class ProjectManager {
     private static instance: ProjectManager
     protected id = 0
@@ -158,11 +165,11 @@ export class ProjectManager {
                     } catch {
                         // Ignored; the `setInterval` will retry again eventually.
                     }
-                }, RETRY_INTERVAL)
+                }, RETRY_INTERVAL_MS)
                 setTimeout(() => {
                     clearInterval(handle)
                     reject()
-                }, STOP_TRYING_AFTER)
+                }, STOP_TRYING_AFTER_MS)
             })
             return this.socketPromise
         }

@@ -191,8 +191,9 @@ export class App {
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
     progressIndicator: wasm.ProgressIndicator | null = null
     initialized = false
-    /** Field indicating that application was stopped and any long running process (like wasm compilation) should be aborted.
-     * Currently, we initialize application fully before using stop, but in future we need to support interruption feature. */
+    /** Field indicating that application was stopped and any long running process
+     * (like wasm compilation) should be aborted. Currently, we initialize application fully
+     * before using stop, but in future we need to support interruption feature. */
     stopped = false
 
     constructor(opts?: {
@@ -362,8 +363,8 @@ export class App {
             assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer()))
         )
         const assets = assetsInfo.map(info => {
-            // The non-null assertion on the following line is safe since we are mapping `assetsBlobs` from
-            // success assets response.
+            // The non-null assertion on the following line is safe since we are mapping
+            // `assetsBlobs` from success assets response.
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
             return new Asset(info.type, info.key, data)

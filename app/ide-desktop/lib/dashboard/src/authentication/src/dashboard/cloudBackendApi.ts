@@ -1,6 +1,6 @@
 /** @file Module containing the API client for the Cloud backend API.
  *
- * Each exported function in the {@link Backend} in this module corresponds to an API endpoint. The
+ * Each exported function in the {@link CloudBackendAPI} in this module corresponds to an API endpoint. The
  * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
 import * as config from '../config'
 import * as http from '../http'
@@ -461,15 +461,15 @@ export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
 }
 
-// ===============
-// === Backend ===
-// ===============
+// =======================
+// === CloudBackendAPI ===
+// =======================
 
 /** Class for sending requests to the Cloud backend API endpoints. */
-export class Backend {
+export class CloudBackendAPI {
     readonly platform = platformModule.Platform.cloud
 
-    /** Creates a new instance of the {@link Backend} API client.
+    /** Creates a new instance of the {@link CloudBackendAPI} API client.
      *
      * @throws An error if the `Authorization` header is not set on the given `client`. */
     constructor(
@@ -866,21 +866,4 @@ export class Backend {
     private delete<T = void>(path: string) {
         return this.client.delete<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
     }
-}
-
-// =====================
-// === createBackend ===
-// =====================
-
-/** Shorthand method for creating a new instance of the backend API, along with the necessary
- * headers. */
-/* TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
- * This is a hack to quickly create the backend in the format we want, until we get the provider
- * working. This should be removed entirely in favour of creating the backend once and using it from
- * the context. */
-export function createBackend(accessToken: string, logger: loggerProvider.Logger): Backend {
-    const headers = new Headers()
-    headers.append('Authorization', `Bearer ${accessToken}`)
-    const client = new http.Client(headers)
-    return new Backend(client, logger)
 }

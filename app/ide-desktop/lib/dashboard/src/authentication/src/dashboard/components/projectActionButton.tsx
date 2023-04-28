@@ -1,8 +1,8 @@
 /** @file An interactive button displaying the status of a project. */
 import * as react from 'react'
 
+import * as backendApi from '../cloudBackendApi'
 import * as backendProvider from '../../providers/backend'
-import * as cloudService from '../cloudService'
 import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
@@ -37,7 +37,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 // =================
 
 export interface ProjectActionButtonProps {
-    project: cloudService.Asset<cloudService.AssetType.project>
+    project: backendApi.Asset<backendApi.AssetType.project>
     appRunner: AppRunner
     openIde: () => void
 }
@@ -47,7 +47,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { project, appRunner, openIde } = props
     const { backend } = backendProvider.useBackend()
 
-    const [state, setState] = react.useState(cloudService.ProjectState.created)
+    const [state, setState] = react.useState(backendApi.ProjectState.created)
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
     const [isCheckingResources, setIsCheckingResources] = react.useState(false)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
@@ -58,7 +58,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         } else {
             const checkProjectStatus = async () => {
                 const response = await backend.getProjectDetails(project.id)
-                if (response.state.type === cloudService.ProjectState.opened) {
+                if (response.state.type === backendApi.ProjectState.opened) {
                     setIsCheckingStatus(false)
                     setIsCheckingResources(true)
                 } else {
@@ -81,14 +81,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         } else {
             const checkProjectResources = async () => {
                 if (!('checkResources' in backend)) {
-                    setState(cloudService.ProjectState.opened)
+                    setState(backendApi.ProjectState.opened)
                     setIsCheckingResources(false)
                     setSpinnerState(SpinnerState.done)
                 } else {
                     try {
                         // This call will error if the VM is not ready yet.
                         await backend.checkResources(project.id)
-                        setState(cloudService.ProjectState.opened)
+                        setState(backendApi.ProjectState.opened)
                         setIsCheckingResources(false)
                         setSpinnerState(SpinnerState.done)
                     } catch {
@@ -110,7 +110,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         void (async () => {
             const projectDetails = await backend.getProjectDetails(project.id)
             setState(projectDetails.state.type)
-            if (projectDetails.state.type === cloudService.ProjectState.openInProgress) {
+            if (projectDetails.state.type === backendApi.ProjectState.openInProgress) {
                 setSpinnerState(SpinnerState.initial)
                 setIsCheckingStatus(true)
             }
@@ -118,14 +118,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [])
 
     function closeProject() {
-        setState(cloudService.ProjectState.closed)
+        setState(backendApi.ProjectState.closed)
         appRunner.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
     }
 
     async function openProject() {
-        setState(cloudService.ProjectState.openInProgress)
+        setState(backendApi.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
         // the `initial` fraction to the `loading` fraction,
@@ -140,24 +140,24 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 break
             case platform.Platform.desktop:
                 await backend.openProject(project.id)
-                setState(cloudService.ProjectState.opened)
+                setState(backendApi.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)
                 break
         }
     }
 
     switch (state) {
-        case cloudService.ProjectState.created:
-        case cloudService.ProjectState.new:
-        case cloudService.ProjectState.closed:
+        case backendApi.ProjectState.created:
+        case backendApi.ProjectState.new:
+        case backendApi.ProjectState.closed:
             return <button onClick={openProject}>{svg.PLAY_ICON}</button>
-        case cloudService.ProjectState.openInProgress:
+        case backendApi.ProjectState.openInProgress:
             return (
                 <button onClick={closeProject}>
                     <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
                 </button>
             )
-        case cloudService.ProjectState.opened:
+        case backendApi.ProjectState.opened:
             return (
                 <>
                     <button onClick={closeProject}>

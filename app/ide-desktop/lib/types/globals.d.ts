@@ -8,6 +8,10 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+interface Enso {
+    main: (inputConfig?: StringConfig) => Promise<void>
+}
+
 interface BuildInfo {
     commit: string
     version: string
@@ -40,6 +44,7 @@ interface AuthenticationApi {
 
 declare global {
     interface Window {
+        enso: Enso
         authenticationApi: AuthenticationApi
     }
 

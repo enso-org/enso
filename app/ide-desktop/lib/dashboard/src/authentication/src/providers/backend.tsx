@@ -2,16 +2,25 @@
  * provider via the shared React context. */
 import * as react from 'react'
 
-import * as cloudService from '../dashboard/cloudService'
-import * as localService from '../dashboard/localService'
+import * as cloudBackendApi from '../dashboard/cloudBackendApi'
+import * as projectManagerBackendApi from '../dashboard/projectManagerBackendApi'
+
+// =============
+// === Types ===
+// =============
+
+/** A type representing a backend API that may be of any type. */
+type AnyBackendAPI =
+    | cloudBackendApi.CloudBackendAPI
+    | projectManagerBackendApi.ProjectManagerBackendAPI
 
 // ======================
 // === BackendContext ===
 // ======================
 
 export interface BackendContextType {
-    backend: cloudService.Backend | localService.Backend
-    setBackend: (backend: cloudService.Backend | localService.Backend) => void
+    backend: AnyBackendAPI
+    setBackend: (backend: AnyBackendAPI) => void
 }
 
 // @ts-expect-error The default value will never be exposed
@@ -19,7 +28,7 @@ export interface BackendContextType {
 const BackendContext = react.createContext<BackendContextType>(null)
 
 export interface BackendProviderProps extends React.PropsWithChildren<object> {
-    initialBackend: cloudService.Backend | localService.Backend
+    initialBackend: AnyBackendAPI
 }
 
 // =======================
@@ -29,9 +38,9 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
     const { initialBackend, children } = props
-    const [backend, setBackend] = react.useState<cloudService.Backend | localService.Backend>(
-        initialBackend
-    )
+    const [backend, setBackend] = react.useState<
+        cloudBackendApi.CloudBackendAPI | projectManagerBackendApi.ProjectManagerBackendAPI
+    >(initialBackend)
     return (
         <BackendContext.Provider value={{ backend, setBackend }}>
             {children}

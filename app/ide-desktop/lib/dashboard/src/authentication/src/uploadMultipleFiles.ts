@@ -3,11 +3,11 @@
 
 import toast from 'react-hot-toast'
 
-import * as cloudService from './dashboard/cloudService'
+import * as backendApi from './dashboard/cloudBackendApi'
 
 export async function uploadMultipleFiles(
-    backendService: cloudService.Backend,
-    directoryId: cloudService.DirectoryId,
+    backendService: backendApi.CloudBackendAPI,
+    directoryId: backendApi.DirectoryId,
     files: File[]
 ) {
     const fileCount = files.length

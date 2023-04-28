@@ -2,12 +2,13 @@
  * interactive components. */
 import * as react from 'react'
 
-import * as cloudService from '../cloudService'
+import * as backendApi from '../cloudBackendApi'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
-import * as localService from '../localService'
+import * as http from '../../http'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
+import * as projectManagerBackendApi from '../projectManagerBackendApi'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
@@ -74,7 +75,7 @@ enum Column {
 export interface CreateFormProps {
     left: number
     top: number
-    directoryId: cloudService.DirectoryId
+    directoryId: backendApi.DirectoryId
     onSuccess: () => void
 }
 
@@ -95,22 +96,22 @@ const IDE_ELEMENT_ID = 'root'
 const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
 
 /** English names for the name column. */
-const ASSET_TYPE_NAME: Record<cloudService.AssetType, string> = {
-    [cloudService.AssetType.project]: 'Projects',
-    [cloudService.AssetType.file]: 'Files',
-    [cloudService.AssetType.secret]: 'Secrets',
-    [cloudService.AssetType.directory]: 'Folders',
+const ASSET_TYPE_NAME: Record<backendApi.AssetType, string> = {
+    [backendApi.AssetType.project]: 'Projects',
+    [backendApi.AssetType.file]: 'Files',
+    [backendApi.AssetType.secret]: 'Secrets',
+    [backendApi.AssetType.directory]: 'Folders',
 } as const
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    cloudService.AssetType,
+    backendApi.AssetType,
     (props: CreateFormProps) => JSX.Element
 > = {
-    [cloudService.AssetType.project]: ProjectCreateForm,
-    [cloudService.AssetType.file]: FileCreateForm,
-    [cloudService.AssetType.secret]: SecretCreateForm,
-    [cloudService.AssetType.directory]: DirectoryCreateForm,
+    [backendApi.AssetType.project]: ProjectCreateForm,
+    [backendApi.AssetType.file]: FileCreateForm,
+    [backendApi.AssetType.secret]: SecretCreateForm,
+    [backendApi.AssetType.directory]: DirectoryCreateForm,
 }
 
 /** English names for every column except for the name column. */
@@ -126,23 +127,23 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 } as const
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
-const PERMISSION: Record<cloudService.PermissionAction, permissionDisplay.Permissions> = {
-    [cloudService.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
-    [cloudService.PermissionAction.execute]: {
+const PERMISSION: Record<backendApi.PermissionAction, permissionDisplay.Permissions> = {
+    [backendApi.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
+    [backendApi.PermissionAction.execute]: {
         type: permissionDisplay.Permission.regular,
         read: false,
         write: false,
         docsWrite: false,
         exec: true,
     },
-    [cloudService.PermissionAction.edit]: {
+    [backendApi.PermissionAction.edit]: {
         type: permissionDisplay.Permission.regular,
         read: false,
         write: true,
         docsWrite: false,
         exec: false,
     },
-    [cloudService.PermissionAction.read]: {
+    [backendApi.PermissionAction.read]: {
         type: permissionDisplay.Permission.regular,
         read: true,
         write: false,
@@ -186,9 +187,9 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 // ========================
 
 /** Returns the id of the root directory for a user or organization. */
-function rootDirectoryId(userOrOrganizationId: cloudService.UserOrOrganizationId) {
-    return newtype.asNewtype<cloudService.DirectoryId>(
-        userOrOrganizationId.replace(/^organization-/, `${cloudService.AssetType.directory}-`)
+function rootDirectoryId(userOrOrganizationId: backendApi.UserOrOrganizationId) {
+    return newtype.asNewtype<backendApi.DirectoryId>(
+        userOrOrganizationId.replace(/^organization-/, `${backendApi.AssetType.directory}-`)
     )
 }
 
@@ -219,38 +220,38 @@ function Dashboard(props: DashboardProps) {
     const [query, setQuery] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
-        cloudService.Asset<cloudService.AssetType.directory>[]
+        backendApi.Asset<backendApi.AssetType.directory>[]
     >([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
     const [tab, setTab] = react.useState(Tab.dashboard)
-    const [project, setProject] = react.useState<cloudService.Project | null>(null)
-    const [selectedAssets, setSelectedAssets] = react.useState<cloudService.Asset[]>([])
+    const [project, setProject] = react.useState<backendApi.Project | null>(null)
+    const [selectedAssets, setSelectedAssets] = react.useState<backendApi.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
     const [projectAssets, setProjectAssetsRaw] = react.useState<
-        cloudService.Asset<cloudService.AssetType.project>[]
+        backendApi.Asset<backendApi.AssetType.project>[]
     >([])
     const [directoryAssets, setDirectoryAssetsRaw] = react.useState<
-        cloudService.Asset<cloudService.AssetType.directory>[]
+        backendApi.Asset<backendApi.AssetType.directory>[]
     >([])
     const [secretAssets, setSecretAssetsRaw] = react.useState<
-        cloudService.Asset<cloudService.AssetType.secret>[]
+        backendApi.Asset<backendApi.AssetType.secret>[]
     >([])
     const [fileAssets, setFileAssetsRaw] = react.useState<
-        cloudService.Asset<cloudService.AssetType.file>[]
+        backendApi.Asset<backendApi.AssetType.file>[]
     >([])
     const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
-        cloudService.Asset<cloudService.AssetType.project>[]
+        backendApi.Asset<backendApi.AssetType.project>[]
     >([])
     const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState<
-        cloudService.Asset<cloudService.AssetType.directory>[]
+        backendApi.Asset<backendApi.AssetType.directory>[]
     >([])
     const [visibleSecretAssets, setVisibleSecretAssets] = react.useState<
-        cloudService.Asset<cloudService.AssetType.secret>[]
+        backendApi.Asset<backendApi.AssetType.secret>[]
     >([])
     const [visibleFileAssets, setVisibleFileAssets] = react.useState<
-        cloudService.Asset<cloudService.AssetType.file>[]
+        backendApi.Asset<backendApi.AssetType.file>[]
     >([])
 
     const directory = directoryStack[directoryStack.length - 1]
@@ -279,23 +280,21 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    function setProjectAssets(
-        newProjectAssets: cloudService.Asset<cloudService.AssetType.project>[]
-    ) {
+    function setProjectAssets(newProjectAssets: backendApi.Asset<backendApi.AssetType.project>[]) {
         setProjectAssetsRaw(newProjectAssets)
         setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
     }
     function setDirectoryAssets(
-        newDirectoryAssets: cloudService.Asset<cloudService.AssetType.directory>[]
+        newDirectoryAssets: backendApi.Asset<backendApi.AssetType.directory>[]
     ) {
         setDirectoryAssetsRaw(newDirectoryAssets)
         setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
     }
-    function setSecretAssets(newSecretAssets: cloudService.Asset<cloudService.AssetType.secret>[]) {
+    function setSecretAssets(newSecretAssets: backendApi.Asset<backendApi.AssetType.secret>[]) {
         setSecretAssetsRaw(newSecretAssets)
         setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
     }
-    function setFileAssets(newFileAssets: cloudService.Asset<cloudService.AssetType.file>[]) {
+    function setFileAssets(newFileAssets: backendApi.Asset<backendApi.AssetType.file>[]) {
         setFileAssetsRaw(newFileAssets)
         setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
     }
@@ -308,7 +307,7 @@ function Dashboard(props: DashboardProps) {
         )
     }
 
-    function enterDirectory(directoryAsset: cloudService.Asset<cloudService.AssetType.directory>) {
+    function enterDirectory(directoryAsset: backendApi.Asset<backendApi.AssetType.directory>) {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
@@ -318,7 +317,7 @@ function Dashboard(props: DashboardProps) {
         if (cachedDirectoryStackJson) {
             // The JSON was inserted by the code below, so it will always have the right type.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const cachedDirectoryStack: cloudService.Asset<cloudService.AssetType.directory>[] =
+            const cachedDirectoryStack: backendApi.Asset<backendApi.AssetType.directory>[] =
                 JSON.parse(cachedDirectoryStackJson)
             setDirectoryStack(cachedDirectoryStack)
             const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
@@ -338,9 +337,9 @@ function Dashboard(props: DashboardProps) {
 
     /** React components for the name column. */
     const nameRenderers: {
-        [Type in cloudService.AssetType]: (asset: cloudService.Asset<Type>) => JSX.Element
+        [Type in backendApi.AssetType]: (asset: backendApi.Asset<Type>) => JSX.Element
     } = {
-        [cloudService.AssetType.project]: projectAsset => (
+        [backendApi.AssetType.project]: projectAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -372,7 +371,7 @@ function Dashboard(props: DashboardProps) {
                 <span className="px-2">{projectAsset.title}</span>
             </div>
         ),
-        [cloudService.AssetType.directory]: directoryAsset => (
+        [backendApi.AssetType.directory]: directoryAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -395,7 +394,7 @@ function Dashboard(props: DashboardProps) {
                 {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
             </div>
         ),
-        [cloudService.AssetType.secret]: secret => (
+        [backendApi.AssetType.secret]: secret => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -415,7 +414,7 @@ function Dashboard(props: DashboardProps) {
                 {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
             </div>
         ),
-        [cloudService.AssetType.file]: file => (
+        [backendApi.AssetType.file]: file => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -441,7 +440,7 @@ function Dashboard(props: DashboardProps) {
     /** React components for every column except for the name column. */
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: cloudService.Asset) => JSX.Element
+        (asset: backendApi.Asset) => JSX.Element
     > = {
         [Column.lastModified]: () => <></>,
         [Column.sharedWith]: asset => (
@@ -487,16 +486,16 @@ function Dashboard(props: DashboardProps) {
         [Column.ide]: () => <></>,
     }
 
-    function renderer<Type extends cloudService.AssetType>(column: Column, assetType: Type) {
+    function renderer<Type extends backendApi.AssetType>(column: Column, assetType: Type) {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
-              (nameRenderers[assetType] as (asset: cloudService.Asset<Type>) => JSX.Element)
+              (nameRenderers[assetType] as (asset: backendApi.Asset<Type>) => JSX.Element)
             : columnRenderer[column]
     }
 
     /** Heading element for every column. */
-    function ColumnHeading(column: Column, assetType: cloudService.AssetType) {
+    function ColumnHeading(column: Column, assetType: backendApi.AssetType) {
         return column === Column.name ? (
             <div className="inline-flex">
                 {ASSET_TYPE_NAME[assetType]}
@@ -537,17 +536,13 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
     }, [query])
 
-    function setAssets(assets: cloudService.Asset[]) {
-        const newProjectAssets = assets.filter(
-            cloudService.assetIsType(cloudService.AssetType.project)
-        )
+    function setAssets(assets: backendApi.Asset[]) {
+        const newProjectAssets = assets.filter(backendApi.assetIsType(backendApi.AssetType.project))
         const newDirectoryAssets = assets.filter(
-            cloudService.assetIsType(cloudService.AssetType.directory)
+            backendApi.assetIsType(backendApi.AssetType.directory)
         )
-        const newSecretAssets = assets.filter(
-            cloudService.assetIsType(cloudService.AssetType.secret)
-        )
-        const newFileAssets = assets.filter(cloudService.assetIsType(cloudService.AssetType.file))
+        const newSecretAssets = assets.filter(backendApi.assetIsType(backendApi.AssetType.secret))
+        const newFileAssets = assets.filter(backendApi.assetIsType(backendApi.AssetType.file))
         setProjectAssets(newProjectAssets)
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
@@ -613,7 +608,7 @@ function Dashboard(props: DashboardProps) {
 
     async function handleCreateProject(templateName?: string | null) {
         const projectName = getNewProjectName(templateName)
-        const body: cloudService.CreateProjectRequestBody = {
+        const body: backendApi.CreateProjectRequestBody = {
             projectName,
             projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
             parentDirectoryId: directoryId,
@@ -622,7 +617,7 @@ function Dashboard(props: DashboardProps) {
         setProjectAssets([
             ...projectAssets,
             {
-                type: cloudService.AssetType.project,
+                type: backendApi.AssetType.project,
                 title: projectAsset.name,
                 id: projectAsset.projectId,
                 parentId: '',
@@ -671,11 +666,15 @@ function Dashboard(props: DashboardProps) {
                     setFileAssets([])
                     switch (newBackendPlatform) {
                         case platformModule.Platform.desktop:
-                            setBackend(localService.createBackend())
+                            setBackend(new projectManagerBackendApi.ProjectManagerBackendAPI())
                             break
-                        case platformModule.Platform.cloud:
-                            setBackend(cloudService.createBackend(accessToken, logger))
+                        case platformModule.Platform.cloud: {
+                            const headers = new Headers()
+                            headers.append('Authorization', `Bearer ${accessToken}`)
+                            const client = new http.Client(headers)
+                            setBackend(new backendApi.CloudBackendAPI(client, logger))
                             break
+                        }
                     }
                 }}
                 query={query}
@@ -789,7 +788,7 @@ function Dashboard(props: DashboardProps) {
             <table className="items-center w-full bg-transparent border-collapse mt-2">
                 <tbody>
                     <tr className="h-10" />
-                    <Rows<cloudService.Asset<cloudService.AssetType.project>>
+                    <Rows<backendApi.Asset<backendApi.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
                         placeholder={
@@ -800,8 +799,8 @@ function Dashboard(props: DashboardProps) {
                         }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
-                            heading: ColumnHeading(column, cloudService.AssetType.project),
-                            render: renderer(column, cloudService.AssetType.project),
+                            heading: ColumnHeading(column, backendApi.AssetType.project),
+                            render: renderer(column, backendApi.AssetType.project),
                         }))}
                         onClick={(projectAsset, event) => {
                             event.stopPropagation()
@@ -880,7 +879,7 @@ function Dashboard(props: DashboardProps) {
                         (cloudBackend => (
                             <>
                                 <tr className="h-10" />
-                                <Rows<cloudService.Asset<cloudService.AssetType.directory>>
+                                <Rows<backendApi.Asset<backendApi.AssetType.directory>>
                                     items={visibleDirectoryAssets}
                                     getKey={dir => dir.id}
                                     placeholder={
@@ -893,9 +892,9 @@ function Dashboard(props: DashboardProps) {
                                         id: column,
                                         heading: ColumnHeading(
                                             column,
-                                            cloudService.AssetType.directory
+                                            backendApi.AssetType.directory
                                         ),
-                                        render: renderer(column, cloudService.AssetType.directory),
+                                        render: renderer(column, backendApi.AssetType.directory),
                                     }))}
                                     onClick={(directoryAsset, event) => {
                                         event.stopPropagation()
@@ -912,7 +911,7 @@ function Dashboard(props: DashboardProps) {
                                     }}
                                 />
                                 <tr className="h-10" />
-                                <Rows<cloudService.Asset<cloudService.AssetType.secret>>
+                                <Rows<backendApi.Asset<backendApi.AssetType.secret>>
                                     items={visibleSecretAssets}
                                     getKey={secret => secret.id}
                                     placeholder={
@@ -923,11 +922,8 @@ function Dashboard(props: DashboardProps) {
                                     }
                                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                                         id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            cloudService.AssetType.secret
-                                        ),
-                                        render: renderer(column, cloudService.AssetType.secret),
+                                        heading: ColumnHeading(column, backendApi.AssetType.secret),
+                                        render: renderer(column, backendApi.AssetType.secret),
                                     }))}
                                     onClick={(secret, event) => {
                                         event.stopPropagation()
@@ -962,7 +958,7 @@ function Dashboard(props: DashboardProps) {
                                     }}
                                 />
                                 <tr className="h-10" />
-                                <Rows<cloudService.Asset<cloudService.AssetType.file>>
+                                <Rows<backendApi.Asset<backendApi.AssetType.file>>
                                     items={visibleFileAssets}
                                     getKey={file => file.id}
                                     placeholder={
@@ -973,8 +969,8 @@ function Dashboard(props: DashboardProps) {
                                     }
                                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                                         id: column,
-                                        heading: ColumnHeading(column, cloudService.AssetType.file),
-                                        render: renderer(column, cloudService.AssetType.file),
+                                        heading: ColumnHeading(column, backendApi.AssetType.file),
+                                        render: renderer(column, backendApi.AssetType.file),
                                     }))}
                                     onClick={(file, event) => {
                                         event.stopPropagation()

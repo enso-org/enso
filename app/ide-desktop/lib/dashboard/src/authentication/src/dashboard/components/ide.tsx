@@ -1,8 +1,8 @@
 /** @file Container that launches the IDE. */
 import * as react from 'react'
 
+import * as backendApi from '../cloudBackendApi'
 import * as backendProvider from '../../providers/backend'
-import * as cloudService from '../cloudService'
 import * as platformModule from '../../platform'
 
 // =================
@@ -22,7 +22,7 @@ const JS_EXTENSION: Record<platformModule.Platform, string> = {
 // =================
 
 interface Props {
-    project: cloudService.Project
+    project: backendApi.Project
     appRunner: AppRunner
 }
 
@@ -44,7 +44,7 @@ function Ide(props: Props) {
                 project.ideVersion?.value ??
                 ('listVersions' in backend
                     ? await backend.listVersions({
-                          versionType: cloudService.VersionType.ide,
+                          versionType: backendApi.VersionType.ide,
                           default: true,
                       })
                     : null)?.[0].number.value
@@ -52,7 +52,7 @@ function Ide(props: Props) {
                 project.engineVersion?.value ??
                 ('listVersions' in backend
                     ? await backend.listVersions({
-                          versionType: cloudService.VersionType.backend,
+                          versionType: backendApi.VersionType.backend,
                           default: true,
                       })
                     : null)?.[0].number.value
