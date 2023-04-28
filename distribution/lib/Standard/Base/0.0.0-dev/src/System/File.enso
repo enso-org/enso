@@ -31,6 +31,7 @@ import project.Metadata.Widget
 from project.Metadata.Choice import Option
 import project.Metadata.Display
 
+polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
@@ -72,6 +73,20 @@ type File
         java_file = Java_File.createTempFile prefix suffix
         java_file.deleteOnExit
         File.new java_file.getAbsolutePath
+
+    ## PRIVATE
+       Create a dry run temporary file which will be deleted when Enso exits.
+
+       For an absolute path the same temporary file is returned.
+       If passed an existing temporary the same file is return.
+    create_dry_run_file : Boolean -> File ! File_Error
+    create_dry_run_file self copy_original=False =
+        temp_path = DryRunFileManager.getTemporaryFile self.absolute.path
+        if temp_path.is_nothing then Error.throw (File_Error.IO_Error "Unable to create a temporary file.") else
+            temp = File.new temp_path
+            if self.exists && copy_original then
+                self.copy_to temp replace_existing=True
+            temp
 
     ## ALIAS Current Directory
 

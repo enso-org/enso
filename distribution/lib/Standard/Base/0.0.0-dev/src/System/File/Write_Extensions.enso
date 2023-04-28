@@ -63,11 +63,7 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
             Existing_File_Behavior.Error -> if actual.exists then Error.throw (File_Error.Already_Exists actual) else Existing_File_Behavior.Overwrite
             _ -> on_existing_file
 
-    file = if is_enabled then actual else
-        temp = File.create_temporary_file actual.name actual.extension
-        if actual.exists && on_existing_file == Existing_File_Behavior.Append then
-            actual.copy_to temp replace_existing=True
-        temp
+    file = if is_enabled then actual else actual.create_dry_run_file copy_original=on_existing_file==Existing_File_Behavior.Append
 
     Context.Output.with_enabled <|
         r = if_existing.write file stream->
