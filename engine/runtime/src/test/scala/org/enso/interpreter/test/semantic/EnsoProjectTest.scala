@@ -6,8 +6,7 @@ class EnsoProjectTest extends InterpreterTest {
 
   override def subject: String = "Enso_Project.enso_project"
 
-  override def specify(
-    implicit
+  override def specify(implicit
     interpreterContext: InterpreterContext
   ): Unit = {
     "enso_project should be in micro-distribution" in {
