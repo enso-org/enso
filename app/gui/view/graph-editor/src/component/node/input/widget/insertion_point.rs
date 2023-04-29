@@ -34,7 +34,7 @@ impl super::SpanWidget for Widget {
     }
 
     fn new(_: &Config, _: &super::ConfigContext) -> Self {
-        let root = object::Instance::new();
+        let root = object::Instance::new_named("widget::InsertionPoint");
         root.set_size(Vector2::<f32>::zero());
         Self { root }
     }

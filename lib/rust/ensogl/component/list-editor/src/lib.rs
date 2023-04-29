@@ -206,6 +206,20 @@ impl<T: display::Object> ItemOrPlaceholder<T> {
         }
     }
 
+    /// Replace the item element with a new one. Returns old element if it was replaced.
+    pub fn replace_element(&mut self, element: T) -> Option<T> {
+        match self {
+            ItemOrPlaceholder::Item(t) =>
+                if t.elem.display_object() == element.display_object() {
+                    Some(mem::replace(&mut t.elem, element))
+                } else {
+                    let new_item = Item::new_from_placeholder(element, t.placeholder.clone_ref());
+                    Some(mem::replace(t, new_item).elem)
+                },
+            _ => None,
+        }
+    }
+
     /// Get the display object of this item or placeholder. In case the placeholder is weak and does
     /// not exist anymore, it will return [`None`].
     pub fn display_object(&self) -> Option<display::object::Instance> {
@@ -347,9 +361,9 @@ impl<T> Model<T> {
     pub fn new(cursor: &Cursor) -> Self {
         let cursor = cursor.clone_ref();
         let items = default();
-        let root = display::object::Instance::new();
-        let layout = display::object::Instance::new();
-        let layout_with_icons = display::object::Instance::new();
+        let root = display::object::Instance::new_named("ListEditor");
+        let layout = display::object::Instance::new_named("layout");
+        let layout_with_icons = display::object::Instance::new_named("layout_with_icons");
         let gap = default();
         layout_with_icons.use_auto_layout();
         layout.use_auto_layout();
@@ -408,6 +422,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             }));
 
             target <= on_down.map(|event| event.target());
+            trace target;
 
             on_up <- on_up_source.identity();
             on_up_cleaning_phase <- on_up_source.identity();
@@ -590,6 +605,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             is_dragging <- bool(&on_up_cleaning_phase, &init_drag_not_disabled).on_change();
             drag_diff <- pos_diff.gate(&is_dragging);
             no_drag <- drag_disabled.gate_not(&is_dragging).on_change();
+            trace no_drag;
 
             status <- bool(&on_up_cleaning_phase, &drag_diff).on_change();
             start <- status.on_true();
@@ -664,8 +680,30 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         self.model.borrow().items.iter().flat_map(|item| item.as_item().cloned()).collect()
     }
 
-    pub fn replace_list(&self, items: impl Iterator<Item = T>) {
-        self.model.borrow_mut().replace_list(items)
+    pub fn insert_item(&self, index: Index, item: T) {
+        self.model.borrow_mut().insert(index, item);
+    }
+
+    pub fn replace_item(&self, index: Index, new_item: T) -> Option<T> {
+        let mut model = self.model.borrow_mut();
+        let index = model.index_to_item_or_placeholder_index(index)?;
+        let item = model.items.get_mut(index)?;
+        item.replace_element(new_item)
+    }
+
+    pub fn take_item(&self, index: Index) -> Option<T> {
+        let mut model = self.model.borrow_mut();
+        let index = model.index_to_item_or_placeholder_index(index)?;
+        match model.items.remove(index) {
+            ItemOrPlaceholder::Item(item) => Some(item.elem),
+            ItemOrPlaceholder::Placeholder(_) => unreachable!(),
+        }
+    }
+
+    pub fn item_at(&self, index: Index) -> Option<T> {
+        let model = self.model.borrow();
+        let index = model.index_to_item_or_placeholder_index(index)?;
+        model.items.get(index).and_then(|item| item.as_item().cloned())
     }
 }
 
@@ -801,44 +839,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
         };
         self.reposition_items();
         index
-    }
-
-    fn replace_list(&mut self, elements: impl Iterator<Item = T>) {
-        let mut self_position = self.layout.global_position();
-        let self_size = self.layout.computed_size();
-        let mut new_items = elements
-            .enumerate()
-            .map(|(index, elem)| {
-                let elem_object = elem.display_object();
-                // let size = elem_object.computed_size()
-                //     + Vector2(if index == 0 { self.gap } else { 0.0 }, 0.0);
-                let placeholder = StrongPlaceholder::new_with_size(0.0);
-                let item_position = elem_object.global_position();
-                let animate_to_position = item_position != Vector2(0.0, 0.0);
-                let relative_position = if animate_to_position {
-                    item_position - self_position
-                } else {
-                    Vector3::zero()
-                };
-                // self_position.update_x(|x| x + size.x() + self.gap);
-                elem.set_position(relative_position);
-                let item = Item::new_from_placeholder(elem, placeholder);
-                // if index != 0 {
-                //     item.set_margin_left(self.gap);
-                //     item.frp.skip_margin_anim();
-                // }
-                item
-            })
-            .collect_vec();
-        console_log!("{:?}", self_size);
-        let mut placeholder = StrongPlaceholder::new_with_size(self_size.x());
-        let displays = new_items.iter().map(|item| item.display_object());
-        // .chain(iter::once(placeholder.display_object()));
-        self.layout.replace_children(&displays.collect_vec());
-        self.items.clear();
-        self.items
-            .extend(new_items.into_iter().map(Into::into).chain(iter::once(placeholder.into())));
-        self.collapse_all_placeholders();
     }
 
     /// Remove all items and add them again, in order of their current position.
@@ -1060,15 +1060,14 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
             {
                 placeholder.set_target_size(placeholder.computed_size().x);
                 item.update_xy(|t| t - placeholder.global_position().xy());
-                self.items[index] =
-                    Item::new_from_placeholder(item.clone_ref(), placeholder).into();
+                self.items[index] = Item::new_from_placeholder(item, placeholder).into();
                 index
             } else {
                 // This branch should never be reached, as when dragging an item we always create
                 // a placeholder for it (see the [`Self::add_insertion_point_if_type_match`]
                 // function). However, in case something breaks, we want it to still
                 // provide the user with the correct outcome.
-                self.items.insert(index, Item::new(item.clone_ref()).into());
+                self.items.insert(index, Item::new(item).into());
                 warn!("An element was inserted without a placeholder. This should not happen.");
                 index
             };

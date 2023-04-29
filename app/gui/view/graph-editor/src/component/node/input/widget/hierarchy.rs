@@ -41,7 +41,7 @@ impl super::SpanWidget for Widget {
     }
 
     fn new(_: &Config, _: &super::ConfigContext) -> Self {
-        let display_object = object::Instance::new();
+        let display_object = object::Instance::new_named("widget::Hierarchy");
         display_object.use_auto_layout();
         display_object.set_children_alignment_left_center().justify_content_center_y();
         Self { display_object }

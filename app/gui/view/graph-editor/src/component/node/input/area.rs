@@ -152,7 +152,7 @@ impl Model {
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("input");
 
         let edit_mode_label = app.new_view::<text::Text>();
         let expression = default();

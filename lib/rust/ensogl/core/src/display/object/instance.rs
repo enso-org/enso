@@ -1125,7 +1125,7 @@ use unit2::Fraction;
 
 /// Enable debugging of display objects hierarchy. When enabled, all display objects will be
 /// represented in the DOM tree, which can be inspected using browser devtools inspector.
-pub const ENABLE_DOM_DEBUG: bool = false;
+pub const ENABLE_DOM_DEBUG: bool = true;
 
 /// Enable DOM debugging for all display objects as a default. When enabled, all display objects
 /// created with `new` or `new_named` constructors will be represented in the debug DOM tree. When
@@ -1403,6 +1403,7 @@ impl Root {
     /// Constructor of a named display object. The name is used for debugging purposes only.
     pub fn new_named(name: &'static str) -> Self {
         let def = Instance::new_named(name);
+        def.set_size((0.0, 0.0));
         Self { def }.init()
     }
 

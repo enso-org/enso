@@ -126,15 +126,15 @@ impl Port {
     /// Create a new port for given widget. The widget will be placed as a child of the port's root
     /// display object, and its layout size will be used to determine the port's size.
     pub fn new(widget: DynWidget, app: &Application, frp: &WidgetsFrp) -> Self {
-        let port_root = display::object::Instance::new();
+        let port_root = display::object::Instance::new_named("Port");
         let widget_root = widget.root_object().clone_ref();
         let port_shape = PortShape::new();
         let hover_shape = HoverShape::new();
         port_shape.set_corner_radius_max().set_pointer_events(false);
         hover_shape.set_pointer_events(true).set_color(shape::INVISIBLE_HOVER_COLOR);
 
-        port_root.add_child(&widget_root);
-        widget_root.set_margin_left(0.0);
+        port_root.set_alignment_left_center().add_child(&widget_root);
+        widget_root.set_alignment_left_center().set_margin_left(0.0);
         port_shape
             .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
@@ -239,6 +239,7 @@ impl Port {
             self.port_root.remove_child(&self.widget_root);
             self.port_root.add_child(new_root);
             self.widget_root = new_root.clone_ref();
+            self.widget_root.set_alignment_left_center().set_margin_left(0.0);
         }
     }
 

@@ -296,8 +296,7 @@ impl Configuration {
         match kind {
             Kind::Argument(arg) if !arg.tag_values.is_empty() =>
                 Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Argument(arg) if is_list_editor_enabled && looks_like_vector =>
-                Self::list_editor(),
+            Kind::Argument(_) if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
             Kind::Root if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
             Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
                 if is_list_editor_enabled && (type_is_vector(&arg.tp) || looks_like_vector) {
@@ -718,7 +717,7 @@ impl TreeModel {
     /// argument info.
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Tree");
         display_object.use_auto_layout();
         display_object.set_children_alignment_left_center().justify_content_center_y();
         display_object.set_size_y(NODE_HEIGHT);

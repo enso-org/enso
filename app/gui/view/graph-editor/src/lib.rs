@@ -1829,7 +1829,7 @@ impl GraphEditorModel {
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network();
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("GraphEditor");
         let nodes = Nodes::new();
         let edges = Edges::new();
         let vis_registry = visualization::Registry::with_default_visualizations();

@@ -240,7 +240,7 @@ impl CursorModel {
     pub fn new(scene: &Scene, frp: WeakFrp) -> Self {
         let scene = scene.clone_ref();
         let display_object = display::object::Instance::new_no_debug();
-        let dragged_elem = display::object::Instance::new_no_debug();
+        let dragged_elem = display::object::Instance::new_named("dragged_elem");
         let view = shape::View::new();
         let port_selection = shape::View::new();
         let style = default();

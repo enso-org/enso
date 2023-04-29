@@ -1,3 +1,6 @@
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 //! Module dedicated to the List Editor widget. The main structure is [`Model`] which is one of
 //! the [KindModel](crate::component::node::widget::KindModel) variants.
 //!
@@ -6,6 +9,7 @@
 
 use crate::prelude::*;
 
+use crate::component::node::input::area::TEXT_SIZE;
 use crate::component::node::input::widget::single_choice::triangle;
 use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_SIZE;
 use crate::component::node::input::widget::Configuration;
@@ -14,10 +18,10 @@ use crate::component::node::input::widget::TreeNode;
 use crate::component::node::input::widget::WidgetIdentity;
 use crate::component::node::input::widget::WidgetsFrp;
 
-use crate::component::node::input::area::TEXT_SIZE;
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::display;
+use ensogl::display::object;
 use ensogl::display::object::event;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::world::with_context;
@@ -25,81 +29,83 @@ use ensogl_component::list_editor::ListEditor;
 use ensogl_component::text::Text;
 use ensogl_hardcoded_theme as theme;
 use span_tree::node::InsertionPointType;
-
+use span_tree::node::Kind;
+use std::fmt::Write;
 
 // ==============
 // === Widget ===
 // ==============
 
-ensogl::define_endpoints_2! {
-    Input {
-        current_value(Option<ImString>),
-        elements_default_value(ImString),
+#[derive(Debug)]
+struct Element {
+    display_object: object::Instance,
+    content:        object::Instance,
+    background:     display::shape::Rectangle,
+    expr_range:     Range<usize>,
+    item_crumb:     usize,
+    alive:          Option<()>,
+}
+
+#[derive(Debug)]
+struct DragData {
+    element_id:    WidgetIdentity,
+    element:       Element,
+    expression:    String,
+    owned_subtree: Vec<(WidgetIdentity, TreeNode)>,
+}
+
+#[derive(Debug, Clone, CloneRef)]
+struct ListItem {
+    element_id:     Immutable<WidgetIdentity>,
+    display_object: object::Instance,
+    drag_data:      Rc<RefCell<Option<DragData>>>,
+}
+
+impl PartialEq for ListItem {
+    fn eq(&self, other: &Self) -> bool {
+        self.element_id == other.element_id
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
-struct Element {
-    widget_id:              Immutable<WidgetIdentity>,
-    code:                   ImString,
-    display_object:         display::object::Instance,
-    content:                display::object::Instance,
-    background:             display::shape::Rectangle,
-    insertion_point_before: display::object::Instance,
-    element:                display::object::Instance,
-    owned_subtree:          Rc<RefCell<Vec<(WidgetIdentity, TreeNode)>>>,
+impl ListItem {
+    fn take_drag_data(&self) -> Option<DragData> {
+        let mut borrow = self.drag_data.borrow_mut();
+        let can_take = matches!(&*borrow, Some(data) if &data.element_id == &*self.element_id);
+        can_take.and_option_from(|| borrow.take())
+    }
+}
+
+
+
+impl display::Object for ListItem {
+    fn display_object(&self) -> &object::Instance {
+        &self.display_object
+    }
 }
 
 impl Element {
-    fn new(
-        widget_id: WidgetIdentity,
-        code: ImString,
-        element: display::object::Instance,
-        insertion_point_before: display::object::Instance,
-    ) -> Self {
-        let widget_id = Immutable(widget_id);
-        let display_object = display::object::Instance::new();
-        let content = display::object::Instance::new();
+    fn new() -> Self {
+        let display_object = object::Instance::new_named("Element");
+        let content = object::Instance::new_named("Content");
         let background = display::shape::Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
         background.allow_grow().set_alignment_left_center();
-        content.use_auto_layout();
-        content.set_children_alignment_left_center().justify_content_center_y();
-        content.replace_children(&[&insertion_point_before, &element]);
-        display_object.replace_children(&[background.display_object(), &content]);
+        content.use_auto_layout().set_children_alignment_left_center();
         with_context(|ctx| ctx.layers.label.add(&background));
+        display_object.replace_children(&[background.display_object(), &content]);
         Self {
-            widget_id,
-            code,
             display_object,
             content,
             background,
-            element,
-            insertion_point_before,
-            owned_subtree: default(),
+            expr_range: default(),
+            alive: default(),
+            item_crumb: default(),
         }
-    }
-
-    fn update(
-        &mut self,
-        code: ImString,
-        element: display::object::Instance,
-        insertion_point_before: display::object::Instance,
-    ) {
-        self.content.replace_children(&[&insertion_point_before, &element]);
-        self.insertion_point_before = insertion_point_before;
-        self.element = element;
-        self.code = code;
-        self.owned_subtree.take();
-    }
-
-    fn take_ownership(&self, owned: Vec<(WidgetIdentity, TreeNode)>) {
-        *self.owned_subtree.borrow_mut() = owned;
     }
 }
 
 impl display::Object for Element {
-    fn display_object(&self) -> &display::object::Instance {
+    fn display_object(&self) -> &object::Instance {
         &self.display_object
     }
 }
@@ -112,149 +118,252 @@ impl display::Object for Element {
 ///
 /// The component does not handle nested arrays well. They should be fixed once [integrated into
 /// new widget hierarchy](https://github.com/enso-org/enso/issues/5923).
-#[derive(Clone, Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Widget {
-    config_frp:             Frp,
-    display_object:         display::object::Instance,
-    list:                   ListEditor<Element>,
-    insertion_point_append: Option<display::object::Instance>,
-    crumbs_to_insert:       Rc<RefCell<HashMap<usize, span_tree::Crumbs>>>,
-    crumbs_to_remove:       Rc<RefCell<HashMap<usize, span_tree::Crumbs>>>,
-    elements:               HashMap<WidgetIdentity, Element>,
+    display_object: object::Instance,
+    network:        frp::Network,
+    model:          Rc<RefCell<Model>>,
 }
 
 impl Widget {
-    /// A gap between the `activation_shape` and `elements` view.
-    const GAP: f32 = 3.0;
-
-    fn init_list_updates(self, ctx: &super::ConfigContext, widgets_frp: &WidgetsFrp) -> Self {
-        let config_frp = &self.config_frp;
-        let network = &config_frp.network;
-        let list = &self.list;
-        let crumbs_to_insert = &self.crumbs_to_insert;
-        let crumbs_to_remove = &self.crumbs_to_remove;
-        let my_id = ctx.info.identity;
+    fn init_list_updates(self, ctx: &super::ConfigContext) -> Self {
+        let widgets_frp = ctx.frp();
+        let network = &self.network;
+        let model = &self.model;
+        let list = self.model.borrow().list.clone_ref();
 
         frp::extend! { network
-            // Inserting elements.
-            inserted_by_user <- list.on_item_added.filter_map(|resp| resp.clone().gui_interaction_payload());
-            code_inserted_by_user <- inserted_by_user.filter_map(f!([list](index) list.items().get(*index).map(|e| e.code.clone_ref())));
-            requested_insert <- list.request_new_item.filter_map(|resp| resp.clone().gui_interaction_payload());
-            default_code <- config_frp.elements_default_value.sample(&requested_insert);
-            code_to_insert <- any(code_inserted_by_user, default_code);
-            insert <- any(inserted_by_user, requested_insert);
-            insert_st_crumb <- insert.filter_map(f!((index) crumbs_to_insert.borrow().get(index).cloned()));
-            widgets_frp.value_changed <+ insert_st_crumb.map2(&code_to_insert, |crumb, val| (crumb.clone(), Some(val.clone_ref())));
+            // Adding elements.
+            requested_new <- list.request_new_item.filter_map(|resp| resp.clone().gui_interaction_payload());
+            widgets_frp.value_changed <+ requested_new.filter_map(f!((idx) model.borrow_mut().on_new_item(*idx)));
 
-            // Removing elements.
-            removed_by_user <- list.on_item_removed.filter_map(|resp| resp.clone().gui_interaction_payload());
-            widgets_frp.transfer_ownership <+ removed_by_user.filter_map(move |(_, element)| Some(TransferRequest {
-                to_transfer: *element.borrow().as_ref()?.widget_id,
-                new_owner: my_id,
-                whole_subtree: true,
+            // Inserting dragged elements.
+            inserted_by_user <- list.on_item_added.filter_map(|resp| resp.clone().gui_interaction_payload());
+            widgets_frp.value_changed <+ inserted_by_user.filter_map(f!([list, model](index) {
+                let item = list.item_at(*index)?;
+                model.borrow_mut().on_item_added(item, *index)
             }));
-            remove <- removed_by_user._0();
-            remove_st_crumb <- remove.filter_map(f!((index) crumbs_to_remove.borrow().get(index).cloned()));
-            widgets_frp.value_changed <+ remove_st_crumb.map(|crumb| (crumb.clone(), None));
+
+            // Removing dragged elements.
+            removed_by_user <- list.on_item_removed.filter_map(|resp| resp.clone().gui_interaction_payload());
+            remove_request <- removed_by_user.filter_map(f!([model] ((_, item)) {
+                let item = item.borrow_mut().take()?;
+                model.borrow_mut().on_item_removed(item)
+            }));
+            widgets_frp.transfer_ownership <+ remove_request._1();
+            widgets_frp.value_changed <+ remove_request._0().map(|crumb| (crumb.clone(), None));
         }
         self
     }
+}
 
-    fn configure_insertion_point(&mut self, cfg: &Config, ctx: super::ConfigContext) {
-        self.config_frp.elements_default_value(format!("[{}]", cfg.item_default));
+#[derive(Debug)]
+struct Model {
+    self_id:           WidgetIdentity,
+    list:              ListEditor<ListItem>,
+    elements:          HashMap<WidgetIdentity, Element>,
+    default_value:     String,
+    expression:        String,
+    crumbs:            span_tree::Crumbs,
+    drag_data_rc:      Rc<RefCell<Option<DragData>>>,
+    received_drag:     Option<DragData>,
+    insertion_indices: Vec<usize>,
+}
 
-        *self.crumbs_to_insert.borrow_mut() =
-            [(0, ctx.span_node.crumbs.clone())].into_iter().collect();
-        self.crumbs_to_remove.borrow_mut().clear();
+impl Model {
+    fn new(ctx: &super::ConfigContext, display_object: &object::Instance) -> Self {
+        let list = ListEditor::new(&ctx.app().cursor);
+        list.set_size_hug_y(TEXT_SIZE).allow_grow_y().set_alignment_left_center();
+        display_object.use_auto_layout().set_alignment_left_center();
+        Self {
+            self_id: ctx.info.identity,
+            list,
+            elements: default(),
+            default_value: default(),
+            expression: default(),
+            crumbs: default(),
+            drag_data_rc: default(),
+            received_drag: default(),
+            insertion_indices: default(),
+        }
+    }
+
+    fn configure(&mut self, root: &object::Instance, cfg: &Config, ctx: super::ConfigContext) {
+        self.expression.clear();
+        self.default_value.clear();
+        self.expression.push_str(ctx.expression_at(ctx.span_node.span()));
+        self.crumbs = ctx.span_node.crumbs.clone();
+
+        if ctx.span_node.is_insertion_point() {
+            write!(self.default_value, "[{}]", cfg.item_default).unwrap();
+            self.configure_insertion_point(root, ctx)
+        } else {
+            self.default_value.push_str(&cfg.item_default);
+            self.configure_vector(root, cfg, ctx)
+        }
+    }
+
+    fn configure_insertion_point(&mut self, root: &object::Instance, ctx: super::ConfigContext) {
         self.elements.clear();
-        self.list.replace_list(iter::empty());
-
         let insertion_point = ctx.builder.child_widget_of_type(
             ctx.span_node,
             ctx.info.nesting_level,
             Some(&super::Configuration::always(super::label::Config)),
         );
-        self.display_object
-            .replace_children(&[self.list.display_object(), &insertion_point.root_object]);
-        self.insertion_point_append = Some(insertion_point.root_object);
+        root.replace_children(&[self.list.display_object(), &*insertion_point]);
     }
 
-    fn configure_vector(&mut self, cfg: &Config, ctx: super::ConfigContext) {
-        self.config_frp.elements_default_value(&cfg.item_default);
+    fn configure_vector(
+        &mut self,
+        root: &object::Instance,
+        cfg: &Config,
+        ctx: super::ConfigContext,
+    ) {
+        let no_nest = ctx.info.nesting_level;
+        let nest = ctx.info.nesting_level.next();
+        let child_config = cfg.item_widget.as_deref();
 
-        let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
+        let mut build_child_widget = |i, nest, config| {
+            ctx.builder.child_widget_of_type(
+                ctx.span_node.clone().child(i).expect("invalid index"),
+                nest,
+                config,
+            )
+        };
 
-        let left_token =
-            ctx.span_node.clone().children_iter().next().filter(|node| node.is_token());
-        let left_token_widget =
-            left_token.map(|node| ctx.builder.child_widget(node, child_level).root_object);
-        let right_token =
-            ctx.span_node.clone().children_iter().last().filter(|node| node.is_token());
-        let right_token_widget =
-            right_token.map(|node| ctx.builder.child_widget(node, child_level).root_object);
+        let mut open_bracket = None;
+        let mut close_bracket = None;
+        let mut last_insert_crumb = None;
+        let mut list_items = SmallVec::<[ListItem; 16]>::new();
 
-        let element_nodes = ctx.span_node.clone().children_iter().filter(|node| node.is_argument());
-        let mut insertion_points =
-            ctx.span_node.clone().children_iter().filter(|node| node.is_insertion_point()).fuse();
-        let mut old_elements = mem::take(&mut self.elements);
-        let children =
-            element_nodes.zip(&mut insertion_points).map(|(element_node, insertion_point)| {
-                let insertion_point_before = ctx.builder.child_widget(insertion_point, child_level);
-                let code = ImString::new(ctx.expression_at(element_node.span()));
-                let element = ctx.builder.child_widget_of_type(
-                    element_node,
-                    child_level,
-                    cfg.item_widget.as_deref(),
-                );
-                let element = match old_elements.remove(&element.id) {
-                    Some(mut existing) => {
-                        existing.update(
-                            code,
-                            element.root_object,
-                            insertion_point_before.root_object,
-                        );
-                        existing
-                    }
-                    None => Element::new(
-                        element.id,
-                        code,
-                        element.root_object,
-                        insertion_point_before.root_object,
-                    ),
-                };
-                self.elements.insert(*element.widget_id, element.clone_ref());
-                element
-            });
-        self.list.replace_list(children);
-        self.insertion_point_append = insertion_points
-            .next()
-            .map(|node| ctx.builder.child_widget(node, child_level).root_object);
-        let display_children = left_token_widget
-            .as_ref()
-            .into_iter()
-            .chain(iter::once(self.list.display_object()))
-            .chain(self.insertion_point_append.as_ref())
-            .chain(right_token_widget.as_ref());
-        self.display_object.replace_children(&display_children.collect_vec());
+        self.insertion_indices.clear();
+        for (index, child) in ctx.span_node.node.children.iter().enumerate() {
+            let node = &child.node;
+            let start = child.parent_offset.value as usize;
+            let range = start..start + node.size.value as usize;
+            let expr = &self.expression[range.clone()];
 
-        let crumbs_to_insert = ctx
-            .span_node
-            .clone()
-            .children_iter()
-            .filter(|node| node.is_insertion_point())
-            .enumerate()
-            .map(|(index, node)| (index, node.crumbs.clone()))
-            .collect();
-        *self.crumbs_to_insert.borrow_mut() = crumbs_to_insert;
+            match node.kind {
+                Kind::Token if expr == "[" && open_bracket.is_none() => {
+                    let child = build_child_widget(index, no_nest, None);
+                    open_bracket = Some(child.root_object);
+                }
+                Kind::Token if expr == "]" && close_bracket.is_none() => {
+                    let child = build_child_widget(index, no_nest, None);
+                    close_bracket = Some(child.root_object);
+                }
+                Kind::InsertionPoint(_) => {
+                    last_insert_crumb = Some(index);
+                }
+                Kind::Argument(_) if last_insert_crumb.is_some() => {
+                    let insert_index = last_insert_crumb.take().unwrap();
+                    let insert = build_child_widget(insert_index, no_nest, None);
+                    let item = build_child_widget(index, nest, child_config);
+                    let element = self.elements.entry(item.id).or_insert_with(|| {
+                        self.received_drag.take().map_or_else(Element::new, |d| d.element)
+                    });
+                    element.alive = Some(());
+                    element.item_crumb = index;
+                    element.expr_range = range;
+                    element.content.replace_children(&[&*insert, &*item]);
+                    self.insertion_indices.push(insert_index);
+                    list_items.push(ListItem {
+                        element_id:     Immutable(item.id),
+                        display_object: element.display_object.clone(),
+                        drag_data:      self.drag_data_rc.clone(),
+                    });
+                }
+                _ => {}
+            }
+        }
 
-        let crumbs_to_remove = ctx
-            .span_node
-            .children_iter()
-            .filter(|node| node.is_argument())
-            .enumerate()
-            .map(|(index, node)| (index, node.crumbs.clone()))
-            .collect();
-        *self.crumbs_to_remove.borrow_mut() = crumbs_to_remove
+        self.elements.retain(|_, child| child.alive.take().is_some());
+        self.insertion_indices.extend(last_insert_crumb);
+
+        let current_items = self.list.items();
+        list_diff(&current_items, &list_items, |op| match op {
+            DiffOp::Delete { at, old, present_later } =>
+                if present_later.is_some()
+                    || list_items.iter().any(|i| i.display_object == old.display_object)
+                {
+                    console_log!("take {at}");
+                    self.list.take_item(at);
+                } else {
+                    console_log!("remove {at}");
+                    self.list.remove(at);
+                },
+            DiffOp::Insert { at, new } => {
+                console_log!("insert {at}");
+                self.list.insert_item(at, new.clone_ref());
+            }
+            DiffOp::Update { at, old, new } =>
+                if old.display_object() != new.display_object() {
+                    console_log!("update {at}");
+                    self.list.replace_item(at, new.clone_ref());
+                } else {
+                    console_log!("keep {at}");
+                },
+        });
+
+        // self.list.replace_items(&list_items);
+
+        let append_insert =
+            last_insert_crumb.map(|index| build_child_widget(index, no_nest, None).root_object);
+        let (open_bracket, close_bracket) = open_bracket.zip(close_bracket).unzip();
+        let mut children = SmallVec::<[&object::Instance; 4]>::new();
+        children.extend(&open_bracket);
+        children.push(self.list.display_object());
+        children.extend(&append_insert);
+        children.extend(&close_bracket);
+        root.replace_children(&children);
+    }
+
+    fn on_item_removed(&mut self, item: ListItem) -> Option<(span_tree::Crumbs, TransferRequest)> {
+        let element = self.elements.get(&item.element_id)?;
+        let crumbs = self.crumbs.sub(element.item_crumb);
+        let request = TransferRequest {
+            new_owner:     self.self_id,
+            to_transfer:   *item.element_id,
+            whole_subtree: true,
+        };
+        Some((crumbs, request))
+    }
+
+    fn receive_ownership_of_dragged_item(
+        &mut self,
+        req: TransferRequest,
+        owned_subtree: Vec<(WidgetIdentity, TreeNode)>,
+    ) {
+        let element_id = req.to_transfer;
+        let element = self.elements.remove(&element_id);
+        if let Some(element) = element {
+            let expression = self.expression[element.expr_range.clone()].to_owned();
+            let drag_data = DragData { element_id, element, expression, owned_subtree };
+            self.drag_data_rc.replace(Some(drag_data));
+        } else {
+            error!("Grabbed item not found.");
+        }
+    }
+
+    fn on_item_added(
+        &mut self,
+        item: ListItem,
+        at: usize,
+    ) -> Option<(span_tree::Crumbs, Option<ImString>)> {
+        self.received_drag = item.take_drag_data();
+        let expression: ImString = mem::take(&mut self.received_drag.as_mut()?.expression).into();
+        match &self.insertion_indices[..] {
+            &[] => Some((self.crumbs.clone(), Some(expression))),
+            ids => ids.get(at).map(|idx| (self.crumbs.sub(*idx), Some(expression))),
+        }
+    }
+
+    fn on_new_item(&mut self, at: usize) -> Option<(span_tree::Crumbs, Option<ImString>)> {
+        let expression: ImString = self.default_value.clone().into();
+        match &self.insertion_indices[..] {
+            &[] => Some((self.crumbs.clone(), Some(expression))),
+            ids => ids.get(at).map(|idx| (self.crumbs.sub(*idx), Some(expression))),
+        }
     }
 }
 
@@ -273,47 +382,109 @@ pub struct Config {
 impl super::SpanWidget for Widget {
     type Config = Config;
 
-    fn root_object(&self) -> &display::object::Instance {
+    fn root_object(&self) -> &object::Instance {
         &self.display_object
     }
 
     fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
         console_log!("NEW");
-        let display_object = display::object::Instance::new();
-        let list = ListEditor::new(&ctx.app().cursor);
-        // list.push(Element::new(default(), default(), default(), default()));
-        // list.replace_list(iter::empty());
-        list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
-        display_object.use_auto_layout().set_alignment_left_center();
-        display_object.add_child(&list);
-
-        let widgets_frp = &ctx.builder.frp;
-        Self {
-            config_frp: Frp::new(),
-            display_object,
-            list,
-            insertion_point_append: None,
-            crumbs_to_insert: default(),
-            crumbs_to_remove: default(),
-            elements: default(),
-        }
-        .init_list_updates(ctx, widgets_frp)
+        let display_object = object::Instance::new_named("widget::ListEditor");
+        let model = Model::new(ctx, &display_object);
+        let network = frp::Network::new("widget::ListEditor");
+        Self { display_object, network, model: Rc::new(RefCell::new(model)) }.init_list_updates(ctx)
     }
 
     fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
         console_log!("CONFIGURE");
-        let current_value: Option<ImString> = Some(ctx.expression_at(ctx.span_node.span()).into());
-        self.config_frp.current_value(current_value);
-        if ctx.span_node.is_insertion_point() {
-            self.configure_insertion_point(cfg, ctx)
-        } else {
-            self.configure_vector(cfg, ctx)
-        }
+        let mut model = self.model.borrow_mut();
+        model.configure(&self.display_object, cfg, ctx);
     }
 
     fn receive_ownership(&mut self, req: TransferRequest, nodes: Vec<(WidgetIdentity, TreeNode)>) {
-        if let Some(element) = self.elements.get(&req.to_transfer) {
-            element.take_ownership(nodes);
+        let mut model = self.model.borrow_mut();
+        model.receive_ownership_of_dragged_item(req, nodes);
+    }
+}
+
+#[derive(PartialEq)]
+enum DiffOp<'old, 'new, T> {
+    Delete { at: usize, old: &'old T, present_later: Option<usize> },
+    Insert { at: usize, new: &'new T },
+    Update { at: usize, old: &'old T, new: &'new T },
+}
+
+fn list_diff<'old, 'new, T>(
+    old_elements: &'old [T],
+    new_elements: &'new [T],
+    mut f: impl FnMut(DiffOp<'old, 'new, T>),
+) where
+    T: PartialEq,
+{
+    // Indices for next elements to process in both lists.
+    let mut current_old = 0;
+    let mut current_new = 0;
+
+    // The current index of insertion or deletion in the list that is being processed. Effectively
+    // the number of insertions or equal pairs that have been processed so far.
+    let mut at = 0;
+
+    while current_old < old_elements.len() && current_new < new_elements.len() {
+        let old = &old_elements[current_old];
+        let new = &new_elements[current_new];
+
+        // Next pair of elements are equal, so we don't need to do anything.
+        if old == new {
+            f(DiffOp::Update { at, old, new });
+            current_old += 1;
+            current_new += 1;
+            at += 1;
+            continue;
         }
+
+        let remaining_old = &old_elements[current_old + 1..];
+        let remaining_new = &new_elements[current_new + 1..];
+
+        let old_still_in_new_list = remaining_new.contains(&old);
+        if !old_still_in_new_list {
+            f(DiffOp::Delete { at, old, present_later: None });
+            current_old += 1;
+            continue;
+        }
+
+        let index_in_remaining_old = remaining_old.iter().position(|x| x == new);
+        match index_in_remaining_old {
+            // Not present in old, thus it is an insertion.
+            None => {
+                f(DiffOp::Insert { at, new });
+                at += 1;
+                current_new += 1;
+                continue;
+            }
+            // Present in old. Delete all elements in between and insert the matching one.
+            Some(advance) => {
+                f(DiffOp::Delete { at, old, present_later: Some(current_old + advance + 1) });
+                for k in 0..advance {
+                    let present_later = remaining_old[k + 1..].iter().position(|old| old == new);
+                    f(DiffOp::Delete { at, old: &remaining_old[k], present_later });
+                }
+                current_old += advance + 1;
+                let old = &old_elements[current_old];
+                let new = &new_elements[current_new];
+                f(DiffOp::Update { at, old, new });
+                current_old += 1;
+                current_new += 1;
+                at += 1;
+                continue;
+            }
+        }
+    }
+    while current_old < old_elements.len() {
+        f(DiffOp::Delete { at, old: &old_elements[current_old], present_later: None });
+        current_old += 1;
+    }
+    while current_new < new_elements.len() {
+        f(DiffOp::Insert { at, new: &new_elements[current_new] });
+        current_new += 1;
+        at += 1;
     }
 }

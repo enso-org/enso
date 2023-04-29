@@ -111,7 +111,7 @@ pub struct PlaceholderModel {
 impl PlaceholderModel {
     fn new() -> Self {
         let frp = Frp::new();
-        let root = display::object::Instance::new();
+        let root = display::object::Instance::new_named("Placeholder");
         let self_ref = default();
         let collapsing = default();
         let size = Animation::<f32>::new(frp.network());
