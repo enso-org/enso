@@ -197,6 +197,10 @@ pub struct ShapeSystemFlavor {
     pub flavor: u64,
 }
 
+impl ShapeSystemFlavor {
+    pub const MIN: Self = ShapeSystemFlavor { flavor: u64::MIN };
+}
+
 
 
 // =====================
