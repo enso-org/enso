@@ -108,7 +108,7 @@ pub mod placeholder;
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
-pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
+pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -516,7 +516,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
                         enabled.and_option_from(|| model.item_or_placeholder_index_to_index(gap))
                     })
                 })
-            );
+            ).on_change();
             index <= opt_index;
             enabled <- opt_index.is_some();
             pointer_style <- enabled.then_constant(cursor::Style::plus());
