@@ -14,8 +14,9 @@ class EnsoProjectTest extends InterpreterTest {
       val code =
         """
           |from Standard.Base.Meta import enso_project
+          |from Standard.Base.Nothing import Nothing
           |
-          |main = enso_project.name
+          |main = (enso_project Nothing).name
           |""".stripMargin
       eval(
         code
