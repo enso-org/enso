@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Context",
-    name = "is_enabled",
+    name = "is_enabled_builtin",
     description = "Check if the context is enabled in the provided execution environment.")
 public class ContextIsEnabledNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();

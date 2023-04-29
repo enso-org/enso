@@ -32,7 +32,7 @@ public class StringBenchmarks {
   private Value allLength;
 
   @Setup
-  public void initializeBenchmark(BenchmarkParams params) {
+  public void initializeBenchmark(BenchmarkParams params) throws Exception {
     var ctx = Context.newBuilder()
       .allowExperimentalOptions(true)
       .allowIO(true)
@@ -42,7 +42,8 @@ public class StringBenchmarks {
         "enso.languageHomeOverride",
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
-    var module = ctx.eval("enso", """
+
+    var code ="""
         from Standard.Base import all
 
         all_length v = v.fold 0 (sum -> str -> sum + str.length)
@@ -51,7 +52,10 @@ public class StringBenchmarks {
             s = "Long string".repeat rep
             v = Vector.new len (_ -> s)
             v
-        """);
+        """;
+    var benchmarkName = SrcUtil.findName(params);
+    var src = SrcUtil.source(benchmarkName, code);
+    var module = ctx.eval(src);
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);

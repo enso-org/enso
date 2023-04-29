@@ -54,7 +54,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       for (Element elt : annotatedElements) {
         if (elt.getKind() == ElementKind.CLASS) {
           try {
-            handleTypeELement((TypeElement) elt, roundEnv);
+            var needsFrame = BuiltinsProcessor.checkNeedsFrame(elt);
+            handleTypeELement((TypeElement) elt, roundEnv, needsFrame);
           } catch (IOException e) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
           }
@@ -71,7 +72,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     return true;
   }
 
-  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv)
+  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv, Boolean needsFrame)
       throws IOException {
     ExecutableElement executeMethod =
         element.getEnclosedElements().stream()
@@ -94,7 +95,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     String pkgName =
         processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
 
-    MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
+    MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod, needsFrame);
     if (!def.validate(processingEnv)) {
       return;
     }
@@ -127,6 +128,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.profiles.ConditionProfile",
           "java.nio.file.OpenOption",
           "org.enso.interpreter.EnsoLanguage",
+          "org.enso.interpreter.node.InlineableNode",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
           "org.enso.interpreter.runtime.callable.function.Function",
@@ -157,7 +159,11 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println("@NodeInfo(");
       out.println("  shortName = \"" + methodDefinition.getDeclaredName() + "\",");
       out.println("  description = \"\"\"\n" + methodDefinition.getDescription() + "\"\"\")");
-      out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
+      if (methodDefinition.needsFrame()) {
+        out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
+      } else {
+        out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode implements InlineableNode.Root {");
+      }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
@@ -231,13 +237,16 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println();
       if (!methodDefinition.needsFrame()) {
         out.println("  @Override");
-        out.println("  public final InlinedCallNode createDirectCallNode() {");
-        out.println("    var n = " + methodDefinition.getConstructorExpression() + ";");
-        out.println("    return new InlinedCallNode<>(new Internals(internals.staticOfInstanceMethod), n) {");
-        out.println("      public Object call(Object[] args) {");
-        out.println("        return handleExecute(extra, body, args);");
+        out.println("  public final InlineableNode createInlineableNode() {");
+        out.println("    class Inlineable extends InlineableNode {");
+        out.println("      private final Internals extra = new Internals(internals.staticOfInstanceMethod);");
+        out.println("      private @Child " + methodDefinition.getOriginalClassName() + " body = " + methodDefinition.getConstructorExpression() + ";");
+        out.println("      @Override");
+        out.println("      public Object call(VirtualFrame frame, Object[] args) {");
+        out.println("        return handleExecute(frame, extra, body, args);");
         out.println("      }");
-        out.println("    };");
+        out.println("    }");
+        out.println("    return new Inlineable();");
         out.println("  }");
       }
 
@@ -246,9 +255,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       if (methodDefinition.needsFrame()) {
         out.println("    var args = frame.getArguments();");
       } else {
-        out.println("    return handleExecute(this.internals, bodyNode, frame.getArguments());");
+        out.println("    return handleExecute(frame, this.internals, bodyNode, frame.getArguments());");
         out.println("  }");
-        out.println("  private static Object handleExecute(Internals internals, " + methodDefinition.getOriginalClassName() + " bodyNode, Object[] args) {");
+        out.println("  private static Object handleExecute(VirtualFrame frame, Internals internals, " + methodDefinition.getOriginalClassName() + " bodyNode, Object[] args) {");
       }
       out.println("    var prefix = internals.staticOfInstanceMethod ? 1 : 0;");
       out.println("    State state = Function.ArgumentsHelper.getState(args);");

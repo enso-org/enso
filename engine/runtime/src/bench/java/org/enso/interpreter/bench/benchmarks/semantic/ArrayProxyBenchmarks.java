@@ -30,7 +30,7 @@ public class ArrayProxyBenchmarks {
   private final long length = 100000;
 
   @Setup
-  public void initializeBenchmark(BenchmarkParams params) {
+  public void initializeBenchmark(BenchmarkParams params) throws Exception {
     Engine eng =
         Engine.newBuilder()
             .allowExperimentalOptions(true)
@@ -59,13 +59,15 @@ public class ArrayProxyBenchmarks {
         make_delegating_vector n =
             Vector.from_polyglot_array (make_delegating_proxy n)
         """;
-    var module = ctx.eval("enso", code);
+    var benchmarkName = SrcUtil.findName(params);
+    var src = SrcUtil.source(benchmarkName, code);
+    var module = ctx.eval(src);
 
     this.self = module.invokeMember("get_associated_type");
     Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
     String test_builder;
-    switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
+    switch (benchmarkName) {
       case "sumOverVector":
         test_builder = "make_vector";
         break;
