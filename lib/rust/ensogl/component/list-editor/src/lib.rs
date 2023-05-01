@@ -407,7 +407,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let network = self.frp.network();
         let model = &self.model;
 
-        let on_add_elem_icon_down = model.borrow().add_elem_icon.on_event::<mouse::Down>();
+        let on_add_elem_icon_up = model.borrow().add_elem_icon.on_event::<mouse::Up>();
         let on_down = model.borrow().layout.on_event_capturing::<mouse::Down>();
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
@@ -417,7 +417,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let drag_target = cursor::DragTarget::new();
         frp::extend! { network
 
-            frp.private.output.request_new_item <+ on_add_elem_icon_down.map(f_!([model] {
+            frp.private.output.request_new_item <+ on_add_elem_icon_up.map(f_!([model] {
                 Response::gui(model.borrow().len())
             }));
 
