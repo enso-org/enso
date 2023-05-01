@@ -4,13 +4,12 @@
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 import * as newtype from '../newtype'
 
+import GLOBAL_CONFIG from '../../../../../../../gui/config.yaml' assert { type: 'yaml' }
+
 // =================
 // === Constants ===
 // =================
 
-/** The address of the socket for the project manager.
- * This MUST be kept in sync with the corresponding value in `app/gui/src/constants.rs`. */
-const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
 /** Duration after which the {@link ProjectManager} stops re-trying to create a WebSocket. */
@@ -181,7 +180,7 @@ export class ProjectManager {
         // `this.instance` is initially undefined as an instance should only be created
         // if a `ProjectManager` is actually needed.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        return (this.instance ??= new ProjectManager(PROJECT_MANAGER_ENDPOINT))
+        return (this.instance ??= new ProjectManager(GLOBAL_CONFIG.projectManagerEndpoint))
     }
 
     /** Open an existing project. */
