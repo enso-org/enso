@@ -198,6 +198,8 @@ pub struct ShapeSystemFlavor {
 }
 
 impl ShapeSystemFlavor {
+    /// A value that will compare less-than or equal-to any other flavor. Not guaranteed to be a
+    /// valid flavor for any particular shape system.
     pub const MIN: Self = ShapeSystemFlavor { flavor: u64::MIN };
 }
 

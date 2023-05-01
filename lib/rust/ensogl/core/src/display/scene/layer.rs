@@ -420,7 +420,8 @@ pub struct LayerModel {
     pub name: String,
     camera: RefCell<Camera2d>,
     pub shape_system_registry: ShapeSystemRegistry,
-    shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemIdWithFlavor, ShapeSystemSymbolInfo>>,
+    shape_system_to_symbol_info_map:
+        RefCell<HashMap<ShapeSystemIdWithFlavor, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemIdWithFlavor>>,
     elements: RefCell<BTreeSet<LayerItem>>,
     symbols_renderable: RefCell<RenderGroup>,
@@ -709,24 +710,30 @@ impl LayerModel {
             match element {
                 LayerOrderItem::Symbol(id) => result.push(id),
                 LayerOrderItem::ShapeSystem(id) => {
-                    let lower_bound =
-                        LayerItem::ShapeSystem(ShapeSystemIdWithFlavor { id, flavor: ShapeSystemFlavor::MIN });
-                    let flavors = elements.range(lower_bound..).take_while(|e| match e {
-                        LayerItem::ShapeSystem(info) if info.id == id => true,
-                        _ => false,
+                    let lower_bound = LayerItem::ShapeSystem(ShapeSystemIdWithFlavor {
+                        id,
+                        flavor: ShapeSystemFlavor::MIN,
                     });
-                    result.extend(flavors.filter_map(|item|
-                        match *item {
-                            LayerItem::Symbol(symbol_id) => Some(symbol_id),
-                            LayerItem::ShapeSystem(id) => {
-                                let out = self.shape_system_to_symbol_info_map.borrow().get(&id).map(|t| t.id);
-                                if out.is_none() {
-                                    warn!("Trying to perform depth-order of non-existing element '{:?}'.", id)
-                                }
-                                out
+                    let flavors = elements
+                        .range(lower_bound..)
+                        .take_while(|e| matches!(e, LayerItem::ShapeSystem(info) if info.id == id));
+                    result.extend(flavors.filter_map(|item| match *item {
+                        LayerItem::Symbol(symbol_id) => Some(symbol_id),
+                        LayerItem::ShapeSystem(id) => {
+                            let out = self
+                                .shape_system_to_symbol_info_map
+                                .borrow()
+                                .get(&id)
+                                .map(|t| t.id);
+                            if out.is_none() {
+                                warn!(
+                                    "Trying to perform depth-order of non-existing element '{:?}'.",
+                                    id
+                                )
                             }
+                            out
                         }
-                    ))
+                    }))
                 }
             };
         }
@@ -1270,6 +1277,12 @@ impl From<ShapeSystemIdWithFlavor> for LayerItem {
     }
 }
 
+
+// === LayerOrderItem ===
+
+/// Identifies an item only in terms of the information necessary to describe ordering
+/// relationships. This is equivalent to [`LayerItem`], except different flavors of the same layer
+/// are not distinguished.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Hash, Ord)]
 #[allow(missing_docs)]
 pub enum LayerOrderItem {
@@ -1451,13 +1464,7 @@ impl ShapeSystemRegistryData {
 // === ShapeSystemInfo ===
 // =======================
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ShapeSystemIdWithFlavor {
-    id: ShapeSystemId,
-    flavor: ShapeSystemFlavor,
-}
-
-/// [`ShapeSystemInfoTemplate`] specialized for [`ShapeSystemId`].
+/// [`ShapeSystemInfoTemplate`] specialized for [`ShapeSystemIdWithFlavor`].
 pub type ShapeSystemInfo = ShapeSystemInfoTemplate<ShapeSystemIdWithFlavor>;
 
 /// [`ShapeSystemInfoTemplate`] specialized for [`SymbolId`].
@@ -1491,6 +1498,13 @@ impl<T> ShapeSystemInfoTemplate<T> {
     fn new(id: T, ordering: ShapeSystemStaticDepthOrdering) -> Self {
         Self { id, ordering }
     }
+}
+
+/// Identifies a specific flavor of a shape system.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ShapeSystemIdWithFlavor {
+    id:     ShapeSystemId,
+    flavor: ShapeSystemFlavor,
 }
 
 
