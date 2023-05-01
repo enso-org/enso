@@ -219,4 +219,19 @@ spec =
             formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
             input.format formats . should_fail_with Illegal_Argument
 
+    Test.group "Boolean Column.format, with format string" <|
+        Test.specify "Boolean column" <|
+            input = Column.from_vector "bools" [True, False]
+            expected = Column.from_vector "bools" ["true", "false"]
+            actual = input.format "true|false"
+            actual . should_equal expected
+
+    Test.group "Boolean Column.format, with format Column" <|
+        Test.specify "Time_Of_Day column" <|
+            input = Column.from_vector "bools" [True, False, True, False]
+            formats = Column.from_vector "formats" ["True|False", "True|False", "troo|valz", "troo|valz"]
+            expected = Column.from_vector "bools" ["True", "False", "troo", "valz"]
+            actual = input.format formats
+            actual . should_equal expected
+
 main = Test_Suite.run_main spec

@@ -1192,8 +1192,10 @@ type Column
                         make_datelike_formatter format locale problem_builder
                     Value_Type.Time ->
                         make_datelike_formatter format locale problem_builder
+                    Value_Type.Boolean ->
+                        make_boolean_formatter format problem_builder
                     #Integer -> format_as_integer self format on_problems
-                    #Boolean,Float,Decimal
+                    #Float,Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
                         Error.throw (Illegal_Argument.Error msg)
@@ -1202,13 +1204,15 @@ type Column
             format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = case self.value_type of
                     Value_Type.Date ->
-                        make_date_with_column_formatter locale problem_builder
+                        make_datelike_with_column_formatter locale problem_builder
                     Value_Type.Date_Time _ ->
-                        make_date_with_column_formatter locale problem_builder
+                        make_datelike_with_column_formatter locale problem_builder
                     Value_Type.Time ->
-                        make_date_with_column_formatter locale problem_builder
+                        make_datelike_with_column_formatter locale problem_builder
+                    Value_Type.Boolean ->
+                        make_boolean_with_column_formatter problem_builder
                     #Integer -> format_as_integer self format on_problems
-                    #Boolean,Float,Decimal
+                    #Float,Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
                         Error.throw (Illegal_Argument.Error msg)
@@ -1795,11 +1799,30 @@ make_datelike_formatter format locale problem_builder =
 ## PRIVATE
    Create a date/time formatter that takes the format string as the second
    parameter. The `datelike` parameter can be a Date, Date_Time, or Time_Of_Day.
-make_date_with_column_formatter : Locale -> Problem_Builder -> (Date -> Text -> Text)
-make_date_with_column_formatter locale problem_builder =
+make_datelike_with_column_formatter : Locale -> Problem_Builder -> (Date -> Text -> Text)
+make_datelike_with_column_formatter locale problem_builder =
     datelike-> format->
         illegal_argument_to_warning problem_builder format <|
             datelike.format format locale
+
+## PRIVATE
+   Create a `Boolean`` formatter for the given format string.
+make_boolean_formatter : Text -> Problem_Builder -> (Date -> Text)
+make_boolean_formatter format problem_builder =
+    data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+    bool->
+        illegal_argument_to_warning problem_builder format <|
+            data_formatter.format bool
+
+## PRIVATE
+   Create a `Boolean` formatter that takes the format string as the second
+   parameter.
+make_boolean_with_column_formatter : Problem_Builder -> (Date -> Text -> Text)
+make_boolean_with_column_formatter problem_builder =
+    bool-> format->
+        illegal_argument_to_warning problem_builder format <|
+            data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+            data_formatter.format bool
 
 ## PRIVATE
    Convert a Java IllegalArgumentException to a problem warning; return Nothing
