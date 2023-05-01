@@ -1187,11 +1187,11 @@ type Column
             _ : Text ->
                 formatter = case self.value_type of
                     Value_Type.Date ->
-                        make_date_formatter format locale problem_builder
+                        make_datelike_formatter format locale problem_builder
                     Value_Type.Date_Time _ ->
-                        make_date_formatter format locale problem_builder
+                        make_datelike_formatter format locale problem_builder
                     Value_Type.Time ->
-                        make_date_formatter format locale problem_builder
+                        make_datelike_formatter format locale problem_builder
                     #Integer -> format_as_integer self format on_problems
                     #Boolean,Float,Decimal
                     bad_type ->
@@ -1784,24 +1784,24 @@ wrap_text_argument_as_value_provider val =
             i-> storage.getItemBoxed i
 
 ## PRIVATE
-   Create a date formatter for the given format string. The date parameter
-   can be a Date, Date_Time, or Time_Of_Day.
-make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
-make_date_formatter format locale problem_builder =
+   Create a date/time formatter for the given format string. The `datelike`
+   parameter can be a Date, Date_Time, or Time_Of_Day.
+make_datelike_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
+make_datelike_formatter format locale problem_builder =
     _ = [problem_builder]
-    date->
+    datelike->
         illegal_argument_to_warning problem_builder format <|
-            date.format format locale
+            datelike.format format locale
 
 ## PRIVATE
-   Create a `Date` formatter that takes the format string as the second
-   parameter.
+   Create a date/time formatter that takes the format string as the second
+   parameter. The `datelike` parameter can be a Date, Date_Time, or Time_Of_Day.
 make_date_with_column_formatter : Locale -> Problem_Builder -> (Date -> Text -> Text)
 make_date_with_column_formatter locale problem_builder =
     _ = [problem_builder]
-    date-> format->
+    datelike-> format->
         illegal_argument_to_warning problem_builder format <|
-            date.format format locale
+            datelike.format format locale
 
 ## PRIVATE
    Convert a Java IllegalArgumentException to a problem warning; return Nothing
