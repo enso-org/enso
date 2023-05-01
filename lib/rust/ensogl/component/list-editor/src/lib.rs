@@ -929,10 +929,6 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// ```   
     fn start_item_drag_at(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {
         self.replace_item_with_placeholder(index)
-        //     .map(|item| {
-        //     // self.cursor.start_drag(item.clone_ref());
-        //     item
-        // })
     }
 
     fn replace_item_with_placeholder(&mut self, index: ItemOrPlaceholderIndex) -> Option<T> {

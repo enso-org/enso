@@ -748,6 +748,7 @@ impl Default for DragTargetModel {
 }
 
 
+
 // =============
 // === Trash ===
 // =============
@@ -764,6 +765,7 @@ mod trash {
         model: Rc<TrashModel<T>>,
     }
 
+    /// Internal representation of [`Trash`].
     #[derive(Debug)]
     pub struct TrashModel<T> {
         _frp: Frp,
