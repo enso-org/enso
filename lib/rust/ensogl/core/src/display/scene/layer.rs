@@ -705,10 +705,10 @@ impl LayerModel {
         let mut order_items = elements.iter().map(|&e| LayerOrderItem::from(e)).collect_vec();
         order_items.dedup();
         let dependency_sorted_elements = graph.into_unchecked_topo_sort(order_items);
-        let mut result = Vec::with_capacity(self.elements.borrow().len());
+        let mut sorted_symbols = Vec::with_capacity(self.elements.borrow().len());
         for element in dependency_sorted_elements {
             match element {
-                LayerOrderItem::Symbol(id) => result.push(id),
+                LayerOrderItem::Symbol(id) => sorted_symbols.push(id),
                 LayerOrderItem::ShapeSystem(id) => {
                     let lower_bound = LayerItem::ShapeSystem(ShapeSystemIdWithFlavor {
                         id,
@@ -717,7 +717,7 @@ impl LayerModel {
                     let flavors = elements
                         .range(lower_bound..)
                         .take_while(|e| matches!(e, LayerItem::ShapeSystem(info) if info.id == id));
-                    result.extend(flavors.filter_map(|item| match *item {
+                    sorted_symbols.extend(flavors.filter_map(|item| match *item {
                         LayerItem::Symbol(symbol_id) => Some(symbol_id),
                         LayerItem::ShapeSystem(id) => {
                             let out = self
@@ -737,7 +737,7 @@ impl LayerModel {
                 }
             };
         }
-        self.symbols_renderable.borrow_mut().set(result);
+        self.symbols_renderable.borrow_mut().set(sorted_symbols);
     }
 }
 
