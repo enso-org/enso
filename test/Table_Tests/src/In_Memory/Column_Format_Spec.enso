@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Data.Locale.Locale
 import Standard.Base.Data.Time.Date.Date
+import Standard.Base.Data.Time.Date_Time.Date_Time
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
@@ -11,7 +12,14 @@ from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
 
 spec =
-    Test.group "Column.format, with format string" <|
+    Test.group "gmt" <|
+        Test.specify "Date_Time column" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 12 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            expected = Column.from_vector "dates" ["20201221 08.10.20", "20230425 14.25.02"]
+            actual = input.format "yyyyMMdd HH.mm.ss"
+            actual . should_equal expected
+
+    Test.group "Date Column.format, with format string" <|
         Test.specify "Date column" <|
             input = Column.from_vector "dates" [Date.new 2020 12 21, Date.new 2023 4 25]
             expected = Column.from_vector "dates" ["20201221", "20230425"]
@@ -36,7 +44,7 @@ spec =
             problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
             Problems.test_problem_handling action problems tester
 
-    Test.group "Column.format, with format Column" <|
+    Test.group "Date Column.format, with format Column" <|
         Test.specify "Date column" <|
             input = Column.from_vector "dates" [Date.new 2020 12 21, Date.new 2023 4 25]
             formats = Column.from_vector "formats" ["yyyyMMdd", "dd-MM-yyyy"]
@@ -75,6 +83,73 @@ spec =
 
         Test.specify "column length mismatch" <|
             input = Column.from_vector "dates" [Date.new 2020 6 21, Date.new 2023 4 25]
+            formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
+            input.format formats . should_fail_with Illegal_Argument
+
+    Test.group "Date_Time Column.format, with format string" <|
+        Test.specify "Date_Time column" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 12 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            expected = Column.from_vector "dates" ["20201221 08.10.20", "20230425 14.25.02"]
+            actual = input.format "yyyyMMdd HH.mm.ss"
+            actual . should_equal expected
+
+        Test.specify "Date_Time with locale" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            expected_default = Column.from_vector "dates" ["21. Jun 2020 08.10.20", "25. Apr 2023 14.25.02"]
+            expected_gb = Column.from_vector "dates" ["21. Jun 2020 08.10.20", "25. Apr 2023 14.25.02"]
+            expected_fr = Column.from_vector "dates" ["21. juin 2020 08.10.20", "25. avril 2023 14.25.02"]
+            input.format "d. MMMM yyyy HH.mm.ss" . should_equal expected_default
+            input.format "d. MMMM yyyy HH.mm.ss" (Locale.default) . should_equal expected_default
+            input.format "d. MMMM yyyy HH.mm.ss" (Locale.new "gb") . should_equal expected_gb
+            input.format "d. MMMM yyyy HH.mm.ss" (Locale.new "fr") . should_equal expected_fr
+
+        Test.specify "Bad format" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            expected = Column.from_vector "dates" [Nothing, Nothing]
+            action = input.format "DDDDD" on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
+            Problems.test_problem_handling action problems tester
+
+    Test.group "Date_Time Column.format, with format Column" <|
+        Test.specify "Date_Time column" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            formats = Column.from_vector "formats" ["yyyyMMdd HH.mm.ss", "dd-MM-yyyy HH.mm.ss"]
+            expected = Column.from_vector "dates" ["20200621 08.10.20", "25-04-2023 14.25.02"]
+            actual = input.format formats
+            actual . should_equal expected
+
+        Test.specify "Date_Time with locale" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            formats = Column.from_vector "formats" ["d. MMMM yyyy HH.mm.ss", "d-MMMM-yyyy HH.mm.ss"]
+            expected = Column.from_vector "dates" ["21. juin 2020 08.10.20", "25-avril-2023 14.25.02"]
+            input.format formats (Locale.new "fr") . should_equal expected
+
+        Test.specify "Bad format" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2, Date_Time.new 2023 4 26 3 4 5]
+            formats = Column.from_vector "formats" ["yyyyMMdd HH.mm.ss", "DDDDD", "FFF"]
+            expected = Column.from_vector "dates" ['20200621 08.10.20', Nothing, Nothing]
+            action = input.format formats on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"', Illegal_Argument.Error 'Too many pattern letters: F in \"FFF\"']
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "Bad format column type" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            formats = Column.from_vector "formats" [3, 4, 5]
+            input.format formats . should_fail_with Invalid_Value_Type
+
+        Test.specify "Max # of errors" <|
+            input = Column.from_vector "dates" (Vector.new 20 (_-> Date_Time.new 2020 6 21 8 10 20))
+            formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
+            expected = Column.from_vector "dates" (Vector.new 20 _-> Nothing)
+            action = input.format formats on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "column length mismatch" <|
+            input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
             formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
             input.format formats . should_fail_with Illegal_Argument
 

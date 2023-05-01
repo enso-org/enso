@@ -1188,26 +1188,30 @@ type Column
                 formatter = case self.value_type of
                     Value_Type.Date ->
                         make_date_formatter format locale problem_builder
-                    #Date_Time -> format_as_date_time self format on_problems
+                    Value_Type.Date_Time _ ->
+                        make_date_formatter format locale problem_builder
                     #Time -> format_as_time_of_day self format on_problems
                     #Integer -> format_as_integer self format on_problems
                     #Boolean,Float,Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
                         Error.throw (Illegal_Argument.Error msg)
-                map_over_storage self formatter make_string_builder
+                formatter.if_not_error <|
+                    map_over_storage self formatter make_string_builder
             format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = case self.value_type of
                     Value_Type.Date ->
                         make_date_with_column_formatter locale problem_builder
-                    #Date_Time -> format_as_date_time self format on_problems
+                    Value_Type.Date_Time _ ->
+                        make_date_with_column_formatter locale problem_builder
                     #Time -> format_as_time_of_day self format on_problems
                     #Integer -> format_as_integer self format on_problems
                     #Boolean,Float,Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
                         Error.throw (Illegal_Argument.Error msg)
-                map_2_over_storage self format_column formatter make_string_builder
+                formatter.if_not_error <|
+                    map_2_over_storage self format_column formatter make_string_builder
         new_column.if_not_error <|
             condense_problems on_problems problem_builder new_column
 
@@ -1778,7 +1782,8 @@ wrap_text_argument_as_value_provider val =
             i-> storage.getItemBoxed i
 
 ## PRIVATE
-   Create a `Date` formatter for the given format string.
+   Create a date formatter for the given format string. The date parameter
+   can be a Date, Date_Time, or Time_Of_Day.
 make_date_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_date_formatter format locale problem_builder =
     _ = [problem_builder]
