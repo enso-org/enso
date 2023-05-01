@@ -39,7 +39,8 @@ public abstract class MethodNodeClassGenerator {
       String methodName,
       String description,
       String ownerMethodName,
-      boolean isAutoRegister)
+      boolean isAutoRegister,
+      Boolean needsFrame)
       throws IOException {
     JavaFileObject gen =
         processingEnv.getFiler().createSourceFile(builtinNode.jvmFriendlyFullyQualifiedName());
@@ -57,6 +58,9 @@ public abstract class MethodNodeClassGenerator {
       String moduleOwnerInfo = "";
       if (!isAutoRegister) {
         moduleOwnerInfo = ", autoRegister = " + isAutoRegister;
+      }
+      if (needsFrame != null) {
+        moduleOwnerInfo = moduleOwnerInfo + ", needsFrame = " + needsFrame;
       }
       out.println(
           "@BuiltinMethod(type = \""

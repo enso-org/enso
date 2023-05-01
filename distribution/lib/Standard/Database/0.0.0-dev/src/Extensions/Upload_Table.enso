@@ -67,11 +67,15 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
         sql_type = type_mapping.value_type_to_sql value_type on_problems
         sql_type_text = type_mapping.sql_type_to_text sql_type
         Pair.new name sql_type_text
-    create_statement = connection.dialect.generate_sql <|
+    create_table_statement = connection.dialect.generate_sql <|
         Query.Create_Table effective_table_name column_descriptors checked_primary_key temporary
 
-    upload_status = create_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
-        Panic.rethrow <| connection.execute_update create_statement
+    ## `create_query.if_not_error` is used to ensure that if there are any
+       dataflow errors up to this point, we want to propagate them and not
+       continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
+       raised as panics.
+    upload_status = create_table_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
+        Panic.rethrow <| connection.execute_update create_table_statement
         if structure_only.not then
             column_names = column_descriptors.map .first
             insert_template = make_batched_insert_template connection effective_table_name column_names

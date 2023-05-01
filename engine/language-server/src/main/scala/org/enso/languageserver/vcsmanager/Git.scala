@@ -113,6 +113,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
         .setAll(true)
         .setMessage("Initial commit")
         .setAuthor(AuthorName, AuthorEmail)
+        .setCommitter(AuthorName, AuthorEmail)
         .setNoVerify(true)
         .call()
       ()
@@ -166,6 +167,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
         .commit()
         .setMessage(commitName)
         .setAuthor(AuthorName, AuthorEmail)
+        .setCommitter(AuthorName, AuthorEmail)
         .call()
       RepoCommit(revCommit.getName(), revCommit.getShortMessage())
     }.mapError(errorHandling)
@@ -345,7 +347,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
 object Git {
   private val HeadRef     = "HEAD"
   private val AuthorName  = "Enso VCS"
-  private val AuthorEmail = "vcs@enso.io"
+  private val AuthorEmail = "vcs@enso.org"
 
   private class RepoExists extends Exception
 

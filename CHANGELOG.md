@@ -398,6 +398,8 @@
   `Time_Of_Day`, `Time_Zone`, and `URI` to `Text`.][6404]
 - [Implemented `create_database_table` allowing upload of in-memory
   tables.][6429]
+- [Added execution context control to writing files and dry run capabilities to
+  `Text.write`.][6459]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -602,6 +604,7 @@
 [6404]: https://github.com/enso-org/enso/pull/6404
 [6347]: https://github.com/enso-org/enso/pull/6347
 [6429]: https://github.com/enso-org/enso/pull/6429
+[6459]: https://github.com/enso-org/enso/pull/6459
 
 #### Enso Compiler
 

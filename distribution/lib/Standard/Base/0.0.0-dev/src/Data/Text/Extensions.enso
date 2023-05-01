@@ -644,6 +644,7 @@ Text.is_whitespace self =
      Get the ASCII bytes of the text "Hello".
 
          "Hello".bytes (Encoding.ascii)
+@encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
 Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
@@ -664,6 +665,7 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
      Get the ASCII bytes of the text "Hello".
 
          "Hello".bytes (Encoding.ascii)
+@encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)

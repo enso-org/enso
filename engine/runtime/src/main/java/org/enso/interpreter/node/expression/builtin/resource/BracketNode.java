@@ -65,7 +65,7 @@ public abstract class BracketNode extends Node {
       Object action,
       @Cached BranchProfile initializationFailedWithDataflowErrorProfile) {
     Object resource =
-        invokeConstructorNode.executeThunk(constructor, state, BaseNode.TailStatus.NOT_TAIL);
+        invokeConstructorNode.executeThunk(frame, constructor, state, BaseNode.TailStatus.NOT_TAIL);
     if (TypesGen.isDataflowError(resource)) {
       initializationFailedWithDataflowErrorProfile.enter();
       return resource;

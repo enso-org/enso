@@ -9,6 +9,7 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
+import project.Meta
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
@@ -16,6 +17,10 @@ import project.System.File.File
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Json import Invalid_JSON
+
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 polyglot java import org.enso.base.file_format.FileFormatSPI
 
@@ -34,6 +39,21 @@ get_format callback =
             if format.is_nothing.not then format else
                 @Tail_Call reader (idx + 1)
     reader 0
+
+## PRIVATE
+format_widget : Single_Choice
+format_widget =
+    all_types = [Auto_Detect] + format_types
+    make_ctor type_obj =
+        type_name = Meta.get_qualified_type_name type_obj
+
+        ## Temporary work around to work out if need to add the constructor name
+        is_singleton_type = type_obj==JSON_Format || (type_name.ends_with "_Format" . not)
+        if is_singleton_type then type_name else
+            simple_name = Meta.get_simple_type_name type_obj
+            "(" + type_name + "." + (simple_name.replace "_Format" "") + ")"
+    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
+    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (make_ctor n)))
 
 type Auto_Detect
     ## PRIVATE
@@ -127,23 +147,23 @@ type Bytes
     read self file _ =
         file.read_bytes
 
-type JSON_File
+type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> JSON_File | Nothing
+    for_file : File -> JSON_Format | Nothing
     for_file file =
         case file.extension of
-            ".json" -> JSON_File
-            ".geojson" -> JSON_File
+            ".json" -> JSON_Format
+            ".geojson" -> JSON_Format
             _ -> Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> JSON_File | Nothing
+    for_web : Text -> URI -> JSON_Format | Nothing
     for_web content_type _ =
         first = content_type.split ';' . first . trim
         case first of
-            "application/json" -> JSON_File
+            "application/json" -> JSON_Format
             _ -> Nothing
 
     ## PRIVATE

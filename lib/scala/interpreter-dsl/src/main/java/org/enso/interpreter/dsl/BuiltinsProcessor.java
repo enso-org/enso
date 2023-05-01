@@ -149,6 +149,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
       PackageElement pkgElement = (PackageElement) ownerTpeElement.getEnclosingElement();
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
+      Boolean needsFrame = checkNeedsFrame(element);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
 
       if (annotation.expandVarargs() != 0) {
@@ -183,7 +184,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
                         methodName,
                         annotation.description(),
                         method.getSimpleName().toString(),
-                        annotation.autoRegister());
+                        annotation.autoRegister(), needsFrame);
                   } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                   }
@@ -237,7 +238,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 builtinMethodName,
                 annotation.description(),
                 method.getSimpleName().toString(),
-                annotation.autoRegister());
+                annotation.autoRegister(), needsFrame);
           }
         } else {
           MethodNodeClassGenerator classGenerator =
@@ -248,12 +249,24 @@ public class BuiltinsProcessor extends AbstractProcessor {
               builtinMethodName,
               annotation.description(),
               method.getSimpleName().toString(),
-              annotation.autoRegister());
+              annotation.autoRegister(), needsFrame);
         }
       }
     } else {
       throw new RuntimeException("@Builtin method must be owned by the class");
     }
+  }
+
+  static Boolean checkNeedsFrame(Element element) {
+    for (var m : element.getAnnotationMirrors()) {
+      for (var entry : m.getElementValues().entrySet()) {
+        var name = entry.getKey().getSimpleName().toString();
+        if (name.equals("inlineable")) {
+          return !(Boolean) entry.getValue().getValue();
+        }
+      }
+    }
+    return null;
   }
 
   /**

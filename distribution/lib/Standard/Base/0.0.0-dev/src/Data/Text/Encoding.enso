@@ -9,8 +9,19 @@ polyglot java import java.nio.charset.Charset
 polyglot java import java.nio.charset.UnsupportedCharsetException
 polyglot java import org.enso.base.Text_Utils
 
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
+
 ## Represents a character encoding.
 type Encoding
+    ## PRIVATE
+       Gets the default drop down option for this encoding.
+    default_widget : Single_Choice
+    default_widget =
+        values = [Option "UTF-8" "Encoding.utf_8", Option "ASCII" "Encoding.ascii", Option "UTF-16LE" "Encoding.utf_16_le", Option "UTF-16BE" "Encoding.utf_16_be", Option "UTF-32LE" "Encoding.utf_32_le", Option "UTF-32BE" "Encoding.utf_32_be", Option "Windows-1250" "Encoding.windows_1250", Option "Windows-1251" "Encoding.windows_1251", Option "Windows-1252" "Encoding.windows_1252", Option "Windows-1253" "Encoding.windows_1253", Option "Windows-1254" "Encoding.windows_1254", Option "Windows-1255" "Encoding.windows_1255", Option "Windows-1256" "Encoding.windows_1256", Option "Windows-1257" "Encoding.windows_1257", Option "Windows-1258" "Encoding.windows_1258"]
+        Single_Choice values=values display=Display.When_Modified
+
     ## PRIVATE
        ADVANCED
        Get all available character sets from Java as Encodings.

@@ -56,6 +56,9 @@ postgres_specific_spec connection db_name setup =
         vinfo = Name_Generator.random_name "TestView"
         connection.execute_update 'CREATE VIEW "'+vinfo+'" AS SELECT "A" FROM "'+tinfo+'";'
 
+        temporary_table = Name_Generator.random_name "TemporaryTable"
+        (Table.new [["X", [1, 2, 3]]]).create_database_table connection temporary_table temporary=True
+
         Test.specify "should be able to list table types" <|
             table_types = connection.table_types
             table_types.length . should_not_equal 0
@@ -66,8 +69,11 @@ postgres_specific_spec connection db_name setup =
             tables = connection.tables
             tables.row_count . should_not_equal 0
             tables.columns.map .name . should_equal ["Database", "Schema", "Name", "Type", "Description"]
-            tables.at "Name" . to_vector . contains tinfo . should_be_true
-            tables.at "Name" . to_vector . contains vinfo . should_be_true
+
+            table_names = tables.at "Name" . to_vector
+            table_names.should_contain tinfo
+            table_names.should_contain vinfo
+            table_names.should_contain temporary_table
 
         Test.specify "should be able to filter tables by name" <|
             tables = connection.tables tinfo
@@ -77,7 +83,11 @@ postgres_specific_spec connection db_name setup =
             tables.at "Schema" . to_vector . at 0 . should_equal "public"
             tables.at "Name" . to_vector . at 0 . should_equal tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
+
             connection.tables "TestT_ble%" . row_count . should_equal 1
+            connection.tables "Temporary%ble%" . row_count . should_equal 1
+            connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY TABLE"]
+            connection.tables "N_nexistent%" . row_count . should_equal 0
 
         Test.specify "should be able to filter tables by type" <|
             tables = connection.tables types=["VIEW"]
