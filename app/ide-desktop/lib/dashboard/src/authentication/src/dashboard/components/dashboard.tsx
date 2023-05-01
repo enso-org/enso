@@ -2,6 +2,8 @@
  * interactive components. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
@@ -93,7 +95,7 @@ const EXPERIMENTAL = {
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
+const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
