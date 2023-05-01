@@ -4,7 +4,9 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-// We prefer `import * as name`, however these modules do not support it.
+import * as reactHooks from 'eslint-plugin-react-hooks'
+
+// The preferred syntax is `import * as name`, however these modules do not support it.
 // This is specialcased in other files, but these modules shouldn't be used in other files anyway.
 /* eslint-disable no-restricted-syntax */
 import eslintJs from '@eslint/js'
@@ -211,6 +213,7 @@ export default [
         plugins: {
             jsdoc: jsdoc,
             '@typescript-eslint': tsEslint,
+            'react-hooks': reactHooks,
         },
         languageOptions: {
             parser: tsEslintParser,
@@ -234,6 +237,13 @@ export default [
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
+            'react-hooks/rules-of-hooks': 'error',
+            'react-hooks/exhaustive-deps': [
+                'error',
+                {
+                    additionalHooks: 'useAsyncEffect',
+                },
+            ],
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],

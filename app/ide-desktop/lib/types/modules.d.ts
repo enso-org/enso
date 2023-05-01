@@ -40,6 +40,55 @@ declare module 'eslint-plugin-jsdoc' {
     export default DEFAULT
 }
 
+declare module 'eslint-plugin-react-hooks' {
+    interface Config {
+        plugins: string[]
+        rules: Record<string, string>
+    }
+
+    interface Configs {
+        recommended: config
+    }
+
+    interface RuleDocumentation {
+        description: string
+        recommended: boolean
+        url: string
+    }
+
+    interface RuleMetadata {
+        type: string
+        docs: RuleDocumentation
+    }
+
+    interface Rule {
+        meta: RuleMetadata
+        create: (context: unknown) => void
+    }
+
+    interface ReactHooksRules {
+        // The names come from a third-party API and cannot be changed.
+        /* eslint-disable @typescript-eslint/naming-convention */
+        'rules-of-hooks': Rule
+        'exhaustive-deps': Rule
+        /* eslint-enable @typescript-eslint/naming-convention */
+    }
+
+    interface Default {
+        configs: Configs
+        rules: ReactHooksRules
+    }
+
+    // The names come from a third-party API and cannot be changed.
+    /* eslint-disable no-restricted-syntax */
+    export const configs: Configs
+    export const rules: ReactHooksRules
+    /* eslint-enable no-restricted-syntax */
+
+    const DEFAULT: Default
+    export default DEFAULT
+}
+
 declare module 'esbuild-plugin-time' {
     import * as esbuild from 'esbuild'
 

@@ -360,7 +360,7 @@ function Dashboard(props: DashboardProps) {
 
     react.useEffect(() => {
         setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
-    }, [query, fileAssets])
+    }, [])
 
     hooks.useAsyncEffect(
         null,
