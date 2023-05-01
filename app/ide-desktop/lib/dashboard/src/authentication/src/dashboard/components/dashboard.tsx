@@ -520,6 +520,7 @@ function Dashboard(props: DashboardProps) {
               ) => JSX.Element)
             : COLUMN_RENDERER[column]
 
+    // FIXME[sb]: convert to component
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
