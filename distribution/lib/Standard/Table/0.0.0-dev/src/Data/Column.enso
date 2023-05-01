@@ -1190,7 +1190,8 @@ type Column
                         make_date_formatter format locale problem_builder
                     Value_Type.Date_Time _ ->
                         make_date_formatter format locale problem_builder
-                    #Time -> format_as_time_of_day self format on_problems
+                    Value_Type.Time ->
+                        make_date_formatter format locale problem_builder
                     #Integer -> format_as_integer self format on_problems
                     #Boolean,Float,Decimal
                     bad_type ->
@@ -1204,7 +1205,8 @@ type Column
                         make_date_with_column_formatter locale problem_builder
                     Value_Type.Date_Time _ ->
                         make_date_with_column_formatter locale problem_builder
-                    #Time -> format_as_time_of_day self format on_problems
+                    Value_Type.Time ->
+                        make_date_with_column_formatter locale problem_builder
                     #Integer -> format_as_integer self format on_problems
                     #Boolean,Float,Decimal
                     bad_type ->

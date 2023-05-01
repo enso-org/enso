@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Locale.Locale
 import Standard.Base.Data.Time.Date.Date
 import Standard.Base.Data.Time.Date_Time.Date_Time
+import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
@@ -150,6 +151,71 @@ spec =
 
         Test.specify "column length mismatch" <|
             input = Column.from_vector "dates" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
+            input.format formats . should_fail_with Illegal_Argument
+
+    Test.group "Time_Of_Day Column.format, with format string" <|
+        Test.specify "Time_Of_Day column" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            expected = Column.from_vector "dates" ["08.10.20", "14.25.02"]
+            actual = input.format "HH.mm.ss"
+            actual . should_equal expected
+
+        Test.specify "Time_Of_Day with locale" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            # Note that the results are all the same.
+            expected = Column.from_vector "dates" ["08.10.20", "14.25.02"]
+            input.format "HH.mm.ss" . should_equal expected
+            input.format "HH.mm.ss" (Locale.default) . should_equal expected
+            input.format "HH.mm.ss" (Locale.new "gb") . should_equal expected
+
+        Test.specify "Bad format" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            expected = Column.from_vector "dates" [Nothing, Nothing]
+            action = input.format "DDDDD" on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
+            Problems.test_problem_handling action problems tester
+
+    Test.group "Time_Of_Day Column.format, with format Column" <|
+        Test.specify "Time_Of_Day column" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            formats = Column.from_vector "formats" ["HH.mm.ss", "ss mm HH"]
+            expected = Column.from_vector "dates" ["08.10.20", "02 25 14"]
+            actual = input.format formats
+            actual . should_equal expected
+
+        Test.specify "Time_Of_Day with locale" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            formats = Column.from_vector "formats" ["HH.mm.ss", "ss mm HH"]
+            expected = Column.from_vector "dates" ["08.10.20", "02 25 14"]
+            input.format formats (Locale.new "fr") . should_equal expected
+
+        Test.specify "Bad format" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2, Time_Of_Day.new 3 4 5]
+            formats = Column.from_vector "formats" ["HH.mm.ss", "DDDDD", "FFF"]
+            expected = Column.from_vector "dates" ['08.10.20', Nothing, Nothing]
+            action = input.format formats on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"', Illegal_Argument.Error 'Too many pattern letters: F in \"FFF\"']
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "Bad format column type" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            formats = Column.from_vector "formats" [3, 4, 5]
+            input.format formats . should_fail_with Invalid_Value_Type
+
+        Test.specify "Max # of errors" <|
+            input = Column.from_vector "dates" (Vector.new 20 (_-> Time_Of_Day.new 8 10 20))
+            formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
+            expected = Column.from_vector "dates" (Vector.new 20 _-> Nothing)
+            action = input.format formats on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "column length mismatch" <|
+            input = Column.from_vector "dates" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
             formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
             input.format formats . should_fail_with Illegal_Argument
 
