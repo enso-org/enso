@@ -5,31 +5,18 @@
 //! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
 
 // === Non-Standard Linter Configuration ===
-#![allow(unused_imports)]
-#![allow(dead_code)]
-
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
-use crate::component::node::input::widget::single_choice::triangle;
-use crate::component::node::input::widget::single_choice::ACTIVATION_SHAPE_SIZE;
 use crate::component::node::input::widget::Configuration;
 use crate::component::node::input::widget::TransferRequest;
 use crate::component::node::input::widget::TreeNode;
 use crate::component::node::input::widget::WidgetIdentity;
-use crate::component::node::input::widget::WidgetsFrp;
 
-use ensogl::application::Application;
-use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::object;
-use ensogl::display::object::event;
-use ensogl::display::shape::StyleWatch;
 use ensogl::display::world::with_context;
 use ensogl_component::list_editor::ListEditor;
-use ensogl_component::text::Text;
-use ensogl_hardcoded_theme as theme;
-use span_tree::node::InsertionPointType;
 use span_tree::node::Kind;
 use std::fmt::Write;
 
@@ -43,6 +30,7 @@ use std::fmt::Write;
 struct Element {
     display_object: object::Instance,
     content:        object::Instance,
+    #[allow(dead_code)]
     background:     display::shape::Rectangle,
     expr_range:     Range<usize>,
     item_crumb:     usize,
@@ -54,6 +42,7 @@ struct DragData {
     element_id:    WidgetIdentity,
     element:       Element,
     expression:    String,
+    #[allow(dead_code)]
     owned_subtree: Vec<(WidgetIdentity, TreeNode)>,
 }
 
@@ -191,13 +180,27 @@ impl Model {
         }
     }
 
-    fn configure(&mut self, root: &object::Instance, cfg: &Config, ctx: super::ConfigContext) {
+    fn configure(&mut self, root: &object::Instance, cfg: &Config, mut ctx: super::ConfigContext) {
         self.expression.clear();
         self.default_value.clear();
         self.expression.push_str(ctx.expression_at(ctx.span_node.span()));
         self.crumbs = ctx.span_node.crumbs.clone();
 
-        if ctx.span_node.is_insertion_point() {
+        // Right now, nested list editors are broken. Prevent them from being created. Whenever
+        // a nested list editor is requested, we instead use a hierarchical widget to display the
+        // child list items as ordinary expressions.
+        let ext = ctx.get_extension_or_default::<Extension>();
+        let already_in_list = ext.already_in_list;
+        ctx.set_extension(Extension { already_in_list: true });
+
+        if already_in_list {
+            let child = ctx.builder.child_widget_of_type(
+                ctx.span_node,
+                ctx.info.nesting_level,
+                Some(&super::Configuration::always(super::hierarchy::Config)),
+            );
+            root.replace_children(&[&child.root_object]);
+        } else if ctx.span_node.is_insertion_point() {
             write!(self.default_value, "[{}]", cfg.item_default).unwrap();
             self.configure_insertion_point(root, ctx)
         } else {
@@ -482,4 +485,14 @@ fn list_diff<'old, 'new, T>(
         current_new += 1;
         at += 1;
     }
+}
+
+
+// =================
+// === Extension ===
+// =================
+
+#[derive(Clone, Copy, Debug, Default)]
+struct Extension {
+    already_in_list: bool,
 }

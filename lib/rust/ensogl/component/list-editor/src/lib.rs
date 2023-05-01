@@ -472,13 +472,13 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         }
 
         self.init_add_and_remove();
-        let (is_dragging, _drag_diff, no_drag) =
+        let no_drag =
             self.init_dragging(cursor, &on_up, &on_up_cleaning_phase, &on_down, &target, &pos_diff);
         frp::extend! { network
             on_up_close <- on_up.gate(&is_close);
         }
         self.init_dropping(&on_up_close, &dragged_item_bbox_center, &is_close);
-        let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
+        let insert_pointer_style = self.init_insertion_points(cursor, &on_up, &pos_on_move);
 
         frp::extend! { network
             cursor.frp.set_style_override <+ insert_pointer_style;
@@ -498,13 +498,12 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
     fn init_insertion_points(
         &self,
+        cursor: &Cursor,
         on_up: &frp::Stream<Event<mouse::Up>>,
         pos_on_move: &frp::Stream<Vector2>,
-        is_dragging: &frp::Stream<bool>,
     ) -> frp::Stream<Option<cursor::Style>> {
         let on_up = on_up.clone_ref();
         let pos_on_move = pos_on_move.clone_ref();
-        let is_dragging = is_dragging.clone_ref();
 
         let frp = &self.frp;
         let network = self.frp.network();
@@ -513,6 +512,11 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
         frp::extend! { network
             gaps <- model_borrowed.layout.on_resized.map(f_!(model.gaps()));
+
+            // We are debouncing the `is_dragging` stream to avoid double-borrow of list editor, as
+            // this event is fired immediately after list-editor instructs cursor to stop dragging.
+            is_dragging <- cursor.frp.is_dragging.debounce();
+
             opt_index <- all_with7(
                 &frp.gap,
                 &gaps,
@@ -578,7 +582,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         on_down: &frp::Stream<Event<mouse::Down>>,
         target: &frp::Stream<display::object::Instance>,
         pos_diff: &frp::Stream<Vector2>,
-    ) -> (frp::Stream<bool>, frp::Stream<Vector2>, frp::Stream<bool>) {
+    ) -> frp::Stream<bool> {
         let model = &self.model;
         let on_up = on_up.clone_ref();
         let on_up_cleaning_phase = on_up_cleaning_phase.clone_ref();
@@ -617,7 +621,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
                 }
             });
         }
-        (status, drag_diff, no_drag)
+        no_drag
     }
 
     /// Implementation of dropping items logic, including showing empty placeholders when the item
