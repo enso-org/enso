@@ -61,7 +61,7 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 contents: string
                 lastModified: number
             }
-            let cachedOutput: Record<string, CacheEntry> = {}
+            const cachedOutput: Record<string, CacheEntry> = {}
             let tailwindConfigLastModified = 0
             let tailwindConfigWasModified = true
             const cssProcessor = postcss([
