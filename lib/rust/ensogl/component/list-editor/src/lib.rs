@@ -357,6 +357,7 @@ impl<T> Model<T> {
                 .set_size((24.0, 24.0))
                 .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.2));
         });
+        layout_with_icons.add_child(&add_elem_icon);
         Self { cursor, items, root, layout, layout_with_icons, gap, add_elem_icon }
     }
 }
