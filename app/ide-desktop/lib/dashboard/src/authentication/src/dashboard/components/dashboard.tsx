@@ -199,7 +199,7 @@ function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationI
 
 export interface DashboardProps {
     platform: platformModule.Platform
-    appRunner: AppRunner
+    appRunner: AppRunner | null
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.

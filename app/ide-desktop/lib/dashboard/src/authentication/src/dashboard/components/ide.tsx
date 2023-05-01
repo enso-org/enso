@@ -23,7 +23,7 @@ const JS_EXTENSION: Record<platformModule.Platform, string> = {
 
 interface Props {
     project: backendModule.Project
-    appRunner: AppRunner
+    appRunner: AppRunner | null
 }
 
 /** Container that launches the IDE. */
@@ -76,7 +76,7 @@ function Ide(props: Props) {
                     }
                 })()
                 const runNewProject = async () => {
-                    await appRunner.runApp({
+                    await appRunner?.runApp({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,

@@ -38,7 +38,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
-    appRunner: AppRunner
+    appRunner: AppRunner | null
     onClose: () => void
     openIde: () => void
 }
@@ -120,7 +120,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     function closeProject() {
         setState(backendModule.ProjectState.closed)
-        appRunner.stopApp()
+        appRunner?.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
         onClose()
