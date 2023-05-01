@@ -905,7 +905,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     ///
     /// See docs of [`Self::start_item_drag_at`] for more information.
     fn start_item_drag(&mut self, target: &display::object::Instance) -> Option<(Index, T)> {
-        let objs = target.rev_parent_chain();
+        let objs = target.rev_parent_chain().reversed();
         let tarrget_index = objs.into_iter().find_map(|t| self.item_index_of(&t));
         if let Some((index, index_or_placeholder_index)) = tarrget_index {
             self.start_item_drag_at(index_or_placeholder_index).map(|item| (index, item))
