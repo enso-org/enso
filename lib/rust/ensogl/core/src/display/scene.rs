@@ -15,6 +15,8 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
+use crate::display::scene::layer::LayerSymbolPartition;
+use crate::display::shape::compound::rectangle;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
@@ -46,12 +48,11 @@ pub mod layer;
 #[warn(missing_docs)]
 pub mod pointer_target;
 
-use crate::display::scene::layer::LayerSymbolPartition;
-use crate::display::shape::compound::rectangle;
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 pub use pointer_target::PointerTargetId;
 pub use pointer_target::PointerTarget_DEPRECATED;
+
 
 
 // =====================
