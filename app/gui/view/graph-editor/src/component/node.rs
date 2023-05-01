@@ -374,7 +374,7 @@ ensogl::define_endpoints_2! {
         /// immediately updated, only during the Display Object hierarchy update
         bounding_box             (BoundingBox),
         /// The bounding box of the node without the visualization.
-        inner_bounding_box             (BoundingBox),
+        inner_bounding_box       (BoundingBox),
         /// A set of widgets attached to a method requires metadata to be queried. The tuple
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
