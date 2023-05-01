@@ -61,8 +61,9 @@ export function argumentsFromEnv(): Arguments {
  * @param command - Command line following the `git` program.
  * @returns Output of the command. */
 function git(command: string): string {
-    // TODO [mwu] Eventually this should be removed, data should be provided by the build script through `BUILD_INFO`.
-    //            The bundler configuration should not invoke git, it is not its responsibility.
+    // TODO [mwu] Eventually this should be removed, data should be provided by the build script
+    //            through `BUILD_INFO`. The bundler configuration should not invoke git,
+    //            it is not its responsibility.
     return childProcess.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
@@ -153,7 +154,8 @@ export function bundlerOptions(args: Arguments) {
 
 /** The basic, common settings for the bundler, based on the environment variables.
  *
- * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build). */
+ * Note that they should be further customized as per the needs of the specific workflow
+ * (e.g. watch vs. build). */
 export function bundlerOptionsFromEnv() {
     return bundlerOptions(argumentsFromEnv())
 }

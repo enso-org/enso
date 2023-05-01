@@ -152,28 +152,30 @@ export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
 
 /** Register a listener that fires a callback for `save-access-token` events.
  *
- * This listener is used to save given access token to credentials file to be later used by enso backend.
+ * This listener is used to save given access token to credentials file to be later used by
+ * the backend.
  *
- * Credentials file is placed in users home directory in `.enso` subdirectory in `credentials` file. */
+ * The credentials file is placed in the user's home directory in the `.enso` subdirectory
+ * in the `credentials` file. */
 function initSaveAccessTokenListener() {
     electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string) => {
-        /** Enso home directory for credentials file.  */
-        const ensoCredentialsDirectoryName = '.enso'
-        /** Enso credentials file. */
-        const ensoCredentialsFileName = 'credentials'
+        /** Home directory for the credentials file.  */
+        const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
+        /** File name of the credentials file. */
+        const credentialsFileName = 'credentials'
         /** System agnostic credentials directory home path. */
-        const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
+        const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
 
-        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, error => {
+        fs.mkdir(credentialsHomePath, { recursive: true }, error => {
             if (error) {
-                logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
+                logger.error(`Couldn't create ${credentialsDirectoryName} directory.`)
             } else {
                 fs.writeFile(
-                    path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
+                    path.join(credentialsHomePath, credentialsFileName),
                     accessToken,
                     innerError => {
                         if (innerError) {
-                            logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
+                            logger.error(`Could not write to ${credentialsFileName} file.`)
                         }
                     }
                 )

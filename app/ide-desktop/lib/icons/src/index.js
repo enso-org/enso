@@ -59,9 +59,9 @@ class Logo {
     /** Outputs the logo as an SVG image. */
     generate() {
         return `
-<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="${
-            this.xsize
-        }" width="${this.xsize}" viewBox="0 0 ${this.xsize} ${this.xsize}">
+<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" \
+xmlns:xlink="http://www.w3.org/1999/xlink" height="${this.xsize}" width="${this.xsize}" \
+viewBox="0 0 ${this.xsize} ${this.xsize}">
     <defs>
         <circle id="innerCircle" cx="32" cy="32" r="${this.innerRadius}"/>
         <circle id="leftAtom"    cx="${
@@ -215,7 +215,8 @@ async function main() {
     if (!outputDir) {
         const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
         throw Error(
-            `Script '${script}' invocation needs to be given an output path either through command line argument or 'ENSO_BUILD_ICONS' environment variable.`
+            `The script '${script}' needs to be given an output path either through a \
+command line argument or the 'ENSO_BUILD_ICONS' environment variable.`
         )
     } else {
         await genIcons(outputDir)

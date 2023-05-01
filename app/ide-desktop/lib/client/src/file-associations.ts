@@ -113,9 +113,12 @@ export function onFileOpened(event: Event, path: string): string | null {
             logger.log(`Opening file '${path}'.`)
             return handleOpenFile(path)
         } else {
-            // We need to start another copy of the application, as the first one is already running.
+            // Another copy of the application needs to be started, as the first one is
+            // already running.
             logger.log(
-                `The application is already initialized. Starting a new instance to open file '${path}'.`
+                "The application is already initialized. Starting a new instance to open file '" +
+                    path +
+                    "'."
             )
             const args = [path]
             const child = childProcess.spawn(process.execPath, args, {

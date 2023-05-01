@@ -13,8 +13,10 @@ import * as paths from './paths'
  *
  * The following environment variables are required:
  * - `ENSO_BUILD_IDE` - output directory for bundled client files;
- * - `ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH` - path to the project manager executable relative to the PM bundle root;
- * - `ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION` - version of the Engine (backend) that is bundled along with this client build.
+ * - `ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH` - path to the project manager executable relative
+ * to the PM bundle root;
+ * - `ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION` - version of the Engine (backend) that is bundled
+ * along with this client build.
  *
  * @see bundlerOptions
  */

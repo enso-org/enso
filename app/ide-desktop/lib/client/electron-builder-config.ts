@@ -45,7 +45,8 @@ export interface Arguments {
 // === Argument parser configuration ===
 //======================================
 
-/** CLI argument parser (with support for environment variables) that provides the necessary options. */
+/** CLI argument parser (with support for environment variables) that provides
+ * the necessary options. */
 export const args: Arguments = await yargs(process.argv.slice(2))
     .env('ENSO_BUILD')
     .option({
@@ -102,8 +103,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         artifactName: 'enso-${os}-${version}.${ext}',
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *
-         * Electron will register all URL protocol schemes defined here with the OS. Once a URL protocol
-         * scheme is registered with the OS, any links using that scheme will function as "deep links".
+         * Electron will register all URL protocol schemes defined here with the OS.
+         * Once a URL protocol scheme is registered with the OS, any links using that scheme
+         * will function as "deep links".
          * Deep links are used to redirect the user from external sources (e.g., system web browser,
          * email client) to the IDE.
          *
@@ -115,7 +117,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
          * For details on how this works, see:
          * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app. */
         protocols: [
-            /** Electron URL protocol scheme definition for deep links to authentication flow pages. */
+            /** Electron URL protocol scheme definition for deep links to authentication pages. */
             {
                 name: `${common.PRODUCT_NAME} url`,
                 schemes: [common.DEEP_LINK_SCHEME],
@@ -123,7 +125,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             },
         ],
         mac: {
-            // We do not use compression as the build time is huge and file size saving is almost zero.
+            // Compression is not used as the build time is huge and file size saving
+            // almost zero.
             // This type assertion is UNSAFE, and any users MUST verify that
             // they are passing a valid value to `target`.
             // eslint-disable-next-line no-restricted-syntax
@@ -138,18 +141,20 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             // This is a custom check that is not working correctly, so we disable it. See for more
             // details https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
             gatekeeperAssess: false,
-            // Location of the entitlements files with the entitlements we need to run our application
-            // in the hardened runtime.
+            // Location of the entitlements files with the entitlements we need to run
+            // our application in the hardened runtime.
             entitlements: './entitlements.mac.plist',
             entitlementsInherit: './entitlements.mac.plist',
         },
         win: {
-            // We do not use compression as the build time is huge and file size saving is almost zero.
+            // Compression is not used as the build time is huge and file size saving
+            // almost zero.
             target: passedArgs.target ?? 'nsis',
             icon: `${passedArgs.iconsDist}/icon.ico`,
         },
         linux: {
-            // We do not use compression as the build time is huge and file size saving is almost zero.
+            // Compression is not used as the build time is huge and file size saving
+            // is almost zero.
             target: passedArgs.target ?? 'AppImage',
             icon: `${passedArgs.iconsDist}/png`,
             category: 'Development',
@@ -242,12 +247,14 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 })
 
                 console.log('  • Notarizing.')
+                // The type-cast is safe because this is only executes
+                // when `platform === electronBuilder.Platform.MAC`.
+                // eslint-disable-next-line no-restricted-syntax
+                const macBuildOptions = buildOptions as macOptions.MacConfiguration
                 await electronNotarize.notarize({
                     // This will always be defined since we set it at the top of this object.
-                    // The type-cast is safe because this is only executes
-                    // when `platform === electronBuilder.Platform.MAC`.
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, no-restricted-syntax
-                    appBundleId: (buildOptions as macOptions.MacConfiguration).appId!,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    appBundleId: macBuildOptions.appId!,
                     appPath: `${appOutDir}/${appName}.app`,
                     appleId: process.env.APPLEID,
                     appleIdPassword: process.env.APPLEIDPASS,
@@ -261,12 +268,13 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
 /** Build the IDE package with Electron Builder. */
 export async function buildPackage(passedArgs: Arguments) {
-    // `electron-builder` checks for presence of `node_modules` directory. If it is not present, it will
-    // install dependencies with `--production` flag (erasing all dev-only dependencies). This does not
-    // work sensibly with NPM workspaces. We have our `node_modules` in the root directory, not here.
+    // `electron-builder` checks for presence of `node_modules` directory. If it is not present, it
+    // will install dependencies with the`--production` flag(erasing all dev - only dependencies).
+    // This does not work sensibly with NPM workspaces. We have our `node_modules` in
+    // the root directory, not here.
     //
-    // Without this workaround, `electron-builder` will end up erasing its own dependencies and failing
-    // because of that.
+    // Without this workaround, `electron-builder` will end up erasing its own dependencies and
+    // failing because of that.
     await fs.mkdir('node_modules', { recursive: true })
 
     const cliOpts: electronBuilder.CliOptions = {
@@ -277,7 +285,7 @@ export async function buildPackage(passedArgs: Arguments) {
     const result = await electronBuilder.build(cliOpts)
     console.log('Electron Builder is done. Result:', result)
     // FIXME: https://github.com/enso-org/enso/issues/6082
-    // This is workaround which fixes esbuild freezing after successfully finishing the electronBuilder.build.
-    // It's safe to `exit(0)` since all processes are finished.
+    // This is a workaround which fixes esbuild hanging after successfully finishing
+    // `electronBuilder.build`. It is safe to `exit(0)` since all processes are finished.
     process.exit(0)
 }

@@ -57,7 +57,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
             setup: build => {
                 build.onEnd(result => {
                     if (result.errors.length) {
-                        // We cannot carry on if the client failed to build, because electron executable
+                        // We cannot carry on if the client failed to build, because electron
                         // would immediately exit with an error.
                         console.error('Client watch bundle failed:', result.errors[0])
                         reject(result.errors[0])

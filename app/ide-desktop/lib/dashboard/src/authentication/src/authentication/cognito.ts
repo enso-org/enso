@@ -55,8 +55,8 @@ const MESSAGES = {
     },
     forgotPassword: {
         userNotFound: 'Username not found. Please register first.',
-        userNotConfirmed:
-            'Cannot reset password for user with an unverified email. Please verify your email first.',
+        userNotConfirmed: `Cannot reset password for user with an unverified email. \
+Please verify your email first.`,
     },
 }
 
@@ -549,8 +549,8 @@ function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPass
 const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
     internalCode: 'InvalidParameterException',
     kind: 'UserNotConfirmed',
-    message:
-        'Cannot reset password for the user as there is no registered/verified email or phone_number',
+    message: `Cannot reset password for the user as there is no registered/verified email or \
+phone_number`,
 } as const
 
 const FORGOT_PASSWORD_USER_NOT_FOUND_ERROR = {
@@ -672,9 +672,10 @@ async function signOut(logger: loggerProvider.Logger) {
  * to {@link AmplifyError}s. */
 async function currentAuthenticatedUser() {
     const result = await results.Result.wrapAsync(
-        /** The interface provided by Amplify declares that the return type is `Promise<CognitoUser | any>`,
-         * but TypeScript automatically converts it to `Promise<any>`. Therefore, it is necessary to use
-         * `as` to narrow down the type to `Promise<CognitoUser>`. */
+        /** The interface provided by Amplify declares that the return type is
+         * `Promise<CognitoUser | any>`, but TypeScript automatically converts it to `Promise<any>`.
+         * Therefore, it is necessary to use `as` to narrow down the type to
+         * `Promise<CognitoUser>`. */
         // eslint-disable-next-line no-restricted-syntax
         () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
     )
