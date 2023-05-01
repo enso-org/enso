@@ -1,4 +1,8 @@
-/** @file Logging utilities. */
+/** @file Logging utilities.
+ *
+ * This module includes a special {@link addFileLog function} that adds a new log consumer that writes to a file.
+ *
+ * This is the primary entry point, though its building blocks are also exported, like {@link FileConsumer}. */
 
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
@@ -10,7 +14,9 @@ import * as paths from 'paths'
 
 import * as linkedDist from '../../../../../target/ensogl-pack/linked-dist'
 
-const logger = linkedDist.logger
+// ================
+// === Log File ===
+// ================
 
 /** Adds a new log consumer that writes to a file.
  *
@@ -18,8 +24,7 @@ const logger = linkedDist.logger
  *
  * The log file is created in the {@link paths.LOGS_DIRECTORY logs directory}
  *
- * @returns The full path of the log file.
- */
+ * @returns The full path of the log file. */
 export function addFileLog(): string {
     const dirname = paths.LOGS_DIRECTORY
     const filename = generateUniqueLogFileName()
@@ -29,11 +34,9 @@ export function addFileLog(): string {
     return logFilePath
 }
 
-/**
- * Generate a unique log file name based on the current timestamp.
+/** Generate a unique log file name based on the current timestamp.
  *
- * @returns The file name log file.
- */
+ * @returns The file name log file. */
 export function generateUniqueLogFileName(): string {
     // Replace ':' with '-' because ':' is not allowed in file names.
     const timestamp = new Date().toISOString().replace(/:/g, '-')
@@ -52,8 +55,7 @@ export class FileConsumer extends linkedDist.Consumer {
 
     /** Create a log consumer that writes to a file.
      *
-     * @param logPath - The path of the log file. Must be writeable.
-     */
+     * @param logPath - The path of the log file. Must be writeable. */
     constructor(logPath: string) {
         super()
         // Create the directory if it doesn't exist, otherwise fsSync.openSync will fail.
