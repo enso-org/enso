@@ -1197,7 +1197,7 @@ type Column
                         msg = "Cannot format a Column of type " + bad_type.to_text
                         Error.throw (Illegal_Argument.Error msg)
                 map_over_storage self formatter make_string_builder
-            format_column : Column ->
+            format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = case self.value_type of
                     Value_Type.Date ->
                         make_date_with_column_formatter locale problem_builder
@@ -1818,6 +1818,7 @@ condense_problems on_problems problem_builder value max_count=10 =
     all_warnings_condensed = if all_warnings.length <= max_count then all_warnings else
         some_warnings = all_warnings.take max_count
         additional_warnings = Additional_Warnings.Error (all_warnings.length - max_count)
+        _ = [additional_warnings]
         some_warnings # + [additional_warnings]
     Warning.set value all_warnings_condensed
 

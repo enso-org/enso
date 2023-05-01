@@ -6,6 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
+from Standard.Table.Errors import Invalid_Value_Type
 from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
 
@@ -57,6 +58,11 @@ spec =
             tester = t-> t.should_equal expected
             problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"', Illegal_Argument.Error 'Too many pattern letters: F in \"FFF\"']
             Problems.test_problem_handling action problems tester
+
+        Test.specify "Bad format column type" <|
+            input = Column.from_vector "dates" [Date.new 2020 6 21, Date.new 2023 4 25, Date.new 2023 4 26]
+            formats = Column.from_vector "formats" [3, 4, 5]
+            input.format formats . should_fail_with Invalid_Value_Type
 
         Test.specify "Max # of errors" <|
             input = Column.from_vector "dates" (Vector.new 20 (_-> Date.new 2020 6 21))
