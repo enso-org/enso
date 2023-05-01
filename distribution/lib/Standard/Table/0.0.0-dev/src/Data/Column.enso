@@ -1,4 +1,3 @@
-import Standard.Base.Meta
 from Standard.Base import all
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
