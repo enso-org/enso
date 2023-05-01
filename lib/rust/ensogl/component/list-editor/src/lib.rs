@@ -78,9 +78,11 @@ use ensogl_core::prelude::*;
 
 use ensogl_core::control::io::mouse;
 use ensogl_core::data::bounding_box::BoundingBox;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::object::Event;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::gui::cursor::Trash;
@@ -108,7 +110,7 @@ pub mod placeholder;
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
-pub const DEBUG_PLACEHOLDERS_VIZ: bool = true;
+pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
 
 /// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
 /// used for animation simulators.
@@ -328,11 +330,13 @@ pub struct ListEditor<T: 'static + Debug> {
 
 #[derive(Debug)]
 pub struct Model<T> {
-    cursor: Cursor,
-    items:  VecIndexedBy<ItemOrPlaceholder<T>, ItemOrPlaceholderIndex>,
-    root:   display::object::Instance,
-    layout: display::object::Instance,
-    gap:    f32,
+    cursor:            Cursor,
+    items:             VecIndexedBy<ItemOrPlaceholder<T>, ItemOrPlaceholderIndex>,
+    root:              display::object::Instance,
+    layout_with_icons: display::object::Instance,
+    layout:            display::object::Instance,
+    gap:               f32,
+    add_elem_icon:     Rectangle,
 }
 
 impl<T> Model<T> {
@@ -342,10 +346,18 @@ impl<T> Model<T> {
         let items = default();
         let root = display::object::Instance::new();
         let layout = display::object::Instance::new();
+        let layout_with_icons = display::object::Instance::new();
         let gap = default();
+        layout_with_icons.use_auto_layout();
         layout.use_auto_layout();
-        root.add_child(&layout);
-        Self { cursor, items, root, layout, gap }
+        layout_with_icons.add_child(&layout);
+        root.add_child(&layout_with_icons);
+        let add_elem_icon = Rectangle().build(|t| {
+            t.set_corner_radius_max()
+                .set_size((24.0, 24.0))
+                .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.2));
+        });
+        Self { cursor, items, root, layout, layout_with_icons, gap, add_elem_icon }
     }
 }
 
@@ -377,6 +389,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let network = self.frp.network();
         let model = &self.model;
 
+        let on_add_elem_icon_down = model.borrow().add_elem_icon.on_event::<mouse::Down>();
         let on_down = model.borrow().layout.on_event_capturing::<mouse::Down>();
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
@@ -385,6 +398,11 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let on_resized = model.borrow().layout.on_resized.clone_ref();
         let drag_target = cursor::DragTarget::new();
         frp::extend! { network
+
+            frp.private.output.request_new_item <+ on_add_elem_icon_down.map(f_!([model] {
+                Response::gui(model.borrow().len())
+            }));
+
             target <= on_down.map(|event| event.target());
 
             on_up <- on_up_source.identity();
@@ -453,6 +471,9 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             _eval <- no_drag.on_true().map3(&on_down, &target, |_, event, target| {
                 target.emit_event(event.payload.clone());
             });
+
+            item_count_changed <- any_(&frp.on_item_added, &frp.on_item_removed);
+            eval_ item_count_changed (model.borrow().item_count_changed());
         }
         self
     }
@@ -610,7 +631,8 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             let on_item_added = &frp.private.output.on_item_added;
             insert_index_on_drop <- insert_index.sample(on_up).gate(&is_close);
             eval insert_index_on_drop ([model, on_item_added] (index)
-                if let Some(index) = model.borrow_mut().place_dragged_item(*index) {
+                let index = model.borrow_mut().place_dragged_item(*index);
+                if let Some(index) = index {
                     on_item_added.emit(Response::gui(index));
                 }
             );
@@ -1074,6 +1096,15 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// The insertion point of the given vertical offset.
     fn insert_index(&self, x: f32, center_points: &[f32]) -> ItemOrPlaceholderIndex {
         center_points.iter().position(|t| x < *t).unwrap_or(self.items.len()).into()
+    }
+
+    /// If the item count drops to 0, display a button to add new items.
+    fn item_count_changed(&self) {
+        if self.len() == 0 {
+            self.layout_with_icons.add_child(&self.add_elem_icon);
+        } else {
+            self.add_elem_icon.unset_parent();
+        }
     }
 }
 
