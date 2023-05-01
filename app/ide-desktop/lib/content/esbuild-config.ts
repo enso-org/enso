@@ -81,7 +81,7 @@ function git(command: string): string {
 export function bundlerOptions(args: Arguments) {
     const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath, devMode } = args
     const buildOptions = {
-        // Disabling naming convention because these are third-party options.
+        // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
         bundle: true,
