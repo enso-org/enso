@@ -363,10 +363,6 @@ impl Cursor {
             frp.set_style_override <+ should_trash.then_constant(Style::trash());
             perform_trash <- on_up.gate(&should_trash);
             eval_ perform_trash (model.trash_dragged_item());
-            // trace should_trash;
-
-            // eval drag_target_to_revoke ([] (t) t.revoke.emit(()));
-            // drag_target <+ frp.switch_drag_target.map(|(t, enabled)| enabled.as_some_from(|| t.clone()));
 
 
 

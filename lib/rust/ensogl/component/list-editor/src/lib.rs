@@ -298,6 +298,8 @@ ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
         /// Enable insertion points (plus icons) when moving mouse after the last list item.
         enable_last_insertion_point(bool),
 
+        /// A flag controlling this FRP debug mode. If enabled, additional logs can might be printed
+        /// to console.
         debug(bool),
     }
     Output {
@@ -403,6 +405,9 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
             eval frp.gap((t) model.borrow_mut().set_gap(*t));
 
+            // When an item is being dragged, we are connecting to it's `on_resized` endpoint to
+            // watch for size changes while dragging. We want to disconnect from it as soon as the
+            // drag ends, and thus we are storing a local FRP network here.
             dragged_item_offset <- source::<Vector2>();
             dragged_item_size <- any(...);
             eval_ cursor.frp.stop_drag([dragged_item_network]
@@ -425,18 +430,18 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             dragged_item_bbox <- all_with3(&dragged_item_size, &dragged_item_offset, &pos_on_move,
                 |size, offset, pos| BoundingBox::from_position_and_size(*pos + *offset, *size)
             );
-            is_close2 <- all_with(&this_bbox, &dragged_item_bbox, |a, b| a.intersects(b)).on_change();
+            is_close <- all_with(&this_bbox, &dragged_item_bbox, |a, b| a.intersects(b)).on_change();
             dragged_item_bbox_center <- dragged_item_bbox.map(|bbox| bbox.center());
-            cursor.frp.switch_drag_target <+ is_close2.map(f!([drag_target] (t) (drag_target.clone(), *t)));
+            cursor.frp.switch_drag_target <+ is_close.map(f!([drag_target] (t) (drag_target.clone(), *t)));
         }
 
         self.init_add_and_remove();
         let (is_dragging, _drag_diff, no_drag) =
             self.init_dragging(cursor, &on_up, &on_up_cleaning_phase, &on_down, &target, &pos_diff);
         frp::extend! { network
-            on_up_dragging <- on_up.gate(&is_close2);
+            on_up_close <- on_up.gate(&is_close);
         }
-        self.init_dropping(&on_up_dragging, &dragged_item_bbox_center, &is_close2);
+        self.init_dropping(&on_up_close, &dragged_item_bbox_center, &is_close);
         let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
         frp::extend! { network
@@ -495,7 +500,6 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             pointer_style <- enabled.then_constant(cursor::Style::plus());
             on_up_in_gap <- on_up.gate(&enabled);
             insert_in_gap <- index.sample(&on_up_in_gap);
-            trace on_up;
             frp.private.output.request_new_item <+ insert_in_gap.map(|t| Response::gui(*t));
         }
         pointer_style
