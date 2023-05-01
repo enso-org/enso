@@ -593,7 +593,8 @@ impl Renderer {
 
 type RectLayerPartition = Rc<LayerSymbolPartition<rectangle::Shape>>;
 
-
+/// Create a new layer partition with the given name, wrapped in an `Rc` for use in the
+/// [`HardcodedLayers`] structure.
 fn partition_layer<S: display::shape::primitive::system::Shape>(
     base_layer: &Layer,
     name: &str,
