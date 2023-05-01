@@ -1,5 +1,5 @@
 /** @file  */
-import * as react from 'react'
+import * as React from 'react'
 
 export type Modal = () => JSX.Element
 
@@ -8,7 +8,7 @@ export interface ModalContextType {
     setModal: (modal: Modal | null) => void
 }
 
-const ModalContext = react.createContext<ModalContextType>({
+const ModalContext = React.createContext<ModalContextType>({
     modal: null,
     setModal: () => {
         // Ignored. This default value will never be used
@@ -23,17 +23,17 @@ export interface ModalProviderProps extends React.PropsWithChildren<object> {}
 
 export function ModalProvider(props: ModalProviderProps) {
     const { children } = props
-    const [modal, setModal] = react.useState<Modal | null>(null)
+    const [modal, setModal] = React.useState<Modal | null>(null)
     return <ModalContext.Provider value={{ modal, setModal }}>{children}</ModalContext.Provider>
 }
 
 export function useModal() {
-    const { modal } = react.useContext(ModalContext)
+    const { modal } = React.useContext(ModalContext)
     return { modal }
 }
 
 export function useSetModal() {
-    const { setModal } = react.useContext(ModalContext)
+    const { setModal } = React.useContext(ModalContext)
     function unsetModal() {
         setModal(null)
     }

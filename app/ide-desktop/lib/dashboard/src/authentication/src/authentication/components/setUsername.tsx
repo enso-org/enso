@@ -1,6 +1,6 @@
 /** @file Container responsible for rendering and interactions in setting username flow, after
  * registration. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as auth from '../providers/auth'
 import * as backendProvider from '../../providers/backend'
@@ -18,7 +18,7 @@ function SetUsername() {
     const { email } = auth.usePartialUserSession()
     const { backend } = backendProvider.useBackend()
 
-    const [username, setUsername] = react.useState('')
+    const [username, setUsername] = React.useState('')
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">

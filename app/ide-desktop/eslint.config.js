@@ -12,6 +12,7 @@ import * as reactHooks from 'eslint-plugin-react-hooks'
 import eslintJs from '@eslint/js'
 import globals from 'globals'
 import jsdoc from 'eslint-plugin-jsdoc'
+import react from 'eslint-plugin-react'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
@@ -34,7 +35,7 @@ const RELATIVE_MODULES =
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
-const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
+const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
 const WITH_ROUTER = 'CallExpression[callee.name=withRouter]'
@@ -210,9 +211,15 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
+        settings: {
+            react: {
+                version: '18.2',
+            },
+        },
         plugins: {
             jsdoc: jsdoc,
             '@typescript-eslint': tsEslint,
+            react: react,
             'react-hooks': reactHooks,
         },
         languageOptions: {
@@ -232,11 +239,14 @@ export default [
             ...tsEslint.configs.recommended?.rules,
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
+            ...react.configs.recommended.rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
+            // Not relevant because TypeScript checks types.
+            'react/prop-types': 'off',
             'react-hooks/rules-of-hooks': 'error',
             'react-hooks/exhaustive-deps': [
                 'error',

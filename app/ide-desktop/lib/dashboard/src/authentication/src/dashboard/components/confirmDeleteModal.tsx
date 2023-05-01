@@ -1,4 +1,6 @@
 /** @file Modal for confirming delete of any type of asset. */
+import * as React from 'react'
+
 import toast from 'react-hot-toast'
 
 import * as modalProvider from '../../providers/modal'
@@ -32,7 +34,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
                 </button>
-                Are you sure you want to delete the {assetType} '{name}'?
+                Are you sure you want to delete the {assetType} &apos;{name}&apos;?
                 <div className="m-1">
                     <div
                         className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"

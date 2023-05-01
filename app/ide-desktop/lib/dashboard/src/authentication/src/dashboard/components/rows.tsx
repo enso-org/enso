@@ -1,5 +1,5 @@
 /** @file Table that projects an object into each column. */
-import * as react from 'react'
+import * as React from 'react'
 
 // =============
 // === Types ===
@@ -25,8 +25,8 @@ interface Props<T> {
     getKey: (item: T) => string
     placeholder: JSX.Element
     columns: Column<T>[]
-    onClick: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
-    onContextMenu: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
+    onClick: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
+    onContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
 }
 
 /** Table that projects an object into each column. */

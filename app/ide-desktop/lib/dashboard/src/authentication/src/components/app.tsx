@@ -34,7 +34,7 @@
  * {@link router.Route}s require fully authenticated users (c.f.
  * {@link authProvider.FullUserSession}). */
 
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
@@ -124,7 +124,7 @@ function AppRouter(props: AppProps) {
     const { logger, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
-    const memoizedAuthService = react.useMemo(() => {
+    const memoizedAuthService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
         return authService.initAuthService(authConfig)
     }, [navigate, props])
@@ -132,7 +132,7 @@ function AppRouter(props: AppProps) {
     const registerAuthEventListener = memoizedAuthService.registerAuthEventListener
     const routes = (
         <router.Routes>
-            <react.Fragment>
+            <React.Fragment>
                 {/* Login & registration pages are visible to unauthenticated users. */}
                 <router.Route element={<authProvider.GuestLayout />}>
                     <router.Route path={REGISTRATION_PATH} element={<Registration />} />
@@ -153,7 +153,7 @@ function AppRouter(props: AppProps) {
                 <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
                 <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
                 <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
-            </react.Fragment>
+            </React.Fragment>
         </router.Routes>
     )
     return (

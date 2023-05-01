@@ -3,7 +3,7 @@
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
@@ -129,7 +129,7 @@ interface AuthContextType {
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
 // eslint-disable-next-line no-restricted-syntax
-const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
+const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 
 // ====================
 // === AuthProvider ===
@@ -139,7 +139,7 @@ export interface AuthProviderProps {
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
-    children: react.ReactNode
+    children: React.ReactNode
 }
 
 export function AuthProvider(props: AuthProviderProps) {
@@ -149,16 +149,18 @@ export function AuthProvider(props: AuthProviderProps) {
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
-    const onAuthenticated = react.useCallback(props.onAuthenticated, [])
-    const [initialized, setInitialized] = react.useState(false)
-    const [userSession, setUserSession] = react.useState<UserSession | null>(null)
+    // This function is a prop, and cannot be inline.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const onAuthenticated = React.useCallback(props.onAuthenticated, [])
+    const [initialized, setInitialized] = React.useState(false)
+    const [userSession, setUserSession] = React.useState<UserSession | null>(null)
 
     /** Fetch the JWT access token from the session via the AWS Amplify library.
      *
      * When invoked, retrieves the access token (if available) from the storage method chosen when
      * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
      * If the token has expired, automatically refreshes the token and returns the new token. */
-    react.useEffect(() => {
+    React.useEffect(() => {
         const fetchSession = async () => {
             if (session.none) {
                 setInitialized(true)
@@ -206,7 +208,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 logger.error(error)
             }
         })
-    }, [session])
+        // `setBackend` changing must not trigger a re-render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cognito, logger, onAuthenticated, session])
 
     const withLoadingToast =
         <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
@@ -374,7 +378,7 @@ function isUserFacingError(value: unknown): value is UserFacingError {
  * Only the hook is exported, and not the context, because we only want to use the hook directly and
  * never the context component. */
 export function useAuth() {
-    return react.useContext(AuthContext)
+    return React.useContext(AuthContext)
 }
 
 // =======================

@@ -1,5 +1,5 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as auth from '../../authentication/providers/auth'
 import * as modalProvider from '../../providers/modal'
@@ -16,7 +16,7 @@ interface UserMenuItemProps {
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
+function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
     const { children, onClick } = props
 
     return (

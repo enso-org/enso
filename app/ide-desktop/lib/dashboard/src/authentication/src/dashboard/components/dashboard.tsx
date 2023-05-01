@@ -1,6 +1,6 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as common from 'enso-common'
 
@@ -213,7 +213,7 @@ export const COLUMN_RENDERER: Record<
 
         // This is not a React component even though it contains JSX.
         // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-        const onContextMenu = (event: react.MouseEvent) => {
+        const onContextMenu = (event: React.MouseEvent) => {
             event.preventDefault()
             event.stopPropagation()
             setModal(() => (
@@ -272,29 +272,29 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [query, setQuery] = react.useState('')
-    const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
-    const [directoryStack, setDirectoryStack] = react.useState<backendModule.DirectoryAsset[]>([])
+    const [query, setQuery] = React.useState('')
+    const [directoryId, setDirectoryId] = React.useState(rootDirectoryId(organization.id))
+    const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
-    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
-    const [tab, setTab] = react.useState(Tab.dashboard)
-    const [project, setProject] = react.useState<backendModule.Project | null>(null)
-    const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
-    const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
+    const [columnDisplayMode, setColumnDisplayMode] = React.useState(ColumnDisplayMode.release)
+    const [tab, setTab] = React.useState(Tab.dashboard)
+    const [project, setProject] = React.useState<backendModule.Project | null>(null)
+    const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
+    const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
 
-    const [projectAssets, setProjectAssets] = react.useState<backendModule.ProjectAsset[]>([])
-    const [directoryAssets, setDirectoryAssets] = react.useState<backendModule.DirectoryAsset[]>([])
-    const [secretAssets, setSecretAssets] = react.useState<backendModule.SecretAsset[]>([])
-    const [fileAssets, setFileAssets] = react.useState<backendModule.FileAsset[]>([])
-    const [visibleProjectAssets, setVisibleProjectAssets] = react.useState(projectAssets)
-    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState(directoryAssets)
-    const [visibleSecretAssets, setVisibleSecretAssets] = react.useState(secretAssets)
-    const [visibleFileAssets, setVisibleFileAssets] = react.useState(fileAssets)
+    const [projectAssets, setProjectAssets] = React.useState<backendModule.ProjectAsset[]>([])
+    const [directoryAssets, setDirectoryAssets] = React.useState<backendModule.DirectoryAsset[]>([])
+    const [secretAssets, setSecretAssets] = React.useState<backendModule.SecretAsset[]>([])
+    const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
+    const [visibleProjectAssets, setVisibleProjectAssets] = React.useState(projectAssets)
+    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = React.useState(directoryAssets)
+    const [visibleSecretAssets, setVisibleSecretAssets] = React.useState(secretAssets)
+    const [visibleFileAssets, setVisibleFileAssets] = React.useState(fileAssets)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             if (
                 // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
@@ -323,7 +323,7 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
         if (cachedDirectoryStackJson) {
             // The JSON was inserted by the code below, so it will always have the right type.
@@ -338,29 +338,29 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (directoryId === rootDirectoryId(organization.id)) {
             localStorage.removeItem(DIRECTORY_STACK_KEY)
         } else {
             localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
         }
-    }, [directoryStack])
+    }, [directoryStack, directoryId, organization.id])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
     }, [query, projectAssets])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         setVisibleDirectoryAssets(directoryAssets.filter(asset => asset.title.includes(query)))
     }, [query, directoryAssets])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         setVisibleSecretAssets(secretAssets.filter(asset => asset.title.includes(query)))
     }, [query, secretAssets])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
-    }, [])
+    }, [query, fileAssets])
 
     hooks.useAsyncEffect(
         null,
@@ -554,7 +554,7 @@ function Dashboard(props: DashboardProps) {
             <>{COLUMN_NAME[column]}</>
         )
 
-    const handleEscapeKey = (event: react.KeyboardEvent<HTMLDivElement>) => {
+    const handleEscapeKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (
             event.key === 'Escape' &&
             !event.ctrlKey &&
@@ -569,7 +569,7 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    const openDropZone = (event: react.DragEvent<HTMLDivElement>) => {
+    const openDropZone = (event: React.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
         }

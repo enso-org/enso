@@ -1,5 +1,5 @@
 /** @file An interactive button displaying the status of a project. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -49,12 +49,12 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { project, onClose, appRunner, openIde } = props
     const { backend } = backendProvider.useBackend()
 
-    const [state, setState] = react.useState(backendModule.ProjectState.created)
-    const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
-    const [isCheckingResources, setIsCheckingResources] = react.useState(false)
-    const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
+    const [state, setState] = React.useState(backendModule.ProjectState.created)
+    const [isCheckingStatus, setIsCheckingStatus] = React.useState(false)
+    const [isCheckingResources, setIsCheckingResources] = React.useState(false)
+    const [spinnerState, setSpinnerState] = React.useState(SpinnerState.done)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         void (async () => {
             const projectDetails = await backend.getProjectDetails(project.id)
             setState(projectDetails.state.type)
@@ -65,7 +65,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })()
     }, [])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (backend.platform === platform.Platform.desktop) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
                 setIsCheckingResources(false)
@@ -76,7 +76,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
     }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!isCheckingStatus) {
             return
         } else {
@@ -97,9 +97,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 clearInterval(handle)
             }
         }
-    }, [isCheckingStatus])
+    }, [isCheckingStatus, project.id, backend])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!isCheckingResources) {
             return
         } else {
@@ -128,7 +128,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 clearInterval(handle)
             }
         }
-    }, [isCheckingResources])
+    }, [isCheckingResources, project.id, backend])
 
     function closeProject() {
         setState(backendModule.ProjectState.closed)

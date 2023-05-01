@@ -1,4 +1,5 @@
 /** @file Styled wrapper around {@link Svg} icons. */
+import * as React from 'react'
 
 // ===============
 // === SvgIcon ===

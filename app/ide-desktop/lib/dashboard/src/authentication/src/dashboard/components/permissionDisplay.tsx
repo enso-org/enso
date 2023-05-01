@@ -1,5 +1,5 @@
 /** @file Colored border around icons and text indicating permissions. */
-import * as react from 'react'
+import * as React from 'react'
 
 // =============
 // === Types ===
@@ -44,7 +44,7 @@ export interface PermissionDisplayProps {
 }
 
 /** Colored border around icons and text indicating permissions. */
-function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps>) {
+function PermissionDisplay(props: React.PropsWithChildren<PermissionDisplayProps>) {
     const { permissions, children } = props
     let permissionBorder
     switch (permissions.type) {

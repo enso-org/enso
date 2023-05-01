@@ -2,7 +2,7 @@
  * This should never be used directly, but instead should be wrapped in a component
  * that creates a specific asset type. */
 
-import * as react from 'react'
+import * as React from 'react'
 
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
@@ -16,16 +16,16 @@ export interface CreateFormPassthroughProps {
 }
 
 /** `CreateFormPassthroughProps`, plus props that should be defined in the wrapper component. */
-export interface CreateFormProps extends CreateFormPassthroughProps, react.PropsWithChildren {
+export interface CreateFormProps extends CreateFormPassthroughProps, React.PropsWithChildren {
     title: string
-    onSubmit: (event: react.FormEvent) => Promise<void>
+    onSubmit: (event: React.FormEvent) => Promise<void>
 }
 
 function CreateForm(props: CreateFormProps) {
     const { title, left, top, children, onSubmit: wrapperOnSubmit } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    async function onSubmit(event: react.FormEvent) {
+    async function onSubmit(event: React.FormEvent) {
         event.preventDefault()
         await wrapperOnSubmit(event)
     }

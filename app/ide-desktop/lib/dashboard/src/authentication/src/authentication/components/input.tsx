@@ -1,11 +1,11 @@
 /** @file Styled input element. */
-import * as react from 'react'
+import * as React from 'react'
 
 // =============
 // === Input ===
 // =============
 
-export interface InputProps extends react.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     value: string
     setValue: (value: string) => void
 }

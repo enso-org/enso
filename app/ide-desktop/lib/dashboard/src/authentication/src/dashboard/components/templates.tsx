@@ -1,4 +1,6 @@
 /** @file Renders the list of templates from which a project can be created. */
+import * as React from 'react'
+
 import * as svg from '../../components/svg'
 
 // =================

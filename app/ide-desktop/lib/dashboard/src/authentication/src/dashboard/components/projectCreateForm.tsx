@@ -1,5 +1,5 @@
 /** @file Form to create a project. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
@@ -19,13 +19,13 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [name, setName] = react.useState<string | null>(null)
-    const [template, setTemplate] = react.useState<string | null>(null)
+    const [name, setName] = React.useState<string | null>(null)
+    const [template, setTemplate] = React.useState<string | null>(null)
 
     if (backend.platform === platform.Platform.desktop) {
         return <></>
     } else {
-        const onSubmit = async (event: react.FormEvent) => {
+        const onSubmit = async (event: React.FormEvent) => {
             event.preventDefault()
             if (name == null) {
                 toast.error('Please provide a project name.')

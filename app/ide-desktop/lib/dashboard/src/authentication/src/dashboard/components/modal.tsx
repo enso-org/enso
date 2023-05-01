@@ -1,5 +1,5 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as modalProvider from '../../providers/modal'
 
@@ -7,7 +7,7 @@ import * as modalProvider from '../../providers/modal'
 // === Component ===
 // =================
 
-export interface ModalProps extends react.PropsWithChildren {
+export interface ModalProps extends React.PropsWithChildren {
     centered?: boolean
     className?: string
 }

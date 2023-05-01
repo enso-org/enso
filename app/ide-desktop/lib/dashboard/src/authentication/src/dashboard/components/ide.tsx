@@ -1,5 +1,5 @@
 /** @file Container that launches the IDE. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -29,7 +29,7 @@ function Ide(props: Props) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
@@ -110,7 +110,9 @@ function Ide(props: Props) {
                 }
             }
         })()
-    }, [project])
+        // The project may have a different backend to the current backend.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project, appRunner])
 
     return <></>
 }

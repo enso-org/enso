@@ -1,6 +1,6 @@
 /** @file Provider for the {@link SessionContextType}, which contains information about the
  * currently authenticated user's session. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as results from 'ts-results'
 
@@ -18,7 +18,7 @@ interface SessionContextType {
 }
 
 /** See {@link AuthContext} for safety details. */
-const SessionContext = react.createContext<SessionContextType>(
+const SessionContext = React.createContext<SessionContextType>(
     // eslint-disable-next-line no-restricted-syntax
     {} as SessionContextType
 )
@@ -42,7 +42,7 @@ interface SessionProviderProps {
     mainPageUrl: URL
     registerAuthEventListener: listen.ListenFunction
     userSession: () => Promise<results.Option<cognito.UserSession>>
-    children: react.ReactNode
+    children: React.ReactNode
 }
 
 export function SessionProvider(props: SessionProviderProps) {
@@ -52,7 +52,7 @@ export function SessionProvider(props: SessionProviderProps) {
 
     /** Flag used to avoid rendering child components until we've fetched the user's session at least
      * once. Avoids flash of the login screen when the user is already logged in. */
-    const [initialized, setInitialized] = react.useState(false)
+    const [initialized, setInitialized] = React.useState(false)
 
     /** Register an async effect that will fetch the user's session whenever the `refresh` state is
      * incremented. This is useful when a user has just logged in (as their cached credentials are
@@ -73,7 +73,7 @@ export function SessionProvider(props: SessionProviderProps) {
      *
      * For example, if a user clicks the signout button, this will clear the user's session, which
      * means we want the login screen to render (which is a child of this provider). */
-    react.useEffect(() => {
+    React.useEffect(() => {
         const listener: listen.ListenerCallback = event => {
             switch (event) {
                 case listen.AuthEvent.signIn:
@@ -105,7 +105,7 @@ export function SessionProvider(props: SessionProviderProps) {
          * cleaned up between renders. This must be done because the `useEffect` will be called
          * multiple times during the lifetime of the component. */
         return cancel
-    }, [registerAuthEventListener])
+    }, [doRefresh, registerAuthEventListener, mainPageUrl])
 
     const value = { session }
 
@@ -119,5 +119,5 @@ export function SessionProvider(props: SessionProviderProps) {
 // ==================
 
 export function useSession() {
-    return react.useContext(SessionContext)
+    return React.useContext(SessionContext)
 }
