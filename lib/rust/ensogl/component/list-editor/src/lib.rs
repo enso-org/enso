@@ -380,13 +380,9 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let on_move = scene.on_event::<mouse::Move>();
 
         let dragged_item_network: Rc<RefCell<Option<frp::Network>>> = default();
-
         let on_resized = model.borrow().layout.on_resized.clone_ref();
-
         let drag_target = cursor::DragTarget::new();
-
         frp::extend! { network
-
             target <= on_down.map(|event| event.target());
 
             on_up <- on_up_source.identity();
@@ -407,18 +403,6 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
             eval frp.gap((t) model.borrow_mut().set_gap(*t));
 
-            // pos_on_move_is_close <- all_with3(&pos_on_move, &frp.gap, &model.borrow().layout.on_resized,
-            //     |pos, gap, size| {
-            //         let is_close_x = pos.x > -gap && pos.x < size.x + gap;
-            //         let is_close_y = pos.y > -gap && pos.y < size.y + gap;
-            //         is_close_x && is_close_y
-            //     }
-            // );
-            // trace pos_on_move;
-            // pos_on_move_if_close <- pos_on_move.gate(&pos_on_move_is_close);
-
-
-
             dragged_item_offset <- source::<Vector2>();
             dragged_item_size <- any(...);
             eval_ cursor.frp.stop_drag([dragged_item_network]
@@ -436,22 +420,14 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
                     *dragged_item_network.borrow_mut() = Some(subnet);
                 }
             });
-            // trace dragged_item_offset;
 
             this_bbox <- on_resized.map(|t| BoundingBox::from_size(*t));
             dragged_item_bbox <- all_with3(&dragged_item_size, &dragged_item_offset, &pos_on_move,
                 |size, offset, pos| BoundingBox::from_position_and_size(*pos + *offset, *size)
             );
-            // trace dragged_item_bbox;
             is_close2 <- all_with(&this_bbox, &dragged_item_bbox, |a, b| a.intersects(b)).on_change();
             dragged_item_bbox_center <- dragged_item_bbox.map(|bbox| bbox.center());
-
-            // trace drag_target.granted;
             cursor.frp.switch_drag_target <+ is_close2.map(f!([drag_target] (t) (drag_target.clone(), *t)));
-            // on_close <- is_close2.on_true();
-            // foo <- on_close.map(f_!(drag_target.clone()));
-
-            // trace is_close2;
         }
 
         self.init_add_and_remove();
@@ -460,14 +436,11 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         frp::extend! { network
             on_up_dragging <- on_up.gate(&is_close2);
         }
-        // let (is_trashing, trash_pointer_style) =
-        //     self.init_trashing(&drag_target, &on_up, &drag_diff);
         self.init_dropping(&on_up_dragging, &dragged_item_bbox_center, &is_close2);
         let insert_pointer_style = self.init_insertion_points(&on_up, &pos_on_move, &is_dragging);
 
         frp::extend! { network
             cursor.frp.set_style_override <+ insert_pointer_style;
-            // cursor.frp.set_style_override <+ all [insert_pointer_style, trash_pointer_style].fold();
             on_down_drag <- on_down.gate_not(&no_drag);
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
@@ -603,35 +576,6 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         (status, drag_diff, no_drag)
     }
 
-    // /// Implementation of item trashing logic. See docs of this crate to learn more.
-    // fn init_trashing(
-    //     &self,
-    //     drag_target: &cursor::DragTarget,
-    //     on_up: &frp::Stream<Event<mouse::Up>>,
-    //     drag_diff: &frp::Stream<Vector2>,
-    // ) -> (frp::Stream<bool>, frp::Stream<Option<cursor::Style>>) {
-    //     let on_up = on_up.clone_ref();
-    //     let drag_diff = drag_diff.clone_ref();
-    //     let model = &self.model;
-    //     let layout = model.borrow().layout.clone_ref();
-    //     let frp = &self.frp;
-    //     let network = self.frp.network();
-    //     frp::extend! { network
-    //         required_offset <- all_with(&frp.thrashing_offset_ratio, &layout.on_resized,
-    //             |ratio, size| size.y * ratio
-    //         );
-    //         status <- drag_diff.map2(&required_offset, |t, m| t.y.abs() >= *m).on_change();
-    //         status_on_up <- on_up.constant(false);
-    //         status_cleaning_phase <- any(&status, &status_on_up).on_change();
-    //         cursor_style <- status_cleaning_phase.then_constant(cursor::Style::trash());
-    //         on <- status.on_true();
-    //         perform <- on_up.gate(&status);
-    //         eval_ on (model.collapse_all_placeholders());
-    //         // eval_ perform (model.borrow_mut().trash_dragged_item());
-    //     }
-    //     (status, cursor_style)
-    // }
-
     /// Implementation of dropping items logic, including showing empty placeholders when the item
     /// is dragged over a place where it could be dropped.
     fn init_dropping(
@@ -654,10 +598,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             pos_close <- pos_on_move.sampled_gate(&is_close);
             insert_index <- pos_close.map2(&center_points, f!((p, c) model.insert_index(p.x, c)));
             insert_index <- insert_index.on_change();
-            // insert_index <- insert_index.sampled_gate_not(&is_trashing);
             insert_index <- insert_index.sampled_gate(&is_close);
-
-            // _eval <- insert_index.trace_if(&frp.debug);
 
             eval_ on_far (model.collapse_all_placeholders());
             eval insert_index ((i) model.borrow_mut().add_insertion_point_if_type_match(*i));
