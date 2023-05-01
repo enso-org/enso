@@ -142,6 +142,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . second . should_equal 1
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal "Europe/Paris"
+            time.to_display_text . should_equal "1970-01-01 00:00:01 Europe/Paris"
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_datetime "2008-1-1" . catch of
@@ -199,6 +200,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . second . should_equal 1
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal tz.zone_id
+            time.to_display_text . should_equal "1970-01-01 01:01:01 +01:01:01"
 
         Test.specify "should set id-based timezone" <|
             tz = Time_Zone.parse "Europe/Moscow"
@@ -211,6 +213,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . second . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal tz.zone_id
+            time.to_display_text . should_equal "1970-01-01 03:00:00 Europe/Moscow"
 
         Test.specify "should get time of day from offsed-based time" <|
             time = parse_datetime "1970-01-01T00:00:01+01:00" . time_of_day

@@ -12,7 +12,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    db_todo = if prefix.contains "In-Memory" then Nothing else "Table.transpose is not implemented yet in Database."
+    db_todo = if setup.is_database.not then Nothing else "Table.transpose is not implemented yet in Database."
     Test.group prefix+"Table.transpose" pending=db_todo <|
         Test.specify "should transpose all columns by default" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]

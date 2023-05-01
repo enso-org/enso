@@ -31,9 +31,6 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
         ctx.jobControlPlane.abortAllJobs()
         ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
         executeJobs.foreach(ctx.jobProcessor.run)
-      } else {
-        ctx.jobControlPlane.abortAllExcept(classOf[ExecuteJob])
-        ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
       }
       Future.successful(())
     } finally {

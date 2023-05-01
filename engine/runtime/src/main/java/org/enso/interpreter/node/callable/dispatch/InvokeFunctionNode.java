@@ -82,7 +82,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
               "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), getTailStatus())")
           CurryNode curryNode) {
     ArgumentSorterNode.MappedArguments mappedArguments =
-        mappingNode.execute(function, state, arguments);
+        mappingNode.execute(callerFrame, function, state, arguments);
     CallerInfo callerInfo = null;
     if (cachedSchema.getCallerFrameAccess().shouldFrameBePassed()) {
       callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
@@ -121,6 +121,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(
+            callerFrame,
             function.getSchema(),
             argumentMapping,
             getArgumentsExecutionMode(),

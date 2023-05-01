@@ -14,7 +14,7 @@ class ImportsTest extends PackageTest {
   "Overloaded methods" should "not be visible when not imported" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestNonImportedOverloads"
-    ) should have message "Method `method` of Mk_X could not be found."
+    ) should have message "Method `method` of type X could not be found."
   }
 
   "Import statements" should "report errors when they cannot be resolved" in {
@@ -101,13 +101,13 @@ class ImportsTest extends PackageTest {
   "Importing module's types" should "not bring extension methods into the scope " in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Extension_Methods_Failure"
-    ) should have message "Method `foo` of 1 (Integer) could not be found."
+    ) should have message "Method `foo` of type Integer could not be found."
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestSubmodulesNameConflict"
-    ) should have message "Method `c_mod_method` of C could not be found."
+    ) should have message "Method `c_mod_method` of type C.type could not be found."
     val outLines = consumeOut
     outLines(2) should include
     "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
@@ -183,7 +183,7 @@ class ImportsTest extends PackageTest {
   "Fully qualified names" should "detect conflicts with the exported types sharing the namespace" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Fully_Qualified_Name_Conflict"
-    ) should have message "Method `Foo` of Atom could not be found."
+    ) should have message "Method `Foo` of type Atom.type could not be found."
     val outLines = consumeOut
     outLines should have length 3
     outLines(

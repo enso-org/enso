@@ -269,6 +269,7 @@ export default [
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
+            '@typescript-eslint/no-empty-interface': 'off',
             '@typescript-eslint/no-extraneous-class': 'error',
             '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
             // React 17 and later supports async functions as event handlers, so we need to disable this

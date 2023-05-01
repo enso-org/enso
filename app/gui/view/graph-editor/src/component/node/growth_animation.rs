@@ -8,7 +8,7 @@
 use ensogl::prelude::*;
 
 use crate::application::command::FrpNetworkProvider;
-use crate::GraphEditorModelWithNetwork;
+use crate::GraphEditorModel;
 use crate::NodeId;
 
 use enso_frp as frp;
@@ -33,11 +33,7 @@ const ANIMATION_LENGTH_COEFFIENT: f32 = 15.0;
 
 /// Initialize edited node growth/shrink animator. It would handle scene layer change for the edited
 /// node as well.
-pub fn initialize_edited_node_animator(
-    model: &GraphEditorModelWithNetwork,
-    frp: &crate::Frp,
-    scene: &Scene,
-) {
+pub fn initialize_edited_node_animator(model: &GraphEditorModel, frp: &crate::Frp, scene: &Scene) {
     let network = &frp.network();
     let out = &frp.output;
     let searcher_cam = scene.layers.node_searcher.camera();
@@ -112,7 +108,7 @@ pub fn initialize_edited_node_animator(
 
 // === Helpers ===
 
-impl GraphEditorModelWithNetwork {
+impl GraphEditorModel {
     /// Move node to the `edited_node` scene layer, so that it is rendered by the separate camera.
     #[profile(Debug)]
     fn move_node_to_edited_node_layer(&self, node_id: NodeId) {

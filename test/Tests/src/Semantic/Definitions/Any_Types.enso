@@ -1,0 +1,20 @@
+from Standard.Base import all
+
+type My_Type
+    Value a
+
+Any.x self = "Any:" + self.to_text
+
+type With_X
+    Value b
+
+    x self = "With_X:" + self.to_text
+    y self = "With_X:" + self.to_text
+
+type With_Y
+    Value b
+
+    x self = "With_Y:" + self.to_text
+    y self = "With_Y:" + self.to_text
+
+    to_text self = "With_Y("+self.b.to_text+")"

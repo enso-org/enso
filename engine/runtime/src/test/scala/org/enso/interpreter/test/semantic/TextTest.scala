@@ -131,10 +131,10 @@ class TextTest extends InterpreterTest {
         "Syntax error: foo.",
         "Type error: expected `myvar` to be Nothing, but got List.",
         "Compile error: error :(.",
-        "Inexhaustive pattern match: no branch matches 32 (Integer).",
+        "Inexhaustive pattern match: no branch matches 32.",
         "Arithmetic error: cannot frobnicate quaternions.",
         "Type error: expected `that` to be Number, but got Text.",
-        "Type error: expected a function, but got 7 (Integer).",
+        "Type error: expected a function, but got 7.",
         "Wrong number of arguments. Expected 10, but got 20."
       )
     }

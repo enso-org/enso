@@ -92,7 +92,7 @@ function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps
     return (
         <div className="m-1 relative inline-block">
             {permissionBorder}
-            <div className="bg-label rounded-full px-2 py-1 m-1">{children}</div>
+            <div className="bg-label rounded-full m-1">{children}</div>
         </div>
     )
 }

@@ -12,6 +12,7 @@ from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_
 
 import Standard.Visualization
 
+import Standard.Database.Extensions.Upload_Table
 from Standard.Database import Database, SQLite, In_Memory
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -530,24 +531,42 @@ spec =
             c_3 = ['Y', [5.3, 56.2, 6.3]]
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
-            expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] <| table.use_first_row_as_names
+            expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] table.use_first_row_as_names
 
         Test.specify "should correctly handle problems: invalid names ''" <|
             c_0 = ['A', ["", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [1, 2, 3]]
-            table = Table.new [c_0, c_2]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["Column_1", "1"]
+            tester = expect_column_names ["Column_1", "1980-01-01", "1", "5.3", "True"]
             problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
             c_0 = ['A', ["A", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [Nothing, 2, 3]]
-            table = Table.new [c_0, c_2]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "Column_1"]
+            tester = expect_column_names ["A", "1980-01-01", "Column_1", "5.3", "True"]
             problems = [Invalid_Output_Column_Names.Error [Nothing]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: multiple invalid names" <|
+            c_0 = ['A', ["", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
+            c_2 = ['x', [Nothing, 2, 3]]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
+            action = table.use_first_row_as_names on_problems=_
+            tester = expect_column_names ["Column_1", "1980-01-01", "Column_2", "5.3", "True"]
+            problems = [Invalid_Output_Column_Names.Error ["", Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -834,8 +853,8 @@ spec =
             t = Table.new [["X", [1, 2, 3]]]
             t.join 42 . should_fail_with Type_Error
 
-            db = Database.connect (SQLite In_Memory)
-            db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
+            db_connection = Database.connect (SQLite In_Memory)
+            db_table = (Table.new [["Y", [4, 5, 6]]]).create_database_table db_connection "test"
 
             r = t.join db_table
             r.should_fail_with Illegal_Argument

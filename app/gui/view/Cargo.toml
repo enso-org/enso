@@ -23,7 +23,7 @@ ensogl-text = { path = "../../../lib/rust/ensogl/component/text" }
 ensogl-text-msdf = { path = "../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded" }
 ide-view-component-browser = { path = "component-browser" }
-ide-view-execution-mode-selector = { path = "execution-mode-selector" }
+ide-view-execution-environment-selector = { path = "execution-environment-selector" }
 ide-view-documentation = { path = "documentation" }
 ide-view-graph-editor = { path = "graph-editor" }
 span-tree = { path = "../language/span-tree" }

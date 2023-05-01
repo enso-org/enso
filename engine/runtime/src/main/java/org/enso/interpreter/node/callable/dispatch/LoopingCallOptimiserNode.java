@@ -7,6 +7,7 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
@@ -72,6 +73,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
   @Specialization(replaces = "dispatch")
   @CompilerDirectives.TruffleBoundary
   public Object uncachedDispatch(
+      MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
       State state,
@@ -79,7 +81,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       @Cached ExecuteCallNode executeCallNode) {
     while (true) {
       try {
-        return executeCallNode.executeCall(function, callerInfo, state, arguments);
+        return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
       } catch (TailCallException e) {
         function = e.getFunction();
         callerInfo = e.getCallerInfo();
@@ -211,7 +213,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
         Object[] arguments = getNextArgs(frame);
         CallerInfo callerInfo = getCallerInfo(frame);
         frame.setObject(
-            resultSlotIdx, dispatchNode.executeCall(function, callerInfo, state, arguments));
+            resultSlotIdx, dispatchNode.executeCall(frame, function, callerInfo, state, arguments));
         return false;
       } catch (TailCallException e) {
         setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getArguments());

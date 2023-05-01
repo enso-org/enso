@@ -7,21 +7,17 @@ import Standard.Test.Extensions
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-Table.should_equal self expected =
-    self_cols = self.columns
-    that_cols = expected.columns
-    self_cols.map .name . should_equal (that_cols.map .name) frames_to_skip=1
-    self_cols.map .to_vector . should_equal (that_cols.map .to_vector) frames_to_skip=1
-
-Table.should_equal_verbose self expected =
-    tables_equal t0 t1 =
-        same_headers = (t0.columns.map .name) == (t1.columns.map .name)
-        same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
-        same_headers && same_columns
-    equal = tables_equal self expected
-    if equal.not then
-        msg = 'Tables differ.\nActual:\n' + self.display + '\nExpected:\n' + expected.display
-        Test.fail msg
+Table.should_equal self expected = case expected of
+    _ : Table ->
+        tables_equal t0 t1 =
+            same_headers = (t0.columns.map .name) == (t1.columns.map .name)
+            same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
+            same_headers && same_columns
+        equal = tables_equal self expected
+        if equal.not then
+            msg = 'Tables differ.\nActual:\n' + self.display + '\nExpected:\n' + expected.display
+            Test.fail msg
+    _ -> Test.fail "Got a Table, but expected a "+expected.to_display_text
 
 Column.should_equal self expected =
     if self.name != expected.name then

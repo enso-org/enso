@@ -4,9 +4,14 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import org.graalvm.polyglot.Source;
+import org.openjdk.jmh.infra.BenchmarkParams;
 
 final class SrcUtil {
   private SrcUtil() {
+  }
+
+  static String findName(BenchmarkParams params) {
+    return params.getBenchmark().replaceFirst(".*\\.", "");
   }
 
   static Source source(String benchmarkName, String code) throws IOException {

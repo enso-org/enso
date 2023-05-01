@@ -38,13 +38,16 @@ const STATUS_ICON: Record<Status, JSX.Element | null> = {
 
 export interface LabelProps {
     status?: Status
+    onContextMenu?: react.MouseEventHandler<HTMLDivElement>
 }
 
 /** A label, which may be either user-defined, or a system warning message. */
-function Label({ status = Status.none, children }: react.PropsWithChildren<LabelProps>) {
+function Label(props: react.PropsWithChildren<LabelProps>) {
+    const { status = Status.none, children, onContextMenu } = props
     return (
         <div
             className={`${CSS_CLASS[status]} whitespace-nowrap rounded-full inline-flex flex-row flex-nowrap align-middle items-center leading-[27px] m-1`}
+            onContextMenu={onContextMenu}
         >
             {STATUS_ICON[status]}
             <div className={STATUS_ICON[status] ? 'pr-2' : 'px-2'}>{children}</div>

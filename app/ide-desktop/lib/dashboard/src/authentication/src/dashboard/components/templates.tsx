@@ -61,7 +61,7 @@ const TEMPLATES: Template[] = [
 interface TemplatesRenderProps {
     // Later this data may be requested and therefore needs to be passed dynamically.
     templates: Template[]
-    onTemplateClick: (name?: string | null) => void
+    onTemplateClick: (name: string | null) => void
 }
 
 function TemplatesRender(props: TemplatesRenderProps) {
@@ -71,7 +71,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
     const CreateEmptyTemplate = (
         <button
             onClick={() => {
-                onTemplateClick()
+                onTemplateClick(null)
             }}
             className="h-40 cursor-pointer"
         >
@@ -115,7 +115,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
 
 /** The `TemplatesRender`'s container. */
 interface TemplatesProps {
-    onTemplateClick: (name?: string | null) => void
+    onTemplateClick: (name: string | null) => void
 }
 
 function Templates(props: TemplatesProps) {

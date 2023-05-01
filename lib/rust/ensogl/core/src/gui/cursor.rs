@@ -54,6 +54,7 @@ define_style! {
     press: f32,
     port_selection_layer : bool,
     trash: f32,
+    plus: f32,
 }
 
 
@@ -64,6 +65,7 @@ impl Style {
     pub fn new_highlight<H, Color: Into<color::Lcha>>(
         host: H,
         size: Vector2<f32>,
+        radius: f32,
         color: Option<Color>,
     ) -> Self
     where
@@ -71,12 +73,14 @@ impl Style {
     {
         let host = Some(StyleValue::new(host.display_object().clone_ref()));
         let size = Some(StyleValue::new(size));
+        let radius = Some(StyleValue::new(radius));
+        let press = Some(StyleValue::new(0.0));
         let color = color.map(|color| {
             let color = color.into();
             StyleValue::new(color)
         });
         let port_selection_layer = Some(StyleValue::new_no_animation(true));
-        Self { host, size, color, port_selection_layer, ..default() }
+        Self { host, size, radius, color, port_selection_layer, press, ..default() }
     }
 
     pub fn new_color(color: color::Lcha) -> Self {
@@ -106,6 +110,11 @@ impl Style {
         let trash = Some(StyleValue::new(1.0));
         Self { trash, ..default() }
     }
+
+    pub fn plus() -> Self {
+        let plus = Some(StyleValue::new(1.0));
+        Self { plus, ..default() }
+    }
 }
 
 
@@ -127,16 +136,6 @@ impl Style {
 }
 
 
-// === Getters ===
-
-#[allow(missing_docs)]
-impl Style {
-    pub fn host_position(&self) -> Option<Vector3<f32>> {
-        self.host.as_ref().and_then(|t| t.value.as_ref().map(|t| t.position()))
-    }
-}
-
-
 
 // ==================
 // === CursorView ===
@@ -153,13 +152,14 @@ pub mod shape {
             radius: f32,
             color: Vector4,
             trash: f32,
+            plus: f32,
         ) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let press_side_shrink = 2.px();
             let press_diff        = press_side_shrink * &press;
-            let radius            = 1.px() * radius - &press_diff;
-            let sides_padding     = 1.px() * SIDES_PADDING;
+            let radius            = radius.px() - &press_diff;
+            let sides_padding     = SIDES_PADDING.px();
             let width             = &width  - &press_diff * 2.0 - &sides_padding;
             let height            = &height - &press_diff * 2.0 - &sides_padding;
             let cursor            = Rect((&width,&height)).corners_radius(radius);
@@ -167,13 +167,24 @@ pub mod shape {
             let color: Var<color::Rgba> = color.into();
             let trash_color: Var<color::Rgba> = color::Rgba::new(0.91, 0.32, 0.32, 1.0).into();
             let color = color.mix(&trash_color, &trash);
+
+            let plus_color: Var<color::Rgba> = color::Rgba::new(0.39, 0.71, 0.15, 1.0).into();
+            let color = color.mix(&plus_color, &plus);
+
+
             let cursor            = cursor.fill(color);
 
             let trash_bar1 = Rect((2.px(), (&height - 4.px()) * &trash - 1.px()));
             let trash_bar2 = trash_bar1.rotate((PI/2.0).radians());
             let trash_bar_x = (trash_bar1 + trash_bar2).rotate((PI/4.0).radians());
             let trash_bar_x = trash_bar_x.fill(color::Rgba::new(1.0,1.0,1.0,0.8));
-            let cursor = cursor + trash_bar_x;
+
+            let plus_bar1 = Rect((2.px(), (&height - 4.px()) * &plus - 1.px()));
+            let plus_bar2 = plus_bar1.rotate((PI/2.0).radians());
+            let plus_sign = plus_bar1 + plus_bar2;
+            let plus_sign = plus_sign.fill(color::Rgba::new(1.0,1.0,1.0,0.8));
+
+            let cursor = cursor + trash_bar_x + plus_sign;
             cursor.into()
         }
     }
@@ -187,6 +198,7 @@ pub mod shape {
 
 crate::define_endpoints_2! {
     Input {
+        set_style_override (Option<Style>),
         set_style (Style),
     }
 
@@ -298,6 +310,7 @@ impl Cursor {
         let host_attached_weight = Easing::new(network);
         let port_selection_layer_weight = Animation::<f32>::new(network);
         let trash = Animation::<f32>::new(network);
+        let plus = Animation::<f32>::new(network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
@@ -316,6 +329,7 @@ impl Cursor {
                 model.for_each_view(|vw| {vw.set_size(dim);});
             });
             eval trash.value ((v) model.for_each_view(|vw| vw.trash.set(*v)));
+            eval plus.value ((v) model.for_each_view(|vw| vw.plus.set(*v)));
 
             alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);
 
@@ -329,7 +343,8 @@ impl Cursor {
                 color::Rgba::new(color.red,color.green,color.blue,color.alpha*w)
             });
 
-            eval frp.set_style([host_attached_weight,size,offset,model] (new_style) {
+            style <- frp.set_style_override.unwrap_or(&frp.set_style);
+            eval style([host_attached_weight,size,offset,model] (new_style) {
                 host_attached_weight.stop_and_rewind(0.0);
                 if new_style.host.is_some() { host_attached_weight.target(1.0) }
 
@@ -394,6 +409,11 @@ impl Cursor {
                     Some(t) => trash.target.emit(t.value.unwrap_or(0.0)),
                 }
 
+                match &new_style.plus {
+                    None => plus.target.emit(0.0),
+                    Some(t) => plus.target.emit(t.value.unwrap_or(0.0)),
+                }
+
                 *model.style.borrow_mut() = new_style.clone();
             });
 
@@ -407,11 +427,17 @@ impl Cursor {
             ).constant(());
 
             host_changed    <- any_(frp.set_style,scene.frp.camera_changed);
-            hosted_position <- host_changed.map(f_!(model.style.borrow().host_position()));
-            is_not_hosted   <- hosted_position.map(|p| p.is_none());
+            is_not_hosted   <- host_changed.map(f!((_) model.style.borrow().host.is_none()));
             mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
+            host_moved      <- host_changed.flat_map(f!([model] (_) {
+                match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
+                    None       => frp::Source::<()>::new().into(),
+                    Some(host) => host.on_transformed.clone(),
+                }
+            }));
 
-            eval_ host_changed([model,host_position,host_follow_weight] {
+            host_needs_update <- any(host_moved, host_changed);
+            eval_ host_needs_update([model,host_position,host_follow_weight] {
                 match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
                     None       => host_follow_weight.set_target_value(0.0),
                     Some(host) => {
@@ -419,9 +445,15 @@ impl Cursor {
                         let m1       = model.scene.layers.cursor.camera().inversed_view_matrix();
                         let m2       = model.scene.camera().view_matrix();
                         let position = host.global_position();
-                        let position = Vector4::new(position.x,position.y,position.z,1.0);
+                        let size = host.computed_size();
+                        let position = Vector4::new(
+                            position.x + size.x * 0.5,
+                            position.y + size.y * 0.5,
+                            position.z,
+                            1.0
+                        );
                         let position = m2 * (m1 * position);
-                        host_position.set_target_value(Vector3(position.x,position.y,position.z));
+                        host_position.set_target_value(position.xyz());
                     }
                 }
             });

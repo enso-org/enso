@@ -24,6 +24,15 @@ type Case_Sensitivity
     Insensitive locale=Locale.default
 
     ## PRIVATE
+       Convert Case_Sensitivity to a friendly string.
+    to_display_text : Text
+    to_display_text self = case self of
+        Case_Sensitivity.Default -> "Default"
+        Case_Sensitivity.Sensitive -> "Sensitive"
+        Case_Sensitivity.Insensitive locale ->
+            if locale == Locale.default then "Insensitive" else "Insensitive(" + locale.to_text + ")"
+
+    ## PRIVATE
        Creates a Java `TextFoldingStrategy` from the case sensitivity setting.
     folding_strategy : Case_Sensitivity -> TextFoldingStrategy
     folding_strategy case_sensitivity = case case_sensitivity of
@@ -43,7 +52,7 @@ type Case_Sensitivity
         Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
             True -> True
             False ->
-                msg = "Custom locales are not supported for this operationc."
+                msg = "Custom locales are not supported for this operation."
                 Error.throw (Illegal_Argument.Error msg)
 
     ## PRIVATE

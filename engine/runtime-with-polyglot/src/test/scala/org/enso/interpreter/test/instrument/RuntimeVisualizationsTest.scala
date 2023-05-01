@@ -1733,10 +1733,11 @@ class RuntimeVisualizationsTest
       Api.Response(
         requestId,
         Api.VisualisationExpressionFailed(
-          "Method `does_not_exist` of Main could not be found.",
+          "Method `does_not_exist` of type Main could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
-              message = "Method `does_not_exist` of Main could not be found.",
+              message =
+                "Method `does_not_exist` of type Main could not be found.",
               stack = Vector(
                 Api.StackTraceElement("<eval>", None, None, None),
                 Api.StackTraceElement("Debug.eval", None, None, None)
@@ -1817,10 +1818,10 @@ class RuntimeVisualizationsTest
           contextId,
           visualisationId,
           idMain,
-          "Method `visualise_me` of 50 (Integer) could not be found.",
+          "Method `visualise_me` of type Integer could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `visualise_me` of 50 (Integer) could not be found.",
+              "Method `visualise_me` of type Integer could not be found.",
               None,
               Some(model.Range(model.Position(0, 5), model.Position(0, 19))),
               None,
@@ -1929,10 +1930,10 @@ class RuntimeVisualizationsTest
           contextId,
           visualisationId,
           idMain,
-          "Method `visualise_me` of 51 (Integer) could not be found.",
+          "Method `visualise_me` of type Integer could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `visualise_me` of 51 (Integer) could not be found.",
+              "Method `visualise_me` of type Integer could not be found.",
               Some(visualisationFile),
               Some(model.Range(model.Position(1, 11), model.Position(1, 25))),
               None,
@@ -2134,10 +2135,10 @@ class RuntimeVisualizationsTest
           contextId,
           visualisationId,
           idMain,
-          "42 (Integer)",
+          "42",
           Some(
             Api.ExecutionResult.Diagnostic.error(
-              message = "42 (Integer)",
+              message = "42",
               file    = Some(mainFile),
               location =
                 Some(model.Range(model.Position(3, 4), model.Position(3, 18))),
@@ -2167,7 +2168,7 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(106, 28)
+    val idMain = metadata.addItem(106, 34)
 
     val code =
       """import Standard.Base.Data.List
@@ -2175,7 +2176,7 @@ class RuntimeVisualizationsTest
         |import Standard.Base.Error.Error
         |
         |main =
-        |    Error.throw List.Empty_Error
+        |    Error.throw List.Empty_Error.Error
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2258,7 +2259,7 @@ class RuntimeVisualizationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
+    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-38)"}"""
   }
 
   it should "run visualisation default preprocessor" in {

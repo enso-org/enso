@@ -1,10 +1,11 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Aggregate_Column, Value_Type
+from Standard.Table import Aggregate_Column, Value_Type, Table
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
 import Standard.Database.Data.Dialect
+import Standard.Database.Extensions.Upload_Table
 import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 
@@ -82,7 +83,7 @@ spec =
             # t2.at "First c" . value_type . should_equal Value_Type.Boolean
 
         Test.specify "should approximate types to the closest supported one" <|
-            t = make_table "T" [["a", "BINARY"], ["b", "INT"]]
+            t = make_table "approx-table" [["a", "BINARY"], ["b", "INT"]]
 
             t1 = t.cast "a" (Value_Type.Binary 10 variable_length=True)
             t1.at "a" . value_type . should_equal Value_Type.Binary
@@ -91,6 +92,19 @@ spec =
             t2 = t.cast "b" Value_Type.Byte
             t2.at "b" . value_type . should_equal Value_Type.Integer
             Problems.expect_warning Inexact_Type_Coercion t2
+
+        Test.specify "will coerce date/time columns to Text" <|
+            t = make_table "datetime-table" [["a", "DATE"], ["b", "TIME"], ["c", "DATETIME"], ["d", "TIMESTAMP"]]
+            t.at "a" . value_type . should_equal Value_Type.Char
+            t.at "b" . value_type . should_equal Value_Type.Char
+            t.at "c" . value_type . should_equal Value_Type.Char
+            t.at "d" . value_type . should_equal Value_Type.Char
+
+            t1 = Table.new [["a", [Date.now]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
+            t2 = t1.create_database_table connection temporary=True
+            t2.at "a" . value_type . should_equal Value_Type.Char
+            t2.at "b" . value_type . should_equal Value_Type.Char
+            t2.at "c" . value_type . should_equal Value_Type.Char
 
         Test.specify "should be able to infer types for all supported operations" <|
             dialect = Dialect.sqlite

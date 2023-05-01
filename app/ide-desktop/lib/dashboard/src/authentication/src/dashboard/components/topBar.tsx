@@ -13,16 +13,16 @@ interface TopBarProps {
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
-    searchVal: string
-    setSearchVal: (value: string) => void
+    query: string
+    setQuery: (value: string) => void
 }
 
 /**
- * The {@link TopBarProps.setSearchVal} param is used to communicate with the parent component,
+ * The {@link TopBarProps.setQuery} param is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { projectName, tab, toggleTab, searchVal, setSearchVal } = props
+    const { projectName, tab, toggleTab, query, setQuery } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -56,9 +56,9 @@ function TopBar(props: TopBarProps) {
                     <input
                         type="text"
                         placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
-                        value={searchVal}
+                        value={query}
                         onChange={event => {
-                            setSearchVal(event.target.value)
+                            setQuery(event.target.value)
                         }}
                         className="flex-1 mx-2 bg-transparent"
                     />

@@ -24,7 +24,7 @@ ensogl-drop-manager = { path = "../../../../lib/rust/ensogl/component/drop-manag
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 failure = { workspace = true }
-ide-view-execution-mode-selector = { path = "../execution-mode-selector" }
+ide-view-execution-environment-selector = { path = "../execution-environment-selector" }
 indexmap = "1.9.2"
 js-sys = { workspace = true }
 nalgebra = { workspace = true }

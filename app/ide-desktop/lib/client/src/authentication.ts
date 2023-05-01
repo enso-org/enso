@@ -75,9 +75,6 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import opener from 'opener'
-
-import * as electron from 'electron'
 
 import * as electron from 'electron'
 import opener from 'opener'

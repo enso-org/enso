@@ -239,6 +239,10 @@ impl NavigatorEvents {
         let listener = self.mouse_manager.on_wheel.add(move |event: &mouse::Wheel| {
             if let Some(data) = data.upgrade() {
                 if event.ctrl_key() {
+                    // Prevent zoom event to be handed to the browser. This avoids browser scaling
+                    // being applied to the whole IDE, thus we need to do this always when ctrl is
+                    // pressed.
+                    event.prevent_default();
                     let position = data.mouse_position();
                     let zoom_speed = data.zoom_speed();
                     let movement = Vector2::new(event.delta_x() as f32, -event.delta_y() as f32);

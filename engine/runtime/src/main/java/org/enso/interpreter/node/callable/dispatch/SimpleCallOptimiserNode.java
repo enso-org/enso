@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
@@ -44,9 +45,13 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
    */
   @Override
   public Object executeDispatch(
-      Function function, CallerInfo callerInfo, State state, Object[] arguments) {
+      VirtualFrame frame,
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments) {
     try {
-      return executeCallNode.executeCall(function, callerInfo, state, arguments);
+      return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
     } catch (TailCallException e) {
       if (next == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -60,7 +65,8 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
           lock.unlock();
         }
       }
-      return next.executeDispatch(e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+      return next.executeDispatch(
+          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
     }
   }
 }

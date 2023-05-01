@@ -135,7 +135,7 @@ ensogl::define_endpoints! {
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
-        set_expression_usage_type (Crumbs,Option<Type>),
+        set_expression_usage_type (ast::Id,Option<Type>),
     }
 
     Output {
@@ -245,12 +245,13 @@ impl Model {
 
     /// Update expression type for the particular `ast::Id`.
     #[profile(Debug)]
-    fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
-        if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
-            if let Some(frp) = &port.frp {
-                frp.set_usage_type(tp)
-            }
-        }
+    fn set_expression_usage_type(&self, id: ast::Id, tp: &Option<Type>) {
+        let crumbs_map = self.id_crumbs_map.borrow();
+        let Some(crumbs)  = crumbs_map.get(&id) else { return };
+        let expression = self.expression.borrow();
+        let Ok(port) = expression.span_tree.get_node(crumbs) else { return };
+        let Some(frp) = &port.frp else { return };
+        frp.set_usage_type(tp);
     }
 
     /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
@@ -498,7 +499,7 @@ impl Area {
             // === Expression ===
 
             eval frp.set_expression            ((a)     model.set_expression(a));
-            eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+            eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(*a,b));
 
 
             // === Label Color ===
@@ -546,10 +547,6 @@ impl Area {
             .and_then(|t| t.frp.as_ref().and_then(|frp| frp.tp.value()))
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
-        self.model.id_crumbs_map.borrow().get(&id).cloned()
-    }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {
