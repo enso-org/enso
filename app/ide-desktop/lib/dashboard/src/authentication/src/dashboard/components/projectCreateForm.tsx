@@ -2,7 +2,7 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as backendApi from '../cloudBackendApi'
+import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
@@ -10,7 +10,7 @@ import * as platform from '../../platform'
 import CreateForm, * as createForm from './createForm'
 
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendApi.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 

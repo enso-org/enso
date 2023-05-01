@@ -2,7 +2,7 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as backendApi from '../cloudBackendApi'
+import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as fileInfo from '../../fileInfo'
 import * as modalProvider from '../../providers/modal'
@@ -12,7 +12,7 @@ import * as svg from '../../components/svg'
 import Modal from './modal'
 
 export interface UploadFileModalProps {
-    directoryId: backendApi.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 

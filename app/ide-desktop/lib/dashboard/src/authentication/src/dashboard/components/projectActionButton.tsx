@@ -1,7 +1,7 @@
 /** @file An interactive button displaying the status of a project. */
 import * as react from 'react'
 
-import * as backendApi from '../cloudBackendApi'
+import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as platform from '../../platform'
 import * as svg from '../../components/svg'
@@ -22,9 +22,9 @@ enum SpinnerState {
 // =================
 
 /** The interval between requests checking whether the IDE is ready. */
-const CHECK_STATUS_INTERVAL = 10000
+const CHECK_STATUS_INTERVAL_MS = 10000
 /** The interval between requests checking whether the VM is ready. */
-const CHECK_RESOURCES_INTERVAL = 5000
+const CHECK_RESOURCES_INTERVAL_MS = 5000
 
 const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
     [SpinnerState.initial]: 'dasharray-5 ease-linear',
@@ -37,7 +37,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 // =================
 
 export interface ProjectActionButtonProps {
-    project: backendApi.Asset<backendApi.AssetType.project>
+    project: backendModule.Asset<backendModule.AssetType.project>
     appRunner: AppRunner
     openIde: () => void
 }
@@ -47,7 +47,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { project, appRunner, openIde } = props
     const { backend } = backendProvider.useBackend()
 
-    const [state, setState] = react.useState(backendApi.ProjectState.created)
+    const [state, setState] = react.useState(backendModule.ProjectState.created)
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
     const [isCheckingResources, setIsCheckingResources] = react.useState(false)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
@@ -58,7 +58,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         } else {
             const checkProjectStatus = async () => {
                 const response = await backend.getProjectDetails(project.id)
-                if (response.state.type === backendApi.ProjectState.opened) {
+                if (response.state.type === backendModule.ProjectState.opened) {
                     setIsCheckingStatus(false)
                     setIsCheckingResources(true)
                 } else {
@@ -67,7 +67,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
             const handle = window.setInterval(
                 () => void checkProjectStatus(),
-                CHECK_STATUS_INTERVAL
+                CHECK_STATUS_INTERVAL_MS
             )
             return () => {
                 clearInterval(handle)
@@ -81,14 +81,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         } else {
             const checkProjectResources = async () => {
                 if (!('checkResources' in backend)) {
-                    setState(backendApi.ProjectState.opened)
+                    setState(backendModule.ProjectState.opened)
                     setIsCheckingResources(false)
                     setSpinnerState(SpinnerState.done)
                 } else {
                     try {
                         // This call will error if the VM is not ready yet.
                         await backend.checkResources(project.id)
-                        setState(backendApi.ProjectState.opened)
+                        setState(backendModule.ProjectState.opened)
                         setIsCheckingResources(false)
                         setSpinnerState(SpinnerState.done)
                     } catch {
@@ -98,7 +98,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
             const handle = window.setInterval(
                 () => void checkProjectResources(),
-                CHECK_RESOURCES_INTERVAL
+                CHECK_RESOURCES_INTERVAL_MS
             )
             return () => {
                 clearInterval(handle)
@@ -110,7 +110,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         void (async () => {
             const projectDetails = await backend.getProjectDetails(project.id)
             setState(projectDetails.state.type)
-            if (projectDetails.state.type === backendApi.ProjectState.openInProgress) {
+            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
                 setSpinnerState(SpinnerState.initial)
                 setIsCheckingStatus(true)
             }
@@ -118,14 +118,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [])
 
     function closeProject() {
-        setState(backendApi.ProjectState.closed)
+        setState(backendModule.ProjectState.closed)
         appRunner.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
     }
 
     async function openProject() {
-        setState(backendApi.ProjectState.openInProgress)
+        setState(backendModule.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
         // the `initial` fraction to the `loading` fraction,
@@ -140,24 +140,24 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 break
             case platform.Platform.desktop:
                 await backend.openProject(project.id)
-                setState(backendApi.ProjectState.opened)
+                setState(backendModule.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)
                 break
         }
     }
 
     switch (state) {
-        case backendApi.ProjectState.created:
-        case backendApi.ProjectState.new:
-        case backendApi.ProjectState.closed:
+        case backendModule.ProjectState.created:
+        case backendModule.ProjectState.new:
+        case backendModule.ProjectState.closed:
             return <button onClick={openProject}>{svg.PLAY_ICON}</button>
-        case backendApi.ProjectState.openInProgress:
+        case backendModule.ProjectState.openInProgress:
             return (
                 <button onClick={closeProject}>
                     <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
                 </button>
             )
-        case backendApi.ProjectState.opened:
+        case backendModule.ProjectState.opened:
             return (
                 <>
                     <button onClick={closeProject}>

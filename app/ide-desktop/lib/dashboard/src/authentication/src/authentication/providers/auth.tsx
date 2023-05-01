@@ -9,8 +9,9 @@ import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
 import * as authServiceModule from '../service'
-import * as backendApi from '../../dashboard/cloudBackendApi'
+import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
+import * as cloudBackend from '../../dashboard/remoteBackend'
 import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as loggerProvider from '../../providers/logger'
@@ -52,7 +53,7 @@ export interface FullUserSession {
     /** User's email address. */
     email: string
     /** User's organization information. */
-    organization: backendApi.UserOrOrganization
+    organization: backendModule.UserOrOrganization
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -163,7 +164,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 const headers = new Headers()
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
-                const backend = new backendApi.CloudBackendAPI(client, logger)
+                const backend = new cloudBackend.RemoteBackend(client, logger)
                 setBackend(backend)
                 const organization = await backend.usersMe()
                 let newUserSession: UserSession
@@ -264,7 +265,7 @@ export function AuthProvider(props: AuthProviderProps) {
             try {
                 await backend.createUser({
                     userName: username,
-                    userEmail: newtype.asNewtype<backendApi.EmailAddress>(email),
+                    userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
                 })
                 navigate(app.DASHBOARD_PATH)
                 toast.success(MESSAGES.setUsernameSuccess)

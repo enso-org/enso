@@ -2,13 +2,14 @@
  * interactive components. */
 import * as react from 'react'
 
-import * as backendApi from '../cloudBackendApi'
+import * as backendModule from '../backend'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
+import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
-import * as projectManagerBackendApi from '../projectManagerBackendApi'
+import * as remoteBackendModule from '../remoteBackend'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
@@ -75,7 +76,7 @@ enum Column {
 export interface CreateFormProps {
     left: number
     top: number
-    directoryId: backendApi.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
@@ -83,12 +84,11 @@ export interface CreateFormProps {
 // === Constants ===
 // =================
 
-/** Enables features which are not ready for release,
- * and so are intentionally disabled for release builds. */
-// This type annotation is explicit to undo TypeScript narrowing to `false`,
-// which result in errors about unused code.
-// eslint-disable-next-line @typescript-eslint/no-inferrable-types
-const EXPERIMENTAL: boolean = false
+/** Feature flags to enable or disable experimental features. */
+const EXPERIMENTAL = {
+    /** A selector that lets the user choose between pre-defined sets of visible columns. */
+    columnModeSwitcher: false,
+}
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
@@ -96,22 +96,22 @@ const IDE_ELEMENT_ID = 'root'
 const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
 
 /** English names for the name column. */
-const ASSET_TYPE_NAME: Record<backendApi.AssetType, string> = {
-    [backendApi.AssetType.project]: 'Projects',
-    [backendApi.AssetType.file]: 'Files',
-    [backendApi.AssetType.secret]: 'Secrets',
-    [backendApi.AssetType.directory]: 'Folders',
+const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
+    [backendModule.AssetType.project]: 'Projects',
+    [backendModule.AssetType.file]: 'Files',
+    [backendModule.AssetType.secret]: 'Secrets',
+    [backendModule.AssetType.directory]: 'Folders',
 } as const
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    backendApi.AssetType,
+    backendModule.AssetType,
     (props: CreateFormProps) => JSX.Element
 > = {
-    [backendApi.AssetType.project]: ProjectCreateForm,
-    [backendApi.AssetType.file]: FileCreateForm,
-    [backendApi.AssetType.secret]: SecretCreateForm,
-    [backendApi.AssetType.directory]: DirectoryCreateForm,
+    [backendModule.AssetType.project]: ProjectCreateForm,
+    [backendModule.AssetType.file]: FileCreateForm,
+    [backendModule.AssetType.secret]: SecretCreateForm,
+    [backendModule.AssetType.directory]: DirectoryCreateForm,
 }
 
 /** English names for every column except for the name column. */
@@ -127,23 +127,23 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 } as const
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
-const PERMISSION: Record<backendApi.PermissionAction, permissionDisplay.Permissions> = {
-    [backendApi.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
-    [backendApi.PermissionAction.execute]: {
+const PERMISSION: Record<backendModule.PermissionAction, permissionDisplay.Permissions> = {
+    [backendModule.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
+    [backendModule.PermissionAction.execute]: {
         type: permissionDisplay.Permission.regular,
         read: false,
         write: false,
         docsWrite: false,
         exec: true,
     },
-    [backendApi.PermissionAction.edit]: {
+    [backendModule.PermissionAction.edit]: {
         type: permissionDisplay.Permission.regular,
         read: false,
         write: true,
         docsWrite: false,
         exec: false,
     },
-    [backendApi.PermissionAction.read]: {
+    [backendModule.PermissionAction.read]: {
         type: permissionDisplay.Permission.regular,
         read: true,
         write: false,
@@ -187,9 +187,9 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 // ========================
 
 /** Returns the id of the root directory for a user or organization. */
-function rootDirectoryId(userOrOrganizationId: backendApi.UserOrOrganizationId) {
-    return newtype.asNewtype<backendApi.DirectoryId>(
-        userOrOrganizationId.replace(/^organization-/, `${backendApi.AssetType.directory}-`)
+function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationId) {
+    return newtype.asNewtype<backendModule.DirectoryId>(
+        userOrOrganizationId.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
     )
 }
 
@@ -220,38 +220,38 @@ function Dashboard(props: DashboardProps) {
     const [query, setQuery] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
-        backendApi.Asset<backendApi.AssetType.directory>[]
+        backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
     const [tab, setTab] = react.useState(Tab.dashboard)
-    const [project, setProject] = react.useState<backendApi.Project | null>(null)
-    const [selectedAssets, setSelectedAssets] = react.useState<backendApi.Asset[]>([])
+    const [project, setProject] = react.useState<backendModule.Project | null>(null)
+    const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
     const [projectAssets, setProjectAssetsRaw] = react.useState<
-        backendApi.Asset<backendApi.AssetType.project>[]
+        backendModule.Asset<backendModule.AssetType.project>[]
     >([])
     const [directoryAssets, setDirectoryAssetsRaw] = react.useState<
-        backendApi.Asset<backendApi.AssetType.directory>[]
+        backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     const [secretAssets, setSecretAssetsRaw] = react.useState<
-        backendApi.Asset<backendApi.AssetType.secret>[]
+        backendModule.Asset<backendModule.AssetType.secret>[]
     >([])
     const [fileAssets, setFileAssetsRaw] = react.useState<
-        backendApi.Asset<backendApi.AssetType.file>[]
+        backendModule.Asset<backendModule.AssetType.file>[]
     >([])
     const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
-        backendApi.Asset<backendApi.AssetType.project>[]
+        backendModule.Asset<backendModule.AssetType.project>[]
     >([])
     const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState<
-        backendApi.Asset<backendApi.AssetType.directory>[]
+        backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     const [visibleSecretAssets, setVisibleSecretAssets] = react.useState<
-        backendApi.Asset<backendApi.AssetType.secret>[]
+        backendModule.Asset<backendModule.AssetType.secret>[]
     >([])
     const [visibleFileAssets, setVisibleFileAssets] = react.useState<
-        backendApi.Asset<backendApi.AssetType.file>[]
+        backendModule.Asset<backendModule.AssetType.file>[]
     >([])
 
     const directory = directoryStack[directoryStack.length - 1]
@@ -280,21 +280,25 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    function setProjectAssets(newProjectAssets: backendApi.Asset<backendApi.AssetType.project>[]) {
+    function setProjectAssets(
+        newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
+    ) {
         setProjectAssetsRaw(newProjectAssets)
         setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
     }
     function setDirectoryAssets(
-        newDirectoryAssets: backendApi.Asset<backendApi.AssetType.directory>[]
+        newDirectoryAssets: backendModule.Asset<backendModule.AssetType.directory>[]
     ) {
         setDirectoryAssetsRaw(newDirectoryAssets)
         setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
     }
-    function setSecretAssets(newSecretAssets: backendApi.Asset<backendApi.AssetType.secret>[]) {
+    function setSecretAssets(
+        newSecretAssets: backendModule.Asset<backendModule.AssetType.secret>[]
+    ) {
         setSecretAssetsRaw(newSecretAssets)
         setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
     }
-    function setFileAssets(newFileAssets: backendApi.Asset<backendApi.AssetType.file>[]) {
+    function setFileAssets(newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) {
         setFileAssetsRaw(newFileAssets)
         setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
     }
@@ -307,7 +311,9 @@ function Dashboard(props: DashboardProps) {
         )
     }
 
-    function enterDirectory(directoryAsset: backendApi.Asset<backendApi.AssetType.directory>) {
+    function enterDirectory(
+        directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
+    ) {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
@@ -317,7 +323,7 @@ function Dashboard(props: DashboardProps) {
         if (cachedDirectoryStackJson) {
             // The JSON was inserted by the code below, so it will always have the right type.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const cachedDirectoryStack: backendApi.Asset<backendApi.AssetType.directory>[] =
+            const cachedDirectoryStack: backendModule.Asset<backendModule.AssetType.directory>[] =
                 JSON.parse(cachedDirectoryStackJson)
             setDirectoryStack(cachedDirectoryStack)
             const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
@@ -337,9 +343,9 @@ function Dashboard(props: DashboardProps) {
 
     /** React components for the name column. */
     const nameRenderers: {
-        [Type in backendApi.AssetType]: (asset: backendApi.Asset<Type>) => JSX.Element
+        [Type in backendModule.AssetType]: (asset: backendModule.Asset<Type>) => JSX.Element
     } = {
-        [backendApi.AssetType.project]: projectAsset => (
+        [backendModule.AssetType.project]: projectAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -371,7 +377,7 @@ function Dashboard(props: DashboardProps) {
                 <span className="px-2">{projectAsset.title}</span>
             </div>
         ),
-        [backendApi.AssetType.directory]: directoryAsset => (
+        [backendModule.AssetType.directory]: directoryAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -394,7 +400,7 @@ function Dashboard(props: DashboardProps) {
                 {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
             </div>
         ),
-        [backendApi.AssetType.secret]: secret => (
+        [backendModule.AssetType.secret]: secret => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -414,7 +420,7 @@ function Dashboard(props: DashboardProps) {
                 {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
             </div>
         ),
-        [backendApi.AssetType.file]: file => (
+        [backendModule.AssetType.file]: file => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -440,7 +446,7 @@ function Dashboard(props: DashboardProps) {
     /** React components for every column except for the name column. */
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: backendApi.Asset) => JSX.Element
+        (asset: backendModule.Asset) => JSX.Element
     > = {
         [Column.lastModified]: () => <></>,
         [Column.sharedWith]: asset => (
@@ -486,16 +492,16 @@ function Dashboard(props: DashboardProps) {
         [Column.ide]: () => <></>,
     }
 
-    function renderer<Type extends backendApi.AssetType>(column: Column, assetType: Type) {
+    function renderer<Type extends backendModule.AssetType>(column: Column, assetType: Type) {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
-              (nameRenderers[assetType] as (asset: backendApi.Asset<Type>) => JSX.Element)
+              (nameRenderers[assetType] as (asset: backendModule.Asset<Type>) => JSX.Element)
             : columnRenderer[column]
     }
 
     /** Heading element for every column. */
-    function ColumnHeading(column: Column, assetType: backendApi.AssetType) {
+    function ColumnHeading(column: Column, assetType: backendModule.AssetType) {
         return column === Column.name ? (
             <div className="inline-flex">
                 {ASSET_TYPE_NAME[assetType]}
@@ -536,13 +542,17 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
     }, [query])
 
-    function setAssets(assets: backendApi.Asset[]) {
-        const newProjectAssets = assets.filter(backendApi.assetIsType(backendApi.AssetType.project))
-        const newDirectoryAssets = assets.filter(
-            backendApi.assetIsType(backendApi.AssetType.directory)
+    function setAssets(assets: backendModule.Asset[]) {
+        const newProjectAssets = assets.filter(
+            backendModule.assetIsType(backendModule.AssetType.project)
         )
-        const newSecretAssets = assets.filter(backendApi.assetIsType(backendApi.AssetType.secret))
-        const newFileAssets = assets.filter(backendApi.assetIsType(backendApi.AssetType.file))
+        const newDirectoryAssets = assets.filter(
+            backendModule.assetIsType(backendModule.AssetType.directory)
+        )
+        const newSecretAssets = assets.filter(
+            backendModule.assetIsType(backendModule.AssetType.secret)
+        )
+        const newFileAssets = assets.filter(backendModule.assetIsType(backendModule.AssetType.file))
         setProjectAssets(newProjectAssets)
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
@@ -608,7 +618,7 @@ function Dashboard(props: DashboardProps) {
 
     async function handleCreateProject(templateName?: string | null) {
         const projectName = getNewProjectName(templateName)
-        const body: backendApi.CreateProjectRequestBody = {
+        const body: backendModule.CreateProjectRequestBody = {
             projectName,
             projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
             parentDirectoryId: directoryId,
@@ -617,7 +627,7 @@ function Dashboard(props: DashboardProps) {
         setProjectAssets([
             ...projectAssets,
             {
-                type: backendApi.AssetType.project,
+                type: backendModule.AssetType.project,
                 title: projectAsset.name,
                 id: projectAsset.projectId,
                 parentId: '',
@@ -666,13 +676,13 @@ function Dashboard(props: DashboardProps) {
                     setFileAssets([])
                     switch (newBackendPlatform) {
                         case platformModule.Platform.desktop:
-                            setBackend(new projectManagerBackendApi.ProjectManagerBackendAPI())
+                            setBackend(new localBackend.LocalBackend())
                             break
                         case platformModule.Platform.cloud: {
                             const headers = new Headers()
                             headers.append('Authorization', `Bearer ${accessToken}`)
                             const client = new http.Client(headers)
-                            setBackend(new backendApi.CloudBackendAPI(client, logger))
+                            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
                             break
                         }
                     }
@@ -729,7 +739,7 @@ function Dashboard(props: DashboardProps) {
                             {svg.DOWNLOAD_ICON}
                         </button>
                     </div>
-                    {EXPERIMENTAL && (
+                    {EXPERIMENTAL.columnModeSwitcher && (
                         <>
                             <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
                                 <button
@@ -788,7 +798,7 @@ function Dashboard(props: DashboardProps) {
             <table className="items-center w-full bg-transparent border-collapse mt-2">
                 <tbody>
                     <tr className="h-10" />
-                    <Rows<backendApi.Asset<backendApi.AssetType.project>>
+                    <Rows<backendModule.Asset<backendModule.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
                         placeholder={
@@ -799,8 +809,8 @@ function Dashboard(props: DashboardProps) {
                         }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
-                            heading: ColumnHeading(column, backendApi.AssetType.project),
-                            render: renderer(column, backendApi.AssetType.project),
+                            heading: ColumnHeading(column, backendModule.AssetType.project),
+                            render: renderer(column, backendModule.AssetType.project),
                         }))}
                         onClick={(projectAsset, event) => {
                             event.stopPropagation()
@@ -876,10 +886,10 @@ function Dashboard(props: DashboardProps) {
                         }}
                     />
                     {backend.platform === platformModule.Platform.cloud &&
-                        (cloudBackend => (
+                        (remoteBackend => (
                             <>
                                 <tr className="h-10" />
-                                <Rows<backendApi.Asset<backendApi.AssetType.directory>>
+                                <Rows<backendModule.Asset<backendModule.AssetType.directory>>
                                     items={visibleDirectoryAssets}
                                     getKey={dir => dir.id}
                                     placeholder={
@@ -892,9 +902,9 @@ function Dashboard(props: DashboardProps) {
                                         id: column,
                                         heading: ColumnHeading(
                                             column,
-                                            backendApi.AssetType.directory
+                                            backendModule.AssetType.directory
                                         ),
-                                        render: renderer(column, backendApi.AssetType.directory),
+                                        render: renderer(column, backendModule.AssetType.directory),
                                     }))}
                                     onClick={(directoryAsset, event) => {
                                         event.stopPropagation()
@@ -911,7 +921,7 @@ function Dashboard(props: DashboardProps) {
                                     }}
                                 />
                                 <tr className="h-10" />
-                                <Rows<backendApi.Asset<backendApi.AssetType.secret>>
+                                <Rows<backendModule.Asset<backendModule.AssetType.secret>>
                                     items={visibleSecretAssets}
                                     getKey={secret => secret.id}
                                     placeholder={
@@ -922,8 +932,11 @@ function Dashboard(props: DashboardProps) {
                                     }
                                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                                         id: column,
-                                        heading: ColumnHeading(column, backendApi.AssetType.secret),
-                                        render: renderer(column, backendApi.AssetType.secret),
+                                        heading: ColumnHeading(
+                                            column,
+                                            backendModule.AssetType.secret
+                                        ),
+                                        render: renderer(column, backendModule.AssetType.secret),
                                     }))}
                                     onClick={(secret, event) => {
                                         event.stopPropagation()
@@ -942,7 +955,7 @@ function Dashboard(props: DashboardProps) {
                                                     name={secret.title}
                                                     assetType={secret.type}
                                                     doDelete={() =>
-                                                        cloudBackend.deleteSecret(secret.id)
+                                                        remoteBackend.deleteSecret(secret.id)
                                                     }
                                                     onSuccess={doRefresh}
                                                 />
@@ -958,7 +971,7 @@ function Dashboard(props: DashboardProps) {
                                     }}
                                 />
                                 <tr className="h-10" />
-                                <Rows<backendApi.Asset<backendApi.AssetType.file>>
+                                <Rows<backendModule.Asset<backendModule.AssetType.file>>
                                     items={visibleFileAssets}
                                     getKey={file => file.id}
                                     placeholder={
@@ -969,8 +982,11 @@ function Dashboard(props: DashboardProps) {
                                     }
                                     columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                                         id: column,
-                                        heading: ColumnHeading(column, backendApi.AssetType.file),
-                                        render: renderer(column, backendApi.AssetType.file),
+                                        heading: ColumnHeading(
+                                            column,
+                                            backendModule.AssetType.file
+                                        ),
+                                        render: renderer(column, backendModule.AssetType.file),
                                     }))}
                                     onClick={(file, event) => {
                                         event.stopPropagation()
@@ -995,7 +1011,7 @@ function Dashboard(props: DashboardProps) {
                                                     name={file.title}
                                                     assetType={file.type}
                                                     doDelete={() =>
-                                                        cloudBackend.deleteFile(file.id)
+                                                        remoteBackend.deleteFile(file.id)
                                                     }
                                                     onSuccess={doRefresh}
                                                 />
