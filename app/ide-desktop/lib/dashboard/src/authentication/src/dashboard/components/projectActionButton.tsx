@@ -39,12 +39,13 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
     appRunner: AppRunner
+    onClose: () => void
     openIde: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, appRunner, openIde } = props
+    const { project, onClose, appRunner, openIde } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = react.useState(backendModule.ProjectState.created)
@@ -122,6 +123,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         appRunner.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
+        onClose()
     }
 
     async function openProject() {

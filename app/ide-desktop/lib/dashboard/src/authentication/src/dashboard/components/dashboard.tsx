@@ -365,6 +365,9 @@ function Dashboard(props: DashboardProps) {
                 <ProjectActionButton
                     project={projectAsset}
                     appRunner={appRunner}
+                    onClose={() => {
+                        setProject(null)
+                    }}
                     openIde={async () => {
                         setTab(Tab.ide)
                         setProject(await backend.getProjectDetails(projectAsset.id))
