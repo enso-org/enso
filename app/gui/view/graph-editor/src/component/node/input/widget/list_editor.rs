@@ -173,6 +173,7 @@ struct Model {
 impl Model {
     fn new(ctx: &super::ConfigContext, display_object: &object::Instance) -> Self {
         let list = ListEditor::new(&ctx.app().cursor);
+        with_context(|ctx| ctx.layers.port.add(&list));
         list.set_size_hug_y(TEXT_SIZE).allow_grow_y().set_alignment_left_center();
         display_object.use_auto_layout().set_alignment_left_center();
         Self {

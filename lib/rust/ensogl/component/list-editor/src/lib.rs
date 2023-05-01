@@ -107,7 +107,7 @@ pub mod placeholder;
 // =================
 
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
-pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
 
 pub const DEBUG_PLACEHOLDERS_VIZ: bool = false;
 
@@ -371,7 +371,7 @@ impl<T> Model<T> {
         root.add_child(&layout_with_icons);
         let add_elem_icon = Rectangle().build(|t| {
             t.set_corner_radius_max()
-                .set_size((24.0, 24.0))
+                .set_size((14.0, 14.0))
                 .set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.2));
         });
         layout_with_icons.add_child(&add_elem_icon);
@@ -695,7 +695,10 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let mut model = self.model.borrow_mut();
         let index = model.index_to_item_or_placeholder_index(index)?;
         match model.items.remove(index) {
-            ItemOrPlaceholder::Item(item) => Some(item.elem),
+            ItemOrPlaceholder::Item(item) => {
+                model.item_count_changed();
+                Some(item.elem)
+            }
             ItemOrPlaceholder::Placeholder(_) => unreachable!(),
         }
     }
@@ -838,6 +841,7 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
             self.push(item)
         };
         self.reposition_items();
+        self.item_count_changed();
         index
     }
 
