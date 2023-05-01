@@ -1788,7 +1788,6 @@ wrap_text_argument_as_value_provider val =
    parameter can be a Date, Date_Time, or Time_Of_Day.
 make_datelike_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_datelike_formatter format locale problem_builder =
-    _ = [problem_builder]
     datelike->
         illegal_argument_to_warning problem_builder format <|
             datelike.format format locale
@@ -1798,7 +1797,6 @@ make_datelike_formatter format locale problem_builder =
    parameter. The `datelike` parameter can be a Date, Date_Time, or Time_Of_Day.
 make_date_with_column_formatter : Locale -> Problem_Builder -> (Date -> Text -> Text)
 make_date_with_column_formatter locale problem_builder =
-    _ = [problem_builder]
     datelike-> format->
         illegal_argument_to_warning problem_builder format <|
             datelike.format format locale
