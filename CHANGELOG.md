@@ -136,6 +136,8 @@
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
   sending messages to the backend.][6341].
+- [Area selectionof nodes no longer takes into account the visualisation that 
+  belongs to the node.][6487].
 
 #### EnsoGL (rendering engine)
 
@@ -199,6 +201,7 @@
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
 [6097]: https://github.com/enso-org/enso/pull/6341
+[6487]: https://github.com/enso-org/enso/pull/6487
 
 #### Enso Standard Library
 
