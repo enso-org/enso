@@ -383,8 +383,8 @@ export function ProtectedLayout() {
 // === GuestLayout ===
 // ===================
 
-/** A React Router layout route containing routes only accessible by users that are not logged in.
- */
+/** A React Router layout route containing routes only accessible by users that are
+ * not logged in. */
 export function GuestLayout() {
     const { session } = useAuth()
 

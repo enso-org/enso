@@ -135,13 +135,11 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
     })
 }
 
-/**
- * Handles the 'open-url' event by parsing the received URL, checking if it is a deep link, and
+/** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
  * sending it to the appropriate BrowserWindow via IPC.
  *
  * @param url - The URL to handle.
- * @param window - A function that returns the BrowserWindow to send the parsed URL to.
- */
+ * @param window - A function that returns the BrowserWindow to send the parsed URL to. */
 export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
     logger.log(`Received 'open-url' event for '${url.toString()}'.`)
     if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {

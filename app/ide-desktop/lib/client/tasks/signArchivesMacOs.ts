@@ -108,8 +108,7 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
 /** Information we need to sign a given binary. */
 interface SigningContext {
     /** A digital identity that is stored in a keychain that is on the calling user's keychain
-     * search list. We rely on this already being set up by the Electron Builder.
-     */
+     * search list. We rely on this already being set up by the Electron Builder. */
     identity: string
     /** Path to the entitlements file. */
     entitlements: string
@@ -132,8 +131,7 @@ function run(cmd: string, args: string[], cwd?: string) {
 
 /** Archive with some binaries that we want to sign.
  *
- * Can be either a zip or a jar file.
- */
+ * Can be either a zip or a jar file. */
 class ArchiveToSign implements Signable {
     /** Looks up for archives to sign using the given path patterns. */
     static lookupMany = lookupManyHelper(ArchiveToSign.lookup.bind(this))
@@ -250,31 +248,29 @@ class BinaryToSign implements Signable {
 /** Helper used to concisely define patterns for an archive to sign.
  *
  * Consists of pattern of the archive path
- * and set of patterns for files to sign inside the archive.
- */
+ * and set of patterns for files to sign inside the archive. */
 type ArchivePattern = [glob.Pattern, glob.Pattern[]]
 
 /** Like `glob` but returns absolute paths by default. */
-async function globAbs(pattern: glob.Pattern, options?: glob.Options): Promise<string[]> {
+async function globAbsolute(pattern: glob.Pattern, options?: glob.Options): Promise<string[]> {
     const paths = await glob(pattern, { absolute: true, ...options })
     return paths
 }
 
-/** Glob patterns relative to a given base directory. Base directory is allowed to be a pattern as
- * well.
- */
-async function globAbsIn(
+/** Glob patterns relative to a given base directory. The base directory is allowed to be a pattern
+ * as well. */
+async function globAbsoluteIn(
     base: glob.Pattern,
     pattern: glob.Pattern,
     options?: glob.Options
 ): Promise<string[]> {
-    return globAbs(pathModule.join(base, pattern), options)
+    return globAbsolute(pathModule.join(base, pattern), options)
 }
 
 /** Generate a lookup function for a given Signable type. */
 function lookupHelper<R extends Signable>(mapper: (path: string) => R) {
     return async (base: string, pattern: glob.Pattern) => {
-        const paths = await globAbsIn(base, pattern)
+        const paths = await globAbsoluteIn(base, pattern)
         return paths.map(mapper)
     }
 }
@@ -298,9 +294,7 @@ async function rmRf(path: string) {
     await fs.rm(path, { recursive: true, force: true })
 }
 
-/**
- * Get a new temporary directory. Caller is responsible for cleaning up the directory.
- */
+/** Get a new temporary directory. Caller is responsible for cleaning up the directory. */
 async function getTmpDir(prefix?: string) {
     return await fs.mkdtemp(pathModule.join(os.tmpdir(), prefix ?? 'enso-signing-'))
 }

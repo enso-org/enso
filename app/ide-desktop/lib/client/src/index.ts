@@ -97,25 +97,24 @@ class App {
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
-    /**
-     * Sets the project to be opened on application startup.
+    /** Set the project to be opened on application startup.
      *
      * This method should be called before the application is ready, as it only
      * modifies the startup options. If the application is already initialized,
      * an error will be logged, and the method will have no effect.
      *
-     * @param idOfProjectToOpen - The ID of the project to be opened on startup.
-     */
-    setProjectToOpenOnStartup(idOfProjectToOpen: string) {
+     * @param projectId - The ID of the project to be opened on startup. */
+    setProjectToOpenOnStartup(projectId: string) {
         // Make sure that we are not initialized yet, as this method should be called before the
         // application is ready.
         if (!electron.app.isReady()) {
-            logger.log(`Setting project to open on startup: ${idOfProjectToOpen}.`)
-            this.args.groups.startup.options.project.value = idOfProjectToOpen
+            logger.log(`Setting the project to open on startup to '${projectId}'.`)
+            this.args.groups.startup.options.project.value = projectId
         } else {
             logger.error(
-                `Cannot set project to open on startup: ${idOfProjectToOpen},` +
-                    ` as the application is already initialized.`
+                "Cannot set the project to open on startup to '" +
+                    projectId +
+                    "', as the application is already initialized."
             )
         }
     }
@@ -126,9 +125,9 @@ class App {
         logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
         try {
             if (fileToOpen != null) {
-                // This makes the IDE open the relevant project. Also, this prevents us from using this
-                // method after IDE has been fully set up, as the initializing code would have already
-                // read the value of this argument.
+                // This makes the IDE open the relevant project. Also, this prevents us from using
+                // this method after the IDE has been fully set up, as the initializing code
+                // would have already read the value of this argument.
                 const projectId = fileAssociations.handleOpenFile(fileToOpen)
                 this.setProjectToOpenOnStartup(projectId)
             }

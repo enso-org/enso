@@ -1,9 +1,11 @@
 /** @file This module contains functions for importing projects into the Project Manager.
  *
- * Eventually this module should be replaced with a new Project Manager API that supports importing projects.
+ * Eventually this module should be replaced with a new Project Manager API that supports
+ * importing projects.
  * For now, we basically do the following:
  * - if the project is already in the Project Manager's location, we just open it;
- * - if the project is in a different location, we copy it to the Project Manager's location and open it.
+ * - if the project is in a different location, we copy it to the Project Manager's location
+ * and open it.
  * - if the project is a bundle, we extract it to the Project Manager's location and open it. */
 
 import * as crypto from 'node:crypto'
@@ -50,7 +52,8 @@ export function importProjectFromPath(openedPath: string): string {
         // Check if the project root is under the projects directory. If it is, we can open it.
         // Otherwise, we need to install it first.
         if (rootPath == null) {
-            const message = `File '${openedPath}' does not belong to the ${common.PRODUCT_NAME} project.`
+            const productName = common.PRODUCT_NAME
+            const message = `File '${openedPath}' does not belong to the ${productName} project.`
             throw new Error(message)
         } else {
             return importDirectory(rootPath)
@@ -60,8 +63,7 @@ export function importProjectFromPath(openedPath: string): string {
 
 /** Import the project from a bundle.
  *
- * @returns Project ID (from Project Manager's metadata) identifying the imported project.
- */
+ * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
 export function importBundle(bundlePath: string): string {
     logger.log(`Importing project from bundle: '${bundlePath}'.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
@@ -90,8 +92,7 @@ export function importBundle(bundlePath: string): string {
  *
  * @param rootPath - The path to the project root.
  * @returns The project ID (from the Project Manager's metadata) identifying the imported project.
- * @throws {Error} if a race condition occurs when generating a unique project directory name.
- */
+ * @throws {Error} if a race condition occurs when generating a unique project directory name. */
 export function importDirectory(rootPath: string): string {
     if (isProjectInstalled(rootPath)) {
         // Project is already visible to Project Manager, so we can just return its ID.
@@ -121,12 +122,12 @@ export function importDirectory(rootPath: string): string {
  *
  * The property list is not exhaustive; it only contains the properties that we need. */
 interface ProjectMetadata {
-    /** The ID of the project. It is only used in communication with project manager, it has no semantic meaning. */
+    /** The ID of the project. It is only used in communication with project manager;
+     * it has no semantic meaning. */
     id: string
 }
 
-/**
- * A type guard function to check if an object conforms to the {@link ProjectMetadata} interface.
+/** A type guard function to check if an object conforms to the {@link ProjectMetadata} interface.
  *
  * This function checks if the input object has the required properties and correct types
  * to match the {@link ProjectMetadata} interface. It can be used at runtime to validate that
@@ -134,8 +135,7 @@ interface ProjectMetadata {
  *
  * @param value - The object to check against the ProjectMetadata interface.
  * @returns A boolean value indicating whether the object matches
- * the {@link ProjectMetadata} interface.
- */
+ * the {@link ProjectMetadata} interface. */
 function isProjectMetadata(value: unknown): value is ProjectMetadata {
     return (
         typeof value === 'object' && value != null && 'id' in value && typeof value.id === 'string'
@@ -199,8 +199,8 @@ export function isProjectRoot(candidatePath: string): boolean {
     return isRoot
 }
 
-/** Check if this bundle is a compressed directory (rather than directly containing the project files).
- * If it is, we return the name of the directory. Otherwise, we return `null`. */
+/** Check if this bundle is a compressed directory (rather than directly containing the project
+ * files). If it is, we return the name of the directory. Otherwise, we return `null`. */
 export function directoryWithinBundle(bundlePath: string): string | null {
     // We need to look up the root directory among the tarball entries.
     let commonPrefix: string | null = null
@@ -213,7 +213,7 @@ export function directoryWithinBundle(bundlePath: string): string | null {
             commonPrefix = commonPrefix == null ? path : utils.getCommonPrefix(commonPrefix, path)
         },
     })
-    // ESLint doesn't understand that `commonPrefix` can be not `null` here due to the `onentry` callback.
+    // ESLint doesn't know that `commonPrefix` can be not `null` here due to the `onentry` callback.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return commonPrefix ? pathModule.basename(commonPrefix) : null
 }
@@ -253,8 +253,8 @@ export function generateDirectoryName(name: string): string {
     // Unreachable.
 }
 
-/** Take a path to a file, presumably located in a project's subtree. Returns the path to the project's root directory
- * or `null` if the file is not located in a project. */
+/** Take a path to a file, presumably located in a project's subtree.Returns the path
+ * to the project's root directory or `null` if the file is not located in a project. */
 export function getProjectRoot(subtreePath: string): string | null {
     let currentPath = subtreePath
     while (!isProjectRoot(currentPath)) {
@@ -275,7 +275,8 @@ export function getProjectsDirectory(): string {
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */
 export function isProjectInstalled(projectRoot: string): boolean {
-    // Project can be opened by project manager only if its root directory is directly under the projects directory.
+    // Project can be opened by project manager only if its root directory is directly under
+    // the projects directory.
     const projectsDirectory = getProjectsDirectory()
     const projectRootParent = pathModule.dirname(projectRoot)
     // Should resolve symlinks and relative paths. Normalize before comparison.

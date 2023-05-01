@@ -35,11 +35,11 @@ async function exec(args: config.Args, processArgs: string[]) {
     return await execFile(binPath, processArgs)
 }
 
-/** Spawn Project Manager process.
+/** Spawn the Project Manager process.
  *
- * The standard output and error handles will be redirected to the electron's app output and error
- * handles. Input is piped to this process, so it will not be closed, until this process
- * finished. */
+ * The standard output and error handles will be redirected to the output and error handles of the
+ * Electron app. Input is piped to this process, so it will not be closed until this process
+ * finishes. */
 export function spawn(args: config.Args, processArgs: string[]): childProcess.ChildProcess {
     return logger.groupMeasured(
         `Starting the backend process with the following options: ${processArgs.join(', ')}.`,

@@ -29,8 +29,7 @@ import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
 /** The parts of the electron-builder configuration that we want to keep configurable.
  *
- * @see `args` definition below for fields description.
- */
+ * @see `args` definition below for fields description. */
 export interface Arguments {
     // This is returned by a third-party library we do not control.
     // eslint-disable-next-line no-restricted-syntax

@@ -1,13 +1,11 @@
-/**
- * @file Configuration for the esbuild bundler and build/watch commands.
+/** @file Configuration for the esbuild bundler and build/watch commands.
  *
  * The bundler processes each entry point into a single file, each with no external dependencies and
  * minified. This primarily involves resolving all imports, along with some other transformations
  * (like TypeScript compilation).
  *
  * See the bundlers documentation for more information:
- * https://esbuild.github.io/getting-started/#bundling-for-node.
- */
+ * https://esbuild.github.io/getting-started/#bundling-for-node. */
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
@@ -41,9 +39,7 @@ export interface Arguments {
     devMode: boolean
 }
 
-/**
- * Get arguments from the environment.
- */
+/** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
     const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
     return { outputPath, devMode: false }
@@ -135,7 +131,7 @@ export function bundlerOptions(args: Arguments) {
     return correctlyTypedBuildOptions
 }
 
-/** ESBuild options for bundling (one-off build) the package.
+/** esbuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set. */
 export function bundleOptions() {

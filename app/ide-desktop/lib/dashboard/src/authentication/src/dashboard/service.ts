@@ -365,10 +365,8 @@ export interface CreateProjectRequestBody {
     parentDirectoryId: DirectoryId | null
 }
 
-/**
- * HTTP request body for the "project update" endpoint.
- * Only updates of the `projectName` or `ami` are allowed.
- */
+/** HTTP request body for the "project update" endpoint.
+ * Only updates of the `projectName` or `ami` are allowed. */
 export interface ProjectUpdateRequestBody {
     projectName: string | null
     ami: Ami | null
@@ -479,7 +477,7 @@ export class Backend {
         }
     }
 
-    /** Logs an error message and throws an `Error` with the specified message.
+    /** Logs an error message and throws an {@link Error} with the specified message.
      * @throws {Error} Always. */
     throw(message: string): never {
         this.logger.error(message)
@@ -494,7 +492,7 @@ export class Backend {
 
     /** Returns organization info for the current user, from the Cloud backend API.
      *
-     * @returns `null` if status code 401 or 404 was received. */
+     * @returns `null` if any status code other than 200 OK was received. */
     async usersMe(): Promise<UserOrOrganization | null> {
         const response = await this.get<UserOrOrganization>(USERS_ME_PATH)
         if (response.status !== STATUS_OK) {
@@ -506,8 +504,7 @@ export class Backend {
 
     /** Returns a list of assets in a directory, from the Cloud backend API.
      *
-     * @throws An error if status code 401 or 404 was received.
-     */
+     * @throws An error if any status code other than 200 OK was received. */
     async listDirectory(query: ListDirectoryRequestParams): Promise<Asset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
             LIST_DIRECTORY_PATH +
@@ -546,8 +543,7 @@ export class Backend {
 
     /** Returns a list of projects belonging to the current user, from the Cloud backend API.
      *
-     * @throws An error if status code 401 or 404 was received.
-     */
+     * @throws An error if any status code other than 200 OK was received. */
     async listProjects(): Promise<ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
         if (response.status !== STATUS_OK) {

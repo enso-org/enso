@@ -1,7 +1,5 @@
-/** @file
- * This file generates the product logo as SVG and then converts it to set of PNGs, MacOS ICNS, and
- * Windows ICO formats.
- */
+/** @file This file generates the product logo as SVG and then converts it to set of PNGs,
+ * MacOS ICNS, and Windows ICO formats. */
 
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
@@ -134,10 +132,8 @@ class Logo {
     }
 }
 
-/**
- * Generate icons.
- * @param {string} outputDir - The directory in which the icons will be placed.
- */
+/** Generate icons.
+ * @param {string} outputDir - The directory in which the icons will be placed. */
 async function genIcons(outputDir) {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     let sizes = [16, 32, 64, 128, 256, 512, 1024]

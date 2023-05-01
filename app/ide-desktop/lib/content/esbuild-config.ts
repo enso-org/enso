@@ -1,13 +1,11 @@
-/**
- * @file Configuration for the esbuild bundler and build/watch commands.
+/** @file Configuration for the esbuild bundler and build/watch commands.
  *
  * The bundler processes each entry point into a single file, each with no external dependencies and
  * minified. This primarily involves resolving all imports, along with some other transformations
  * (like TypeScript compilation).
  *
  * See the bundlers documentation for more information:
- * https://esbuild.github.io/getting-started/#bundling-for-node.
- */
+ * https://esbuild.github.io/getting-started/#bundling-for-node. */
 
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
@@ -46,9 +44,7 @@ export interface Arguments {
     devMode: boolean
 }
 
-/**
- * Get arguments from the environment.
- */
+/** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
     const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
     const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
@@ -61,11 +57,9 @@ export function argumentsFromEnv(): Arguments {
 // === Git process ===
 // ===================
 
-/**
- * Get output of a git command.
+/** Get output of a git command.
  * @param command - Command line following the `git` program.
- * @returns Output of the command.
- */
+ * @returns Output of the command. */
 function git(command: string): string {
     // TODO [mwu] Eventually this should be removed, data should be provided by the build script through `BUILD_INFO`.
     //            The bundler configuration should not invoke git, it is not its responsibility.
@@ -76,9 +70,7 @@ function git(command: string): string {
 // === Bundling ===
 // ================
 
-/**
- * Generate the builder options.
- */
+/** Generate the builder options. */
 export function bundlerOptions(args: Arguments) {
     const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath, devMode } = args
     const buildOptions = {
@@ -161,16 +153,14 @@ export function bundlerOptions(args: Arguments) {
 
 /** The basic, common settings for the bundler, based on the environment variables.
  *
- * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
- */
+ * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build). */
 export function bundlerOptionsFromEnv() {
     return bundlerOptions(argumentsFromEnv())
 }
 
-/** ESBuild options for bundling (one-off build) the package.
+/** esbuild options for bundling the package for a one-off build.
  *
- * Relies on the environment variables to be set.
- */
+ * Relies on the environment variables to be set. */
 export function bundleOptions() {
     return bundlerOptionsFromEnv()
 }

@@ -9,8 +9,7 @@ import * as paths from './paths'
 // === Bundling ===
 // ================
 
-/**
- * Get the bundler options using the environment.
+/** Get the bundler options using the environment.
  *
  * The following environment variables are required:
  * - `ENSO_BUILD_IDE` - output directory for bundled client files;

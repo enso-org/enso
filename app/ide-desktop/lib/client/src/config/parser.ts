@@ -38,8 +38,8 @@ const USAGE =
     `the application from a web-browser, the creation of a window can be suppressed by ` +
     `entering either '-window=false' or '-no-window'.`
 
-/** Contains information for a category of command line options and the options it is comprised of.
- */
+/** Contains information for a category of command line options and the options
+ * it is comprised of. */
 class Section<T> {
     description = ''
     entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []
@@ -61,8 +61,7 @@ interface PrintHelpConfig {
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
  * 4. There is no option to print commands with single dash instead of double-dash.
  * 5. Help coloring is not supported, and they do not want to support it:
- * https://github.com/yargs/yargs/issues/251.
- */
+ * https://github.com/yargs/yargs/issues/251. */
 function printHelp(cfg: PrintHelpConfig) {
     console.log(USAGE)
     const totalWidth = logger.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
