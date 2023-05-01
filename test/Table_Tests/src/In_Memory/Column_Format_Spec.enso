@@ -13,13 +13,6 @@ from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
 
 spec =
-    Test.group "gmt" <|
-        Test.specify "Date_Time column" <|
-            input = Column.from_vector "values" [Date_Time.new 2020 12 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
-            expected = Column.from_vector "values" ["20201221 08.10.20", "20230425 14.25.02"]
-            actual = input.format "yyyyMMdd HH.mm.ss"
-            actual . should_equal expected
-
     Test.group "Date Column.format, with format string" <|
         Test.specify "Date column" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
@@ -226,6 +219,11 @@ spec =
             actual = input.format "true|false"
             actual . should_equal expected
 
+        Test.specify "Bad format" <|
+            input = Column.from_vector "values" [True, False]
+            Column.from_vector "values" [Nothing, Nothing]
+            input.format "x|y|z" . should_fail_with Illegal_Argument
+
     Test.group "Boolean Column.format, with format Column" <|
         Test.specify "Time_Of_Day column" <|
             input = Column.from_vector "values" [True, False, True, False]
@@ -233,5 +231,14 @@ spec =
             expected = Column.from_vector "values" ["True", "False", "troo", "valz"]
             actual = input.format formats
             actual . should_equal expected
+
+        Test.specify "Bad format" <|
+            input = Column.from_vector "values" [True, False]
+            formats = Column.from_vector "formats" ["True|False", "xyzzy"]
+            expected = Column.from_vector "values" ['True', Nothing]
+            action = input.format formats on_problems=_
+            tester = t-> t.should_equal expected
+            problems = [Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'."]
+            Problems.test_problem_handling action problems tester
 
 main = Test_Suite.run_main spec

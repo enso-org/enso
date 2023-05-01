@@ -1,3 +1,4 @@
+import Standard.Base.Meta
 from Standard.Base import all
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
@@ -1793,7 +1794,7 @@ wrap_text_argument_as_value_provider val =
 make_datelike_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
 make_datelike_formatter format locale problem_builder =
     datelike->
-        illegal_argument_to_warning problem_builder format <|
+        illegal_argument_exception_to_problem problem_builder format <|
             datelike.format format locale
 
 ## PRIVATE
@@ -1802,17 +1803,18 @@ make_datelike_formatter format locale problem_builder =
 make_datelike_with_column_formatter : Locale -> Problem_Builder -> (Date -> Text -> Text)
 make_datelike_with_column_formatter locale problem_builder =
     datelike-> format->
-        illegal_argument_to_warning problem_builder format <|
+        illegal_argument_exception_to_problem problem_builder format <|
             datelike.format format locale
 
 ## PRIVATE
    Create a `Boolean`` formatter for the given format string.
-make_boolean_formatter : Text -> Problem_Builder -> (Date -> Text)
+make_boolean_formatter : Text -> Problem_Builder -> (Date -> Text) ! Illegal_Argument
 make_boolean_formatter format problem_builder =
     data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
-    bool->
-        illegal_argument_to_warning problem_builder format <|
-            data_formatter.format bool
+    data_formatter.if_not_error
+        bool->
+            illegal_argument_exception_to_problem problem_builder format <|
+                data_formatter.format bool
 
 ## PRIVATE
    Create a `Boolean` formatter that takes the format string as the second
@@ -1820,15 +1822,17 @@ make_boolean_formatter format problem_builder =
 make_boolean_with_column_formatter : Problem_Builder -> (Date -> Text -> Text)
 make_boolean_with_column_formatter problem_builder =
     bool-> format->
-        illegal_argument_to_warning problem_builder format <|
-            data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+        data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format . catch Illegal_Argument err->
+            problem_builder.report_other_warning err
+            Nothing
+        if data_formatter.is_nothing then Nothing else
             data_formatter.format bool
 
 ## PRIVATE
-   Convert a Java IllegalArgumentException to a problem warning; return Nothing
+   Convert a Java IllegalArgumentException as a problem warning; return Nothing
    in that case.
-illegal_argument_to_warning : Problem_Builder -> Text -> Any -> Any
-illegal_argument_to_warning problem_builder format_string ~action =
+illegal_argument_exception_to_problem : Problem_Builder -> Text -> Any -> Any
+illegal_argument_exception_to_problem problem_builder format_string ~action =
     handler cause =
         msg = cause.payload.getMessage + ' in \"' + format_string + '\"'
         problem_builder.report_other_warning (Illegal_Argument.Error msg)
