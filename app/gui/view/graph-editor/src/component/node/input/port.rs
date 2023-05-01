@@ -133,8 +133,8 @@ impl Port {
         port_shape.set_corner_radius_max().set_pointer_events(false);
         hover_shape.set_pointer_events(true).set_color(shape::INVISIBLE_HOVER_COLOR);
 
-        port_root.set_alignment_left_center().add_child(&widget_root);
-        widget_root.set_alignment_left_center().set_margin_left(0.0);
+        port_root.add_child(&widget_root);
+        widget_root.set_margin_left(0.0);
         port_shape
             .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
@@ -239,7 +239,7 @@ impl Port {
             self.port_root.remove_child(&self.widget_root);
             self.port_root.add_child(new_root);
             self.widget_root = new_root.clone_ref();
-            self.widget_root.set_alignment_left_center().set_margin_left(0.0);
+            self.widget_root.set_margin_left(0.0);
         }
     }
 

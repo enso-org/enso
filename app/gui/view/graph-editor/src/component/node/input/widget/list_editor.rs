@@ -174,8 +174,8 @@ impl Model {
     fn new(ctx: &super::ConfigContext, display_object: &object::Instance) -> Self {
         let list = ListEditor::new(&ctx.app().cursor);
         with_context(|ctx| ctx.layers.port.add(&list));
-        list.set_size_hug_y(TEXT_SIZE).allow_grow_y().set_alignment_left_center();
-        display_object.use_auto_layout().set_alignment_left_center();
+        list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
+        display_object.use_auto_layout().set_children_alignment_left_center();
         Self {
             self_id: ctx.info.identity,
             list,
@@ -224,12 +224,12 @@ impl Model {
         let nest = ctx.info.nesting_level.next();
         let child_config = cfg.item_widget.as_deref();
 
-        let mut build_child_widget = |i, nest, config| {
-            ctx.builder.child_widget_of_type(
-                ctx.span_node.clone().child(i).expect("invalid index"),
-                nest,
-                config,
-            )
+        let mut build_child_widget = |i, nest, config, allow_margin: bool| {
+            let mut node = ctx.span_node.clone().child(i).expect("invalid index");
+            if !allow_margin {
+                node.sibling_offset = 0.into();
+            }
+            ctx.builder.child_widget_of_type(node, nest, config)
         };
 
         let mut open_bracket = None;
@@ -246,11 +246,11 @@ impl Model {
 
             match node.kind {
                 Kind::Token if expr == "[" && open_bracket.is_none() => {
-                    let child = build_child_widget(index, no_nest, None);
+                    let child = build_child_widget(index, no_nest, None, true);
                     open_bracket = Some(child.root_object);
                 }
                 Kind::Token if expr == "]" && close_bracket.is_none() => {
-                    let child = build_child_widget(index, no_nest, None);
+                    let child = build_child_widget(index, no_nest, None, false);
                     close_bracket = Some(child.root_object);
                 }
                 Kind::InsertionPoint(_) => {
@@ -258,8 +258,8 @@ impl Model {
                 }
                 Kind::Argument(_) if last_insert_crumb.is_some() => {
                     let insert_index = last_insert_crumb.take().unwrap();
-                    let insert = build_child_widget(insert_index, no_nest, None);
-                    let item = build_child_widget(index, nest, child_config);
+                    let insert = build_child_widget(insert_index, no_nest, None, false);
+                    let item = build_child_widget(index, nest, child_config, false);
                     let element = self.elements.entry(item.id).or_insert_with(|| {
                         self.received_drag.take().map_or_else(Element::new, |d| d.element)
                     });
@@ -287,29 +287,21 @@ impl Model {
                 if present_later.is_some()
                     || list_items.iter().any(|i| i.display_object == old.display_object)
                 {
-                    console_log!("take {at}");
                     self.list.take_item(at);
                 } else {
-                    console_log!("remove {at}");
                     self.list.remove(at);
                 },
             DiffOp::Insert { at, new } => {
-                console_log!("insert {at}");
                 self.list.insert_item(at, new.clone_ref());
             }
             DiffOp::Update { at, old, new } =>
                 if old.display_object() != new.display_object() {
-                    console_log!("update {at}");
                     self.list.replace_item(at, new.clone_ref());
-                } else {
-                    console_log!("keep {at}");
                 },
         });
 
-        // self.list.replace_items(&list_items);
-
-        let append_insert =
-            last_insert_crumb.map(|index| build_child_widget(index, no_nest, None).root_object);
+        let append_insert = last_insert_crumb
+            .map(|index| build_child_widget(index, no_nest, None, false).root_object);
         let (open_bracket, close_bracket) = open_bracket.zip(close_bracket).unzip();
         let mut children = SmallVec::<[&object::Instance; 4]>::new();
         children.extend(&open_bracket);
