@@ -158,26 +158,14 @@ export interface CreatedProject extends BaseProject {
     packageName: string
 }
 
-/** A `Project` returned by the `listProjects` endpoint. */
-export interface ListedProjectRaw extends CreatedProject {
-    address: Address | null
-}
-
 /** A `Project` returned by `listProjects`. */
 export interface ListedProject extends CreatedProject {
-    binaryAddress: Address | null
-    jsonAddress: Address | null
+    address: Address | null
 }
 
 /** A `Project` returned by `updateProject`. */
 export interface UpdatedProject extends BaseProject {
     ami: Ami | null
-    ideVersion: VersionNumber | null
-    engineVersion: VersionNumber | null
-}
-
-/** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends ListedProjectRaw {
     ideVersion: VersionNumber | null
     engineVersion: VersionNumber | null
 }
@@ -429,7 +417,7 @@ interface ListDirectoryResponseBody {
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListProjectsResponseBody {
-    projects: ListedProjectRaw[]
+    projects: ListedProject[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
@@ -554,17 +542,7 @@ export class Backend {
         if (response.status !== STATUS_OK) {
             return this.throw('Unable to list projects.')
         } else {
-            return (await response.json()).projects.map(project => ({
-                ...project,
-                jsonAddress:
-                    project.address != null
-                        ? newtype.asNewtype<Address>(`${project.address}json`)
-                        : null,
-                binaryAddress:
-                    project.address != null
-                        ? newtype.asNewtype<Address>(`${project.address}binary`)
-                        : null,
-            }))
+            return (await response.json()).projects
         }
     }
 
@@ -596,22 +574,11 @@ export class Backend {
      *
      * @throws An error if a 401 or 404 status code was received. */
     async getProjectDetails(projectId: ProjectId): Promise<Project> {
-        const response = await this.get<ProjectRaw>(getProjectDetailsPath(projectId))
+        const response = await this.get<Project>(getProjectDetailsPath(projectId))
         if (response.status !== STATUS_OK) {
             return this.throw(`Unable to get details of project with ID '${projectId}'.`)
         } else {
-            const project = await response.json()
-            return {
-                ...project,
-                jsonAddress:
-                    project.address != null
-                        ? newtype.asNewtype<Address>(`${project.address}json`)
-                        : null,
-                binaryAddress:
-                    project.address != null
-                        ? newtype.asNewtype<Address>(`${project.address}binary`)
-                        : null,
-            }
+            return await response.json()
         }
     }
 

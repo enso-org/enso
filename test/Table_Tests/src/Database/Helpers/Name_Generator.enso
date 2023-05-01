@@ -1,11 +1,5 @@
 from Standard.Base import all
-
-polyglot java import java.util.UUID
-
-## Generates a text representation of a randomly generated UUID.
-random_uuid : Text
-random_uuid =
-    UUID.randomUUID.to_text
+from Standard.Base.Random import random_uuid
 
 ## Generates a random name with a given prefix, ensuring relative uniqueness by
    appending a random UUID.

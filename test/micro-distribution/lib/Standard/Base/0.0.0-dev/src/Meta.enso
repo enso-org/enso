@@ -10,6 +10,8 @@ type Primitive
 
 type_of value = @Builtin_Method "Meta.type_of"
 
+is_polyglot value = @Builtin_Method "Meta.is_polyglot"
+
 # A **very** minimal version of meta for the purpose of tests
 meta value =
     if is_unresolved_symbol value then Unresolved_Symbol.Value value else

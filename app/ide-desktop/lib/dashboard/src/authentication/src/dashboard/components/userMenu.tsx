@@ -35,7 +35,6 @@ function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
 function UserMenu() {
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useFullUserSession()
-
     const { setModal } = modalProvider.useSetModal()
 
     const goToProfile = () => {

@@ -25,6 +25,17 @@ type Model
     Power
 
     ## PRIVATE
+       Convert to a display representation of this Model.
+    to_display_text : Text
+    to_display_text self = case self of
+        Model.Linear intercept ->
+            if intercept.is_nothing then "Linear" else "Linear(intercept: " + intercept.to_display_text + ")"
+        Model.Exponential intercept ->
+            if intercept.is_nothing then "Exponential" else "Exponential(intercept: " + intercept.to_display_text + ")"
+        Model.Logarithmic -> "Logarithmic"
+        Model.Power -> "Power"
+
+    ## PRIVATE
        Computes the R Squared value for a model and returns a new instance.
     fitted_model_with_r_squared : Any -> Number -> Number -> Vector -> Vector -> Fitted_Model
     fitted_model_with_r_squared constructor a b known_xs known_ys =
@@ -33,7 +44,6 @@ type Model
         constructor a b r_squared
 
     ## PRIVATE
-
        Computes the natural log series as long as all values are positive.
     ln_series : Vector -> Text -> Vector ! Illegal_Argument
     ln_series xs series_name="Values" =
@@ -82,12 +92,16 @@ type Fitted_Model
        Display the fitted line.
     to_text : Text
     to_text self =
-        equation = case self of
-            Fitted_Model.Linear slope intercept _ -> slope.to_text + " * X + " + intercept.to_text
-            Fitted_Model.Exponential a b _ -> a.to_text + " * (" + b.to_text + " * X).exp"
-            Fitted_Model.Logarithmic a b _ -> a.to_text + " * X.ln + " + b.to_text
-            Fitted_Model.Power a b _ -> a.to_text + " * X ^ " + b.to_text
-        "Fitted_Model(" + equation + ")"
+        "Fitted_Model(" + self.to_display_text + ")"
+
+    ## PRIVATE
+       Convert to a display representation of this Fitted_Model.
+    to_display_text : Text
+    to_display_text self = case self of
+        Fitted_Model.Linear slope intercept _ -> slope.to_text + " * X + " + intercept.to_text
+        Fitted_Model.Exponential a b _ -> a.to_text + " * (" + b.to_text + " * X).exp"
+        Fitted_Model.Logarithmic a b _ -> a.to_text + " * X.ln + " + b.to_text
+        Fitted_Model.Power a b _ -> a.to_text + " * X ^ " + b.to_text
 
     ## Use the model to predict a value.
     predict : Number -> Number
@@ -108,7 +122,6 @@ type Fit_Error
     Error message
 
     ## PRIVATE
-
        Converts the `Fit_Error` to a human-readable representation.
     to_display_text : Text
     to_display_text self = "Could not fit the model: " + self.message.to_text

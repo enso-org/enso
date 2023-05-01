@@ -44,7 +44,7 @@ public class VectorBenchmarks {
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
 
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var code = """
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy

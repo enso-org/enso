@@ -15,9 +15,9 @@ use ast::Ast;
 
 
 
-/// ==============
-/// === Errors ===
-/// ==============
+// ==============
+// === Errors ===
+// ==============
 
 /// Error returned when tried to perform an action which is not available for specific SpanTree
 /// node.
@@ -35,9 +35,9 @@ pub struct AstSpanTreeMismatch;
 
 
 
-/// =====================
-/// === Actions Trait ===
-/// =====================
+// =====================
+// === Actions Trait ===
+// =====================
 
 /// Action enum used mainly for error messages.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

@@ -40,13 +40,17 @@ export function run(props: app.AppProps) {
     logger.log('Starting authentication/dashboard UI.')
     /** The root element that the authentication/dashboard app will be rendered into. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
-    const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
-    } else if (ideElement == null) {
-        logger.error(`Could not find IDE element with ID '${IDE_ELEMENT_ID}'.`)
     } else {
-        ideElement.hidden = true
+        // FIXME: https://github.com/enso-org/cloud-v2/issues/386
+        // Temporary workaround on hiding the Enso root element preventing it from
+        // rendering next to authentication templates. We are uncovering this once the
+        // authentication library sets the user session.
+        const ide = document.getElementById(IDE_ELEMENT_ID)
+        if (ide != null) {
+            ide.style.display = 'none'
+        }
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }

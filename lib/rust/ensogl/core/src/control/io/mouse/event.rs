@@ -190,6 +190,27 @@ where JsEvent: AsRef<web::MouseEvent>
     }
 }
 
+// ===============
+// === Filters ===
+// ===============
+
+type FanMouseEvent<EventType> = crate::event::Event<Event<EventType, web::MouseEvent>>;
+
+/// Indicates whether the primary mouse button was pressed when the event was triggered.
+pub fn is_primary<T>(event: &FanMouseEvent<T>) -> bool {
+    event.button() == mouse::PrimaryButton
+}
+
+/// Indicates whether the primary mouse button was pressed when the event was triggered.
+pub fn is_middle<T>(event: &FanMouseEvent<T>) -> bool {
+    event.button() == mouse::MiddleButton
+}
+
+/// Indicates whether the primary mouse button was pressed when the event was triggered.
+pub fn is_secondary<T>(event: &FanMouseEvent<T>) -> bool {
+    event.button() == mouse::SecondaryButton
+}
+
 
 
 // ==============

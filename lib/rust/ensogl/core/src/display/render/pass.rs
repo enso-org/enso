@@ -20,6 +20,9 @@ use crate::system::gpu::data::texture::class::TextureOps;
 pub trait Definition: CloneBoxedForDefinition + Debug + 'static {
     fn initialize(&mut self, _instance: &Instance) {}
     fn run(&mut self, _instance: &Instance, update_status: UpdateStatus);
+    fn is_screen_size_independent(&self) -> bool {
+        false
+    }
 }
 
 clone_boxed!(Definition);
@@ -170,7 +173,7 @@ impl OutputDefinition {
     /// Constructor of the RGBA u8 output with default texture parameters. It is the most popular
     /// option and you should use it to render colors with your passes.
     pub fn new_rgba<Name: Str>(name: Name) -> Self {
-        let internal_format = texture::Rgba;
+        let internal_format = texture::Rgba8;
         let item_type = texture::item_type::u8;
         let texture_parameters = default();
         OutputDefinition::new(name, internal_format, item_type, texture_parameters)
@@ -215,5 +218,11 @@ impl Framebuffer {
         let result = f();
         self.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
         result
+    }
+}
+
+impl Drop for Framebuffer {
+    fn drop(&mut self) {
+        self.context.delete_framebuffer(Some(&self.native));
     }
 }

@@ -504,7 +504,7 @@ public class EnsoContext {
    *
    * <p>The counter is used to track the creation time of warnings.
    */
-  public long clockTick() {
+  public long nextSequenceId() {
     return clock.getAndIncrement();
   }
 

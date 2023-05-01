@@ -28,7 +28,7 @@ type Warning
 
     ## ADVANCED
        Are any warnings attached to the value?
-    has_warnings : Any -> Boolean
+    has_warnings : Any -> Any -> Boolean
     has_warnings value warning_type=Any =
         Warning.get_all value . any (w-> w.value.is_a warning_type)
 
@@ -36,7 +36,7 @@ type Warning
 
        Arguments:
        - warning_type: The type to remove if attached to the value. Defaults to all warnings.
-    remove_warnings : Any -> Any
+    remove_warnings : Any -> Any -> Any
     remove_warnings value warning_type=Any =
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 

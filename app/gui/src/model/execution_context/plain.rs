@@ -287,6 +287,14 @@ impl model::execution_context::API for ExecutionContext {
         self.execution_environment.set(environment);
         futures::future::ready(Ok(())).boxed_local()
     }
+
+    fn execution_environment(&self) -> ExecutionEnvironment {
+        self.execution_environment.get()
+    }
+
+    fn trigger_clean_live_execution(&self) -> LocalBoxFuture<FallibleResult> {
+        futures::future::ready(Ok(())).boxed_local()
+    }
 }
 
 

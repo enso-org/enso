@@ -6,6 +6,7 @@ import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
 import project.Connection.Connection.Connection
+import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
@@ -184,6 +185,12 @@ type Dialect
     is_supported : Text -> Boolean
     is_supported self operation =
         _ = operation
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       The default table types to use when listing tables.
+    default_table_types : Vector Text
+    default_table_types self =
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

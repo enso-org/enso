@@ -98,18 +98,18 @@ spec =
             disp = long.to_display_text
             disp.length . should_equal 80
             disp.characters.take (First 5) . should_equal [ 'H', 'e', 'l', 'l', 'o' ]
-            disp.characters.take (Last 6) . should_equal ['l', 'd', '!', ' ', 'H', 'e']
+            disp.characters.take (Last 6) . should_equal ['l', 'd', '!', ' ', ' ', '…']
 
         Test.specify "grapheme 1 conversion" <|
             txt = 'a\u0321\u0302'*100
-            txt.to_display_text . should_equal 'a\u0321\u0302'*80
+            txt.to_display_text . should_equal ('a\u0321\u0302'*78 + ' …')
 
         Test.specify "grapheme 2 conversion" <|
             txt = '\u0915\u094D\u0937\u093F'*100
-            txt.to_display_text . should_equal '\u0915\u094D\u0937\u093F'*80
+            txt.to_display_text . should_equal ('\u0915\u094D\u0937\u093F'*78 + ' …')
 
         Test.specify "grapheme 3 conversion" <|
             txt = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*100
-            txt.to_display_text . should_equal '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*80
+            txt.to_display_text . should_equal ('\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*78 + ' …')
 
 main = Test_Suite.run_main spec

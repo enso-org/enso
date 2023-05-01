@@ -1,6 +1,6 @@
-import project.Meta
-import project.Error.Error
 import project.Any.Any
+import project.Error.Error
+import project.Meta
 
 
 @Builtin_Type
@@ -50,7 +50,9 @@ type No_Such_Method
 
     method_name self = Meta.meta self.symbol . name
 
-    to_display_text self = "Method `"+self.method_name+"` of "+self.target.to_display_text+" could not be found."
+    to_display_text self =
+        target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
+        "Method `"+self.method_name+"` of type "+target_type_name+" could not be found."
 
 @Builtin_Type
 type Module_Not_In_Package_Error

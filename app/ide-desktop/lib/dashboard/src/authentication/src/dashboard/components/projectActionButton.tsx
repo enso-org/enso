@@ -1,8 +1,10 @@
 /** @file An interactive button displaying the status of a project. */
 import * as react from 'react'
+import * as reactDom from 'react-dom'
 
-import * as backendProvider from '../../providers/backend'
-import * as cloudService from '../cloudService'
+import * as auth from '../../authentication/providers/auth'
+import * as backend from '../service'
+import * as loggerProvider from '../../providers/logger'
 import * as svg from '../../components/svg'
 
 // =============
@@ -21,7 +23,7 @@ enum SpinnerState {
 // =================
 
 /** The interval between requests checking whether the IDE is ready. */
-const CHECK_STATUS_INTERVAL = 10000
+const STATUS_CHECK_INTERVAL = 10000
 
 const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
     [SpinnerState.initial]: 'dasharray-5 ease-linear',
@@ -29,68 +31,86 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
     [SpinnerState.done]: 'dasharray-100 duration-1000 ease-in',
 } as const
 
+/** Displayed when a project is ready to stop. */
+function StopIcon(spinnerState: SpinnerState) {
+    return (
+        <svg
+            width={24}
+            height={24}
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+                d="m9 8L15 8a1 1 0 0 1 1 1L16 15a1 1 0 0 1 -1 1L9 16a1 1 0 0 1 -1 -1L8 9a1 1 0 0 1 1 -1"
+                fill="currentColor"
+            />
+            <rect
+                x={1.5}
+                y={1.5}
+                width={21}
+                height={21}
+                rx={10.5}
+                stroke="currentColor"
+                strokeOpacity={0.1}
+                strokeWidth={3}
+            />
+            <rect
+                x={1.5}
+                y={1.5}
+                width={21}
+                height={21}
+                rx={10.5}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth={3}
+                className={`animate-spin-ease origin-center transition-stroke-dasharray ${SPINNER_CSS_CLASSES[spinnerState]}`}
+            />
+        </svg>
+    )
+}
+
 // =================
 // === Component ===
 // =================
 
 export interface ProjectActionButtonProps {
-    project: cloudService.Asset<cloudService.AssetType.project>
+    project: backend.Asset<backend.AssetType.project>
     openIde: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
     const { project, openIde } = props
-    const { backend } = backendProvider.useBackend()
+    const { accessToken } = auth.useFullUserSession()
+    const logger = loggerProvider.useLogger()
+    const backendService = backend.createBackend(accessToken, logger)
 
-    const [state, setState] = react.useState(cloudService.ProjectState.created)
-    const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
+    const [state, setState] = react.useState(backend.ProjectState.created)
+    const [checkStatusInterval, setCheckStatusInterval] = react.useState<number | null>(null)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
-        async function checkProjectStatus() {
-            const response = await backend.getProjectDetails(project.id)
-
-            setState(response.state.type)
-
-            if (response.state.type === cloudService.ProjectState.opened) {
-                setSpinnerState(SpinnerState.done)
-                setIsCheckingStatus(false)
-            }
-        }
-        if (!isCheckingStatus) {
-            return
-        } else {
-            const handle = window.setInterval(
-                () => void checkProjectStatus(),
-                CHECK_STATUS_INTERVAL
-            )
-            return () => {
-                clearInterval(handle)
-            }
-        }
-    }, [isCheckingStatus])
-
-    react.useEffect(() => {
         void (async () => {
-            const projectDetails = await backend.getProjectDetails(project.id)
+            const projectDetails = await backendService.getProjectDetails(project.id)
             setState(projectDetails.state.type)
-            if (projectDetails.state.type === cloudService.ProjectState.openInProgress) {
-                setSpinnerState(SpinnerState.initial)
-                setIsCheckingStatus(true)
-            }
         })()
     }, [])
 
     function closeProject() {
-        setState(cloudService.ProjectState.closed)
-        window.tryStopProject()
-        void backend.closeProject(project.id)
-        setIsCheckingStatus(false)
+        setState(backend.ProjectState.closed)
+        void backendService.closeProject(project.id)
+
+        reactDom.unstable_batchedUpdates(() => {
+            setCheckStatusInterval(null)
+            if (checkStatusInterval != null) {
+                clearInterval(checkStatusInterval)
+            }
+        })
     }
 
     function openProject() {
-        setState(cloudService.ProjectState.openInProgress)
+        setState(backend.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
         // the `initial` fraction to the `loading` fraction,
@@ -98,27 +118,41 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
-        void backend.openProject(project.id)
-        setIsCheckingStatus(true)
+
+        void backendService.openProject(project.id)
+
+        const checkProjectStatus = async () => {
+            const response = await backendService.getProjectDetails(project.id)
+
+            setState(response.state.type)
+
+            if (response.state.type === backend.ProjectState.opened) {
+                setCheckStatusInterval(null)
+                if (checkStatusInterval != null) {
+                    clearInterval(checkStatusInterval)
+                }
+                setSpinnerState(SpinnerState.done)
+            }
+        }
+
+        reactDom.unstable_batchedUpdates(() => {
+            setCheckStatusInterval(
+                window.setInterval(() => void checkProjectStatus(), STATUS_CHECK_INTERVAL)
+            )
+        })
     }
 
     switch (state) {
-        case cloudService.ProjectState.created:
-        case cloudService.ProjectState.new:
-        case cloudService.ProjectState.closed:
+        case backend.ProjectState.created:
+        case backend.ProjectState.new:
+        case backend.ProjectState.closed:
             return <button onClick={openProject}>{svg.PLAY_ICON}</button>
-        case cloudService.ProjectState.openInProgress:
-            return (
-                <button onClick={closeProject}>
-                    <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
-                </button>
-            )
-        case cloudService.ProjectState.opened:
+        case backend.ProjectState.openInProgress:
+            return <button onClick={closeProject}>{StopIcon(spinnerState)}</button>
+        case backend.ProjectState.opened:
             return (
                 <>
-                    <button onClick={closeProject}>
-                        <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
-                    </button>
+                    <button onClick={closeProject}>{StopIcon(spinnerState)}</button>
                     <button onClick={openIde}>{svg.ARROW_UP_ICON}</button>
                 </>
             )

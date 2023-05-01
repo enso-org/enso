@@ -247,6 +247,7 @@ lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
     `interpreter-dsl`,
+    `interpreter-dsl-test`,
     `json-rpc-server-test`,
     `json-rpc-server`,
     `language-server`,
@@ -1966,6 +1967,8 @@ lazy val `enso-test-java-helpers` = project
       result
     }.value
   )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
 
 lazy val `std-table` = project
   .in(file("std-bits") / "table")

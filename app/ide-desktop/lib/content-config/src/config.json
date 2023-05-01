@@ -123,6 +123,11 @@
         "newDashboard": {
           "value": false,
           "description": "Determines whether the new dashboard with cloud integration is enabled."
+        },
+        "profiling": {
+          "value": false,
+          "description": "Enable the button to profile workflows.",
+          "primary": false
         }
       }
     },

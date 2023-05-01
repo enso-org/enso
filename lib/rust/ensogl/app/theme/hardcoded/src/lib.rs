@@ -664,6 +664,10 @@ define_themes! { [light:0, dark:1]
         }
     }
     widget {
+        activation_shape {
+            base      = Lcha(0.56708, 0.23249, 0.71372, 1.0), Lcha(0.56708, 0.23249, 0.71372, 1.0);
+            connected = graph_editor::node::background , graph_editor::node::background;
+        }
         list_view {
             background = graph_editor::node::background , graph_editor::node::background;
             highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)

@@ -430,6 +430,14 @@ type Range
                         @Tail_Call fold_function (function current value) (value + self.step)
                 fold_function self.start self.start+self.step
 
+    ## PRIVATE
+       Convert to a display representation of this Range.
+    to_display_text : Text
+    to_display_text self =
+        start = "[" + self.start.to_display_text + " .. " + self.end.to_display_text
+        step = if self.step.abs == 1 then "" else " by " + self.step.to_display_text
+        start + step + "]"
+
 ## PRIVATE
 throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")
 

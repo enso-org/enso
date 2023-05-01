@@ -5,6 +5,7 @@ use crate::gui::style::*;
 use crate::prelude::*;
 
 use crate::application::command::FrpNetworkProvider;
+use crate::control::io::mouse;
 use crate::data::color;
 use crate::define_style;
 use crate::display;
@@ -65,6 +66,7 @@ impl Style {
     pub fn new_highlight<H, Color: Into<color::Lcha>>(
         host: H,
         size: Vector2<f32>,
+        radius: f32,
         color: Option<Color>,
     ) -> Self
     where
@@ -72,12 +74,14 @@ impl Style {
     {
         let host = Some(StyleValue::new(host.display_object().clone_ref()));
         let size = Some(StyleValue::new(size));
+        let radius = Some(StyleValue::new(radius));
+        let press = Some(StyleValue::new(0.0));
         let color = color.map(|color| {
             let color = color.into();
             StyleValue::new(color)
         });
         let port_selection_layer = Some(StyleValue::new_no_animation(true));
-        Self { host, size, color, port_selection_layer, ..default() }
+        Self { host, size, radius, color, port_selection_layer, press, ..default() }
     }
 
     pub fn new_color(color: color::Lcha) -> Self {
@@ -133,16 +137,6 @@ impl Style {
 }
 
 
-// === Getters ===
-
-#[allow(missing_docs)]
-impl Style {
-    pub fn host_position(&self) -> Option<Vector3<f32>> {
-        self.host.as_ref().and_then(|t| t.value.as_ref().map(|t| t.position()))
-    }
-}
-
-
 
 // ==================
 // === CursorView ===
@@ -165,8 +159,8 @@ pub mod shape {
             let height : Var<Pixels> = "input_size.y".into();
             let press_side_shrink = 2.px();
             let press_diff        = press_side_shrink * &press;
-            let radius            = 1.px() * radius - &press_diff;
-            let sides_padding     = 1.px() * SIDES_PADDING;
+            let radius            = radius.px() - &press_diff;
+            let sides_padding     = SIDES_PADDING.px();
             let width             = &width  - &press_diff * 2.0 - &sides_padding;
             let height            = &height - &press_diff * 2.0 - &sides_padding;
             let cursor            = Rect((&width,&height)).corners_radius(radius);
@@ -205,7 +199,9 @@ pub mod shape {
 
 crate::define_endpoints_2! {
     Input {
+        set_style_override (Option<Style>),
         set_style (Style),
+        switch_drag_target((DragTarget, bool)),
     }
 
     Output {
@@ -214,6 +210,8 @@ crate::define_endpoints_2! {
         scene_position        (Vector3),
          /// Change between the current and the previous scene position.
         scene_position_delta  (Vector3),
+        start_drag (),
+        stop_drag(),
     }
 }
 
@@ -233,12 +231,13 @@ pub struct CursorModel {
     pub view:           shape::View,
     pub port_selection: shape::View,
     pub style:          Rc<RefCell<Style>>,
-    pub dragged_item:   Rc<RefCell<Option<Box<dyn Any>>>>,
+    pub dragged_item:   Rc<RefCell<Option<(Box<dyn Any>, display::object::Instance)>>>,
+    frp:                WeakFrp,
 }
 
 impl CursorModel {
     /// Constructor.
-    pub fn new(scene: &Scene) -> Self {
+    pub fn new(scene: &Scene, frp: WeakFrp) -> Self {
         let scene = scene.clone_ref();
         let display_object = display::object::Instance::new();
         let dragged_elem = display::object::Instance::new();
@@ -255,7 +254,7 @@ impl CursorModel {
         port_selection_layer.add(&port_selection);
 
         let dragged_item = default();
-        Self { scene, display_object, dragged_elem, view, port_selection, style, dragged_item }
+        Self { scene, display_object, dragged_elem, view, port_selection, style, dragged_item, frp }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
@@ -272,10 +271,11 @@ impl CursorModel {
 // ==============
 
 /// Cursor (mouse pointer) definition.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct Cursor {
     pub frp:   Frp,
+    #[deref]
     pub model: Rc<CursorModel>,
 }
 
@@ -284,7 +284,7 @@ impl Cursor {
     pub fn new(scene: &Scene) -> Self {
         let frp = Frp::new();
         let network = frp.network();
-        let model = CursorModel::new(scene);
+        let model = CursorModel::new(scene, frp.downgrade());
         let mouse = &scene.mouse.frp_deprecated;
 
         // === Animations ===
@@ -327,7 +327,47 @@ impl Cursor {
         let fade_out_spring = inactive_fade.spring() * 0.2;
         let fade_in_spring = inactive_fade.spring();
 
+        let on_up = scene.on_event::<mouse::Up>();
+
         frp::extend! { network
+
+            // === Drag Target ===
+
+            drag_target <- any_mut::<Option<DragTarget>>();
+            drag_target <+ frp.switch_drag_target.map2(&drag_target,
+                |(target, enabled), prev| {
+                    if let Some(prev) = prev.as_ref() {
+                        let new_target = *enabled && target != prev;
+                        let revoke_target = !enabled && target == prev;
+                        if new_target {
+                            prev.revoke.emit(());
+                            target.grant.emit(());
+                            Some(target.clone())
+                        } else if revoke_target {
+                            prev.revoke.emit(());
+                            None
+                        } else {
+                            Some(target.clone())
+                        }
+                    } else {
+                        target.grant.emit(());
+                        Some(target.clone())
+                    }
+                }
+            );
+
+            has_drag_target <- drag_target.map(|t| t.is_some()).on_change();
+            should_trash <- has_drag_target.map(f!([model] (has_drag_target) {
+                model.dragged_item.borrow().is_some() && !has_drag_target
+            }));
+            frp.set_style_override <+ should_trash.then_constant(Style::trash());
+            perform_trash <- on_up.gate(&should_trash);
+            eval_ perform_trash (model.trash_dragged_item());
+
+
+
+            // === Press / Release ===
+
             eval press.value  ((v) model.for_each_view(|vw| vw.press.set(*v)));
             eval radius.value ((v) model.for_each_view(|vw| vw.radius.set(*v)));
             eval size.value   ([model] (v) {
@@ -349,7 +389,8 @@ impl Cursor {
                 color::Rgba::new(color.red,color.green,color.blue,color.alpha*w)
             });
 
-            eval frp.set_style([host_attached_weight,size,offset,model] (new_style) {
+            style <- frp.set_style_override.unwrap_or(&frp.set_style);
+            eval style([host_attached_weight,size,offset,model] (new_style) {
                 host_attached_weight.stop_and_rewind(0.0);
                 if new_style.host.is_some() { host_attached_weight.target(1.0) }
 
@@ -432,11 +473,17 @@ impl Cursor {
             ).constant(());
 
             host_changed    <- any_(frp.set_style,scene.frp.camera_changed);
-            hosted_position <- host_changed.map(f_!(model.style.borrow().host_position()));
-            is_not_hosted   <- hosted_position.map(|p| p.is_none());
+            is_not_hosted   <- host_changed.map(f!((_) model.style.borrow().host.is_none()));
             mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
+            host_moved      <- host_changed.flat_map(f!([model] (_) {
+                match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
+                    None       => frp::Source::<()>::new().into(),
+                    Some(host) => host.on_transformed.clone(),
+                }
+            }));
 
-            eval_ host_changed([model,host_position,host_follow_weight] {
+            host_needs_update <- any(host_moved, host_changed);
+            eval_ host_needs_update([model,host_position,host_follow_weight] {
                 match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
                     None       => host_follow_weight.set_target_value(0.0),
                     Some(host) => {
@@ -444,9 +491,15 @@ impl Cursor {
                         let m1       = model.scene.layers.cursor.camera().inversed_view_matrix();
                         let m2       = model.scene.camera().view_matrix();
                         let position = host.global_position();
-                        let position = Vector4::new(position.x,position.y,position.z,1.0);
+                        let size = host.computed_size();
+                        let position = Vector4::new(
+                            position.x + size.x * 0.5,
+                            position.y + size.y * 0.5,
+                            position.z,
+                            1.0
+                        );
                         let position = m2 * (m1 * position);
-                        host_position.set_target_value(Vector3(position.x,position.y,position.z));
+                        host_position.set_target_value(position.xyz());
                     }
                 }
             });
@@ -528,16 +581,18 @@ impl Cursor {
         let model = Rc::new(model);
         Cursor { frp, model }
     }
+}
 
+impl CursorModel {
     /// Initialize item dragging. The provided item should implement [`display::Object`]. It will be
     /// stored in the cursor and moved around with it. You can retrieve the item back using the
     /// [`Self::stop_drag`] method or another similar one.
     pub fn start_drag<T: display::Object + 'static>(&self, target: T) {
-        if self.model.dragged_item.borrow().is_some() {
+        if self.dragged_item.borrow().is_some() {
             warn!("Can't start dragging an item because another item is already being dragged.");
         } else {
-            let object = target.display_object();
-            self.model.dragged_elem.add_child(object);
+            let object = target.display_object().clone();
+            self.dragged_elem.add_child(&object);
             let target_position = object.global_position().xy();
             let cursor_position = self.frp.scene_position.value().xy();
             object.set_xy(target_position - cursor_position);
@@ -545,31 +600,37 @@ impl Cursor {
             let scene = scene();
             let camera = scene.camera();
             let zoom = camera.zoom();
-            self.model.dragged_elem.set_scale_xy((zoom, zoom));
-            *self.model.dragged_item.borrow_mut() = Some(Box::new(target));
+            self.dragged_elem.set_scale_xy((zoom, zoom));
+            *self.dragged_item.borrow_mut() = Some((Box::new(target), object));
+
+            self.frp.private.output.start_drag.emit(());
         }
     }
 
     /// Remove the dragged item and return it as [`Any`]. If you want to retrieve the item if it is
     /// of a particular type, use the [`Self::stop_drag_if_is`] method instead.
     pub fn stop_drag(&self) -> Option<Box<dyn Any>> {
-        self.stop_drag_if_is()
+        let item_and_object = mem::take(&mut *self.dragged_item.borrow_mut());
+        if let Some((item, _)) = item_and_object {
+            self.stop_drag_internal();
+            Some(item)
+        } else {
+            warn!("Can't stop dragging an item because no item is being dragged.");
+            None
+        }
     }
 
     /// Check whether the dragged item is of a particular type. If it is, remove and return it.
     pub fn stop_drag_if_is<T: 'static>(&self) -> Option<T> {
-        if let Some(item) = mem::take(&mut *self.model.dragged_item.borrow_mut()) {
+        let item_and_object = mem::take(&mut *self.dragged_item.borrow_mut());
+        if let Some((item, obj)) = item_and_object {
             match item.downcast::<T>() {
                 Ok(item) => {
-                    let elems = self.model.dragged_elem.remove_all_children();
-                    let cursor_position = self.frp.scene_position.value().xy();
-                    for elem in &elems {
-                        elem.update_xy(|t| t + cursor_position);
-                    }
+                    self.stop_drag_internal();
                     Some(*item)
                 }
                 Err(item) => {
-                    *self.model.dragged_item.borrow_mut() = Some(item);
+                    *self.dragged_item.borrow_mut() = Some((item, obj));
                     None
                 }
             }
@@ -579,16 +640,39 @@ impl Cursor {
         }
     }
 
+    fn stop_drag_internal(&self) {
+        let elems = self.dragged_elem.remove_all_children();
+        let cursor_position = self.frp.scene_position.value().xy();
+        for elem in &elems {
+            elem.update_xy(|t| t + cursor_position);
+        }
+        self.frp.private.output.stop_drag.emit(());
+    }
+
+    /// The display object of the dragged item, if any.
+    pub fn dragged_display_object(&self) -> Option<display::object::Instance> {
+        self.dragged_item.borrow().as_ref().map(|t| t.1.clone())
+    }
+
     /// Check whether the dragged item is of a particular type.
     pub fn dragged_item_is<T: 'static>(&self) -> bool {
-        self.model.dragged_item.borrow().as_ref().map(|item| item.is::<T>()).unwrap_or(false)
+        self.dragged_item.borrow().as_ref().map(|item| item.0.is::<T>()).unwrap_or(false)
     }
 
     /// Check whether the dragged item is of a particular type. If it is, call the provided function
     /// on it's reference.
     pub fn with_dragged_item_if_is<T, Out>(&self, f: impl FnOnce(&T) -> Out) -> Option<Out>
     where T: 'static {
-        self.model.dragged_item.borrow().as_ref().and_then(|item| item.downcast_ref::<T>().map(f))
+        self.dragged_item.borrow().as_ref().and_then(|item| item.0.downcast_ref::<T>().map(f))
+    }
+
+    /// Trash the dragged item.
+    pub fn trash_dragged_item(&self) {
+        let obj = self.dragged_display_object();
+        if let Some(obj) = obj {
+            self.stop_drag();
+            self.dragged_elem.add_child(&Trash::new(obj));
+        }
     }
 }
 
@@ -597,3 +681,120 @@ impl display::Object for Cursor {
         &self.model.display_object
     }
 }
+
+
+
+// ==================
+// === DragTarget ===
+// ==================
+
+/// Abstraction for display elements that can handle dragged item drop.
+///
+/// If a display element wants to handle dragged item, for example after the mouse hovers it, it
+/// should have an instance of this struct and use the [`Cursor::switch_drag_target`] FRP endpoint
+/// to notify the cursor that it wants to handle the drop. Only one drag target can be registered
+/// globally at a time. If your drag target was granted the permission to handle the drop, the
+/// [`Self::granted`] event will be set to `true`. In case another drag target was granted the
+/// permission, your drag target's [`Self::granted`] event will turn false.
+#[derive(Debug, Clone, CloneRef, Deref, Default)]
+pub struct DragTarget {
+    model: Rc<DragTargetModel>,
+}
+
+impl DragTarget {
+    /// Constructor.
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl PartialEq for DragTarget {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.model, &other.model)
+    }
+}
+
+/// Internal representation of [`DragTarget`].
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct DragTargetModel {
+    network:     frp::Network,
+    grant:       frp::Source,
+    revoke:      frp::Source,
+    pub granted: frp::Sampler<bool>,
+}
+
+impl DragTargetModel {
+    /// Constructor.
+    pub fn new() -> Self {
+        let network = frp::Network::new("DragTarget");
+        frp::extend! { network
+            grant <- source();
+            revoke <- source();
+            granted <- bool(&revoke, &grant).sampler();
+        }
+        DragTargetModel { network, grant, revoke, granted }
+    }
+}
+
+impl Default for DragTargetModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
+
+// =============
+// === Trash ===
+// =============
+
+mod trash {
+    use super::*;
+    crate::define_endpoints_2! {}
+
+    /// A wrapper over any display object. After construction, the display object will be gradually
+    /// scaled to zero and then will be removed.
+    #[derive(Debug, CloneRef, Derivative)]
+    #[derivative(Clone(bound = ""))]
+    pub struct Trash<T> {
+        model: Rc<TrashModel<T>>,
+    }
+
+    /// Internal representation of [`Trash`].
+    #[derive(Debug)]
+    pub struct TrashModel<T> {
+        _frp: Frp,
+        elem: T,
+    }
+
+    impl<T: display::Object + 'static> Trash<T> {
+        /// Constructor.
+        pub fn new(elem: T) -> Self {
+            let self_ref = Rc::new(RefCell::new(None));
+            let _frp = Frp::new();
+            let display_object = elem.display_object();
+            let network = &_frp.network;
+            let scale_animation = Animation::<f32>::new_with_init(network, 1.0);
+            // scale_animation.simulator.update_spring(|s| s * DEBUG_ANIMATION_SPRING_FACTOR);
+            frp::extend! { network
+                eval scale_animation.value ((t) display_object.set_scale_xy(Vector2(*t,*t)));
+                // FIXME: does it handle detaching display object?
+                eval_ scale_animation.on_end (self_ref.borrow_mut().take(););
+            }
+            scale_animation.target.emit(0.0);
+
+            let model = TrashModel { _frp, elem };
+            let model = Rc::new(model);
+            *self_ref.borrow_mut() = Some(model.clone());
+            Self { model }
+        }
+    }
+
+    impl<T: display::Object> display::Object for Trash<T> {
+        fn display_object(&self) -> &display::object::Instance {
+            self.model.elem.display_object()
+        }
+    }
+}
+pub use trash::Trash;

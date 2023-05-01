@@ -42,7 +42,7 @@ public final class EnsoFile implements TruffleObject {
     this.truffleFile = truffleFile;
   }
 
-  @Builtin.Method
+  @Builtin.Method(name = "output_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
@@ -155,7 +155,7 @@ public final class EnsoFile implements TruffleObject {
     return this.truffleFile.isDirectory();
   }
 
-  @Builtin.Method(name = "create_directory")
+  @Builtin.Method(name = "create_directory_builtin")
   @CompilerDirectives.TruffleBoundary
   public void createDirectories() {
     try {
