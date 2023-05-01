@@ -25,7 +25,6 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
-use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_list_editor::ListEditor;
 use ensogl_slider as slider;
@@ -48,13 +47,8 @@ pub fn main() {
     run_once_initialized(run);
 }
 
-fn run() {
-    let app = Application::new("root");
-    let world = app.display.clone();
-    let scene = &world.default_scene;
-    let camera = scene.camera().clone_ref();
-    let navigator = Navigator::new(scene, &camera);
-    let vector_editor = ListEditor::new(&app.cursor);
+fn new_list_editor(app: &Application) -> ListEditor<slider::Slider> {
+    let list_editor = ListEditor::new(&app.cursor);
 
     let slider1 = app.new_view::<slider::Slider>();
     slider1.set_size((200.0, 24.0));
@@ -69,25 +63,38 @@ fn run() {
     let network = frp.network();
 
     frp::extend! { network
-        vector_editor.insert <+ vector_editor.request_new_item.map(move |index| {
+        list_editor.insert <+ list_editor.request_new_item.map(f!([app] (index) {
             let slider = app.new_view::<slider::Slider>();
             slider.set_size((200.0, 24.0));
             (**index, Rc::new(RefCell::new(Some(slider))))
-        });
+        }));
     }
 
-    vector_editor.push(slider1);
-    vector_editor.push(slider2);
-    vector_editor.push(slider3);
+    mem::forget(frp);
+    list_editor.push(slider1);
+    list_editor.push(slider2);
+    list_editor.push(slider3);
+    list_editor
+}
 
-    let root = display::object::Instance::new();
-    root.set_size(Vector2(300.0, 100.0));
-    root.add_child(&vector_editor);
-    world.add_child(&root);
+fn run() {
+    let app = Application::new("root");
+    let world = app.display.clone();
+    let scene = &world.default_scene;
+    let camera = scene.camera().clone_ref();
+    let navigator = Navigator::new(scene, &camera);
+
+    let list_editor1 = new_list_editor(&app);
+    list_editor1.debug(true);
+    world.add_child(&list_editor1);
+    mem::forget(list_editor1);
+
+    let list_editor2 = new_list_editor(&app);
+    list_editor2.set_y(50.0);
+    world.add_child(&list_editor2);
+    // list_editor2.debug(true);
+    mem::forget(list_editor2);
 
     world.keep_alive_forever();
-    mem::forget(frp);
     mem::forget(navigator);
-    mem::forget(root);
-    mem::forget(vector_editor);
 }
