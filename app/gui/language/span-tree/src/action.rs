@@ -316,7 +316,6 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                                 (None, None) => (-1, index..=index),
                             };
 
-                        warn!("insertion_point_offset: {insertion_point_offset}");
                         reinsert_crumbs =
                             Some(self.crumbs.relative_sibling(insertion_point_offset));
                         span_info.drain(removed_range);

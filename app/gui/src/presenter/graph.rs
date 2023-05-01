@@ -300,7 +300,7 @@ impl Model {
                 let update = self.state.update_from_view();
                 let ast_to_remove = update.remove_connection(id)?;
                 Some(self.controller.disconnect(&ast_to_remove).map(|target_crumbs| {
-                    target_crumbs.and_then(|crumbs| {
+                    if let Some(crumbs) = target_crumbs {
                         trace!(
                             "Updating edge target after disconnecting it. New crumbs: {crumbs:?}"
                         );
@@ -308,8 +308,7 @@ impl Model {
                         // update its target endpoint. Otherwise it will not reflect expression
                         // update performed on the target node.
                         self.view.replace_detached_edge_target((id, crumbs));
-                        Some(())
-                    });
+                    };
                 }))
             },
             "delete connection",

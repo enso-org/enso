@@ -73,6 +73,7 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
+use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
@@ -82,7 +83,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::object::Event;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::gui::cursor;
 use ensogl_core::gui::cursor::Cursor;
 use ensogl_core::gui::cursor::Trash;
@@ -422,7 +422,6 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             }));
 
             target <= on_down.map(|event| event.target());
-            trace target;
 
             on_up <- on_up_source.identity();
             on_up_cleaning_phase <- on_up_source.identity();
@@ -605,7 +604,6 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             is_dragging <- bool(&on_up_cleaning_phase, &init_drag_not_disabled).on_change();
             drag_diff <- pos_diff.gate(&is_dragging);
             no_drag <- drag_disabled.gate_not(&is_dragging).on_change();
-            trace no_drag;
 
             status <- bool(&on_up_cleaning_phase, &drag_diff).on_change();
             start <- status.on_true();

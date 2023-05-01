@@ -1,11 +1,12 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-
 //! Module dedicated to the List Editor widget. The main structure is [`Model`] which is one of
 //! the [KindModel](crate::component::node::widget::KindModel) variants.
 //!
 //! Currently the view is a simple [`Elements`] component, which will be replaced with a rich
 //! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
+
+// === Non-Standard Linter Configuration ===
+#![allow(unused_imports)]
+#![allow(dead_code)]
 
 use crate::prelude::*;
 
@@ -31,6 +32,8 @@ use ensogl_hardcoded_theme as theme;
 use span_tree::node::InsertionPointType;
 use span_tree::node::Kind;
 use std::fmt::Write;
+
+
 
 // ==============
 // === Widget ===
@@ -70,7 +73,7 @@ impl PartialEq for ListItem {
 impl ListItem {
     fn take_drag_data(&self) -> Option<DragData> {
         let mut borrow = self.drag_data.borrow_mut();
-        let can_take = matches!(&*borrow, Some(data) if &data.element_id == &*self.element_id);
+        let can_take = matches!(&*borrow, Some(data) if data.element_id == *self.element_id);
         can_take.and_option_from(|| borrow.take())
     }
 }
@@ -134,11 +137,11 @@ impl Widget {
 
         frp::extend! { network
             // Adding elements.
-            requested_new <- list.request_new_item.filter_map(|resp| resp.clone().gui_interaction_payload());
+            requested_new <- list.request_new_item.filter_map(|resp| resp.gui_interaction_payload());
             widgets_frp.value_changed <+ requested_new.filter_map(f!((idx) model.borrow_mut().on_new_item(*idx)));
 
             // Inserting dragged elements.
-            inserted_by_user <- list.on_item_added.filter_map(|resp| resp.clone().gui_interaction_payload());
+            inserted_by_user <- list.on_item_added.filter_map(|resp| resp.gui_interaction_payload());
             widgets_frp.value_changed <+ inserted_by_user.filter_map(f!([list, model](index) {
                 let item = list.item_at(*index)?;
                 model.borrow_mut().on_item_added(item, *index)
@@ -436,7 +439,7 @@ fn list_diff<'old, 'new, T>(
         let remaining_old = &old_elements[current_old + 1..];
         let remaining_new = &new_elements[current_new + 1..];
 
-        let old_still_in_new_list = remaining_new.contains(&old);
+        let old_still_in_new_list = remaining_new.contains(old);
         if !old_still_in_new_list {
             f(DiffOp::Delete { at, old, present_later: None });
             current_old += 1;

@@ -259,7 +259,9 @@ impl Crumbs {
     /// Create crumbs to the sibling node, which is `offset` nodes away from the current node.
     pub fn relative_sibling(&self, offset: isize) -> Self {
         let mut vec = self.vec.deref().clone();
-        vec.last_mut().map(|last| *last = last.saturating_add_signed(offset));
+        if let Some(last) = vec.last_mut() {
+            *last = last.saturating_add_signed(offset)
+        }
         Self { vec: Rc::new(vec) }
     }
 }
