@@ -33,10 +33,7 @@ spec =
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
             expected = Column.from_vector "values" [Nothing, Nothing]
-            action = input.format "DDDDD" on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
-            Problems.test_problem_handling action problems tester
+            input.format "DDDDD" . should_fail_with Illegal_Argument
 
     Test.group "Date Column.format, with format Column" <|
         Test.specify "Date column" <|
@@ -56,10 +53,7 @@ spec =
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25, Date.new 2023 4 26]
             formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "FFF"]
             expected = Column.from_vector "values" ['20200621', Nothing, Nothing]
-            action = input.format formats on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"', Illegal_Argument.Error 'Too many pattern letters: F in \"FFF\"']
-            Problems.test_problem_handling action problems tester
+            input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "Bad format column type" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25, Date.new 2023 4 26]
@@ -70,10 +64,7 @@ spec =
             input = Column.from_vector "values" (Vector.new 20 (_-> Date.new 2020 6 21))
             formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
             expected = Column.from_vector "values" (Vector.new 20 _-> Nothing)
-            action = input.format formats on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
-            Problems.test_problem_handling action problems tester
+            input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "column length mismatch" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
@@ -100,10 +91,7 @@ spec =
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
             expected = Column.from_vector "values" [Nothing, Nothing]
-            action = input.format "DDDDD" on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
-            Problems.test_problem_handling action problems tester
+            input.format "DDDDD" . should_fail_with Illegal_Argument
 
     Test.group "Date_Time Column.format, with format Column" <|
         Test.specify "Date_Time column" <|
@@ -123,10 +111,7 @@ spec =
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2, Date_Time.new 2023 4 26 3 4 5]
             formats = Column.from_vector "formats" ["yyyyMMdd HH.mm.ss", "DDDDD", "FFF"]
             expected = Column.from_vector "values" ['20200621 08.10.20', Nothing, Nothing]
-            action = input.format formats on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"', Illegal_Argument.Error 'Too many pattern letters: F in \"FFF\"']
-            Problems.test_problem_handling action problems tester
+            input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "Bad format column type" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
@@ -137,10 +122,7 @@ spec =
             input = Column.from_vector "values" (Vector.new 20 (_-> Date_Time.new 2020 6 21 8 10 20))
             formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
             expected = Column.from_vector "values" (Vector.new 20 _-> Nothing)
-            action = input.format formats on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
-            Problems.test_problem_handling action problems tester
+            input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "column length mismatch" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
@@ -165,10 +147,7 @@ spec =
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
             expected = Column.from_vector "values" [Nothing, Nothing]
-            action = input.format "DDDDD" on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
-            Problems.test_problem_handling action problems tester
+            input.format "DDDDD" . should_fail_with Illegal_Argument
 
     Test.group "Time_Of_Day Column.format, with format Column" <|
         Test.specify "Time_Of_Day column" <|
@@ -188,10 +167,7 @@ spec =
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2, Time_Of_Day.new 3 4 5]
             formats = Column.from_vector "formats" ["HH.mm.ss", "DDDDD", "FFF"]
             expected = Column.from_vector "values" ['08.10.20', Nothing, Nothing]
-            action = input.format formats on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"', Illegal_Argument.Error 'Too many pattern letters: F in \"FFF\"']
-            Problems.test_problem_handling action problems tester
+            input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "Bad format column type" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
@@ -202,10 +178,7 @@ spec =
             input = Column.from_vector "values" (Vector.new 20 (_-> Time_Of_Day.new 8 10 20))
             formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
             expected = Column.from_vector "values" (Vector.new 20 _-> Nothing)
-            action = input.format formats on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error 'Too many pattern letters: D in \"DDDDD\"']
-            Problems.test_problem_handling action problems tester
+            input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "column length mismatch" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
@@ -236,9 +209,6 @@ spec =
             input = Column.from_vector "values" [True, False]
             formats = Column.from_vector "formats" ["True|False", "xyzzy"]
             expected = Column.from_vector "values" ['True', Nothing]
-            action = input.format formats on_problems=_
-            tester = t-> t.should_equal expected
-            problems = [Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'."]
-            Problems.test_problem_handling action problems tester
+            input.format formats . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec

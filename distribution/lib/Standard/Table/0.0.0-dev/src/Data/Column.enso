@@ -1182,18 +1182,17 @@ type Column
     ## Format a `Column` using a format string (or `Column` of format strings).
     format : Text | Column -> Locale -> Problem_Behavior -> Column
     format self format locale=Locale.default on_problems=Report_Warning =
-        problem_builder = Problem_Builder.new
         new_column = case format of
             _ : Text ->
                 formatter = case self.value_type of
                     Value_Type.Date ->
-                        make_datelike_formatter format locale problem_builder
+                        make_datelike_formatter format locale
                     Value_Type.Date_Time _ ->
-                        make_datelike_formatter format locale problem_builder
+                        make_datelike_formatter format locale
                     Value_Type.Time ->
-                        make_datelike_formatter format locale problem_builder
+                        make_datelike_formatter format locale
                     Value_Type.Boolean ->
-                        make_boolean_formatter format problem_builder
+                        make_boolean_formatter format
                     #Integer -> format_as_integer self format on_problems
                     #Float,Decimal
                     bad_type ->
@@ -1204,13 +1203,13 @@ type Column
             format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = case self.value_type of
                     Value_Type.Date ->
-                        make_datelike_with_column_formatter locale problem_builder
+                        make_datelike_with_column_formatter locale
                     Value_Type.Date_Time _ ->
-                        make_datelike_with_column_formatter locale problem_builder
+                        make_datelike_with_column_formatter locale
                     Value_Type.Time ->
-                        make_datelike_with_column_formatter locale problem_builder
+                        make_datelike_with_column_formatter locale
                     Value_Type.Boolean ->
-                        make_boolean_with_column_formatter problem_builder
+                        make_boolean_with_column_formatter
                     #Integer -> format_as_integer self format on_problems
                     #Float,Decimal
                     bad_type ->
@@ -1218,8 +1217,7 @@ type Column
                         Error.throw (Illegal_Argument.Error msg)
                 formatter.if_not_error <|
                     map_2_over_storage self format_column formatter make_string_builder
-        new_column.if_not_error <|
-            condense_problems on_problems problem_builder new_column
+        new_column
 
     ## ALIAS Transform Column
 
@@ -1790,67 +1788,63 @@ wrap_text_argument_as_value_provider val =
 ## PRIVATE
    Create a date/time formatter for the given format string. The `datelike`
    parameter can be a Date, Date_Time, or Time_Of_Day.
-make_datelike_formatter : Text -> Locale -> Problem_Builder -> (Date -> Text)
-make_datelike_formatter format locale problem_builder =
+make_datelike_formatter : Text -> Locale -> (Date -> Text)
+make_datelike_formatter format locale =
     datelike->
-        illegal_argument_exception_to_problem problem_builder format <|
+        handle_illegal_argument_exception format <|
             datelike.format format locale
 
 ## PRIVATE
    Create a date/time formatter that takes the format string as the second
    parameter. The `datelike` parameter can be a Date, Date_Time, or Time_Of_Day.
-make_datelike_with_column_formatter : Locale -> Problem_Builder -> (Date -> Text -> Text)
-make_datelike_with_column_formatter locale problem_builder =
+make_datelike_with_column_formatter : Locale -> (Date -> Text -> Text)
+make_datelike_with_column_formatter locale =
     datelike-> format->
-        illegal_argument_exception_to_problem problem_builder format <|
+        handle_illegal_argument_exception format <|
             datelike.format format locale
 
 ## PRIVATE
    Create a `Boolean`` formatter for the given format string.
-make_boolean_formatter : Text -> Problem_Builder -> (Date -> Text) ! Illegal_Argument
-make_boolean_formatter format problem_builder =
+make_boolean_formatter : Text -> (Date -> Text) ! Illegal_Argument
+make_boolean_formatter format =
     data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
     data_formatter.if_not_error
         bool->
-            illegal_argument_exception_to_problem problem_builder format <|
+            handle_illegal_argument_exception format <|
                 data_formatter.format bool
 
 ## PRIVATE
    Create a `Boolean` formatter that takes the format string as the second
    parameter.
-make_boolean_with_column_formatter : Problem_Builder -> (Date -> Text -> Text)
-make_boolean_with_column_formatter problem_builder =
+make_boolean_with_column_formatter : (Date -> Text -> Text)
+make_boolean_with_column_formatter =
     bool-> format->
-        data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format . catch Illegal_Argument err->
-            problem_builder.report_other_warning err
-            Nothing
-        if data_formatter.is_nothing then Nothing else
+        data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+        data_formatter.if_not_error
             data_formatter.format bool
 
 ## PRIVATE
-   Convert a Java IllegalArgumentException as a problem warning; return Nothing
-   in that case.
-illegal_argument_exception_to_problem : Problem_Builder -> Text -> Any -> Any
-illegal_argument_exception_to_problem problem_builder format_string ~action =
+   Rethrow a Java IllegalArgumentException as an Illegal_Argument.
+handle_illegal_argument_exception : Text -> Any -> Any
+handle_illegal_argument_exception format_string ~action =
     handler cause =
         msg = cause.payload.getMessage + ' in \"' + format_string + '\"'
-        problem_builder.report_other_warning (Illegal_Argument.Error msg)
-        Nothing
-    Panic.catch IllegalArgumentException handler=handler <|
-        action
+        Error.throw (Illegal_Argument.Error msg)
+    Panic.catch IllegalArgumentException handler=handler action
 
 ## PRIVATE
-   Use AggregateProblems to reduce problem count.
-condense_problems : Problem_Behavior -> Problem_Builder -> Any -> Integer -> Any
-condense_problems on_problems problem_builder value max_count=10 =
-    with_all_warnings = problem_builder.attach_problems_after on_problems value
-    all_warnings = Warning.get_all with_all_warnings
-    all_warnings_condensed = if all_warnings.length <= max_count then all_warnings else
-        some_warnings = all_warnings.take max_count
-        additional_warnings = Additional_Warnings.Error (all_warnings.length - max_count)
-        _ = [additional_warnings]
-        some_warnings # + [additional_warnings]
-    Warning.set value all_warnings_condensed
+   Iterate over a range, exiting early if the body produces an `Error`.
+   TODO: Move into Range
+each_propagate : Range -> (Number -> Any) -> Nothing ! Error
+each_propagate range function =
+    if range.step == 0 then Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.") else
+        end_condition = if range.step > 0 then (>=) else (<=)
+        go current =
+            if end_condition current range.end then Nothing else
+                result = function current
+                if result.is_error then result else
+                    @Tail_Call go current+range.step
+        go range.start
 
 ## PRIVATE
    Map a text-returning function over the column values, using Storage directly.
@@ -1860,13 +1854,15 @@ map_over_storage input_column function builder skip_nothing=True =
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size
     output_storage_builder = builder num_input_rows
-    0.up_to num_input_rows . each i->
+    ok = each_propagate (0.up_to num_input_rows) i->
         input_value = input_storage.getItemBoxed i
         if skip_nothing && input_value.is_nothing then output_storage_builder.append Nothing else
             output_value = function input_value
-            output_storage_builder.append output_value
-    output_storage = output_storage_builder.seal
-    Column.from_storage input_column.name output_storage
+            output_value.if_not_error
+                output_storage_builder.append output_value
+    ok.if_not_error <|
+        output_storage = output_storage_builder.seal
+        Column.from_storage input_column.name output_storage
 
 ## PRIVATE
    Map a text-returning function over the values of two columns, using Storage
@@ -1882,11 +1878,12 @@ map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=T
         False ->
             num_input_rows = input_storage_0.size
             output_storage_builder = builder num_input_rows
-            0.up_to num_input_rows . each i->
+            ok = each_propagate (0.up_to num_input_rows) i->
                 input_value_0 = input_storage_0.getItemBoxed i
                 input_value_1 = input_storage_1.getItemBoxed i
                 if skip_nothing && (input_value_0.is_nothing || input_value_1.is_nothing) then output_storage_builder.append Nothing else
                     output_value = function input_value_0 input_value_1
                     output_storage_builder.append output_value
-            output_storage = output_storage_builder.seal
-            Column.from_storage input_column_0.name output_storage
+            ok.if_not_error <|
+                output_storage = output_storage_builder.seal
+                Column.from_storage input_column_0.name output_storage
