@@ -1,0 +1,35 @@
+Here are people who have contributed to development of this project
+(version numbers in brackets indicate release in which the problem was fixed)
+
+Tatu Saloranta, tatu.saloranta@iki.fi: author
+
+Clinton Gormley (clintongormley@github)
+
+* Suggested [#5]: Support binary (byte[]) Object keys (assuming UTF-8 encoding)
+ (2.4.3)
+* Suggested [#6]: Support 'self-describe' CBOR tag
+ (2.4.3)
+
+mbaril@github)
+
+* Reported #9, suggested fix, contributed unit test: Infinite loop when trying
+  to write binary data using CBORGenerator
+ (2.5.1)
+
+Steve Gury (stevegury@github)
+
+* Reported #13, suggested fix: Bug in boundary checking in the CBORParser
+ (2.6.2)
+
+Adrien Grand (jpountz@github)
+
+* Reported #15: CBORParser.getNumberType returns DOUBLE even if the generator
+  has been fed with a float
+ (2.6.5)
+
+philipa@githubL
+
+* Requested #20: Add a public `finishToken()`
+ (2.7.2)
+* Requested #22: CBORGenerator.copyCurrentStructure() and copyCurrentEvent() do not copy tags
+ (2.7.2)
