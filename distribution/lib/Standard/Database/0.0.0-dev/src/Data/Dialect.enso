@@ -11,6 +11,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -185,6 +186,13 @@ type Dialect
     is_supported : Text -> Boolean
     is_supported self operation =
         _ = operation
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Returns a helper for mapping database-specific SQL errors into our common
+       error types.
+    get_error_mapper : Error_Mapper
+    get_error_mapper self =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE

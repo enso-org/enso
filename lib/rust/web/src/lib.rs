@@ -664,10 +664,8 @@ ops! { HtmlElementOps for HtmlElement
         fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
             let name = name.as_ref();
             let value = value.as_ref();
-            let values = format!("\"{name}\" = \"{value}\" on \"{self:?}\"");
-            let warn_msg: &str = &format!("Failed to set style {values}");
             if self.style().set_property(name, value).is_err() {
-                warn!("{warn_msg}");
+                warn!("Failed to set style \"{name}\" = \"{value}\" on \"{self:?}\"");
             }
         }
     }
