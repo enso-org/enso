@@ -115,8 +115,10 @@ Database_Table.create_database_table self connection table_name=Nothing primary_
     resolved_primary_key = resolve_primary_key self primary_key
     effective_table_name = resolve_effective_table_name table_name temporary
     create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
+    connection_check = if self.connection.jdbc_connection == connection.jdbc_connection then True else
+        Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
 
-    upload_status = create_table_statement.if_not_error <|
+    upload_status = connection_check.if_not_error <| create_table_statement.if_not_error <|
         translate_known_upload_errors connection resolved_primary_key <|
             connection.jdbc_connection.run_within_transaction <|
                 Panic.rethrow <| connection.execute_update create_table_statement

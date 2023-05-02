@@ -193,6 +193,15 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["X"]
             r1.should_fail_with Non_Unique_Primary_Key
 
+        Test.specify "will not allow to upload tables across connections" <|
+            t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
+            db_table = t.create_database_table connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
+
+            connection_2 = make_new_connection Nothing
+            r1 = db_table.create_database_table connection_2 (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
+            r1.should_fail_with Unsupported_Database_Operation
+            r1.catch.message . should_contain "same connection"
+
 
 ## PRIVATE
    Creates a mock column containing `values`.
