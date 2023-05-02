@@ -5,7 +5,11 @@ use crate::prelude::*;
 use ensogl::application::tooltip;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::shape::StyleWatch;
+use ensogl::display::Scene;
+use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ToggleButton;
+use ensogl_hardcoded_theme::application::dashboard_button as theme;
 
 
 
@@ -91,11 +95,22 @@ impl View {
         }
 
         button.set_visibility(true);
+        button.set_color_scheme(&Self::color_scheme(scene));
         let size = Vector2(16.0, 16.0);
         button.set_size(size);
         frp.source.size.emit(size);
 
         Self { button, frp }
+    }
+
+    fn color_scheme(scene: &Scene) -> toggle_button::ColorScheme {
+        let styles = StyleWatch::new(&scene.style_sheet);
+        toggle_button::ColorScheme {
+            non_toggled: Some(styles.get_color(theme::non_toggled).into()),
+            toggled: Some(styles.get_color(theme::toggled).into()),
+            hovered: Some(styles.get_color(theme::hovered).into()),
+            ..default()
+        }
     }
 }
 
