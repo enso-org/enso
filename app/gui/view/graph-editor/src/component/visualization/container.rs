@@ -174,8 +174,11 @@ impl View {
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         let overlay = overlay::View::new();
-        display_object.add_child(&background);
+        // display_object.add_child(&background);
         display_object.add_child(&overlay);
+        let div = web::document.create_div_or_panic();
+        let background_dom = DomSymbol::new(&div);
+        display_object.add_child(&background_dom);
 
         ensogl::shapes_order_dependencies! {
             scene => {
@@ -183,9 +186,29 @@ impl View {
             }
         };
 
+        Self { display_object, background, overlay, background_dom, scene }.init()
+    }
+
+    fn set_layer(&self, layer: visualization::Layer) {
+        layer.apply_for_html_component(&self.scene, &self.background_dom);
+    }
+
+    /// Load an HTML file into the view when user is waiting for data to be received.
+    /// TODO(#5214): This should be replaced with a EnsoGL spinner.
+    fn show_waiting_screen(&self) {
+        let spinner = include_str!("../../../../assets/visualisation_spinner.html");
+        self.background_dom.dom().set_inner_html(spinner)
+    }
+
+    fn disable_waiting_screen(&self) {
+        self.background_dom.dom().set_inner_html("")
+    }
+
+    fn init_background(&self) {
+        let background = &self.background_dom;
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles = StyleWatch::new(&scene.style_sheet);
+        let styles = StyleWatch::new(&self.scene.style_sheet);
         let bg_color =
             styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background);
         let bg_hex = format!(
@@ -196,29 +219,22 @@ impl View {
             bg_color.alpha
         );
 
-        let div = web::document.create_div_or_panic();
-        let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was
         // overlapping the JS visualization. This should be further investigated
         // while fixing rust visualization displaying. (#796)
-        background_dom.dom().set_style_or_warn("width", "0");
-        background_dom.dom().set_style_or_warn("height", "0");
-        background_dom.dom().set_style_or_warn("z-index", "1");
-        background_dom.dom().set_style_or_warn("overflow-y", "auto");
-        background_dom.dom().set_style_or_warn("overflow-x", "auto");
-        background_dom.dom().set_style_or_warn("background", bg_hex);
-        background_dom.dom().set_style_or_warn("border-radius", "14px");
-        shadow::add_to_dom_element(&background_dom, &styles);
-        display_object.add_child(&background_dom);
-
-        Self { display_object, background, overlay, background_dom, scene }.init()
-    }
-
-    fn set_layer(&self, layer: visualization::Layer) {
-        layer.apply_for_html_component(&self.scene, &self.background_dom);
+        background.dom().set_style_or_warn("width", "0");
+        background.dom().set_style_or_warn("height", "0");
+        background.dom().set_style_or_warn("z-index", "1");
+        background.dom().set_style_or_warn("overflow-y", "auto");
+        background.dom().set_style_or_warn("overflow-x", "auto");
+        background.dom().set_style_or_warn("background", bg_hex);
+        background.dom().set_style_or_warn("border-radius", "14px");
+        shadow::add_to_dom_element(background, &styles);
     }
 
     fn init(self) -> Self {
+        self.init_background();
+        self.show_waiting_screen();
         self.set_layer(visualization::Layer::Default);
         self.scene.layers.viz.add(&self);
         self
@@ -300,6 +316,8 @@ impl ContainerModel {
         // FIXME: These 2 lines fix a bug with display objects visible on stage.
         self.set_visibility(true);
         self.set_visibility(false);
+
+        self.view.show_waiting_screen();
         self
     }
 
@@ -575,7 +593,15 @@ impl Container {
                 }
                 vis_definition.clone()
             }));
+
+
+        // === Visualisation Loading Spinner ===
+
+        eval_ frp.source.visualisation ( model.view.show_waiting_screen() );
+        eval_ frp.set_data ( model.view.disable_waiting_screen() );
+
         }
+
 
 
         // === Selecting Visualization ===
