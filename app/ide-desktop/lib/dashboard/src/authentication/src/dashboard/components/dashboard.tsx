@@ -673,20 +673,22 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
                 setBackendPlatform={newBackendPlatform => {
-                    setProjectAssets([])
-                    setDirectoryAssets([])
-                    setSecretAssets([])
-                    setFileAssets([])
-                    switch (newBackendPlatform) {
-                        case platformModule.Platform.desktop:
-                            setBackend(new localBackend.LocalBackend())
-                            break
-                        case platformModule.Platform.cloud: {
-                            const headers = new Headers()
-                            headers.append('Authorization', `Bearer ${accessToken}`)
-                            const client = new http.Client(headers)
-                            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                            break
+                    if (newBackendPlatform !== backend.platform) {
+                        setProjectAssets([])
+                        setDirectoryAssets([])
+                        setSecretAssets([])
+                        setFileAssets([])
+                        switch (newBackendPlatform) {
+                            case platformModule.Platform.desktop:
+                                setBackend(new localBackend.LocalBackend())
+                                break
+                            case platformModule.Platform.cloud: {
+                                const headers = new Headers()
+                                headers.append('Authorization', `Bearer ${accessToken}`)
+                                const client = new http.Client(headers)
+                                setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                                break
+                            }
                         }
                     }
                 }}
