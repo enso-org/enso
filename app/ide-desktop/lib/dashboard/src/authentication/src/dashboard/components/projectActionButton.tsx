@@ -18,6 +18,15 @@ enum SpinnerState {
     done = 'done',
 }
 
+/** The state of checking whether a project is ready. It should go from not checking, to checking
+ * status, to checking resources, to done. */
+enum CheckState {
+    notChecking = 'not-checking',
+    checkingStatus = 'checking-status',
+    checkingResources = 'checking-resources',
+    done = 'done',
+}
+
 // =================
 // === Constants ===
 // =================
@@ -50,8 +59,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = React.useState(backendModule.ProjectState.created)
-    const [isCheckingStatus, setIsCheckingStatus] = React.useState(false)
-    const [isCheckingResources, setIsCheckingResources] = React.useState(false)
+    const [checkState, setCheckState] = React.useState(CheckState.notChecking)
     const [spinnerState, setSpinnerState] = React.useState(SpinnerState.done)
 
     React.useEffect(() => {
@@ -60,7 +68,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             setState(projectDetails.state.type)
             if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
                 setSpinnerState(SpinnerState.initial)
-                setIsCheckingStatus(true)
+                setCheckState(CheckState.checkingStatus)
             }
         })()
     }, [])
@@ -68,8 +76,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     React.useEffect(() => {
         if (backend.platform === platform.Platform.desktop) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
-                setIsCheckingResources(false)
-                setIsCheckingStatus(false)
+                setCheckState(CheckState.notChecking)
                 setState(backendModule.ProjectState.closed)
                 setSpinnerState(SpinnerState.done)
             }
@@ -77,85 +84,86 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
 
     React.useEffect(() => {
-        if (!isCheckingStatus) {
-            return
-        } else {
-            const checkProjectStatus = async () => {
-                const response = await backend.getProjectDetails(project.id)
-                if (response.state.type === backendModule.ProjectState.opened) {
-                    setIsCheckingStatus(false)
-                    setIsCheckingResources(true)
-                } else {
-                    setState(response.state.type)
-                }
+        switch (checkState) {
+            case CheckState.notChecking: {
+                return
             }
-            const handle = window.setInterval(
-                () => void checkProjectStatus(),
-                CHECK_STATUS_INTERVAL_MS
-            )
-            return () => {
-                clearInterval(handle)
-            }
-        }
-    }, [isCheckingStatus, project.id, backend])
-
-    React.useEffect(() => {
-        if (!isCheckingResources) {
-            return
-        } else {
-            const checkProjectResources = async () => {
-                if (!('checkResources' in backend)) {
-                    setState(backendModule.ProjectState.opened)
-                    setIsCheckingResources(false)
-                    setSpinnerState(SpinnerState.done)
-                } else {
-                    try {
-                        // This call will error if the VM is not ready yet.
-                        await backend.checkResources(project.id)
-                        setState(backendModule.ProjectState.opened)
-                        setIsCheckingResources(false)
-                        setSpinnerState(SpinnerState.done)
-                    } catch {
-                        // Ignored.
+            case CheckState.checkingStatus: {
+                const checkProjectStatus = async () => {
+                    const response = await backend.getProjectDetails(project.id)
+                    if (response.state.type === backendModule.ProjectState.opened) {
+                        setCheckState(CheckState.checkingResources)
+                    } else {
+                        setState(response.state.type)
                     }
                 }
+                const handle = window.setInterval(
+                    () => void checkProjectStatus(),
+                    CHECK_STATUS_INTERVAL_MS
+                )
+                return () => {
+                    clearInterval(handle)
+                }
             }
-            const handle = window.setInterval(
-                () => void checkProjectResources(),
-                CHECK_RESOURCES_INTERVAL_MS
-            )
-            return () => {
-                clearInterval(handle)
+            case CheckState.checkingResources: {
+                const checkProjectResources = async () => {
+                    if (!('checkResources' in backend)) {
+                        setState(backendModule.ProjectState.opened)
+                        setCheckState(CheckState.done)
+                        setSpinnerState(SpinnerState.done)
+                    } else {
+                        try {
+                            // This call will error if the VM is not ready yet.
+                            await backend.checkResources(project.id)
+                            setState(backendModule.ProjectState.opened)
+                            setCheckState(CheckState.done)
+                            setSpinnerState(SpinnerState.done)
+                        } catch {
+                            // Ignored.
+                        }
+                    }
+                }
+                const handle = window.setInterval(
+                    () => void checkProjectResources(),
+                    CHECK_RESOURCES_INTERVAL_MS
+                )
+                return () => {
+                    clearInterval(handle)
+                }
+            }
+            case CheckState.done: {
+                return
             }
         }
-    }, [isCheckingResources, project.id, backend])
+    }, [checkState, project.id, backend])
 
-    function closeProject() {
+    const closeProject = () => {
         setState(backendModule.ProjectState.closed)
         appRunner?.stopApp()
         void backend.closeProject(project.id)
-        setIsCheckingStatus(false)
+        setCheckState(CheckState.notChecking)
         onClose()
     }
 
-    async function openProject() {
+    const openProject = async () => {
         setState(backendModule.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from
-        // the `initial` fraction to the `loading` fraction,
-        // rather than starting at the `loading` fraction.
+        // the `initial` fraction to the `loading` fraction, rather than starting
+        // at the `loading` fraction.
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
         switch (backend.platform) {
             case platform.Platform.cloud:
                 await backend.openProject(project.id)
-                setIsCheckingStatus(true)
+                setCheckState(CheckState.checkingStatus)
                 break
             case platform.Platform.desktop:
                 await backend.openProject(project.id)
                 setState(backendModule.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)
+                setCheckState(CheckState.done)
                 break
         }
     }
