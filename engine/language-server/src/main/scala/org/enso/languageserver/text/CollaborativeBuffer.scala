@@ -810,7 +810,7 @@ class CollaborativeBuffer(
   }
 
   def stop(autoSave: Map[ClientId, (ContentVersion, Cancellable)]): Unit = {
-    autoSave.values.foreach(_._2.cancel())
+    autoSave.foreach { case (_, (_, cancellable)) => cancellable.cancel() }
     context.system.eventStream.publish(BufferClosed(bufferPath))
     context.stop(self)
   }
