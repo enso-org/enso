@@ -280,8 +280,7 @@ impl Model {
         if let Some(window_control_buttons) = &*self.window_control_buttons {
             window_control_buttons.set_xy(top_left);
         }
-        let gap = crate::graph_editor::TOP_BAR_ITEM_MARGIN;
-        let dashboard_button_offset = Vector2(window_control_buttons_width + gap, 0.0);
+        let dashboard_button_offset = Vector2(window_control_buttons_width, 0.0);
         let dashboard_button_origin = Vector2(dashboard_button_width, -TOP_BAR_HEIGHT) / 2.0;
         let dashboard_button_pos = top_left + dashboard_button_offset + dashboard_button_origin;
         self.dashboard_button.set_xy(dashboard_button_pos);
@@ -406,23 +405,22 @@ impl View {
 
         // === Top Bar ===
 
-        let window_control_buttons_width =
-            if let Some(window_control_buttons) = &*model.window_control_buttons {
-                frp::extend! { network
-                    window_control_buttons_size <- all(init, window_control_buttons.size)._1();
-                    window_control_buttons_width <- window_control_buttons_size.map(|size| size.x);
-                    eval_ window_control_buttons.close (model.on_close_clicked());
-                    eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-                }
-                window_control_buttons_width
-            } else {
-                frp::extend! { network
-                    window_control_buttons_width <- source::<f32>();
-                    window_control_buttons_width_stream <- window_control_buttons_width.identity();
-                }
-                window_control_buttons_width.emit(0.0);
-                window_control_buttons_width_stream
-            };
+        let window_control_buttons_width = if let Some(window_control_buttons) =
+            &*model.window_control_buttons
+        {
+            frp::extend! { network
+                window_control_buttons_size <- all(init, window_control_buttons.size)._1();
+                window_control_buttons_width <- window_control_buttons_size.map(|size| size.x);
+                eval_ window_control_buttons.close (model.on_close_clicked());
+                eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
+            }
+            window_control_buttons_width
+        } else {
+            frp::extend! { network
+                window_control_buttons_width <- init.constant(crate::graph_editor::TOP_BAR_ITEM_MARGIN);
+            }
+            window_control_buttons_width
+        };
         let scene_shape = scene.shape().clone_ref();
         let dashboard_button = &model.dashboard_button.frp;
         frp::extend! { network
