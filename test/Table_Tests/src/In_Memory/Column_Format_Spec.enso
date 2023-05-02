@@ -223,6 +223,10 @@ spec_with_numeric_type name numeric_type =
             expected = Column.from_vector "values" ["100 000 000,00", "2 222,00", "3,00"]
             input.format "#,##0.00" locale=(Locale.new "fr") . should_equal expected
 
+        Test.specify "Bad format" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
+            input.format "#.##0,00" . should_fail_with Illegal_Argument
+
     Test.group name+", with format Column" <|
         Test.specify "Integer Column" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
@@ -235,5 +239,10 @@ spec_with_numeric_type name numeric_type =
             formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
             expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]
             input.format formats locale=(Locale.new "fr") . should_equal expected
+
+        Test.specify "Bad format" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
+            formats = Column.from_vector "formats" ["#,##0.00", "#.##0,00", "0"]
+            input.format formats . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec
