@@ -290,12 +290,13 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     // the [`SpanTree`] for prefix chains:
                     //
                     // Root
-                    // └─Chained
-                    //   ├─Chained
-                    //   │ ├─Chained
-                    //   │ │ └─ Argument1
-                    //   │ └─Argument2
-                    //   └─Argument3
+                    // ├─Chained
+                    // │ ├─Chained
+                    // │ │ ├─Chained
+                    // │ │ │ └─ Argument1
+                    // │ │ └─ Argument2
+                    // │ └─ Argument3
+                    // └─ Argument4
                     //
                     // We are iterating over the old span tree, while modifying an expression that
                     // constantly changes. The assumption here is that as we go, we only modify AST
