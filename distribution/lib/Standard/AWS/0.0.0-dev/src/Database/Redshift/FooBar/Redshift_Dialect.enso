@@ -29,7 +29,7 @@ import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
+import project.Database_2.Redshift_3.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
 
 ## PRIVATE
 

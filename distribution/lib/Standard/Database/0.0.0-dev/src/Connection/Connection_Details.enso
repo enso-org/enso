@@ -2,6 +2,9 @@ from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import project.Connection.Connection.Connection
+import project.Connection.Connection_Options.Connection_Options
+from project.Errors import SQL_Error
+
 
 ## Specifies the connection details for the database.
 
