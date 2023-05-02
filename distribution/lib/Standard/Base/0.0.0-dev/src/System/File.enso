@@ -86,7 +86,8 @@ type File
         if temp_path.is_nothing then Error.throw (File_Error.IO_Error "Unable to create a temporary file.") else
             temp = File.new temp_path
             if self.exists && copy_original then
-                self.copy_to temp replace_existing=True
+                Context.Output.with_enabled <|
+                    self.copy_to temp replace_existing=True
             temp
 
     ## ALIAS Current Directory
