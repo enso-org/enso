@@ -399,6 +399,31 @@ impl<'a, T> Ref<'a, T> {
         }
     }
 
+    /// Returns a reference to the parent node that serves as the root of an AST subtree.
+    /// Returns `None` if the current node is the root.
+    ///
+    /// This method is optimized by avoiding the use of expensive [`Self::parent`].
+    /// Instead, it iterates through the node's ancestors and checks their `ast_crumbs` count.
+    /// The method identifies the last ancestor (in order of iteration) with a smaller `ast_crumbs`
+    /// count than the current node. This ancestor corresponds to the nearest SpanTree node that
+    /// also serves as the root of an AST subtree. This approach efficiently bypasses all immediate
+    /// parent nodes that belong to the same AST subtree (i.e., having the same `ast_crumbs` count
+    /// as the current node).
+    pub fn ast_parent(&self) -> FallibleResult<Option<Self>> {
+        let num_ast_crumbs = self.ast_crumbs.len();
+        let mut item: Self = self.span_tree.root_ref();
+        let mut last_ast = None;
+        for crumb in self.crumbs.into_iter() {
+            if item.ast_crumbs.len() < num_ast_crumbs {
+                last_ast = Some(item.clone());
+            } else {
+                break;
+            }
+            item = item.child(*crumb)?;
+        }
+        Ok(last_ast)
+    }
+
     /// Iterator over all direct children producing `Ref`s.
     pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> + Clone {
         let children_count = self.node.children.len();
