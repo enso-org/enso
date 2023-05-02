@@ -393,7 +393,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should perform a dry run write of text to a new file and return this file's descriptor on success" <|
+        Test.specify "should perform a dry run writing text to a new file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -415,7 +415,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should perform a dry run append text to a file" <|
+        Test.specify "should perform a dry run appending text to a file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
             "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
@@ -429,7 +429,7 @@ spec =
 
                 Context.Output.with_enabled <| r.delete_if_exists
 
-        Test.specify "should perform a dry run create and append text to a file" <|
+        Test.specify "should perform a dry run creating and appending text to a file if Context.Output is disabled" <|
             f = transient / "dry_append.txt"
             f.delete_if_exists
 
@@ -461,7 +461,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should not overwrite original file in dry run mode" <|
+        Test.specify "should not overwrite original file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -527,6 +527,22 @@ spec =
             written_news.each n->
                 n.read_text . should_equal "new content"
             [f, bak, n0, n1, n2, n4].each .delete
+
+        Test.specify "should create a backup when writing a dry run file with Context.Output disabled" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal f
+
+            r = Context.Output.with_disabled <| "New Content!".write f
+
+            bak = transient / "work.txt.bak"
+            bak.exists.should_be_false
+
+            f.read_text.should_equal "line 1!"
+            f.delete_if_exists
+            bak.delete_if_exists
+            r.delete_if_exists
 
         Test.specify "should correctly handle failure of the write operation when working with the backup" <|
             f = transient / "work.txt"
