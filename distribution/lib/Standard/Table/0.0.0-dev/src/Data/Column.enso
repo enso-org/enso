@@ -1194,7 +1194,8 @@ type Column
                         make_datelike_formatter format locale
                     Value_Type.Boolean ->
                         make_boolean_formatter format
-                    #Integer -> format_as_integer self format on_problems
+                    Value_Type.Integer _ ->
+                        make_integer_formatter format locale
                     #Float,Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
@@ -1211,7 +1212,8 @@ type Column
                         make_datelike_with_column_formatter locale
                     Value_Type.Boolean ->
                         make_boolean_with_column_formatter
-                    #Integer -> format_as_integer self format on_problems
+                    Value_Type.Integer _ ->
+                        make_integer_with_column_formatter locale
                     #Float,Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
@@ -1805,7 +1807,7 @@ make_datelike_with_column_formatter locale =
             datelike.format format locale
 
 ## PRIVATE
-   Create a `Boolean`` formatter for the given format string.
+   Create a `Boolean` formatter for the given format string.
 make_boolean_formatter : Text -> (Date -> Text) ! Illegal_Argument
 make_boolean_formatter format =
     data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
@@ -1823,6 +1825,23 @@ make_boolean_with_column_formatter =
         data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
         data_formatter.if_not_error
             data_formatter.format bool
+
+## PRIVATE
+   Create an `Integer` formatter for the given format string.
+make_integer_formatter : Text -> Locale -> (Date -> Text)
+make_integer_formatter format locale =
+    i->
+        handle_illegal_argument_exception format <|
+            i.format format locale
+
+## PRIVATE
+   Create an `Integer`` formatter that takes the format string as the second
+   parameter.
+make_integer_with_column_formatter : Locale -> (Date -> Text -> Text)
+make_integer_with_column_formatter locale =
+    i-> format->
+        handle_illegal_argument_exception format <|
+            i.format format locale
 
 ## PRIVATE
    Rethrow a Java IllegalArgumentException as an Illegal_Argument.

@@ -5,6 +5,7 @@ import Standard.Base.Data.Time.Date.Date
 import Standard.Base.Data.Time.Date_Time.Date_Time
 import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
@@ -15,9 +16,10 @@ from project.Util import all
 spec =
     Test.group "gmt" <|
         Test.specify "Integer Column" <|
-            input = Column.from_vector "values" ["1", "2", "3"] . parse Value_Type.Integer
-            IO.println input.value_type
-            IO.println input.to_vector
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
+            expected = Column.from_vector "values" ["100,000,000.00", "2222.00", "3"]
+            input.format formats . should_equal expected
 
     Test.group "Date Column.format, with format string" <|
         Test.specify "Date column" <|
@@ -208,8 +210,26 @@ spec =
 
     Test.group "Integer" <|
         Test.specify "Integer Column" <|
-            input = Column.from_vector "values" ["1", "2", "3"] . parse Value_Type.Integer
-            IO.println input.value_type
-            IO.println input.to_vector
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            expected = Column.from_vector "values" ["100,000,000.00", "2,222.00", "3.00"]
+            input.format "#,##0.00" . should_equal expected
+
+        Test.specify "Integer Column with locale" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            expected = Column.from_vector "values" ["100 000 000,00", "2 222,00", "3,00"]
+            input.format "#,##0.00" locale=(Locale.new "fr") . should_equal expected
+
+    Test.group "Integer, with format Column" <|
+        Test.specify "Integer Column" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
+            expected = Column.from_vector "values" ["100,000,000.00", "2222.00", "3"]
+            input.format formats . should_equal expected
+
+        Test.specify "Integer Column with locale" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
+            expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]
+            input.format formats locale=(Locale.new "fr") . should_equal expected
 
 main = Test_Suite.run_main spec
