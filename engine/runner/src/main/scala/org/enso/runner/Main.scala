@@ -362,7 +362,7 @@ object Main {
       .numberOfArgs(1)
       .argName("name")
       .desc(
-        "Execution environment to use during execution (`live`/`design`). Defaults to `design`."
+        "Execution environment to use during execution (`live`/`design`). Defaults to `live`."
       )
       .build()
 
@@ -1109,6 +1109,7 @@ object Main {
         line.hasOption(INSPECT_OPTION),
         line.hasOption(DUMP_GRAPHS_OPTION),
         Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
+          .orElse(Some("live"))
       )
     }
     if (line.hasOption(REPL_OPTION)) {
