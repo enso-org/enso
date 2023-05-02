@@ -208,26 +208,30 @@ spec =
             formats = Column.from_vector "formats" ["True|False", "xyzzy"]
             input.format formats . should_fail_with Illegal_Argument
 
-    Test.group "Integer" <|
+    spec_with_numeric_type "Float" (Value_Type.Float Bits.Bits_64)
+    spec_with_numeric_type "Integer" (Value_Type.Integer Bits.Bits_64)
+
+spec_with_numeric_type name numeric_type =
+    Test.group name <|
         Test.specify "Integer Column" <|
-            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
             expected = Column.from_vector "values" ["100,000,000.00", "2,222.00", "3.00"]
             input.format "#,##0.00" . should_equal expected
 
         Test.specify "Integer Column with locale" <|
-            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
             expected = Column.from_vector "values" ["100 000 000,00", "2 222,00", "3,00"]
             input.format "#,##0.00" locale=(Locale.new "fr") . should_equal expected
 
-    Test.group "Integer, with format Column" <|
+    Test.group name+", with format Column" <|
         Test.specify "Integer Column" <|
-            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
             formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
             expected = Column.from_vector "values" ["100,000,000.00", "2222.00", "3"]
             input.format formats . should_equal expected
 
         Test.specify "Integer Column with locale" <|
-            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
             formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
             expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]
             input.format formats locale=(Locale.new "fr") . should_equal expected
