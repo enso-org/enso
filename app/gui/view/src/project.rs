@@ -281,14 +281,11 @@ impl Model {
             window_control_buttons.set_xy(top_left);
         }
         let gap = crate::graph_editor::TOP_BAR_ITEM_MARGIN;
-        let dashboard_button_offset_x = window_control_buttons_width + gap;
-        let dashboard_button_pos = top_left
-            + Vector2(
-                dashboard_button_offset_x + dashboard_button_width / 2.0,
-                -TOP_BAR_HEIGHT / 2.0,
-            );
+        let dashboard_button_offset = Vector2(window_control_buttons_width + gap, 0.0);
+        let dashboard_button_origin = Vector2(dashboard_button_width, -TOP_BAR_HEIGHT) / 2.0;
+        let dashboard_button_pos = top_left + dashboard_button_offset + dashboard_button_origin;
         self.dashboard_button.set_xy(dashboard_button_pos);
-        let top_bar_width = dashboard_button_offset_x + dashboard_button_width;
+        let top_bar_width = dashboard_button_offset.x + dashboard_button_width;
         top_bar_width
     }
 
@@ -403,7 +400,7 @@ impl View {
         let searcher_open_delay = frp::io::timer::Timeout::new(network);
 
         frp::extend! { network
-            init <- source::<()>();
+            init <- source_();
         }
 
 
@@ -439,7 +436,7 @@ impl View {
                 dashboard_button_width
             );
             top_bar_width <- top_bar_update.map(
-                f!([model] ((_, scene_shape, window_control_buttons_width, dashboard_button_width))
+                f!(((_, scene_shape, window_control_buttons_width, dashboard_button_width))
                     model.relayout_top_bar(
                         scene_shape,
                         *window_control_buttons_width,

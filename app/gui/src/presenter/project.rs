@@ -318,11 +318,9 @@ impl Model {
     }
 
     fn close_ide(&self) {
-        let Some(window) = web_sys::window() else { return error!("Failed to get JS Window.") };
-        let Some(document) = window.document() else { return error!("Failed to get JS Document.") };
-        match web_sys::Event::new("ide-close") {
+        match enso_web::Event::new("ide-close") {
             Ok(event) =>
-                if let Err(error) = document.dispatch_event(&event) {
+                if let Err(error) = enso_web::document.dispatch_event(&event) {
                     error!("Failed to dispatch event to close IDE. {error:?}");
                 },
             Err(error) => error!("Failed to create event to close IDE. {error:?}"),
