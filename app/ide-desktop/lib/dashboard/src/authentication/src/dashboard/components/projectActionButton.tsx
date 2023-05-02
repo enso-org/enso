@@ -54,6 +54,20 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
+        if (backend.platform === platform.Platform.desktop) {
+            if (project.id !== backend.currentlyOpeningProjectId) {
+                setIsCheckingResources(false)
+                setIsCheckingStatus(false)
+                setState(backendModule.ProjectState.closed)
+                setSpinnerState(SpinnerState.done)
+            }
+        }
+    }, [
+        project,
+        backend.platform === platform.Platform.desktop ? backend.currentlyOpeningProjectId : null,
+    ])
+
+    react.useEffect(() => {
         if (!isCheckingStatus) {
             return
         } else {

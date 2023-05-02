@@ -30,9 +30,9 @@ interface CurrentlyOpenProjectInfo {
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export class LocalBackend implements Partial<backend.Backend> {
     readonly platform = platformModule.Platform.desktop
+    currentlyOpeningProjectId: backend.ProjectId | null = null
+    currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
     private readonly projectManager = projectManager.ProjectManager.default()
-    private currentlyOpeningProjectId: string | null = null
-    private currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
 
     async listDirectory(): Promise<backend.Asset[]> {
         const result = await this.projectManager.listProjects({})
