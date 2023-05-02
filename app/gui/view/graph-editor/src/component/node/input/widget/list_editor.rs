@@ -1,6 +1,8 @@
 //! Module dedicated to the [List Editor widget](Widget).
+
 // FIXME[ao]: This code miss important documentation (e.g. for `Element`, `DragData` and `ListItem`)
 //  and may be unreadable at some places. It should be improved in several next debugging PRs.
+
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
