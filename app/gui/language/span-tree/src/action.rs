@@ -298,16 +298,16 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     // │ └─ Argument3
                     // └─ Argument4
                     //
-                    // We are iterating over the old span tree, while modifying an expression that
-                    // constantly changes. The assumption here is that as we go, we only modify AST
-                    // tree deeper than we will look in future iterations. That way we can be sure
-                    // that the "outer layers" of AST still corresponds to the original span-tree.
-                    // It is done that way, because we have no way of actually reconstructing the
-                    // span-tree to be entirely correct on every step. The new AST is after all
-                    // wrong and needs to be fixed for a reason. Rebuilding the span-tree before
-                    // replacing named arguments will give you wrong assignments on everything.
-                    // The loop propagates up the old span tree, knowing that the outer layers of
-                    // the AST will still corresponds to it.
+                    // Note that the order of arguments is reversed.
+                    //
+                    // Usually, all modifications of the AST must also modify the SpanTree of the
+                    // expression. In this case, however, we are iterating over the old SpanTree
+                    // while modifying the AST, and we don't update the SpanTree in the process. The
+                    // assumption here is that as we go, we only change the SpanTree deeper than we
+                    // will look at in future iterations. That way, we can be sure that the
+                    // SpanTree's "outer layers" still correspond to the original. It is done that
+                    // way because we cannot dynamically adjust the span tree to be entirely correct
+                    // on every step.
                     //
                     // This loop traverses the tree bottom to top, starting at one of the arguments,
                     // and continues until all arguments are covered. It operates as follows:
