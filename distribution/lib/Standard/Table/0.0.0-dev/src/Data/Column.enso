@@ -1180,7 +1180,36 @@ type Column
             on_problems.attach_problems_after output problems
 
     ## Format a `Column` using a format string (or `Column` of format strings).
-    format : Text | Column -> Locale -> Problem_Behavior -> Column
+
+       Arguments:
+       - format: The type-dependent format string to use to format the values.
+       - locale: The locale in which the format should be interpreted.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If the format is incorrectly formed, or if some values in the column
+           did not match the expected datatype format, an `Invalid_Format` error
+           is thrown.
+
+       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
+
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
+
+       ? `Value_Type.Integer`, `Value_Type.Float` format strings
+
+         Numeric format strings are specified by the Java DecimalFormat class
+         (https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html)
+
+       ? `Value_Type.Boolean` format strings
+
+         Format strings for `Boolean` consist of two values that represent true
+         and false, separated by a `|`.
+    format : Text | Column -> Locale -> Problem_Behavior -> Column ! Illegal_Argument
     format self format locale=Locale.default on_problems=Report_Warning =
         _ = [on_problems]
         new_column = case format of
