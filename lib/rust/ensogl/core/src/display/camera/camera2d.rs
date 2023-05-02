@@ -205,7 +205,7 @@ impl Camera2dData {
         let z_zoom_1 = 1.0;
         let matrix = default();
         let dirty = Dirty::new();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_no_debug();
         let zoom_update_registry = default();
         let screen_update_registry = default();
         display_object.modify_position(|p| p.z = 1.0);

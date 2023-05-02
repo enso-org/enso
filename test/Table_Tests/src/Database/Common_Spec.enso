@@ -30,10 +30,7 @@ spec prefix connection =
         run_tests prefix connection upload
 
 run_tests prefix connection upload =
-    ## We have to upload the table as non-temporary, because otherwise it will
-       not be visible in the list of tables and make `Table.query` confused.
-       TODO [RW] remove temporary=False once #6398 is done.
-    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]]) temporary=False
+    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
     Test.group prefix+"Basic Table Access" <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.read
@@ -99,7 +96,7 @@ run_tests prefix connection upload =
                Also, the table name cannot be too long as Postgres truncates at
                63 chars (and we append 37 chars of uniqueness suffix) and the
                test logic will break then.
-            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]]) temporary=False
+            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]])
             t5 = connection.query t4.name
             m5 = t5.read
             m5.column_names . should_equal ["X", "Y"]

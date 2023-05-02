@@ -134,6 +134,15 @@ pub trait SpanWidget {
     fn new(config: &Self::Config, ctx: &ConfigContext) -> Self;
     /// Update configuration for existing widget.
     fn configure(&mut self, config: &Self::Config, ctx: ConfigContext);
+    /// Receive a reference of the tree items for which the ownership transfer was requested. Called
+    /// by the tree when [`WidgetsFrp::transfer_ownership`] signal is used.
+    fn receive_ownership(
+        &mut self,
+        original_request: TransferRequest,
+        nodes: Vec<(WidgetIdentity, TreeNode)>,
+    ) {
+        _ = (original_request, nodes);
+    }
 }
 
 
@@ -209,6 +218,15 @@ macro_rules! define_widget_modules(
                     },
                 }
             }
+
+            fn receive_ownership(&mut self,
+                req: TransferRequest,
+                nodes: Vec<(WidgetIdentity, TreeNode)>,
+            ) {
+                match (self) {
+                    $(DynWidget::$name(model) => model.receive_ownership(req, nodes),)*
+                }
+            }
         }
     };
 );
@@ -252,7 +270,12 @@ impl Configuration {
     /// Derive widget configuration from Enso expression, node data in span tree and inferred value
     /// type. When no configuration is provided with an override, this function will be used to
     /// create a default configuration.
-    fn from_node(span_node: &SpanRef, usage_type: Option<crate::Type>, expression: &str) -> Self {
+    fn from_node(
+        span_node: &SpanRef,
+        usage_type: Option<crate::Type>,
+        expression: &str,
+        is_directly_connected: bool,
+    ) -> Self {
         use span_tree::node::Kind;
 
         let kind = &span_node.kind;
@@ -260,46 +283,51 @@ impl Configuration {
 
         const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
         let is_list_editor_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
-        let is_vector = |arg: &span_tree::node::Argument| {
-            let type_matches = usage_type
+        let node_expr = &expression[span_node.span()];
+        let looks_like_vector = node_expr.starts_with('[') && node_expr.ends_with(']');
+        let type_is_vector = |tp: &Option<String>| {
+            usage_type
                 .as_ref()
                 .map(|t| t.as_str())
-                .or(arg.tp.as_deref())
-                .map_or(false, |tp| tp.contains(VECTOR_TYPE));
-            if type_matches {
-                let node_expr = &expression[span_node.span()];
-                node_expr.starts_with('[') && node_expr.ends_with(']')
-            } else {
-                false
-            }
+                .or(tp.as_deref())
+                .map_or(false, |tp| tp.contains(VECTOR_TYPE))
         };
 
         match kind {
             Kind::Argument(arg) if !arg.tag_values.is_empty() =>
                 Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Argument(arg) if is_list_editor_enabled && is_vector(arg) => Self::list_editor(),
+            Kind::Argument(_) if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
+            Kind::Root if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
             Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
-                if !arg.tag_values.is_empty() {
+                if is_list_editor_enabled && (type_is_vector(&arg.tp) || looks_like_vector) {
+                    Self::list_editor()
+                } else if !arg.tag_values.is_empty() {
                     Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
                 } else {
                     Self::always(label::Config::default())
                 },
             Kind::Token | Kind::Operation if !has_children => Self::inert(label::Config::default()),
             Kind::NamedArgument => Self::inert(hierarchy::Config),
-            Kind::InsertionPoint(_) => Self::inert(insertion_point::Config),
+            Kind::InsertionPoint(_) =>
+                Self::maybe_with_port(insertion_point::Config, is_directly_connected),
             _ if has_children => Self::always(hierarchy::Config),
             _ => Self::always(label::Config::default()),
         }
     }
 
+    const fn maybe_with_port<C>(kind: C, has_port: bool) -> Self
+    where C: ~const Into<DynConfig> {
+        Self { display: Display::Always, kind: kind.into(), has_port }
+    }
+
     const fn always<C>(kind: C) -> Self
     where C: ~const Into<DynConfig> {
-        Self { display: Display::Always, kind: kind.into(), has_port: true }
+        Self::maybe_with_port(kind, true)
     }
 
     const fn inert<C>(kind: C) -> Self
     where C: ~const Into<DynConfig> {
-        Self { display: Display::Always, kind: kind.into(), has_port: false }
+        Self::maybe_with_port(kind, false)
     }
 
     /// Widget configuration for static dropdown, based on the tag values provided by suggestion
@@ -391,12 +419,33 @@ pub struct WidgetsFrp {
     pub(super) set_read_only:          frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
     pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
+    /// Remove given tree node's reference from the widget tree, and send its only remaining strong
+    /// reference to a new widget owner using [`SpanWidget::receive_ownership`] method. This will
+    /// effectively give up tree's ownership of that node, and will prevent its view from being
+    /// reused.
+    ///
+    /// NOTE: Calling this during rebuild will have no effect.
+    pub(super) transfer_ownership:     frp::Any<TransferRequest>,
     pub(super) value_changed:          frp::Any<(span_tree::Crumbs, Option<ImString>)>,
     pub(super) request_import:         frp::Any<ImString>,
     pub(super) on_port_hover:          frp::Any<Switch<span_tree::Crumbs>>,
     pub(super) on_port_press:          frp::Any<span_tree::Crumbs>,
     pub(super) pointer_style:          frp::Any<cursor::Style>,
     pub(super) connected_port_updated: frp::Any<()>,
+}
+
+/// A request for widget tree item ownership transfer. See [`WidgetsFrp::transfer_ownership`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+pub struct TransferRequest {
+    /// The widget ID that will receive the ownership of the node. Usually this is the ID of the
+    /// widget that sends the request, which can be obtained from [`NodeInfo::identity`], which is
+    /// provided on [`ConfigContext`].
+    pub new_owner:     WidgetIdentity,
+    /// The ID of the node that should be transferred. Usually one of the node's children, which
+    /// can be obtained from [`Child`] instance returned from [`TreeBuilder::child_widget`].
+    pub to_transfer:   WidgetIdentity,
+    /// Whether the whole subtree should be transferred, or just the node itself.
+    pub whole_subtree: bool,
 }
 
 
@@ -434,6 +483,8 @@ impl Tree {
 
         frp::extend! { network
             frp.private.output.rebuild_required <+ frp.marked_dirty_sync.debounce();
+            transfer_ownership <- any(...);
+            eval transfer_ownership((request) model.transfer_ownership(*request));
 
             set_ports_visible <- frp.set_ports_visible.sampler();
             set_read_only <- frp.set_read_only.sampler();
@@ -455,6 +506,7 @@ impl Tree {
             set_read_only,
             set_view_mode,
             set_profiling_status,
+            transfer_ownership,
             value_changed,
             request_import,
             on_port_hover,
@@ -561,7 +613,7 @@ impl Tree {
 /// `Port` struct and stored in `Port` variant. Otherwise, the widget will be stored directly using
 /// the `Widget` node variant.
 #[derive(Debug)]
-pub(super) enum TreeNode {
+pub enum TreeNode {
     /// A tree node that contains a port. The port wraps a widget.
     Port(Port),
     /// A tree node without a port, directly containing a widget.
@@ -569,10 +621,27 @@ pub(super) enum TreeNode {
 }
 
 impl TreeNode {
-    fn port(&self) -> Option<&Port> {
+    #[allow(missing_docs)]
+    pub fn port(&self) -> Option<&Port> {
         match self {
             TreeNode::Port(port) => Some(port),
             TreeNode::Widget(_) => None,
+        }
+    }
+
+    #[allow(missing_docs)]
+    pub fn widget(&self) -> &DynWidget {
+        match self {
+            TreeNode::Port(port) => port.widget(),
+            TreeNode::Widget(widget) => widget,
+        }
+    }
+
+    #[allow(missing_docs)]
+    pub fn widget_mut(&mut self) -> &mut DynWidget {
+        match self {
+            TreeNode::Port(port) => port.widget_mut(),
+            TreeNode::Widget(widget) => widget,
         }
     }
 }
@@ -648,7 +717,7 @@ impl TreeModel {
     /// argument info.
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Tree");
         display_object.use_auto_layout();
         display_object.set_children_alignment_left_center().justify_content_center_y();
         display_object.set_size_y(NODE_HEIGHT);
@@ -716,6 +785,22 @@ impl TreeModel {
         Some(hierarchy[parent_index].identity)
     }
 
+    /// Iterate over a node with given pointer and all its descendants, if it exists in the tree.
+    #[allow(dead_code)]
+    pub fn iter_subtree(
+        &self,
+        pointer: WidgetIdentity,
+    ) -> impl Iterator<Item = WidgetIdentity> + '_ {
+        let hierarchy = self.hierarchy.borrow();
+        let nodes = self.nodes_map.borrow();
+        let total_range = nodes.get(&pointer).map_or(0..0, |entry| {
+            let start = entry.index;
+            let total_descendants = hierarchy[entry.index].total_descendants;
+            start..start + 1 + total_descendants
+        });
+        total_range.map(move |index| hierarchy[index].identity)
+    }
+
     /// Iterate children of a node under given pointer, if any exist.
     #[allow(dead_code)]
     pub fn iter_children(
@@ -739,6 +824,27 @@ impl TreeModel {
             }
             Some(entry.identity)
         })
+    }
+
+    /// Prevent a widget from being reused in future rebuild. Send its only remaining strong
+    /// reference to the new owner.
+    fn transfer_ownership(&self, request: TransferRequest) {
+        let mut nodes = Vec::new();
+        if request.whole_subtree {
+            let iter = self.iter_subtree(request.to_transfer);
+            let mut nodes_map = self.nodes_map.borrow_mut();
+            nodes.extend(iter.filter_map(move |id| Some((id, nodes_map.remove(&id)?.node))));
+        } else {
+            let mut nodes_map = self.nodes_map.borrow_mut();
+            if let Some(entry) = nodes_map.remove(&request.to_transfer) {
+                nodes.push((request.to_transfer, entry.node));
+            }
+        }
+
+        let mut nodes_map = self.nodes_map.borrow_mut();
+        if let Some(owner) = nodes_map.get_mut(&request.new_owner) {
+            owner.node.widget_mut().receive_ownership(request, nodes);
+        }
     }
 
     #[profile(Task)]
@@ -780,7 +886,7 @@ impl TreeModel {
         };
 
         let child = builder.child_widget(tree.root_ref(), default());
-        self.display_object.replace_children(&[child]);
+        self.display_object.replace_children(&[child.root_object]);
 
         self.nodes_map.replace(builder.new_nodes);
         self.hierarchy.replace(builder.hierarchy);
@@ -1014,7 +1120,7 @@ impl NestingLevel {
 /// A stable identifier to a span tree node. Uniquely determines a main widget of specific node in
 /// the span tree. It is a base of a widget stable identity, and allows widgets to be reused when
 /// rebuilding the tree.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StableSpanIdentity {
     /// AST ID of either the node itself, or the closest ancestor node which has one. Is [`None`]
     /// when there is no such parent with assigned AST id.
@@ -1049,7 +1155,7 @@ impl StableSpanIdentity {
 /// create a child widget on the same span tree node, so we need to be able to distinguish between
 /// them. Note that only one widget created for a given span tree node will be able to receive a
 /// port. The port is assigned to the first widget at given span that wants to receive it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, Default)]
 pub struct WidgetIdentity {
     /// The pointer to the main widget of this widget's node.
     #[deref]
@@ -1139,7 +1245,7 @@ impl<'a> TreeBuilder<'a> {
         &mut self,
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
-    ) -> display::object::Instance {
+    ) -> Child {
         self.child_widget_of_type(span_node, nesting_level, None)
     }
 
@@ -1159,7 +1265,7 @@ impl<'a> TreeBuilder<'a> {
         span_node: span_tree::node::Ref<'_>,
         nesting_level: NestingLevel,
         configuration: Option<&Configuration>,
-    ) -> display::object::Instance {
+    ) -> Child {
         // This call can recurse into itself within the widget configuration logic. We need to save
         // the current layer's state, so it can be restored later after visiting the child node.
         let parent_last_ast_depth = self.last_ast_depth;
@@ -1188,6 +1294,12 @@ impl<'a> TreeBuilder<'a> {
         let sibling_offset = span_node.sibling_offset.as_usize();
         let usage_type = main_ptr.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
+        // Prepare the widget node info and build context.
+        let connection_color = self.connected_map.get(&span_node.crumbs);
+        let connection = connection_color.map(|&color| EdgeData { color, depth });
+        let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
+        let subtree_connection = connection.or(parent_connection);
+
         // Get widget configuration. There are three potential sources for configuration, that are
         // used in order, whichever is available first:
         // 1. The `config_override` argument, which can be set by the parent widget if it wants to
@@ -1208,7 +1320,9 @@ impl<'a> TreeBuilder<'a> {
             Some(config) => config,
             None => {
                 let ty = usage_type.clone();
-                inferred_config = Configuration::from_node(&span_node, ty, self.node_expression);
+                let expr = &self.node_expression;
+                let connected = connection.is_some();
+                inferred_config = Configuration::from_node(&span_node, ty, expr, connected);
                 &inferred_config
             }
         };
@@ -1224,12 +1338,6 @@ impl<'a> TreeBuilder<'a> {
         });
 
         let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
-
-        // Prepare the widget node info and build context.
-        let connection_color = self.connected_map.get(&span_node.crumbs);
-        let connection = connection_color.map(|&color| EdgeData { color, depth });
-        let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
-        let subtree_connection = connection.or(parent_connection);
 
         let disabled = self.node_disabled;
         let info = NodeInfo {
@@ -1298,7 +1406,7 @@ impl<'a> TreeBuilder<'a> {
 
         let entry = TreeEntry { node: child_node, index: insertion_index };
         self.new_nodes.insert(widget_id, entry);
-        child_root
+        Child { id: widget_id, root_object: child_root }
     }
 }
 

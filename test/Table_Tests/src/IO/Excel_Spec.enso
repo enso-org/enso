@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 
 from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
 
@@ -67,7 +68,7 @@ spec_fmt header file read_method sheet_count=5 =
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
 spec_write suffix test_sheet_name =
-    Test.group ("Write " + suffix + " Files") <|
+    Test.group ("Write " + suffix + " Files") <| Context.Output.with_enabled <|
         out = enso_project.data / ('out.' + suffix)
         out_bak = enso_project.data / ('out.' + suffix + '.bak')
         table = enso_project.data/'varied_column.csv' . read
@@ -678,7 +679,7 @@ spec =
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Corrupted_Format
 
-        Test.specify "should handle malformed XLS files gracefully" <|
+        Test.specify "should handle malformed XLS files gracefully" <| Context.Output.with_enabled <|
             bad_file = enso_project.data / "transient" / "malformed.xls"
             "not really an XLS file contents...".write bad_file on_existing_file=Existing_File_Behavior.Overwrite
 

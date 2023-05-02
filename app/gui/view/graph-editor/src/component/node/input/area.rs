@@ -19,6 +19,7 @@ use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::world::with_context;
 use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;
@@ -152,13 +153,14 @@ impl Model {
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("input");
 
         let edit_mode_label = app.new_view::<text::Text>();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let widget_tree = widget::Tree::new(&app);
+        with_context(|ctx| ctx.layers.widget.add(&widget_tree));
         Self { app, display_object, edit_mode_label, expression, styles, styles_frp, widget_tree }
             .init()
     }
