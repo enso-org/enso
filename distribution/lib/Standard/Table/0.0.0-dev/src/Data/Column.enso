@@ -1182,6 +1182,7 @@ type Column
     ## Format a `Column` using a format string (or `Column` of format strings).
     format : Text | Column -> Locale -> Problem_Behavior -> Column
     format self format locale=Locale.default on_problems=Report_Warning =
+        _ = [on_problems]
         new_column = case format of
             _ : Text ->
                 formatter = case self.value_type of

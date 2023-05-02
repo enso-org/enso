@@ -13,6 +13,12 @@ from Standard.Test import Test, Test_Suite
 from project.Util import all
 
 spec =
+    Test.group "gmt" <|
+        Test.specify "Integer Column" <|
+            input = Column.from_vector "values" ["1", "2", "3"] . parse Value_Type.Integer
+            IO.println input.value_type
+            IO.println input.to_vector
+
     Test.group "Date Column.format, with format string" <|
         Test.specify "Date column" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
@@ -32,7 +38,6 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
-            expected = Column.from_vector "values" [Nothing, Nothing]
             input.format "DDDDD" . should_fail_with Illegal_Argument
 
     Test.group "Date Column.format, with format Column" <|
@@ -52,7 +57,6 @@ spec =
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25, Date.new 2023 4 26]
             formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "FFF"]
-            expected = Column.from_vector "values" ['20200621', Nothing, Nothing]
             input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "Bad format column type" <|
@@ -63,7 +67,6 @@ spec =
         Test.specify "Max # of errors" <|
             input = Column.from_vector "values" (Vector.new 20 (_-> Date.new 2020 6 21))
             formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
-            expected = Column.from_vector "values" (Vector.new 20 _-> Nothing)
             input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "column length mismatch" <|
@@ -90,7 +93,6 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
-            expected = Column.from_vector "values" [Nothing, Nothing]
             input.format "DDDDD" . should_fail_with Illegal_Argument
 
     Test.group "Date_Time Column.format, with format Column" <|
@@ -110,7 +112,6 @@ spec =
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2, Date_Time.new 2023 4 26 3 4 5]
             formats = Column.from_vector "formats" ["yyyyMMdd HH.mm.ss", "DDDDD", "FFF"]
-            expected = Column.from_vector "values" ['20200621 08.10.20', Nothing, Nothing]
             input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "Bad format column type" <|
@@ -121,7 +122,6 @@ spec =
         Test.specify "Max # of errors" <|
             input = Column.from_vector "values" (Vector.new 20 (_-> Date_Time.new 2020 6 21 8 10 20))
             formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
-            expected = Column.from_vector "values" (Vector.new 20 _-> Nothing)
             input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "column length mismatch" <|
@@ -146,7 +146,6 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
-            expected = Column.from_vector "values" [Nothing, Nothing]
             input.format "DDDDD" . should_fail_with Illegal_Argument
 
     Test.group "Time_Of_Day Column.format, with format Column" <|
@@ -166,7 +165,6 @@ spec =
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2, Time_Of_Day.new 3 4 5]
             formats = Column.from_vector "formats" ["HH.mm.ss", "DDDDD", "FFF"]
-            expected = Column.from_vector "values" ['08.10.20', Nothing, Nothing]
             input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "Bad format column type" <|
@@ -177,7 +175,6 @@ spec =
         Test.specify "Max # of errors" <|
             input = Column.from_vector "values" (Vector.new 20 (_-> Time_Of_Day.new 8 10 20))
             formats = Column.from_vector "formats" (Vector.new 20 _-> "DDDDD")
-            expected = Column.from_vector "values" (Vector.new 20 _-> Nothing)
             input.format formats . should_fail_with Illegal_Argument
 
         Test.specify "column length mismatch" <|
@@ -194,7 +191,6 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [True, False]
-            Column.from_vector "values" [Nothing, Nothing]
             input.format "x|y|z" . should_fail_with Illegal_Argument
 
     Test.group "Boolean Column.format, with format Column" <|
@@ -208,7 +204,12 @@ spec =
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [True, False]
             formats = Column.from_vector "formats" ["True|False", "xyzzy"]
-            expected = Column.from_vector "values" ['True', Nothing]
             input.format formats . should_fail_with Illegal_Argument
+
+    Test.group "Integer" <|
+        Test.specify "Integer Column" <|
+            input = Column.from_vector "values" ["1", "2", "3"] . parse Value_Type.Integer
+            IO.println input.value_type
+            IO.println input.to_vector
 
 main = Test_Suite.run_main spec
