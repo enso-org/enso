@@ -4,8 +4,6 @@ import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
 import project.Connection.Database
 import project.Connection.Postgres_Options.Postgres_Options
-import project.Connection.Redshift_Options.Redshift_Options
-import project.Connection.Redshift_Options.AWS_Credential
 import project.Connection.SQLite_Options.SQLite_Options
 import project.Connection.SQLite_Options.In_Memory
 import project.Connection.SSL_Mode.SSL_Mode
@@ -22,8 +20,6 @@ export project.Connection.Connection_Options.Connection_Options
 export project.Connection.Credentials.Credentials
 export project.Connection.Database
 export project.Connection.Postgres_Options.Postgres_Options
-export project.Connection.Redshift_Options.Redshift_Options
-export project.Connection.Redshift_Options.AWS_Credential
 export project.Connection.SQLite_Options.SQLite_Options
 export project.Connection.SQLite_Options.In_Memory
 export project.Connection.SSL_Mode.SSL_Mode
@@ -31,5 +27,4 @@ export project.Data.SQL_Query.SQL_Query
 export project.Extensions.Upload_Table
 
 from project.Connection.Postgres_Options.Postgres_Options export Postgres
-from project.Connection.Redshift_Options.Redshift_Options export Redshift
 from project.Connection.SQLite_Options.SQLite_Options export SQLite
