@@ -3,6 +3,7 @@ import * as react from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as localBackend from '../localBackend'
 import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
@@ -54,8 +55,19 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
+        void (async () => {
+            const projectDetails = await backend.getProjectDetails(project.id)
+            setState(projectDetails.state.type)
+            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
+                setSpinnerState(SpinnerState.initial)
+                setIsCheckingStatus(true)
+            }
+        })()
+    }, [])
+
+    react.useEffect(() => {
         if (backend.platform === platform.Platform.desktop) {
-            if (project.id !== backend.currentlyOpeningProjectId) {
+            if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
                 setIsCheckingResources(false)
                 setIsCheckingStatus(false)
                 setState(backendModule.ProjectState.closed)
@@ -64,7 +76,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
     }, [
         project,
-        backend.platform === platform.Platform.desktop ? backend.currentlyOpeningProjectId : null,
+        backend.platform === platform.Platform.desktop
+            ? localBackend.LocalBackend.currentlyOpeningProjectId
+            : null,
     ])
 
     react.useEffect(() => {
@@ -120,17 +134,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
         }
     }, [isCheckingResources])
-
-    react.useEffect(() => {
-        void (async () => {
-            const projectDetails = await backend.getProjectDetails(project.id)
-            setState(projectDetails.state.type)
-            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
-                setSpinnerState(SpinnerState.initial)
-                setIsCheckingStatus(true)
-            }
-        })()
-    }, [])
 
     function closeProject() {
         setState(backendModule.ProjectState.closed)
