@@ -721,6 +721,7 @@ function Dashboard(props: DashboardProps) {
                                     ? 'opacity-50'
                                     : ''
                             }`}
+                            disabled={backend.platform === platformModule.Platform.desktop}
                             onClick={event => {
                                 event.stopPropagation()
                                 setModal(() => (
@@ -734,8 +735,8 @@ function Dashboard(props: DashboardProps) {
                             {svg.UPLOAD_ICON}
                         </button>
                         <button
-                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                            disabled={selectedAssets.length === 0}
+                            className={`mx-1 opacity-50`}
+                            disabled={true}
                             onClick={event => {
                                 event.stopPropagation()
                                 /* TODO */
