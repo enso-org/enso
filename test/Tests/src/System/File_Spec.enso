@@ -454,10 +454,18 @@ spec =
             "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
+
             r1 = "line 2!".write f on_existing_file=Existing_File_Behavior.Error
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Already_Exists
             f.read_text.should_equal "line 1!"
+
+            Context.Output.with_disabled <|
+                r2 = "line 2!".write f on_existing_file=Existing_File_Behavior.Error
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Already_Exists
+                f.read_text.should_equal "line 1!"
+
             f.delete
             f.exists.should_be_false
 
