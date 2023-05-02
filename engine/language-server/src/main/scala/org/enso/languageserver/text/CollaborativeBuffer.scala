@@ -146,8 +146,8 @@ class CollaborativeBuffer(
               client.clientId,
               contentVersion,
               autoSave,
-              isAutoSave = true,
-              onClose = Some(client.clientId),
+              isAutoSave     = true,
+              onClose        = Some(client.clientId),
               reportProgress = Some(sender())
             )
           case None =>
