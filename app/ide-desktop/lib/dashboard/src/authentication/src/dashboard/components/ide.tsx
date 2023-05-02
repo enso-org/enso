@@ -32,13 +32,6 @@ function Ide(props: Props) {
     const { backend } = backendProvider.useBackend()
 
     react.useEffect(() => {
-        document.getElementById(IDE_ELEMENT_ID)?.classList.remove('hidden')
-        return () => {
-            document.getElementById(IDE_ELEMENT_ID)?.classList.add('hidden')
-        }
-    }, [])
-
-    react.useEffect(() => {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
