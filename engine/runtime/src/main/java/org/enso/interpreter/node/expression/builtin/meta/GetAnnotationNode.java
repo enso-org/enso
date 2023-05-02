@@ -48,7 +48,7 @@ public abstract class GetAnnotationNode extends BaseNode {
       if (annotation != null) {
         Function thunk =
             Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
-        return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
+        return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
       }
     }
     AtomConstructor constructor = getAtomConstructor(targetType, methodName);
@@ -59,7 +59,7 @@ public abstract class GetAnnotationNode extends BaseNode {
       if (annotation != null) {
         Function thunk =
             Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
-        return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
+        return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
       }
     }
     return EnsoContext.get(this).getNothing();

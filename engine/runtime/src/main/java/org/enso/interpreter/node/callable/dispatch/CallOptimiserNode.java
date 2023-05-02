@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.dispatch;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -27,6 +28,7 @@ public abstract class CallOptimiserNode extends Node {
   /**
    * Calls the provided {@code callable} using the provided {@code arguments}.
    *
+   * @param frame frame of the caller
    * @param callable the callable to execute
    * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
@@ -34,5 +36,9 @@ public abstract class CallOptimiserNode extends Node {
    * @return the result of executing {@code callable} using {@code arguments}
    */
   public abstract Object executeDispatch(
-      Function callable, CallerInfo callerInfo, State state, Object[] arguments);
+      VirtualFrame frame,
+      Function callable,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments);
 }

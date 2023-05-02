@@ -199,6 +199,11 @@ type Postgres_Dialect
     is_supported self operation =
         self.internal_generator_dialect.is_supported operation
 
+    ## PRIVATE
+       The default table types to use when listing tables.
+    default_table_types : Vector Text
+    default_table_types self =
+        ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE"]
 
 ## PRIVATE
 make_internal_generator_dialect =

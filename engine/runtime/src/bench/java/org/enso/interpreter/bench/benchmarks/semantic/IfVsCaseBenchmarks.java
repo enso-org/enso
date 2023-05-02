@@ -133,11 +133,8 @@ public class IfVsCaseBenchmarks extends TestBase {
 
         """;
 
-    var file = File.createTempFile("if_case", ".enso");
-    try (var w = new FileWriter(file)) {
-      w.write(code);
-    }
-    var src = Source.newBuilder("enso", file).build();
+    var benchmarkName = SrcUtil.findName(params);
+    var src = SrcUtil.source(benchmarkName, code);
     Value module = ctx.eval(src);
     ifBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_3"));
     caseBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_3"));

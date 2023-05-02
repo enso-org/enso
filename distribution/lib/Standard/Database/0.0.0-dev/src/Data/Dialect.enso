@@ -187,6 +187,12 @@ type Dialect
         _ = operation
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       The default table types to use when listing tables.
+    default_table_types : Vector Text
+    default_table_types self =
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.
