@@ -7,8 +7,6 @@
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 
-import * as electron from 'electron'
-
 import * as contentConfig from 'enso-content-config'
 import * as paths from 'paths'
 
@@ -72,7 +70,7 @@ export class FileConsumer extends linkedDist.Consumer {
             .join(' ')
         const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`
 
-        if(this.logFileHandle) {
+        if (this.logFileHandle) {
             try {
                 fsSync.writeSync(this.logFileHandle, timestampedMessage)
             } catch (error) {
