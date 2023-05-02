@@ -2,15 +2,15 @@
  * provider via the shared React context. */
 import * as react from 'react'
 
-import * as cloudBackend from '../dashboard/remoteBackend'
 import * as localBackend from '../dashboard/localBackend'
+import * as remoteBackend from '../dashboard/remoteBackend'
 
 // =============
 // === Types ===
 // =============
 
 /** A type representing a backend API that may be of any type. */
-type AnyBackendAPI = cloudBackend.RemoteBackend | localBackend.LocalBackend
+type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBackend
 
 // ======================
 // === BackendContext ===
@@ -37,7 +37,7 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 export function BackendProvider(props: BackendProviderProps) {
     const { initialBackend, children } = props
     const [backend, setBackend] = react.useState<
-        cloudBackend.RemoteBackend | localBackend.LocalBackend
+        localBackend.LocalBackend | remoteBackend.RemoteBackend
     >(initialBackend)
     return (
         <BackendContext.Provider value={{ backend, setBackend }}>

@@ -11,12 +11,12 @@ import * as app from '../../components/app'
 import * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
-import * as cloudBackend from '../../dashboard/remoteBackend'
 import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as platform from '../../platform'
+import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
 // =================
@@ -164,7 +164,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 const headers = new Headers()
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
-                const backend = new cloudBackend.RemoteBackend(client, logger)
+                const backend = new remoteBackend.RemoteBackend(client, logger)
                 setBackend(backend)
                 const organization = await backend.usersMe()
                 let newUserSession: UserSession
