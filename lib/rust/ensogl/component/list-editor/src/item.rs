@@ -34,9 +34,9 @@ impl<T: display::Object> Item<T> {
 
     pub fn new_from_placeholder(elem: T, placeholder: StrongPlaceholder) -> Self {
         let frp = Frp::new();
-        placeholder.add_child(&elem);
         let network = frp.network();
         let elem_obj = elem.display_object();
+        placeholder.replace_children(&[&elem_obj]);
         let margin_left = Animation::<f32>::new_with_init(network, 0.0);
         let elem_offset = Animation::<Vector2>::new_with_init(network, elem.position().xy());
         margin_left.simulator.update_spring(|s| s * crate::DEBUG_ANIMATION_SPRING_FACTOR);

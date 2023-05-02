@@ -564,7 +564,7 @@ impl SymbolData {
         let bindings = default();
         let stats = SymbolStats::new(stats);
         let context = default();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_no_debug();
         let is_hidden = Rc::new(Cell::new(false));
 
         let instance_scope = surface.instance_scope();

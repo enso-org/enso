@@ -210,8 +210,9 @@ crate::define_endpoints_2! {
         scene_position        (Vector3),
          /// Change between the current and the previous scene position.
         scene_position_delta  (Vector3),
-        start_drag (),
+        start_drag(),
         stop_drag(),
+        is_dragging(bool),
     }
 }
 
@@ -239,15 +240,15 @@ impl CursorModel {
     /// Constructor.
     pub fn new(scene: &Scene, frp: WeakFrp) -> Self {
         let scene = scene.clone_ref();
-        let display_object = display::object::Instance::new();
-        let dragged_elem = display::object::Instance::new();
+        let display_object = display::object::Instance::new_no_debug();
+        let dragged_elem = display::object::Instance::new_named("dragged_elem");
         let view = shape::View::new();
         let port_selection = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);
         display_object.add_child(&port_selection);
-        view.add_child(&dragged_elem);
+        scene.add_child(&dragged_elem);
         let tgt_layer = &scene.layers.cursor;
         let port_selection_layer = &scene.layers.port_selection;
         tgt_layer.add(&view);
@@ -563,7 +564,7 @@ impl Cursor {
             eval position             ((t) model.display_object.set_position(*t));
             eval front_color          ((t) model.view.color.set(t.into()));
             eval port_selection_color ((t) model.port_selection.color.set(t.into()));
-
+            eval_ screen_position     (model.update_drag_position());
 
             // === Outputs ===
 
@@ -571,6 +572,7 @@ impl Cursor {
             frp.private.output.screen_position      <+ screen_position;
             frp.private.output.scene_position       <+ scene_position;
             frp.private.output.scene_position_delta <+ scene_position_delta;
+            frp.private.output.is_dragging <+ bool(&frp.stop_drag, &frp.start_drag);
         }
 
         // Hide on init.
@@ -592,18 +594,31 @@ impl CursorModel {
             warn!("Can't start dragging an item because another item is already being dragged.");
         } else {
             let object = target.display_object().clone();
-            self.dragged_elem.add_child(&object);
-            let target_position = object.global_position().xy();
-            let cursor_position = self.frp.scene_position.value().xy();
-            object.set_xy(target_position - cursor_position);
 
+            if let Some(object_layer) = object.display_layer() {
+                object_layer.add(&self.dragged_elem);
+            }
             let scene = scene();
-            let camera = scene.camera();
-            let zoom = camera.zoom();
-            self.dragged_elem.set_scale_xy((zoom, zoom));
+            let screen_pos = self.frp.screen_position.value().xy();
+            let offset = scene.screen_to_object_space(&object, screen_pos);
+            object.set_xy(-offset);
+            self.dragged_elem.add_child(&object);
+
             *self.dragged_item.borrow_mut() = Some((Box::new(target), object));
 
             self.frp.private.output.start_drag.emit(());
+        }
+    }
+
+    fn update_drag_position(&self) {
+        if self.dragged_item.borrow().is_some() {
+            let scene = scene();
+            let layer = self.dragged_elem.display_layer();
+            let camera = layer.map_or(scene.camera(), |l| l.camera());
+
+            let screen_pos = self.frp.screen_position.value().xy() / camera.zoom();
+            let pos_in_layer = camera.inversed_view_matrix() * screen_pos.push(0.0).push(1.0);
+            self.dragged_elem.set_xy(pos_in_layer.xy());
         }
     }
 

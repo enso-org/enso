@@ -247,18 +247,18 @@ impl ScrollArea {
     #[profile(Detail)]
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("ScrollArea");
         let masked_layer = layer::Masked::new();
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
         let content_layer = display_object.layer.masked_layer.create_sublayer("content_layer");
         let ui_layer = display_object.layer.masked_layer.create_sublayer("ui_layer");
 
-        let content = display::object::Instance::new();
+        let content = display::object::Instance::new_named("content");
         display_object.add_child(&content);
         content_layer.add(&content);
 
-        let scrollbars = display::object::Instance::new();
+        let scrollbars = display::object::Instance::new_named("scrollbars");
         display_object.add_child(&scrollbars);
         ui_layer.add(&scrollbars);
 

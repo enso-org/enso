@@ -1119,6 +1119,25 @@ use unit2::Fraction;
 
 
 
+// =================
+// === CONSTANTS ===
+// =================
+
+/// Enable debugging of display objects hierarchy. When enabled, all display objects will be
+/// represented in the DOM tree, which can be inspected using browser devtools inspector.
+pub const ENABLE_DOM_DEBUG: bool = false;
+
+/// Enable DOM debugging for all display objects as a default. When enabled, all display objects
+/// created with `new` or `new_named` constructors will be represented in the debug DOM tree. When
+/// disabled, only display objects created with explicitly enabled debugging (e.g. using `new_debug`
+/// constructor) will have that behavior.
+///
+/// Has effect only when [`ENABLE_DOM_DEBUG`] is already enabled.
+pub const ENABLE_DOM_DEBUG_ALL: bool = true;
+
+/// The name of a display object when not specified. Object names are visible in the DOM inspector.
+pub const DEFAULT_NAME: &str = "UnnamedDisplayObject";
+
 // ==========
 // === Id ===
 // ==========
@@ -1144,7 +1163,7 @@ pub struct ChildIndex(usize);
 // =============
 
 /// The main display object structure. Read the docs of [this module](self) to learn more.
-#[derive(Clone, CloneRef, Default, Deref, From)]
+#[derive(Clone, CloneRef, Deref, From)]
 #[repr(transparent)]
 pub struct Instance {
     def: InstanceDef,
@@ -1182,33 +1201,65 @@ pub struct Model {
     hierarchy:   HierarchyModel,
     event:       EventModel,
     layout:      LayoutModel,
+    debug_dom:   Option<enso_web::HtmlDivElement>,
 }
 
 
 // === Contructors ===
 
 impl Instance {
-    /// Constructor.
-    #[profile(Debug)]
+    /// Constructor with default name. Will have DOM debugging enabled if [`ENABLE_DOM_DEBUG_ALL`]
+    /// flag is enabled.
     pub fn new() -> Self {
-        default()
+        Self::new_named_with_debug(DEFAULT_NAME, ENABLE_DOM_DEBUG_ALL)
     }
 
-    /// Constructor of a named display object. The name is used for debugging purposes only.
+    /// Constructor with DOM debugging always disabled.
+    pub fn new_no_debug() -> Self {
+        Self::new_named_with_debug(DEFAULT_NAME, false)
+    }
+
+    /// Constructor with DOM debugging always enabled.
+    pub fn new_debug() -> Self {
+        Self::new_named_with_debug(DEFAULT_NAME, true)
+    }
+
+    /// Constructor with custom name. Will have DOM debugging enabled if [`ENABLE_DOM_DEBUG_ALL`]
+    /// flag is enabled.
     pub fn new_named(name: &'static str) -> Self {
-        Self { def: InstanceDef::new_named(name) }
+        Self::new_named_with_debug(name, ENABLE_DOM_DEBUG_ALL)
+    }
+
+    /// Constructor with custom name and DOM debugging always disabled.
+    pub fn new_named_no_debug(name: &'static str) -> Self {
+        Self::new_named_with_debug(name, false)
+    }
+
+    /// Constructor with custom name and DOM debugging always enabled.
+    pub fn new_named_debug(name: &'static str) -> Self {
+        Self::new_named_with_debug(name, true)
+    }
+
+    /// Constructor with custom name and DOM debugging enabled with an argument.
+    pub fn new_named_with_debug(name: &'static str, enable_debug: bool) -> Self {
+        Self { def: InstanceDef::new(name, enable_debug) }
     }
 }
 
 impl InstanceDef {
-    /// Constructor.
-    pub fn new() -> Self {
-        Self { rc: Rc::new(Model::new()) }.init_events_handling()
-    }
+    #[profile(Debug)]
+    fn new(name: &'static str, enable_debug: bool) -> Self {
+        let mut model = Model::new_named(name);
+        if ENABLE_DOM_DEBUG && enable_debug {
+            use enso_web::prelude::*;
+            if let Some(document) = enso_web::window.document() {
+                let dom = document.create_div_or_panic();
+                dom.set_attribute_or_warn("data-name", name);
+                model.debug_dom = Some(dom);
+            }
+        }
 
-    /// Constructor.
-    pub fn new_named(name: &'static str) -> Self {
-        Self { rc: Rc::new(Model::new_named(name)) }.init_events_handling()
+        Self { rc: Rc::new(model) }.init_events_handling().init_dom_debug(enable_debug)
     }
 
     /// ID getter of this display object.
@@ -1229,14 +1280,24 @@ impl Model {
         let hierarchy = HierarchyModel::new(&network);
         let event = EventModel::new(&network);
         let layout = LayoutModel::default();
-        Self { network, hierarchy, event, layout, name }
+        let debug_dom = None;
+        Self { network, hierarchy, event, layout, name, debug_dom }
     }
 }
 
+impl Drop for Model {
+    fn drop(&mut self) {
+        if ENABLE_DOM_DEBUG {
+            if let Some(dom) = self.debug_dom.take() {
+                dom.remove();
+            }
+        }
+    }
+}
 
 // === Impls ===
 
-impl Default for InstanceDef {
+impl Default for Instance {
     fn default() -> Self {
         Self::new()
     }
@@ -1342,6 +1403,7 @@ impl Root {
     /// Constructor of a named display object. The name is used for debugging purposes only.
     pub fn new_named(name: &'static str) -> Self {
         let def = Instance::new_named(name);
+        def.set_size((0.0, 0.0));
         Self { def }.init()
     }
 
@@ -2273,7 +2335,7 @@ impl Model {
         self.transformation.borrow().rotation()
     }
 
-    /// Transformation matrix of the object in the parent coordinate space.
+    /// Transformation matrix of the object in the camera coordinate space.
     fn transformation_matrix(&self) -> Matrix4<f32> {
         self.transformation.borrow().matrix()
     }
@@ -2402,6 +2464,77 @@ impl InstanceDef {
                 Self::emit_event_impl(event, parent, &capturing_event_fan, &bubbling_event_fan);
             });
         }
+        self
+    }
+
+    fn init_dom_debug(self, enable_debug: bool) -> Self {
+        use enso_web::prelude::*;
+        use std::fmt::Write;
+
+        if !(ENABLE_DOM_DEBUG && enable_debug) {
+            return self;
+        }
+
+        let style_string = RefCell::new(String::new());
+        let display = Rc::new(Cell::new(""));
+        let last_parent_node = RefCell::new(None);
+        let weak = self.downgrade();
+        let network = &self.network;
+        frp::extend! { network
+            eval_ self.on_show (display.set(""));
+            eval_ self.on_hide (display.set("display:none;"));
+            eval_ self.on_transformed ([display] {
+                let Some(object) = weak.upgrade() else { return };
+                let Some(dom) = object.debug_dom.as_ref() else { return };
+                let mut parent_node = last_parent_node.borrow_mut();
+                let transform;
+                let new_parent;
+
+                let upgrade = |l: &LayerAssignment| l.layer.upgrade();
+                if let Some(layer) = object.assigned_layer.borrow().as_ref().and_then(upgrade) {
+                    transform = object.transformation.borrow().matrix();
+                    new_parent = layer.debug_dom.clone();
+                } else if let Some(parent) = object.parent().and_then(|p| p.debug_dom.clone()) {
+                    transform = object.transformation.borrow().local_matrix();
+                    new_parent = Some(parent);
+                } else if let Some(layer) = object.layer.borrow().as_ref().and_then(upgrade) {
+                    transform = object.transformation.borrow().matrix();
+                    new_parent = layer.debug_dom.clone();
+                } else {
+                    transform = Matrix4::zero();
+                    new_parent = None;
+                }
+
+
+                if *parent_node != new_parent {
+                    if let Some(parent) = &new_parent {
+                        parent.append_child(dom).unwrap();
+                    } else {
+                        dom.remove();
+                    }
+                    *parent_node = new_parent;
+                }
+
+                let size = object.computed_size();
+                let transform = transform.as_slice();
+                let mut style_string = style_string.borrow_mut();
+                let x = size.x();
+                let y = size.y();
+                let display = display.get();
+                let (first, rest) = transform.split_first().unwrap();
+                write!(style_string, "\
+                    {display}\
+                    width:{x}px;\
+                    height:{y}px;\
+                    transform:matrix3d({first:.4}"
+                ).unwrap();
+                rest.iter().for_each(|f| write!(style_string, ",{f:.4}").unwrap());
+                style_string.write_str(");").unwrap();
+                dom.set_attribute_or_warn("style", &*style_string);
+                style_string.clear();
+            });
+        }
+
         self
     }
 
