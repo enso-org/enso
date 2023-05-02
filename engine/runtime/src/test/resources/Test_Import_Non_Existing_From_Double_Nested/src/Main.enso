@@ -1,0 +1,3 @@
+from project.Other_Module.Non_Existing_Type import Non_Existing_Symbol
+
+main = 42

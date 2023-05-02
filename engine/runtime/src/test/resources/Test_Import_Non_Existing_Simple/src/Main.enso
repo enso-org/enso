@@ -1,0 +1,3 @@
+import project.Other_Module.Non_Existing_Symbol
+
+main = 42
