@@ -9,7 +9,7 @@ import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type
-from Standard.Test import Test, Test_Suite, Problems
+from Standard.Test import Test, Test_Suite
 from project.Util import all
 
 spec =
