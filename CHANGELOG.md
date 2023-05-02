@@ -138,6 +138,7 @@
   sending messages to the backend][6341].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
+- [Visualisations now show a loading spinner while waiting on data.][6512].
 
 #### EnsoGL (rendering engine)
 
@@ -202,6 +203,7 @@
 [6097]: https://github.com/enso-org/enso/pull/6097
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6512]: https://github.com/enso-org/enso/pull/6512
 
 #### Enso Standard Library
 
