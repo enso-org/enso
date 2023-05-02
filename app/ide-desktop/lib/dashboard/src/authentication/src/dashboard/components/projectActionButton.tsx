@@ -74,12 +74,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 setSpinnerState(SpinnerState.done)
             }
         }
-    }, [
-        project,
-        backend.platform === platform.Platform.desktop
-            ? localBackend.LocalBackend.currentlyOpeningProjectId
-            : null,
-    ])
+    }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
 
     react.useEffect(() => {
         if (!isCheckingStatus) {

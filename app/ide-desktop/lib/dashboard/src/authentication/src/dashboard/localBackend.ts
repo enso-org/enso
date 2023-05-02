@@ -79,8 +79,10 @@ export class LocalBackend implements Partial<backend.Backend> {
 
     async closeProject(projectId: backend.ProjectId): Promise<void> {
         await this.projectManager.closeProject({ projectId })
-        LocalBackend.currentlyOpeningProjectId = null
-        LocalBackend.currentlyOpenProject = null
+        if (projectId === LocalBackend.currentlyOpeningProjectId) {
+            LocalBackend.currentlyOpeningProjectId = null
+            LocalBackend.currentlyOpenProject = null
+        }
     }
 
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
