@@ -15,6 +15,8 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
+use crate::display::scene::layer::LayerSymbolPartition;
+use crate::display::shape::compound::rectangle;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
@@ -589,6 +591,18 @@ impl Renderer {
 // === Layers ===
 // ==============
 
+type RectLayerPartition = Rc<LayerSymbolPartition<rectangle::Shape>>;
+
+/// Create a new layer partition with the given name, wrapped in an `Rc` for use in the
+/// [`HardcodedLayers`] structure.
+fn partition_layer<S: display::shape::primitive::system::Shape>(
+    base_layer: &Layer,
+    name: &str,
+) -> Rc<LayerSymbolPartition<S>> {
+    let partition = base_layer.create_symbol_partition::<S>(name);
+    Rc::new(partition)
+}
+
 /// Please note that currently the `Layers` structure is implemented in a hacky way. It assumes the
 /// existence of several layers, which are needed for the GUI to display shapes properly. This
 /// should be abstracted away in the future.
@@ -597,30 +611,32 @@ impl Renderer {
 pub struct HardcodedLayers {
     /// A special layer used to store shapes not attached to any layer. This layer will not be
     /// rendered. You should not need to use it directly.
-    pub DETACHED:           Layer,
-    pub root:               Layer,
-    pub viz:                Layer,
-    pub below_main:         Layer,
-    pub main:               Layer,
-    pub widget:             Layer,
-    pub port:               Layer,
-    pub port_selection:     Layer,
-    pub label:              Layer,
-    pub port_hover:         Layer,
-    pub above_nodes:        Layer,
-    pub above_nodes_text:   Layer,
-    /// `panel` layer contains all panels with fixed position (not moving with the panned scene)
-    /// like status bar, breadcrumbs or similar.
-    pub panel_background:   Layer,
-    pub panel:              Layer,
-    pub panel_text:         Layer,
-    pub node_searcher:      Layer,
+    pub DETACHED: Layer,
+    pub root: Layer,
+    pub viz: Layer,
+    pub below_main: Layer,
+    pub main: Layer,
+    pub widget: Layer,
+    pub port: Layer,
+    pub port_selection: Layer,
+    pub label: Layer,
+    pub port_hover: Layer,
+    pub above_nodes: Layer,
+    pub above_nodes_text: Layer,
+    // `panel_*` layers contains UI elements with fixed position (not moving with the panned scene)
+    // like status bar, breadcrumbs or similar.
+    pub panel_background_rect_level_0: RectLayerPartition,
+    pub panel_background_rect_level_1: RectLayerPartition,
+    pub panel_background: Layer,
+    pub panel: Layer,
+    pub panel_text: Layer,
+    pub node_searcher: Layer,
     pub node_searcher_text: Layer,
-    pub edited_node:        Layer,
-    pub edited_node_text:   Layer,
-    pub tooltip:            Layer,
-    pub tooltip_text:       Layer,
-    pub cursor:             Layer,
+    pub edited_node: Layer,
+    pub edited_node_text: Layer,
+    pub tooltip: Layer,
+    pub tooltip_text: Layer,
+    pub cursor: Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -654,7 +670,11 @@ impl HardcodedLayers {
         let port_hover = root.create_sublayer("port_hover");
         let above_nodes = root.create_sublayer("above_nodes");
         let above_nodes_text = root.create_sublayer("above_nodes_text");
+
+
         let panel_background = root.create_sublayer_with_camera("panel_background", &panel_cam);
+        let panel_background_rect_level_0 = partition_layer(&panel_background, "bottom");
+        let panel_background_rect_level_1 = partition_layer(&panel_background, "top");
         let panel = root.create_sublayer_with_camera("panel", &panel_cam);
         let panel_text = root.create_sublayer_with_camera("panel_text", &panel_cam);
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
@@ -690,6 +710,8 @@ impl HardcodedLayers {
             tooltip,
             tooltip_text,
             cursor,
+            panel_background_rect_level_0,
+            panel_background_rect_level_1,
         }
     }
 }
