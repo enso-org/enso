@@ -18,13 +18,19 @@ spec prefix connection =
     tables_to_clean = Vector.new_builder
     upload prefix data temporary=True =
         name = Name_Generator.random_name prefix
-        table = connection.upload_table name data temporary=temporary
-        tables_to_clean.append name
+        table = data.create_database_table connection name temporary=temporary primary_key=Nothing
+        tables_to_clean.append table.name
         table
 
-    ## We have to upload the table as non-temporary, because otherwise it will
-       not be visible in the list of tables and make `Table.query` confused.
-    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]]) temporary=False
+    clean_tables =
+        tables_to_clean.to_vector.each name->
+            Panic.catch Any (connection.drop_table name) caught_panic->
+                IO.println "Failed to drop table: " + name + " because of: " + caught_panic.payload.to_display_text
+    Panic.with_finalizer clean_tables <|
+        run_tests prefix connection upload
+
+run_tests prefix connection upload =
+    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
     Test.group prefix+"Basic Table Access" <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.read
@@ -90,7 +96,7 @@ spec prefix connection =
                Also, the table name cannot be too long as Postgres truncates at
                63 chars (and we append 37 chars of uniqueness suffix) and the
                test logic will break then.
-            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]]) temporary=False
+            t4 = upload 'aSELECT "A",\'B\' FROM t;--' (Table.new [["X", ["a", "B"]], ["Y", [2, 5]]])
             t5 = connection.query t4.name
             m5 = t5.read
             m5.column_names . should_equal ["X", "Y"]
@@ -265,11 +271,6 @@ spec prefix connection =
     Test.group prefix+"Table.filter" <|
         Test.specify "report error when trying to filter by a custom predicate" <|
             t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation
-
-    clean_table name = Panic.recover Any <|
-        sql = 'DROP TABLE "' + name + '"'
-        Panic.rethrow <| connection.execute_update sql
-    tables_to_clean.to_vector.each clean_table
 
 main = Test_Suite.run_main <|
     spec "[SQLite] " (Database.connect (SQLite In_Memory))

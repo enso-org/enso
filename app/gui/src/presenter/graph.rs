@@ -12,7 +12,6 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
-use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
@@ -83,15 +82,13 @@ pub fn default_node_position() -> Vector2 {
 
 #[derive(Debug)]
 struct Model {
-    project:               model::Project,
-    controller:            controller::ExecutedGraph,
-    view:                  view::graph_editor::GraphEditor,
-    state:                 Rc<State>,
-    _visualization:        Visualization,
-    widget:                controller::Widget,
-    _execution_stack:      CallStack,
-    // TODO(#5930): Move me once we synchronise the execution environment with the language server.
-    execution_environment: Rc<Cell<ExecutionEnvironment>>,
+    project:          model::Project,
+    controller:       controller::ExecutedGraph,
+    view:             view::graph_editor::GraphEditor,
+    state:            Rc<State>,
+    _visualization:   Visualization,
+    widget:           controller::Widget,
+    _execution_stack: CallStack,
 }
 
 impl Model {
@@ -118,7 +115,6 @@ impl Model {
             _visualization: visualization,
             widget,
             _execution_stack: execution_stack,
-            execution_environment: Default::default(),
         }
     }
 
@@ -188,7 +184,7 @@ impl Model {
     /// ```
     fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
         let context = Context::Output;
-        let environment = self.execution_environment.get();
+        let environment = self.controller.execution_environment();
         let current_state = environment.output_context_enabled();
         let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
         let expr = if active {
@@ -304,18 +300,15 @@ impl Model {
                 let update = self.state.update_from_view();
                 let ast_to_remove = update.remove_connection(id)?;
                 Some(self.controller.disconnect(&ast_to_remove).map(|target_crumbs| {
-                    target_crumbs.and_then(|crumbs| {
+                    if let Some(crumbs) = target_crumbs {
                         trace!(
                             "Updating edge target after disconnecting it. New crumbs: {crumbs:?}"
                         );
                         // If we are still using this edge (e.g. when dragging it), we need to
                         // update its target endpoint. Otherwise it will not reflect expression
                         // update performed on the target node.
-                        let edge = self.view.model.edges.get_cloned_ref(&id)?;
-                        let outdated_target = edge.target()?;
-                        edge.set_target(EdgeEndpoint::new(outdated_target.node_id, crumbs));
-                        Some(())
-                    });
+                        self.view.replace_detached_edge_target((id, crumbs));
+                    };
                 }))
             },
             "delete connection",
@@ -492,15 +485,6 @@ impl Model {
                 warn!("Failed to initialize nodes positions: {err}");
             }
         }
-    }
-
-    fn toggle_execution_environment(&self) -> ExecutionEnvironment {
-        let new_environment = match self.execution_environment.get() {
-            ExecutionEnvironment::Live => ExecutionEnvironment::Design,
-            ExecutionEnvironment::Design => ExecutionEnvironment::Live,
-        };
-        self.execution_environment.set(new_environment);
-        new_environment
     }
 }
 
@@ -716,15 +700,6 @@ impl Graph {
                     Rc::new(default())
                 }
             }));
-
-
-            // === Execution Environment ===
-
-            // TODO(#5930): Delete me once we synchronise the execution environment with the
-            // language server.
-            view.set_execution_environment <+ view.toggle_execution_environment.map(
-                f_!(model.toggle_execution_environment()));
-
 
             // === Refreshing Nodes ===
 

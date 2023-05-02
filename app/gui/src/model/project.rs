@@ -179,6 +179,8 @@ pub enum Notification {
     ConnectionLost(BackendConnection),
     /// Indicates that the project VCS status has changed.
     VcsStatusChanged(VcsStatus),
+    /// Indicates that the project has finished execution.
+    ExecutionFinished,
 }
 
 /// Denotes one of backend connections used by a project.

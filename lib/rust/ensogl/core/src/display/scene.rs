@@ -602,6 +602,7 @@ pub struct HardcodedLayers {
     pub viz:                Layer,
     pub below_main:         Layer,
     pub main:               Layer,
+    pub widget:             Layer,
     pub port:               Layer,
     pub port_selection:     Layer,
     pub label:              Layer,
@@ -645,6 +646,7 @@ impl HardcodedLayers {
         let viz = root.create_sublayer("viz");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
+        let widget = root.create_sublayer("widget");
         let port = root.create_sublayer("port");
         let port_selection =
             root.create_sublayer_with_camera("port_selection", &port_selection_cam);
@@ -671,6 +673,7 @@ impl HardcodedLayers {
             viz,
             below_main,
             main,
+            widget,
             port,
             port_selection,
             label,
@@ -970,6 +973,7 @@ impl SceneData {
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
         self.layers.iter_sublayers_and_masks_nested(|layer| {
             let dirty = layer.camera().update(scene);
+            layer.update_debug_view();
             was_dirty = was_dirty || dirty;
         });
 

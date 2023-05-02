@@ -63,7 +63,7 @@ export project.Warning.Warning
 from project.Data.Boolean export Boolean, True, False
 from project.Function export all
 from project.Data.Numbers export Number, Integer, Decimal
-from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_File
+from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_Format
 
 import project.Data
 import project.Data.Filter_Condition.Filter_Condition

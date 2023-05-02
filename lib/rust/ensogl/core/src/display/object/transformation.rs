@@ -202,6 +202,10 @@ impl CachedTransformation {
 // === Getters ===
 
 impl CachedTransformation {
+    pub fn local_matrix(&self) -> Matrix4<f32> {
+        self.transform_matrix
+    }
+
     pub fn matrix(&self) -> Matrix4<f32> {
         self.matrix
     }

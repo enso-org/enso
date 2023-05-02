@@ -511,6 +511,14 @@ pub trait API: Debug {
         &'a self,
         execution_environment: ExecutionEnvironment,
     ) -> BoxFuture<'a, FallibleResult>;
+
+    /// Get the execution environment of the context.
+    fn execution_environment(&self) -> ExecutionEnvironment;
+
+    /// Trigger a clean execution of the current graph with the "live" execution environment. That
+    /// means old computations and caches will be discarded.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn trigger_clean_live_execution<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes

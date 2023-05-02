@@ -82,7 +82,7 @@ public class ExcelHeaders {
       return null;
     }
 
-    return deduplicator.makeUnique(rowNames);
+    return deduplicator.makeUniqueArray(rowNames);
   }
 
   /** Specifies how to set the headers for the returned table. */

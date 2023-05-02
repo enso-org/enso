@@ -53,7 +53,7 @@ spec =
             Problems.expect_only_warning Encoding_Error <|
                 windows_log.read (Plain_Text Encoding.ascii)
 
-    Test.group "JSON_File" <|
+    Test.group "JSON_Format" <|
         Test.specify "should be able to read a file as Json" <|
             f1 = enso_project.data / "sample.json"
             j1 = f1.read
@@ -62,7 +62,7 @@ spec =
             j1.at "not" . should_equal Nothing
 
             f2 = enso_project.data / "sample-json.weird-extension"
-            j2 = f2.read JSON_File
+            j2 = f2.read JSON_Format
             j2.at 0 . at "foo" . should_equal "bar"
             j2.at 1 . should_equal 42
             j2.at 2 . should_equal Nothing

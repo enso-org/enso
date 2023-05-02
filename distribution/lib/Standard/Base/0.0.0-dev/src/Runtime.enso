@@ -1,6 +1,8 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean.Boolean
+import project.Data.Text.Case.Case
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Forbidden_Operation
@@ -159,7 +161,18 @@ type Context
        - environment: Name of the execution environment.
        - context: The context to enable.
     is_enabled : Text -> Boolean
-    is_enabled self environment=Runtime.current_execution_environment = @Builtin_Method "Context.is_enabled"
+    is_enabled self environment=Runtime.current_execution_environment =
+        self.is_enabled_builtin (environment.to_case Case.Lower)
+
+    ## PRIVATE
+    is_enabled_builtin : Text -> Boolean
+    is_enabled_builtin self environment = @Builtin_Method "Context.is_enabled_builtin"
+
+    ## PRIVATE
+       Run an action with the Context enabled.
+    with_enabled : Function -> Any
+    with_enabled self ~action =
+        with_enabled_context self Runtime.current_execution_environment action
 
 
 ## PRIVATE
@@ -179,7 +192,8 @@ current_execution_environment = @Builtin_Method "Runtime.current_execution_envir
    - context: The context to enable.
    - action: Action to be performed with the context enabled.
 with_enabled_context : Context -> Text -> Function -> Any
-with_enabled_context context environment=Runtime.current_execution_environment ~action = with_enabled_context_builtin context environment action
+with_enabled_context context environment=Runtime.current_execution_environment ~action =
+    with_enabled_context_builtin context (environment.to_case Case.Lower) action
 
 ## PRIVATE
    ADVANCED
@@ -205,7 +219,8 @@ with_enabled_context_builtin context environment ~action = @Builtin_Method "Runt
    - context: The context to disable.
    - action: Action to be performed with the context disabled.
 with_disabled_context : Context -> Text -> Function -> Any
-with_disabled_context context environment=Runtime.current_execution_environment ~action = with_disabled_context_builtin context environment action
+with_disabled_context context environment=Runtime.current_execution_environment ~action =
+    with_disabled_context_builtin context (environment.to_case Case.Lower) action
 
 ## PRIVATE
    ADVANCED

@@ -23,7 +23,12 @@ type Context
         if self.is_enabled environment then action else Panic.throw (Forbidden_Operation.Error self.name)
 
     is_enabled : Text -> Boolean
-    is_enabled self environment="design" = @Builtin_Method "Context.is_enabled"
+    is_enabled self environment="design" =
+        self.is_enabled_builtin environment
+
+    ## PRIVATE
+    is_enabled_builtin : Text -> Boolean
+    is_enabled_builtin self environment = @Builtin_Method "Context.is_enabled_builtin"
 
 current_execution_environment : Text
 current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"

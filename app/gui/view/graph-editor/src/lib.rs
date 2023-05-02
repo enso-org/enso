@@ -589,11 +589,11 @@ ensogl::define_endpoints_2! {
 
         // === Execution Environment ===
 
-        // TODO(#5930): Temporary shortcut for testing different execution environments
-        toggle_execution_environment(),
-        /// Set the execution environmenta available to the graph.
-        set_available_execution_environments          (Rc<Vec<execution_environment_selector::ExecutionEnvironment>>),
-        set_execution_environment                     (ExecutionEnvironment),
+        /// Set the execution environments available to the graph.
+        set_available_execution_environments          (Rc<Vec<ExecutionEnvironment>>),
+        switch_to_design_execution_environment(),
+        switch_to_live_execution_environment(),
+        execution_finished(),
 
 
         // === Debug ===
@@ -619,8 +619,7 @@ ensogl::define_endpoints_2! {
         set_detached_edge_sources    (EdgeEndpoint),
         set_edge_source              ((EdgeId, EdgeEndpoint)),
         set_edge_target              ((EdgeId, EdgeEndpoint)),
-        unset_edge_source            (EdgeId),
-        unset_edge_target            (EdgeId),
+        replace_detached_edge_target ((EdgeId, span_tree::Crumbs)),
         connect_nodes                ((EdgeEndpoint,EdgeEndpoint)),
         deselect_all_nodes           (),
         press_node_input             (EdgeEndpoint),
@@ -770,7 +769,7 @@ ensogl::define_endpoints_2! {
         min_x_spacing_for_new_nodes (f32),
 
         /// The selected environment mode.
-        execution_environment (execution_environment_selector::ExecutionEnvironment),
+        execution_environment (ExecutionEnvironment),
         /// A press of the execution environment selector play button.
         execution_environment_play_button_pressed (),
     }
@@ -1749,7 +1748,7 @@ impl GraphEditorModelWithNetwork {
 
                 // === Execution Environment ===
 
-                node.set_execution_environment <+ self.model.frp.input.set_execution_environment;
+                node.set_execution_environment <+ self.model.frp.output.execution_environment;
             }
 
 
@@ -1830,7 +1829,7 @@ impl GraphEditorModel {
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network();
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("GraphEditor");
         let nodes = Nodes::new();
         let edges = Edges::new();
         let vis_registry = visualization::Registry::with_default_visualizations();
@@ -1891,7 +1890,9 @@ impl GraphEditorModel {
         self.breadcrumbs.set_x(x_offset);
 
         self.scene().add_child(&self.tooltip);
-        self.add_child(&self.profiling_button);
+        if ARGS.groups.feature_preview.options.profiling.value {
+            self.add_child(&self.profiling_button);
+        }
         self.add_child(&*self.add_node_button);
         self
     }
@@ -2177,6 +2178,22 @@ impl GraphEditorModel {
                         self.frp.output.on_some_edges_targets_unset.emit(());
                     }
                 };
+            }
+        }
+    }
+
+    fn replace_detached_edge_target(&self, edge_id: EdgeId, crumbs: &span_tree::Crumbs) {
+        if !self.edges.detached_source.contains(&edge_id) {
+            return;
+        }
+
+        if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
+            if let Some(target) = edge.take_target() {
+                self.set_input_connected(&target, None);
+                let port = crumbs.clone();
+                let new_target = EdgeEndpoint { port, ..target };
+                edge.set_target(new_target);
+                self.refresh_edge_position(edge_id);
             }
         }
     }
@@ -2839,6 +2856,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         edit_mode     <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
+        // Deselect nodes when the project name is edited.
+        frp.deselect_all_nodes <+ model.breadcrumbs.project_mouse_down;
     }
 
 
@@ -3643,6 +3662,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     eval out.on_edge_source_unset (((id,_)) model.remove_edge_source(*id));
     eval out.on_edge_target_unset (((id,_)) model.remove_edge_target(*id));
+    eval inputs.replace_detached_edge_target (((id,tgt)) model.replace_detached_edge_target(*id,tgt));
 
     is_only_tgt_not_set <-
         out.on_edge_source_set.map(f!(((id,_)) model.with_edge_map_target(*id,|_|()).is_none()));
@@ -3656,6 +3676,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.on_edge_only_source_not_set <+ out.on_edge_target_set_with_source_not_set._0();
     out.on_edge_only_source_not_set <+ out.on_edge_source_unset._0();
 
+    eval inputs.replace_detached_edge_target ([model,neutral_color]((id, _))
+        model.refresh_edge_color(*id,neutral_color.value().into()));
     eval out.on_edge_source_set ([model,neutral_color]((id, _))
         model.refresh_edge_color(*id,neutral_color.value().into()));
     eval out.on_edge_target_set ([model,neutral_color]((id, _))

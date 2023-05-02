@@ -1,9 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Context
 
 from Standard.Table import Table, Aggregate_Column, Value_Type
 
-from Standard.Database import SQLite
-from Standard.Database import Database
+from Standard.Database import all
 import Standard.Database.Data.Table.Table as Database_Table
 
 import Standard.Visualization.Table.Visualization
@@ -23,7 +23,8 @@ type Foo
     to_js_object self = JS_Object.from_pairs [["x", self.x]]
 
 visualization_spec connection =
-    t = connection.upload_table "T" <| Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
+    in_mem = Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
+    t = in_mem.create_database_table connection "T" primary_key=Nothing temporary=True
 
     make_json header data all_rows ixes_header ixes =
         p_header      = ["header", header]
@@ -35,11 +36,12 @@ visualization_spec connection =
         JS_Object.from_pairs pairs . to_text
 
     Test.group "Table Visualization" <|
-        Test.specify "should wrap internal errors" <|
+        Test.specify "should forward internal errors" <|
             bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
-            vis = Visualization.prepare_visualization bad_table 2
-            json = JS_Object.from_pairs [["error", "Method `set_limit` of type Nothing could not be found."]]
-            vis . should_equal json.to_text
+            result = Panic.catch Any (Visualization.prepare_visualization bad_table 2) caught_panic->
+                caught_panic.payload
+            message = "Method `set_limit` of type Nothing could not be found."
+            result.to_display_text . should_equal message
 
         Test.specify "should visualize database tables" <|
             vis = Visualization.prepare_visualization t 1
@@ -98,7 +100,7 @@ visualization_spec connection =
             Visualization.prepare_visualization Value_Type.Char . should_equal (make_json Value_Type.Char)
             Visualization.prepare_visualization Value_Type.Unsupported_Data_Type . should_equal (make_json Value_Type.Unsupported_Data_Type)
 
-spec =
+spec = Context.Output.with_enabled <|
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists

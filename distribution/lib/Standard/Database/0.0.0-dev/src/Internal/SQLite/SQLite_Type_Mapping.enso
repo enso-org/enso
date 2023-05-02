@@ -59,9 +59,9 @@ type SQLite_Type_Mapping
             Value_Type.Float _ -> SQLite_Types.real
             Value_Type.Decimal _ _ -> SQLite_Types.numeric
             Value_Type.Char _ _ -> SQLite_Types.text
-            Value_Type.Time -> SQLite_Types.blob
-            Value_Type.Date -> SQLite_Types.blob
-            Value_Type.Date_Time _ -> SQLite_Types.blob
+            Value_Type.Time -> SQLite_Types.text
+            Value_Type.Date -> SQLite_Types.text
+            Value_Type.Date_Time _ -> SQLite_Types.text
             Value_Type.Binary _ _ -> SQLite_Types.blob
             Value_Type.Mixed -> SQLite_Types.text
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
@@ -78,7 +78,9 @@ type SQLite_Type_Mapping
     sql_type_to_value_type sql_type =
         on_not_found =
             Value_Type.Unsupported_Data_Type sql_type.name sql_type
-        simple_types_map.get sql_type.typeid on_not_found
+        do_simple_mapping =
+            simple_types_map.get sql_type.typeid if_missing=on_not_found
+        name_based_workarounds.get sql_type.name if_missing=do_simple_mapping
 
     ## PRIVATE
     sql_type_to_text : SQL_Type -> Text
@@ -123,6 +125,14 @@ simple_types_map = Map.from_vector <|
     blobs = [Types.BINARY, Types.BLOB, Types.CLOB] . map x-> [x, Value_Type.Binary]
     special_types = [[Types.BOOLEAN, Value_Type.Boolean]]
     ints + floats + numerics + strings + blobs + special_types
+
+## PRIVATE
+   The SQLite JDBC mapping relies on slightly modified version of the rules from
+   https://www.sqlite.org/datatype3.html#affinity_name_examples
+   However, with this the date-time columns will be mapped to the numeric type.
+   Instead, we want to treat such columns as Text, so we override the mapping.
+name_based_workarounds = Map.from_vector <|
+    ["TIME", "DATE", "DATETIME", "TIMESTAMP"] . map x-> [x, default_text]
 
 ## PRIVATE
    Maps operation names to functions that infer its result type.
