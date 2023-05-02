@@ -521,8 +521,8 @@ function Dashboard(props: DashboardProps) {
                         const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
                         setModal(() => (
                             <CreateForm
-                                left={buttonPosition.left}
-                                top={buttonPosition.top}
+                                left={buttonPosition.left + window.scrollX}
+                                top={buttonPosition.top + window.scrollY}
                                 directoryId={directoryId}
                                 onSuccess={doRefresh}
                             />
@@ -641,7 +641,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`select-none text-primary text-xs min-h-screen p-2 ${
+            className={`relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
