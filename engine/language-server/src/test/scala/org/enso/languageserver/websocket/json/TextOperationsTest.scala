@@ -2601,8 +2601,6 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "result": null
           }
           """)
-      Thread.sleep(5.seconds.toMillis)
-      // Should return the original contents of the file
       client2.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
@@ -2621,6 +2619,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "result": { "contents": "bar123456789foo" }
           }
           """)
+
     }
 
   }

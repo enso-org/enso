@@ -99,11 +99,11 @@ class CollaborativeBuffer(
     case FileManagerProtocol.ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
       timeoutCancellable.cancel()
-      stop(Map.empty)
+      stop(None, Map.empty)
 
     case IOTimeout =>
       replyTo ! OpenFileResponse(Left(OperationTimeout))
-      stop(Map.empty)
+      stop(None, Map.empty)
 
     case Status.Failure(failure) =>
       logger.error(
@@ -114,7 +114,7 @@ class CollaborativeBuffer(
         Left(GenericFileSystemFailure(failure.getMessage))
       )
       timeoutCancellable.cancel()
-      stop(Map.empty)
+      stop(None, Map.empty)
 
     case _ => stash()
   }
@@ -295,7 +295,7 @@ class CollaborativeBuffer(
       }
       replyTo ! ReloadedBuffer(path)
       timeoutCancellable.cancel()
-      stop(Map.empty)
+      stop(None, Map.empty)
 
     case FileManagerProtocol.ReadTextualFileResult(Left(err)) =>
       replyTo ! ReloadBufferFailed(path, "io failure: " + err.toString)
@@ -316,7 +316,7 @@ class CollaborativeBuffer(
       )
       replyTo ! ReloadBufferFailed(path, "io failure: " + ex.toString)
       timeoutCancellable.cancel()
-      stop(Map.empty)
+      stop(None, Map.empty)
 
     case IOTimeout =>
       replyTo ! ReloadBufferFailed(path, "io timeout")
@@ -722,7 +722,7 @@ class CollaborativeBuffer(
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
       runtimeConnector ! Api.Request(Api.CloseFileNotification(buffer.file))
-      stop(autoSave)
+      stop(Some(buffer), autoSave)
     } else {
       context.become(
         collaborativeEditing(
@@ -793,8 +793,62 @@ class CollaborativeBuffer(
     }
   }
 
-  def stop(autoSave: Map[ClientId, (ContentVersion, Cancellable)]): Unit = {
-    autoSave.foreach { case (_, (_, cancellable)) => cancellable.cancel() }
+  def stop(
+    currentBuffer: Option[Buffer],
+    autoSave: Map[ClientId, (ContentVersion, Cancellable)]
+  ): Unit = {
+    currentBuffer match {
+      case None =>
+        finalizeStop()
+      case Some(buffer) =>
+        val pendingAutoSaves = autoSave.flatMap {
+          case (clientId, (contentVersion, cancellable)) =>
+            cancellable.cancel()
+            if (contentVersion == buffer.version) {
+              fileManager ! FileManagerProtocol.WriteFile(
+                bufferPath,
+                buffer.contents.toString
+              )
+              val timeoutCancellable = context.system.scheduler
+                .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
+              Some((clientId, timeoutCancellable))
+            } else {
+              None
+            }
+        }
+        if (pendingAutoSaves.isEmpty) {
+          finalizeStop()
+        } else {
+          logger.info(
+            "Waiting on pending auto-saves to finish: " + pendingAutoSaves.size
+          )
+          context.become(stopping(pendingAutoSaves.size))
+        }
+    }
+  }
+
+  private def stopping(pending: Int): Receive = {
+    case IOTimeout =>
+      if (pending <= 1) {
+        finalizeStop()
+      } else {
+        stopping(pending - 1)
+      }
+    case FileManagerProtocol.WriteFileResult(_) =>
+      if (pending <= 1) {
+        finalizeStop()
+      } else {
+        stopping(pending - 1)
+      }
+    case Status.Failure(_) =>
+      if (pending <= 1) {
+        finalizeStop()
+      } else {
+        stopping(pending - 1)
+      }
+  }
+
+  private def finalizeStop(): Unit = {
     context.system.eventStream.publish(BufferClosed(bufferPath))
     context.stop(self)
   }
