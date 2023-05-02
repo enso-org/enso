@@ -51,11 +51,9 @@ impl super::SpanWidget for Widget {
         let app = ctx.app();
         let widgets_frp = ctx.frp();
         let layers = &ctx.app().display.default_scene.layers;
-        let root = object::Instance::new();
-        root.set_size_y(TEXT_SIZE);
+        let root = object::Instance::new_named("widget::Label");
         let label = text::Text::new(app);
         label.set_property_default(text::Size(TEXT_SIZE));
-        label.set_y(TEXT_SIZE);
         layers.label.add(&label);
         root.add_child(&label);
         let frp = Frp::new();
@@ -81,7 +79,12 @@ impl super::SpanWidget for Widget {
             eval content_change((content) label.set_content(content));
 
             width <- label.width.on_change();
+            height <- label.height.on_change();
             eval width((w) root.set_size_x(*w); );
+            eval height([root, label] (h) {
+                root.set_size_y(*h);
+                label.set_y(*h);
+            });
         }
 
         Self { frp, root, label }

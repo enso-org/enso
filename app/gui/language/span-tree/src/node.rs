@@ -255,6 +255,15 @@ impl Crumbs {
         vec.push(child);
         self
     }
+
+    /// Create crumbs to the sibling node, which is `offset` nodes away from the current node.
+    pub fn relative_sibling(&self, offset: isize) -> Self {
+        let mut vec = self.vec.deref().clone();
+        if let Some(last) = vec.last_mut() {
+            *last = last.saturating_add_signed(offset)
+        }
+        Self { vec: Rc::new(vec) }
+    }
 }
 
 impl<T: IntoIterator<Item = Crumb>> From<T> for Crumbs {
@@ -391,7 +400,7 @@ impl<'a, T> Ref<'a, T> {
     }
 
     /// Iterator over all direct children producing `Ref`s.
-    pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> {
+    pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> + Clone {
         let children_count = self.node.children.len();
         (0..children_count).map(move |i| self.clone().child(i).unwrap())
     }
