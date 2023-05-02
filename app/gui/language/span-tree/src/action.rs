@@ -303,41 +303,35 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     //
                     // This loop traverses the tree bottom to top, starting at one of the arguments,
                     // and continues until all arguments are covered. It operates as follows:
-                    // 1. Verify that the traversal is still within the prefix chain of arguments.
-                    // This is crucial since [`Node::get_descendant_by_ast_crumbs`] is recursive,
-                    // and it will return the argument from a lower level of the SpanTree if it is
-                    // not available on the current level. This could result in always choosing the
-                    // last argument if the traversal is not inside the prefix chain.
-                    // 2. Retrieve the argument from the current level of the [`SpanTree`].
-                    // 3. Rewrite the argument as necessary.
-                    // 4. Update `next_parent` to be the parent of the current node.
+                    // 1. Retrieve the argument from the current level of the [`SpanTree`].
+                    // 2. Rewrite the argument as necessary.
+                    // 3. Update `next_parent` to be the parent of the current node. We use
+                    //    [`Ref::ast_parent`] instead of [`Ref::parent`] because a single AST node
+                    //    can contain multiple span nodes, and iterating over all of them would
+                    //    cause multiple rewrites of the same argument.
+                    // We are iterating over the old span tree, while modifying an expression that
+                    // constantly changes. The assumption here is that as we go, we only modify AST
+                    // tree deeper than we will look in future iterations. That way we can be sure
+                    // that the "outer layers" of AST still corresponds to the original span-tree.
+                    // It is done that way, because we have no way of actually reconstructing the
+                    // span-tree to be entirely correct on every step. The new AST is after all
+                    // wrong and needs to be fixed for a reason. Rebuilding the span-tree before
+                    // replacing named arguments will give you wrong assignments on everything.
+                    // The loop propagates up the old span tree, knowing that the outer layers of
+                    // the AST will still corresponds to it. The problem is that there might be many
+                    // levels of span-tree per AST node. We actually need to make sure that we
+                    // process every AST node at most once.
                     while let Some(node) = next_parent {
-                        // We're only interested in nodes inside the prefix chain.
-                        // error!("kind: {:?}", node.node.kind);
-                        // error!("crumbs: {:?}", node.crumbs);
-                        // error!("ast_crumbs: {:?}", node.ast_crumbs);
-                        // if !matches!(node.node.kind, crate::node::Kind::Chained(_)) {
-                        //     break;
-                        // }
+                        error!("Iteration: {:?}, {:?}", node.crumbs, node.ast_crumbs);
                         next_parent = node.ast_parent()?;
-                        // let argument_node = node.children_iter().find(|ch| {
-                        //     error!("ast_crumbs: {:?}", ch.ast_crumbs);
-                        //     error!("crumbs: {:?}", ch.crumbs);
-                        //     ch.ast_crumbs == &[Crumb::Prefix(PrefixCrumb::Arg)]
-                        // });
-                        // error!("Right before argument node!");
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());
 
-                        error!(
-                            "Arg kind: {:?}",
-                            argument_node.as_ref().map(|f| f.node.kind.clone())
-                        );
                         match argument_node {
                             Some(found) if found.node.is_argument() =>
                                 if let Some(arg_name) = found.node.kind.argument_name() {
-                                    error!("Argument: {arg_name}");
+                                    error!("Arg_name: {}", arg_name);
                                     let def_idx = found.node.kind.definition_index();
                                     let need_rewrite =
                                         def_idx.map_or(false, |idx| idx > erased_definition_index);
@@ -365,9 +359,6 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 }
 
                 let new_span_tree = SpanTree::<()>::new(&new_root, context)?;
-                let code = new_root.repr();
-                let msg = new_span_tree.debug_print(&code);
-                error!("new_span_tree: \n{msg}");
 
                 // For resolved arguments, the valid insertion point of this argument is its
                 // placeholder. The position of placeholder is not guaranteed to be in the same

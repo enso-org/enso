@@ -383,26 +383,22 @@ impl<'a, T> Ref<'a, T> {
         }
     }
 
-    /// Get the next parent node that is a root of an AST subtree. Those nodes have non-empty
-    /// `ast_crumbs` field.
+    /// Get the reference to parent node that is a root of an AST subtree. Those nodes have
+    /// non-empty `ast_crumbs` field. Returns `None` when this is a root.
     pub fn ast_parent(&self) -> FallibleResult<Option<Self>> {
-        match self.crumbs.split_last() {
-            Some((_, parent_crumbs)) => {
-                let mut last_num_crumbs = self.ast_crumbs.len();
-                let mut last_ast = None;
-                let mut item: Self = self.span_tree.root_ref();
-                let mut crumbs = parent_crumbs.into_iter();
-                loop {
-                    if item.ast_crumbs.len() < last_num_crumbs {
-                        last_num_crumbs = item.ast_crumbs.len();
-                        last_ast = Some(item.clone());
-                    }
-                    let Some(crumb) = crumbs.next() else { return Ok(last_ast) };
-                    item = item.child(*crumb)?;
-                }
+        error!("ast_parent: {:?}", self.ast_crumbs);
+        let ast_crumbs_len = self.ast_crumbs.len();
+        let mut parent = self.parent()?;
+        while let Some(p) = parent {
+            error!("parent.ast_crumbs: {:?}", p.ast_crumbs);
+            error!("parent.crumbs: {:?}", p.crumbs);
+            if p.ast_crumbs.len() < ast_crumbs_len {
+                return Ok(Some(p));
+            } else {
+                parent = p.parent()?;
             }
-            None => Ok(None),
         }
+        return Ok(None);
     }
 
     /// Iterator over all direct children producing `Ref`s.
@@ -455,7 +451,6 @@ impl<'a, T> Ref<'a, T> {
         self,
         ast_crumbs: &'b [ast::Crumb],
     ) -> Option<NodeFoundByAstCrumbs<'a, 'b, T>> {
-        // error!("get_descendant_by_ast_crumbs {ast_crumbs:?}");
         if self.node.children.is_empty() || ast_crumbs.is_empty() {
             let node = self;
             let remaining_ast_crumbs = ast_crumbs;
@@ -463,31 +458,24 @@ impl<'a, T> Ref<'a, T> {
         } else {
             // Please be advised, that the `ch.ast_crumbs` is not a field of Ref, but Child, and
             // therefore have different meaning!
-            // error!("Self kind: {:?}", self.node.kind);
             let next = self
                 .node
                 .children
                 .iter()
                 .find_position(|ch| {
-                    // error!("Ast crumbs: {:?}", ch.ast_crumbs);
-                    // error!("Kind: {:?}", ch.kind);
                     !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
                 })
                 .or_else(|| {
-                    error!("Or else");
                     // We try to find appropriate node second time, this time expecting case of
                     // "prefix-like" nodes with `InsertionPoint(ExpectedArgument(_))`. See also docs
                     // for `generate::generate_expected_argument`.
                     // TODO[ao]: As implementation of SpanTree will extend there may be some day
                     // more  cases. Should be reconsidered in https://github.com/enso-org/ide/issues/787
                     self.node.children.iter().find_position(|ch| {
-                        // error!("Ast crumbs: {:?}", ch.ast_crumbs);
-                        // error!("Kind: {:?}", ch.kind);
                         ch.ast_crumbs.is_empty() && !ch.kind.is_insertion_point()
                     })
                 });
             next.and_then(|(id, child)| {
-                // error!("And then");
                 let ast_subcrumbs = &ast_crumbs[child.ast_crumbs.len()..];
                 self.child(id).unwrap().get_descendant_by_ast_crumbs(ast_subcrumbs)
             })

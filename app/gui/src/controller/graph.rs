@@ -1748,7 +1748,6 @@ main =
                     };
                     let connections = graph.connections(&ctx).expect(&error_message);
                     let connection = connections.connections.first().expect(&error_message);
-                    error!("Disconnect!");
                     graph.disconnect(connection, &ctx).expect(&error_message);
                     let new_main = graph.definition().expect(&error_message).ast.repr();
                     assert_eq!(new_main, expected, "{error_message}");
@@ -1799,34 +1798,57 @@ main =
     }
 
     /// A regression test case for removing arguments. See
-    /// https://github.com/enso-org/enso/issues/6228 for description of the bug.
-    #[ignore]
+    /// https://github.com/enso-org/enso/issues/6228 for the issue's description.
     #[test]
     fn disconnect_issue_6228() {
-        let mut test = Fixture::set_up();
-        const MAIN_PREFIX: &str = "main = \n    uri = \"bla\"\n    headers = []\n    ";
-        test.data.code = format!("{}{}", MAIN_PREFIX, "Data.fetch uri m headers");
-        let expected = format!("{}{}", MAIN_PREFIX, "Data.fetch method=m headers=headers");
-        let info = CalledMethodInfo {
-            parameters: vec![
-                span_tree::ArgumentInfo::named("uri"),
-                span_tree::ArgumentInfo::named("method"),
-                span_tree::ArgumentInfo::named("headers"),
-                // The last argument has a default value. It's presence is crucial to reproduce the
-                // bug.
-                span_tree::ArgumentInfo::named("parse"),
-            ],
-            ..default()
-        };
-        test.run(|graph| async move {
-            let nodes = graph.nodes().unwrap();
-            let dest_node_id = nodes.last().unwrap().id();
-            let ctx = MockContext::new_single(dest_node_id, info);
-            let connections = graph.connections(&ctx).unwrap();
-            let connection = connections.connections.first().unwrap();
-            graph.disconnect(connection, &ctx).unwrap();
-            let new_main = graph.definition().unwrap().ast.repr();
-            assert_eq!(new_main, expected);
-        })
+        struct Case {
+            initial_code:  &'static str,
+            expected_code: &'static str,
+        }
+
+        impl Case {
+            fn run(self) {
+                let mut test = Fixture::set_up();
+                const MAIN_PREFIX: &str = "main = \n    uri = \"bla\"\n    headers = []\n    ";
+                test.data.code = format!("{}{}", MAIN_PREFIX, self.initial_code);
+                let expected = format!("{}{}", MAIN_PREFIX, self.expected_code);
+                let info = CalledMethodInfo {
+                    parameters: vec![
+                        span_tree::ArgumentInfo::named("uri"),
+                        span_tree::ArgumentInfo::named("method"),
+                        span_tree::ArgumentInfo::named("headers"),
+                        // The last argument has a default value. It's presence is crucial to
+                        // reproduce the bug.
+                        span_tree::ArgumentInfo::named("parse"),
+                    ],
+                    ..default()
+                };
+                test.run(|graph| async move {
+                    let nodes = graph.nodes().unwrap();
+                    let dest_node_id = nodes.last().unwrap().id();
+                    let ctx = MockContext::new_single(dest_node_id, info);
+                    let connections = graph.connections(&ctx).unwrap();
+                    let connection = connections.connections.first().unwrap();
+                    graph.disconnect(connection, &ctx).unwrap();
+                    let new_main = graph.definition().unwrap().ast.repr();
+                    assert_eq!(new_main, expected);
+                })
+            }
+        }
+
+        let cases = vec![
+            Case {
+                initial_code:  "Data.fetch uri m headers",
+                expected_code: "Data.fetch method=m headers=headers",
+            },
+            Case {
+                initial_code:  "Data.fetch uri m headers True",
+                expected_code: "Data.fetch method=m headers=headers parse=True",
+            },
+        ];
+
+        for case in cases {
+            case.run();
+        }
     }
 }
