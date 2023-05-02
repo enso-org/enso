@@ -34,7 +34,7 @@ function ResetPassword() {
     const [newPassword, setNewPassword] = react.useState('')
     const [newPasswordConfirm, setNewPasswordConfirm] = react.useState('')
 
-    const handleSubmit = () => {
+    const onSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
             toast.error('Passwords do not match')
             return Promise.resolve()
@@ -58,7 +58,7 @@ function ResetPassword() {
                     <form
                         onSubmit={async event => {
                             event.preventDefault()
-                            await handleSubmit()
+                            await onSubmit()
                         }}
                     >
                         <div className="flex flex-col mb-6">
