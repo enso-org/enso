@@ -67,6 +67,34 @@ spec =
             (File.new "foo").should_equal (File.new "foo")
             (File.new "bar").should_not_equal (File.new "foo")
 
+        Test.specify "should allow creating a directory" <|
+            f = enso_project.data / "good_dir"
+            f.delete_if_exists
+            f.exists.should_be_false
+
+            f.create_directory
+            f.exists.should_be_true
+            f.is_directory.should_be_true
+
+            g = f / "bar" / "baz"
+            g.exists.should_be_false
+
+            g.create_directory
+            g.exists.should_be_true
+
+            g.delete_if_exists
+            g.parent.delete_if_exists
+            f.delete_if_exists
+
+        Test.specify "should only allow creating a directory if Output is enabled" <|
+            f = enso_project.data / "bad_dir"
+            f.delete_if_exists
+            f.exists.should_be_false
+
+            Context.Output.with_disabled <|
+                f.create_directory . should_fail_with Forbidden_Operation
+                f.exists.should_be_false
+
         Test.specify "should allow reading a file byte by byte" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
