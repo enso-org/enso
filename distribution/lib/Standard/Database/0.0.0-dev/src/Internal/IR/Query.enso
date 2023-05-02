@@ -46,6 +46,10 @@ type Query
     Create_Table (table_name:Text) (columns : Vector (Pair Text Text)) (primary_key : Vector Text) (temporary : Boolean)
 
     ## PRIVATE
-
        An SQL query that drops a table.
     Drop_Table (table_name:Text)
+
+    ## PRIVATE
+       An INSERT INTO ... SELECT query that allows to insert results of a query
+       into an existing table.
+    Insert_From_Select (table_name:Text) (select:Query)

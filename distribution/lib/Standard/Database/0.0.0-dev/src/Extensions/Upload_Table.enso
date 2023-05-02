@@ -8,6 +8,7 @@ from Standard.Table import Aggregate_Column
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Query.SQL_Query
+import project.Data.SQL_Statement.SQL_Statement
 import project.Data.Table.Table as Database_Table
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -53,34 +54,81 @@ from project.Errors import all
 In_Memory_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
 In_Memory_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
     resolved_primary_key = resolve_primary_key self primary_key
-    checked_primary_key = case resolved_primary_key of
-        Nothing -> resolved_primary_key
-        _ -> check_primary_key_is_unique self resolved_primary_key . if_not_error <|
-            resolved_primary_key
-
     effective_table_name = resolve_effective_table_name table_name temporary
+    create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
 
-    type_mapping = connection.dialect.get_type_mapping
-    column_descriptors = self.columns.map column->
-        name = column.name
-        value_type = column.value_type
-        sql_type = type_mapping.value_type_to_sql value_type on_problems
-        sql_type_text = type_mapping.sql_type_to_text sql_type
-        Pair.new name sql_type_text
-    create_table_statement = connection.dialect.generate_sql <|
-        Query.Create_Table effective_table_name column_descriptors checked_primary_key temporary
-
-    ## `create_query.if_not_error` is used to ensure that if there are any
-       dataflow errors up to this point, we want to propagate them and not
+    ## `create_table_statement.if_not_error` is used to ensure that if there are
+       any dataflow errors up to this point, we want to propagate them and not
        continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
        raised as panics.
-    upload_status = create_table_statement.if_not_error <| connection.jdbc_connection.run_within_transaction <|
-        Panic.rethrow <| connection.execute_update create_table_statement
-        if structure_only.not then
-            column_names = column_descriptors.map .first
-            insert_template = make_batched_insert_template connection effective_table_name column_names
-            statement_setter = connection.dialect.get_statement_setter
-            connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
+    upload_status = create_table_statement.if_not_error <|
+        translate_known_upload_errors connection resolved_primary_key <|
+            connection.jdbc_connection.run_within_transaction <|
+                Panic.rethrow <| connection.execute_update create_table_statement
+                if structure_only.not then
+                    insert_template = make_batched_insert_template connection effective_table_name self.column_names
+                    statement_setter = connection.dialect.get_statement_setter
+                    Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
+
+    upload_status.if_not_error <|
+        connection.query (SQL_Query.Table_Name effective_table_name)
+
+## Creates a new database table from this table.
+
+   Arguments:
+   - connection: the database connection to use. The table will be created in
+     the database and schema associated with this connection.
+   - table_name: the name of the table to create. If not provided, a random name
+     will be generated for temporary tables. If `temporary=False`, then a name
+     must be provided.
+   - primary_key: the names of the columns to use as the primary key. The first
+     column from the table is used by default. If it is set to `Nothing` or an
+     empty vector, no primary key will be created.
+   - temporary: if set to `True`, the table will be temporary, meaning that it
+     will be dropped once the `connection` is closed. Defaults to `False`.
+   - structure_only: if set to `True`, the created table will inherit the
+     structure (column names and types) of the source table, but no rows will be
+     inserted. Defaults to `False`.
+   - on_problems: the behavior to use when encountering non-fatal problems.
+     Defaults to reporting them as warning.
+
+   ! Error Conditions
+
+     - If a table with the given name already exists, then a
+       `Table_Already_Exists` error is raised.
+     - If a column type is not supported and is coerced to a similar supported
+       type, an `Inexact_Type_Coercion` problem is reported according to the
+       `on_problems` setting.
+     - If a column type is not supported and there is no replacement (e.g.
+       native Enso types), an `Unsupported_Type` error is raised.
+     - If the provided primary key columns are not present in the source table,
+       `Missing_Input_Columns` error is raised.
+     - If the selected primary key columns are not unique, a
+       `Non_Unique_Primary_Key` error is raised.
+     - An `SQL_Error` may be reported if there is a failure on the database
+       side.
+
+     If an error has been raised, the table is not created (that may not always
+     apply to `SQL_Error`).
+Database_Table.create_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
+Database_Table.create_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
+    resolved_primary_key = resolve_primary_key self primary_key
+    effective_table_name = resolve_effective_table_name table_name temporary
+    create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
+    connection_check = if self.connection.jdbc_connection == connection.jdbc_connection then True else
+        Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
+
+    upload_status = connection_check.if_not_error <| create_table_statement.if_not_error <|
+        translate_known_upload_errors connection resolved_primary_key <|
+            connection.jdbc_connection.run_within_transaction <|
+                Panic.rethrow <| connection.execute_update create_table_statement
+                if structure_only.not then
+                    ## We need to ensure that the columns in this statement are matching
+                       positionally the columns in `create_table_statement`. But we
+                       create both from the same table, so that is guaranteed.
+                    copy_into_statement = connection.dialect.generate_sql <|
+                        Query.Insert_From_Select effective_table_name self.to_select_query
+                    Panic.rethrow <| connection.execute_update copy_into_statement
 
     upload_status.if_not_error <|
         connection.query (SQL_Query.Table_Name effective_table_name)
@@ -94,13 +142,35 @@ resolve_primary_key table primary_key = case primary_key of
         table.select_columns primary_key reorder=True . column_names
 
 ## PRIVATE
-   Checks if the specified primary key uniquely identifies all rows in the table.
+   Inspects any `SQL_Error` thrown and replaces it with a more precise error
+   type when available.
+translate_known_upload_errors connection primary_key ~action =
+    handler caught_panic =
+        error_mapper = connection.dialect.get_error_mapper
+        sql_error = caught_panic.payload
+        case error_mapper.is_primary_key_violation sql_error of
+            True -> Error.throw (Non_Unique_Primary_Key.Error primary_key)
+            False -> Panic.throw caught_panic
+    Panic.catch SQL_Error action handler
 
-   If the key is not unique, it will raise a `Non_Unique_Primary_Key` error.
-check_primary_key_is_unique table primary_key =
-    deduplicated = table.distinct primary_key
-    if deduplicated.row_count != table.row_count then
-        Error.throw (Non_Unique_Primary_Key.Error primary_key)
+## PRIVATE
+   Creates a statement that will create a table with structure determined by the
+   provided columns.
+
+   The `primary_key` columns must be present in `columns`, but it is the
+   responsibility of the caller to ensure that, otherwise the generated
+   statement will be invalid.
+prepare_create_table_statement : Connection -> Text -> Vector -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
+prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
+    type_mapping = connection.dialect.get_type_mapping
+    column_descriptors = columns.map column->
+        name = column.name
+        value_type = column.value_type
+        sql_type = type_mapping.value_type_to_sql value_type on_problems
+        sql_type_text = type_mapping.sql_type_to_text sql_type
+        Pair.new name sql_type_text
+    connection.dialect.generate_sql <|
+        Query.Create_Table table_name column_descriptors primary_key temporary
 
 ## PRIVATE
    Generates a random table name if it was nothing, if it is allowed (temporary=True).

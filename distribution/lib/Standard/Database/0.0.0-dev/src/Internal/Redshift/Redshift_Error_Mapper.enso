@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+from project.Errors import SQL_Error
+
+## PRIVATE
+type Redshift_Error_Mapper
+
+    ## PRIVATE
+    is_primary_key_violation : SQL_Error -> Boolean
+    is_primary_key_violation error =
+        # Currently not implemented, skipping the error recognition.
+        _ = error
+        False

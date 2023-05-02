@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Column, Value_Type, Column_Selector
+from Standard.Table import all
 from Standard.Table.Errors import Missing_Input_Columns
 
 from Standard.Database import all
@@ -113,6 +113,96 @@ spec make_new_connection prefix persistent_connector=True =
             r4 = t2.create_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
             r4.should_fail_with Non_Unique_Primary_Key
 
+    Test.group prefix+"Persisting a Database Table (query)" <|
+        Test.specify "should be able to create a persistent copy of a DB table" <|
+            t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
+            tmp_connection = make_new_connection Nothing
+            db_table = t.create_database_table tmp_connection (Name_Generator.random_name "source-table") temporary=True
+
+            copied_table = db_table.create_database_table tmp_connection (Name_Generator.random_name "copied-table") temporary=False
+            name = copied_table.name
+            Panic.with_finalizer (connection.drop_table name) <|
+                copied_table.at "X" . value_type . is_integer . should_be_true
+                copied_table.at "Y" . value_type . is_text . should_be_true
+                copied_table.at "Z" . value_type . is_floating_point . should_be_true
+
+                tmp_connection.query name . at "X" . to_vector . should_equal [1, 2, 3]
+                tmp_connection.close
+
+                if persistent_connector then
+                    connection.query name . at "X" . to_vector . should_equal [1, 2, 3]
+
+        Test.specify "should be able to persist a complex query with generated columns, joins etc." <|
+            t1 = Table.new [["X", [1, 1, 2]], ["Y", [1, 2, 3]]]
+
+            db_table_1 = t1.create_database_table connection (Name_Generator.random_name "source-table-1") temporary=True primary_key=Nothing
+
+            db_table_2 = db_table_1.set "[Y] + 100 * [X]" "C1" . set '"constant_text"' "C2"
+            db_table_3 = db_table_1.aggregate [Aggregate_Column.Group_By "X", Aggregate_Column.Sum "[Y]*[Y]" "C3"] . set "[X] + 1" "X"
+
+            db_table_4 = db_table_2.join db_table_3 join_kind=Join_Kind.Left_Outer
+
+            copied_table = db_table_4.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
+            copied_table.column_names . should_equal ["X", "Y", "C1", "C2", "C3"]
+            copied_table.at "X" . to_vector . should_equal [1, 1, 2]
+            copied_table.at "C1" . to_vector . should_equal [101, 102, 203]
+            copied_table.at "C2" . to_vector . should_equal ["constant_text", "constant_text", "constant_text"]
+            copied_table.at "C3" . to_vector . should_equal [Nothing, Nothing, 5]
+
+            # We check that this is indeed querying a simple DB table and not a complex query like `db_table_4` would be,
+            sql = copied_table.to_sql.prepare.first
+            Test.with_clue "sql="+sql <|
+                sql.contains "WHERE" . should_be_false
+                sql.contains "JOIN" . should_be_false
+                sql.contains "GROUP" . should_be_false
+
+        Test.specify "should be able to create a temporary copy of a query" <|
+            tmp_connection = make_new_connection Nothing
+            t = Table.new [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            db_table = t.create_database_table tmp_connection (Name_Generator.random_name "source-table") temporary=True
+            db_table_2 = db_table.set "[X] + 100 * [Y]" "computed"
+
+            copied_table = db_table_2.create_database_table tmp_connection (Name_Generator.random_name "copied-table") temporary=True
+            name = copied_table.name
+
+            copied_table_accessed = tmp_connection.query name
+            copied_table_accessed.column_names . should_equal ["X", "Y", "computed"]
+            copied_table_accessed.at "computed" . to_vector . should_equal [401, 502, 603]
+            tmp_connection.close
+
+            connection.query name . should_fail_with Table_Not_Found
+
+        Test.specify "should be able to specify a primary key" <|
+            t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+            db_table = t.create_database_table connection (Name_Generator.random_name "source-table") temporary=True
+            db_table_2 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") primary_key=["X"]
+            Panic.with_finalizer (connection.drop_table db_table_2.name) <|
+                get_primary_key connection db_table_2.name . should_equal ["X"]
+
+        Test.specify "should ensure that primary key columns are valid" <|
+            t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+            db_table = t.create_database_table connection (Name_Generator.random_name "source-table") temporary=True
+            r1 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["nonexistent"]
+            r1.should_fail_with Missing_Input_Columns
+
+        Test.specify "should fail when the primary key is not unique" <|
+            t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
+            db_table = t.create_database_table connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
+            Problems.assume_no_problems db_table
+
+            r1 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["X"]
+            r1.should_fail_with Non_Unique_Primary_Key
+
+        Test.specify "will not allow to upload tables across connections" <|
+            t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
+            db_table = t.create_database_table connection (Name_Generator.random_name "source-table") temporary=True primary_key=Nothing
+
+            connection_2 = make_new_connection Nothing
+            r1 = db_table.create_database_table connection_2 (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
+            r1.should_fail_with Unsupported_Database_Operation
+            r1.catch.message . should_contain "same connection"
+
+
 ## PRIVATE
    Creates a mock column containing `values`.
 
@@ -125,9 +215,20 @@ make_mock_column name values exploding_index =
 
    This method may not work correctly with temporary tables, possibly resulting
    in `SQL_Error` as such tables may not be found.
+
+   ! Temporary Tables in SQLite
+
+     The temporary tables in SQLite live in a `temp` database. There is a bug in
+     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
+     which contains schemas of only permanent tables. For now, we just adapt to
+     it and check primary keys for non-temporary tables only. If we ever want to
+     use the primary key information in the actual product, we will likely need
+     to reimplement this by ourselves and UNION both `sqlite_schema` and
+     `temp.sqlite_schema` tables to get results for both temporary and permanent
+     tables.
 get_primary_key connection table_name =
     connection.jdbc_connection.with_connection java_connection->
-        rs = java_connection.getMetaData.getPrimaryKeys Nothing connection.schema table_name
+        rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
         keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
         # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
         selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
