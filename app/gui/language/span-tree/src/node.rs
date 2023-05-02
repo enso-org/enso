@@ -383,22 +383,30 @@ impl<'a, T> Ref<'a, T> {
         }
     }
 
-    /// Get the reference to parent node that is a root of an AST subtree. Those nodes have
-    /// non-empty `ast_crumbs` field. Returns `None` when this is a root.
+    /// Returns a reference to the parent node that serves as the root of an AST subtree.
+    /// Returns `None` if the current node is the root.
+    ///
+    /// This method is optimized by avoiding the use of expensive [`Self::parent`].
+    /// Instead, it iterates through the node's ancestors and checks their `ast_crumbs` count.
+    /// The method identifies the last ancestor (in order of iteration) with a smaller `ast_crumbs`
+    /// count than the current node. This ancestor corresponds to the nearest SpanTree node that
+    /// also serves as the root of an AST subtree. This approach efficiently bypasses all immediate
+    /// parent nodes that belong to the same AST subtree (i.e., having the same `ast_crumbs` count
+    /// as the current node).
     pub fn ast_parent(&self) -> FallibleResult<Option<Self>> {
-        error!("ast_parent: {:?}", self.ast_crumbs);
-        let ast_crumbs_len = self.ast_crumbs.len();
-        let mut parent = self.parent()?;
-        while let Some(p) = parent {
-            error!("parent.ast_crumbs: {:?}", p.ast_crumbs);
-            error!("parent.crumbs: {:?}", p.crumbs);
-            if p.ast_crumbs.len() < ast_crumbs_len {
-                return Ok(Some(p));
+        let num_ast_crumbs = self.ast_crumbs.len();
+        let mut item: Self = self.span_tree.root_ref();
+        let mut last_ast = None;
+        let mut crumbs = self.crumbs.into_iter();
+        while let Some(crumb) = crumbs.next() {
+            if item.ast_crumbs.len() < num_ast_crumbs {
+                last_ast = Some(item.clone());
             } else {
-                parent = p.parent()?;
+                break;
             }
+            item = item.child(*crumb)?;
         }
-        return Ok(None);
+        Ok(last_ast)
     }
 
     /// Iterator over all direct children producing `Ref`s.

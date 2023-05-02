@@ -240,10 +240,6 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
         if self.node.kind.removable() {
             Some(Box::new(move |root, context| {
-                let code = root.repr();
-                let msg = self.span_tree.debug_print(&code);
-                error!("span_tree: \n{msg}");
-                error!("Ast crumbs: {:?}", self.ast_crumbs);
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
@@ -301,14 +297,6 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     //   │ └─Argument2
                     //   └─Argument3
                     //
-                    // This loop traverses the tree bottom to top, starting at one of the arguments,
-                    // and continues until all arguments are covered. It operates as follows:
-                    // 1. Retrieve the argument from the current level of the [`SpanTree`].
-                    // 2. Rewrite the argument as necessary.
-                    // 3. Update `next_parent` to be the parent of the current node. We use
-                    //    [`Ref::ast_parent`] instead of [`Ref::parent`] because a single AST node
-                    //    can contain multiple span nodes, and iterating over all of them would
-                    //    cause multiple rewrites of the same argument.
                     // We are iterating over the old span tree, while modifying an expression that
                     // constantly changes. The assumption here is that as we go, we only modify AST
                     // tree deeper than we will look in future iterations. That way we can be sure
@@ -318,11 +306,17 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     // wrong and needs to be fixed for a reason. Rebuilding the span-tree before
                     // replacing named arguments will give you wrong assignments on everything.
                     // The loop propagates up the old span tree, knowing that the outer layers of
-                    // the AST will still corresponds to it. The problem is that there might be many
-                    // levels of span-tree per AST node. We actually need to make sure that we
-                    // process every AST node at most once.
+                    // the AST will still corresponds to it.
+                    //
+                    // This loop traverses the tree bottom to top, starting at one of the arguments,
+                    // and continues until all arguments are covered. It operates as follows:
+                    // 1. Retrieve the argument from the current level of the [`SpanTree`].
+                    // 2. Rewrite the argument as necessary.
+                    // 3. Update `next_parent` to be the parent of the current node. We use
+                    // [`Ref::ast_parent`] instead of [`Ref::parent`] because a single AST node
+                    // can contain multiple span tree levels, and iterating over all of them
+                    // would cause multiple rewrites of the same argument.
                     while let Some(node) = next_parent {
-                        error!("Iteration: {:?}, {:?}", node.crumbs, node.ast_crumbs);
                         next_parent = node.ast_parent()?;
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
@@ -331,7 +325,6 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         match argument_node {
                             Some(found) if found.node.is_argument() =>
                                 if let Some(arg_name) = found.node.kind.argument_name() {
-                                    error!("Arg_name: {}", arg_name);
                                     let def_idx = found.node.kind.definition_index();
                                     let need_rewrite =
                                         def_idx.map_or(false, |idx| idx > erased_definition_index);
