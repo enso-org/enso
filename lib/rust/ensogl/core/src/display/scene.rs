@@ -622,8 +622,8 @@ pub struct HardcodedLayers {
     pub port_hover: Layer,
     pub above_nodes: Layer,
     pub above_nodes_text: Layer,
-    /// `panel` layer contains all panels with fixed position (not moving with the panned scene)
-    /// like status bar, breadcrumbs or similar.
+    // `panel_*` layers contains UI elements with fixed position (not moving with the panned scene)
+    // like status bar, breadcrumbs or similar.
     pub panel_background_rect_level_0: RectLayerPartition,
     pub panel_background_rect_level_1: RectLayerPartition,
     pub panel_background: Layer,
