@@ -13,7 +13,7 @@ import project.Database.Redshift.Internal.Redshift_Dialect
 polyglot java import com.amazon.redshift.jdbc.Driver
 polyglot java import java.util.Properties
 
-type Redshift_Options
+type Redshift_Details
     ## Connect to a AWS Redshift database.
 
        Arguments:

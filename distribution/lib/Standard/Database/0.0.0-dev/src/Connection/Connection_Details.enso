@@ -6,7 +6,7 @@ import project.Connection.Connection.Connection
 ## Specifies the connection details for the database.
 
    This is an interface that is implemented by particular database types, like
-   `Postgres_Options`, `SQLite_Options` etc.
+   `Postgres_Details`, `SQLite_Details` etc.
 type Connection_Details
 
     ## PRIVATE
