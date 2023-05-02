@@ -79,7 +79,12 @@ function preventNavigation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
-            if (parsedUrl.origin !== origin && !TRUSTED_HOSTS.includes(parsedUrl.host)) {
+            const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
+            const parsedCurrentWindowUrl = currentWindowUrl ? new URL(currentWindowUrl) : null
+            if (
+                parsedUrl.origin !== parsedCurrentWindowUrl?.origin &&
+                !TRUSTED_HOSTS.includes(parsedUrl.host)
+            ) {
                 event.preventDefault()
                 console.error(`Prevented navigation to '${navigationUrl}'.`)
             }
