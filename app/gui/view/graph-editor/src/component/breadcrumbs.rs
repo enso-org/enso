@@ -166,7 +166,7 @@ impl BreadcrumbsModel {
     pub fn new(app: Application, frp: &Frp) -> Self {
         let scene = &app.display.default_scene;
         let project_name = app.new_view();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Breadcrumbs");
         let root = display::object::Instance::new();
         let breadcrumbs_container = display::object::Instance::new();
         let scene = scene.clone_ref();
