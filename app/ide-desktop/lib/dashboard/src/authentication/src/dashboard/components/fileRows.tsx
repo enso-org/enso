@@ -2,7 +2,7 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
-import * as backend from '../backend'
+import * as backendModuke from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
@@ -24,7 +24,7 @@ import Rows from './rows'
 
 /** Props for a {@link FileCreateForm}. */
 export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModuke.DirectoryId
     onSuccess: () => void
 }
 
@@ -112,7 +112,7 @@ function FileCreateForm(props: FileCreateFormProps) {
 // =======================
 
 export interface FileNameHeadingProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModuke.DirectoryId
     onCreate: () => void
 }
 
@@ -150,7 +150,7 @@ function FileNameHeading(props: FileNameHeadingProps) {
 
 /** Props for a {@link FileName}. */
 export interface FileNameProps {
-    item: backend.FileAsset
+    item: backendModuke.FileAsset
     onRename: () => void
 }
 
@@ -187,14 +187,17 @@ function FileName(props: FileNameProps) {
 
 /** Props for a {@link FileRows}. */
 export interface FileRowsProps {
-    directoryId: backend.DirectoryId
-    items: backend.FileAsset[]
+    directoryId: backendModuke.DirectoryId
+    items: backendModuke.FileAsset[]
     columnDisplayMode: columnModule.ColumnDisplayMode
     query: string
     onCreate: () => void
     onRename: () => void
     onDelete: () => void
-    onAssetClick: (asset: backend.FileAsset, event: React.MouseEvent<HTMLTableRowElement>) => void
+    onAssetClick: (
+        asset: backendModuke.FileAsset,
+        event: React.MouseEvent<HTMLTableRowElement>
+    ) => void
 }
 
 function FileRows(props: FileRowsProps) {
@@ -217,7 +220,7 @@ function FileRows(props: FileRowsProps) {
         return (
             <>
                 <tr className="h-10" />
-                <Rows<backend.FileAsset>
+                <Rows<backendModuke.FileAsset>
                     items={items}
                     getKey={file => file.id}
                     placeholder={

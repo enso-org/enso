@@ -2,7 +2,7 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
-import * as backend from '../backend'
+import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
@@ -19,7 +19,7 @@ import RenameModal from './renameModal'
 import Rows from './rows'
 
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
@@ -94,7 +94,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
 }
 
 export interface ProjectNameHeadingProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModule.DirectoryId
     onCreate: () => void
 }
 
@@ -127,10 +127,10 @@ function ProjectNameHeading(props: ProjectNameHeadingProps) {
 }
 
 export interface ProjectNameProps {
-    item: backend.ProjectAsset
+    item: backendModule.ProjectAsset
     appRunner: AppRunner | null
     onRename: () => void
-    onOpenIde: (project: backend.ProjectAsset) => void
+    onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
 }
 
@@ -170,16 +170,16 @@ function ProjectName(props: ProjectNameProps) {
 
 interface ProjectRowsProps {
     appRunner: AppRunner | null
-    directoryId: backend.DirectoryId
-    items: backend.ProjectAsset[]
+    directoryId: backendModule.DirectoryId
+    items: backendModule.ProjectAsset[]
     columnDisplayMode: columnModule.ColumnDisplayMode
     onCreate: () => void
     onRename: () => void
     onDelete: () => void
-    onOpenIde: (project: backend.ProjectAsset) => void
+    onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
     onAssetClick: (
-        asset: backend.ProjectAsset,
+        asset: backendModule.ProjectAsset,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
@@ -203,7 +203,7 @@ function ProjectRows(props: ProjectRowsProps) {
     return (
         <>
             <tr className="h-10" />
-            <Rows<backend.ProjectAsset>
+            <Rows<backendModule.ProjectAsset>
                 items={items}
                 getKey={proj => proj.id}
                 placeholder={

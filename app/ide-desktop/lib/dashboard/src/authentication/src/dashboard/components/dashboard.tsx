@@ -26,11 +26,11 @@ import TopBar from './topBar'
 
 import UploadFileModal from './uploadFileModal'
 
+import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 import DirectoryRows from './directoryRows'
 import FileRows from './fileRows'
 import ProjectRows from './projectRows'
 import SecretRows from './secretRows'
-import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 
 // =============
 // === Types ===
@@ -220,6 +220,7 @@ function Dashboard(props: DashboardProps) {
 
     const enterDirectory = (directoryAsset: backendModule.DirectoryAsset) => {
         setDirectoryId(directoryAsset.id)
+        console.log([...directoryStack, directoryAsset])
         setDirectoryStack([...directoryStack, directoryAsset])
     }
 

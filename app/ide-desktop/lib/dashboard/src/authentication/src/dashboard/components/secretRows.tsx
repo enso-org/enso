@@ -2,7 +2,7 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
-import * as backend from '../backend'
+import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
@@ -23,7 +23,7 @@ import Rows from './rows'
 
 /** Props for a {@link SecretCreateForm}. */
 export interface SecretCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
@@ -105,7 +105,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
 
 /** Props for a {@link SecretNameHeading}. */
 interface SecretNameHeadingProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModule.DirectoryId
     onCreate: () => void
 }
 
@@ -143,7 +143,7 @@ function SecretNameHeading(props: SecretNameHeadingProps) {
 
 /** Props for a {@link SecretName}. */
 export interface SecretNameProps {
-    item: backend.SecretAsset
+    item: backendModule.SecretAsset
     onRename: () => void
 }
 
@@ -179,14 +179,17 @@ function SecretName(props: SecretNameProps) {
 
 /** Props for a {@link SecretRows}. */
 export interface SecretRowsProps {
-    directoryId: backend.DirectoryId
-    items: backend.SecretAsset[]
+    directoryId: backendModule.DirectoryId
+    items: backendModule.SecretAsset[]
     columnDisplayMode: columnModule.ColumnDisplayMode
     query: string
     onCreate: () => void
     onRename: () => void
     onDelete: () => void
-    onAssetClick: (asset: backend.SecretAsset, event: React.MouseEvent<HTMLTableRowElement>) => void
+    onAssetClick: (
+        asset: backendModule.SecretAsset,
+        event: React.MouseEvent<HTMLTableRowElement>
+    ) => void
 }
 
 function SecretRows(props: SecretRowsProps) {
@@ -209,7 +212,7 @@ function SecretRows(props: SecretRowsProps) {
         return (
             <>
                 <tr className="h-10" />
-                <Rows<backend.SecretAsset>
+                <Rows<backendModule.SecretAsset>
                     items={items}
                     getKey={secret => secret.id}
                     placeholder={

@@ -2,7 +2,7 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
-import * as backend from '../backend'
+import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
@@ -21,7 +21,7 @@ import Rows from './rows'
 
 /** Props for a {@link DirectoryCreateForm}. */
 export interface DirectoryCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
@@ -83,7 +83,7 @@ function DirectoryCreateForm(props: DirectoryCreateFormProps) {
 
 /** Props for a {@link DirectoryNameHeading}. */
 export interface ProjectNameHeadingProps {
-    directoryId: backend.DirectoryId
+    directoryId: backendModule.DirectoryId
     onCreate: () => void
 }
 
@@ -121,9 +121,9 @@ function DirectoryNameHeading(props: ProjectNameHeadingProps) {
 
 /** Props for a {@link DirectoryName}. */
 export interface DirectoryNameProps {
-    item: backend.DirectoryAsset
+    item: backendModule.DirectoryAsset
     onRename: () => void
-    enterDirectory: (directory: backend.DirectoryAsset) => void
+    enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
 function DirectoryName(props: DirectoryNameProps) {
@@ -161,17 +161,17 @@ function DirectoryName(props: DirectoryNameProps) {
 
 /** Props for a {@link DirectoryRows}. */
 interface DirectoryRowsProps {
-    directoryId: backend.DirectoryId
-    items: backend.DirectoryAsset[]
+    directoryId: backendModule.DirectoryId
+    items: backendModule.DirectoryAsset[]
     columnDisplayMode: columnModule.ColumnDisplayMode
     query: string
     onCreate: () => void
     onRename: () => void
     onAssetClick: (
-        asset: backend.DirectoryAsset,
+        asset: backendModule.DirectoryAsset,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
-    enterDirectory: (directory: backend.DirectoryAsset) => void
+    enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
 function DirectoryRows(props: DirectoryRowsProps) {
@@ -194,7 +194,7 @@ function DirectoryRows(props: DirectoryRowsProps) {
         return (
             <>
                 <tr className="h-10" />
-                <Rows<backend.DirectoryAsset>
+                <Rows<backendModule.DirectoryAsset>
                     items={items}
                     getKey={dir => dir.id}
                     placeholder={

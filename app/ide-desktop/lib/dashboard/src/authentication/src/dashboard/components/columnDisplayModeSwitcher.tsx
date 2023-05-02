@@ -1,3 +1,6 @@
+/** @file Switcher for choosing which columns are shown. */
+import * as React from 'react'
+
 import * as column from '../column'
 
 // =================
