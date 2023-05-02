@@ -397,8 +397,7 @@ impl<'a, T> Ref<'a, T> {
         let num_ast_crumbs = self.ast_crumbs.len();
         let mut item: Self = self.span_tree.root_ref();
         let mut last_ast = None;
-        let mut crumbs = self.crumbs.into_iter();
-        while let Some(crumb) = crumbs.next() {
+        for crumb in self.crumbs.into_iter() {
             if item.ast_crumbs.len() < num_ast_crumbs {
                 last_ast = Some(item.clone());
             } else {
