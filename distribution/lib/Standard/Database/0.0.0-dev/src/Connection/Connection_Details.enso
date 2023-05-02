@@ -1,0 +1,20 @@
+from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+import project.Connection.Connection.Connection
+
+## Specifies the connection details for the database.
+
+   This is an interface that is implemented by particular database types, like
+   `Postgres_Options`, `SQLite_Options` etc.
+type Connection_Details
+
+    ## PRIVATE
+       Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options -> Connection ! SQL_Error
+    connect self options =
+        _ = options
+        Unimplemented.throw "This is an interface only."
