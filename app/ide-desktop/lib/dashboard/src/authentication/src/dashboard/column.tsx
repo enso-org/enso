@@ -9,6 +9,10 @@ import PermissionDisplay, * as permissionDisplay from './components/permissionDi
 import ContextMenu from './components/contextMenu'
 import ContextMenuEntry from './components/contextMenuEntry'
 
+// =============
+// === Types ===
+// =============
+
 export enum ColumnDisplayMode {
     /** Show only columns which are ready for release. */
     release = 'release',
@@ -35,6 +39,10 @@ export enum Column {
     ide = 'ide',
 }
 
+// =================
+// === Constants ===
+// =================
+
 /** English names for every column except for the name column. */
 export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.lastModified]: 'Last modified',
@@ -46,6 +54,14 @@ export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.engine]: 'Engine',
     [Column.ide]: 'IDE',
 } as const
+
+/** A list of column display modes and names, in order. */
+export const COLUMN_DISPLAY_MODES_AND_NAMES: [ColumnDisplayMode, string][] = [
+    [ColumnDisplayMode.all, 'All'],
+    [ColumnDisplayMode.compact, 'Compact'],
+    [ColumnDisplayMode.docs, 'Docs'],
+    [ColumnDisplayMode.settings, 'Settings'],
+]
 
 /** The list of columns displayed on each `ColumnDisplayMode`. */
 export const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {

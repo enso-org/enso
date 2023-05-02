@@ -107,6 +107,10 @@ function FileCreateForm(props: FileCreateFormProps) {
     }
 }
 
+// =======================
+// === FileNameHeading ===
+// =======================
+
 export interface FileNameHeadingProps {
     directoryId: backend.DirectoryId
     onCreate: () => void

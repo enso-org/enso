@@ -20,22 +20,17 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
-import Rows, * as rows from './rows'
-import ContextMenu from './contextMenu'
-import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
-import ProjectActionButton from './projectActionButton'
 import Templates from './templates'
 import TopBar from './topBar'
 
-import ConfirmDeleteModal from './confirmDeleteModal'
-import RenameModal from './renameModal'
 import UploadFileModal from './uploadFileModal'
 
 import DirectoryRows from './directoryRows'
 import FileRows from './fileRows'
 import ProjectRows from './projectRows'
 import SecretRows from './secretRows'
+import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 
 // =============
 // === Types ===
@@ -62,7 +57,7 @@ export interface CreateFormProps {
 /** Feature flags to enable or disable experimental features. */
 const EXPERIMENTAL = {
     /** A selector that lets the user choose between pre-defined sets of visible columns. */
-    columnModeSwitcher: false,
+    columnDisplayModeSwitcher: false,
 }
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
@@ -403,62 +398,11 @@ function Dashboard(props: DashboardProps) {
                             {svg.DOWNLOAD_ICON}
                         </button>
                     </div>
-                    {EXPERIMENTAL.columnModeSwitcher && (
-                        <>
-                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
-                                <button
-                                    className={`${
-                                        columnDisplayMode === columnModule.ColumnDisplayMode.all
-                                            ? 'bg-white shadow-soft'
-                                            : 'opacity-50'
-                                    } rounded-full px-1.5`}
-                                    onClick={() => {
-                                        setColumnDisplayMode(columnModule.ColumnDisplayMode.all)
-                                    }}
-                                >
-                                    All
-                                </button>
-                                <button
-                                    className={`${
-                                        columnDisplayMode === columnModule.ColumnDisplayMode.compact
-                                            ? 'bg-white shadow-soft'
-                                            : 'opacity-50'
-                                    } rounded-full px-1.5`}
-                                    onClick={() => {
-                                        setColumnDisplayMode(columnModule.ColumnDisplayMode.compact)
-                                    }}
-                                >
-                                    Compact
-                                </button>
-                                <button
-                                    className={`${
-                                        columnDisplayMode === columnModule.ColumnDisplayMode.docs
-                                            ? 'bg-white shadow-soft'
-                                            : 'opacity-50'
-                                    } rounded-full px-1.5`}
-                                    onClick={() => {
-                                        setColumnDisplayMode(columnModule.ColumnDisplayMode.docs)
-                                    }}
-                                >
-                                    Docs
-                                </button>
-                                <button
-                                    className={`${
-                                        columnDisplayMode ===
-                                        columnModule.ColumnDisplayMode.settings
-                                            ? 'bg-white shadow-soft'
-                                            : 'opacity-50'
-                                    } rounded-full px-1.5`}
-                                    onClick={() => {
-                                        setColumnDisplayMode(
-                                            columnModule.ColumnDisplayMode.settings
-                                        )
-                                    }}
-                                >
-                                    Settings
-                                </button>
-                            </div>
-                        </>
+                    {EXPERIMENTAL.columnDisplayModeSwitcher && (
+                        <ColumnDisplayModeSwitcher
+                            columnDisplayMode={columnDisplayMode}
+                            setColumnDisplayMode={setColumnDisplayMode}
+                        />
                     )}
                 </div>
             </div>
