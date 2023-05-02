@@ -1193,6 +1193,14 @@ type Column
            did not match the expected datatype format, an `Invalid_Format` error
            is thrown.
 
+       ? Supported Types
+         - `Value_Type.Date`
+         - `Value_Type.Date_Time`
+         - `Value_Type.Time`
+         - `Value_Type.Integer`
+         - `Value_Type.Float`
+         - `Value_Type.Boolean`
+
        ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
 
          A custom pattern string consists of one or more custom date and time
