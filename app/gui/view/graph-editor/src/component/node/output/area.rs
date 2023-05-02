@@ -171,7 +171,7 @@ impl Model {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, frp: &Frp) -> Self {
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("output");
         let ports = display::object::Instance::new();
         let app = app.clone_ref();
         let label = app.new_view::<text::Text>();

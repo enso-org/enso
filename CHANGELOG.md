@@ -135,7 +135,9 @@
 - [Added capability to create node widgets with complex UI][6347]. Node widgets
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
-  sending messages to the backend.][6341].
+  sending messages to the backend][6341].
+- [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
+  nodes or by dragging the elements.
 - [Added a button to return from an opened project back to the project
 - dashboard.][6474]
 
@@ -202,7 +204,8 @@
 [5895]: https://github.com/enso-org/enso/pull/6130
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
-[6097]: https://github.com/enso-org/enso/pull/6341
+[6341]: https://github.com/enso-org/enso/pull/6341
+[6470]: https://github.com/enso-org/enso/pull/6470
 
 #### Enso Standard Library
 
@@ -402,6 +405,8 @@
   `Time_Of_Day`, `Time_Zone`, and `URI` to `Text`.][6404]
 - [Implemented `create_database_table` allowing upload of in-memory
   tables.][6429]
+- [Added execution context control to writing files and dry run capabilities to
+  `Text.write`.][6459]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -606,6 +611,7 @@
 [6404]: https://github.com/enso-org/enso/pull/6404
 [6347]: https://github.com/enso-org/enso/pull/6347
 [6429]: https://github.com/enso-org/enso/pull/6429
+[6459]: https://github.com/enso-org/enso/pull/6459
 
 #### Enso Compiler
 

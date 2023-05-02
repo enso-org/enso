@@ -41,8 +41,7 @@ spec make_new_connection prefix persistent_connector=True =
                 connection.tables.at "Name" . to_vector . should_contain db_table.name
                 connection.query db_table.name . at "X" . to_vector . should_equal [1, 2, 3]
 
-        postgres_pending = if prefix.contains "Postgre" then "TODO: See issue https://github.com/enso-org/enso/issues/6398"
-        Test.specify "should include the temporary table in the tables directory" pending=postgres_pending <|
+        Test.specify "should include the temporary table in the tables directory" <|
             db_table = in_memory_table.create_database_table connection (Name_Generator.random_name "temporary_table_1") temporary=True
             db_table.at "X" . to_vector . should_equal [1, 2, 3]
             connection.tables.at "Name" . to_vector . should_contain db_table.name

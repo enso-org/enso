@@ -137,6 +137,11 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     fn flavor(_data: &Self::ShapeData) -> ShapeSystemFlavor {
         ShapeSystemFlavor { flavor: 0 }
     }
+    fn enable_dom_debug() -> bool {
+        // By default, only shapes with alignment compatible with layout are enabled for DOM debug.
+        // Otherwise, due to different shape offsets, the debug view is very confusing.
+        Self::default_alignment() == alignment::Dim2::left_bottom()
+    }
 }
 
 /// An alias for [`Shape]` where [`Shape::ShapeData`] is [`Default`].
@@ -323,7 +328,9 @@ impl<S: Shape> ShapeSystem<S> {
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
         let shape = S::new_instance_params(&self.gpu_params, instance_id);
-        let display_object = display::object::Instance::new_named("ShapeSystem");
+        let debug = S::enable_dom_debug();
+        let display_object =
+            display::object::Instance::new_named_with_debug(type_name::<S>(), debug);
         display_object.add_child(&sprite);
         // FIXME: workaround:
         // display_object.use_auto_layout();
