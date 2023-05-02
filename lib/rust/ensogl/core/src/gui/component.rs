@@ -152,7 +152,7 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 
 impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
-    pub fn new_with_data(data: S::ShapeData) -> Self {
+    fn new_with_data(data: S::ShapeData) -> Self {
         let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data, default()));
         let events_deprecated = PointerTarget_DEPRECATED::new();
         let pointer_targets = default();

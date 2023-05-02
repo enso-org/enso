@@ -434,6 +434,9 @@ pub struct LayerModel {
     scissor_box: RefCell<Option<ScissorBox>>,
     mem_mark: Rc<()>,
     pub flags: LayerFlags,
+    /// When [`display::object::ENABLE_DOM_DEBUG`] is enabled all display objects on this layer
+    /// will be represented by a DOM in this DOM layer.
+    pub debug_dom: Option<enso_web::HtmlDivElement>,
 }
 
 impl Debug for LayerModel {
@@ -451,6 +454,9 @@ impl Debug for LayerModel {
 impl Drop for LayerModel {
     fn drop(&mut self) {
         self.remove_from_parent();
+        if let Some(dom) = &mut self.debug_dom {
+            dom.remove();
+        }
     }
 }
 
@@ -461,6 +467,27 @@ impl LayerModel {
         let on_mut = on_depth_order_dirty(&parent);
         let depth_order_dirty = dirty::SharedBool::new(on_mut);
         let sublayers = Sublayers::new(&parent);
+        let mut debug_dom = default();
+
+        if display::object::ENABLE_DOM_DEBUG {
+            use enso_web::prelude::*;
+            if let Some(document) = enso_web::window.document() {
+                let root = document.get_html_element_by_id("debug-root").unwrap_or_else(|| {
+                    let root = document.create_html_element_or_panic("div");
+                    root.set_id("debug-root");
+                    root.set_style_or_warn("z-index", "100");
+                    document.body().unwrap().append_child(&root).unwrap();
+                    root
+                });
+
+                let dom = document.create_div_or_panic();
+                dom.set_class_name("debug-layer");
+                dom.set_attribute_or_warn("data-layer-name", &name);
+                root.append_child(&dom).unwrap();
+                debug_dom = Some(dom);
+            }
+        }
+
         Self {
             name,
             depth_order_dirty,
@@ -479,6 +506,7 @@ impl LayerModel {
             mask: default(),
             scissor_box: default(),
             mem_mark: default(),
+            debug_dom,
         }
     }
 
@@ -675,6 +703,41 @@ impl LayerModel {
         }
 
         was_dirty
+    }
+
+    /// Update this layer's DOM debug object with current camera transform.
+    pub(crate) fn update_debug_view(&self) {
+        if !display::object::ENABLE_DOM_DEBUG {
+            return;
+        }
+
+        use display::camera::camera2d::Projection;
+        use enso_web::prelude::*;
+        use std::fmt::Write;
+
+        let Some(dom) = &self.debug_dom else { return };
+        let camera = self.camera.borrow();
+
+        let trans_cam = camera.transformation_matrix().try_inverse();
+        let mut trans_cam = trans_cam.expect("Camera's matrix is not invertible.");
+        let half_dim_y = camera.screen().height / 2.0;
+        let fovy_slope = camera.half_fovy_slope();
+        let near = half_dim_y / fovy_slope;
+
+        match camera.projection() {
+            Projection::Perspective { .. } => {
+                trans_cam.prepend_translation_mut(&Vector3(0.0, 0.0, near));
+            }
+            Projection::Orthographic => {}
+        }
+        trans_cam.append_nonuniform_scaling_mut(&Vector3(1.0, -1.0, 1.0));
+
+        let mut transform = String::with_capacity(100);
+        let (first, rest) = trans_cam.as_slice().split_first().unwrap();
+        write!(transform, "perspective({near}px) matrix3d({first:.4}").unwrap();
+        rest.iter().for_each(|f| write!(transform, ",{f:.4}").unwrap());
+        transform.write_str(")").unwrap();
+        dom.set_style_or_warn("transform", transform);
     }
 
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global
