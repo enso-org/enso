@@ -1,5 +1,6 @@
 package org.enso.languageserver.websocket.json
 
+import akka.actor.ActorRef
 import akka.testkit.TestProbe
 import io.circe.literal._
 import io.circe.parser.parse
@@ -360,6 +361,14 @@ class BaseServerTest
     val client = new WsTestClient(address, debugMessages = debug)
     initSession(client)
     client
+  }
+
+  def getInitialisedWsClientAndId(
+    debug: Boolean = false
+  ): (WsTestClient, ClientId) = {
+    val client = new WsTestClient(address, debugMessages = debug)
+    val uuid   = initSession(client)
+    (client, uuid)
   }
 
   private def initSession(client: WsTestClient): UUID = {
