@@ -1,10 +1,4 @@
-//! Module dedicated to the List Editor widget. The main structure is [`Model`] which is one of
-//! the [KindModel](crate::component::node::widget::KindModel) variants.
-//!
-//! Currently the view is a simple [`Elements`] component, which will be replaced with a rich
-//! view in [future tasks](https://github.com/enso-org/enso/issues/5631).
-
-// === Non-Standard Linter Configuration ===
+//! Module dedicated to the [List Editor widget](Widget).
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
@@ -22,9 +16,9 @@ use std::fmt::Write;
 
 
 
-// ==============
-// === Widget ===
-// ==============
+// ===============
+// === Element ===
+// ===============
 
 #[derive(Debug)]
 struct Element {
@@ -67,8 +61,6 @@ impl ListItem {
     }
 }
 
-
-
 impl display::Object for ListItem {
     fn display_object(&self) -> &object::Instance {
         &self.display_object
@@ -103,13 +95,6 @@ impl display::Object for Element {
 }
 
 /// A model for the vector editor widget.
-///
-/// Currently it displays an activation shape (a triangle) which, on click, displays the widget
-/// view. The view is a [`ListEditor`] - see its documentation for available GUI actions. Currently
-/// only adding new elements is supported.
-///
-/// The component does not handle nested arrays well. They should be fixed once [integrated into
-/// new widget hierarchy](https://github.com/enso-org/enso/issues/5923).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Widget {
     display_object: object::Instance,
