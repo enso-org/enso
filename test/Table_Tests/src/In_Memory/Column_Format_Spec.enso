@@ -15,11 +15,12 @@ from project.Util import all
 
 spec =
     Test.group "gmt" <|
-        Test.specify "Integer Column" <|
-            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
-            formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
-            expected = Column.from_vector "values" ["100,000,000.00", "2222.00", "3"]
-            input.format formats . should_equal expected
+        Test.specify "Empty/Nothing format, with format Column" <|
+            input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
+            formats = Column.from_vector "formats" ["", Nothing]
+            expected = Column.from_vector "values" ["2020-12-21", "2023-04-25"]
+            actual = input.format formats
+            actual . should_equal expected
 
     Test.group "Date Column.format, with format string" <|
         Test.specify "Date column" <|
@@ -38,6 +39,13 @@ spec =
             input.format "d. MMMM yyyy" (Locale.new "gb") . should_equal expected_gb
             input.format "d. MMMM yyyy" (Locale.new "fr") . should_equal expected_fr
 
+        Test.specify "Empty/Nothing format" <|
+            input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
+            expected = Column.from_vector "values" ['2020-12-21', '2023-04-25']
+            input.format . should_equal expected
+            input.format "" . should_equal expected
+            input.format Nothing . should_equal expected
+
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
             input.format "DDDDD" . should_fail_with Illegal_Argument
@@ -55,6 +63,13 @@ spec =
             formats = Column.from_vector "formats" ["d. MMMM yyyy", "d-MMMM-yyyy"]
             expected = Column.from_vector "values" ["21. juin 2020", "25-avril-2023"]
             input.format formats (Locale.new "fr") . should_equal expected
+
+        Test.specify "Empty/Nothing format, with format Column" <|
+            input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
+            formats = Column.from_vector "formats" ["", Nothing]
+            expected = Column.from_vector "values" ["2020-12-21", "2023-04-25"]
+            actual = input.format formats
+            actual . should_equal expected
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25, Date.new 2023 4 26]
@@ -93,6 +108,13 @@ spec =
             input.format "d. MMMM yyyy HH.mm.ss" (Locale.new "gb") . should_equal expected_gb
             input.format "d. MMMM yyyy HH.mm.ss" (Locale.new "fr") . should_equal expected_fr
 
+        Test.specify "Empty/Nothing format" <|
+            input = Column.from_vector "values" [Date_Time.new 2020 12 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            expected = Column.from_vector "values" ['2020-12-21T08:10:20-05:00[America/New_York]', '2023-04-25T14:25:02-04:00[America/New_York]']
+            input.format . should_equal expected
+            input.format "" . should_equal expected
+            input.format Nothing . should_equal expected
+
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
             input.format "DDDDD" . should_fail_with Illegal_Argument
@@ -110,6 +132,13 @@ spec =
             formats = Column.from_vector "formats" ["d. MMMM yyyy HH.mm.ss", "d-MMMM-yyyy HH.mm.ss"]
             expected = Column.from_vector "values" ["21. juin 2020 08.10.20", "25-avril-2023 14.25.02"]
             input.format formats (Locale.new "fr") . should_equal expected
+
+        Test.specify "Empty/Nothing format, with format Column" <|
+            input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            formats = Column.from_vector "formats" ["", Nothing]
+            expected = Column.from_vector "values" ['2020-06-21T08:10:20-04:00[America/New_York]', '2023-04-25T14:25:02-04:00[America/New_York]']
+            actual = input.format formats
+            actual . should_equal expected
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2, Date_Time.new 2023 4 26 3 4 5]
@@ -146,6 +175,13 @@ spec =
             input.format "HH.mm.ss" (Locale.default) . should_equal expected
             input.format "HH.mm.ss" (Locale.new "gb") . should_equal expected
 
+        Test.specify "Empty/Nothing format" <|
+            input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            expected = Column.from_vector "values" ['08:10:20', '14:25:02']
+            input.format . should_equal expected
+            input.format "" . should_equal expected
+            input.format Nothing . should_equal expected
+
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
             input.format "DDDDD" . should_fail_with Illegal_Argument
@@ -163,6 +199,13 @@ spec =
             formats = Column.from_vector "formats" ["HH.mm.ss", "ss mm HH"]
             expected = Column.from_vector "values" ["08.10.20", "02 25 14"]
             input.format formats (Locale.new "fr") . should_equal expected
+
+        Test.specify "Empty/Nothing format, with format Column" <|
+            input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            formats = Column.from_vector "formats" ["", Nothing]
+            expected = Column.from_vector "values" ["08:10:20", "14:25:02"]
+            actual = input.format formats
+            actual . should_equal expected
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2, Time_Of_Day.new 3 4 5]
@@ -191,6 +234,13 @@ spec =
             actual = input.format "t|f"
             actual . should_equal expected
 
+        Test.specify "Empty/Nothing format" <|
+            input = Column.from_vector "values" [True, False]
+            expected = Column.from_vector "values" ["True", "False"]
+            input.format . should_equal expected
+            input.format "" . should_equal expected
+            input.format Nothing . should_equal expected
+
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [True, False]
             input.format "x|y|z" . should_fail_with Illegal_Argument
@@ -203,19 +253,52 @@ spec =
             actual = input.format formats
             actual . should_equal expected
 
+        Test.specify "Empty/Nothing format, with format Column" <|
+            input = Column.from_vector "values" [True, False]
+            formats = Column.from_vector "formats" ["", Nothing]
+            expected = Column.from_vector "values" ["True", "False"]
+            input.format formats . should_equal expected
+
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [True, False]
             formats = Column.from_vector "formats" ["True|False", "xyzzy"]
             input.format formats . should_fail_with Illegal_Argument
 
-    spec_with_numeric_type "Float" (Value_Type.Float Bits.Bits_64)
     spec_with_numeric_type "Integer" (Value_Type.Integer Bits.Bits_64)
+    spec_with_numeric_type "Float" (Value_Type.Float Bits.Bits_64)
 
     Test.group "Integer" <|
         Test.specify "Integer Column (without parsing)" <|
             input = Column.from_vector "values" [100000000, 2222, 3]
             expected = Column.from_vector "values" ["100,000,000.00", "2,222.00", "3.00"]
             input.format "#,##0.00" . should_equal expected
+
+    Test.group "Numeric, empty/Nothing" <|
+        Test.specify "Integer" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            expected = Column.from_vector "values" ["100000000", "2222", "3"]
+            input.format . should_equal expected
+            input.format "" . should_equal expected
+            input.format Nothing . should_equal expected
+
+        Test.specify "Float" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Float Bits.Bits_64)
+            expected = Column.from_vector "values" ['1.0E8', '2222.0', '3.0']
+            input.format . should_equal expected
+            input.format "" . should_equal expected
+            input.format Nothing . should_equal expected
+
+        Test.specify "Integer, with format Column" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
+            formats = Column.from_vector "formats" ["", Nothing, Nothing]
+            expected = Column.from_vector "values" ["100000000", "2222", "3"]
+            input.format formats . should_equal expected
+
+        Test.specify "Float, with format Column" <|
+            input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Float Bits.Bits_64)
+            formats = Column.from_vector "formats" ["", Nothing, Nothing]
+            expected = Column.from_vector "values" ['1.0E8', '2222.0', '3.0']
+            input.format formats . should_equal expected
 
 spec_with_numeric_type name numeric_type =
     Test.group name <|
@@ -240,7 +323,7 @@ spec_with_numeric_type name numeric_type =
             expected = Column.from_vector "values" ["100,000,000.00", "2222.00", "3"]
             input.format formats . should_equal expected
 
-        Test.specify "Integer Column with locale" <|
+        Test.specify "Column with locale" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
             formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
             expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]

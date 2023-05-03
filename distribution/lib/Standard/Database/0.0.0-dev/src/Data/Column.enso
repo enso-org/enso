@@ -995,7 +995,7 @@ type Column
 
     ## Formatting values is not supported in database columns.
     format : Text | Column -> Locale -> Column ! Illegal_Argument
-    format self format locale=Locale.default =
+    format self format=Nothing locale=Locale.default =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 

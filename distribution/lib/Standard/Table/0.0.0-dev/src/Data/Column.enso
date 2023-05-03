@@ -1183,6 +1183,7 @@ type Column
 
        Arguments:
        - format: The type-dependent format string to use to format the values.
+         If `format` is `""` or `Nothing`, .to_text is used to format the value.
        - locale: The locale in which the format should be interpreted.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
@@ -1247,8 +1248,14 @@ type Column
             input.format "t|f"
             # ==> ["t", "f"]
     format : Text | Column -> Locale -> Column ! Illegal_Argument
-    format self format locale=Locale.default =
+    format self format=Nothing locale=Locale.default =
         new_column = case format of
+            "" ->
+                formatter = .to_text
+                map_over_storage self formatter make_string_builder
+            Nothing ->
+                formatter = .to_text
+                map_over_storage self formatter make_string_builder
             _ : Text ->
                 formatter = case self.value_type of
                     Value_Type.Date ->
@@ -1869,9 +1876,12 @@ make_datelike_formatter format locale =
    parameter. The `datelike` parameter can be a Date, Date_Time, or Time_Of_Day.
 make_datelike_with_column_formatter : Locale -> (Date -> Text -> Text)
 make_datelike_with_column_formatter locale =
-    datelike-> format->
-        handle_illegal_argument_exception format <|
-            datelike.format format locale
+    flip <|
+        format ->
+            empty_pattern_uses_to_text format <|
+                datelike->
+                    handle_illegal_argument_exception format <|
+                        datelike.format format locale
 
 ## PRIVATE
    Create a `Boolean` formatter for the given format string.
@@ -1888,10 +1898,13 @@ make_boolean_formatter format =
    parameter.
 make_boolean_with_column_formatter : (Date -> Text -> Text)
 make_boolean_with_column_formatter =
-    bool-> format->
-        data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
-        data_formatter.if_not_error
-            data_formatter.format bool
+    flip <|
+        format ->
+            empty_pattern_uses_to_text format <|
+                bool->
+                    data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+                    data_formatter.if_not_error
+                        data_formatter.format bool
 
 ## PRIVATE
    Create a numeric formatter for the given format string. The `number`
@@ -1907,9 +1920,22 @@ make_number_formatter format locale =
    parameter. The `number` parameter can be an Integer or Float.
 make_number_with_column_formatter : Locale -> (Date -> Text -> Text)
 make_number_with_column_formatter locale =
-    number-> format->
-        handle_illegal_argument_exception format <|
-            number.format format locale
+    flip <|
+        format ->
+            empty_pattern_uses_to_text format <|
+                number->
+                    handle_illegal_argument_exception format <|
+                        number.format format locale
+
+## PRIVATE
+   Wrap a text formatter so that, if passed `""` or `Nothing` for the format,
+   uses .to_text instead of the normal .format method.
+empty_pattern_uses_to_text : Text -> (Any -> Any) -> (Any -> Any)
+empty_pattern_uses_to_text format function = x->
+    case format of
+        _ : Nothing -> x.to_text
+        "" -> x.to_text
+        _ -> function x
 
 ## PRIVATE
    Rethrow a Java IllegalArgumentException as an Illegal_Argument.
@@ -1955,6 +1981,7 @@ map_over_storage input_column function builder skip_nothing=True =
 ## PRIVATE
    Map a text-returning function over the values of two columns, using Storage
    directly. The output column has the same name as the first input column.
+   `skip_nothing` applies to the first input to the function, not both inputs.
 map_2_over_storage : Column -> Column -> (Any -> Any -> Text) -> (Integer -> Any) -> Boolean -> Column
 map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=True =
     input_storage_0 = input_column_0.java_column.getStorage
@@ -1969,7 +1996,7 @@ map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=T
             ok = each_propagate (0.up_to num_input_rows) i->
                 input_value_0 = input_storage_0.getItemBoxed i
                 input_value_1 = input_storage_1.getItemBoxed i
-                if skip_nothing && (input_value_0.is_nothing || input_value_1.is_nothing) then output_storage_builder.append Nothing else
+                if skip_nothing && input_value_0.is_nothing then output_storage_builder.append Nothing else
                     output_value = function input_value_0 input_value_1
                     output_storage_builder.append output_value
             ok.if_not_error <|
