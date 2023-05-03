@@ -405,6 +405,7 @@
   `Text.write`.][6459]
 - [Implemented `create_database_table` allowing saving queries as database
   tables.][6467]
+- [Implemented `Column.format` for in-memory `Columns`.][6538]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -611,6 +612,7 @@
 [6429]: https://github.com/enso-org/enso/pull/6429
 [6459]: https://github.com/enso-org/enso/pull/6459
 [6467]: https://github.com/enso-org/enso/pull/6467
+[6538]: https://github.com/enso-org/enso/pull/6538
 
 #### Enso Compiler
 
