@@ -112,7 +112,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object self,
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Cached MethodResolverNode methodResolverNode,
+      @Cached("anyFunction(symbol)") Function anyFun) {
 
     Type selfTpe = typesLibrary.getType(self);
     Function function = methodResolverNode.expectNonNull(self, selfTpe, symbol);
@@ -122,12 +123,16 @@ public abstract class InvokeMethodNode extends BaseNode {
     // and the method is invoked statically, i.e. type of self is the eigentype,
     // then we want to disambiguate method resolution by always resolved to the one in Any.
     if (where instanceof MethodRootNode node && typeCanOverride(node, EnsoContext.get(this))) {
-      Function anyFun = symbol.getScope().lookupMethodDefinition(EnsoContext.get(this).getBuiltins().any(), symbol.getName());
       if (anyFun != null) {
         function = anyFun;
       }
     }
     return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  Function anyFunction(UnresolvedSymbol symbol) {
+    Type any = EnsoContext.get(this).getBuiltins().any();
+    return symbol.getScope().lookupMethodDefinition(any, symbol.getName());
   }
 
   private boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
@@ -137,7 +142,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type warning = builtins.warning();
     Type panic = builtins.panic();
     return methodOwnerType.isEigenType()
-
             && builtins.nothing() != methodOwnerType
             && any.getEigentype() != methodOwnerType
             && panic.getEigentype() != methodOwnerType
