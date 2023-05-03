@@ -138,6 +138,10 @@
   sending messages to the backend][6341].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
+- [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
+  the view of the graph changed as well.][6530]
+
+[6530]: https://github.com/enso-org/enso/pull/6530
 
 #### EnsoGL (rendering engine)
 
