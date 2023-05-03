@@ -1264,7 +1264,6 @@ type Column
                         make_number_formatter format locale
                     Value_Type.Float _ ->
                         make_number_formatter format locale
-                    #Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
                         Error.throw (Illegal_Argument.Error msg)
@@ -1284,7 +1283,6 @@ type Column
                         make_number_with_column_formatter locale
                     Value_Type.Float _ ->
                         make_number_with_column_formatter locale
-                    #Decimal
                     bad_type ->
                         msg = "Cannot format a Column of type " + bad_type.to_text
                         Error.throw (Illegal_Argument.Error msg)
