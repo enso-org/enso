@@ -1155,7 +1155,8 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
-    parse : Auto | Value_Type -> Text | Data_Formatter -> Problem_Behavior -> Column
+    @type Widget_Helpers.parse_type_selector
+    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
