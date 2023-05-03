@@ -311,6 +311,10 @@ ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
         /// See docs of this module to learn more.
         thrashing_offset_ratio(f32),
 
+        /// Enable dragging of the list items. When disabled, the mouse events are always passed to
+        /// the items immediately.
+        enable_dragging(bool),
+
         /// Enable insertion points (plus icons) when moving mouse next to any of the list items.
         enable_all_insertion_points(bool),
 
@@ -416,7 +420,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let on_resized = model.borrow().layout.on_resized.clone_ref();
         let drag_target = cursor::DragTarget::new();
         frp::extend! { network
-
+            on_down <- on_down.gate(&frp.enable_dragging);
             frp.private.output.request_new_item <+ on_add_elem_icon_up.map(f_!([model] {
                 Response::gui(model.borrow().len())
             }));
@@ -669,6 +673,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         self.frp.primary_axis_no_drag_threshold(4.0);
         self.frp.primary_axis_no_drag_threshold_decay_time(1000.0);
         self.frp.thrashing_offset_ratio(1.0);
+        self.frp.enable_dragging(true);
         self.frp.enable_all_insertion_points(true);
         self.frp.enable_last_insertion_point(true);
         self

@@ -294,6 +294,9 @@ ensogl::define_endpoints_2! {
 
         /// Set read-only mode for input ports.
         set_read_only                     (bool),
+
+        /// Set the mode in which the cursor will indicate that editing of the node is possible.
+        set_edit_ready_mode (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -684,9 +687,14 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let mouse_enter = model.display_object.on_event::<mouse::Enter>();
-            let mouse_leave = model.display_object.on_event::<mouse::Leave>();
-            node_hover <- bool(&mouse_enter,&mouse_leave);
+            let background_enter = model.background.on_event::<mouse::Enter>();
+            let background_leave = model.background.on_event::<mouse::Leave>();
+            background_hover <- bool(&background_leave, &background_enter);
+            let input_enter = model.input.on_event::<mouse::Over>();
+            let input_leave = model.input.on_event::<mouse::Out>();
+            input_hover <- bool(&input_leave, &input_enter);
+            node_hover <- background_hover || input_hover;
+            node_hover <- node_hover.debounce().on_change();
             model.input.set_hover <+ node_hover;
             model.output.set_hover <+ model.input.body_hover;
             out.hover <+ model.output.body_hover;
@@ -695,8 +703,12 @@ impl Node {
             // === Background Press ===
 
             let background_press = model.background.on_event::<mouse::Down>();
-            out.background_press <+ background_press.filter(mouse::event::is_primary).constant(());
-            out.background_press <+ model.input.on_background_press;
+            let input_press = model.input.on_event::<mouse::Down>();
+            input_as_background_press <- input_press.gate(&input.set_edit_ready_mode);
+            trace input_as_background_press;
+            any_background_press <- any(&background_press, &input_as_background_press);
+            any_primary_press <- any_background_press.filter(mouse::event::is_primary);
+            out.background_press <+ any_primary_press.constant(());
 
 
             // === Selection ===
@@ -775,6 +787,7 @@ impl Node {
 
             model.input.set_view_mode <+ input.set_view_mode;
             model.output.set_view_mode <+ input.set_view_mode;
+            model.input.set_edit_ready_mode <+ input.set_edit_ready_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})

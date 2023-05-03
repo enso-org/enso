@@ -134,6 +134,8 @@ impl Widget {
         let list = self.model.borrow().list.clone_ref();
 
         frp::extend! { network
+            init <- source_();
+
             // Adding elements.
             requested_new <- list.request_new_item.filter_map(|resp| resp.gui_interaction_payload());
             widgets_frp.value_changed <+ requested_new.filter_map(f!((idx) model.borrow_mut().on_new_item(*idx)));
@@ -155,13 +157,21 @@ impl Widget {
             widgets_frp.value_changed <+ remove_request._0().map(|crumb| (crumb.clone(), None));
 
             // Block placeholders outside of the list.
+            enable_interaction <- all_with3(
+                &widgets_frp.set_edit_ready_mode, &widgets_frp.set_read_only, &init,
+                |edit, read_only, _| !edit && !read_only
+            );
             let list_enter = list.on_event_capturing::<mouse::Enter>();
             let list_leave = list.on_event_capturing::<mouse::Leave>();
             is_hovered <- bool(&list_leave, &list_enter);
-            trace is_hovered;
-            list.enable_all_insertion_points <+ is_hovered;
-            list.enable_last_insertion_point <+ is_hovered;
+            enable_insertion <- enable_interaction && is_hovered;
+            list.enable_all_insertion_points <+ enable_insertion;
+            list.enable_last_insertion_point <+ enable_insertion;
+            list.enable_dragging <+ enable_interaction;
         }
+
+        init.emit(());
+
         self
     }
 }
