@@ -354,7 +354,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    format : Text -> (Locale | Nothing) -> Text
-    format self pattern locale=Nothing = case locale of
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.time_of_day_format self pattern
         _ -> Time_Utils.time_of_day_format self pattern locale.java_locale

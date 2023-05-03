@@ -656,7 +656,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
-    format : Text -> (Locale | Nothing) -> Text
-    format self pattern locale=Nothing = case locale of
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.date_time_format self pattern
         _ -> Time_Utils.date_time_format self pattern locale.java_locale
