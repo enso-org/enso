@@ -18,11 +18,13 @@ import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
 import Rows from './rows'
 
+/** Props for a {@link ProjectCreateForm}. */
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A form to create a new project asset. */
 function ProjectCreateForm(props: ProjectCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
@@ -93,11 +95,17 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     }
 }
 
+// ==========================
+// === ProjectNameHeading ===
+// ==========================
+
+/** Props for a {@link ProjectNameHeading}. */
 export interface ProjectNameHeadingProps {
     directoryId: backendModule.DirectoryId
     onCreate: () => void
 }
 
+/** The column header for the "name" column for the table of project assets. */
 function ProjectNameHeading(props: ProjectNameHeadingProps) {
     const { directoryId, onCreate } = props
     const { setModal } = modalProvider.useSetModal()
@@ -134,6 +142,7 @@ export interface ProjectNameProps {
     onCloseIde: () => void
 }
 
+/** The icon and name of a specific project asset. */
 function ProjectName(props: ProjectNameProps) {
     const { item, appRunner, onRename, onOpenIde, onCloseIde } = props
     const { setModal } = modalProvider.useSetModal()
@@ -184,6 +193,7 @@ interface ProjectRowsProps {
     ) => void
 }
 
+/** Rows for the table of project assets. */
 function ProjectRows(props: ProjectRowsProps) {
     const {
         appRunner,

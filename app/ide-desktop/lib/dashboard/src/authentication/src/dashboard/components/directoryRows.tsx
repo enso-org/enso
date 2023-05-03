@@ -25,6 +25,7 @@ export interface DirectoryCreateFormProps extends createForm.CreateFormPassthrou
     onSuccess: () => void
 }
 
+/** A form to create a new directory asset. */
 function DirectoryCreateForm(props: DirectoryCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
@@ -37,7 +38,7 @@ function DirectoryCreateForm(props: DirectoryCreateFormProps) {
         const onSubmit = async (event: React.FormEvent) => {
             event.preventDefault()
             if (name == null) {
-                toast.error('Please provide a directory name.')
+                toast.error('Please provide a folder name.')
             } else {
                 unsetModal()
                 await toast
@@ -47,8 +48,8 @@ function DirectoryCreateForm(props: DirectoryCreateFormProps) {
                             title: name,
                         }),
                         {
-                            loading: 'Creating directory...',
-                            success: 'Sucessfully created directory.',
+                            loading: 'Creating folder...',
+                            success: 'Sucessfully created folder.',
                             error: error.unsafeIntoErrorMessage,
                         }
                     )
@@ -57,7 +58,7 @@ function DirectoryCreateForm(props: DirectoryCreateFormProps) {
         }
 
         return (
-            <CreateForm title="New Directory" onSubmit={onSubmit} {...passThrough}>
+            <CreateForm title="New Folder" onSubmit={onSubmit} {...passThrough}>
                 <div className="flex flex-row flex-nowrap m-1">
                     <label className="inline-block flex-1 grow m-1" htmlFor="directory_name">
                         Name
@@ -87,6 +88,7 @@ export interface ProjectNameHeadingProps {
     onCreate: () => void
 }
 
+/** The column header for the "name" column for the table of directory assets. */
 function DirectoryNameHeading(props: ProjectNameHeadingProps) {
     const { directoryId, onCreate } = props
     const { setModal } = modalProvider.useSetModal()
@@ -126,6 +128,7 @@ export interface DirectoryNameProps {
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
+/** The icon and name of a specific directory asset. */
 function DirectoryName(props: DirectoryNameProps) {
     const { item, onRename, enterDirectory } = props
     const { setModal } = modalProvider.useSetModal()
@@ -180,6 +183,7 @@ interface DirectoryRowsProps {
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
+/** Rows for the table of directory assets. */
 function DirectoryRows(props: DirectoryRowsProps) {
     const {
         directoryId,

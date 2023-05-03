@@ -3,19 +3,17 @@ import * as React from 'react'
 
 import * as column from '../column'
 
-// =================
-// === Constants ===
-// =================
-
 // =================================
 // === ColumnDisplayModeSwitcher ===
 // =================================
 
+/** Props for a {@link ColumnDisplayModeSwitcher}. */
 export interface ColumnDisplayModeSwitcherProps {
     columnDisplayMode: column.ColumnDisplayMode
     setColumnDisplayMode: (columnDisplayMode: column.ColumnDisplayMode) => void
 }
 
+/** A selector that lets the user choose between pre-defined sets of visible columns. */
 function ColumnDisplayModeSwitcher(props: ColumnDisplayModeSwitcherProps) {
     const { columnDisplayMode, setColumnDisplayMode } = props
 

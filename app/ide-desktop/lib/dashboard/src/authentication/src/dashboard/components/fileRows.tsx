@@ -28,6 +28,7 @@ export interface FileCreateFormProps extends createForm.CreateFormPassthroughPro
     onSuccess: () => void
 }
 
+/** A form to create a new file asset. */
 function FileCreateForm(props: FileCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
@@ -111,11 +112,13 @@ function FileCreateForm(props: FileCreateFormProps) {
 // === FileNameHeading ===
 // =======================
 
+/** Props for a {@link FileNameHeading}. */
 export interface FileNameHeadingProps {
     directoryId: backendModuke.DirectoryId
     onCreate: () => void
 }
 
+/** The column header for the "name" column for the table of file assets. */
 function FileNameHeading(props: FileNameHeadingProps) {
     const { directoryId, onCreate } = props
     const { setModal } = modalProvider.useSetModal()
@@ -154,6 +157,7 @@ export interface FileNameProps {
     onRename: () => void
 }
 
+/** The icon and name of a specific file asset. */
 function FileName(props: FileNameProps) {
     const { item, onRename } = props
     const { setModal } = modalProvider.useSetModal()
@@ -200,6 +204,7 @@ export interface FileRowsProps {
     ) => void
 }
 
+/** Rows for the table of file assets. */
 function FileRows(props: FileRowsProps) {
     const {
         directoryId,

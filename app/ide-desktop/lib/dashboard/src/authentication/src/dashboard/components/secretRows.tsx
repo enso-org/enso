@@ -27,6 +27,7 @@ export interface SecretCreateFormProps extends createForm.CreateFormPassthroughP
     onSuccess: () => void
 }
 
+/** A form to create a new secret asset. */
 function SecretCreateForm(props: SecretCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
@@ -109,6 +110,7 @@ interface SecretNameHeadingProps {
     onCreate: () => void
 }
 
+/** The column header for the "name" column for the table of secret assets. */
 function SecretNameHeading(props: SecretNameHeadingProps) {
     const { directoryId, onCreate } = props
     const { setModal } = modalProvider.useSetModal()
@@ -147,6 +149,7 @@ export interface SecretNameProps {
     onRename: () => void
 }
 
+/** The icon and name of a specific secret asset. */
 function SecretName(props: SecretNameProps) {
     const { item, onRename } = props
     const { setModal } = modalProvider.useSetModal()
@@ -192,6 +195,7 @@ export interface SecretRowsProps {
     ) => void
 }
 
+/** Rows for the table of secret assets. */
 function SecretRows(props: SecretRowsProps) {
     const {
         directoryId,
