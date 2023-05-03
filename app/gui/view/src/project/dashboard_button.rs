@@ -95,7 +95,7 @@ impl View {
         }
 
         button.set_visibility(true);
-        button.set_color_scheme(&Self::color_scheme(scene));
+        button.set_color_scheme(Self::color_scheme(scene));
         let size = Vector2(16.0, 16.0);
         button.set_size(size);
         frp.source.size.emit(size);
