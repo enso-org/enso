@@ -104,8 +104,8 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Object execute(
       VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  @Specialization(guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
-  Object doFunctionalDispatch(
+  @Specialization(guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)", "cachedSymbol == symbol"})
+  Object doFunctionalDispatchCachedSymbol(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
@@ -113,10 +113,11 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
       @Cached MethodResolverNode methodResolverNode,
-      @Cached("anyFunction(symbol)") Function anyFun) {
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached("anyFunction(cachedSymbol)") Function anyFun) {
 
     Type selfTpe = typesLibrary.getType(self);
-    Function function = methodResolverNode.expectNonNull(self, selfTpe, symbol);
+    Function function = methodResolverNode.expectNonNull(self, selfTpe, cachedSymbol);
 
     RootNode where = function.getCallTarget().getRootNode();
     // If both Any and the type where `function` is declared, define `symbol`
@@ -146,6 +147,20 @@ public abstract class InvokeMethodNode extends BaseNode {
             && any.getEigentype() != methodOwnerType
             && panic.getEigentype() != methodOwnerType
             && warning.getEigentype() != methodOwnerType;
+  }
+
+  @Specialization(replaces = "doFunctionalDispatchCachedSymbol", guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
+  Object doFunctionalDispatchUncachedSymbol(
+          VirtualFrame frame,
+          State state,
+          UnresolvedSymbol symbol,
+          Object self,
+          Object[] arguments,
+          @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+          @Cached MethodResolverNode methodResolverNode) {
+    Type selfTpe = typesLibrary.getType(self);
+    Function function = methodResolverNode.expectNonNull(self, selfTpe, symbol);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization
