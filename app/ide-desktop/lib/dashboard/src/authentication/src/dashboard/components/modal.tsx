@@ -19,9 +19,7 @@ function Modal(props: ModalProps) {
     return (
         <div
             className={`inset-0 bg-primary ${
-                centered
-                    ? 'fixed w-screen h-screen grid place-items-center '
-                    : ''
+                centered ? 'fixed w-screen h-screen grid place-items-center ' : ''
             }${className ?? ''}`}
             onClick={event => {
                 if (event.currentTarget === event.target) {
