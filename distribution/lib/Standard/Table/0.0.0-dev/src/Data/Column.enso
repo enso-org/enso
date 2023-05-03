@@ -1876,12 +1876,10 @@ make_datelike_formatter format locale =
    parameter. The `datelike` parameter can be a Date, Date_Time, or Time_Of_Day.
 make_datelike_with_column_formatter : Locale -> (Date -> Text -> Text)
 make_datelike_with_column_formatter locale =
-    flip <|
-        format ->
-            empty_pattern_uses_to_text format <|
-                datelike->
-                    handle_illegal_argument_exception format <|
-                        datelike.format format locale
+    empty_pattern_uses_to_text <|
+        datelike-> format->
+            handle_illegal_argument_exception format <|
+                datelike.format format locale
 
 ## PRIVATE
    Create a `Boolean` formatter for the given format string.
@@ -1898,13 +1896,11 @@ make_boolean_formatter format =
    parameter.
 make_boolean_with_column_formatter : (Date -> Text -> Text)
 make_boolean_with_column_formatter =
-    flip <|
-        format ->
-            empty_pattern_uses_to_text format <|
-                bool->
-                    data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
-                    data_formatter.if_not_error
-                        data_formatter.format bool
+    empty_pattern_uses_to_text <|
+        bool-> format->
+            data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+            data_formatter.if_not_error
+                data_formatter.format bool
 
 ## PRIVATE
    Create a numeric formatter for the given format string. The `number`
@@ -1920,22 +1916,20 @@ make_number_formatter format locale =
    parameter. The `number` parameter can be an Integer or Float.
 make_number_with_column_formatter : Locale -> (Date -> Text -> Text)
 make_number_with_column_formatter locale =
-    flip <|
-        format ->
-            empty_pattern_uses_to_text format <|
-                number->
-                    handle_illegal_argument_exception format <|
-                        number.format format locale
+    empty_pattern_uses_to_text <|
+        number-> format->
+            handle_illegal_argument_exception format <|
+                number.format format locale
 
 ## PRIVATE
    Wrap a text formatter so that, if passed `""` or `Nothing` for the format,
    uses .to_text instead of the normal .format method.
-empty_pattern_uses_to_text : Text -> (Any -> Any) -> (Any -> Any)
-empty_pattern_uses_to_text format function = x->
+empty_pattern_uses_to_text : (Any -> Any -> Any) -> (Any -> Any -> Any)
+empty_pattern_uses_to_text function = x-> format->
     case format of
         _ : Nothing -> x.to_text
         "" -> x.to_text
-        _ -> function x
+        _ -> function x format
 
 ## PRIVATE
    Rethrow a Java IllegalArgumentException as an Illegal_Argument.
