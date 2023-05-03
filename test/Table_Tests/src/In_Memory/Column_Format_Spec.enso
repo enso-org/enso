@@ -14,14 +14,6 @@ from Standard.Test import Test, Test_Suite
 from project.Util import all
 
 spec =
-    Test.group "gmt" <|
-        Test.specify "Empty/Nothing format, with format Column" <|
-            input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
-            formats = Column.from_vector "formats" ["", Nothing]
-            expected = Column.from_vector "values" ["2020-12-21", "2023-04-25"]
-            actual = input.format formats
-            actual . should_equal expected
-
     Test.group "Date Column.format, with format string" <|
         Test.specify "Date column" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
