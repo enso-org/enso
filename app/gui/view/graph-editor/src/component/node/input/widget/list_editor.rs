@@ -35,13 +35,23 @@ struct Element {
     alive:          Option<()>,
 }
 
-#[derive(Debug)]
 struct DragData {
     element_id:    WidgetIdentity,
     element:       Element,
     expression:    String,
     #[allow(dead_code)]
     owned_subtree: Vec<(WidgetIdentity, TreeNode)>,
+}
+
+impl Debug for DragData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DragData")
+            .field("element_id", &self.element_id)
+            .field("element", &self.element)
+            .field("expression", &self.expression)
+            .field("owned_subtree.len", &self.owned_subtree.len())
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, CloneRef)]
@@ -382,7 +392,6 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
-        console_log!("CONFIGURE");
         let mut model = self.model.borrow_mut();
         model.configure(&self.display_object, cfg, ctx);
     }

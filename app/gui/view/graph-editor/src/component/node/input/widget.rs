@@ -48,7 +48,6 @@ use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
 use crate::component::node::input::port::Port;
 
-use enso_config::ARGS;
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
@@ -274,7 +273,7 @@ impl Configuration {
         span_node: &SpanRef,
         usage_type: Option<crate::Type>,
         expression: &str,
-        is_directly_connected: bool,
+        _is_directly_connected: bool,
     ) -> Self {
         use span_tree::node::Kind;
 
@@ -282,7 +281,6 @@ impl Configuration {
         let has_children = !span_node.children.is_empty();
 
         const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
-        let is_list_editor_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
         let node_expr = &expression[span_node.span()];
         let looks_like_vector = node_expr.starts_with('[') && node_expr.ends_with(']');
         let type_is_vector = |tp: &Option<String>| {
@@ -296,10 +294,9 @@ impl Configuration {
         match kind {
             Kind::Argument(arg) if !arg.tag_values.is_empty() =>
                 Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Argument(_) if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
-            Kind::Root if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
+            Kind::Root | Kind::Argument(_) if looks_like_vector => Self::list_editor(),
             Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
-                if is_list_editor_enabled && (type_is_vector(&arg.tp) || looks_like_vector) {
+                if looks_like_vector || type_is_vector(&arg.tp) {
                     Self::list_editor()
                 } else if !arg.tag_values.is_empty() {
                     Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
@@ -310,8 +307,7 @@ impl Configuration {
                 Self::maybe_with_port(label::Config::default(), is_directly_connected),
             Kind::Token if !has_children => Self::inert(label::Config::default()),
             Kind::NamedArgument => Self::inert(hierarchy::Config),
-            Kind::InsertionPoint(_) =>
-                Self::maybe_with_port(insertion_point::Config, is_directly_connected),
+            Kind::InsertionPoint(_) => Self::always(insertion_point::Config),
             _ if has_children => Self::always(hierarchy::Config),
             _ => Self::always(label::Config::default()),
         }

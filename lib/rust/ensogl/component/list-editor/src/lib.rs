@@ -1077,8 +1077,9 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
                 warn!("An element was inserted without a placeholder. This should not happen.");
                 index
             };
+            let index = self.item_or_placeholder_index_to_index(actual_index);
             self.reposition_items();
-            self.item_or_placeholder_index_to_index(actual_index)
+            index
         } else {
             warn!("Called function to insert dragged element, but no element is being dragged.");
             None
