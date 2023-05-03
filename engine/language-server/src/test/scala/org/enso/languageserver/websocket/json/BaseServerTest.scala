@@ -1,6 +1,5 @@
 package org.enso.languageserver.websocket.json
 
-import akka.actor.ActorRef
 import akka.testkit.TestProbe
 import io.circe.literal._
 import io.circe.parser.parse
