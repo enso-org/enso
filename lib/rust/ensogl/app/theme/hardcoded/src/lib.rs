@@ -444,7 +444,7 @@ define_themes! { [light:0, dark:1]
         }
         dashboard_button {
             non_toggled = graph_editor::node::actions::button::non_toggled, graph_editor::node::actions::button::non_toggled;
-            toggled     = graph_editor::node::actions::button::toggled,     graph_editor::node::actions::button::toggled;
+            toggled     = graph_editor::node::actions::button::non_toggled,     graph_editor::node::actions::button::non_toggled;
             hovered     = graph_editor::node::actions::button::hovered,     graph_editor::node::actions::button::hovered;
         }
         status_bar {
