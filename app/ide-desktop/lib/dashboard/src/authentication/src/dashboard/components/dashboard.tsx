@@ -12,7 +12,6 @@ import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as remoteBackendModule from '../remoteBackend'
-import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
 import * as auth from '../../authentication/providers/auth'
@@ -24,10 +23,8 @@ import Ide from './ide'
 import Templates from './templates'
 import TopBar from './topBar'
 
-import UploadFileModal from './uploadFileModal'
-
-import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 import DirectoryRows from './directoryRows'
+import DriveBar from './driveBar'
 import FileRows from './fileRows'
 import ProjectRows from './projectRows'
 import SecretRows from './secretRows'
@@ -96,7 +93,7 @@ function Dashboard(props: DashboardProps) {
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { unsetModal } = modalProvider.useSetModal()
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
@@ -121,8 +118,8 @@ function Dashboard(props: DashboardProps) {
     const [visibleSecretAssets, setVisibleSecretAssets] = React.useState(secretAssets)
     const [visibleFileAssets, setVisibleFileAssets] = React.useState(fileAssets)
 
-    const directory = directoryStack[directoryStack.length - 1]
-    const parentDirectory = directoryStack[directoryStack.length - 2]
+    const directory = directoryStack[directoryStack.length - 1] ?? null
+    const parentDirectory = directoryStack[directoryStack.length - 2] ?? null
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -355,63 +352,16 @@ function Dashboard(props: DashboardProps) {
                 setQuery={setQuery}
             />
             <Templates onTemplateClick={handleCreateProject} />
-            <div className="flex flex-row flex-nowrap my-2">
-                <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
-                <div className="flex flex-row flex-nowrap mx-4">
-                    <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                        {directory && (
-                            <>
-                                <button className="mx-2" onClick={exitDirectory}>
-                                    {parentDirectory?.title ?? '/'}
-                                </button>
-                                {svg.SMALL_RIGHT_ARROW_ICON}
-                            </>
-                        )}
-                        <span className="mx-2">{directory?.title ?? '/'}</span>
-                    </div>
-                    <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                        <div className="m-2">Shared with</div>
-                        <div></div>
-                    </div>
-                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                        <button
-                            className={`mx-1 ${
-                                backend.platform === platformModule.Platform.desktop
-                                    ? 'opacity-50'
-                                    : ''
-                            }`}
-                            disabled={backend.platform === platformModule.Platform.desktop}
-                            onClick={event => {
-                                event.stopPropagation()
-                                setModal(() => (
-                                    <UploadFileModal
-                                        directoryId={directoryId}
-                                        onSuccess={doRefresh}
-                                    />
-                                ))
-                            }}
-                        >
-                            {svg.UPLOAD_ICON}
-                        </button>
-                        <button
-                            className={`mx-1 opacity-50`}
-                            disabled={true}
-                            onClick={event => {
-                                event.stopPropagation()
-                                /* TODO */
-                            }}
-                        >
-                            {svg.DOWNLOAD_ICON}
-                        </button>
-                    </div>
-                    {EXPERIMENTAL.columnDisplayModeSwitcher && (
-                        <ColumnDisplayModeSwitcher
-                            columnDisplayMode={columnDisplayMode}
-                            setColumnDisplayMode={setColumnDisplayMode}
-                        />
-                    )}
-                </div>
-            </div>
+            <DriveBar
+                directoryId={directoryId}
+                directory={directory}
+                parentDirectory={parentDirectory}
+                columnDisplayMode={columnDisplayMode}
+                setColumnDisplayMode={setColumnDisplayMode}
+                experimentalShowColumnDisplayModeSwitcher={EXPERIMENTAL.columnDisplayModeSwitcher}
+                onUpload={doRefresh}
+                exitDirectory={exitDirectory}
+            />
             <table className="items-center w-full bg-transparent border-collapse mt-2">
                 <tbody>
                     <ProjectRows
