@@ -2,11 +2,11 @@ from Standard.Base import all
 
 from Standard.Test import Test_Suite
 
-import project.Image_Read_Spec
+import project.Image_Read_Write_Spec
 import project.Data.Image_Spec
 import project.Data.Matrix_Spec
 
 main = Test_Suite.run_main <|
-    Image_Read_Spec.spec
+    Image_Read_Write_Spec.spec
     Matrix_Spec.spec
     Image_Spec.spec

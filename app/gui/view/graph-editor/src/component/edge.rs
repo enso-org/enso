@@ -779,7 +779,7 @@ macro_rules! define_components {
             /// Constructor.
             #[allow(clippy::vec_init_then_push)]
             pub fn new() -> Self {
-                let display_object = display::object::Instance::new();
+                let display_object = display::object::Instance::new_named(stringify!($name));
                 $(let $field = <$field_type>::new();)*
                 $(display_object.add_child(&$field);)*
                 let mut shape_view_events:Vec<PointerTarget_DEPRECATED> = Vec::default();
@@ -1304,7 +1304,7 @@ impl EdgeModelData {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(scene: &Scene, network: &frp::Network) -> Self {
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Edge");
         let front = Front::new();
         let back = Back::new();
         let joint = joint::View::new();

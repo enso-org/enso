@@ -199,3 +199,27 @@ body {
   background: #b96a50;
   margin: 0.8em -1em;
 }
+
+#debug-root {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+#debug-root > .debug-layer {
+  position: absolute;
+  top: 50vh;
+  left: 50vw;
+  width: 0px;
+  height: 0px;
+}
+
+#debug-root > .debug-layer * {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}

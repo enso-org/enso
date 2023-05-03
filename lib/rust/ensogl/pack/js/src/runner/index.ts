@@ -22,6 +22,8 @@ export type { LogLevel } from 'runner/log/logger'
 export { logger, Logger, Consumer } from 'runner/log'
 export { Option } from 'runner/config'
 
+export const urlParams: () => config.StringConfig = host.urlParams
+
 // ==============================
 // === Files to be downloaded ===
 // ==============================
@@ -189,6 +191,10 @@ export class App {
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
     progressIndicator: wasm.ProgressIndicator | null = null
     initialized = false
+    /** Field indicating that application was stopped and any long running process
+     * (like wasm compilation) should be aborted. Currently, we initialize application fully
+     * before using stop, but in future we need to support interruption feature. */
+    stopped = false
 
     constructor(opts?: {
         configOptions?: config.Options
@@ -268,8 +274,16 @@ export class App {
             logger.log("App wasn't initialized properly. Skipping run.")
         } else {
             await this.loadAndInitWasm()
-            await this.runEntryPoints()
+            if (!this.stopped) {
+                await this.runEntryPoints()
+            }
         }
+    }
+    /** Sets application stop to true and calls drop method which removes all rust memory references
+     *  and calls all destructors. */
+    stop() {
+        this.stopped = true
+        this.wasm?.drop()
     }
 
     /** Compiles and runs the downloaded WASM file. */
@@ -349,8 +363,8 @@ export class App {
             assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer()))
         )
         const assets = assetsInfo.map(info => {
-            // The non-null assertion on the following line is safe since we are mapping `assetsBlobs` from
-            // success assets response.
+            // The non-null assertion on the following line is safe since we are mapping
+            // `assetsBlobs` from success assets response.
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
             return new Asset(info.type, info.key, data)

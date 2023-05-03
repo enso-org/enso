@@ -86,7 +86,15 @@ public class MethodDefinition {
     if (useBuild) {
       return originalClassName + ".build()";
     } else {
-      return "new " + originalClassName + "()";
+      boolean isClassAbstract = element.getModifiers().contains(Modifier.ABSTRACT);
+      if (isClassAbstract) {
+        throw new RuntimeException(
+            "Class "
+                + element.getSimpleName()
+                + " is abstract, and has no static `build()` method.");
+      } else {
+        return "new " + originalClassName + "()";
+      }
     }
   }
 

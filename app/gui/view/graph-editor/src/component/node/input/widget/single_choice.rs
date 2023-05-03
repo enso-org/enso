@@ -119,7 +119,7 @@ impl super::SpanWidget for Widget {
         let layers = &app.display.default_scene.layers;
         layers.label.add(&activation_shape);
 
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("widget::SingleChoice");
         let content_wrapper = display_object.new_child();
         content_wrapper.add_child(&activation_shape);
         let label_wrapper = content_wrapper.new_child();
@@ -182,7 +182,7 @@ impl super::SpanWidget for Widget {
         };
         let child_level = ctx.info.nesting_level;
         let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, Some(&config));
-        self.label_wrapper.replace_children(&[child]);
+        self.label_wrapper.replace_children(&[child.root_object]);
     }
 }
 

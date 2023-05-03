@@ -1075,6 +1075,7 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
+    commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,

@@ -420,20 +420,24 @@ pub struct LayerModel {
     pub name: String,
     camera: RefCell<Camera2d>,
     pub shape_system_registry: ShapeSystemRegistry,
-    shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
-    symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
+    shape_system_to_symbol_info_map:
+        RefCell<HashMap<ShapeSystemIdWithFlavor, ShapeSystemSymbolInfo>>,
+    symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemIdWithFlavor>>,
     elements: RefCell<BTreeSet<LayerItem>>,
     symbols_renderable: RefCell<RenderGroup>,
-    depth_order: RefCell<DependencyGraph<LayerItem>>,
+    depth_order: RefCell<DependencyGraph<LayerOrderItem>>,
     depth_order_dirty: dirty::SharedBool<OnDepthOrderDirty>,
     parent: Rc<RefCell<Option<Sublayers>>>,
-    global_element_depth_order: RefCell<DependencyGraph<LayerItem>>,
+    global_element_depth_order: RefCell<DependencyGraph<LayerOrderItem>>,
     sublayers: Sublayers,
     symbol_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
     mask: RefCell<Option<WeakLayer>>,
     scissor_box: RefCell<Option<ScissorBox>>,
     mem_mark: Rc<()>,
     pub flags: LayerFlags,
+    /// When [`display::object::ENABLE_DOM_DEBUG`] is enabled all display objects on this layer
+    /// will be represented by a DOM in this DOM layer.
+    pub debug_dom: Option<enso_web::HtmlDivElement>,
 }
 
 impl Debug for LayerModel {
@@ -451,6 +455,9 @@ impl Debug for LayerModel {
 impl Drop for LayerModel {
     fn drop(&mut self) {
         self.remove_from_parent();
+        if let Some(dom) = &mut self.debug_dom {
+            dom.remove();
+        }
     }
 }
 
@@ -461,6 +468,27 @@ impl LayerModel {
         let on_mut = on_depth_order_dirty(&parent);
         let depth_order_dirty = dirty::SharedBool::new(on_mut);
         let sublayers = Sublayers::new(&parent);
+        let mut debug_dom = default();
+
+        if display::object::ENABLE_DOM_DEBUG {
+            use enso_web::prelude::*;
+            if let Some(document) = enso_web::window.document() {
+                let root = document.get_html_element_by_id("debug-root").unwrap_or_else(|| {
+                    let root = document.create_html_element_or_panic("div");
+                    root.set_id("debug-root");
+                    root.set_style_or_warn("z-index", "100");
+                    document.body().unwrap().append_child(&root).unwrap();
+                    root
+                });
+
+                let dom = document.create_div_or_panic();
+                dom.set_class_name("debug-layer");
+                dom.set_attribute_or_warn("data-layer-name", &name);
+                root.append_child(&dom).unwrap();
+                debug_dom = Some(dom);
+            }
+        }
+
         Self {
             name,
             depth_order_dirty,
@@ -479,6 +507,7 @@ impl LayerModel {
             mask: default(),
             scissor_box: default(),
             mem_mark: default(),
+            debug_dom,
         }
     }
 
@@ -496,21 +525,11 @@ impl LayerModel {
         self.symbols_renderable.borrow()
     }
 
-    /// Return the [`SymbolId`] of the provided [`LayerItem`] if it was added to the current
-    /// layer.
-    pub fn symbol_id_of_element(&self, element: LayerItem) -> Option<SymbolId> {
-        use LayerItem::*;
-        match element {
-            Symbol(id) => Some(id),
-            ShapeSystem(id) => self.shape_system_to_symbol_info_map.borrow().get(&id).map(|t| t.id),
-        }
-    }
-
-    /// Add depth-order dependency between two [`LayerItem`]s in this layer.
+    /// Add depth-order dependency between two [`LayerOrderItem`]s in this layer.
     pub fn add_elements_order_dependency(
         &self,
-        below: impl Into<LayerItem>,
-        above: impl Into<LayerItem>,
+        below: impl Into<LayerOrderItem>,
+        above: impl Into<LayerOrderItem>,
     ) {
         let below = below.into();
         let above = above.into();
@@ -523,8 +542,8 @@ impl LayerModel {
     /// if the dependency was found, and `false` otherwise.
     pub fn remove_elements_order_dependency(
         &self,
-        below: impl Into<LayerItem>,
-        above: impl Into<LayerItem>,
+        below: impl Into<LayerOrderItem>,
+        above: impl Into<LayerOrderItem>,
     ) -> bool {
         let below = below.into();
         let above = above.into();
@@ -630,11 +649,12 @@ impl LayerModel {
     /// Remove the [`ShapeSystem`] registered in this layer together with all of its [`Symbol`]s.
     pub fn remove_shape_system(&self, shape_system_id: ShapeSystemId) {
         self.depth_order_dirty.set();
-        self.elements.borrow_mut().remove(&LayerItem::ShapeSystem(shape_system_id));
-        if let Some(symbol_id) =
-            self.shape_system_to_symbol_info_map.borrow_mut().remove(&shape_system_id)
-        {
-            self.symbol_to_shape_system_map.borrow_mut().remove(&symbol_id.id);
+        for flavor in self.shape_system_registry.flavors(shape_system_id) {
+            let id = ShapeSystemIdWithFlavor { id: shape_system_id, flavor };
+            self.elements.borrow_mut().remove(&LayerItem::ShapeSystem(id));
+            if let Some(symbol_id) = self.shape_system_to_symbol_info_map.borrow_mut().remove(&id) {
+                self.symbol_to_shape_system_map.borrow_mut().remove(&symbol_id.id);
+            }
         }
     }
 
@@ -648,7 +668,7 @@ impl LayerModel {
     #[profile(Debug)]
     pub(crate) fn update_internal(
         &self,
-        global_element_depth_order: Option<&DependencyGraph<LayerItem>>,
+        global_element_depth_order: Option<&DependencyGraph<LayerOrderItem>>,
         parent_depth_order_changed: bool,
     ) -> bool {
         let mut was_dirty = false;
@@ -677,14 +697,49 @@ impl LayerModel {
         was_dirty
     }
 
+    /// Update this layer's DOM debug object with current camera transform.
+    pub(crate) fn update_debug_view(&self) {
+        if !display::object::ENABLE_DOM_DEBUG {
+            return;
+        }
+
+        use display::camera::camera2d::Projection;
+        use enso_web::prelude::*;
+        use std::fmt::Write;
+
+        let Some(dom) = &self.debug_dom else { return };
+        let camera = self.camera.borrow();
+
+        let trans_cam = camera.transformation_matrix().try_inverse();
+        let mut trans_cam = trans_cam.expect("Camera's matrix is not invertible.");
+        let half_dim_y = camera.screen().height / 2.0;
+        let fovy_slope = camera.half_fovy_slope();
+        let near = half_dim_y / fovy_slope;
+
+        match camera.projection() {
+            Projection::Perspective { .. } => {
+                trans_cam.prepend_translation_mut(&Vector3(0.0, 0.0, near));
+            }
+            Projection::Orthographic => {}
+        }
+        trans_cam.append_nonuniform_scaling_mut(&Vector3(1.0, -1.0, 1.0));
+
+        let mut transform = String::with_capacity(100);
+        let (first, rest) = trans_cam.as_slice().split_first().unwrap();
+        write!(transform, "perspective({near}px) matrix3d({first:.4}").unwrap();
+        rest.iter().for_each(|f| write!(transform, ",{f:.4}").unwrap());
+        transform.write_str(")").unwrap();
+        dom.set_style_or_warn("transform", transform);
+    }
+
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global
     /// dependency graph (from root [`Layer`]), the local one (per layer), and individual shape
     /// preferences (see the "Compile Time Shapes Ordering Relations" section in docs of [`Layer`]
     /// to learn more).
     fn combined_depth_order_graph(
         &self,
-        global_element_depth_order: Option<&DependencyGraph<LayerItem>>,
-    ) -> DependencyGraph<LayerItem> {
+        global_element_depth_order: Option<&DependencyGraph<LayerOrderItem>>,
+    ) -> DependencyGraph<LayerOrderItem> {
         let mut graph = if let Some(global_element_depth_order) = global_element_depth_order {
             let mut graph = global_element_depth_order.clone();
             graph.extend(self.depth_order.borrow().clone().into_iter());
@@ -696,10 +751,10 @@ impl LayerModel {
             if let LayerItem::ShapeSystem(id) = element {
                 if let Some(info) = self.shape_system_to_symbol_info_map.borrow().get(id) {
                     for &id2 in &info.below {
-                        graph.insert_dependency(*element, id2.into());
+                        graph.insert_dependency(element.into(), id2.into());
                     }
                     for &id2 in &info.above {
-                        graph.insert_dependency(id2.into(), *element);
+                        graph.insert_dependency(id2.into(), element.into());
                     }
                 }
             }
@@ -707,23 +762,44 @@ impl LayerModel {
         graph
     }
 
-    fn depth_sort(&self, global_element_depth_order: Option<&DependencyGraph<LayerItem>>) {
+    fn depth_sort(&self, global_element_depth_order: Option<&DependencyGraph<LayerOrderItem>>) {
         let graph = self.combined_depth_order_graph(global_element_depth_order);
-        let elements_sorted = self.elements.borrow().iter().copied().collect_vec();
-        let sorted_elements = graph.into_unchecked_topo_sort(elements_sorted);
-        let sorted_symbols = sorted_elements
-            .into_iter()
-            .filter_map(|element| match element {
-                LayerItem::Symbol(symbol_id) => Some(symbol_id),
-                LayerItem::ShapeSystem(id) => {
-                    let out = self.shape_system_to_symbol_info_map.borrow().get(&id).map(|t| t.id);
-                    if out.is_none() {
-                        warn!("Trying to perform depth-order of non-existing element '{:?}'.", id)
-                    }
-                    out
+        let elements = self.elements.borrow();
+        let mut order_items = elements.iter().map(|&e| LayerOrderItem::from(e)).collect_vec();
+        order_items.dedup();
+        let dependency_sorted_elements = graph.into_unchecked_topo_sort(order_items);
+        let mut sorted_symbols = Vec::with_capacity(self.elements.borrow().len());
+        for element in dependency_sorted_elements {
+            match element {
+                LayerOrderItem::Symbol(id) => sorted_symbols.push(id),
+                LayerOrderItem::ShapeSystem(id) => {
+                    let lower_bound = LayerItem::ShapeSystem(ShapeSystemIdWithFlavor {
+                        id,
+                        flavor: ShapeSystemFlavor::MIN,
+                    });
+                    let flavors = elements
+                        .range(lower_bound..)
+                        .take_while(|e| matches!(e, LayerItem::ShapeSystem(info) if info.id == id));
+                    sorted_symbols.extend(flavors.filter_map(|item| match *item {
+                        LayerItem::Symbol(symbol_id) => Some(symbol_id),
+                        LayerItem::ShapeSystem(id) => {
+                            let out = self
+                                .shape_system_to_symbol_info_map
+                                .borrow()
+                                .get(&id)
+                                .map(|t| t.id);
+                            if out.is_none() {
+                                warn!(
+                                    "Trying to perform depth-order of non-existing element '{:?}'.",
+                                    id
+                                )
+                            }
+                            out
+                        }
+                    }))
                 }
-            })
-            .collect();
+            };
+        }
         self.symbols_renderable.borrow_mut().set(sorted_symbols);
     }
 }
@@ -898,8 +974,8 @@ impl LayerModel {
     /// otherwise. All sublayers will inherit these rules.
     pub fn add_global_elements_order_dependency(
         &self,
-        below: impl Into<LayerItem>,
-        above: impl Into<LayerItem>,
+        below: impl Into<LayerOrderItem>,
+        above: impl Into<LayerOrderItem>,
     ) -> bool {
         let below = below.into();
         let above = above.into();
@@ -914,8 +990,8 @@ impl LayerModel {
     /// if the dependency was found, and `false` otherwise.
     pub fn remove_global_elements_order_dependency(
         &self,
-        below: impl Into<LayerItem>,
-        above: impl Into<LayerItem>,
+        below: impl Into<LayerOrderItem>,
+        above: impl Into<LayerOrderItem>,
     ) -> bool {
         let below = below.into();
         let above = above.into();
@@ -1255,12 +1331,46 @@ newtype_prim! {
 #[allow(missing_docs)]
 pub enum LayerItem {
     Symbol(SymbolId),
+    ShapeSystem(ShapeSystemIdWithFlavor),
+}
+
+impl From<ShapeSystemIdWithFlavor> for LayerItem {
+    fn from(t: ShapeSystemIdWithFlavor) -> Self {
+        Self::ShapeSystem(t)
+    }
+}
+
+
+// === LayerOrderItem ===
+
+/// Identifies an item only in terms of the information necessary to describe ordering
+/// relationships. This is equivalent to [`LayerItem`], except different flavors of the same layer
+/// are not distinguished.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Hash, Ord)]
+#[allow(missing_docs)]
+pub enum LayerOrderItem {
+    Symbol(SymbolId),
     ShapeSystem(ShapeSystemId),
 }
 
-impl From<ShapeSystemId> for LayerItem {
+impl From<ShapeSystemId> for LayerOrderItem {
     fn from(t: ShapeSystemId) -> Self {
         Self::ShapeSystem(t)
+    }
+}
+
+impl From<LayerItem> for LayerOrderItem {
+    fn from(t: LayerItem) -> Self {
+        Self::from(&t)
+    }
+}
+
+impl From<&LayerItem> for LayerOrderItem {
+    fn from(t: &LayerItem) -> Self {
+        match *t {
+            LayerItem::Symbol(id) => Self::Symbol(id),
+            LayerItem::ShapeSystem(ShapeSystemIdWithFlavor { id, .. }) => Self::ShapeSystem(id),
+        }
     }
 }
 
@@ -1318,7 +1428,10 @@ impl {
             let above = S::always_above().to_vec();
             let below = S::always_below().to_vec();
             let ordering = ShapeSystemStaticDepthOrdering {above,below};
-            let shape_system_info = ShapeSystemInfo::new(system_id,ordering);
+            let system_id_with_flavor = ShapeSystemIdWithFlavor {
+                id: system_id, flavor: S::flavor(data),
+            };
+            let shape_system_info = ShapeSystemInfo::new(system_id_with_flavor, ordering);
             *entry.instance_count += 1;
             (shape_system_info, symbol_id, shape_instance, global_instance_id)
         })
@@ -1345,6 +1458,10 @@ impl {
         let no_more_instances = entry_is_empty && self.total_system_instances(system_id) == 0;
 
         (no_more_instances, system_id, PhantomData)
+    }
+
+    fn flavors(&self, shape_system_id: ShapeSystemId) -> impl Iterator<Item=ShapeSystemFlavor> {
+        self.shape_system_flavors.get(&shape_system_id).cloned().unwrap_or_default().into_iter()
     }
 }}
 
@@ -1410,8 +1527,8 @@ impl ShapeSystemRegistryData {
 // === ShapeSystemInfo ===
 // =======================
 
-/// [`ShapeSystemInfoTemplate`] specialized for [`ShapeSystemId`].
-pub type ShapeSystemInfo = ShapeSystemInfoTemplate<ShapeSystemId>;
+/// [`ShapeSystemInfoTemplate`] specialized for [`ShapeSystemIdWithFlavor`].
+pub type ShapeSystemInfo = ShapeSystemInfoTemplate<ShapeSystemIdWithFlavor>;
 
 /// [`ShapeSystemInfoTemplate`] specialized for [`SymbolId`].
 pub type ShapeSystemSymbolInfo = ShapeSystemInfoTemplate<SymbolId>;
@@ -1444,6 +1561,13 @@ impl<T> ShapeSystemInfoTemplate<T> {
     fn new(id: T, ordering: ShapeSystemStaticDepthOrdering) -> Self {
         Self { id, ordering }
     }
+}
+
+/// Identifies a specific flavor of a shape system.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ShapeSystemIdWithFlavor {
+    id:     ShapeSystemId,
+    flavor: ShapeSystemFlavor,
 }
 
 

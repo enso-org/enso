@@ -255,7 +255,7 @@ type Invalid_Format
        Pretty print the invalid format error.
     to_display_text : Text
     to_display_text self =
-        self.cells.length+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
+        self.cells.length.to_text+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
 
 ## Indicates that an empty file was encountered, so no data could be loaded.
 type Empty_File_Error
