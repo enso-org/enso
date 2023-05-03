@@ -391,7 +391,8 @@ type Table
     rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
-        new_names.if_not_error (self.updated_columns (self.internal_columns.map c-> c.rename (new_names.at c.name)))
+        Warning.with_suspended new_names names->
+            self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
     ## PRIVATE
 
@@ -1607,17 +1608,18 @@ type Table
                 column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
                 self.connection.read_statement sql column_type_suggestions
 
-    ## UNSTABLE
+    ## PRIVATE
+       Creates a query corresponding to this table.
+    to_select_query : Query
+    to_select_query self =
+        cols = self.internal_columns.map (c -> [c.name, c.expression])
+        # assert cols.not_empty
+        Query.Select cols self.context
 
+    ## UNSTABLE
        Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL_Statement
-    to_sql self =
-        cols = self.internal_columns.map (c -> [c.name, c.expression])
-        case cols.is_empty of
-            True -> Error.throw <| Unsupported_Database_Operation.Error "Cannot generate SQL for a table with no columns."
-            False ->
-                query = Query.Select cols self.context
-                self.connection.dialect.generate_sql query
+    to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
     ## Returns a Table describing this table's contents.
 

@@ -172,7 +172,6 @@ impl DomScene {
         dom.set_style_or_warn("position", "absolute");
         dom.set_style_or_warn("top", "0px");
         dom.set_style_or_warn("overflow", "hidden");
-        dom.set_style_or_warn("overflow", "hidden");
         dom.set_style_or_warn("width", "100%");
         dom.set_style_or_warn("height", "100%");
         // We ignore pointer events to avoid stealing them from other DomScenes.

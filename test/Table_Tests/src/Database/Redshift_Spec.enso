@@ -43,14 +43,7 @@ run_tests connection =
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
-        case connection.upload_table name in_mem_table of
-            table ->
-                tables.append name
-                table
-    clean_tables table_names =
-        table_names.each name->
-            sql = 'DROP TABLE "' + name + '"'
-            Panic.rethrow <| connection.execute_update sql
+        in_mem_table.create_database_table connection name primary_key=Nothing temporary=True
     materialize = .read
 
     Common_Spec.spec prefix connection
@@ -59,15 +52,13 @@ run_tests connection =
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
+    agg_table = agg_in_memory_table.create_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
     tables.append agg_table.name
-    empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
+    empty_agg_table = (agg_in_memory_table.take (First 0)).create_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
     tables.append empty_agg_table.name
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
     Common_Table_Operations.Main.spec setup
-
-    clean_tables tables.to_vector
 
 connect_via_json_config =
     credentials = enso_project.data / 'redshift_credentials.json'

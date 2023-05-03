@@ -544,6 +544,7 @@ impl Project {
                 Event::Notification(Notification::ExecutionStatus(_)) => {}
                 Event::Notification(Notification::ExecutionComplete { context_id }) => {
                     execution_update_handler(context_id, ExecutionUpdate::Completed);
+                    publisher.notify(model::project::Notification::ExecutionFinished);
                 }
                 Event::Notification(Notification::ExpressionValuesComputed(_)) => {
                     // the notification is superseded by `ExpressionUpdates`.

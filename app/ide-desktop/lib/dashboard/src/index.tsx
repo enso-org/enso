@@ -39,4 +39,5 @@ authentication.run({
     // The `onAuthenticated` parameter is required but we don't need it, so we pass an empty function.
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     onAuthenticated() {},
+    appRunner: null,
 })

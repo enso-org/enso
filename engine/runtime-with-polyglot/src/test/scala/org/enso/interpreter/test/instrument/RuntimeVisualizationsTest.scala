@@ -2168,7 +2168,7 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(106, 28)
+    val idMain = metadata.addItem(106, 34)
 
     val code =
       """import Standard.Base.Data.List
@@ -2176,7 +2176,7 @@ class RuntimeVisualizationsTest
         |import Standard.Base.Error.Error
         |
         |main =
-        |    Error.throw List.Empty_Error
+        |    Error.throw List.Empty_Error.Error
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2259,7 +2259,7 @@ class RuntimeVisualizationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
+    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-38)"}"""
   }
 
   it should "run visualisation default preprocessor" in {
@@ -3138,8 +3138,12 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idX = metadata.addItem(65, 1, "aa")
-    val idY = metadata.addItem(65, 7, "ab")
+    val idX      = metadata.addItem(65, 1, "aa")
+    val idY      = metadata.addItem(65, 7, "ab")
+    val idS      = metadata.addItem(81, 1)
+    val idZ      = metadata.addItem(91, 5, "ac")
+    val idZexprS = metadata.addItem(93, 1)
+    val idZexpr1 = metadata.addItem(95, 1)
 
     val code =
       """type T
@@ -3150,7 +3154,11 @@ class RuntimeVisualizationsTest
         |main =
         |    x = T.C
         |    y = x.inc 7
-        |    y
+        |    s = 1
+        |    z = p y s
+        |    z
+        |
+        |p x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -3177,7 +3185,7 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      9
     ) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -3188,6 +3196,15 @@ class RuntimeVisualizationsTest
         ConstantsGen.INTEGER_BUILTIN,
         Api.MethodPointer(moduleName, s"$moduleName.T", "inc")
       ),
+      TestMessages.update(contextId, idS, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(
+        contextId,
+        idZ,
+        ConstantsGen.INTEGER_BUILTIN,
+        Api.MethodPointer(moduleName, moduleName, "p")
+      ),
+      TestMessages.update(contextId, idZexprS, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idZexpr1, ConstantsGen.INTEGER_BUILTIN),
       context.executionComplete(contextId)
     )
 

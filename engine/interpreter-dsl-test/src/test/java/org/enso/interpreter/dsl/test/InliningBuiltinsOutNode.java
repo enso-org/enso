@@ -12,5 +12,4 @@ final class InliningBuiltinsOutNode extends Node {
     Assert.assertNotNull("VirtualFrame is always provided", frame);
     return a + b;
   }
-
 }

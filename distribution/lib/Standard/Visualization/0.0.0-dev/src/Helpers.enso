@@ -116,13 +116,6 @@ Error.catch_ : Any -> Any
 Error.catch_ self ~val = self.catch Any (_-> val)
 
 ## PRIVATE
-recover_errors : Any -> Any
-recover_errors ~body =
-    result = Panic.recover Any body
-    result.catch Any err->
-        JS_Object.from_pairs [["error", err.to_display_text]] . to_text
-
-## PRIVATE
 
    Guides the visualization system to display the most suitable graphical
    representation for this table.

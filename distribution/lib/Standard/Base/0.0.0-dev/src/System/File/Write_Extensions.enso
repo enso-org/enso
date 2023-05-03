@@ -2,17 +2,21 @@ import project.Data.Text.Text
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Vector.Vector
-import project.Errors.Common.Unsupported_Argument_Types
 import project.Error.Error
+import project.Errors.Common.Dry_Run_Operation
+import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime.Context
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
+import project.Warning.Warning
 
+from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Array_Builder
 
@@ -37,14 +41,39 @@ polyglot java import org.enso.base.Array_Builder
    Otherwise, the file is created with the encoded text written to it.
 
    The method returns a `File` object for the written file.
+
+   ? Dry Run
+
+     If writing to Output context is not enabled (such as in "Design" mode),
+     then this function will write to a temporary file. This temporary file will
+     be automatically deleted on exit of the Enso process.
+
+     This allows for building the workflow without affecting the real files.
+@encoding Encoding.default_widget
 Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
 Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Problem_Behavior.Report_Warning =
     bytes = self.bytes encoding on_problems
-    file = File.new path
-    r = on_existing_file.write file stream->
-        bytes.if_not_error <|
-            stream.write_bytes bytes
-    r.if_not_error file
+
+    actual = File.new path
+
+    is_enabled = Context.Output.is_enabled
+
+    effective_existing_behaviour = if is_enabled then on_existing_file else
+        case on_existing_file of
+            Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
+            Existing_File_Behavior.Error -> if actual.exists then Error.throw (File_Error.Already_Exists actual) else Existing_File_Behavior.Overwrite
+            _ -> on_existing_file
+
+    file = if is_enabled then actual else actual.create_dry_run_file copy_original=on_existing_file==Existing_File_Behavior.Append
+
+    Context.Output.with_enabled <|
+        r = effective_existing_behaviour.write file stream->
+            bytes.if_not_error <|
+                stream.write_bytes bytes
+        r.if_not_error <|
+            if is_enabled then file else
+                warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
+                Warning.attach warning file
 
 ## Writes (or appends) the Vector of bytes into the specified file. The behavior
    specified in the `existing_file` parameter will be used if the file exists.

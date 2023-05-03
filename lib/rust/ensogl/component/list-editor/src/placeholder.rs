@@ -3,6 +3,7 @@ use ensogl_core::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::world::with_context;
 use ensogl_core::Animation;
 
 
@@ -111,7 +112,7 @@ pub struct PlaceholderModel {
 impl PlaceholderModel {
     fn new() -> Self {
         let frp = Frp::new();
-        let root = display::object::Instance::new();
+        let root = display::object::Instance::new_named("Placeholder");
         let self_ref = default();
         let collapsing = default();
         let size = Animation::<f32>::new(frp.network());
@@ -124,6 +125,9 @@ impl PlaceholderModel {
                     .set_border_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0));
             });
             root.add_child(&viz);
+            with_context(|ctx| {
+                ctx.layers.above_nodes.add(&viz);
+            });
             viz
         });
         Self { frp, root, self_ref, collapsing, size, _deubg_viz }
