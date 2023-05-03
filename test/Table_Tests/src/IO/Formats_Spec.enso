@@ -10,8 +10,7 @@ import Standard.Test.Extensions
 
 import project.Util
 
-
-spec = Test.group 'Various File Format support on Table' <| Context.Output.with_enabled <|
+spec = Test.group 'Various File Format support on Table' <|
     t1 = Table.new [["X", [1, 2, 3]]]
     transient = enso_project.data / "transient"
     simple_empty = enso_project.data/'simple_empty.csv' . read
