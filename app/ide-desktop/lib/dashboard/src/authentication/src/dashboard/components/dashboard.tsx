@@ -237,6 +237,13 @@ function Dashboard(props: DashboardProps) {
         clearAssets()
     }
 
+    const clearModalAndSelectedAssets = (event: React.MouseEvent) => {
+        unsetModal()
+        if (!event.shiftKey) {
+            setSelectedAssets([])
+        }
+    }
+
     const handleEscapeKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (
             event.key === 'Escape' &&
@@ -291,9 +298,61 @@ function Dashboard(props: DashboardProps) {
         ])
     }
 
+    const toggleTab = () => {
+        if (project && tab === Tab.dashboard) {
+            setTab(Tab.ide)
+            const ideElement = document.getElementById(IDE_ELEMENT_ID)
+            if (ideElement) {
+                ideElement.style.top = ''
+                ideElement.style.display = 'absolute'
+            }
+        } else {
+            setTab(Tab.dashboard)
+            const ideElement = document.getElementById(IDE_ELEMENT_ID)
+            if (ideElement) {
+                ideElement.style.top = '-100vh'
+                ideElement.style.display = 'fixed'
+            }
+        }
+    }
+
+    const setBackendPlatform = (newBackendPlatform: platformModule.Platform) => {
+        if (newBackendPlatform !== backend.platform) {
+            clearAssets()
+            switch (newBackendPlatform) {
+                case platformModule.Platform.desktop:
+                    setBackend(new localBackend.LocalBackend())
+                    break
+                case platformModule.Platform.cloud: {
+                    const headers = new Headers()
+                    headers.append('Authorization', `Bearer ${accessToken}`)
+                    const client = new http.Client(headers)
+                    setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                    break
+                }
+            }
+        }
+    }
+
     const onAssetClick = (asset: backendModule.Asset, event: React.MouseEvent) => {
         event.stopPropagation()
         setSelectedAssets(event.shiftKey ? [...selectedAssets, asset] : [asset])
+    }
+
+    const openIde = async (projectAsset: backendModule.ProjectAsset) => {
+        setTab(Tab.ide)
+        if (project?.projectId !== projectAsset.id) {
+            setProject(await backend.getProjectDetails(projectAsset.id))
+        }
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = ''
+            ideElement.style.display = 'absolute'
+        }
+    }
+
+    const closeIde = () => {
+        setProject(null)
     }
 
     return (
@@ -301,12 +360,7 @@ function Dashboard(props: DashboardProps) {
             className={`relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
-            onClick={event => {
-                unsetModal()
-                if (!event.shiftKey) {
-                    setSelectedAssets([])
-                }
-            }}
+            onClick={clearModalAndSelectedAssets}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
@@ -314,40 +368,8 @@ function Dashboard(props: DashboardProps) {
                 platform={platform}
                 projectName={project?.name ?? null}
                 tab={tab}
-                toggleTab={() => {
-                    if (project && tab === Tab.dashboard) {
-                        setTab(Tab.ide)
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = ''
-                            ideElement.style.display = 'absolute'
-                        }
-                    } else {
-                        setTab(Tab.dashboard)
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = '-100vh'
-                            ideElement.style.display = 'fixed'
-                        }
-                    }
-                }}
-                setBackendPlatform={newBackendPlatform => {
-                    if (newBackendPlatform !== backend.platform) {
-                        clearAssets()
-                        switch (newBackendPlatform) {
-                            case platformModule.Platform.desktop:
-                                setBackend(new localBackend.LocalBackend())
-                                break
-                            case platformModule.Platform.cloud: {
-                                const headers = new Headers()
-                                headers.append('Authorization', `Bearer ${accessToken}`)
-                                const client = new http.Client(headers)
-                                setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                                break
-                            }
-                        }
-                    }
-                }}
+                toggleTab={toggleTab}
+                setBackendPlatform={setBackendPlatform}
                 query={query}
                 setQuery={setQuery}
             />
@@ -373,20 +395,8 @@ function Dashboard(props: DashboardProps) {
                         onRename={doRefresh}
                         onDelete={doRefresh}
                         onAssetClick={onAssetClick}
-                        onOpenIde={async projectAsset => {
-                            setTab(Tab.ide)
-                            if (project?.projectId !== projectAsset.id) {
-                                setProject(await backend.getProjectDetails(projectAsset.id))
-                            }
-                            const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                            if (ideElement) {
-                                ideElement.style.top = ''
-                                ideElement.style.display = 'absolute'
-                            }
-                        }}
-                        onCloseIde={() => {
-                            setProject(null)
-                        }}
+                        onOpenIde={openIde}
+                        onCloseIde={closeIde}
                     />
                     <DirectoryRows
                         directoryId={directoryId}
