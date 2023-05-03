@@ -103,7 +103,7 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
 
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
-    const { outputPath } = args
+    const { outputPath, devMode } = args
     const buildOptions = {
         absWorkingDir: THIS_PATH,
         bundle: true,
@@ -121,7 +121,7 @@ export function bundlerOptions(args: Arguments) {
         define: {
             // We are defining a constant, so it should be `CONSTANT_CASE`.
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            IS_DEV_MODE: JSON.stringify(args.devMode),
+            IS_DEV_MODE: JSON.stringify(devMode),
         },
         sourcemap: true,
         minify: true,

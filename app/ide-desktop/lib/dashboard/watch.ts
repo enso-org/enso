@@ -7,12 +7,12 @@ import chalk from 'chalk'
 
 import * as bundler from './esbuild-config'
 
-export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-
 // =================
 // === Constants ===
 // =================
 
+/** The path of this file. */
+const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 /** This must be port `8080` because it is defined as such in AWS. */
 const PORT = 8080
 const HTTP_STATUS_OK = 200
