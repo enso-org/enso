@@ -134,17 +134,30 @@ function ProjectNameHeading(props: ProjectNameHeadingProps) {
     )
 }
 
-export interface ProjectNameProps {
-    item: backendModule.ProjectAsset
+// ===================
+// === ProjectName ===
+// ===================
+
+/** State passed through from a {@link ProjectRows} to every cell. */
+export interface ProjectNamePropsState {
     appRunner: AppRunner | null
     onRename: () => void
     onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
 }
 
+/** Props for a {@link ProjectName}. */
+export interface ProjectNameProps {
+    item: backendModule.ProjectAsset
+    state: ProjectNamePropsState
+}
+
 /** The icon and name of a specific project asset. */
 function ProjectName(props: ProjectNameProps) {
-    const { item, appRunner, onRename, onOpenIde, onCloseIde } = props
+    const {
+        item,
+        state: { appRunner, onRename, onOpenIde, onCloseIde },
+    } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -213,9 +226,15 @@ function ProjectRows(props: ProjectRowsProps) {
     return (
         <>
             <tr className="h-10" />
-            <Rows<backendModule.ProjectAsset>
+            <Rows<backendModule.ProjectAsset, ProjectNamePropsState>
                 items={items}
-                getKey={proj => proj.id}
+                state={{
+                    appRunner,
+                    onRename,
+                    onOpenIde,
+                    onCloseIde,
+                }}
+                getKey={backendModule.getAssetId}
                 placeholder={
                     <span className="opacity-75">
                         You have no project yet. Go ahead and create one using the form above.
@@ -231,15 +250,7 @@ function ProjectRows(props: ProjectRowsProps) {
                                       onCreate={onCreate}
                                   />
                               ),
-                              render: innerProps => (
-                                  <ProjectName
-                                      item={innerProps.item}
-                                      appRunner={appRunner}
-                                      onRename={onRename}
-                                      onOpenIde={onOpenIde}
-                                      onCloseIde={onCloseIde}
-                                  />
-                              ),
+                              render: ProjectName,
                           }
                         : {
                               id: column,

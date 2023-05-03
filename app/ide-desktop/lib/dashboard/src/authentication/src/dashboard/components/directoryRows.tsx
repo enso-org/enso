@@ -121,16 +121,24 @@ function DirectoryNameHeading(props: ProjectNameHeadingProps) {
 // === DirectoryName ===
 // =====================
 
-/** Props for a {@link DirectoryName}. */
-export interface DirectoryNameProps {
-    item: backendModule.DirectoryAsset
+/** State passed through from a {@link DirectoryRows} to every cell. */
+export interface DirectoryNamePropsState {
     onRename: () => void
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
+/** Props for a {@link DirectoryName}. */
+export interface DirectoryNameProps {
+    item: backendModule.DirectoryAsset
+    state: DirectoryNamePropsState
+}
+
 /** The icon and name of a specific directory asset. */
 function DirectoryName(props: DirectoryNameProps) {
-    const { item, onRename, enterDirectory } = props
+    const {
+        item,
+        state: { onRename, enterDirectory },
+    } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -169,7 +177,7 @@ function DirectoryName(props: DirectoryNameProps) {
 // =====================
 
 /** Props for a {@link DirectoryRows}. */
-interface DirectoryRowsProps {
+export interface DirectoryRowsProps {
     directoryId: backendModule.DirectoryId
     items: backendModule.DirectoryAsset[]
     columnDisplayMode: columnModule.ColumnDisplayMode
@@ -204,9 +212,10 @@ function DirectoryRows(props: DirectoryRowsProps) {
         return (
             <>
                 <tr className="h-10" />
-                <Rows<backendModule.DirectoryAsset>
+                <Rows<backendModule.DirectoryAsset, DirectoryNamePropsState>
                     items={items}
-                    getKey={dir => dir.id}
+                    state={{ enterDirectory, onRename }}
+                    getKey={backendModule.getAssetId}
                     placeholder={
                         <span className="opacity-75">
                             This directory does not contain any subdirectories
@@ -223,13 +232,7 @@ function DirectoryRows(props: DirectoryRowsProps) {
                                           onCreate={onCreate}
                                       />
                                   ),
-                                  render: innerProps => (
-                                      <DirectoryName
-                                          item={innerProps.item}
-                                          enterDirectory={enterDirectory}
-                                          onRename={onRename}
-                                      />
-                                  ),
+                                  render: DirectoryName,
                               }
                             : {
                                   id: column,

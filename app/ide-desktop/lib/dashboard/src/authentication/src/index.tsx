@@ -48,7 +48,15 @@ export function run(props: app.AppProps) {
     } else {
         ideElement.style.top = '-100vh'
         ideElement.style.display = 'fixed'
-        reactDOM.createRoot(root).render(<App {...props} />)
+        reactDOM.createRoot(root).render(
+            IS_DEV_MODE ? (
+                <React.StrictMode>
+                    <App {...props} />
+                </React.StrictMode>
+            ) : (
+                <App {...props} />
+            )
+        )
     }
 }
 

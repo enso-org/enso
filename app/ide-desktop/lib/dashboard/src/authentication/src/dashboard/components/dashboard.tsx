@@ -2,32 +2,23 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
-
 import * as backendModule from '../backend'
-import * as columnModule from '../column'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
-import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
 import * as remoteBackendModule from '../remoteBackend'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
-import * as auth from '../../authentication/providers/auth'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import DirectoryView from './directoryView'
 import Ide from './ide'
 import Templates from './templates'
 import TopBar from './topBar'
-
-import DirectoryRows from './directoryRows'
-import DriveBar from './driveBar'
-import FileRows from './fileRows'
-import ProjectRows from './projectRows'
-import SecretRows from './secretRows'
 
 // =============
 // === Types ===
@@ -59,19 +50,6 @@ const EXPERIMENTAL = {
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
-/** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
-
-// ========================
-// === Helper functions ===
-// ========================
-
-/** Returns the id of the root directory for a user or organization. */
-function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationId) {
-    return newtype.asNewtype<backendModule.DirectoryId>(
-        userOrOrganizationId.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
-    )
-}
 
 // =================
 // === Dashboard ===
@@ -89,7 +67,7 @@ function Dashboard(props: DashboardProps) {
     const { platform, appRunner } = props
 
     const logger = loggerProvider.useLogger()
-    const { accessToken, organization } = auth.useFullUserSession()
+    const { accessToken, organization } = authProvider.useFullUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
@@ -97,29 +75,14 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [query, setQuery] = React.useState('')
-    const [directoryId, setDirectoryId] = React.useState(rootDirectoryId(organization.id))
-    const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
-    // Defined by the spec as `compact` by default, however it is not ready yet.
-    const [columnDisplayMode, setColumnDisplayMode] = React.useState(
-        columnModule.ColumnDisplayMode.release
+    const [directoryId, setDirectoryId] = React.useState(
+        backendModule.rootDirectoryId(organization.id)
     )
+    const [query, setQuery] = React.useState('')
     const [tab, setTab] = React.useState(Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
-
-    const [projectAssets, setProjectAssets] = React.useState<backendModule.ProjectAsset[]>([])
-    const [directoryAssets, setDirectoryAssets] = React.useState<backendModule.DirectoryAsset[]>([])
-    const [secretAssets, setSecretAssets] = React.useState<backendModule.SecretAsset[]>([])
-    const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
-    const [visibleProjectAssets, setVisibleProjectAssets] = React.useState(projectAssets)
-    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = React.useState(directoryAssets)
-    const [visibleSecretAssets, setVisibleSecretAssets] = React.useState(secretAssets)
-    const [visibleFileAssets, setVisibleFileAssets] = React.useState(fileAssets)
-
-    const directory = directoryStack[directoryStack.length - 1] ?? null
-    const parentDirectory = directoryStack[directoryStack.length - 2] ?? null
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -150,95 +113,6 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    React.useEffect(() => {
-        const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
-        if (cachedDirectoryStackJson) {
-            // The JSON was inserted by the code below, so it will always have the right type.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const cachedDirectoryStack: backendModule.DirectoryAsset[] =
-                JSON.parse(cachedDirectoryStackJson)
-            setDirectoryStack(cachedDirectoryStack)
-            const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
-            if (cachedDirectoryId) {
-                setDirectoryId(cachedDirectoryId)
-            }
-        }
-    }, [])
-
-    React.useEffect(() => {
-        if (directoryId === rootDirectoryId(organization.id)) {
-            localStorage.removeItem(DIRECTORY_STACK_KEY)
-        } else {
-            localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
-        }
-    }, [directoryStack, directoryId, organization.id])
-
-    React.useEffect(() => {
-        setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
-    }, [query, projectAssets])
-
-    React.useEffect(() => {
-        setVisibleDirectoryAssets(directoryAssets.filter(asset => asset.title.includes(query)))
-    }, [query, directoryAssets])
-
-    React.useEffect(() => {
-        setVisibleSecretAssets(secretAssets.filter(asset => asset.title.includes(query)))
-    }, [query, secretAssets])
-
-    React.useEffect(() => {
-        setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
-    }, [query, fileAssets])
-
-    hooks.useAsyncEffect(
-        null,
-        async signal => {
-            // This is quite complicated, however this way the filtering to each asset type
-            // only needs to be done once.
-            const assets = await backend.listDirectory({ parentId: directoryId })
-            if (!signal.aborted) {
-                const newProjectAssets = assets.filter(
-                    backendModule.assetIsType(backendModule.AssetType.project)
-                )
-                const newDirectoryAssets = assets.filter(
-                    backendModule.assetIsType(backendModule.AssetType.directory)
-                )
-                const newSecretAssets = assets.filter(
-                    backendModule.assetIsType(backendModule.AssetType.secret)
-                )
-                const newFileAssets = assets.filter(
-                    backendModule.assetIsType(backendModule.AssetType.file)
-                )
-                setProjectAssets(newProjectAssets)
-                setDirectoryAssets(newDirectoryAssets)
-                setSecretAssets(newSecretAssets)
-                setFileAssets(newFileAssets)
-            }
-        },
-        [accessToken, directoryId, refresh, backend]
-    )
-
-    const clearAssets = () => {
-        setProjectAssets([])
-        setDirectoryAssets([])
-        setSecretAssets([])
-        setFileAssets([])
-    }
-
-    const enterDirectory = (directoryAsset: backendModule.DirectoryAsset) => {
-        setDirectoryId(directoryAsset.id)
-        setDirectoryStack([...directoryStack, directoryAsset])
-        clearAssets()
-    }
-
-    const exitDirectory = () => {
-        setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
-        setDirectoryStack(
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            directoryStack.slice(0, -1)
-        )
-        clearAssets()
-    }
-
     const clearModalAndSelectedAssets = (event: React.MouseEvent) => {
         unsetModal()
         if (!event.shiftKey) {
@@ -267,39 +141,6 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    const getNewProjectName = (templateName?: string | null): string => {
-        const prefix = `${templateName ?? 'New_Project'}_`
-        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-        let highestProjectIndex = 0
-        for (const projectAsset of projectAssets) {
-            const projectIndex = projectNameTemplate.exec(projectAsset.title)?.groups?.projectIndex
-            if (projectIndex) {
-                highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
-            }
-        }
-        return `${prefix}${highestProjectIndex + 1}`
-    }
-
-    const handleCreateProject = async (templateId?: string | null) => {
-        const projectName = getNewProjectName(templateId)
-        const body: backendModule.CreateProjectRequestBody = {
-            projectName,
-            projectTemplateName: templateId ?? null,
-            parentDirectoryId: directoryId,
-        }
-        const projectAsset = await backend.createProject(body)
-        setProjectAssets([
-            ...projectAssets,
-            {
-                type: backendModule.AssetType.project,
-                title: projectAsset.name,
-                id: projectAsset.projectId,
-                parentId: '',
-                permissions: [],
-            },
-        ])
-    }
-
     const toggleTab = () => {
         if (project && tab === Tab.dashboard) {
             setTab(Tab.ide)
@@ -320,7 +161,6 @@ function Dashboard(props: DashboardProps) {
 
     const setBackendPlatform = (newBackendPlatform: platformModule.Platform) => {
         if (newBackendPlatform !== backend.platform) {
-            clearAssets()
             switch (newBackendPlatform) {
                 case platformModule.Platform.desktop:
                     setBackend(new localBackend.LocalBackend())
@@ -334,6 +174,31 @@ function Dashboard(props: DashboardProps) {
                 }
             }
         }
+    }
+
+    const getNewProjectName = async (templateId?: string | null) => {
+        const prefix = `${templateId ?? 'New_Project'}_`
+        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+        let highestProjectIndex = 0
+        const projects = await backend.listProjects()
+        for (const listedProject of projects) {
+            const projectIndex = projectNameTemplate.exec(listedProject.name)?.groups?.projectIndex
+            if (projectIndex) {
+                highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
+            }
+        }
+        return `${prefix}${highestProjectIndex + 1}`
+    }
+
+    const handleCreateProject = async (templateId?: string | null) => {
+        const projectName = await getNewProjectName(templateId)
+        const body: backendModule.CreateProjectRequestBody = {
+            projectName,
+            projectTemplateName: templateId ?? null,
+            parentDirectoryId: directoryId,
+        }
+        const projectAsset = await backend.createProject(body)
+        doRefresh()
     }
 
     const onAssetClick = (asset: backendModule.Asset, event: React.MouseEvent) => {
@@ -376,62 +241,18 @@ function Dashboard(props: DashboardProps) {
                 setQuery={setQuery}
             />
             <Templates onTemplateClick={handleCreateProject} />
-            <DriveBar
+            <DirectoryView
                 directoryId={directoryId}
-                directory={directory}
-                parentDirectory={parentDirectory}
-                columnDisplayMode={columnDisplayMode}
-                setColumnDisplayMode={setColumnDisplayMode}
+                setDirectoryId={setDirectoryId}
+                query={query}
+                refresh={refresh}
+                doRefresh={doRefresh}
+                onAssetClick={onAssetClick}
+                onOpenIde={openIde}
+                onCloseIde={closeIde}
+                appRunner={appRunner}
                 experimentalShowColumnDisplayModeSwitcher={EXPERIMENTAL.columnDisplayModeSwitcher}
-                onUpload={doRefresh}
-                exitDirectory={exitDirectory}
             />
-            <table className="items-center w-full bg-transparent border-collapse mt-2">
-                <tbody>
-                    <ProjectRows
-                        appRunner={appRunner}
-                        directoryId={directoryId}
-                        items={visibleProjectAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onDelete={doRefresh}
-                        onAssetClick={onAssetClick}
-                        onOpenIde={openIde}
-                        onCloseIde={closeIde}
-                    />
-                    <DirectoryRows
-                        directoryId={directoryId}
-                        items={visibleDirectoryAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        query={query}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onAssetClick={onAssetClick}
-                        enterDirectory={enterDirectory}
-                    />
-                    <SecretRows
-                        directoryId={directoryId}
-                        items={visibleSecretAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        query={query}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onDelete={doRefresh}
-                        onAssetClick={onAssetClick}
-                    />
-                    <FileRows
-                        directoryId={directoryId}
-                        items={visibleFileAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        query={query}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onDelete={doRefresh}
-                        onAssetClick={onAssetClick}
-                    />
-                </tbody>
-            </table>
             {isFileBeingDragged && backend.platform === platformModule.Platform.cloud ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"

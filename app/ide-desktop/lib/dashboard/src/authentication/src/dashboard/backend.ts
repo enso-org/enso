@@ -350,12 +350,23 @@ export interface ListVersionsRequestParams {
     default: boolean
 }
 
-// ===================
-// === Type guards ===
-// ===================
+// ========================
+// === Helper functions ===
+// ========================
 
 export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
+}
+
+/** Return the id of the root directory for a user or organization. */
+export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
+    return newtype.asNewtype<DirectoryId>(
+        userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`)
+    )
+}
+
+export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
+    return asset.id
 }
 
 // ===============

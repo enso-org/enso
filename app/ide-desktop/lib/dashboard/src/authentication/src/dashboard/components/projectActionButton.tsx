@@ -58,10 +58,11 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { project, onClose, appRunner, openIde } = props
     const { backend } = backendProvider.useBackend()
 
-    const [state, setState] = React.useState(backendModule.ProjectState.created)
+    const [state, setState] = React.useState(backendModule.ProjectState.closed)
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
     const [spinnerState, setSpinnerState] = React.useState(SpinnerState.done)
 
+    // TODO[sb]: Switch to useAsyncEffect? (but only after fixing the issue...)
     React.useEffect(() => {
         void (async () => {
             const projectDetails = await backend.getProjectDetails(project.id)
@@ -71,7 +72,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 setCheckState(CheckState.checkingStatus)
             }
         })()
-    }, [])
+    }, [backend, project.id])
 
     React.useEffect(() => {
         if (backend.platform === platform.Platform.desktop) {
@@ -81,7 +82,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 setSpinnerState(SpinnerState.done)
             }
         }
-    }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
+        // `localBackend.LocalBackend.currentlyOpeningProjectId` is a mutable outer scope value.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project, state, backend.platform, localBackend.LocalBackend.currentlyOpeningProjectId])
 
     React.useEffect(() => {
         switch (checkState) {
@@ -107,7 +110,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
             case CheckState.checkingResources: {
                 const checkProjectResources = async () => {
-                    if (!('checkResources' in backend)) {
+                    if (backend.platform === platform.Platform.desktop) {
                         setState(backendModule.ProjectState.opened)
                         setCheckState(CheckState.done)
                         setSpinnerState(SpinnerState.done)

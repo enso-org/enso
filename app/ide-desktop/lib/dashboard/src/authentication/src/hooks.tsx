@@ -7,11 +7,14 @@ import * as loggerProvider from './providers/logger'
 // === useRefresh ===
 // ==================
 
+/** An alias to make the purpose of the returned empty object clearer. */
+export interface RefreshState {}
+
 /** A hook that contains no state, and is used only to tell React when to re-render. */
 export function useRefresh() {
     // Uses an empty object literal because every distinct literal
     // is a new reference and therefore is not equal to any other object literal.
-    return react.useReducer(() => ({}), {})
+    return react.useReducer((): RefreshState => ({}), {})
 }
 
 // ======================

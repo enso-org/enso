@@ -2,7 +2,7 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
-import * as backendModuke from '../backend'
+import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
@@ -24,7 +24,7 @@ import Rows from './rows'
 
 /** Props for a {@link FileCreateForm}. */
 export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendModuke.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
@@ -114,7 +114,7 @@ function FileCreateForm(props: FileCreateFormProps) {
 
 /** Props for a {@link FileNameHeading}. */
 export interface FileNameHeadingProps {
-    directoryId: backendModuke.DirectoryId
+    directoryId: backendModule.DirectoryId
     onCreate: () => void
 }
 
@@ -151,15 +151,23 @@ function FileNameHeading(props: FileNameHeadingProps) {
 // === FileName ===
 // ================
 
+/** State passed through from a {@link DirectoryRows} to every cell. */
+export interface FileNamePropsState {
+    onRename: () => void
+}
+
 /** Props for a {@link FileName}. */
 export interface FileNameProps {
-    item: backendModuke.FileAsset
-    onRename: () => void
+    item: backendModule.FileAsset
+    state: FileNamePropsState
 }
 
 /** The icon and name of a specific file asset. */
 function FileName(props: FileNameProps) {
-    const { item, onRename } = props
+    const {
+        item,
+        state: { onRename },
+    } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -191,15 +199,15 @@ function FileName(props: FileNameProps) {
 
 /** Props for a {@link FileRows}. */
 export interface FileRowsProps {
-    directoryId: backendModuke.DirectoryId
-    items: backendModuke.FileAsset[]
+    directoryId: backendModule.DirectoryId
+    items: backendModule.FileAsset[]
     columnDisplayMode: columnModule.ColumnDisplayMode
     query: string
     onCreate: () => void
     onRename: () => void
     onDelete: () => void
     onAssetClick: (
-        asset: backendModuke.FileAsset,
+        asset: backendModule.FileAsset,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
@@ -225,9 +233,10 @@ function FileRows(props: FileRowsProps) {
         return (
             <>
                 <tr className="h-10" />
-                <Rows<backendModuke.FileAsset>
+                <Rows<backendModule.FileAsset, FileNamePropsState>
                     items={items}
-                    getKey={file => file.id}
+                    state={{ onRename }}
+                    getKey={backendModule.getAssetId}
                     placeholder={
                         <span className="opacity-75">
                             This directory does not contain any files
@@ -244,9 +253,7 @@ function FileRows(props: FileRowsProps) {
                                           onCreate={onCreate}
                                       />
                                   ),
-                                  render: innerProps => (
-                                      <FileName item={innerProps.item} onRename={onRename} />
-                                  ),
+                                  render: FileName,
                               }
                             : {
                                   id: column,

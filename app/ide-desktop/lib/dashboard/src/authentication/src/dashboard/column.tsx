@@ -124,7 +124,7 @@ const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
 export const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
-    (props: rows.ColumnProps<backend.Asset>) => JSX.Element
+    (props: rows.ColumnProps<backend.Asset, unknown>) => JSX.Element
 > = {
     [Column.lastModified]: () => <></>,
     [Column.sharedWith]: props => (

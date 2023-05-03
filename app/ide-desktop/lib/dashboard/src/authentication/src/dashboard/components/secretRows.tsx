@@ -143,15 +143,23 @@ function SecretNameHeading(props: SecretNameHeadingProps) {
 // === SecretName ===
 // ==================
 
+/** State passed through from a {@link SecretRows} to every cell. */
+export interface SecretNamePropsState {
+    onRename: () => void
+}
+
 /** Props for a {@link SecretName}. */
 export interface SecretNameProps {
     item: backendModule.SecretAsset
-    onRename: () => void
+    state: SecretNamePropsState
 }
 
 /** The icon and name of a specific secret asset. */
 function SecretName(props: SecretNameProps) {
-    const { item, onRename } = props
+    const {
+        item,
+        state: { onRename },
+    } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -216,9 +224,10 @@ function SecretRows(props: SecretRowsProps) {
         return (
             <>
                 <tr className="h-10" />
-                <Rows<backendModule.SecretAsset>
+                <Rows<backendModule.SecretAsset, SecretNamePropsState>
                     items={items}
-                    getKey={secret => secret.id}
+                    state={{ onRename }}
+                    getKey={backendModule.getAssetId}
                     placeholder={
                         <span className="opacity-75">
                             This directory does not contain any secrets
@@ -235,9 +244,7 @@ function SecretRows(props: SecretRowsProps) {
                                           onCreate={onCreate}
                                       />
                                   ),
-                                  render: innerProps => (
-                                      <SecretName item={innerProps.item} onRename={onRename} />
-                                  ),
+                                  render: SecretName,
                               }
                             : {
                                   id: column,

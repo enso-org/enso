@@ -5,33 +5,35 @@ import * as React from 'react'
 // === Types ===
 // =============
 
-export interface ColumnProps<T> {
+export interface ColumnProps<T, State = never> {
     item: T
+    state: State
 }
 
 /** Metadata describing how to render a column of the table. */
-export interface Column<T> {
+export interface Column<T, State = never> {
     id: string
     heading: JSX.Element
-    render: (props: ColumnProps<T>) => JSX.Element
+    render: (props: ColumnProps<T, State>) => JSX.Element
 }
 
 // =================
 // === Component ===
 // =================
 
-interface Props<T> {
+interface Props<T, State = never> {
     items: T[]
+    state?: State
     getKey: (item: T) => string
+    columns: Column<T, State>[]
     placeholder: JSX.Element
-    columns: Column<T>[]
     onClick: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
     onContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
 }
 
 /** Table that projects an object into each column. */
-function Rows<T>(props: Props<T>) {
-    const { columns, items, getKey, placeholder, onClick, onContextMenu } = props
+function Rows<T, State = never>(props: Props<T, State>) {
+    const { items, state, getKey, columns, placeholder, onClick, onContextMenu } = props
     const headerRow = columns.map((column, index) => (
         <th
             key={index}
@@ -64,7 +66,10 @@ function Rows<T>(props: Props<T>) {
                         const Render = column.render
                         return (
                             <td key={column.id} className="px-4 border-0 border-r">
-                                <Render item={item} />
+                                {/* This is UNSAFE if `State` is explicitly specified by the caller,
+                                 * however it is unavoidable. */}
+                                {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                                <Render item={item} state={state!} />
                             </td>
                         )
                     })}
