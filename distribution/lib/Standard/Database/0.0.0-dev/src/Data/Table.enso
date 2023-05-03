@@ -617,6 +617,7 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
+    @new_name Widget_Helpers.make_column_name_selector
     set : Column | Text -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
@@ -908,7 +909,6 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
-    @join_kind Widget_Helpers.join_kind_selector
     @on Widget_Helpers.make_column_name_selector
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
@@ -1415,6 +1415,7 @@ type Table
        ! Error Conditions
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
+    @column Widget_Helpers.make_column_name_selector
     split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
     split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
         _ = [column delimiter column_count on_problems]
@@ -1427,6 +1428,7 @@ type Table
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
        - on_problems: Specifies the behavior when a problem occurs.
+    @column Widget_Helpers.make_column_name_selector
     split_to_rows : Text | Integer -> Text -> Table
     split_to_rows self column delimiter="," =
         _ = [column delimiter]
@@ -1452,6 +1454,7 @@ type Table
        ! Error Conditions
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
+    @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
         _ = [column pattern case_sensitivity column_count on_problems]
@@ -1469,6 +1472,7 @@ type Table
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - on_problems: Specifies the behavior when a problem occurs.
+    @column Widget_Helpers.make_column_name_selector
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Table
     tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
         _ = [column pattern case_sensitivity]

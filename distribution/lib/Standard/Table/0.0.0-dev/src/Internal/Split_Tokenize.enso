@@ -173,7 +173,7 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
      x | 12 34 56  |   y    ===>
    ... | ...       | ...
 
-   foo | bar 0 | bar 1 | baz
+   foo | bar 1 | bar 2 | baz
    ----+-------+-------+----
      x |     1 |     2 |   y
      x |     3 |     4 |   y
@@ -360,7 +360,7 @@ repeat_each n ~action = 0.up_to n . each _-> action
 ## PRIVATE
    Name a column by appending an integer to a base column name.
 default_column_namer : Text -> Integer -> Text
-default_column_namer base_name i = base_name + " " + i.to_text
+default_column_namer base_name i = base_name + " " + (i+1).to_text
 
 ## PRIVATE
    Pad or truncate a vector to be a specified length; if altered, report

@@ -987,8 +987,7 @@ type Column
                 Column.Value new_name self.connection new_type_ref new_expr self.context
 
     ## Parsing values is not supported in database columns.
-    @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse : Auto | Value_Type -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
         _ = [type, format, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
