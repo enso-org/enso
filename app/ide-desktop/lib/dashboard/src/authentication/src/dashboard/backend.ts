@@ -33,8 +33,10 @@ export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
 /** An AWS S3 file path. */
 export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
 
+/** An AWS machine configuration. */
 export type Ami = newtype.Newtype<string, 'Ami'>
 
+/** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
 
 /** An RFC 3339 DateTime string. */
@@ -140,6 +142,7 @@ export interface SecretInfo {
     id: SecretId
 }
 
+/** The type of asset a specific tag can be applied to. */
 export enum TagObjectType {
     file = 'File',
     project = 'Project',
@@ -209,6 +212,7 @@ export interface ResourceUsage {
     storage: number
 }
 
+/** Metadata uniquely identifying a user. */
 export interface User {
     /* eslint-disable @typescript-eslint/naming-convention */
     pk: Subject
@@ -218,6 +222,7 @@ export interface User {
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+/** Backend representation of user permission types. */
 export enum PermissionAction {
     own = 'Own',
     execute = 'Execute',
@@ -225,6 +230,7 @@ export enum PermissionAction {
     read = 'Read',
 }
 
+/** User permissions for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
@@ -239,6 +245,7 @@ export interface BaseAsset {
     permissions: UserPermission[] | null
 }
 
+/** All possible types of directory entries. */
 export enum AssetType {
     project = 'project',
     file = 'file',
@@ -246,6 +253,7 @@ export enum AssetType {
     directory = 'directory',
 }
 
+/** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType {
     [AssetType.project]: ProjectId
     [AssetType.file]: FileId
@@ -316,6 +324,7 @@ export interface CreateTagRequestBody {
     objectId: string
 }
 
+/** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId?: string
 }
@@ -342,6 +351,7 @@ export interface ListVersionsRequestParams {
 // === Type guards ===
 // ===================
 
+/** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
 }

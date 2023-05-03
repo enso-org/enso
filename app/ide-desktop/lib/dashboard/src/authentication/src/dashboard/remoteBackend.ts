@@ -130,7 +130,7 @@ interface ListVersionsResponseBody {
 export class RemoteBackend implements backend.Backend {
     readonly platform = platformModule.Platform.cloud
 
-    /** Creates a new instance of the {@link RemoteBackend} API client.
+    /** Create a new instance of the {@link RemoteBackend} API client.
      *
      * @throws An error if the `Authorization` header is not set on the given `client`. */
     constructor(
@@ -146,20 +146,20 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Logs an error message and throws an {@link Error} with the specified message.
+    /** Log an error message and throws an {@link Error} with the specified message.
      * @throws {Error} Always. */
     throw(message: string): never {
         this.logger.error(message)
         throw new Error(message)
     }
 
-    /** Sets the username of the current user, on the Cloud backend API. */
+    /** Set the username of the current user. */
     async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
         return await response.json()
     }
 
-    /** Returns organization info for the current user, from the Cloud backend API.
+    /** Return organization info for the current user.
      *
      * @returns `null` if any status code other than 200 OK was received. */
     async usersMe(): Promise<backend.UserOrOrganization | null> {
@@ -171,7 +171,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns a list of assets in a directory, from the Cloud backend API.
+    /** Return a list of assets in a directory.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async listDirectory(query: backend.ListDirectoryRequestParams): Promise<backend.Asset[]> {
@@ -198,7 +198,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Creates a directory, on the Cloud backend API.
+    /** Create a directory.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async createDirectory(body: backend.CreateDirectoryRequestBody): Promise<backend.Directory> {
@@ -210,7 +210,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns a list of projects belonging to the current user, from the Cloud backend API.
+    /** Return a list of projects belonging to the current user.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async listProjects(): Promise<backend.ListedProject[]> {
@@ -232,7 +232,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Creates a project for the current user, on the Cloud backend API.
+    /** Create a project.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
@@ -244,7 +244,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Closes the project identified by the given project ID, on the Cloud backend API.
+    /** Close a project.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async closeProject(projectId: backend.ProjectId): Promise<void> {
@@ -256,7 +256,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns project details for the specified project ID, from the Cloud backend API.
+    /** Return details for a project.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
@@ -279,7 +279,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Sets project to an open state, on the Cloud backend API.
+    /** Prepare a project for execution.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async openProject(
@@ -294,7 +294,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Updates project's name or AMI, on the Cloud backend API.
+    /** Update the name or AMI of a project.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async projectUpdate(
@@ -309,7 +309,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Deletes project, on the Cloud backend API.
+    /** Delete a project.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async deleteProject(projectId: backend.ProjectId): Promise<void> {
@@ -321,7 +321,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns project memory, processor and storage usage, from the Cloud backend API.
+    /** Return the resource usage of a project.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async checkResources(projectId: backend.ProjectId): Promise<backend.ResourceUsage> {
@@ -333,7 +333,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns a list of files accessible by the current user, from the Cloud backend API.
+    /** Return a list of files accessible by the current user.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async listFiles(): Promise<backend.File[]> {
@@ -345,7 +345,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Uploads a file, to the Cloud backend API.
+    /** Upload a file.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async uploadFile(
@@ -379,7 +379,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Deletes a file, on the Cloud backend API.
+    /** Delete a file.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async deleteFile(fileId: backend.FileId): Promise<void> {
@@ -391,7 +391,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Creates a secret environment variable, on the Cloud backend API.
+    /** Create a secret environment variable.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretAndInfo> {
@@ -403,7 +403,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns a secret environment variable, from the Cloud backend API.
+    /** Return a secret environment variable.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async getSecret(secretId: backend.SecretId): Promise<backend.Secret> {
@@ -415,7 +415,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns the secret environment variables accessible by the user, from the Cloud backend API.
+    /** Return the secret environment variables accessible by the user.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async listSecrets(): Promise<backend.SecretInfo[]> {
@@ -427,7 +427,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Deletes a secret environment variable, on the Cloud backend API.
+    /** Delete a secret environment variable.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async deleteSecret(secretId: backend.SecretId): Promise<void> {
@@ -439,7 +439,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Creates a file tag or project tag, on the Cloud backend API.
+    /** Create a file tag or project tag.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async createTag(body: backend.CreateTagRequestBody): Promise<backend.TagInfo> {
@@ -458,7 +458,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns file tags or project tags accessible by the user, from the Cloud backend API.
+    /** Return file tags or project tags accessible by the user.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async listTags(params: backend.ListTagsRequestParams): Promise<backend.Tag[]> {
@@ -477,7 +477,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Deletes a secret environment variable, on the Cloud backend API.
+    /** Delete a secret environment variable.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async deleteTag(tagId: backend.TagId): Promise<void> {
@@ -489,7 +489,7 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Returns list of backend or IDE versions, from the Cloud backend API.
+    /** Return list of backend or IDE versions.
      *
      * @throws An error if any status code other than 200 OK was received. */
     async listVersions(
@@ -511,27 +511,27 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Sends an HTTP GET request to the given path. */
+    /** Send an HTTP GET request to the given path. */
     private get<T = void>(path: string) {
         return this.client.get<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
     }
 
-    /** Sends a JSON HTTP POST request to the given path. */
+    /** Send a JSON HTTP POST request to the given path. */
     private post<T = void>(path: string, payload: object) {
         return this.client.post<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
-    /** Sends a binary HTTP POST request to the given path. */
+    /** Send a binary HTTP POST request to the given path. */
     private postBase64<T = void>(path: string, payload: Blob) {
         return this.client.postBase64<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
-    /** Sends a JSON HTTP PUT request to the given path. */
+    /** Send a JSON HTTP PUT request to the given path. */
     private put<T = void>(path: string, payload: object) {
         return this.client.put<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
-    /** Sends an HTTP DELETE request to the given path. */
+    /** Send an HTTP DELETE request to the given path. */
     private delete<T = void>(path: string) {
         return this.client.delete<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
     }

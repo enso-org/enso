@@ -13,7 +13,7 @@ import UserMenu from './userMenu'
 // ==============
 
 /** Props for a {@link TopBar}. */
-interface TopBarProps {
+export interface TopBarProps {
     platform: platformModule.Platform
     projectName: string | null
     tab: dashboard.Tab

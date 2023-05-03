@@ -131,10 +131,13 @@ interface StringConfig {
 class Main implements AppRunner {
     app: app.App | null = null
 
+    /** Stop an app instance, if one is running. */
     stopApp() {
         this.app?.stop()
     }
 
+    /** Run an app instance with the specified configuration.
+     * This includes the scene to run and the WebSocket endpoints to the backend. */
     async runApp(inputConfig?: StringConfig) {
         this.stopApp()
 

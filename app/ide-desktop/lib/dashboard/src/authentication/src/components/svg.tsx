@@ -254,6 +254,7 @@ export const COMPUTER_ICON = (
     </svg>
 )
 
+/** Props for a {@link StopIcon}. */
 export interface StopIconProps {
     className?: string
 }

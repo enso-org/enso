@@ -19,38 +19,48 @@ const STOP_TRYING_AFTER_MS = 10000
 // === Types ===
 // =============
 
+/** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
     fail = 'Fail',
     install = 'Install',
     forceInstallBroken = 'ForceInstallBroken',
 }
 
+/** Metadata for a JSON-RPC error. */
 interface JSONRPCError {
     code: number
     message: string
     data?: unknown
 }
 
+/** Fields common to all return values of any JSON-RPC call. */
 interface JSONRPCBaseResponse {
     jsonrpc: '2.0'
     id: number
 }
 
+/** The return value of a successful JSON-RPC call. */
 interface JSONRPCSuccessResponse<T> extends JSONRPCBaseResponse {
     result: T
 }
 
+/** The return value of a failed JSON-RPC call. */
 interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
     error: JSONRPCError
 }
 
+/** The return value of a JSON-RPC call. */
 type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 
 // This intentionally has the same brand as in the cloud backend API.
+/** An ID of a project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+/** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
+/** A value containing a date and a UTC time. */
 export type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
 
+/** Details for a project. */
 export interface ProjectMetadata {
     name: ProjectName
     namespace: string
@@ -59,19 +69,23 @@ export interface ProjectMetadata {
     lastOpened: UTCDateTime | null
 }
 
+/** A value specifying the hostname and port of a socket. */
 export interface IpWithSocket {
     host: string
     port: number
 }
 
+/** The return value of the "list projects" endpoint. */
 export interface ProjectList {
     projects: ProjectMetadata[]
 }
 
+/** The return value of the "create project" endpoint. */
 export interface CreateProject {
     projectId: ProjectId
 }
 
+/** The return value of the "open project" endpoint. */
 export interface OpenProject {
     engineVersion: string
     languageServerJsonAddress: IpWithSocket
@@ -84,19 +98,23 @@ export interface OpenProject {
 // === Parameters for endpoints ===
 // ================================
 
+/** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
     projectId: ProjectId
     missingComponentAction: MissingComponentAction
 }
 
+/** Parameters for the "close project" endpoint. */
 export interface CloseProjectParams {
     projectId: ProjectId
 }
 
+/** Parameters for the "list projects" endpoint. */
 export interface ListProjectsParams {
     numberOfProjects?: number
 }
 
+/** Parameters for the "create project" endpoint. */
 export interface CreateProjectParams {
     name: ProjectName
     projectTemplate?: string
@@ -104,15 +122,18 @@ export interface CreateProjectParams {
     missingComponentAction?: MissingComponentAction
 }
 
+/** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
     projectId: ProjectId
     name: ProjectName
 }
 
+/** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
     projectId: ProjectId
 }
 
+/** Parameters for the "list samples" endpoint. */
 export interface ListSamplesParams {
     projectId: ProjectId
 }
@@ -221,6 +242,7 @@ export class ProjectManager {
         return this.sendRequest<ProjectList>('project/listSample', params)
     }
 
+    /** Remove all handlers for a specified request ID. */
     private cleanup(id: number) {
         this.resolvers.delete(id)
         this.rejecters.delete(id)
