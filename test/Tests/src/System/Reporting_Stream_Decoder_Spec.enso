@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
+import Standard.Base.Runtime.Context
 
 polyglot java import java.nio.CharBuffer
 
@@ -24,7 +25,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should work correctly when reading chunks of varying sizes" <|
+        Test.specify "should work correctly when reading chunks of varying sizes" <| Context.Output.with_enabled <|
             f = enso_project.data / "transient" / "varying_chunks.txt"
             fragment = 'Hello 😎🚀🚧!'
             contents = 1.up_to 1000 . map _->fragment . join '\n'

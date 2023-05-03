@@ -22,7 +22,7 @@ function ChangePasswordModal() {
     const [newPassword, setNewPassword] = react.useState('')
     const [confirmNewPassword, setConfirmNewPassword] = react.useState('')
 
-    const handleSubmit = async () => {
+    const onSubmit = async () => {
         if (newPassword !== confirmNewPassword) {
             toast.error('Passwords do not match.')
         } else {
@@ -48,7 +48,7 @@ function ChangePasswordModal() {
                     <form
                         onSubmit={async event => {
                             event.preventDefault()
-                            await handleSubmit()
+                            await onSubmit()
                         }}
                     >
                         <div className="flex flex-col mb-6">

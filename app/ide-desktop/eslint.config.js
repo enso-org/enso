@@ -215,7 +215,11 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
-        message: 'Avoid destructuring parameters in the parameter list',
+        message: 'Destructure function parameters in the body instead of in the parameter list',
+    },
+    {
+        selector: 'IfStatement > ExpressionStatement',
+        message: 'Wrap `if` branches in `{}`',
     },
 ]
 

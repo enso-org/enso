@@ -6,8 +6,19 @@
 // === Module declarations ===
 // ===========================
 
-declare module '*.yaml' {
-    const DATA: unknown
+declare module '*/gui/config.yaml' {
+    /** Content of the GUI config file. */
+    interface Config {
+        windowAppScopeName: string
+        windowAppScopeConfigName: string
+        windowAppScopeThemeName: string
+        projectManagerEndpoint: string
+        minimumSupportedVersion: string
+        engineVersionSupported: string
+        languageEditionSupported: string
+    }
+
+    const DATA: Config
     export default DATA
 }
 

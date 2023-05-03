@@ -18,7 +18,7 @@ final class EmptyUserConfigReader extends SystemReader {
 
   /** @inheritdoc */
   override def getHostname: String =
-    proxy.getHostname
+    "localhost"
 
   /** @inheritdoc */
   override def getenv(variable: String): String = {

@@ -1,6 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Metadata.Display
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 
@@ -95,18 +100,27 @@ type Connection
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## PRIVATE
-       Returns a materialized Table of all the matching views and tables.
+    ## Returns a materialized Table of all the matching views and tables.
+
+       ? Temporary Tables
+
+         Note that the temporary tables may be created in a different schema
+         than the current one, so take this into account when filtering by schema.
 
        Arguments:
        - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
          means all tables are selected.
        - database: The database name to search in (default is current database).
-       - schema: The schema name to search in (defaults to current schema).
-       - types: The table types to search for. The list of possible values can be obtained using the `table_types` method.
+       - schema: The schema name to search in (defaults to `Nothing`, meaning all
+         schemas are searched).
+       - types: The table types to search for. The list of possible values can
+         be obtained using the `table_types` method. Defaults to a set of most
+         commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
+    @types make_table_types_selector
+    @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
-    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
@@ -133,11 +147,12 @@ type Connection
            raised.
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
+    @query make_table_name_selector
     query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
-                if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
+                if (all_known_table_names self).contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
             result.catch SQL_Error sql_error->
                 case self.dialect.is_probably_a_query query of
@@ -167,6 +182,7 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
+    @query make_table_name_selector
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing =
         self.query query . read max_rows=limit
@@ -218,3 +234,22 @@ type Connection
     drop_table : Text -> Nothing
     drop_table self table_name =
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))
+
+## PRIVATE
+make_table_types_selector connection =
+    Single_Choice values=(connection.table_types.map t-> Option t t.pretty)
+
+## PRIVATE
+make_schema_selector connection =
+    schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
+    Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
+
+## PRIVATE
+all_known_table_names connection =
+    tables = connection.tables name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False
+    tables.at "Name" . to_vector
+
+## PRIVATE
+make_table_name_selector connection =
+    tables_to_display = connection.tables.at "Name" . to_vector
+    Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)

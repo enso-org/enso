@@ -46,7 +46,7 @@ public class WarningBenchmarks extends TestBase {
     public void initializeBench(BenchmarkParams params) throws IOException {
         ctx = createDefaultContext();
 
-        benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+        benchmarkName = SrcUtil.findName(params);
 
         var code = """
         from Standard.Base import all

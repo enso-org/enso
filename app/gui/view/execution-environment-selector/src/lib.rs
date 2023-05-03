@@ -212,7 +212,7 @@ impl component::Model for Model {
         scene.layers.panel.add(&inner_root);
         scene.layers.panel.add(&dropdown);
         scene.layers.panel.add(&divider);
-
+        scene.layers.panel_background_rect_level_1.add(&background);
         dropdown.set_label_layer(&scene.layers.panel_text);
 
         Self { display_object, background, play_button, dropdown, inner_root, divider }

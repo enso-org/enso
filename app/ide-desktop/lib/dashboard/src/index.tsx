@@ -41,4 +41,5 @@ authentication.run({
     onAuthenticated() {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
     },
+    appRunner: null,
 })

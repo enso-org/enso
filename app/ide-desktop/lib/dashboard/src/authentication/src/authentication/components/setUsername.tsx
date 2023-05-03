@@ -14,7 +14,7 @@ import SvgIcon from './svgIcon'
 /** A form for users to set their username upon registration. */
 function SetUsername() {
     const { setUsername: authSetUsername } = auth.useAuth()
-    const { accessToken, email } = auth.usePartialUserSession()
+    const { email } = auth.usePartialUserSession()
 
     const [username, setUsername] = react.useState('')
 
@@ -33,7 +33,7 @@ function SetUsername() {
                     <form
                         onSubmit={async event => {
                             event.preventDefault()
-                            await authSetUsername(accessToken, username, email)
+                            await authSetUsername(username, email)
                         }}
                     >
                         <div className="flex flex-col mb-6">

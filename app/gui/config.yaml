@@ -11,6 +11,10 @@ windowAppScopeConfigName: "config"
 # utilities and allowing for runtime theme modification.
 windowAppScopeThemeName: "theme"
 
+# The URL to the JSON-RPC endpoint to the Project Manager.
+# This MUST be kept in sync with the corresponding value in `app/gui/src/constants.rs`.
+projectManagerEndpoint: "ws://127.0.0.1:30535"
+
 # TODO [ao] add description here.
 minimumSupportedVersion": "2.0.0-alpha.6"
 

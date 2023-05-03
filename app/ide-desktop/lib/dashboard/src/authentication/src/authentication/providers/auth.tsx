@@ -9,10 +9,14 @@ import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
 import * as authServiceModule from '../service'
-import * as backendService from '../../dashboard/service'
+import * as backendModule from '../../dashboard/backend'
+import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
+import * as http from '../../http'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
+import * as platform from '../../platform'
+import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
 // =================
@@ -51,7 +55,7 @@ export interface FullUserSession {
     /** User's email address. */
     email: string
     /** User's organization information. */
-    organization: backendService.UserOrOrganization
+    organization: backendModule.UserOrOrganization
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -84,7 +88,7 @@ export interface PartialUserSession {
 interface AuthContextType {
     signUp: (email: string, password: string) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
-    setUsername: (accessToken: string, username: string, email: string) => Promise<boolean>
+    setUsername: (username: string, email: string) => Promise<boolean>
     signInWithGoogle: () => Promise<boolean>
     signInWithGitHub: () => Promise<boolean>
     signInWithPassword: (email: string, password: string) => Promise<boolean>
@@ -142,6 +146,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const { authService, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
+    const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
     const onAuthenticated = react.useCallback(props.onAuthenticated, [])
@@ -160,8 +165,11 @@ export function AuthProvider(props: AuthProviderProps) {
                 setUserSession(null)
             } else {
                 const { accessToken, email } = session.val
-
-                const backend = backendService.createBackend(accessToken, logger)
+                const headers = new Headers()
+                headers.append('Authorization', `Bearer ${accessToken}`)
+                const client = new http.Client(headers)
+                const backend = new remoteBackend.RemoteBackend(client, logger)
+                setBackend(backend)
                 const organization = await backend.usersMe()
                 let newUserSession: UserSession
                 if (!organization) {
@@ -255,19 +263,23 @@ export function AuthProvider(props: AuthProviderProps) {
         return result.ok
     }
 
-    const setUsername = async (accessToken: string, username: string, email: string) => {
-        /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/343
-         * The API client is reinitialised on every request. That is an inefficient way of usage.
-         * Fix it by using React context and implementing it as a singleton. */
-        const backend = backendService.createBackend(accessToken, logger)
-
-        await backend.createUser({
-            userName: username,
-            userEmail: newtype.asNewtype<backendService.EmailAddress>(email),
-        })
-        navigate(app.DASHBOARD_PATH)
-        toast.success(MESSAGES.setUsernameSuccess)
-        return true
+    const setUsername = async (username: string, email: string) => {
+        const { backend } = backendProvider.useBackend()
+        if (backend.platform === platform.Platform.desktop) {
+            throw new Error('')
+        } else {
+            try {
+                await backend.createUser({
+                    userName: username,
+                    userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                })
+                navigate(app.DASHBOARD_PATH)
+                toast.success(MESSAGES.setUsernameSuccess)
+                return true
+            } catch {
+                return false
+            }
+        }
     }
 
     const forgotPassword = async (email: string) => {

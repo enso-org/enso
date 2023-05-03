@@ -1,4 +1,6 @@
 /** @file Renders the list of templates from which a project can be created. */
+import * as backendProvider from '../../providers/backend'
+import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
 // =================
@@ -10,36 +12,69 @@ interface Template {
     title: string
     description: string
     id: string
+    background: string
 }
 
-/** All templates for creating projects that have contents. */
-const TEMPLATES: Template[] = [
+/** The full list of templates available to cloud projects. */
+const CLOUD_TEMPLATES: Template[] = [
     {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',
         description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
+        background: '#6b7280',
     },
     {
         title: 'KMeans',
         id: 'Kmeans',
         description: 'Learn where to open a coffee shop to maximize your income.',
+        background: '#6b7280',
     },
     {
         title: 'NASDAQ Returns',
         id: 'NASDAQ_Returns',
         description: 'Learn how to clean your data to prepare it for advanced analysis.',
+        background: '#6b7280',
     },
     {
         title: 'Restaurants',
         id: 'Orders',
         description: 'Learn how to clean your data to prepare it for advanced analysis.',
+        background: '#6b7280',
     },
     {
         title: 'Github Stars',
         id: 'Stargazers',
         description: 'Learn how to clean your data to prepare it for advanced analysis.',
+        background: '#6b7280',
     },
 ]
+
+/** The full list of templates available to local projects. */
+const DESKTOP_TEMPLATES: Template[] = [
+    {
+        title: 'Combine spreadsheets',
+        id: 'Orders',
+        description: 'Glue multiple spreadsheets together to analyse all your data at once.',
+        background: 'url("/spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
+    },
+    {
+        title: 'Geospatial analysis',
+        id: 'Restaurants',
+        description: 'Learn where to open a coffee shop to maximize your income.',
+        background: 'url("/geo.png") center / cover',
+    },
+    {
+        title: 'Analyze GitHub stars',
+        id: 'Stargazers',
+        description: "Find out which of Enso's repositories are most popular over time.",
+        background: 'url("/visualize.png") center / cover',
+    },
+]
+
+const TEMPLATES: Record<platformModule.Platform, Template[]> = {
+    [platformModule.Platform.cloud]: CLOUD_TEMPLATES,
+    [platformModule.Platform.desktop]: DESKTOP_TEMPLATES,
+}
 
 // =======================
 // === TemplatesRender ===
@@ -84,7 +119,12 @@ function TemplatesRender(props: TemplatesRenderProps) {
                         onTemplateClick(template.id)
                     }}
                 >
-                    <div className="flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left bg-cover bg-gray-500">
+                    <div
+                        style={{
+                            background: template.background,
+                        }}
+                        className="flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left"
+                    >
                         <div className="bg-black bg-opacity-30 px-4 py-2">
                             <h2 className="text-sm font-bold">{template.title}</h2>
                             <div className="text-xs h-16 text-ellipsis py-2">
@@ -104,17 +144,22 @@ function TemplatesRender(props: TemplatesRenderProps) {
 
 /** Props for a {@link Templates}. */
 export interface TemplatesProps {
-    onTemplateClick: (name: string | null) => void
+    onTemplateClick: (name?: string | null) => void
 }
 
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
+    const { backend } = backendProvider.useBackend()
+
     return (
-        <div className="bg-white">
+        <div className="bg-white my-2">
             <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
+                    <TemplatesRender
+                        templates={TEMPLATES[backend.platform]}
+                        onTemplateClick={onTemplateClick}
+                    />
                 </div>
             </div>
         </div>

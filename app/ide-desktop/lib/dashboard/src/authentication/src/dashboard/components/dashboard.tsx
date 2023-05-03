@@ -2,18 +2,21 @@
  * interactive components. */
 import * as react from 'react'
 
-import * as projectManagerModule from 'enso-content/src/project_manager'
-
-import * as auth from '../../authentication/providers/auth'
-import * as backend from '../service'
+import * as backendModule from '../backend'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
-import * as loggerProvider from '../../providers/logger'
-import * as modalProvider from '../../providers/modal'
+import * as http from '../../http'
+import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
 import * as platformModule from '../../platform'
+import * as remoteBackendModule from '../remoteBackend'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
+
+import * as auth from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import ContextMenu from './contextMenu'
@@ -74,8 +77,7 @@ enum Column {
 export interface CreateFormProps {
     left: number
     top: number
-    backend: backend.Backend
-    directoryId: backend.DirectoryId
+    directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
@@ -83,30 +85,34 @@ export interface CreateFormProps {
 // === Constants ===
 // =================
 
-/** Enables features which are not ready for release,
- * and so are intentionally disabled for release builds. */
-// This type annotation is explicit to undo TypeScript narrowing to `false`,
-// which result in errors about unused code.
-// eslint-disable-next-line @typescript-eslint/no-inferrable-types
-const EXPERIMENTAL: boolean = true
+/** Feature flags to enable or disable experimental features. */
+const EXPERIMENTAL = {
+    /** A selector that lets the user choose between pre-defined sets of visible columns. */
+    columnModeSwitcher: false,
+}
 
+/** The `id` attribute of the element into which the IDE will be rendered. */
+const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
 
 /** English names for the name column. */
-const ASSET_TYPE_NAME: Record<backend.AssetType, string> = {
-    [backend.AssetType.project]: 'Projects',
-    [backend.AssetType.file]: 'Files',
-    [backend.AssetType.secret]: 'Secrets',
-    [backend.AssetType.directory]: 'Folders',
+const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
+    [backendModule.AssetType.project]: 'Projects',
+    [backendModule.AssetType.file]: 'Files',
+    [backendModule.AssetType.secret]: 'Secrets',
+    [backendModule.AssetType.directory]: 'Folders',
 } as const
 
 /** Forms to create each asset type. */
-const ASSET_TYPE_CREATE_FORM: Record<backend.AssetType, (props: CreateFormProps) => JSX.Element> = {
-    [backend.AssetType.project]: ProjectCreateForm,
-    [backend.AssetType.file]: FileCreateForm,
-    [backend.AssetType.secret]: SecretCreateForm,
-    [backend.AssetType.directory]: DirectoryCreateForm,
+const ASSET_TYPE_CREATE_FORM: Record<
+    backendModule.AssetType,
+    (props: CreateFormProps) => JSX.Element
+> = {
+    [backendModule.AssetType.project]: ProjectCreateForm,
+    [backendModule.AssetType.file]: FileCreateForm,
+    [backendModule.AssetType.secret]: SecretCreateForm,
+    [backendModule.AssetType.directory]: DirectoryCreateForm,
 }
 
 /** English names for every column except for the name column. */
@@ -122,23 +128,23 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 } as const
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
-const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions> = {
-    [backend.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
-    [backend.PermissionAction.execute]: {
+const PERMISSION: Record<backendModule.PermissionAction, permissionDisplay.Permissions> = {
+    [backendModule.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
+    [backendModule.PermissionAction.execute]: {
         type: permissionDisplay.Permission.regular,
         read: false,
         write: false,
         docsWrite: false,
         exec: true,
     },
-    [backend.PermissionAction.edit]: {
+    [backendModule.PermissionAction.edit]: {
         type: permissionDisplay.Permission.regular,
         read: false,
         write: true,
         docsWrite: false,
         exec: false,
     },
-    [backend.PermissionAction.read]: {
+    [backendModule.PermissionAction.read]: {
         type: permissionDisplay.Permission.regular,
         read: true,
         write: false,
@@ -182,9 +188,9 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 // ========================
 
 /** Return the id of the root directory for a user or organization. */
-function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
-    return newtype.asNewtype<backend.DirectoryId>(
-        userOrOrganizationId.replace(/^organization-/, `${backend.AssetType.directory}-`)
+function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationId) {
+    return newtype.asNewtype<backendModule.DirectoryId>(
+        userOrOrganizationId.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
     )
 }
 
@@ -193,34 +199,22 @@ function rootDirectoryId(userOrOrganizationId: backend.UserOrOrganizationId) {
 // =================
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
-interface DashboardPropsBase {
-    logger: loggerProvider.Logger
+export interface DashboardProps {
     platform: platformModule.Platform
+    appRunner: AppRunner | null
 }
-
-/** Props for a {@link Dashboard}, when on the desktop platform. */
-interface DashboardPropsDesktop extends DashboardPropsBase {
-    platform: platformModule.Platform.desktop
-    projectManager: projectManagerModule.ProjectManager
-}
-
-/** Props for a {@link Dashboard}, when on a platform that is not the desktop platform. */
-interface DashboardPropsOther extends DashboardPropsBase {
-    platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
-}
-
-/** Props for a {@link Dashboard}. */
-export type DashboardProps = DashboardPropsDesktop | DashboardPropsOther
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { logger, platform } = props
+    const { platform, appRunner } = props
 
+    const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
-    const backendService = backend.createBackend(accessToken, logger)
+    const { backend } = backendProvider.useBackend()
+    const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
@@ -229,60 +223,85 @@ function Dashboard(props: DashboardProps) {
     const [query, setQuery] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
-        backend.Asset<backend.AssetType.directory>[]
+        backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
+    const [tab, setTab] = react.useState(Tab.dashboard)
+    const [project, setProject] = react.useState<backendModule.Project | null>(null)
+    const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
+    const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
     const [projectAssets, setProjectAssetsRaw] = react.useState<
-        backend.Asset<backend.AssetType.project>[]
+        backendModule.Asset<backendModule.AssetType.project>[]
     >([])
     const [directoryAssets, setDirectoryAssetsRaw] = react.useState<
-        backend.Asset<backend.AssetType.directory>[]
+        backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     const [secretAssets, setSecretAssetsRaw] = react.useState<
-        backend.Asset<backend.AssetType.secret>[]
+        backendModule.Asset<backendModule.AssetType.secret>[]
     >([])
-    const [fileAssets, setFileAssetsRaw] = react.useState<backend.Asset<backend.AssetType.file>[]>(
-        []
-    )
+    const [fileAssets, setFileAssetsRaw] = react.useState<
+        backendModule.Asset<backendModule.AssetType.file>[]
+    >([])
     const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
-        backend.Asset<backend.AssetType.project>[]
+        backendModule.Asset<backendModule.AssetType.project>[]
     >([])
     const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState<
-        backend.Asset<backend.AssetType.directory>[]
+        backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     const [visibleSecretAssets, setVisibleSecretAssets] = react.useState<
-        backend.Asset<backend.AssetType.secret>[]
+        backendModule.Asset<backendModule.AssetType.secret>[]
     >([])
     const [visibleFileAssets, setVisibleFileAssets] = react.useState<
-        backend.Asset<backend.AssetType.file>[]
+        backendModule.Asset<backendModule.AssetType.file>[]
     >([])
-
-    const [tab, setTab] = react.useState(Tab.dashboard)
-    const [project, setProject] = react.useState<backend.Project | null>(null)
-
-    const [selectedAssets, setSelectedAssets] = react.useState<backend.Asset[]>([])
-    const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
-    const setProjectAssets = (newProjectAssets: backend.Asset<backend.AssetType.project>[]) => {
+    react.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (
+                // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
+                (event.key === 'd' || event.key === '∂') &&
+                event.ctrlKey &&
+                event.altKey &&
+                !event.shiftKey &&
+                !event.metaKey
+            ) {
+                setTab(Tab.dashboard)
+                const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                if (ideElement) {
+                    ideElement.hidden = true
+                }
+            }
+        }
+        document.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.removeEventListener('keydown', onKeyDown)
+        }
+    }, [])
+
+    const setProjectAssets = (
+        newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
+    ) => {
         setProjectAssetsRaw(newProjectAssets)
         setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
     }
     const setDirectoryAssets = (
-        newDirectoryAssets: backend.Asset<backend.AssetType.directory>[]
+        newDirectoryAssets: backendModule.Asset<backendModule.AssetType.directory>[]
     ) => {
         setDirectoryAssetsRaw(newDirectoryAssets)
         setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
     }
-    const setSecretAssets = (newSecretAssets: backend.Asset<backend.AssetType.secret>[]) => {
+    const setSecretAssets = (
+        newSecretAssets: backendModule.Asset<backendModule.AssetType.secret>[]
+    ) => {
         setSecretAssetsRaw(newSecretAssets)
         setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
     }
-    const setFileAssets = (newFileAssets: backend.Asset<backend.AssetType.file>[]) => {
+    const setFileAssets = (newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) => {
         setFileAssetsRaw(newFileAssets)
         setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
     }
@@ -295,7 +314,9 @@ function Dashboard(props: DashboardProps) {
         )
     }
 
-    const enterDirectory = (directoryAsset: backend.Asset<backend.AssetType.directory>) => {
+    const enterDirectory = (
+        directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
+    ) => {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
@@ -305,7 +326,7 @@ function Dashboard(props: DashboardProps) {
         if (cachedDirectoryStackJson) {
             // The JSON was inserted by the code below, so it will always have the right type.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const cachedDirectoryStack: backend.Asset<backend.AssetType.directory>[] =
+            const cachedDirectoryStack: backendModule.Asset<backendModule.AssetType.directory>[] =
                 JSON.parse(cachedDirectoryStackJson)
             setDirectoryStack(cachedDirectoryStack)
             const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
@@ -325,9 +346,9 @@ function Dashboard(props: DashboardProps) {
 
     /** React components for the name column. */
     const nameRenderers: {
-        [Type in backend.AssetType]: (asset: backend.Asset<Type>) => JSX.Element
+        [Type in backendModule.AssetType]: (asset: backendModule.Asset<Type>) => JSX.Element
     } = {
-        [backend.AssetType.project]: projectAsset => (
+        [backendModule.AssetType.project]: projectAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -346,15 +367,23 @@ function Dashboard(props: DashboardProps) {
             >
                 <ProjectActionButton
                     project={projectAsset}
+                    appRunner={appRunner}
+                    onClose={() => {
+                        setProject(null)
+                    }}
                     openIde={async () => {
                         setTab(Tab.ide)
-                        setProject(await backendService.getProjectDetails(projectAsset.id))
+                        setProject(await backend.getProjectDetails(projectAsset.id))
+                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                        if (ideElement) {
+                            ideElement.hidden = false
+                        }
                     }}
                 />
                 <span className="px-2">{projectAsset.title}</span>
             </div>
         ),
-        [backend.AssetType.directory]: directoryAsset => (
+        [backendModule.AssetType.directory]: directoryAsset => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -377,7 +406,7 @@ function Dashboard(props: DashboardProps) {
                 {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
             </div>
         ),
-        [backend.AssetType.secret]: secret => (
+        [backendModule.AssetType.secret]: secret => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -397,7 +426,7 @@ function Dashboard(props: DashboardProps) {
                 {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
             </div>
         ),
-        [backend.AssetType.file]: file => (
+        [backendModule.AssetType.file]: file => (
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
@@ -425,7 +454,7 @@ function Dashboard(props: DashboardProps) {
     // eslint-disable-next-line no-restricted-syntax
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: backend.Asset) => JSX.Element
+        (asset: backendModule.Asset) => JSX.Element
     > = {
         [Column.lastModified]: () => <></>,
         [Column.sharedWith]: asset => (
@@ -471,17 +500,16 @@ function Dashboard(props: DashboardProps) {
         [Column.ide]: () => <></>,
     }
 
-    const renderer = <Type extends backend.AssetType>(column: Column, assetType: Type) => {
+    const renderer = <Type extends backendModule.AssetType>(column: Column, assetType: Type) => {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
-
               // eslint-disable-next-line no-restricted-syntax
-              (nameRenderers[assetType] as (asset: backend.Asset<Type>) => JSX.Element)
+              (nameRenderers[assetType] as (asset: backendModule.Asset<Type>) => JSX.Element)
             : columnRenderer[column]
     }
 
     /** Heading element for every column. */
-    const ColumnHeading = (column: Column, assetType: backend.AssetType) =>
+    const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
             <div className="inline-flex">
                 {ASSET_TYPE_NAME[assetType]}
@@ -500,8 +528,6 @@ function Dashboard(props: DashboardProps) {
                             <CreateForm
                                 left={buttonPosition.left}
                                 top={buttonPosition.top}
-                                // FIXME[sb]: Don't pass outdated `doRefresh` - maybe `backendService` too.
-                                backend={backendService}
                                 directoryId={directoryId}
                                 onSuccess={doRefresh}
                             />
@@ -523,11 +549,17 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
     }, [query])
 
-    const setAssets = (assets: backend.Asset[]) => {
-        const newProjectAssets = assets.filter(backend.assetIsType(backend.AssetType.project))
-        const newDirectoryAssets = assets.filter(backend.assetIsType(backend.AssetType.directory))
-        const newSecretAssets = assets.filter(backend.assetIsType(backend.AssetType.secret))
-        const newFileAssets = assets.filter(backend.assetIsType(backend.AssetType.file))
+    const setAssets = (assets: backendModule.Asset[]) => {
+        const newProjectAssets = assets.filter(
+            backendModule.assetIsType(backendModule.AssetType.project)
+        )
+        const newDirectoryAssets = assets.filter(
+            backendModule.assetIsType(backendModule.AssetType.directory)
+        )
+        const newSecretAssets = assets.filter(
+            backendModule.assetIsType(backendModule.AssetType.secret)
+        )
+        const newFileAssets = assets.filter(backendModule.assetIsType(backendModule.AssetType.file))
         setProjectAssets(newProjectAssets)
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
@@ -537,36 +569,12 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            let assets: backend.Asset[]
-
-            switch (platform) {
-                case platformModule.Platform.cloud: {
-                    assets = await backendService.listDirectory({
-                        parentId: directoryId,
-                    })
-                    break
-                }
-                case platformModule.Platform.desktop: {
-                    const result = await props.projectManager.listProjects({})
-                    const localProjects = result.result.projects
-                    assets = []
-                    for (const localProject of localProjects) {
-                        assets.push({
-                            type: backend.AssetType.project,
-                            title: localProject.name,
-                            id: localProject.id,
-                            parentId: '',
-                            permissions: null,
-                        })
-                    }
-                    break
-                }
-            }
+            const assets = await backend.listDirectory({ parentId: directoryId })
             if (!signal.aborted) {
                 setAssets(assets)
             }
         },
-        [accessToken, directoryId, refresh]
+        [accessToken, directoryId, refresh, backend]
     )
 
     react.useEffect(() => {
@@ -615,191 +623,189 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    const handleCreateProject = async (templateName: string | null) => {
+    const handleCreateProject = async (templateName?: string | null) => {
         const projectName = getNewProjectName(templateName)
-        switch (platform) {
-            case platformModule.Platform.cloud: {
-                const body: backend.CreateProjectRequestBody = {
-                    projectName,
-                    projectTemplateName:
-                        templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
-                    parentDirectoryId: directoryId,
-                }
-                if (templateName) {
-                    body.projectTemplateName = templateName.replace(/_/g, '').toLocaleLowerCase()
-                }
-                const projectAsset = await backendService.createProject(body)
-                setProjectAssets([
-                    ...projectAssets,
-                    {
-                        type: backend.AssetType.project,
-                        title: projectAsset.name,
-                        id: projectAsset.projectId,
-                        parentId: '',
-                        permissions: [],
-                    },
-                ])
-                break
-            }
-            case platformModule.Platform.desktop: {
-                const result = await props.projectManager.createProject({
-                    name: newtype.asNewtype<projectManagerModule.ProjectName>(projectName),
-                    ...(templateName ? { projectTemplate: templateName } : {}),
-                })
-                const newProject = result.result
-                setProjectAssets([
-                    ...projectAssets,
-                    {
-                        type: backend.AssetType.project,
-                        title: projectName,
-                        id: newProject.projectId,
-                        parentId: '',
-                        permissions: [],
-                    },
-                ])
-                break
-            }
+        const body: backendModule.CreateProjectRequestBody = {
+            projectName,
+            projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
+            parentDirectoryId: directoryId,
         }
+        const projectAsset = await backend.createProject(body)
+        setProjectAssets([
+            ...projectAssets,
+            {
+                type: backendModule.AssetType.project,
+                title: projectAsset.name,
+                id: projectAsset.projectId,
+                parentId: '',
+                permissions: [],
+            },
+        ])
     }
 
     return (
         <div
-            className={`select-none text-primary text-xs min-h-screen ${
+            className={`select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
-            onClick={unsetModal}
+            onClick={event => {
+                unsetModal()
+                if (!event.shiftKey) {
+                    setSelectedAssets([])
+                }
+            }}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
-            <div>
-                <TopBar
-                    projectName={project?.name ?? null}
-                    tab={tab}
-                    toggleTab={() => {
-                        if (project && tab === Tab.dashboard) {
-                            setTab(Tab.ide)
-                        } else {
-                            setTab(Tab.dashboard)
+            <TopBar
+                platform={platform}
+                projectName={project?.name ?? null}
+                tab={tab}
+                toggleTab={() => {
+                    if (project && tab === Tab.dashboard) {
+                        setTab(Tab.ide)
+                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                        if (ideElement) {
+                            ideElement.hidden = false
                         }
-                    }}
-                    query={query}
-                    setQuery={setQuery}
-                />
-                <Templates onTemplateClick={handleCreateProject} />
-                <div className="flex flex-row flex-nowrap">
-                    <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
-                    <div className="flex flex-row flex-nowrap mx-4">
-                        <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                            {directory && (
-                                <>
-                                    <button className="mx-2" onClick={exitDirectory}>
-                                        {parentDirectory?.title ?? '/'}
-                                    </button>
-                                    {svg.SMALL_RIGHT_ARROW_ICON}
-                                </>
-                            )}
-                            <span className="mx-2">{directory?.title ?? '/'}</span>
-                        </div>
-                        <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                            <div className="m-2">Shared with</div>
-                            <div className="-m-1">
-                                <PermissionDisplay
-                                    permissions={{ type: permissionDisplay.Permission.admin }}
-                                >
-                                    marketing
-                                </PermissionDisplay>
-                            </div>
-                        </div>
-                        <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                            <button
-                                className="mx-1"
-                                onClick={event => {
-                                    event.stopPropagation()
-                                    setModal(() => (
-                                        <UploadFileModal
-                                            backend={backendService}
-                                            directoryId={directoryId}
-                                            onSuccess={doRefresh}
-                                        />
-                                    ))
-                                }}
-                            >
-                                {svg.UPLOAD_ICON}
-                            </button>
-                            <button
-                                className={`mx-1 ${
-                                    selectedAssets.length === 0 ? 'opacity-50' : ''
-                                }`}
-                                disabled={selectedAssets.length === 0}
-                                onClick={event => {
-                                    event.stopPropagation()
-                                    /* TODO */
-                                }}
-                            >
-                                {svg.DOWNLOAD_ICON}
-                            </button>
-                        </div>
-                        {EXPERIMENTAL && (
+                    } else {
+                        setTab(Tab.dashboard)
+                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+                        if (ideElement) {
+                            ideElement.hidden = true
+                        }
+                    }
+                }}
+                setBackendPlatform={newBackendPlatform => {
+                    setProjectAssets([])
+                    setDirectoryAssets([])
+                    setSecretAssets([])
+                    setFileAssets([])
+                    switch (newBackendPlatform) {
+                        case platformModule.Platform.desktop:
+                            setBackend(new localBackend.LocalBackend())
+                            break
+                        case platformModule.Platform.cloud: {
+                            const headers = new Headers()
+                            headers.append('Authorization', `Bearer ${accessToken}`)
+                            const client = new http.Client(headers)
+                            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                            break
+                        }
+                    }
+                }}
+                query={query}
+                setQuery={setQuery}
+            />
+            <Templates onTemplateClick={handleCreateProject} />
+            <div className="flex flex-row flex-nowrap my-2">
+                <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
+                <div className="flex flex-row flex-nowrap mx-4">
+                    <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
+                        {directory && (
                             <>
-                                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.all
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.all)
-                                        }}
-                                    >
-                                        All
-                                    </button>
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.compact
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.compact)
-                                        }}
-                                    >
-                                        Compact
-                                    </button>
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.docs
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.docs)
-                                        }}
-                                    >
-                                        Docs
-                                    </button>
-                                    <button
-                                        className={`${
-                                            columnDisplayMode === ColumnDisplayMode.settings
-                                                ? 'bg-white shadow-soft'
-                                                : 'opacity-50'
-                                        } rounded-full px-1.5`}
-                                        onClick={() => {
-                                            setColumnDisplayMode(ColumnDisplayMode.settings)
-                                        }}
-                                    >
-                                        Settings
-                                    </button>
-                                </div>
+                                <button className="mx-2" onClick={exitDirectory}>
+                                    {parentDirectory?.title ?? '/'}
+                                </button>
+                                {svg.SMALL_RIGHT_ARROW_ICON}
                             </>
                         )}
+                        <span className="mx-2">{directory?.title ?? '/'}</span>
                     </div>
+                    <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
+                        <div className="m-2">Shared with</div>
+                        <div></div>
+                    </div>
+                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
+                        <button
+                            className={`mx-1 ${
+                                backend.platform === platformModule.Platform.desktop
+                                    ? 'opacity-50'
+                                    : ''
+                            }`}
+                            onClick={event => {
+                                event.stopPropagation()
+                                setModal(() => (
+                                    <UploadFileModal
+                                        directoryId={directoryId}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
+                            }}
+                        >
+                            {svg.UPLOAD_ICON}
+                        </button>
+                        <button
+                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
+                            disabled={selectedAssets.length === 0}
+                            onClick={event => {
+                                event.stopPropagation()
+                                /* TODO */
+                            }}
+                        >
+                            {svg.DOWNLOAD_ICON}
+                        </button>
+                    </div>
+                    {EXPERIMENTAL.columnModeSwitcher && (
+                        <>
+                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.all
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.all)
+                                    }}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.compact
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.compact)
+                                    }}
+                                >
+                                    Compact
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.docs
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.docs)
+                                    }}
+                                >
+                                    Docs
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.settings
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.settings)
+                                    }}
+                                >
+                                    Settings
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
-            <table className="items-center w-full bg-transparent border-collapse">
+            <table className="items-center w-full bg-transparent border-collapse mt-2">
                 <tbody>
                     <tr className="h-10" />
-                    <Rows<backend.Asset<backend.AssetType.project>>
+                    <Rows<backendModule.Asset<backendModule.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
                         placeholder={
@@ -810,11 +816,14 @@ function Dashboard(props: DashboardProps) {
                         }
                         columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
                             id: column,
-                            heading: ColumnHeading(column, backend.AssetType.project),
-                            render: renderer(column, backend.AssetType.project),
+                            heading: ColumnHeading(column, backendModule.AssetType.project),
+                            render: renderer(column, backendModule.AssetType.project),
                         }))}
-                        onClick={projectAsset => {
-                            setSelectedAssets([projectAsset])
+                        onClick={(projectAsset, event) => {
+                            event.stopPropagation()
+                            setSelectedAssets(
+                                event.shiftKey ? [...selectedAssets, projectAsset] : [projectAsset]
+                            )
                         }}
                         onContextMenu={(projectAsset, event) => {
                             event.preventDefault()
@@ -847,16 +856,18 @@ function Dashboard(props: DashboardProps) {
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
                             const doDelete = () => {
-                                setModal(() => (
-                                    <ConfirmDeleteModal
-                                        name={projectAsset.title}
-                                        assetType={projectAsset.type}
-                                        doDelete={() =>
-                                            backendService.deleteProject(projectAsset.id)
-                                        }
-                                        onSuccess={doRefresh}
-                                    />
-                                ))
+                                // The button is disabled when using the desktop backend,
+                                // so this condition should never be `false`.
+                                if (backend.platform === platformModule.Platform.cloud) {
+                                    setModal(() => (
+                                        <ConfirmDeleteModal
+                                            name={projectAsset.title}
+                                            assetType={projectAsset.type}
+                                            doDelete={() => backend.deleteProject(projectAsset.id)}
+                                            onSuccess={doRefresh}
+                                        />
+                                    ))
+                                }
                             }
                             setModal(() => (
                                 <ContextMenu event={event}>
@@ -869,148 +880,176 @@ function Dashboard(props: DashboardProps) {
                                     <ContextMenuEntry disabled onClick={doRename}>
                                         Rename
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry onClick={doDelete}>
+                                    <ContextMenuEntry
+                                        disabled={
+                                            backend.platform === platformModule.Platform.desktop
+                                        }
+                                        onClick={doDelete}
+                                    >
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
                             ))
                         }}
                     />
-                    {platform === platformModule.Platform.cloud && (
-                        <>
-                            <tr className="h-10" />
-                            <Rows<backend.Asset<backend.AssetType.directory>>
-                                items={visibleDirectoryAssets}
-                                getKey={dir => dir.id}
-                                placeholder={
-                                    <span className="opacity-75">
-                                        This directory does not contain any subdirectories
-                                        {query ? ' matching your query' : ''}.
-                                    </span>
-                                }
-                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                    id: column,
-                                    heading: ColumnHeading(column, backend.AssetType.directory),
-                                    render: renderer(column, backend.AssetType.directory),
-                                }))}
-                                onClick={directoryAsset => {
-                                    setSelectedAssets([directoryAsset])
-                                }}
-                                onContextMenu={(_directory, event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    setModal(() => <ContextMenu event={event}></ContextMenu>)
-                                }}
-                            />
-                            <tr className="h-10" />
-                            <Rows<backend.Asset<backend.AssetType.secret>>
-                                items={visibleSecretAssets}
-                                getKey={secret => secret.id}
-                                placeholder={
-                                    <span className="opacity-75">
-                                        This directory does not contain any secrets
-                                        {query ? ' matching your query' : ''}.
-                                    </span>
-                                }
-                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                    id: column,
-                                    heading: ColumnHeading(column, backend.AssetType.secret),
-                                    render: renderer(column, backend.AssetType.secret),
-                                }))}
-                                onClick={secret => {
-                                    setSelectedAssets([secret])
-                                }}
-                                onContextMenu={(secret, event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    // This is not a React component even though it contains JSX.
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    const doDelete = () => {
+                    {backend.platform === platformModule.Platform.cloud &&
+                        (remoteBackend => (
+                            <>
+                                <tr className="h-10" />
+                                <Rows<backendModule.Asset<backendModule.AssetType.directory>>
+                                    items={visibleDirectoryAssets}
+                                    getKey={dir => dir.id}
+                                    placeholder={
+                                        <span className="opacity-75">
+                                            This directory does not contain any subdirectories
+                                            {query ? ' matching your query' : ''}.
+                                        </span>
+                                    }
+                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                        id: column,
+                                        heading: ColumnHeading(
+                                            column,
+                                            backendModule.AssetType.directory
+                                        ),
+                                        render: renderer(column, backendModule.AssetType.directory),
+                                    }))}
+                                    onClick={(directoryAsset, event) => {
+                                        event.stopPropagation()
+                                        setSelectedAssets(
+                                            event.shiftKey
+                                                ? [...selectedAssets, directoryAsset]
+                                                : [directoryAsset]
+                                        )
+                                    }}
+                                    onContextMenu={(_directory, event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        setModal(() => <ContextMenu event={event}></ContextMenu>)
+                                    }}
+                                />
+                                <tr className="h-10" />
+                                <Rows<backendModule.Asset<backendModule.AssetType.secret>>
+                                    items={visibleSecretAssets}
+                                    getKey={secret => secret.id}
+                                    placeholder={
+                                        <span className="opacity-75">
+                                            This directory does not contain any secrets
+                                            {query ? ' matching your query' : ''}.
+                                        </span>
+                                    }
+                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                        id: column,
+                                        heading: ColumnHeading(
+                                            column,
+                                            backendModule.AssetType.secret
+                                        ),
+                                        render: renderer(column, backendModule.AssetType.secret),
+                                    }))}
+                                    onClick={(secret, event) => {
+                                        event.stopPropagation()
+                                        setSelectedAssets(
+                                            event.shiftKey ? [...selectedAssets, secret] : [secret]
+                                        )
+                                    }}
+                                    onContextMenu={(secret, event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        // This is not a React component even though it contains JSX.
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        const doDelete = () => {
+                                            setModal(() => (
+                                                <ConfirmDeleteModal
+                                                    name={secret.title}
+                                                    assetType={secret.type}
+                                                    doDelete={() =>
+                                                        remoteBackend.deleteSecret(secret.id)
+                                                    }
+                                                    onSuccess={doRefresh}
+                                                />
+                                            ))
+                                        }
                                         setModal(() => (
-                                            <ConfirmDeleteModal
-                                                name={secret.title}
-                                                assetType={secret.type}
-                                                doDelete={() =>
-                                                    backendService.deleteSecret(secret.id)
-                                                }
-                                                onSuccess={doRefresh}
-                                            />
+                                            <ContextMenu event={event}>
+                                                <ContextMenuEntry onClick={doDelete}>
+                                                    <span className="text-red-700">Delete</span>
+                                                </ContextMenuEntry>
+                                            </ContextMenu>
                                         ))
+                                    }}
+                                />
+                                <tr className="h-10" />
+                                <Rows<backendModule.Asset<backendModule.AssetType.file>>
+                                    items={visibleFileAssets}
+                                    getKey={file => file.id}
+                                    placeholder={
+                                        <span className="opacity-75">
+                                            This directory does not contain any files
+                                            {query ? ' matching your query' : ''}.
+                                        </span>
                                     }
-                                    setModal(() => (
-                                        <ContextMenu event={event}>
-                                            <ContextMenuEntry onClick={doDelete}>
-                                                <span className="text-red-700">Delete</span>
-                                            </ContextMenuEntry>
-                                        </ContextMenu>
-                                    ))
-                                }}
-                            />
-                            <tr className="h-10" />
-                            <Rows<backend.Asset<backend.AssetType.file>>
-                                items={visibleFileAssets}
-                                getKey={file => file.id}
-                                placeholder={
-                                    <span className="opacity-75">
-                                        This directory does not contain any files
-                                        {query ? ' matching your query' : ''}.
-                                    </span>
-                                }
-                                columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                    id: column,
-                                    heading: ColumnHeading(column, backend.AssetType.file),
-                                    render: renderer(column, backend.AssetType.file),
-                                }))}
-                                onClick={file => {
-                                    setSelectedAssets([file])
-                                }}
-                                onContextMenu={(file, event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    const doCopy = () => {
-                                        /** TODO: Call endpoint for copying file. */
-                                    }
-                                    const doCut = () => {
-                                        /** TODO: Call endpoint for downloading file. */
-                                    }
-                                    // This is not a React component even though it contains JSX.
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    const doDelete = () => {
+                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                                        id: column,
+                                        heading: ColumnHeading(
+                                            column,
+                                            backendModule.AssetType.file
+                                        ),
+                                        render: renderer(column, backendModule.AssetType.file),
+                                    }))}
+                                    onClick={(file, event) => {
+                                        event.stopPropagation()
+                                        setSelectedAssets(
+                                            event.shiftKey ? [...selectedAssets, file] : [file]
+                                        )
+                                    }}
+                                    onContextMenu={(file, event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        const doCopy = () => {
+                                            /** TODO: Wait for backend endpoint. */
+                                        }
+                                        const doCut = () => {
+                                            /** TODO: Wait for backend endpoint. */
+                                        }
+                                        // This is not a React component even though it contains JSX.
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        const doDelete = () => {
+                                            setModal(() => (
+                                                <ConfirmDeleteModal
+                                                    name={file.title}
+                                                    assetType={file.type}
+                                                    doDelete={() =>
+                                                        remoteBackend.deleteFile(file.id)
+                                                    }
+                                                    onSuccess={doRefresh}
+                                                />
+                                            ))
+                                        }
+                                        const doDownload = () => {
+                                            /** TODO: Wait for backend endpoint. */
+                                        }
                                         setModal(() => (
-                                            <ConfirmDeleteModal
-                                                name={file.title}
-                                                assetType={file.type}
-                                                doDelete={() => backendService.deleteFile(file.id)}
-                                                onSuccess={doRefresh}
-                                            />
+                                            <ContextMenu event={event}>
+                                                <ContextMenuEntry disabled onClick={doCopy}>
+                                                    Copy
+                                                </ContextMenuEntry>
+                                                <ContextMenuEntry disabled onClick={doCut}>
+                                                    Cut
+                                                </ContextMenuEntry>
+                                                <ContextMenuEntry onClick={doDelete}>
+                                                    <span className="text-red-700">Delete</span>
+                                                </ContextMenuEntry>
+                                                <ContextMenuEntry disabled onClick={doDownload}>
+                                                    Download
+                                                </ContextMenuEntry>
+                                            </ContextMenu>
                                         ))
-                                    }
-                                    const doDownload = () => {
-                                        /** TODO: Call endpoint for downloading file. */
-                                    }
-                                    setModal(() => (
-                                        <ContextMenu event={event}>
-                                            <ContextMenuEntry disabled onClick={doCopy}>
-                                                Copy
-                                            </ContextMenuEntry>
-                                            <ContextMenuEntry disabled onClick={doCut}>
-                                                Cut
-                                            </ContextMenuEntry>
-                                            <ContextMenuEntry onClick={doDelete}>
-                                                <span className="text-red-700">Delete</span>
-                                            </ContextMenuEntry>
-                                            <ContextMenuEntry disabled onClick={doDownload}>
-                                                Download
-                                            </ContextMenuEntry>
-                                        </ContextMenu>
-                                    ))
-                                }}
-                            />
-                        </>
-                    )}
+                                    }}
+                                />
+                            </>
+                        ))(backend)}
                 </tbody>
             </table>
-            {isFileBeingDragged ? (
+            {isFileBeingDragged && backend.platform === platformModule.Platform.cloud ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                     onDragLeave={() => {
@@ -1023,7 +1062,7 @@ function Dashboard(props: DashboardProps) {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
                         await uploadMultipleFiles.uploadMultipleFiles(
-                            backendService,
+                            backend,
                             directoryId,
                             Array.from(event.dataTransfer.files)
                         )
@@ -1034,7 +1073,7 @@ function Dashboard(props: DashboardProps) {
                 </div>
             ) : null}
             {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
-            {project && <Ide backendService={backendService} project={project} />}
+            {project && <Ide project={project} appRunner={appRunner} />}
             {modal && <>{modal}</>}
         </div>
     )

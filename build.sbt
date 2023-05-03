@@ -247,6 +247,7 @@ lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
     `interpreter-dsl`,
+    `interpreter-dsl-test`,
     `json-rpc-server-test`,
     `json-rpc-server`,
     `language-server`,
@@ -1074,6 +1075,7 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
+    commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,

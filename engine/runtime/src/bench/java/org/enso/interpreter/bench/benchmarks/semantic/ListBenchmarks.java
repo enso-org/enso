@@ -46,7 +46,7 @@ public class ListBenchmarks {
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
 
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var code = """
       from Standard.Base.Data.List.List import Cons, Nil
       import Standard.Base.IO
