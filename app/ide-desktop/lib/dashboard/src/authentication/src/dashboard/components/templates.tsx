@@ -3,9 +3,9 @@ import * as React from 'react'
 
 import * as svg from '../../components/svg'
 
-// =================
-// === Templates ===
-// =================
+// =============
+// === Types ===
+// =============
 
 /** Template metadata. */
 interface Template {
@@ -14,6 +14,10 @@ interface Template {
     id: string
     background: string
 }
+
+// =================
+// === Constants ===
+// =================
 
 /** The full list of templates. */
 const TEMPLATES: Template[] = [
