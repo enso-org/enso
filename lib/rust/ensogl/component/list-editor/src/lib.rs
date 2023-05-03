@@ -408,7 +408,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         let model = &self.model;
 
         let on_add_elem_icon_up = model.borrow().add_elem_icon.on_event::<mouse::Up>();
-        let on_down = model.borrow().layout.on_event_capturing::<mouse::Down>();
+        let on_down = model.borrow().root.on_event_capturing::<mouse::Down>();
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
 
@@ -527,7 +527,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
                 &frp.enable_last_insertion_point,
                 f!([model] (gap, gaps, pos, size, is_dragging, enable_all, enable_last) {
                     let is_close_x = pos.x > -gap && pos.x < size.x + gap;
-                    let is_close_y = pos.y > -gap && pos.y < size.y + gap;
+                    let is_close_y = pos.y > 0.0 && pos.y < size.y;
                     let is_close = is_close_x && is_close_y;
                     let opt_gap = gaps.find(pos.x);
                     opt_gap.and_then(|gap| {

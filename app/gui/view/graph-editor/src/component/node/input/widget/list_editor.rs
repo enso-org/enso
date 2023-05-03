@@ -11,12 +11,22 @@ use crate::component::node::input::widget::TransferRequest;
 use crate::component::node::input::widget::TreeNode;
 use crate::component::node::input::widget::WidgetIdentity;
 
+use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::object;
 use ensogl::display::world::with_context;
 use ensogl_component::list_editor::ListEditor;
 use span_tree::node::Kind;
 use std::fmt::Write;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// Extra margin to the left and right of the list with enabled insertion points.
+const LIST_HOVER_MARGIN: f32 = 4.0;
 
 
 
@@ -143,6 +153,14 @@ impl Widget {
             }));
             widgets_frp.transfer_ownership <+ remove_request._1();
             widgets_frp.value_changed <+ remove_request._0().map(|crumb| (crumb.clone(), None));
+
+            // Block placeholders outside of the list.
+            let list_enter = list.on_event_capturing::<mouse::Enter>();
+            let list_leave = list.on_event_capturing::<mouse::Leave>();
+            is_hovered <- bool(&list_leave, &list_enter);
+            trace is_hovered;
+            list.enable_all_insertion_points <+ is_hovered;
+            list.enable_last_insertion_point <+ is_hovered;
         }
         self
     }
@@ -152,6 +170,8 @@ impl Widget {
 struct Model {
     self_id:           WidgetIdentity,
     list:              ListEditor<ListItem>,
+    #[allow(dead_code)]
+    background:        display::shape::Rectangle,
     elements:          HashMap<WidgetIdentity, Element>,
     default_value:     String,
     expression:        String,
@@ -166,9 +186,20 @@ impl Model {
         let list = ListEditor::new(&ctx.app().cursor);
         list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
         display_object.use_auto_layout().set_children_alignment_left_center();
+        let background = display::shape::Rectangle::new();
+        background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
+        background.allow_grow().set_alignment_left_center().set_margin_trbl(
+            0.0,
+            -LIST_HOVER_MARGIN,
+            0.0,
+            -LIST_HOVER_MARGIN,
+        );
+        list.add_child(&background);
+
         Self {
             self_id: ctx.info.identity,
             list,
+            background,
             elements: default(),
             default_value: default(),
             expression: default(),
