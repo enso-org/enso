@@ -1246,9 +1246,8 @@ type Column
             input = Column.from_vector "values" [True, False]
             input.format "t|f"
             # ==> ["t", "f"]
-    format : Text | Column -> Locale -> Problem_Behavior -> Column ! Illegal_Argument
-    format self format locale=Locale.default on_problems=Report_Warning =
-        _ = [on_problems]
+    format : Text | Column -> Locale -> Column ! Illegal_Argument
+    format self format locale=Locale.default =
         new_column = case format of
             _ : Text ->
                 formatter = case self.value_type of
