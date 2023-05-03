@@ -186,6 +186,10 @@ spec =
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
             input.format "DDDDD" . should_fail_with Illegal_Argument
 
+        Test.specify "Format for wrong date type" <|
+            input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
+            input.format "yyyyMMdd HH.mm.ss" . should_fail_with Illegal_Argument
+
     Test.group "Time_Of_Day Column.format, with format Column" <|
         Test.specify "Time_Of_Day column" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
@@ -299,6 +303,22 @@ spec =
             formats = Column.from_vector "formats" ["", Nothing, Nothing]
             expected = Column.from_vector "values" ['1.0E8', '2222.0', '3.0']
             input.format formats . should_equal expected
+
+    Test.group "Errors" <|
+        Test.specify "Unsupported column type" <|
+            input = Column.from_vector "values" ["100000000", "hey", "3"]
+            input.format "xyz" . should_fail_with Illegal_Argument
+
+        Test.specify "Format is not text" <|
+            input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
+            input.format 73 . should_fail_with Illegal_Argument
+
+    Test.group "Edge cases" <|
+        Test.specify "empty table is ok" <|
+            input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25] . take 0
+            expected = Column.from_vector "values" []
+            actual = input.format "yyyyMMdd"
+            actual . should_equal expected
 
 spec_with_numeric_type name numeric_type =
     Test.group name <|

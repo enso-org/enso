@@ -26,6 +26,7 @@ from project.Errors import Additional_Warnings, No_Index_Set_Error, Floating_Poi
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.time.temporal.UnsupportedTemporalTypeException
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -1294,6 +1295,7 @@ type Column
                         Error.throw (Illegal_Argument.Error msg)
                 formatter.if_not_error <|
                     map_2_over_storage self format_column formatter make_string_builder
+            _ -> Error.throw <| Illegal_Argument.Error <| "Unsupported format type: " + format.to_text
         new_column
 
     ## ALIAS Transform Column
@@ -1938,7 +1940,8 @@ handle_illegal_argument_exception format_string ~action =
     handler cause =
         msg = cause.payload.getMessage + ' in \"' + format_string + '\"'
         Error.throw (Illegal_Argument.Error msg)
-    Panic.catch IllegalArgumentException handler=handler action
+    Panic.catch IllegalArgumentException handler=handler <|
+        Panic.catch UnsupportedTemporalTypeException handler=handler action
 
 ## PRIVATE
    Iterate over a range, exiting early if the body produces an `Error`.
