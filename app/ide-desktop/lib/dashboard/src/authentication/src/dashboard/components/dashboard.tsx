@@ -218,10 +218,17 @@ function Dashboard(props: DashboardProps) {
         [accessToken, directoryId, refresh, backend]
     )
 
+    const clearAssets = () => {
+        setProjectAssets([])
+        setDirectoryAssets([])
+        setSecretAssets([])
+        setFileAssets([])
+    }
+
     const enterDirectory = (directoryAsset: backendModule.DirectoryAsset) => {
         setDirectoryId(directoryAsset.id)
-        console.log([...directoryStack, directoryAsset])
         setDirectoryStack([...directoryStack, directoryAsset])
+        clearAssets()
     }
 
     const exitDirectory = () => {
@@ -230,6 +237,7 @@ function Dashboard(props: DashboardProps) {
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             directoryStack.slice(0, -1)
         )
+        clearAssets()
     }
 
     const handleEscapeKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -328,10 +336,7 @@ function Dashboard(props: DashboardProps) {
                 }}
                 setBackendPlatform={newBackendPlatform => {
                     if (newBackendPlatform !== backend.platform) {
-                        setProjectAssets([])
-                        setDirectoryAssets([])
-                        setSecretAssets([])
-                        setFileAssets([])
+                        clearAssets()
                         switch (newBackendPlatform) {
                             case platformModule.Platform.desktop:
                                 setBackend(new localBackend.LocalBackend())

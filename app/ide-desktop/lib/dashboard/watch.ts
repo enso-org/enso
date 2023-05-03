@@ -26,9 +26,22 @@ OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.tsx'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
+OPTS.minify = false
 OPTS.write = false
 // eslint-disable-next-line @typescript-eslint/naming-convention
 OPTS.loader = { '.html': 'copy' }
+OPTS.plugins.push({
+    name: 'react-dom-profiling',
+    setup(build) {
+        build.onResolve({ filter: /^react-dom$/ }, args => {
+            if (args.kind === 'import-statement') {
+                return { path: 'react-dom/profiling' }
+            } else {
+                return
+            }
+        })
+    },
+})
 
 // ===============
 // === Watcher ===

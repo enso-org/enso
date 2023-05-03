@@ -49,13 +49,13 @@ const TEMPLATES: Template[] = [
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: 'url("/geo.png") center / cover',
+        background: 'url("/geo.png") center / cover, #6b7280',
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: 'url("/visualize.png") center / cover',
+        background: 'url("/visualize.png") center / cover, #6b7280',
     },
 ]
 
@@ -83,7 +83,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
                 <div className="m-auto text-center">
-                    <button>{svg.CIRCLED_PLUS_ICON}</button>
+                    <div className="inline-block">{svg.CIRCLED_PLUS_ICON}</div>
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>

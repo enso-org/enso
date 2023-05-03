@@ -93,7 +93,7 @@ function DirectoryNameHeading(props: ProjectNameHeadingProps) {
 
     return (
         <div className="inline-flex">
-            Project
+            Folder
             <button
                 className="mx-1"
                 onClick={event => {
@@ -134,20 +134,26 @@ function DirectoryName(props: DirectoryNameProps) {
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                    setModal(() => (
-                        <RenameModal
-                            assetType={item.type}
-                            name={item.title}
-                            // TODO: Wait for backend implementation.
-                            doRename={() => Promise.resolve()}
-                            onSuccess={onRename}
-                        />
-                    ))
+                switch (event.detail) {
+                    case 1: {
+                        if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+                            setModal(() => (
+                                <RenameModal
+                                    assetType={item.type}
+                                    name={item.title}
+                                    // TODO: Wait for backend implementation.
+                                    doRename={() => Promise.resolve()}
+                                    onSuccess={onRename}
+                                />
+                            ))
+                        }
+                        break
+                    }
+                    case 2: {
+                        enterDirectory(item)
+                        break
+                    }
                 }
-            }}
-            onDoubleClick={() => {
-                enterDirectory(item)
             }}
         >
             {svg.DIRECTORY_ICON} <span className="px-2">{item.title}</span>
