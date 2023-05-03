@@ -795,6 +795,7 @@ type Table
          Sort the table by columns whose names start with letter `a`.
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
+    @columns Widget_Helpers.make_order_by_selector
     order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]

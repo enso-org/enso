@@ -15,6 +15,14 @@ make_column_name_selector table display=Display.Always =
     Single_Choice display=display values=names
 
 ## PRIVATE
+   Make a column name selector.
+make_order_by_selector : Table -> Display -> Single_Choice
+make_order_by_selector table display=Display.Always =
+    col_names = table.column_names
+    names = col_names.fold [] c-> n-> c + [Option n+" (Asc)" n.pretty, Option n+" (Desc)" "(Sort_Column.Name "+n.pretty+" Sort_Direction.Descending)"]
+    Single_Choice display=display values=names
+
+## PRIVATE
    Selector for type argument on `Column.parse`.
 parse_type_selector : Single_Choice
 parse_type_selector =
