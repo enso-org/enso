@@ -112,8 +112,8 @@ function ProjectNameHeading(props: ProjectNameHeadingProps) {
                     const buttonPosition = event.currentTarget.getBoundingClientRect()
                     setModal(() => (
                         <ProjectCreateForm
-                            left={buttonPosition.left}
-                            top={buttonPosition.top}
+                            left={buttonPosition.left + window.scrollX}
+                            top={buttonPosition.top + window.scrollY}
                             directoryId={directoryId}
                             onSuccess={onCreate}
                         />
