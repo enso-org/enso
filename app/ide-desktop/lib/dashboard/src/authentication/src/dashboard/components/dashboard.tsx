@@ -192,6 +192,8 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
+            // This is quite complicated, however this way the filtering to each asset type
+            // only needs to be done once.
             const assets = await backend.listDirectory({ parentId: directoryId })
             if (!signal.aborted) {
                 const newProjectAssets = assets.filter(

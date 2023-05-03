@@ -248,12 +248,7 @@ export default [
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
             'react-hooks/rules-of-hooks': 'error',
-            'react-hooks/exhaustive-deps': [
-                'error',
-                {
-                    additionalHooks: 'useAsyncEffect',
-                },
-            ],
+            'react-hooks/exhaustive-deps': 'error',
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
