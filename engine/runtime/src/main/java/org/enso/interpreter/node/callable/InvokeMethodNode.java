@@ -160,6 +160,14 @@ public abstract class InvokeMethodNode extends BaseNode {
           @Cached MethodResolverNode methodResolverNode) {
     Type selfTpe = typesLibrary.getType(self);
     Function function = methodResolverNode.expectNonNull(self, selfTpe, symbol);
+
+    RootNode where = function.getCallTarget().getRootNode();
+    if (where instanceof MethodRootNode node && typeCanOverride(node, EnsoContext.get(this))) {
+      Function anyFun = anyFunction(symbol);
+      if (anyFun != null) {
+        function = anyFun;
+      }
+    }
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
