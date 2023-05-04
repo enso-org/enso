@@ -408,7 +408,7 @@
   `Text.write`.][6459]
 - [Implemented `create_database_table` allowing saving queries as database
   tables.][6467]
-- [Implemented `Column.format` for in-memory `Columns`.][6538]
+- [Implemented `Column.format` for in-memory `Column`s.][6538]
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 
 [debug-shortcuts]:

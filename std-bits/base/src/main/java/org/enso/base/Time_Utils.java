@@ -103,7 +103,7 @@ public class Time_Utils {
     return DateTimeFormatter.ofPattern(format.toString()).format(dateTime);
   }
 
-  public static String date_time_format(ZonedDateTime dateTime, Object format, Locale locale) {
+  public static String date_time_format_with_locale(ZonedDateTime dateTime, Object format, Locale locale) {
     return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(dateTime);
   }
 

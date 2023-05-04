@@ -659,4 +659,4 @@ type Date_Time
     format : Text -> Locale -> Text
     format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.date_time_format self pattern
-        _ -> Time_Utils.date_time_format self pattern locale.java_locale
+        _ -> Time_Utils.date_time_format_with_locale self pattern locale.java_locale
