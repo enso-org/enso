@@ -72,7 +72,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 setCheckState(CheckState.checkingStatus)
             }
         })()
-    }, [backend, project.id])
+        // This MUST NOT depend on backend because a project is associated with a specific backend.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project.id])
 
     React.useEffect(() => {
         if (backend.platform === platform.Platform.desktop) {
