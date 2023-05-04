@@ -22,6 +22,8 @@ type Date_Period
        to any other day.
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
 
+    Day
+
     ## PRIVATE
        This method could be replaced with matching on `Date_Period` supertype
        if/when that is supported.
@@ -40,7 +42,7 @@ type Date_Period
 
     ## PRIVATE
     adjust_end : (Date | Date_Time) -> (Date | Date_Time)
-    adjust_end self date =
+    adjust_end self date = if self == Date_Period.Day then date else
         adjuster = case self of
             Date_Period.Year -> TemporalAdjusters.lastDayOfYear
             Date_Period.Quarter -> Date_Period_Utils.quarter_end
