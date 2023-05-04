@@ -3012,6 +3012,14 @@ pub trait LayoutOps: Object {
         self.display_object().layout.margin.set(Vector2(margin, margin));
     }
 
+    /// Set vertical and horizontal margins of the object. Margin is the free space around the
+    /// object.
+    fn set_margin_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
+        let margin = Vector2(horizontal.into().into(), vertical.into().into());
+        self.display_object().layout.margin.set(margin);
+        self
+    }
+
     /// Set margin of all sides of the object. Margin is the free space around the object.
     fn set_margin_trbl(
         &self,

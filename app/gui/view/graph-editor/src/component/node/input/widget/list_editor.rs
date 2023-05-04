@@ -25,7 +25,8 @@ use std::fmt::Write;
 // === Constants ===
 // =================
 
-/// Extra margin to the left and right of the list with enabled insertion points.
+/// Extra space to the left and right of the list that will respond to mouse events. The list
+/// insertion points will only be shown within the list bounding box extended by this margin.
 const LIST_HOVER_MARGIN: f32 = 4.0;
 
 
@@ -156,7 +157,10 @@ impl Widget {
             widgets_frp.transfer_ownership <+ remove_request._1();
             widgets_frp.value_changed <+ remove_request._0().map(|crumb| (crumb.clone(), None));
 
-            // Block placeholders outside of the list.
+            // Enable list interactions only under specific conditions:
+            // - The widgets are not set to read-only mode.
+            // - The user is not about to switch to edit mode.
+            // - The mouse is hovering the list interaction bounding box.
             enable_interaction <- all_with3(
                 &widgets_frp.set_edit_ready_mode, &widgets_frp.set_read_only, &init,
                 |edit, read_only, _| !edit && !read_only
@@ -198,12 +202,8 @@ impl Model {
         display_object.use_auto_layout().set_children_alignment_left_center();
         let background = display::shape::Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
-        background.allow_grow().set_alignment_left_center().set_margin_trbl(
-            0.0,
-            -LIST_HOVER_MARGIN,
-            0.0,
-            -LIST_HOVER_MARGIN,
-        );
+        background.allow_grow().set_alignment_left_center();
+        background.set_margin_vh(0.0, -LIST_HOVER_MARGIN);
         list.add_child(&background);
 
         Self {
@@ -425,7 +425,6 @@ impl super::SpanWidget for Widget {
     }
 
     fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
-        console_log!("NEW");
         let display_object = object::Instance::new_named("widget::ListEditor");
         let model = Model::new(ctx, &display_object);
         let network = frp::Network::new("widget::ListEditor");

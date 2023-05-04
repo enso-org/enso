@@ -606,10 +606,14 @@ impl NodeModel {
         self.error_indicator.set_size(padded_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
+
+        // Position shapes such that the center of their left edge is at the node origin:
+        // - Most shapes are still center-aligned, we have to move them horizontally.
         self.backdrop.set_x(x_offset_to_node_center);
-        self.background.set_y(-height / 2.0);
         self.error_indicator.set_x(x_offset_to_node_center);
         self.vcs_indicator.set_x(x_offset_to_node_center);
+        // - Background is a bottom-left aligned Rectangle, thus we have to move it vertically.
+        self.background.set_y(-height / 2.0);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar
