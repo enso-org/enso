@@ -4,7 +4,9 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 
-from Standard.Database import Database, Redshift, AWS_Credential, SQL_Query
+from Standard.Database import Database, SQL_Query
+
+from Standard.AWS import Redshift, AWS_Credential
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

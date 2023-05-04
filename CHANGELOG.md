@@ -138,6 +138,9 @@
   sending messages to the backend][6341].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
+- [Fixed text visualisations which were being cut off at the last line.][6421]
+
+[6421]: https://github.com/enso-org/enso/pull/6421
 
 #### EnsoGL (rendering engine)
 
@@ -406,6 +409,7 @@
 - [Implemented `create_database_table` allowing saving queries as database
   tables.][6467]
 - [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
+- [Moved `Redshift` connector into a separate `AWS` library.][6550]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -613,6 +617,7 @@
 [6459]: https://github.com/enso-org/enso/pull/6459
 [6467]: https://github.com/enso-org/enso/pull/6467
 [6539]: https://github.com/enso-org/enso/pull/6539
+[6550]: https://github.com/enso-org/enso/pull/6550
 
 #### Enso Compiler
 

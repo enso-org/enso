@@ -1,8 +1,8 @@
-import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
+import sbtlicensereport.SbtLicenseReport.autoImportImpl.{
   licenseOverrides,
   licenseSelection
 }
-import com.typesafe.sbt.license
+import sbtlicensereport.license
 import sbt.Keys.{ivyModule, streams, update, updateClassifiers}
 import sbt.{File, Project}
 import src.main.scala.licenses.{
