@@ -194,8 +194,12 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       else {
         val edit         = edits.dequeue()
         val locationEdit = ChangesetBuilder.toLocationEdit(edit, source)
-        val invalidatedSet =
-          ChangesetBuilder.invalidated(tree, locationEdit.location)
+        var invalidatedSet =
+          ChangesetBuilder.invalidated(tree, locationEdit.location, true)
+        if (invalidatedSet.isEmpty) {
+          invalidatedSet =
+            ChangesetBuilder.invalidated(tree, locationEdit.location, false)
+        }
         val newTree   = ChangesetBuilder.updateLocations(tree, locationEdit)
         val newSource = TextEditor[A].edit(source, edit)
         go(newTree, newSource, edits, ids ++= invalidatedSet.map(_.id))
@@ -278,7 +282,7 @@ object ChangesetBuilder {
     * @param id the node id
     * @param location the node location
     */
-  private case class Node(id: NodeId, location: Location) {
+  private case class Node(id: NodeId, location: Location, leaf: Boolean) {
 
     /** Shift the node location.
       *
@@ -302,7 +306,7 @@ object ChangesetBuilder {
       * @return the node if `ir` contains a location
       */
     def fromIr(ir: IR): Option[Node] =
-      ir.location.map(loc => Node(NodeId(ir), loc.location))
+      ir.location.map(loc => Node(NodeId(ir), loc.location, true))
 
     /** Create an artificial node with fixed [[NodeId]]. It is used to select
       * nodes by location in the tree.
@@ -311,7 +315,11 @@ object ChangesetBuilder {
       * @return a select node
       */
     def select(location: Location): Node =
-      new Node(NodeId(UUID.nameUUIDFromBytes(Array()), None, None), location)
+      new Node(
+        NodeId(UUID.nameUUIDFromBytes(Array()), None, None),
+        location,
+        false
+      )
 
     implicit val ordering: Ordering[Node] = (x: Node, y: Node) => {
       val compareStart =
@@ -347,7 +355,7 @@ object ChangesetBuilder {
           def fillInHoles(p: Int, n: Node): Int = {
             if (p < n.location.start) {
               val inBetweenNode =
-                Node(NodeId(input), Location(p, n.location.start))
+                Node(NodeId(input), Location(p, n.location.start), false)
               acc += inBetweenNode
             }
             acc += n
@@ -358,7 +366,8 @@ object ChangesetBuilder {
           if (end < input.location.get.location.end) {
             val lastNode = Node(
               NodeId(input),
-              Location(end, input.location.get.location.end)
+              Location(end, input.location.get.location.end),
+              false
             )
             acc += lastNode
           }
@@ -394,12 +403,18 @@ object ChangesetBuilder {
     * @param edit the location of the edit
     * @return the invalidated nodes of the tree
     */
-  private def invalidated(tree: Tree, edit: Location): Tree = {
+  private def invalidated(
+    tree: Tree,
+    edit: Location,
+    onlyLeafs: Boolean
+  ): Tree = {
     val invalidated = mutable.TreeSet[ChangesetBuilder.Node]()
     tree.iterator.foreach { node =>
-      if (intersect(edit, node)) {
-        invalidated += node
-        tree -= node
+      if (!onlyLeafs || node.leaf) {
+        if (intersect(edit, node)) {
+          invalidated += node
+          tree -= node
+        }
       }
     }
     invalidated
