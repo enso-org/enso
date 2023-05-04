@@ -53,6 +53,7 @@ import java.util.concurrent.locks.Lock;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
+  protected static final int CACHE_SIZE = 10;
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
   private @Child InvokeMethodNode childDispatch;
@@ -104,7 +105,13 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Object execute(
       VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  @Specialization(guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)", "cachedSymbol == symbol"})
+  @Specialization(guards = {
+          "typesLibrary.hasType(self)",
+          "!typesLibrary.hasSpecialDispatch(self)",
+          "cachedSymbol == symbol",
+          "cachedSelfTpe == typesLibrary.getType(self)",
+          "function != null"
+  }, limit = "CACHE_SIZE")
   Object doFunctionalDispatchCachedSymbol(
       VirtualFrame frame,
       State state,
@@ -114,26 +121,30 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
       @Cached MethodResolverNode methodResolverNode,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("anyFunction(cachedSymbol)") Function anyFun) {
+      @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
+      @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)") Function function) {
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
 
-    Type selfTpe = typesLibrary.getType(self);
-    Function function = methodResolverNode.expectNonNull(self, selfTpe, cachedSymbol);
+  Function resolveFunction(UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
+    Function function = methodResolverNode.execute(selfTpe, symbol);
+    if (function == null) {
+      return null;
+    }
 
     RootNode where = function.getCallTarget().getRootNode();
     // If both Any and the type where `function` is declared, define `symbol`
     // and the method is invoked statically, i.e. type of self is the eigentype,
     // then we want to disambiguate method resolution by always resolved to the one in Any.
-    if (where instanceof MethodRootNode node && typeCanOverride(node, EnsoContext.get(this))) {
+    EnsoContext ctx = EnsoContext.get(this);
+    if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
+      Type any = ctx.getBuiltins().any();
+      Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
       if (anyFun != null) {
         function = anyFun;
       }
     }
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  Function anyFunction(UnresolvedSymbol symbol) {
-    Type any = EnsoContext.get(this).getBuiltins().any();
-    return symbol.getScope().lookupMethodDefinition(any, symbol.getName());
+    return function;
   }
 
   private boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
@@ -149,7 +160,9 @@ public abstract class InvokeMethodNode extends BaseNode {
             && warning.getEigentype() != methodOwnerType;
   }
 
-  @Specialization(replaces = "doFunctionalDispatchCachedSymbol", guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
+  @Specialization(
+          replaces = "doFunctionalDispatchCachedSymbol",
+          guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
   Object doFunctionalDispatchUncachedSymbol(
           VirtualFrame frame,
           State state,
@@ -159,14 +172,10 @@ public abstract class InvokeMethodNode extends BaseNode {
           @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
           @Cached MethodResolverNode methodResolverNode) {
     Type selfTpe = typesLibrary.getType(self);
-    Function function = methodResolverNode.expectNonNull(self, selfTpe, symbol);
-
-    RootNode where = function.getCallTarget().getRootNode();
-    if (where instanceof MethodRootNode node && typeCanOverride(node, EnsoContext.get(this))) {
-      Function anyFun = anyFunction(symbol);
-      if (anyFun != null) {
-        function = anyFun;
-      }
+    Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
+    if (function == null) {
+      throw new PanicException(
+              EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
