@@ -1872,7 +1872,6 @@ handle_illegal_argument_exception format_string ~action =
 
 ## PRIVATE
    Iterate over a range, exiting early if the body produces an `Error`.
-   TODO: Move into Range
 each_propagate : Range -> (Number -> Any) -> Nothing ! Error
 each_propagate range function =
     if range.step == 0 then Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.") else
