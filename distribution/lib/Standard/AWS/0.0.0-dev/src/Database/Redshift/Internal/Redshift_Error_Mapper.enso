@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from project.Errors import SQL_Error
+from Standard.Database.Errors import SQL_Error
 
 ## PRIVATE
 type Redshift_Error_Mapper

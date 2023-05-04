@@ -4,31 +4,32 @@ import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 from Standard.Table import Aggregate_Column
 from Standard.Table import Value_Type
 
-import project.Connection.Connection.Connection
-import project.Data.Dialect
-import project.Data.SQL.Builder
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
-import project.Internal.Base_Generator
-import project.Internal.Column_Fetcher.Column_Fetcher
-import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.SQL_Expression.SQL_Expression
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
-import project.Internal.Postgres.Postgres_Dialect
-import project.Internal.Common.Database_Join_Helper
-import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
-import project.Internal.Redshift.Redshift_Error_Mapper.Redshift_Error_Mapper
-import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
-import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.Statement_Setter.Statement_Setter
-from project.Errors import Unsupported_Database_Operation
+import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Data.Dialect
+import Standard.Database.Data.SQL.Builder
+import Standard.Database.Data.SQL_Statement.SQL_Statement
+import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.Data.Table.Table
+import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
+import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
+import Standard.Database.Internal.Error_Mapper.Error_Mapper
+import Standard.Database.Internal.IR.Context.Context
+import Standard.Database.Internal.IR.From_Spec.From_Spec
+import Standard.Database.Internal.IR.Internal_Column.Internal_Column
+import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
+import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.Postgres.Postgres_Dialect
+import Standard.Database.Internal.Common.Database_Join_Helper
+import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
 
 ## PRIVATE
 
