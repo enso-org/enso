@@ -33,7 +33,7 @@ function Ide(props: Props) {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
-                ('listVersions' in backend
+                (backend.platform === platformModule.Platform.cloud
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.ide,
                           default: true,
@@ -41,7 +41,7 @@ function Ide(props: Props) {
                     : null)?.[0].number.value
             const engineVersion =
                 project.engineVersion?.value ??
-                ('listVersions' in backend
+                (backend.platform === platformModule.Platform.cloud
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.backend,
                           default: true,
