@@ -25,7 +25,7 @@ join_lines lines trailing_newline=True =
 
 spec =
     line_ending_pairs = [[Line_Ending_Style.Unix, '\n'], [Line_Ending_Style.Windows, '\r\n'], [Line_Ending_Style.Mac_Legacy, '\r']]
-    Test.group "Delimited File Writing" <| Context.Output.with_enabled <|
+    Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table and return the written file object on success" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type.Value 10]]]
             file = (enso_project.data / "transient" / "written.csv")

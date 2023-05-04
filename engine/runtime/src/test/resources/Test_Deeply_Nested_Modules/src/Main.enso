@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+import project.A.A_Mod
+import project.A.B.B_Mod
+import project.A.B
+
+main =
+    IO.println (A_Mod.A_Mod.Value 1)
+    IO.println (B.C.C_Mod.C_Mod.Value 1)
+    IO.println (B.C.D.D_Mod.D_Mod.Value 1)
+    0
