@@ -30,6 +30,8 @@ OPTS.minify = false
 OPTS.write = false
 // eslint-disable-next-line @typescript-eslint/naming-convention
 OPTS.loader = { '.html': 'copy' }
+OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
+OPTS.define.assert = '(invariant, message) => { if (!invariant) { throw new Error(message)} }'
 OPTS.plugins.push({
     name: 'react-dom-profiling',
     setup(build) {

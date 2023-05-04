@@ -132,6 +132,7 @@ export function bundlerOptions(args: Arguments) {
             BUILD_INFO: JSON.stringify(BUILD_INFO),
             IS_DEV_MODE: JSON.stringify(devMode),
         },
+        pure: ['assert'],
         sourcemap: true,
         minify: true,
         metafile: true,

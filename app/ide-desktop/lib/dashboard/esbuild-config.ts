@@ -126,6 +126,7 @@ export function bundlerOptions(args: Arguments) {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             IS_DEV_MODE: JSON.stringify(args.devMode),
         },
+        pure: ['assert'],
         sourcemap: trueBoolean,
         minify: trueBoolean,
         metafile: trueBoolean,
