@@ -1247,6 +1247,17 @@ type Column
             # ==> ["t", "f"]
     format : Text | Column -> Locale -> Column ! Illegal_Argument
     format self format=Nothing locale=Locale.default =
+        create_formatter = case self.value_type of
+            Value_Type.Date -> make_value_formatter locale
+            Value_Type.Date_Time _ -> make_value_formatter locale
+            Value_Type.Time -> make_value_formatter locale
+            Value_Type.Boolean -> make_boolean_formatter
+            Value_Type.Integer _ -> make_value_formatter locale
+            Value_Type.Float _ -> make_value_formatter locale
+            bad_type ->
+                msg = "Cannot format a Column of type " + bad_type.to_text
+                Error.throw (Illegal_Argument.Error msg)
+
         new_column = case format of
             "" ->
                 formatter = .to_text
@@ -1255,41 +1266,11 @@ type Column
                 formatter = .to_text
                 map_over_storage self formatter make_string_builder
             _ : Text ->
-                formatter = case self.value_type of
-                    Value_Type.Date ->
-                        make_datelike_formatter format locale
-                    Value_Type.Date_Time _ ->
-                        make_datelike_formatter format locale
-                    Value_Type.Time ->
-                        make_datelike_formatter format locale
-                    Value_Type.Boolean ->
-                        make_boolean_formatter format
-                    Value_Type.Integer _ ->
-                        make_number_formatter format locale
-                    Value_Type.Float _ ->
-                        make_number_formatter format locale
-                    bad_type ->
-                        msg = "Cannot format a Column of type " + bad_type.to_text
-                        Error.throw (Illegal_Argument.Error msg)
+                formatter = create_formatter
                 formatter.if_not_error <|
-                    map_over_storage self formatter make_string_builder
+                    map_over_storage self (formatter format=format) make_string_builder
             format_column : Column -> Value_Type.expect_text format_column <|
-                formatter = case self.value_type of
-                    Value_Type.Date ->
-                        make_datelike_with_column_formatter locale
-                    Value_Type.Date_Time _ ->
-                        make_datelike_with_column_formatter locale
-                    Value_Type.Time ->
-                        make_datelike_with_column_formatter locale
-                    Value_Type.Boolean ->
-                        make_boolean_with_column_formatter
-                    Value_Type.Integer _ ->
-                        make_number_with_column_formatter locale
-                    Value_Type.Float _ ->
-                        make_number_with_column_formatter locale
-                    bad_type ->
-                        msg = "Cannot format a Column of type " + bad_type.to_text
-                        Error.throw (Illegal_Argument.Error msg)
+                formatter = create_formatter
                 formatter.if_not_error <|
                     map_2_over_storage self format_column formatter make_string_builder
             _ -> Error.throw <| Illegal_Argument.Error <| "Unsupported format type: " + format.to_text
@@ -1862,74 +1843,22 @@ wrap_text_argument_as_value_provider val =
             i-> storage.getItemBoxed i
 
 ## PRIVATE
-   Create a date/time formatter for the given format string. The `datelike`
-   parameter can be a `Date`, `Date_Time`, or `Time_Of_Day`.
-make_datelike_formatter : Text -> Locale -> (Date -> Text)
-make_datelike_formatter format locale =
-    datelike->
-        handle_illegal_argument_exception format <|
-            datelike.format format locale
-
-## PRIVATE
-   Create a date/time formatter that takes the format string as the second
-   parameter. The `datelike` parameter can be a `Date`, `Date_Time`, or
-   `Time_Of_Day`.
-make_datelike_with_column_formatter : Locale -> (Date -> Text -> Text)
-make_datelike_with_column_formatter locale =
-    empty_format_uses_to_text <|
-        datelike-> format->
-            handle_illegal_argument_exception format <|
-                datelike.format format locale
-
-## PRIVATE
-   Create a `Boolean` formatter for the given format string.
-make_boolean_formatter : Text -> (Date -> Text) ! Illegal_Argument
-make_boolean_formatter format =
-    data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
-    data_formatter.if_not_error
-        bool->
-            handle_illegal_argument_exception format <|
-                data_formatter.format bool
-
+   Create a formatter for the given format string.
+   The `value` parameter has to have a `format` method that takes a format and
+   locale.
+make_value_formatter : Locale -> (Any -> Text)
+make_value_formatter locale = value-> format->
+    handle_illegal_argument_exception format <|
+        if format.is_nothing || format.is_empty then value.to_text else
+            value.format format locale
 ## PRIVATE
    Create a `Boolean` formatter that takes the format string as the second
    parameter.
-make_boolean_with_column_formatter : (Date -> Text -> Text)
-make_boolean_with_column_formatter =
-    empty_format_uses_to_text <|
-        bool-> format->
-            data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
-            data_formatter.if_not_error
-                data_formatter.format bool
-
-## PRIVATE
-   Create a numeric formatter for the given format string. The `number`
-   parameter can be an `Integer` or `Float`.
-make_number_formatter : Text -> Locale -> (Date -> Text)
-make_number_formatter format locale =
-    number->
-        handle_illegal_argument_exception format <|
-            number.format format locale
-
-## PRIVATE
-   Create a numeric formatter that takes the format string as the second
-   parameter. The `number` parameter can be an `Integer` or `Float`.
-make_number_with_column_formatter : Locale -> (Date -> Text -> Text)
-make_number_with_column_formatter locale =
-    empty_format_uses_to_text <|
-        number-> format->
-            handle_illegal_argument_exception format <|
-                number.format format locale
-
-## PRIVATE
-   Wrap a text formatter so that, if passed `""` or `Nothing` for the format,
-   uses .to_text instead of the normal .format method.
-empty_format_uses_to_text : (Any -> Any -> Any) -> (Any -> Any -> Any)
-empty_format_uses_to_text function = x-> format->
-    case format of
-        _ : Nothing -> x.to_text
-        "" -> x.to_text
-        _ -> function x format
+make_boolean_formatter : (Boolean -> Text -> Text)
+make_boolean_formatter = bool-> format->
+    if format.is_nothing || format.is_empty then bool.to_text else
+        data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+        data_formatter.format bool
 
 ## PRIVATE
    Rethrow a Java IllegalArgumentException as an Illegal_Argument.
