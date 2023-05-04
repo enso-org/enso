@@ -504,7 +504,7 @@ impl System {
     #[profile(Debug)]
     pub fn new_glyph(&self) -> Glyph {
         let context = self.context.clone();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_no_debug();
         let font = self.font.clone_ref();
         let glyph_id = default();
         let line_byte_offset = default();

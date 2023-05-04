@@ -3,10 +3,11 @@
 
 import toast from 'react-hot-toast'
 
-import * as backend from './dashboard/service'
+import * as backend from './dashboard/backend'
+import * as remoteBackend from './dashboard/remoteBackend'
 
 export async function uploadMultipleFiles(
-    backendService: backend.Backend,
+    backendService: remoteBackend.RemoteBackend,
     directoryId: backend.DirectoryId,
     files: File[]
 ) {

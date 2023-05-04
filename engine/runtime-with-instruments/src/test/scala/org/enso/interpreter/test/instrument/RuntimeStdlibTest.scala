@@ -185,6 +185,11 @@ class RuntimeStdlibTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  override protected def afterEach(): Unit = {
+    context.executionContext.context.close()
+    context.runtimeServerEmulator.terminate()
+  }
+
   it should "import Base modules" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Forbidden_Operation
+import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -19,7 +21,7 @@ spec =
     windows_file = enso_project.data / "windows.txt"
     non_existent_file = File.new "does_not_exist.txt"
 
-    Test.group "File Operations" <| Context.Output.with_enabled <|
+    Test.group "File Operations" <|
         Test.specify "should allow creating a new file" <|
             path = sample_file.path
             File.new path
@@ -65,6 +67,34 @@ spec =
             (File.new "foo").should_equal (File.new "foo")
             (File.new "bar").should_not_equal (File.new "foo")
 
+        Test.specify "should allow creating a directory" <|
+            f = enso_project.data / "good_dir"
+            f.delete_if_exists
+            f.exists.should_be_false
+
+            f.create_directory
+            f.exists.should_be_true
+            f.is_directory.should_be_true
+
+            g = f / "bar" / "baz"
+            g.exists.should_be_false
+
+            g.create_directory
+            g.exists.should_be_true
+
+            g.delete_if_exists
+            g.parent.delete_if_exists
+            f.delete_if_exists
+
+        Test.specify "should only allow creating a directory if Output is enabled" <|
+            f = enso_project.data / "bad_dir"
+            f.delete_if_exists
+            f.exists.should_be_false
+
+            Context.Output.with_disabled <|
+                f.create_directory . should_fail_with Forbidden_Operation
+                f.exists.should_be_false
+
         Test.specify "should allow reading a file byte by byte" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
@@ -77,6 +107,76 @@ spec =
                 stream.read_byte.should_equal -1
             f.delete
             f.exists.should_be_false
+
+        Test.specify "should only allow with_output_stream if Output is enabled" <|
+            f = enso_project.data / "short.txt"
+            f.delete_if_exists
+
+            byte_vector = "Hello World!".bytes Encoding.utf_8
+            write_bytes bytes = f.with_output_stream [File_Access.Create, File_Access.Write] stream->
+                stream.write_bytes bytes
+                stream.close
+
+            write_bytes byte_vector . should_succeed
+            f.exists.should_be_true
+            f.delete
+
+            Context.Output.with_disabled <|
+                write_bytes byte_vector . should_fail_with Forbidden_Operation
+                f.exists.should_be_false
+
+            f.delete_if_exists
+
+        Test.specify "should only allow deleting a file if Output is enabled" <|
+            f = enso_project.data / "short.txt"
+            f.delete_if_exists
+            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+            Context.Output.with_disabled <|
+                f.delete . should_fail_with Forbidden_Operation
+                f.exists.should_be_true
+
+            f.delete.should_succeed
+            f.exists.should_be_false
+
+        Test.specify "should only allow copying a file if Output is enabled" <|
+            f = enso_project.data / "short.txt"
+            f.delete_if_exists
+            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+            g = enso_project.data / "short_copy.txt"
+            g.delete_if_exists
+
+            f.copy_to g . should_succeed
+            g.exists.should_be_true
+            g.delete_if_exists
+
+            Context.Output.with_disabled <|
+                f.copy_to g . should_fail_with Forbidden_Operation
+                g.exists.should_be_false
+
+            f.delete_if_exists
+            g.delete_if_exists
+
+        Test.specify "should only allow moving a file if Output is enabled" <|
+            f = enso_project.data / "short.txt"
+            f.delete_if_exists
+            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+            g = enso_project.data / "short_copy.txt"
+            g.delete_if_exists
+
+            Context.Output.with_disabled <|
+                f.move_to g . should_fail_with Forbidden_Operation
+                f.exists.should_be_true
+                g.exists.should_be_false
+
+            f.move_to g . should_succeed
+            f.exists.should_be_false
+            g.exists.should_be_true
+
+            f.delete_if_exists
+            g.delete_if_exists
 
         Test.specify "should handle exceptions when deleting a missing file" <|
             file = File.new "does_not_exist.txt"
@@ -205,7 +305,7 @@ spec =
             contents_2 = Data.read_text file
             contents_2.should_start_with "Cupcake ipsum dolor sit amet."
 
-    Test.group "write operations" <| Context.Output.with_enabled <|
+    Test.group "write operations" <|
         data = [32, 127, -128, 0]
         data_2 = [10, 15, 20, 30]
 
@@ -293,6 +393,20 @@ spec =
             f.delete
             f.exists.should_be_false
 
+        Test.specify "should perform a dry run writing text to a new file if Context.Output is disabled" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+
+            r = Context.Output.with_disabled <|
+                r = "line 1!".write f
+                Problems.expect_only_warning Dry_Run_Operation r
+                f.exists.should_be_false
+                r.exists.should_be_true
+                r
+
+            r.delete_if_exists
+
         Test.specify "should allow appending text to a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
@@ -301,6 +415,40 @@ spec =
             f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
+
+        Test.specify "should perform a dry run appending text to a file if Context.Output is disabled" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+
+            Context.Output.with_disabled <|
+                r = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                Problems.expect_only_warning Dry_Run_Operation r
+                r.exists.should_be_true
+                r.read_text.should_equal 'line 1!\nline 2!'
+                f.read_text.should_equal 'line 1!'
+
+                Context.Output.with_enabled <| r.delete_if_exists
+
+        Test.specify "should perform a dry run creating and appending text to a file if Context.Output is disabled" <|
+            f = transient / "dry_append.txt"
+            f.delete_if_exists
+
+            Context.Output.with_disabled <|
+                r = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                Problems.expect_only_warning Dry_Run_Operation r
+                r.exists.should_be_true
+
+                s = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                Problems.expect_only_warning Dry_Run_Operation s
+                s.exists.should_be_true
+
+                s.read_text.should_equal 'line 1!\nline 2!'
+                s.should_equal r
+
+                f.exists.should_be_false
+
+                Context.Output.with_enabled <| r.delete_if_exists
 
         Test.specify "should allow to overwrite files" <|
             f = transient / "work.txt"
@@ -314,6 +462,22 @@ spec =
             f.delete
             f.exists.should_be_false
 
+        Test.specify "should not overwrite original file if Context.Output is disabled" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
+            f.exists.should_be_true
+
+            r = Context.Output.with_disabled <|
+                r = "line 2!".write f on_existing_file=Existing_File_Behavior.Overwrite
+                r.read_text.should_equal "line 2!"
+                r
+            r.delete_if_exists
+
+            f.read_text.should_equal "line 1!"
+            f.delete_if_exists
+
         Test.specify "should fail if a file already exists, depending on the settings" <|
             f = transient / "work.txt"
             f.delete_if_exists
@@ -321,10 +485,18 @@ spec =
             "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
+
             r1 = "line 2!".write f on_existing_file=Existing_File_Behavior.Error
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Already_Exists
             f.read_text.should_equal "line 1!"
+
+            Context.Output.with_disabled <|
+                r2 = "line 2!".write f on_existing_file=Existing_File_Behavior.Error
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Already_Exists
+                f.read_text.should_equal "line 1!"
+
             f.delete
             f.exists.should_be_false
 
@@ -358,6 +530,31 @@ spec =
             written_news.each n->
                 n.read_text . should_equal "new content"
             [f, bak, n0, n1, n2, n4].each .delete
+
+        Test.specify "should not create a backup when writing a dry run file with Context.Output disabled" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal f
+
+            r = Context.Output.with_disabled <|
+                s = "New Content!".write f on_existing_file=Existing_File_Behavior.Backup
+                s.exists.should_be_true
+                s.read_text.should_equal "New Content!"
+
+                "Other Content!".write s on_existing_file=Existing_File_Behavior.Backup
+                s.read_text.should_equal "Other Content!"
+                t = File.new s.path+".bak"
+                t.exists.should_be_false
+                s
+
+            bak = transient / "work.txt.bak"
+            bak.exists.should_be_false
+
+            f.read_text.should_equal "line 1!"
+            f.delete_if_exists
+            bak.delete_if_exists
+            r.delete_if_exists
 
         Test.specify "should correctly handle failure of the write operation when working with the backup" <|
             f = transient / "work.txt"

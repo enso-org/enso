@@ -1,5 +1,10 @@
-/** @file A service worker that redirects paths without extensions to `/index.html`. */
+/** @file A service worker that redirects paths without extensions to `/index.html`.
+ * This is only used in the cloud frontend. */
 /// <reference lib="WebWorker" />
+
+// =====================
+// === Fetch handler ===
+// =====================
 
 // We `declare` a variable here because Service Workers have a different global scope.
 // eslint-disable-next-line no-restricted-syntax

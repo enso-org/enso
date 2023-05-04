@@ -55,7 +55,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
         if (elt.getKind() == ElementKind.CLASS) {
           try {
             var needsFrame = BuiltinsProcessor.checkNeedsFrame(elt);
-            handleTypeELement((TypeElement) elt, roundEnv, needsFrame);
+            handleTypeElement((TypeElement) elt, roundEnv, needsFrame);
           } catch (IOException e) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
           }
@@ -72,7 +72,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     return true;
   }
 
-  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv, Boolean needsFrame)
+  private void handleTypeElement(TypeElement element, RoundEnvironment roundEnv, Boolean needsFrame)
       throws IOException {
     ExecutableElement executeMethod =
         element.getEnclosedElements().stream()

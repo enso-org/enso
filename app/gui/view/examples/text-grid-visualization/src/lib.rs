@@ -16,8 +16,6 @@
 
 use ensogl::prelude::*;
 
-use crate::text_visualization::TextGrid;
-
 use ensogl::animation;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
@@ -25,8 +23,8 @@ use ensogl::system::web;
 use ensogl::system::web::traits::DocumentOps;
 use ensogl::system::web::traits::ElementOps;
 use ensogl_text_msdf::run_once_initialized;
-use ide_view::graph_editor::builtin::visualization::native::text_visualization;
 use ide_view::graph_editor::builtin::visualization::native::text_visualization::text_provider;
+use ide_view::graph_editor::builtin::visualization::native::text_visualization::TextGrid;
 
 
 

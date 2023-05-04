@@ -108,13 +108,9 @@ export function bundlerOptions(args: Arguments) {
         outbase: 'src',
         plugins: [
             {
-                // This is a workaround that is needed
-                // because esbuild panics when using `loader: { '.js': 'copy' }`.
-                // See https://github.com/evanw/esbuild/issues/3041.
-                // Setting `loader: 'copy'` prevents this file from being converted to ESM
-                // because of the `"type": "module"` in the `package.json`.
                 // This file MUST be in CommonJS format because it is loaded using `Function()`
-                // in `ensogl/pack/js/src/runner/index.ts`
+                // in `ensogl/pack/js/src/runner/index.ts`.
+                // All other files are ESM because of `"type": "module"` in `package.json`.
                 name: 'pkg-js-is-cjs',
                 setup: build => {
                     build.onLoad({ filter: /[/\\]pkg.js$/ }, async ({ path }) => ({

@@ -1608,17 +1608,18 @@ type Table
                 column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
                 self.connection.read_statement sql column_type_suggestions
 
-    ## UNSTABLE
+    ## PRIVATE
+       Creates a query corresponding to this table.
+    to_select_query : Query
+    to_select_query self =
+        cols = self.internal_columns.map (c -> [c.name, c.expression])
+        # assert cols.not_empty
+        Query.Select cols self.context
 
+    ## UNSTABLE
        Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL_Statement
-    to_sql self =
-        cols = self.internal_columns.map (c -> [c.name, c.expression])
-        case cols.is_empty of
-            True -> Error.throw <| Unsupported_Database_Operation.Error "Cannot generate SQL for a table with no columns."
-            False ->
-                query = Query.Select cols self.context
-                self.connection.dialect.generate_sql query
+    to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
     ## Returns a Table describing this table's contents.
 
