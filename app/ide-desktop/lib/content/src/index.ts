@@ -142,7 +142,6 @@ class Main implements AppRunner {
             {
                 loader: {
                     wasmUrl: 'pkg-opt.wasm',
-                    jsUrl: 'pkg.js',
                 },
             },
             inputConfig
