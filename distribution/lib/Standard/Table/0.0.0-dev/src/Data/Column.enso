@@ -1205,6 +1205,11 @@ type Column
          as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
          for a complete format specification.
 
+         Note that the format string can specify decimal point and digit
+         separators, but these characters are interpreted in the context of the
+         Locale used. The format string specifies their location, but the Locale
+         has the final decision about which characters are used.
+
        ? `Value_Type.Integer`, `Value_Type.Float` format strings
 
          Numeric format strings are specified by the Java DecimalFormat class.

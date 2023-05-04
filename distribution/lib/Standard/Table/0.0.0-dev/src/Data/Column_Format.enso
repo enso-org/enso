@@ -53,7 +53,7 @@ each_propagate range function =
         go current =
             if end_condition current range.end then Nothing else
                 result = function current
-                if result.is_error then result else
+                result.if_not_error <|
                     @Tail_Call go current+range.step
         go range.start
 
