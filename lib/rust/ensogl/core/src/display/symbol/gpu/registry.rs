@@ -111,7 +111,7 @@ impl SymbolRegistry {
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let display_mode = variables.add_or_panic("display_mode", 0);
         let context = default();
-        let stats = debug::stats::Stats::new(web::window.performance_or_panic());
+        let stats = default();
         let global_id_provider = default();
         let next_id = default();
         let style_sheet = style::Sheet::new();

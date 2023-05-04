@@ -14,13 +14,13 @@
 //!  - `data_upload_size`
 
 use enso_prelude::*;
+use enso_web::traits::*;
 
 use crate::display::world;
 use crate::display::SymbolId;
 
 use enso_types::unit2::Duration;
 use enso_web::Performance;
-use enso_web::TimeProvider;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use wasm_bindgen::JsCast;
@@ -32,36 +32,16 @@ use wasm_bindgen::JsCast;
 // =============
 
 /// Contains all the gathered stats, and provides methods for modifying and retrieving their
-/// values. Uses the Web Performance API to access current time for calculating time-dependent
-/// stats (e.g. FPS).
-pub type Stats = StatsWithTimeProvider<Performance>;
-
-
-
-// =============================
-// === StatsWithTimeProvider ===
-// =============================
-
-/// Contains all the gathered stats, and provides methods for modifying and retrieving their
 /// values.
-/// Uses [`T`] to access current time for calculating time-dependent stats (e.g. FPS).
-#[derive(Debug, Deref, CloneRef)]
-pub struct StatsWithTimeProvider<T> {
-    rc: Rc<RefCell<FramedStatsData<T>>>,
+#[derive(Clone, CloneRef, Debug, Deref, Default)]
+pub struct Stats {
+    rc: Rc<RefCell<StatsInternal>>,
 }
 
-impl<T> Clone for StatsWithTimeProvider<T> {
-    fn clone(&self) -> Self {
-        Self { rc: self.rc.clone() }
-    }
-}
-
-impl<T: TimeProvider> StatsWithTimeProvider<T> {
+impl Stats {
     /// Constructor.
-    pub fn new(time_provider: T) -> Self {
-        let framed_stats_data = FramedStatsData::new(time_provider);
-        let rc = Rc::new(RefCell::new(framed_stats_data));
-        Self { rc }
+    pub fn new() -> Self {
+        default()
     }
 
     /// Calculate FPS for the last frame. This function should be called on the very beginning of
@@ -95,21 +75,22 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
 
 
 // =======================
-// === FramedStatsData ===
+// === StatsInternal ===
 // =======================
 
-/// Internal representation of [`StatsWithTimeProvider`].
+/// Internal representation of [`Stats`].
 #[allow(missing_docs)]
 #[derive(Debug)]
-pub struct FramedStatsData<T> {
-    time_provider:    T,
+pub struct StatsInternal {
+    time_provider:    Performance,
     pub stats_data:   StatsData,
     frame_begin_time: Option<f64>,
 }
 
-impl<T: TimeProvider> FramedStatsData<T> {
+impl StatsInternal {
     /// Constructor.
-    fn new(time_provider: T) -> Self {
+    fn new() -> Self {
+        let time_provider = enso_web::window.performance_or_panic();
         let stats_data = default();
         let frame_begin_time = None;
         Self { time_provider, stats_data, frame_begin_time }
@@ -150,6 +131,11 @@ impl<T: TimeProvider> FramedStatsData<T> {
     }
 }
 
+impl Default for StatsInternal {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 
 // ========================
@@ -164,7 +150,7 @@ macro_rules! emit_if_integer {
     ($other:ty, $($block:tt)*) => ();
 }
 
-/// Emits the StatsData struct, and extends StatsWithTimeProvider with accessors to StatsData
+/// Emits the StatsData struct, and extends Stats with accessors to StatsData
 /// fields.
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste! {
@@ -180,9 +166,9 @@ macro_rules! gen_stats {
         }
 
 
-        // === StatsWithTimeProvider fields accessors ===
+        // === Stats fields accessors ===
 
-        impl<T: TimeProvider> StatsWithTimeProvider<T> { $(
+        impl Stats { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
                 self.rc.borrow().stats_data.$field.clone()

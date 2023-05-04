@@ -330,11 +330,16 @@ impl WorldDataWithLoop {
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
+        let on_frame_end = animation::on_frame_end();
         let on_before_layout = animation::on_before_layout();
         let on_before_rendering = animation::on_before_rendering();
         let network = frp.network();
         crate::frp::extend! {network
-            eval on_frame_start ((t) data.run_stats(*t));
+            eval on_frame_start ((t) {
+                data.default_scene.on_frame_start();
+                data.run_stats(*t)
+            });
+            eval_ on_frame_end (data.default_scene.on_frame_end());
             layout_update <- on_before_layout.map(f!((t) data.run_next_frame_layout(*t)));
             _eval <- on_before_rendering.map2(&layout_update,
                 f!((t, early) data.run_next_frame_rendering(*t, *early))
@@ -433,7 +438,14 @@ impl WorldData {
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
+            // console_log!("{:?}", stats.fps);
             stats_monitor.sample_and_draw(stats);
+
+            if stats.fps < 80.0 {
+                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(true));
+            } else {
+                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(false));
+            }
         }));
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));

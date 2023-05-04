@@ -944,6 +944,14 @@ impl SceneData {
         world::with_context(|t| t.new(label))
     }
 
+    pub fn low_fps_mode(&self, enabled: bool) {
+        // if enabled {
+        // self.dom.root.override_pixel_ratio(Some(1.0));
+        // } else {
+        //     self.dom.root.override_pixel_ratio(None);
+        // }
+    }
+
     fn update_shape(&self) -> bool {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
@@ -1164,6 +1172,19 @@ impl Scene {
         match context_loss_handler {
             Err(err) => error!("{err}"),
             Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
+        }
+    }
+
+    pub fn on_frame_start(&self) {
+        // console_log!("start frame");
+        if let Some(context) = &*self.context.borrow() {
+            context.profiler.start_frame();
+        }
+    }
+
+    pub fn on_frame_end(&self) {
+        if let Some(context) = &*self.context.borrow() {
+            context.profiler.end_frame();
         }
     }
 

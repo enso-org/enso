@@ -173,7 +173,7 @@ crate::define_endpoints_2! {
         on_after_animations(TimeInfo),
         on_before_layout(TimeInfo),
         on_before_rendering(TimeInfo),
-        frame_end(TimeInfo),
+        on_frame_end(TimeInfo),
     }
 }
 
@@ -189,8 +189,8 @@ pub fn on_frame_start() -> enso_frp::Sampler<Duration> {
 }
 
 /// Fires at the end of every animation frame.
-pub fn frame_end() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.frame_end.clone_ref())
+pub fn on_frame_end() -> enso_frp::Sampler<TimeInfo> {
+    LOOP_REGISTRY.with(|registry| registry.on_frame_end.clone_ref())
 }
 
 /// Fires before the animations are evaluated.
@@ -310,7 +310,7 @@ fn on_frame_closure(
         let on_after_animations = output.on_after_animations.clone_ref();
         let on_before_layout = output.on_before_layout.clone_ref();
         let on_before_rendering = output.on_before_rendering.clone_ref();
-        let frame_end = output.frame_end.clone_ref();
+        let on_frame_end = output.on_frame_end.clone_ref();
         let before_animations = before_animations.clone_ref();
         let animations = animations.clone_ref();
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
@@ -322,12 +322,12 @@ fn on_frame_closure(
             .then(move || before_animations.run_all(time_info))
             .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| animations.run_all(t)))
             .then(move || on_after_animations.emit(time_info))
-            .then(move || frame_end.emit(time_info))
             .then(move || on_before_layout.emit(time_info))
             .then(move || {
                 on_before_rendering.emit(time_info);
                 drop(_profiler);
             })
+            .then(move || on_frame_end.emit(time_info))
             .schedule();
     }
 }

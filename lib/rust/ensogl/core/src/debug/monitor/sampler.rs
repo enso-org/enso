@@ -146,7 +146,6 @@ pub const FPS: Sampler = Sampler {
     warn_threshold: 55.0,
     err_threshold: 25.0,
     precision: 2,
-    max_value: Some(60.0),
     ..DEFAULT_SAMPLER
 };
 

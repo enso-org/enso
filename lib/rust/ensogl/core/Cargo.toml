@@ -68,6 +68,7 @@ features = [
   'WebGlBuffer',
   'WebGlFramebuffer',
   'WebGlProgram',
+  'WebGlQuery',
   'WebGlRenderingContext',
   'WebGlShader',
   'WebGlSync',

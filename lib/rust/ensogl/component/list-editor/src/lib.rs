@@ -429,6 +429,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             is_down <- bool(&on_up, &on_down);
             on_move_down <- on_move.gate(&is_down);
             glob_pos_on_down <- on_down.map(|event| event.client_centered());
+            trace glob_pos_on_down;
             glob_pos_on_move_down <- on_move_down.map(|event| event.client_centered());
             glob_pos_on_move <- on_move.map(|event| event.client_centered());
             pos_on_down <- glob_pos_on_down.map(f!((p) model.screen_to_object_space(*p)));
