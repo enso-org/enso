@@ -11,7 +11,6 @@ import project.Data.SQL_Query.SQL_Query
 import project.Extensions.Upload_Table
 
 from project.Connection.Postgres_Details.Postgres_Details import Postgres
-from project.Connection.Redshift_Details.Redshift_Details import Redshift
 from project.Connection.SQLite_Details.SQLite_Details import SQLite
 
 
