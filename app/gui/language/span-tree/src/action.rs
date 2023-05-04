@@ -329,7 +329,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 let mut new_root = root.set_traversing(parent_crumbs, new_ast?)?;
 
 
-                // when erasing a positional or named argument, all further positional arguments
+                // When erasing a positional or named argument, all further positional arguments
                 // past its definition order will end up in wrong position. To fix that, we need to
                 // rewrite them as named arguments.
                 if let Some(erased_definition_index) = self.kind.definition_index() {
@@ -340,8 +340,39 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         })
                         .map(|found| found.node);
 
+                    // To better understand the code, it's important to know the structure of
+                    // the [`SpanTree`] for prefix chains:
+                    //
+                    // Root
+                    // ├─Chained
+                    // │ ├─Chained
+                    // │ │ ├─Chained
+                    // │ │ │ └─ Argument1
+                    // │ │ └─ Argument2
+                    // │ └─ Argument3
+                    // └─ Argument4
+                    //
+                    // Note that the order of arguments is reversed.
+                    //
+                    // Usually, all modifications of the AST must also modify the SpanTree of the
+                    // expression. In this case, however, we are iterating over the old SpanTree
+                    // while modifying the AST, and we don't update the SpanTree in the process. The
+                    // assumption here is that as we go, we only change the SpanTree deeper than we
+                    // will look at in future iterations. That way, we can be sure that the
+                    // SpanTree's "outer layers" still correspond to the original. It is done that
+                    // way because we cannot dynamically adjust the span tree to be entirely correct
+                    // on every step.
+                    //
+                    // This loop traverses the tree bottom to top, starting at one of the arguments,
+                    // and continues until all arguments are covered. It operates as follows:
+                    // 1. Retrieve the argument from the current level of the [`SpanTree`].
+                    // 2. Rewrite the argument as necessary.
+                    // 3. Update `next_parent` to be the parent of the current node. We use
+                    // [`Ref::ast_parent`] instead of [`Ref::parent`] because a single AST node
+                    // can contain multiple span tree levels, and iterating over all of them
+                    // would cause multiple rewrites of the same argument.
                     while let Some(node) = next_parent {
-                        next_parent = node.parent()?;
+                        next_parent = node.ast_parent()?;
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());

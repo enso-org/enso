@@ -138,9 +138,11 @@
   sending messages to the backend][6341].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
+- [Fixed text visualisations which were being cut off at the last line.][6421]
 - [Added a button to return from an opened project back to the project
-- dashboard.][6474]
+  dashboard.][6474]
 
+[6421]: https://github.com/enso-org/enso/pull/6421
 [6474]: https://github.com/enso-org/enso/pull/6474
 
 #### EnsoGL (rendering engine)
@@ -407,6 +409,8 @@
   tables.][6429]
 - [Added execution context control to writing files and dry run capabilities to
   `Text.write`.][6459]
+- [Implemented `create_database_table` allowing saving queries as database
+  tables.][6467]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -612,6 +616,7 @@
 [6347]: https://github.com/enso-org/enso/pull/6347
 [6429]: https://github.com/enso-org/enso/pull/6429
 [6459]: https://github.com/enso-org/enso/pull/6459
+[6467]: https://github.com/enso-org/enso/pull/6467
 
 #### Enso Compiler
 
@@ -720,6 +725,7 @@
 - [Removing need for asynchronous thread to execute ResourceManager
   finalizers][6335]
 - [Warning.get_all returns only unique warnings][6372]
+- [Reimplement `enso_project` as a proper builtin][6352]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -828,6 +834,7 @@
 [6171]: https://github.com/enso-org/enso/pull/6171
 [6335]: https://github.com/enso-org/enso/pull/6335
 [6372]: https://github.com/enso-org/enso/pull/6372
+[6352]: https://github.com/enso-org/enso/pull/6352
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

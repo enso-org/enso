@@ -100,7 +100,7 @@ visualization_spec connection =
             Visualization.prepare_visualization Value_Type.Char . should_equal (make_json Value_Type.Char)
             Visualization.prepare_visualization Value_Type.Unsupported_Data_Type . should_equal (make_json Value_Type.Unsupported_Data_Type)
 
-spec = Context.Output.with_enabled <|
+spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists

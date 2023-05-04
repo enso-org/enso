@@ -46,12 +46,10 @@ format_widget =
     all_types = [Auto_Detect] + format_types
     make_ctor type_obj =
         type_name = Meta.get_qualified_type_name type_obj
-
-        ## Temporary work around to work out if need to add the constructor name
-        is_singleton_type = type_obj==JSON_Format || (type_name.ends_with "_Format" . not)
+        ctors = Meta.meta type_obj . constructors
+        is_singleton_type = ctors.length == 0
         if is_singleton_type then type_name else
-            simple_name = Meta.get_simple_type_name type_obj
-            "(" + type_name + "." + (simple_name.replace "_Format" "") + ")"
+            "(" + type_name + "." + ctors.first.name + ")"
     make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
     Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (make_ctor n)))
 

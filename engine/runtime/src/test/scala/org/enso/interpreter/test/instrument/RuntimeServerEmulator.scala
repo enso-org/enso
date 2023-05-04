@@ -80,4 +80,6 @@ class RuntimeServerEmulator(
       }
     } else null
   }
+
+  def terminate() = system.terminate()
 }

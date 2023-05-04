@@ -13,6 +13,7 @@ import project.Data.Table.Table
 import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
+import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -23,6 +24,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.Redshift.Redshift_Error_Mapper.Redshift_Error_Mapper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
@@ -152,3 +154,7 @@ type Redshift_Dialect
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE"]
+
+    ## PRIVATE
+    get_error_mapper : Error_Mapper
+    get_error_mapper self = Redshift_Error_Mapper

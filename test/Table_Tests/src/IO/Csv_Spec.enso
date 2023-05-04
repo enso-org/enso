@@ -92,7 +92,7 @@ spec =
             res.should_equal expected
 
 
-        Test.specify 'should write CSV to a file' <| Context.Output.with_enabled <|
+        Test.specify 'should write CSV to a file' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
             out = enso_project.data / "transient" / "out.csv"
             out.delete_if_exists
@@ -110,7 +110,7 @@ spec =
             out.read_text.should_equal exp
             out.delete_if_exists
 
-    Test.group "Integration" <| Context.Output.with_enabled <|
+    Test.group "Integration" <|
         Test.specify "should be able to round-trip a table with all kinds of weird characters to CSV and back" <|
             names = ['Śłąęźż");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,', '\'', 'a\n\nb', 'a\tc', Nothing, Nothing, Nothing, '42', '💁👌🎍😍', '', 'null?\0?', 'FFFD', '\uFFFD', '\r\n', 'a\r\nb\n\rc\rd\ne', 'what about these # ?? // /* hmm */ is it included?', 'and the rare \v vertical tab?']
             d = Date_Time.new 2015 10 29 23 55 49

@@ -181,7 +181,7 @@ impl BreadcrumbsModel {
         use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
         background.set_style(breadcrumbs::background::HERE, &style);
 
-        scene.layers.panel_background.add(&background);
+        scene.layers.panel_background_rect_level_0.add(&background);
 
         Self {
             display_object,

@@ -136,7 +136,23 @@ class CollaborativeBuffer(
 
     case JsonSessionTerminated(client) =>
       if (clients.contains(client.clientId)) {
-        removeClient(buffer, clients, lockHolder, client.clientId, autoSave)
+        autoSave.get(client.clientId) match {
+          case Some((contentVersion, cancellable)) =>
+            cancellable.cancel()
+            saveFile(
+              buffer,
+              clients,
+              lockHolder,
+              client.clientId,
+              contentVersion,
+              autoSave,
+              isAutoSave     = true,
+              onClose        = Some(client.clientId),
+              reportProgress = Some(sender())
+            )
+          case None =>
+            removeClient(buffer, clients, lockHolder, client.clientId, autoSave)
+        }
       }
 
     case CloseFile(clientId, _) =>
