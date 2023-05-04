@@ -40,7 +40,7 @@ function TopBar(props: TopBarProps) {
         } else {
             unsetModal()
         }
-    }, [userMenuVisible])
+    }, [userMenuVisible, setModal, unsetModal])
 
     return (
         <div className="flex mb-2 h-8">

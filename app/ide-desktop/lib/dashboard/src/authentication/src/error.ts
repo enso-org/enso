@@ -33,3 +33,10 @@ export class UnreachableCaseError extends Error {
         super(`Unreachable case: ${JSON.stringify(value)}`)
     }
 }
+
+/** A function that throws an {@link UnreachableCaseError} so that it can be used
+ * in an expresison.
+ * @throws {UnreachableCaseError} Always. */
+export function unreachable(value: never): never {
+    throw new UnreachableCaseError(value)
+}

@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as error from '../../error'
 import * as platformModule from '../../platform'
 
 // =================
@@ -58,14 +59,20 @@ function Ide(props: Props) {
             } else if (binaryAddress == null) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
-                const assetsRoot = (() => {
-                    switch (backend.platform) {
-                        case platformModule.Platform.cloud:
-                            return `${IDE_CDN_URL}/${ideVersion}/`
-                        case platformModule.Platform.desktop:
-                            return ''
+                let assetsRoot: string
+                switch (backend.platform) {
+                    case platformModule.Platform.cloud: {
+                        assetsRoot = `${IDE_CDN_URL}/${ideVersion}/`
+                        break
                     }
-                })()
+                    case platformModule.Platform.desktop: {
+                        assetsRoot = ''
+                        break
+                    }
+                    default: {
+                        throw new error.UnreachableCaseError(backend)
+                    }
+                }
                 const runNewProject = async () => {
                     await appRunner?.runApp({
                         loader: {

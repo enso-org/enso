@@ -62,27 +62,23 @@ function DirectoryView(props: DirectoryViewProps) {
         columnModule.ColumnDisplayMode.release
     )
 
-    const [[projectAssets, directoryAssets, secretAssets, fileAssets], setAssets] =
-        React.useReducer<
-            React.Reducer<
-                [
-                    backendModule.ProjectAsset[],
-                    backendModule.DirectoryAsset[],
-                    backendModule.SecretAsset[],
-                    backendModule.FileAsset[]
-                ],
-                backendModule.Asset[]
-            >
-        >(
-            (_, assets) => {
-                return [
-                    assets.filter(backendModule.assetIsType(backendModule.AssetType.project)),
-                    assets.filter(backendModule.assetIsType(backendModule.AssetType.directory)),
-                    assets.filter(backendModule.assetIsType(backendModule.AssetType.secret)),
-                    assets.filter(backendModule.assetIsType(backendModule.AssetType.file)),
-                ]
+    const [{ projectAssets, directoryAssets, secretAssets, fileAssets }, setAssets] =
+        React.useReducer(
+            (_: unknown, assets: backendModule.Asset[]) => {
+                const assetIsType = backendModule.assetIsType
+                return {
+                    projectAssets: assets.filter(assetIsType(backendModule.AssetType.project)),
+                    directoryAssets: assets.filter(assetIsType(backendModule.AssetType.directory)),
+                    secretAssets: assets.filter(assetIsType(backendModule.AssetType.secret)),
+                    fileAssets: assets.filter(assetIsType(backendModule.AssetType.file)),
+                }
             },
-            [[], [], [], []]
+            {
+                projectAssets: [],
+                directoryAssets: [],
+                secretAssets: [],
+                fileAssets: [],
+            }
         )
     const [visibleProjectAssets, setVisibleProjectAssets] = React.useState(projectAssets)
     const [visibleDirectoryAssets, setVisibleDirectoryAssets] = React.useState(directoryAssets)
