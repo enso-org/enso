@@ -314,6 +314,26 @@ type Date
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
+    ## Returns the next date adding the `Date_Period` to self.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - period: the period to add to self.
+    next : Date_Period -> Date
+    next self period=Date_Period.Day = self + period.to_period
+
+    ## Returns the previous date subtracting the `Date_Period` from self.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - period: the period to add to self.
+    previous : Date_Period -> Date
+    previous self period=Date_Period.Day = self - period.to_period
+
     ## Creates a `Period` between self and the provided end date.
 
        Produces a warning for a Date that is before epoch start.
