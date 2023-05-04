@@ -14,7 +14,7 @@ public class SQLiteConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return getModuleName() + "." + getTypeName() + ".SQLite";
+    return "(SQLite location=_)";
   }
 
   @Override

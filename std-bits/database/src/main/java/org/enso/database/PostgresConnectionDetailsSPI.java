@@ -14,7 +14,7 @@ public class PostgresConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return getModuleName() + "." + getTypeName() + ".Postgres";
+    return "Postgres";
   }
 
   @Override
