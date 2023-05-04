@@ -48,10 +48,10 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
    expression.
    See `Table.tokenize_to_rows`.
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
-tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one=False =
+tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
     column = table.at input_column_id
     Value_Type.expect_text column
-        fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one=at_least_one
+        fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one_row=at_least_one_row
 
 ## PRIVATE
    Converts a Text column into new columns using a regular expression
@@ -139,13 +139,13 @@ fan_out_to_columns table input_column_id function column_count=Nothing on_proble
    - function: A function that transforms a single element of `input_column`
      to multiple values.
 fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Boolean -> Problem_Behavior -> Table
-fan_out_to_rows table input_column_id function at_least_one=False on_problems=Report_Error =
+fan_out_to_rows table input_column_id function at_least_one_row=False on_problems=Report_Error =
     ## Treat this as a special case of fan_out_to_rows_and_columns, with one
        column. Wrap the provided function to convert each value to a singleton
        `Vector`.
     wrapped_function x = function x . map y-> [y]
     column_names = [input_column_id]
-    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names at_least_one=at_least_one on_problems=on_problems
+    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names at_least_one_row=at_least_one_row on_problems=on_problems
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -188,7 +188,7 @@ fan_out_to_rows table input_column_id function at_least_one=False on_problems=Re
    - column_names: The names for the generated columns.
    - on_problems: Specifies the behavior when a problem occurs.
 fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> Problem_Behavior -> Table
-fan_out_to_rows_and_columns table input_column_id function column_names at_least_one=False on_problems=Report_Error =
+fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False on_problems=Report_Error =
     problem_builder = Problem_Builder.new
     unique = Unique_Name_Strategy.new
 
@@ -206,7 +206,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
     order_mask_positions = Vector.new_builder initial_size
 
     maybe_add_empty_row vecs =
-        should_add_empty_row = vecs.is_empty && at_least_one
+        should_add_empty_row = vecs.is_empty && at_least_one_row
         if should_add_empty_row.not then vecs else
             empty_row = Vector.fill num_output_columns Nothing
             [empty_row]
