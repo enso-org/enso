@@ -19,19 +19,19 @@ interface Template {
 const CLOUD_TEMPLATES: Template[] = [
     {
         title: 'Colorado COVID',
-        id: 'Colorado_COVID',
+        id: 'Colorado_Covid',
         description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
         background: '#6b7280',
     },
     {
         title: 'KMeans',
-        id: 'Kmeans',
+        id: 'KMeans',
         description: 'Learn where to open a coffee shop to maximize your income.',
         background: '#6b7280',
     },
     {
         title: 'NASDAQ Returns',
-        id: 'NASDAQ_Returns',
+        id: 'NasdaqReturns',
         description: 'Learn how to clean your data to prepare it for advanced analysis.',
         background: '#6b7280',
     },

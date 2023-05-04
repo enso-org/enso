@@ -623,7 +623,7 @@ function Dashboard(props: DashboardProps) {
         const projectName = getNewProjectName(templateName)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
-            projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
+            projectTemplateName: templateName ?? null,
             parentDirectoryId: directoryId,
         }
         const projectAsset = await backend.createProject(body)
