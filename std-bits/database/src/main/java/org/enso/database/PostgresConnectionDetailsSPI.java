@@ -14,7 +14,7 @@ public class PostgresConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "Postgres";
+    return "(Postgres)";
   }
 
   @Override

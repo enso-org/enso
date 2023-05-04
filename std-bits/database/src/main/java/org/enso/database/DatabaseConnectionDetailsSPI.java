@@ -19,18 +19,6 @@ public abstract class DatabaseConnectionDetailsSPI { private static final Servic
     }).toArray(String[][]::new);
   }
 
-  public Value makeDefaultWidgetOption() {
-    final var context = Context.getCurrent().getBindings("enso");
-    final String optionModuleName = "Standard.Base.Metadata";
-    final var module = context.invokeMember("get_module", optionModuleName);
-    final var option_type = module.invokeMember("get_type", "Choice");
-    final var option_ctor = module.invokeMember("get_method", option_type, "Option");
-
-    String label = getUserFacingConnectionName();
-    String value = getModuleName() + "." + getTypeName() + "." + getCodeForDefaultConstructor();
-    return option_ctor.execute(label, value);
-  }
-
   /** The module in which the connection details type is defined. */
   protected abstract String getModuleName();
 
