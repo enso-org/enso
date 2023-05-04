@@ -52,7 +52,6 @@ pub struct Instance {
 
 impl Instance {
     /// Constructor
-    #[allow(clippy::borrowed_box)]
     pub fn new(
         context: &Context,
         variables: &UniformScope,
