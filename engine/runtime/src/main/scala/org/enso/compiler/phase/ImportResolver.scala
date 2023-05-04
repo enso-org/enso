@@ -246,12 +246,6 @@ class ImportResolver(compiler: Compiler) {
               case Some(tp) =>
                 (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
               case None =>
-                if (
-                  impName.matches("Standard.AWS.Database.Redshift.[a-zA-Z]+")
-                ) {
-                  System.out.println("A")
-                  System.err.println("B")
-                }
                 (
                   IR.Error.ImportExport(
                     imp,
