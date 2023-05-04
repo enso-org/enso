@@ -358,6 +358,7 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'reactive-streams', licensed under the MIT-0, is distributed with the engine.
 The license file can be found at `licenses/MIT-0`.
+Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.4`.
 
 
 'scala-collection-compat_2.13', licensed under the Apache-2.0, is distributed with the engine.
