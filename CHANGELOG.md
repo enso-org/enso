@@ -138,7 +138,6 @@
   sending messages to the backend.][6341].
 - [Area selectionof nodes no longer takes into account the visualisation that 
   belongs to the node.][6487].
-  sending messages to the backend][6341].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
 - [Fixed text visualisations which were being cut off at the last line.][6421]
