@@ -336,17 +336,40 @@ object ChangesetBuilder {
     * @return the tree representation of the IR
     */
   private def buildTree(ir: IR): Tree = {
-    @scala.annotation.tailrec
-    def go(input: mutable.Queue[IR], acc: Tree): Tree =
-      if (input.isEmpty) acc
-      else {
-        val ir = input.dequeue()
-        if (ir.children.isEmpty) {
-          Node.fromIr(ir).foreach(acc.add)
+    def go(input: IR, acc: Tree): Unit = {
+      if (input.children.isEmpty) {
+        Node.fromIr(input).foreach(acc.add)
+      } else {
+        if (input.getExternalId.nonEmpty) {
+          val chTree = new Tree()
+          input.children.map(go(_, chTree))
+
+          def fillInHoles(p: Int, n: Node): Int = {
+            if (p < n.location.start) {
+              val inBetweenNode =
+                Node(NodeId(input), Location(p, n.location.start))
+              acc += inBetweenNode
+            }
+            acc += n
+            n.location.end
+          }
+          val end =
+            chTree.foldLeft(input.location.get.location.start)(fillInHoles)
+          if (end < input.location.get.location.end) {
+            val lastNode = Node(
+              NodeId(input),
+              Location(end, input.location.get.location.end)
+            )
+            acc += lastNode
+          }
+        } else {
+          input.children.map(go(_, acc))
         }
-        go(input ++= ir.children, acc)
       }
-    go(mutable.Queue(ir), mutable.TreeSet())
+    }
+    val acc = new Tree()
+    go(ir, acc)
+    acc
   }
 
   /** Update the tree locations after applying the edit.
