@@ -274,17 +274,16 @@ impl Model {
         &self,
         scene_shape: &display::scene::Shape,
         window_control_buttons_width: f32,
-        dashboard_button_width: f32,
     ) -> f32 {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
         if let Some(window_control_buttons) = &*self.window_control_buttons {
             window_control_buttons.set_xy(top_left);
         }
         let dashboard_button_offset = Vector2(window_control_buttons_width, 0.0);
-        let dashboard_button_origin = Vector2(dashboard_button_width, -TOP_BAR_HEIGHT) / 2.0;
+        let dashboard_button_origin = Vector2(dashboard_button::SIZE, -TOP_BAR_HEIGHT) / 2.0;
         let dashboard_button_pos = top_left + dashboard_button_offset + dashboard_button_origin;
         self.dashboard_button.set_xy(dashboard_button_pos);
-        let top_bar_width = dashboard_button_offset.x + dashboard_button_width;
+        let top_bar_width = dashboard_button_offset.x + dashboard_button::SIZE;
         top_bar_width
     }
 
@@ -424,22 +423,13 @@ impl View {
         let scene_shape = scene.shape().clone_ref();
         let dashboard_button = &model.dashboard_button.frp;
         frp::extend! { network
-            frp.source.dashboard_button_pressed <+ dashboard_button.pressed;
-            dashboard_button_size <- all(init, dashboard_button.size)._1();
-            dashboard_button_width <- dashboard_button_size.map(|size| size.x);
-            top_bar_update <- all(
-                init,
-                scene_shape,
-                window_control_buttons_width,
-                dashboard_button_width
-            );
-            top_bar_width <- top_bar_update.map(
-                f!(((_, scene_shape, window_control_buttons_width, dashboard_button_width))
-                    model.relayout_top_bar(
-                        scene_shape,
-                        *window_control_buttons_width,
-                        *dashboard_button_width
-                    )
+            frp.source.dashboard_button_pressed <+ dashboard_button.is_pressed.on_true();
+            top_bar_width <- all_with3(
+                &init,
+                &scene_shape,
+                &window_control_buttons_width,
+                f!((_, scene_shape, window_control_buttons_width)
+                    model.relayout_top_bar(scene_shape, *window_control_buttons_width)
                 )
             );
             graph.top_bar_offset_x <+ top_bar_width;

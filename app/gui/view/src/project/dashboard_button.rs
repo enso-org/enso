@@ -5,11 +5,18 @@ use crate::prelude::*;
 use ensogl::application::tooltip;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::StyleWatch;
-use ensogl::display::Scene;
+use ensogl::display::style;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ToggleButton;
-use ensogl_hardcoded_theme::application::dashboard_button as theme;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The width and height of the button.
+pub const SIZE: f32 = 16.0;
 
 
 
@@ -22,7 +29,6 @@ mod icon {
     use super::*;
 
     use ensogl::data::color;
-
     use ensogl_component::toggle_button::ColorableShape;
 
     ensogl::shape! {
@@ -52,64 +58,38 @@ mod icon {
 
 
 // ============
-// === Frp  ===
-// ============
-
-ensogl::define_endpoints! {
-    Input {
-    }
-    Output {
-        pressed (),
-        size (Vector2<f32>),
-    }
-}
-
-
-
-// ============
 // === View ===
 // ============
 
 /// Provides a button to switch back from the project view to the dashboard.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 pub struct View {
-    button:  ToggleButton<icon::Shape>,
-    #[allow(missing_docs)]
-    pub frp: Frp,
+    button: ToggleButton<icon::Shape>,
 }
 
 impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let frp = Frp::new();
-        let network = &frp.network;
 
         let tooltip_style = tooltip::Style::set_label("Dashboard".to_owned())
             .with_placement(tooltip::Placement::Right);
         let button = ToggleButton::<icon::Shape>::new(app, tooltip_style);
         scene.layers.panel.add(&button);
 
-        frp::extend! { network
-            frp.source.pressed <+ button.is_pressed.on_true();
-        }
+        button.set_color_scheme(Self::color_scheme(&scene.style_sheet));
+        button.set_size(Vector2(SIZE, SIZE));
 
-        button.set_visibility(true);
-        button.set_color_scheme(Self::color_scheme(scene));
-        let size = Vector2(16.0, 16.0);
-        button.set_size(size);
-        frp.source.size.emit(size);
-
-        Self { button, frp }
+        Self { button }
     }
 
-    fn color_scheme(scene: &Scene) -> toggle_button::ColorScheme {
-        let styles = StyleWatch::new(&scene.style_sheet);
+    fn color_scheme(style_sheet: &style::Sheet) -> toggle_button::ColorScheme {
+        let default_color_scheme = toggle_button::default_color_scheme(style_sheet);
         toggle_button::ColorScheme {
-            non_toggled: Some(styles.get_color(theme::non_toggled).into()),
-            toggled: Some(styles.get_color(theme::toggled).into()),
-            hovered: Some(styles.get_color(theme::hovered).into()),
-            ..default()
+            // Make it look like a normal button by not having a toggled state visually.
+            toggled: default_color_scheme.non_toggled,
+            toggled_hovered: default_color_scheme.hovered,
+            ..default_color_scheme
         }
     }
 }
