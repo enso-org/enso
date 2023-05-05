@@ -862,12 +862,15 @@ type Table
 
        Arguments:
        - right: The table to join with.
-       - join_kind: The `Join_Kind` for the joining the two tables.
+       - join_kind: The `Join_Kind` for the joining the two tables. It defaults
+         to `Left_Outer`.
        - on: A single condition or a common column name, or a list thereof, on
          which to correlate rows from the two tables. If multiple conditions
          are supplied, rows are correlated only if all are true.
          If common column names are provided, these columns should be present
          in both tables and an equality condition is added for each of them.
+         By default, the join is performed on the first column of the left table
+         correlated with a column in the right table with the same name.
        - right_prefix: The prefix added to right table column names in case of
          name conflict.
        - on_problems: Specifies how to handle problems if they occur, reporting
