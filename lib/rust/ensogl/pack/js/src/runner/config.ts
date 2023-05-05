@@ -385,7 +385,11 @@ export function objectToGroup<T extends GroupObject>(
         }
     }
     const description = obj.description
-    return new Group({ description, options, groups }) as ToGroup<T>
+    return new Group({
+        ...(description ? { description } : {}),
+        ...(options ? { options } : {}),
+        ...(groups ? { groups } : {}),
+    }) as ToGroup<T>
 }
 
 /** Convert the plain option object to an `Option` object instance. */

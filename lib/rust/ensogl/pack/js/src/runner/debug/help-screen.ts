@@ -12,7 +12,9 @@ export class HelpScreenSection {
     entries: HelpScreenEntry[]
     constructor(cfg: { name: string; description?: string; entries: HelpScreenEntry[] }) {
         this.name = cfg.name
-        this.description = cfg.description
+        if (cfg.description != null) {
+            this.description = cfg.description
+        }
         this.entries = cfg.entries
     }
 }
@@ -31,7 +33,9 @@ export class HelpScreenEntry {
     constructor(name: string, values: string[], href?: string) {
         this.name = name
         this.values = values
-        this.href = href
+        if (href != null) {
+            this.href = href
+        }
     }
 }
 

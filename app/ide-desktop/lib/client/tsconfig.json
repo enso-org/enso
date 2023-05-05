@@ -2,7 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": "./src",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "runner/*": ["../../../../../lib/rust/ensogl/pack/js/src/runner/*"]
+    }
   },
   "include": ["../types", "."]
 }

@@ -14,5 +14,8 @@
   },
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   }
 }

@@ -19,6 +19,9 @@
     "sourceMap": true,
     "skipLibCheck": true,
     "target": "ES2019",
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "runner/*": ["../../lib/rust/ensogl/pack/js/src/runner/*"]
+    }
   }
 }
