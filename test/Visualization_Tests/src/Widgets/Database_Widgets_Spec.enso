@@ -5,6 +5,8 @@ import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.Display
 
 from Standard.Database import all
+# This ensures that the Redshift connection details are available in the widget.
+from Standard.AWS import all
 
 import Standard.Visualization.Widgets
 
@@ -20,8 +22,8 @@ spec =
     Test.group "Widgets for In-Database Connection with table types" <|
         Test.specify "works for `tables`" <|
             result = Widgets.get_widget_json connection "tables" ["types"]
-            result.contains "'TABLE'" . should_be_true
-            result.contains "'VIEW'" . should_be_true
+            result.should_contain "'TABLE'"
+            result.should_contain "'VIEW'"
 
     Test.group "Widgets for In-Database Connection with table name sets" <|
         Test.specify "works for `query` and `read`" <|
@@ -43,5 +45,12 @@ spec =
             choices = mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json mock_table "filter" ["column"] . should_equal expect
+
+    Test.group "Widgets for Database" <|
+        Test.specify "works for `connect`" <|
+            result = Widgets.get_widget_json Database "connect" ["details"]
+            result.should_contain "SQLite"
+            result.should_contain "Postgres"
+            result.should_contain "Redshift"
 
 main = Test_Suite.run_main spec

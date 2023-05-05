@@ -135,7 +135,9 @@
 - [Added capability to create node widgets with complex UI][6347]. Node widgets
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
-  sending messages to the backend][6341].
+  sending messages to the backend.][6341].
+- [Area selectionof nodes no longer takes into account the visualisation that
+  belongs to the node.][6487].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
 - [Fixed text visualisations which were being cut off at the last line.][6421]
@@ -206,6 +208,8 @@
 [5895]: https://github.com/enso-org/enso/pull/6130
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
+[6097]: https://github.com/enso-org/enso/pull/6341
+[6487]: https://github.com/enso-org/enso/pull/6487
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
 
@@ -411,6 +415,7 @@
   `Text.write`.][6459]
 - [Implemented `create_database_table` allowing saving queries as database
   tables.][6467]
+- [Moved `Redshift` connector into a separate `AWS` library.][6550]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -617,6 +622,7 @@
 [6429]: https://github.com/enso-org/enso/pull/6429
 [6459]: https://github.com/enso-org/enso/pull/6459
 [6467]: https://github.com/enso-org/enso/pull/6467
+[6550]: https://github.com/enso-org/enso/pull/6550
 
 #### Enso Compiler
 
