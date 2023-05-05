@@ -1,8 +1,5 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -10,12 +7,15 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
@@ -184,7 +184,7 @@ public class EqualsTest extends TestBase {
   @Test
   public void testVectorsEquality() {
     Object ensoVector =
-        unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base.import all"));
+        unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base import all"));
     Object javaVector = unwrapValue(context, context.asValue(List.of(1L, 2L, 3L)));
     executeInContext(
         context,
