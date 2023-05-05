@@ -623,11 +623,11 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    async function handleCreateProject(templateName?: string | null) {
-        const projectName = getNewProjectName(templateName)
+    async function handleCreateProject(templateId?: string | null) {
+        const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
-            projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
+            projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
         const projectAsset = await backend.createProject(body)

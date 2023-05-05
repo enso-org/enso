@@ -23,7 +23,7 @@ const TEMPLATES: Template[] = [
     },
     {
         title: 'KMeans',
-        id: 'Kmeans',
+        id: 'KMeans',
         description: 'Learn where to open a coffee shop to maximize your income.',
         background: '#6b7280',
     },
