@@ -12,6 +12,7 @@ object Editions {
     "Standard.Test",
     "Standard.Table",
     "Standard.Database",
+    "Standard.AWS",
     "Standard.Image",
     "Standard.Geo",
     "Standard.Visualization",
