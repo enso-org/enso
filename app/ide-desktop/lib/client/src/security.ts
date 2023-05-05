@@ -10,6 +10,9 @@ import * as electron from 'electron'
 /** The list of hosts that the app can access. They are required for user authentication to work. */
 const TRUSTED_HOSTS = ['accounts.google.com', 'accounts.youtube.com', 'github.com']
 
+/** The list of hosts that the app can open external links to. */
+const TRUSTED_EXTERNAL_HOSTS = ['discord.gg']
+
 /** The list of URLs a new WebView can be pointed to. */
 const WEBVIEW_URL_WHITELIST: string[] = []
 
@@ -79,7 +82,12 @@ function preventNavigation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
-            if (parsedUrl.origin !== origin && !TRUSTED_HOSTS.includes(parsedUrl.host)) {
+            const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
+            const parsedCurrentWindowUrl = currentWindowUrl ? new URL(currentWindowUrl) : null
+            if (
+                parsedUrl.origin !== parsedCurrentWindowUrl?.origin &&
+                !TRUSTED_HOSTS.includes(parsedUrl.host)
+            ) {
                 event.preventDefault()
                 console.error(`Prevented navigation to '${navigationUrl}'.`)
             }
@@ -95,8 +103,14 @@ function preventNavigation() {
 function disableNewWindowsCreation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.setWindowOpenHandler(({ url }) => {
-            console.error(`Blocking new window creation request to '${url}'.`)
-            return { action: 'deny' }
+            const parsedUrl = new URL(url)
+            if (TRUSTED_EXTERNAL_HOSTS.includes(parsedUrl.host)) {
+                void electron.shell.openExternal(url)
+                return { action: 'deny' }
+            } else {
+                console.error(`Blocking new window creation request to '${url}'.`)
+                return { action: 'deny' }
+            }
         })
     })
 }

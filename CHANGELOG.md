@@ -141,8 +141,11 @@
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
 - [Fixed text visualisations which were being cut off at the last line.][6421]
+- [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
+  the view of the graph changed as well.][6530]
 
 [6421]: https://github.com/enso-org/enso/pull/6421
+[6530]: https://github.com/enso-org/enso/pull/6530
 
 #### EnsoGL (rendering engine)
 
