@@ -160,6 +160,16 @@ pub const FRAME_TIME: Sampler = Sampler {
 };
 
 #[allow(missing_docs)]
+pub const DRAW_TIME: Sampler = Sampler {
+    label: "Draw time (ms)",
+    expr: |s| s.draw_time,
+    warn_threshold: 1000.0 / 55.0,
+    err_threshold: 1000.0 / 25.0,
+    precision: 2,
+    ..DEFAULT_SAMPLER
+};
+
+#[allow(missing_docs)]
 pub const WASM_MEMORY_USAGE: Sampler = Sampler {
     label: "WASM memory usage (Mb)",
     expr: |s| s.wasm_memory_usage as f64,

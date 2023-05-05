@@ -1029,16 +1029,20 @@ impl SceneData {
     }
 
     pub fn render(&self, update_status: UpdateStatus) {
-        self.renderer.run(update_status);
-        // WebGL `flush` should be called when expecting results such as queries, or at completion
-        // of a rendering frame. Flush tells the implementation to push all pending commands out
-        // for execution, flushing them out of the queue, instead of waiting for more commands to
-        // enqueue before sending for execution.
-        //
-        // Not flushing commands can sometimes cause context loss. To learn more, see:
-        // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
         if let Some(context) = &*self.context.borrow() {
-            context.flush()
+            context.profiler.measure_drawing(|| {
+                self.renderer.run(update_status);
+                // WebGL `flush` should be called when expecting results such as queries, or at
+                // completion of a rendering frame. Flush tells the implementation
+                // to push all pending commands out for execution, flushing them out
+                // of the queue, instead of waiting for more commands to
+                // enqueue before sending for execution.
+                //
+                // Not flushing commands can sometimes cause context loss. To learn more, see:
+                // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+
+                context.flush()
+            });
         }
     }
 
@@ -1175,17 +1179,20 @@ impl Scene {
         }
     }
 
-    pub fn on_frame_start(&self) {
+    pub fn on_frame_start(&self) -> f64 {
         // console_log!("start frame");
         if let Some(context) = &*self.context.borrow() {
-            context.profiler.start_frame();
+            let results = context.profiler.start_frame();
+            results.last().map(|t| t.drawing).unwrap_or(100.0)
+        } else {
+            0.0
         }
     }
 
     pub fn on_frame_end(&self) {
-        if let Some(context) = &*self.context.borrow() {
-            context.profiler.end_frame();
-        }
+        // if let Some(context) = &*self.context.borrow() {
+        //     context.profiler.end_frame();
+        // }
     }
 
     pub fn extension<T: Extension>(&self) -> T {
@@ -1317,7 +1324,9 @@ impl Scene {
                     early_status;
                 scene_was_dirty |= self.layers.update();
                 scene_was_dirty |= self.update_shape();
-                scene_was_dirty |= self.update_symbols();
+                context.profiler.measure_data_upload(|| {
+                    scene_was_dirty |= self.update_symbols();
+                });
                 self.handle_mouse_over_and_out_events();
                 scene_was_dirty |= self.shader_compiler.run(context, time);
 

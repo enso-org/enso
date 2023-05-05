@@ -6,7 +6,6 @@ use crate::system::gpu::data::GlEnum;
 
 use js_sys::Object;
 use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
 use web_sys::WebGlQuery;
@@ -96,9 +95,9 @@ impl KhrParallelShaderCompile {
 
 
 
-// ================================
-// === KhrParallelShaderCompile ===
-// ================================
+// ===================================
+// === ExtDisjointTimerQueryWebgl2 ===
+// ===================================
 
 /// This extension provides a query mechanism that can be used to determine the amount of time it
 /// takes to fully complete a set of GL commands, and without stalling the rendering pipeline.  It
@@ -114,9 +113,15 @@ impl KhrParallelShaderCompile {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct ExtDisjointTimerQueryWebgl2 {
-    ext:                  Object,
+    ext: Object,
     pub time_elapsed_ext: GlEnum,
-    pub timestamp_ext:    GlEnum,
+    /// # WARNING: DO NOT USE.
+    /// Usage of timestamp queries is not supported. To learn more see:
+    /// - https://bugs.chromium.org/p/chromium/issues/detail?id=1442398
+    /// - https://bugs.chromium.org/p/chromium/issues/detail?id=595172
+    /// - https://bugs.chromium.org/p/chromium/issues/detail?id=1316254&q=TIMESTAMP_EXT&can=2
+    pub timestamp_ext: GlEnum,
+    pub query_counter_bits_ext: GlEnum,
     pub gpu_disjoint_ext: GlEnum,
     query_counter_ext_fn: js_sys::Function,
 }
@@ -132,18 +137,25 @@ impl ExtDisjointTimerQueryWebgl2 {
         let query_counter_bits_ext =
             js_sys::Reflect::get(&ext, &"QUERY_COUNTER_BITS_EXT".into()).ok()?;
         let query_counter_bits_ext = GlEnum(query_counter_bits_ext.as_f64()? as u32);
-
-        console_log!("timestamp_ext: {:?}", timestamp_ext);
-        console_log!("query_counter_bits_ext: {:?}", query_counter_bits_ext);
-
         let gpu_disjoint_ext = js_sys::Reflect::get(&ext, &"GPU_DISJOINT_EXT".into()).ok()?;
         let gpu_disjoint_ext = GlEnum(gpu_disjoint_ext.as_f64()? as u32);
         let query_counter_ext_obj = js_sys::Reflect::get(&ext, &"queryCounterEXT".into()).ok()?;
         let query_counter_ext_fn = query_counter_ext_obj.dyn_into::<js_sys::Function>().ok()?;
-        Some(Self { ext, time_elapsed_ext, timestamp_ext, gpu_disjoint_ext, query_counter_ext_fn })
+        Some(Self {
+            ext,
+            time_elapsed_ext,
+            timestamp_ext,
+            query_counter_bits_ext,
+            gpu_disjoint_ext,
+            query_counter_ext_fn,
+        })
     }
 
-    // Query for timestamp at the current GL command queue.
+    /// Query for timestamp at the current GL command queue.
+    ///
+    /// # WARNING: DO NOT USE.
+    /// Usage of timestamp queries is not supported. To learn more see the docs of
+    /// [`ExtDisjointTimerQueryWebgl2`].
     pub fn query_timestamp(&self, query: &WebGlQuery) {
         if let Err(err) =
             self.query_counter_ext_fn.call2(&self.ext, &query, &(*self.timestamp_ext).into())

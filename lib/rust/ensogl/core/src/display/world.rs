@@ -335,9 +335,9 @@ impl WorldDataWithLoop {
         let on_before_rendering = animation::on_before_rendering();
         let network = frp.network();
         crate::frp::extend! {network
-            eval on_frame_start ((t) {
-                data.default_scene.on_frame_start();
-                data.run_stats(*t)
+            eval on_frame_start ([data] (t) {
+                let tt = data.default_scene.on_frame_start();
+                data.run_stats(*t, tt)
             });
             eval_ on_frame_end (data.default_scene.on_frame_end());
             layout_update <- on_before_layout.map(f!((t) data.run_next_frame_layout(*t)));
@@ -546,9 +546,10 @@ impl WorldData {
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
-    fn run_stats(&self, time: Duration) {
+    fn run_stats(&self, time: Duration, t: f64) {
         self.stats.calculate_prev_frame_fps(time);
         {
+            self.stats.borrow_mut().stats_data.draw_time = t;
             let stats_borrowed = self.stats.borrow();
             self.on.prev_frame_stats.run_all(&stats_borrowed.stats_data);
         }

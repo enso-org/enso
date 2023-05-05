@@ -23,6 +23,7 @@
 // === Export ===
 // ==============
 
+pub mod circular_vec;
 pub mod dependency_graph;
 pub mod diet;
 pub mod hash_map_tree;

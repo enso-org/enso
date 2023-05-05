@@ -451,6 +451,7 @@ impl Default for Monitor {
         let mut renderer = Renderer::new(&frp.public);
         renderer.add(sampler::FRAME_TIME);
         renderer.add(sampler::FPS);
+        renderer.add(sampler::DRAW_TIME);
         renderer.add(sampler::WASM_MEMORY_USAGE);
         renderer.add(sampler::GPU_MEMORY_USAGE);
         renderer.add(sampler::DRAW_CALL_COUNT);

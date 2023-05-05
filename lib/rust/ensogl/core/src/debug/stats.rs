@@ -205,6 +205,7 @@ macro_rules! gen_stats {
 gen_stats! {
     frame_time           : f64,
     fps                  : f64,
+    draw_time            : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_calls           : Vec<&'static str>,
