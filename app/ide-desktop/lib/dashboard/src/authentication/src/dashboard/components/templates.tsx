@@ -1,6 +1,4 @@
 /** @file Renders the list of templates from which a project can be created. */
-import * as backendProvider from '../../providers/backend'
-import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
 // =================
@@ -15,8 +13,8 @@ interface Template {
     background: string
 }
 
-/** The full list of templates available to cloud projects. */
-const CLOUD_TEMPLATES: Template[] = [
+/** The full list of templates. */
+const TEMPLATES: Template[] = [
     {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',
@@ -25,32 +23,16 @@ const CLOUD_TEMPLATES: Template[] = [
     },
     {
         title: 'KMeans',
-        id: 'Kmeans',
+        id: 'KMeans',
         description: 'Learn where to open a coffee shop to maximize your income.',
         background: '#6b7280',
     },
     {
         title: 'NASDAQ Returns',
-        id: 'NASDAQ_Returns',
+        id: 'NASDAQReturns',
         description: 'Learn how to clean your data to prepare it for advanced analysis.',
         background: '#6b7280',
     },
-    {
-        title: 'Restaurants',
-        id: 'Orders',
-        description: 'Learn how to clean your data to prepare it for advanced analysis.',
-        background: '#6b7280',
-    },
-    {
-        title: 'Github Stars',
-        id: 'Stargazers',
-        description: 'Learn how to clean your data to prepare it for advanced analysis.',
-        background: '#6b7280',
-    },
-]
-
-/** The full list of templates available to local projects. */
-const DESKTOP_TEMPLATES: Template[] = [
     {
         title: 'Combine spreadsheets',
         id: 'Orders',
@@ -70,11 +52,6 @@ const DESKTOP_TEMPLATES: Template[] = [
         background: 'url("/visualize.png") center / cover',
     },
 ]
-
-const TEMPLATES: Record<platformModule.Platform, Template[]> = {
-    [platformModule.Platform.cloud]: CLOUD_TEMPLATES,
-    [platformModule.Platform.desktop]: DESKTOP_TEMPLATES,
-}
 
 // =======================
 // === TemplatesRender ===
@@ -148,16 +125,12 @@ interface TemplatesProps {
 
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
-    const { backend } = backendProvider.useBackend()
 
     return (
         <div className="bg-white my-2">
             <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    <TemplatesRender
-                        templates={TEMPLATES[backend.platform]}
-                        onTemplateClick={onTemplateClick}
-                    />
+                    <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
                 </div>
             </div>
         </div>

@@ -2794,17 +2794,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ========================
 
     frp::extend! { network
-        no_vis_selected   <- out.some_visualisation_selected.on_false();
-        some_vis_selected <- out.some_visualisation_selected.on_true();
-
-        set_navigator_false  <- inputs.set_navigator_disabled.on_true();
-        set_navigator_true   <- inputs.set_navigator_disabled.on_false();
-
-        disable_navigator <- any_(&set_navigator_false,&some_vis_selected);
-        enable_navigator  <- any_(&set_navigator_true,&no_vis_selected);
-
-        model.navigator.frp.set_enabled <+ bool(&disable_navigator,&enable_navigator);
-
+        navigator_disabled <- out.some_visualisation_selected.or(&inputs.set_navigator_disabled);
+        model.navigator.frp.set_enabled <+ navigator_disabled.not();
         out.navigator_active <+ model.navigator.frp.enabled;
     }
 
