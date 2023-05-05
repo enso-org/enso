@@ -58,10 +58,12 @@ pub struct ConfigTemplate<Str> {
     pub label_color_ok:          Str,
     pub label_color_warn:        Str,
     pub label_color_err:         Str,
+    pub label_color_missing:     Str,
     pub label_color_ok_selected: Str,
     pub plot_color_ok:           Str,
     pub plot_color_warn:         Str,
     pub plot_color_err:          Str,
+    pub plot_color_missing:      Str,
     pub plot_background_color:   Str,
     pub plot_bar_size:           Option<f64>,
     pub plot_step_size:          f64,
@@ -104,10 +106,12 @@ fn light_theme() -> Config {
         label_color_ok:          "#202124".into(),
         label_color_warn:        "#f58025".into(),
         label_color_err:         "#eb3941".into(),
+        label_color_missing:     "#00FF00".into(),
         label_color_ok_selected: "#008cff".into(),
         plot_color_ok:           "#202124".into(),
         plot_color_warn:         "#f58025".into(),
         plot_color_err:          "#eb3941".into(),
+        plot_color_missing:      "#00FF00".into(),
         plot_background_color:   "#f1f1f0".into(),
         plot_bar_size:           Some(2.0),
         plot_step_size:          1.0,
@@ -141,10 +145,12 @@ impl Config {
             label_color_ok:          (&self.label_color_ok).into(),
             label_color_warn:        (&self.label_color_warn).into(),
             label_color_err:         (&self.label_color_err).into(),
+            label_color_missing:     (&self.label_color_missing).into(),
             label_color_ok_selected: (&self.label_color_ok_selected).into(),
             plot_color_ok:           (&self.plot_color_ok).into(),
             plot_color_warn:         (&self.plot_color_warn).into(),
             plot_color_err:          (&self.plot_color_err).into(),
+            plot_color_missing:      (&self.plot_color_missing).into(),
             plot_background_color:   (&self.plot_background_color).into(),
             plot_bar_size:           self.plot_bar_size.map(|t| t * ratio),
             plot_step_size:          self.plot_step_size * ratio,
@@ -851,7 +857,7 @@ pub struct PanelData {
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
-    value:       f64,
+    value:       Option<f64>,
     norm_value:  f64,
     value_check: sampler::ValueCheck,
     precision:   usize,
@@ -901,33 +907,37 @@ impl PanelData {
 
     /// Clamp the measured values to the `max_value` and `min_value`.
     fn clamp_value(&mut self) {
-        if let Some(max_value) = self.sampler.max_value {
-            if self.value > max_value {
-                self.value = max_value;
+        if let Some(value) = self.value {
+            if let Some(max_value) = self.sampler.max_value {
+                if value > max_value {
+                    self.value = Some(max_value);
+                }
             }
-        }
-        if let Some(min_value) = self.sampler.min_value {
-            if self.value > min_value {
-                self.value = min_value;
+            if let Some(min_value) = self.sampler.min_value {
+                if value > min_value {
+                    self.value = Some(min_value);
+                }
             }
-        }
-        if self.value > self.max_value {
-            self.max_value = self.value;
-        }
-        if self.value < self.min_value {
-            self.min_value = self.value;
+            if value > self.max_value {
+                self.max_value = value;
+            }
+            if value < self.min_value {
+                self.min_value = value;
+            }
         }
     }
 
     /// Normalize the value to the monitor's plot size.
     fn normalize_value(&mut self) {
-        let mut size = self.max_value - self.min_value;
-        if let Some(min_size) = self.sampler.min_size() {
-            if size < min_size {
-                size = min_size;
+        if let Some(value) = self.value {
+            let mut size = self.max_value - self.min_value;
+            if let Some(min_size) = self.sampler.min_size() {
+                if size < min_size {
+                    size = min_size;
+                }
             }
+            self.norm_value = (value - self.min_value) / size;
         }
-        self.norm_value = (self.value - self.min_value) / size;
     }
 }
 
@@ -939,7 +949,7 @@ impl PanelData {
     pub fn draw(&mut self, selected: bool, dom: &Dom, stats: &StatsData) {
         self.draw_label(dom, selected);
         self.draw_value(dom);
-        self.draw_plot_update(dom);
+        self.draw_plot_update(dom, 0);
         self.draw_details(dom, selected, stats);
     }
 
@@ -985,9 +995,19 @@ impl PanelData {
         })
     }
 
-    fn with_pen_at_new_plot_part<T>(&mut self, dom: &Dom, f: impl FnOnce(&mut Self) -> T) -> T {
+    fn with_pen_at_new_plot_part<T>(
+        &mut self,
+        dom: &Dom,
+        offset: usize,
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let offset = 1.0 + offset as f64;
         self.with_pen_at_plot(dom, |this| {
-            this.with_moved_pen(dom, this.config.plot_width() - this.config.plot_step_size, f)
+            this.with_moved_pen(
+                dom,
+                this.config.plot_width() - this.config.plot_step_size * offset,
+                f,
+            )
         })
     }
 
@@ -1019,12 +1039,16 @@ impl PanelData {
     /// Draw the plot text value.
     fn draw_value(&mut self, dom: &Dom) {
         self.with_pen_at_value(dom, |this| {
-            let display_value = format!("{1:.0$}", this.precision, this.value);
+            let display_value = match this.value {
+                None => "missing".to_string(),
+                Some(value) => format!("{1:.0$}", this.precision, value),
+            };
             let y_pos = this.config.panel_height - this.config.font_vertical_offset;
             let color = match this.value_check {
                 sampler::ValueCheck::Correct => &this.config.label_color_ok,
                 sampler::ValueCheck::Warning => &this.config.label_color_warn,
                 sampler::ValueCheck::Error => &this.config.label_color_err,
+                sampler::ValueCheck::Missing => &this.config.label_color_missing,
             };
             dom.plot_area.plots_context.set_fill_style(color);
             dom.plot_area
@@ -1036,8 +1060,8 @@ impl PanelData {
 
     /// Draw a single plot point. As the plots shift left on every frame, this function only updates
     /// the most recent plot value.
-    fn draw_plot_update(&mut self, dom: &Dom) {
-        self.with_pen_at_new_plot_part(dom, |this| {
+    fn draw_plot_update(&mut self, dom: &Dom, offset: usize) {
+        self.with_pen_at_new_plot_part(dom, offset, |this| {
             dom.plot_area.plots_context.set_fill_style(&this.config.plot_background_color);
             dom.plot_area.plots_context.fill_rect(
                 0.0,
@@ -1052,6 +1076,7 @@ impl PanelData {
                 sampler::ValueCheck::Correct => &this.config.plot_color_ok,
                 sampler::ValueCheck::Warning => &this.config.plot_color_warn,
                 sampler::ValueCheck::Error => &this.config.plot_color_err,
+                sampler::ValueCheck::Missing => &this.config.plot_color_missing,
             };
             dom.plot_area.plots_context.set_fill_style(color);
             dom.plot_area.plots_context.fill_rect(

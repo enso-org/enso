@@ -1179,13 +1179,13 @@ impl Scene {
         }
     }
 
-    pub fn on_frame_start(&self) -> f64 {
+    pub fn on_frame_start(&self) -> Option<f64> {
         // console_log!("start frame");
         if let Some(context) = &*self.context.borrow() {
             let results = context.profiler.start_frame();
-            results.last().map(|t| t.drawing).unwrap_or(100.0)
+            results.last().map(|t| Some(t.total)).unwrap_or(None)
         } else {
-            0.0
+            None
         }
     }
 

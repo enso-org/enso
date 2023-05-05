@@ -546,7 +546,7 @@ impl WorldData {
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
-    fn run_stats(&self, time: Duration, t: f64) {
+    fn run_stats(&self, time: Duration, t: Option<f64>) {
         self.stats.calculate_prev_frame_fps(time);
         {
             self.stats.borrow_mut().stats_data.draw_time = t;

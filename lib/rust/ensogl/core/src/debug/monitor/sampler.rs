@@ -22,6 +22,7 @@ pub enum ValueCheck {
     Correct,
     Warning,
     Error,
+    Missing,
 }
 
 impl Default for ValueCheck {
@@ -34,23 +35,27 @@ impl Default for ValueCheck {
 #[allow(clippy::collapsible_else_if)]
 impl ValueCheck {
     /// Construct the check by comparing the provided value to two threshold values.
-    pub fn from_threshold(warn_threshold: f64, err_threshold: f64, value: f64) -> Self {
-        if warn_threshold > err_threshold {
-            if value >= warn_threshold {
-                ValueCheck::Correct
-            } else if value >= err_threshold {
-                ValueCheck::Warning
+    pub fn from_threshold(warn_threshold: f64, err_threshold: f64, value: Option<f64>) -> Self {
+        if let Some(value) = value {
+            if warn_threshold > err_threshold {
+                if value >= warn_threshold {
+                    ValueCheck::Correct
+                } else if value >= err_threshold {
+                    ValueCheck::Warning
+                } else {
+                    ValueCheck::Error
+                }
             } else {
-                ValueCheck::Error
+                if value <= warn_threshold {
+                    ValueCheck::Correct
+                } else if value <= err_threshold {
+                    ValueCheck::Warning
+                } else {
+                    ValueCheck::Error
+                }
             }
         } else {
-            if value <= warn_threshold {
-                ValueCheck::Correct
-            } else if value <= err_threshold {
-                ValueCheck::Warning
-            } else {
-                ValueCheck::Error
-            }
+            ValueCheck::Missing
         }
     }
 }
@@ -67,8 +72,9 @@ impl ValueCheck {
 pub struct Sampler {
     /// Label of the sampler to be displayed in the performance monitor window.
     pub label:          &'static str,
-    /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
-    pub expr:           fn(&StatsData) -> f64,
+    /// Get the newest value of the sampler. The value will be displayed in the monitor panel. In
+    /// case this function returns [`None`], it means that the value is not available yet.
+    pub expr:           fn(&StatsData) -> Option<f64>,
     /// Get the details to be displayed in the details view.
     pub details:        Option<fn(&StatsData) -> &[&'static str]>,
     /// If the value crosses this threshold, the graph will be drawn in the warning color.
@@ -97,7 +103,7 @@ impl const Default for Sampler {
     fn default() -> Self {
         Self {
             label:          "Unlabeled",
-            expr:           |_| 0.0,
+            expr:           |_| None,
             details:        None,
             warn_threshold: 0.0,
             err_threshold:  0.0,
@@ -111,13 +117,12 @@ impl const Default for Sampler {
 
 impl Sampler {
     /// The current sampler value.
-    pub fn value(&self, stats: &StatsData) -> f64 {
-        let raw_value: f64 = (self.expr)(stats).as_();
-        raw_value / self.value_divisor
+    pub fn value(&self, stats: &StatsData) -> Option<f64> {
+        (self.expr)(stats).map(|t| t / self.value_divisor)
     }
 
-    /// Check the current value in order to draw it with warning or error if it exceeds the allowed
-    /// thresholds.
+    /// Check the current value in order to draw it with warning or error color if it exceeds the
+    /// allowed thresholds.
     pub fn check(&self, stats: &StatsData) -> ValueCheck {
         let value = self.value(stats);
         ValueCheck::from_threshold(self.warn_threshold, self.err_threshold, value)
@@ -142,7 +147,7 @@ const DEFAULT_SAMPLER: Sampler = Default::default();
 #[allow(missing_docs)]
 pub const FPS: Sampler = Sampler {
     label: "Frames per second",
-    expr: |s| s.fps,
+    expr: |s| Some(s.fps),
     warn_threshold: 55.0,
     err_threshold: 25.0,
     precision: 2,
@@ -152,7 +157,7 @@ pub const FPS: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const FRAME_TIME: Sampler = Sampler {
     label: "Frame time (ms)",
-    expr: |s| s.frame_time,
+    expr: |s| Some(s.frame_time),
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,
     precision: 2,
@@ -172,7 +177,7 @@ pub const DRAW_TIME: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const WASM_MEMORY_USAGE: Sampler = Sampler {
     label: "WASM memory usage (Mb)",
-    expr: |s| s.wasm_memory_usage as f64,
+    expr: |s| Some(s.wasm_memory_usage as f64),
     warn_threshold: 50.0,
     err_threshold: 100.0,
     precision: 2,
@@ -183,7 +188,7 @@ pub const WASM_MEMORY_USAGE: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const GPU_MEMORY_USAGE: Sampler = Sampler {
     label: "GPU memory usage (Mb)",
-    expr: |s| s.gpu_memory_usage as f64,
+    expr: |s| Some(s.gpu_memory_usage as f64),
     warn_threshold: 100.0,
     err_threshold: 500.0,
     precision: 2,
@@ -194,7 +199,7 @@ pub const GPU_MEMORY_USAGE: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const DRAW_CALL_COUNT: Sampler = Sampler {
     label: "Draw call count",
-    expr: |s| s.draw_calls.len() as f64,
+    expr: |s| Some(s.draw_calls.len() as f64),
     details: Some(|s| &s.draw_calls),
     warn_threshold: 100.0,
     err_threshold: 500.0,
@@ -204,7 +209,7 @@ pub const DRAW_CALL_COUNT: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const BUFFER_COUNT: Sampler = Sampler {
     label: "Buffer count",
-    expr: |s| s.buffer_count as f64,
+    expr: |s| Some(s.buffer_count as f64),
     warn_threshold: 100.0,
     err_threshold: 500.0,
     ..DEFAULT_SAMPLER
@@ -213,7 +218,7 @@ pub const BUFFER_COUNT: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const DATA_UPLOAD_COUNT: Sampler = Sampler {
     label: "Data upload count",
-    expr: |s| s.data_upload_count as f64,
+    expr: |s| Some(s.data_upload_count as f64),
     warn_threshold: 100.0,
     err_threshold: 500.0,
     ..DEFAULT_SAMPLER
@@ -222,7 +227,7 @@ pub const DATA_UPLOAD_COUNT: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const DATA_UPLOAD_SIZE: Sampler = Sampler {
     label: "Data upload size (Mb)",
-    expr: |s| s.data_upload_size as f64,
+    expr: |s| Some(s.data_upload_size as f64),
     warn_threshold: 1.0,
     err_threshold: 10.0,
     precision: 2,
@@ -233,7 +238,7 @@ pub const DATA_UPLOAD_SIZE: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const SPRITE_SYSTEM_COUNT: Sampler = Sampler {
     label: "Sprite system count",
-    expr: |s| s.sprite_system_count as f64,
+    expr: |s| Some(s.sprite_system_count as f64),
     warn_threshold: 100.0,
     err_threshold: 500.0,
     ..DEFAULT_SAMPLER
@@ -242,7 +247,7 @@ pub const SPRITE_SYSTEM_COUNT: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const SYMBOL_COUNT: Sampler = Sampler {
     label: "Symbol count",
-    expr: |s| s.symbol_count as f64,
+    expr: |s| Some(s.symbol_count as f64),
     warn_threshold: 100.0,
     err_threshold: 500.0,
     ..DEFAULT_SAMPLER
@@ -251,7 +256,7 @@ pub const SYMBOL_COUNT: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const SPRITE_COUNT: Sampler = Sampler {
     label: "Sprite count",
-    expr: |s| s.sprite_count as f64,
+    expr: |s| Some(s.sprite_count as f64),
     warn_threshold: 100_000.0,
     err_threshold: 500_000.0,
     ..DEFAULT_SAMPLER
@@ -260,7 +265,7 @@ pub const SPRITE_COUNT: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const SHADER_COUNT: Sampler = Sampler {
     label: "Shader count",
-    expr: |s| s.shader_count as f64,
+    expr: |s| Some(s.shader_count as f64),
     warn_threshold: 100.0,
     err_threshold: 500.0,
     ..DEFAULT_SAMPLER
@@ -269,7 +274,7 @@ pub const SHADER_COUNT: Sampler = Sampler {
 #[allow(missing_docs)]
 pub const SHADER_COMPILE_COUNT: Sampler = Sampler {
     label: "Shader compile count",
-    expr: |s| s.shader_compile_count as f64,
+    expr: |s| Some(s.shader_compile_count as f64),
     warn_threshold: 10.0,
     err_threshold: 100.0,
     ..DEFAULT_SAMPLER
