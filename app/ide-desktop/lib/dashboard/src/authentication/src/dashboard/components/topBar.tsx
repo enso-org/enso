@@ -101,6 +101,7 @@ function TopBar(props: TopBarProps) {
             <div className="grow" />
             <a
                 href="https://discord.gg/enso"
+                target="_blank"
                 className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
             >
                 <span>help chat</span>
