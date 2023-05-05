@@ -21,6 +21,9 @@ import java.util.Arrays;
 @ExportLibrary(WarningsLibrary.class)
 @ExportLibrary(ReflectionLibrary.class)
 public final class WithWarnings implements TruffleObject {
+
+  private static final int MAX_WARNINGS_LIMIT = 100;
+
   private final EconomicSet<Warning> warnings;
   private final Object value;
 
@@ -160,15 +163,31 @@ public final class WithWarnings implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> createSetFromArray(Warning[] entries) {
     EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
-    set.addAll(Arrays.stream(entries).iterator());
+    for (int i=0; i<entries.length; i++) {
+      if (set.size() >= MAX_WARNINGS_LIMIT) {
+        return set;
+      }
+      set.add(entries[i]);
+    }
+
     return set;
   }
 
   @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> cloneSetAndAppend(EconomicSet<Warning> initial, Warning[] entries) {
     EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
-    set.addAll(initial.iterator());
-    set.addAll(Arrays.stream(entries).iterator());
+    for (Warning warning: initial) {
+      if (set.size() >= MAX_WARNINGS_LIMIT) {
+        return set;
+      }
+      set.add(warning);
+    }
+    for (int i=0; i<entries.length; i++) {
+      if (set.size() >= MAX_WARNINGS_LIMIT) {
+        return set;
+      }
+      set.add(entries[i]);
+    }
     return set;
   }
 
