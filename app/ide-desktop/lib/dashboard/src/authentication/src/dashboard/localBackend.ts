@@ -151,6 +151,45 @@ export class LocalBackend implements Partial<backend.Backend> {
         this.currentlyOpenProject = { id: projectId, project }
     }
 
+    async projectUpdate(
+        projectId: backend.ProjectId,
+        body: backend.ProjectUpdateRequestBody
+    ): Promise<backend.UpdatedProject> {
+        if (body.ami != null) {
+            throw new Error('Cannot change project AMI on local backend.')
+        } else {
+            if (body.projectName != null) {
+                await this.projectManager.renameProject({
+                    projectId,
+                    name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
+                })
+            }
+            const result = await this.projectManager.listProjects({})
+            const project = result.projects.find(listedProject => listedProject.id === projectId)
+            const engineVersion = project?.engineVersion
+            if (project == null) {
+                throw new Error(`The project ID '${projectId}' is invalid.`)
+            } else if (engineVersion == null) {
+                throw new Error(`The project '${projectId}' does not have an engine version.`)
+            } else {
+                return {
+                    ami: null,
+                    engineVersion: {
+                        lifecycle: backend.VersionLifecycle.stable,
+                        value: engineVersion,
+                    },
+                    ideVersion: {
+                        lifecycle: backend.VersionLifecycle.stable,
+                        value: engineVersion,
+                    },
+                    name: project.name,
+                    organizationId: '',
+                    projectId,
+                }
+            }
+        }
+    }
+
     async deleteProject(projectId: backend.ProjectId): Promise<void> {
         if (this.currentlyOpeningProjectId === projectId) {
             this.currentlyOpeningProjectId = null
