@@ -344,41 +344,55 @@ object ChangesetBuilder {
     * @return the tree representation of the IR
     */
   private def buildTree(ir: IR): Tree = {
-    def go(input: IR, acc: Tree): Unit = {
-      if (input.children.isEmpty) {
-        Node.fromIr(input).foreach(acc.add)
+    def depthFirstSearch(currentIr: IR, acc: Tree): Unit = {
+      if (currentIr.children.isEmpty) {
+        Node.fromIr(currentIr).foreach(acc.add)
       } else {
-        if (input.getExternalId.nonEmpty) {
-          val chTree = new Tree()
-          input.children.map(go(_, chTree))
+        val hasImportantId = currentIr.getExternalId.nonEmpty
+        if (hasImportantId) {
+          val collectChildrenIntervals = new Tree()
+          currentIr.children.map(depthFirstSearch(_, collectChildrenIntervals))
 
-          def fillInHoles(p: Int, n: Node): Int = {
-            if (p < n.location.start) {
-              val inBetweenNode =
-                Node(NodeId(input), Location(p, n.location.start), false)
-              acc += inBetweenNode
+          def fillGapsInChildrenNodesWithNonLeafNodes(
+            previousPosition: Int,
+            nextNode: Node
+          ): Int = {
+            if (previousPosition < nextNode.location.start) {
+              val nodeBetweenPreviousPositionAndNextNode =
+                Node(
+                  NodeId(currentIr),
+                  Location(previousPosition, nextNode.location.start),
+                  false
+                )
+              acc += nodeBetweenPreviousPositionAndNextNode
             }
-            acc += n
-            n.location.end
+            acc += nextNode
+            nextNode.location.end
           }
-          val end =
-            chTree.foldLeft(input.location.get.location.start)(fillInHoles)
-          if (end < input.location.get.location.end) {
-            val lastNode = Node(
-              NodeId(input),
-              Location(end, input.location.get.location.end),
+          val beginOfNonLeafIr = currentIr.location.get.location.start
+          val endOfNonLeafIr   = currentIr.location.get.location.end
+          val lastCoveredPosition =
+            collectChildrenIntervals.foldLeft(beginOfNonLeafIr)(
+              fillGapsInChildrenNodesWithNonLeafNodes
+            )
+          val hasRemainingTextAfterLastChild =
+            lastCoveredPosition < endOfNonLeafIr
+          if (hasRemainingTextAfterLastChild) {
+            val nodeAfterLastChild = Node(
+              NodeId(currentIr),
+              Location(lastCoveredPosition, endOfNonLeafIr),
               false
             )
-            acc += lastNode
+            acc += nodeAfterLastChild
           }
         } else {
-          input.children.map(go(_, acc))
+          currentIr.children.map(depthFirstSearch(_, acc))
         }
       }
     }
-    val acc = new Tree()
-    go(ir, acc)
-    acc
+    val collectNodes = new Tree()
+    depthFirstSearch(ir, collectNodes)
+    collectNodes
   }
 
   /** Update the tree locations after applying the edit.
