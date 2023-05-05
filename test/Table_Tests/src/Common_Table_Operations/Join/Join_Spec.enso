@@ -292,6 +292,7 @@ spec setup =
             r1 = t1.join t2
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria.should_equal ["X"]
+            r1.catch.to_display_text.should_equal "The criteria [X] did not match any columns in the right table."
 
             conditions = [Join_Condition.Equals "foo" 42, Join_Condition.Equals "X" -3, Join_Condition.Equals -1 "baz"]
 
@@ -302,7 +303,8 @@ spec setup =
                here, but we can throw only one error. I think column names error
                will be more useful, so I'd prioritize it.
             r2.should_fail_with Missing_Input_Columns
-            r2.catch.criteria.should_equal ["foo", "baz"]
+            r2.catch.criteria.should_equal ["foo"]
+            r2.catch.to_display_text.should_equal "The criteria [foo] did not match any columns in the left table."
 
             r3 = t1.join t2 on=[Join_Condition.Equals 42 0] on_problems=Problem_Behavior.Ignore
             r3.should_fail_with Column_Indexes_Out_Of_Range

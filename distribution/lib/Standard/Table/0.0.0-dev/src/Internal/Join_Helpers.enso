@@ -23,9 +23,10 @@ type Join_Condition_Resolver
     resolve : Join_Condition | Text | Vector (Join_Condition | Text) -> Problem_Behavior -> Join_Condition_Resolution
     resolve self conditions on_problems =
         redundant_names = Vector.new_builder
-        problem_builder = Problem_Builder.new types_to_always_throw=[Missing_Input_Columns, Column_Indexes_Out_Of_Range]
+        left_problem_builder = Problem_Builder.new missing_input_columns_location="the left table" types_to_always_throw=[Missing_Input_Columns, Column_Indexes_Out_Of_Range]
+        right_problem_builder = Problem_Builder.new missing_input_columns_location="the right table" types_to_always_throw=[Missing_Input_Columns, Column_Indexes_Out_Of_Range]
 
-        resolve_selector resolver selector =
+        resolve_selector problem_builder resolver selector =
             r_1 = resolver selector
             r_2 = r_1.catch No_Such_Column _->
                 problem_builder.report_missing_input_columns [selector]
@@ -33,8 +34,8 @@ type Join_Condition_Resolver
             r_2.catch Index_Out_Of_Bounds _->
                 problem_builder.report_oob_indices [selector]
                 Nothing
-        resolve_left = resolve_selector self.left_at
-        resolve_right = resolve_selector self.right_at
+        resolve_left = resolve_selector left_problem_builder self.left_at
+        resolve_right = resolve_selector right_problem_builder self.right_at
 
         is_nothing column = case column of
             Nothing -> True
