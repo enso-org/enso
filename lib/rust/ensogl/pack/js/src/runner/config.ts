@@ -384,11 +384,10 @@ export function objectToGroup<T extends GroupObject>(
             groups[name] = objectToGroup(group, scope)
         }
     }
-    const description = obj.description
     return new Group({
-        ...(description ? { description } : {}),
-        ...(options ? { options } : {}),
-        ...(groups ? { groups } : {}),
+        ...(obj.description ? { description: obj.description } : {}),
+        options,
+        groups,
     }) as ToGroup<T>
 }
 

@@ -280,7 +280,7 @@ export class App {
         }
     }
     /** Sets application stop to true and calls drop method which removes all rust memory references
-     *  and calls all destructors. */
+     * and calls all destructors. */
     stop() {
         this.stopped = true
         this.wasm?.drop()
