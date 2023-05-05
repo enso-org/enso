@@ -61,18 +61,10 @@ impl {
         self.width = width;
         self.height = height;
         self.pixel_ratio = pixel_ratio;
-        let ctx = &self.context;
-        let vars = &self.variables;
         let defs = self.pipeline.passes_clone();
-        let old_passes = self.passes.drain(..);
-        let passes = defs.into_iter().zip(old_passes).map(|(def, pass)| {
-            if def.is_screen_size_independent() {
-                pass
-            } else {
-                ComposerPass::new(ctx, vars, def, width, height, pixel_ratio)
-            }
-        }).collect_vec();
-        self.passes = passes;
+        for (pass, def) in self.passes.iter_mut().zip(defs) {
+            pass.resize(def, width, height, pixel_ratio);
+        }
     }
 
     /// Initialize all pass definitions from the [`Pipeline`].
@@ -144,5 +136,25 @@ impl ComposerPass {
     /// Run the pass.
     pub fn run(&mut self, update_status: UpdateStatus) {
         self.pass.run(&self.instance, update_status);
+    }
+
+    /// Update the pass for a change in screen size. Depending on the pass, this may require
+    /// reinitialization.
+    pub fn resize(
+        &mut self,
+        def: Box<dyn pass::Definition>,
+        width: i32,
+        height: i32,
+        pixel_ratio: f32,
+    ) {
+        if def.is_screen_size_independent() {
+            self.instance.width = width;
+            self.instance.height = height;
+            self.instance.pixel_ratio = pixel_ratio;
+        } else {
+            let ctx = self.context.clone();
+            let vars = mem::take(&mut self.variables);
+            *self = ComposerPass::new(&ctx, &vars, def, width, height, pixel_ratio);
+        }
     }
 }

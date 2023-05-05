@@ -373,6 +373,8 @@ ensogl::define_endpoints_2! {
         /// [`visualization_visible`] is updated. Please remember, that the [`position`] is not
         /// immediately updated, only during the Display Object hierarchy update
         bounding_box             (BoundingBox),
+        /// The bounding box of the node without the visualization.
+        inner_bounding_box       (BoundingBox),
         /// A set of widgets attached to a method requires metadata to be queried. The tuple
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
@@ -1009,7 +1011,10 @@ impl Node {
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input <- all4(
                 &out.position,&new_size,&visualization_enabled_and_visible,visualization_size);
-            out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
+            out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,c.then(|| *d)));
+
+            inner_bbox_input <- all2(&out.position,&new_size);
+            out.inner_bounding_box <+ inner_bbox_input.map(|(a,b)| bounding_box(*a,*b,None));
 
 
             // === VCS Handling ===
@@ -1069,13 +1074,12 @@ fn visualization_offset(node_width: f32) -> Vector2 {
 fn bounding_box(
     node_position: Vector2,
     node_size: Vector2,
-    visualization_enabled_and_visible: bool,
-    visualization_size: Vector2,
+    visualization_size: Option<Vector2>,
 ) -> BoundingBox {
     let x_offset_to_node_center = x_offset_to_node_center(node_size.x);
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
     let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
-    if visualization_enabled_and_visible {
+    if let Some(visualization_size) = visualization_size {
         let visualization_offset = visualization_offset(node_size.x);
         let visualization_pos = node_position + visualization_offset;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;

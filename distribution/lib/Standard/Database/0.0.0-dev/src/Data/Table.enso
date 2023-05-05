@@ -897,9 +897,10 @@ type Table
 
        ? Joining on equality of columns with the same name
 
-         When joining two columns with the same name and an equality condition,
-         only one copy of column will be included in the output (avoiding
-         unnecessary duplication and renaming).
+         When performing an Inner join on two columns with the same name and an
+         equality condition, only one copy of column will be included in the
+         output (as these two columns would have the exact same content, so they
+         would be redundant).
 
        ? Same-name column join shorthand
 
@@ -931,7 +932,8 @@ type Table
 
             problem_builder = Problem_Builder.new
             join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
-            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns join_resolution.redundant_column_names right_prefix problem_builder
+            right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
+            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
 
             ## TODO proper equality of nulls in join conditions, see:
                https://www.pivotaltracker.com/story/show/184109759
