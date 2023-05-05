@@ -844,7 +844,13 @@ function Dashboard(props: DashboardProps) {
                                         assetType={projectAsset.type}
                                         // FIXME[sb]: Replace with API call
                                         // when implemented in backend.
-                                        doRename={() => Promise.resolve()}
+                                        doRename={async name => {
+                                            await backend.projectUpdate(projectAsset.id, {
+                                                ami: null,
+                                                ideVersion: null,
+                                                projectName: name,
+                                            })
+                                        }}
                                         onSuccess={doRefresh}
                                     />
                                 ))
@@ -869,7 +875,7 @@ function Dashboard(props: DashboardProps) {
                                     <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                                         Open as folder
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry disabled onClick={doRename}>
+                                    <ContextMenuEntry onClick={doRename}>
                                         Rename
                                     </ContextMenuEntry>
                                     <ContextMenuEntry onClick={doDelete}>
