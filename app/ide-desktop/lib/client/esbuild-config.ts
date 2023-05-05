@@ -50,7 +50,7 @@ export function bundlerOptions(
             PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),
             /* eslint-enable @typescript-eslint/naming-convention */
         },
-        sourcemap: 'inline',
+        sourcemap: true,
         external: ['electron'],
     }
 }
