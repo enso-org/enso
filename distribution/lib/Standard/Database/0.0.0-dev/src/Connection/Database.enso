@@ -1,20 +1,36 @@
 from Standard.Base import all
 
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Metadata.Display
+
+import project.Connection.Connection_Details.Connection_Details
 import project.Connection.Connection_Options.Connection_Options
-import project.Connection.Postgres_Options.Postgres_Options
-import project.Connection.SQLite_Options.SQLite_Options
-import project.Connection.Redshift_Options.Redshift_Options
 import project.Connection.Connection.Connection
 
 from project.Errors import SQL_Error
+
+polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 
 ## UNSTABLE
 
    Tries to connect to the database.
 
    Arguments:
-   - details: Connection_Details to use to connect.
-   - options: Any overriding options to use.
-connect : (Postgres_Options|SQLite_Options|Redshift_Options) -> Connection_Options -> Connection ! SQL_Error
+   - details: `Connection_Details` specifying the database to connect to.
+   - options: Additional custom connection options for the JDBC connection.
+@details connection_details_widget
+connect : Connection_Details -> Connection_Options -> Connection ! SQL_Error
 connect details options=Connection_Options.Value =
     details.connect options
+
+## PRIVATE
+connection_details_widget : Single_Choice
+connection_details_widget =
+    default_constructors = Vector.from_polyglot_array <|
+        DatabaseConnectionDetailsSPI.get_default_constructors False
+    choices = default_constructors.map pair->
+        name = pair.first
+        code = pair.second
+        Option name code
+    Single_Choice display=Display.Always values=choices

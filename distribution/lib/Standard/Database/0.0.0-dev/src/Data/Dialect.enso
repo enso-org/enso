@@ -11,6 +11,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -18,7 +19,6 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
-import project.Internal.Redshift.Redshift_Dialect
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -188,6 +188,13 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Returns a helper for mapping database-specific SQL errors into our common
+       error types.
+    get_error_mapper : Error_Mapper
+    get_error_mapper self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
@@ -204,12 +211,6 @@ sqlite = SQLite_Dialect.sqlite
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres = Postgres_Dialect.postgres
-
-## PRIVATE
-
-   The dialect of Redshift databases.
-redshift : Dialect
-redshift = Redshift_Dialect.redshift
 
 ## PRIVATE
 default_fetch_types_query dialect expression context =

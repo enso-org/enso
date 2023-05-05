@@ -38,12 +38,11 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
-import * as projectManagerModule from 'enso-content/src/project_manager'
-
 import * as authService from '../authentication/service'
 import * as platformModule from '../platform'
 
 import * as authProvider from '../authentication/providers/auth'
+import * as backendProvider from '../providers/backend'
 import * as loggerProvider from '../providers/logger'
 import * as modalProvider from '../providers/modal'
 import * as sessionProvider from '../authentication/providers/session'
@@ -79,25 +78,15 @@ export const SET_USERNAME_PATH = '/set-username'
 // === App ===
 // ===========
 
-interface BaseAppProps {
+/** Global configuration for the `App` component. */
+export interface AppProps {
     logger: loggerProvider.Logger
     platform: platformModule.Platform
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
     onAuthenticated: () => void
+    appRunner: AppRunner | null
 }
-
-interface DesktopAppProps extends BaseAppProps {
-    platform: platformModule.Platform.desktop
-    projectManager: projectManagerModule.ProjectManager
-}
-
-interface OtherAppProps extends BaseAppProps {
-    platform: Exclude<platformModule.Platform, platformModule.Platform.desktop>
-}
-
-/** Global configuration for the `App` component. */
-export type AppProps = DesktopAppProps | OtherAppProps
 
 /** Component called by the parent module, returning the root React component for this
  * package.
@@ -171,12 +160,15 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <authProvider.AuthProvider
-                    authService={memoizedAuthService}
-                    onAuthenticated={onAuthenticated}
-                >
-                    <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
-                </authProvider.AuthProvider>
+                {/* @ts-expect-error Auth will always set this before dashboard is rendered. */}
+                <backendProvider.BackendProvider initialBackend={null}>
+                    <authProvider.AuthProvider
+                        authService={memoizedAuthService}
+                        onAuthenticated={onAuthenticated}
+                    >
+                        <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
+                    </authProvider.AuthProvider>
+                </backendProvider.BackendProvider>
             </sessionProvider.SessionProvider>
         </loggerProvider.LoggerProvider>
     )

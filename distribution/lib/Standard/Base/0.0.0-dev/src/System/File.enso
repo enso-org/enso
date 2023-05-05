@@ -86,7 +86,8 @@ type File
         if temp_path.is_nothing then Error.throw (File_Error.IO_Error "Unable to create a temporary file.") else
             temp = File.new temp_path
             if self.exists && copy_original then
-                self.copy_to temp replace_existing=True
+                Context.Output.with_enabled <|
+                    self.copy_to temp replace_existing=True
             temp
 
     ## ALIAS Current Directory
@@ -160,7 +161,7 @@ type File
             resource = Managed_Resource.register stream_2 close_stream
             Output_Stream.Value file resource
 
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File writing is forbidden as the Output context is disabled") else
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File writing is forbidden as the Output context is disabled.") else
             Managed_Resource.bracket (new_output_stream self open_options) (_.close) action
 
     ## PRIVATE
@@ -414,7 +415,7 @@ type File
                 (Examples.data_dir / "my_directory") . create_directory
     create_directory : Nothing
     create_directory self =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Directory creation is forbidden as the Output context is disabled") else
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Directory creation is forbidden as the Output context is disabled.") else
             self.create_directory_builtin
 
 
@@ -546,7 +547,7 @@ type File
                  file.delete
     delete : Nothing ! File_Error
     delete self =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File deleting is forbidden as the Output context is disabled") else
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File deleting is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self self.delete_builtin
 
     ## Moves the file to the specified destination.
@@ -557,7 +558,7 @@ type File
          destination file already exists. Defaults to `False`.
     copy_to : File -> Boolean -> Nothing ! File_Error
     copy_to self destination replace_existing=False =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File copying is forbidden as the Output context is disabled") else
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File copying is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
                   copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
@@ -572,7 +573,7 @@ type File
          destination file already exists. Defaults to `False`.
     move_to : File -> Boolean -> Nothing ! File_Error
     move_to self destination replace_existing=False =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled") else
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
                   copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array

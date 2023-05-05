@@ -2,8 +2,9 @@ package org.enso.languageserver.websocket.json
 
 import akka.testkit.TestProbe
 import io.circe.literal._
-import org.enso.languageserver.event.BufferClosed
+import org.enso.languageserver.event.{BufferClosed, JsonSessionTerminated}
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.session.JsonSession
 import org.enso.testkit.FlakySpec
 import scala.concurrent.duration._
 
@@ -2601,8 +2602,6 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "result": null
           }
           """)
-      Thread.sleep(5.seconds.toMillis)
-      // Should return the original contents of the file
       client2.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
@@ -2621,6 +2620,129 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "result": { "contents": "bar123456789foo" }
           }
           """)
+
+    }
+
+    "be triggered when a client closed session abruptly" in {
+      this.timingsConfig.withAutoSave(10.seconds)
+
+      val (client1, client1Id) = getInitialisedWsClientAndId()
+      val client2              = getInitialisedWsClient()
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "text/canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  },
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 12 },
+                      "end": { "line": 0, "character": 12 }
+                    },
+                    "text": "foo"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+
+      // Simulate client1 closing
+      system.eventStream.publish(
+        JsonSessionTerminated(JsonSession(client1Id, client1.actorRef()))
+      )
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/read",
+            "id": 4,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 4,
+            "result": { "contents": "bar123456789foo" }
+          }
+          """)
+
     }
 
   }

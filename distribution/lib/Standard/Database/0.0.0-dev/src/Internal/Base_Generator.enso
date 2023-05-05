@@ -419,6 +419,11 @@ generate_query dialect query = case query of
         generate_create_table dialect name columns primary_key temporary
     Query.Drop_Table name ->
         Builder.code "DROP TABLE " ++ dialect.wrap_identifier name
+    Query.Insert_From_Select table_name select_query -> case select_query of
+        Query.Select _ _ ->
+            inner_query = generate_query dialect select_query
+            Builder.code "INSERT INTO " ++ dialect.wrap_identifier table_name ++ " " ++ inner_query
+        _ -> Panic.throw (Illegal_State.Error "The inner query of `Query.Insert_From_Select` must be `Query.Select`, but it was "+select_query.to_display_text+". This is a bug in the Database library.")
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE

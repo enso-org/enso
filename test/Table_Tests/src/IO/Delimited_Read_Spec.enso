@@ -103,7 +103,7 @@ spec =
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.IO_Error
 
-        Test.specify "should work with all kinds of line endings" <| Context.Output.with_enabled <|
+        Test.specify "should work with all kinds of line endings" <|
             path name = enso_project.data / 'transient' / name
             create_file name ending_style =
                 lines = ['a,b,c', 'd,e,f', '1,2,3']
@@ -130,7 +130,7 @@ spec =
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
-        Test.specify "should allow to override line endings style" <| Context.Output.with_enabled <|
+        Test.specify "should allow to override line endings style" <|
             file = enso_project.data / "transient" / "lf.csv"
             lines = ['a,b,c', 'd,e,f', '1,2,3']
             text = lines.join '\n'
@@ -171,7 +171,7 @@ spec =
             table.at '🚀b' . to_vector . should_equal ['✨🚀🚧😍😃😍😎😙😉☺']
             table.at 'ć😎' . to_vector . should_equal ['แมวมีสี่ขา']
 
-        Test.specify "should report errors when encountering malformed characters" <| Context.Output.with_enabled <|
+        Test.specify "should report errors when encountering malformed characters" <|
             utf8_file = (enso_project.data / "transient" / "utf8_invalid.csv")
             utf8_bytes = [97, 44, 98, 44, 99, 10, -60, -123, 44, -17, -65, -65, 44, -61, 40, -61, 40, 10]
             utf8_bytes.write_bytes utf8_file

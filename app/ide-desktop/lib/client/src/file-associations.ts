@@ -104,7 +104,7 @@ export function isFileOpenable(path: string): boolean {
  * we manually start a new instance of the application and pass the file path to it (using the
  * Windows-style command).
  */
-export function onFileOpened(event: Event, path: string): string | void {
+export function onFileOpened(event: Event, path: string): string | null {
     logger.log(`Received 'open-file' event for path '${path}'.`)
     if (isFileOpenable(path)) {
         logger.log(`The file '${path}' is openable.`)
@@ -114,7 +114,6 @@ export function onFileOpened(event: Event, path: string): string | void {
         if (!electron.app.isReady() && CLIENT_ARGUMENTS.length === 0) {
             event.preventDefault()
             logger.log(`Opening file '${path}'.`)
-            // eslint-disable-next-line no-restricted-syntax
             return handleOpenFile(path)
         } else {
             // We need to start another copy of the application, as the first one is already running.
@@ -128,9 +127,11 @@ export function onFileOpened(event: Event, path: string): string | void {
             })
             // Prevent parent (this) process from waiting for the child to exit.
             child.unref()
+            return null
         }
     } else {
         logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
+        return null
     }
 }
 

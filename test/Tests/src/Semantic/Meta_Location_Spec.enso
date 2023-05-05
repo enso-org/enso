@@ -25,6 +25,9 @@ spec = Test.group "Meta-Value Inspection" <|
 
     Test.specify "should allow access to package names" <|
         enso_project.name.should_equal 'Tests'
-        Base.enso_project.name.should_equal 'Base'
+        (enso_project Base).name.should_equal 'Base'
+
+    Test.specify "should allow to fetch enso project description from a module" <|
+        (enso_project Standard.Base.Data.Vector).name.should_equal "Base"
 
 main = Test_Suite.run_main spec

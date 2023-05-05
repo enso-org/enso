@@ -292,6 +292,11 @@ class LanguageServerController(
         maybeRequester.foreach(_ ! ServerShutdownTimedOut)
         stop()
 
+      case ClientDisconnected(clientId) =>
+        logger.debug(
+          s"Received client ($clientId) disconnect request during shutdown. Ignoring."
+        )
+
       case m: StartServer =>
         // This instance has not yet been shut down. Retry
         context.parent.forward(Retry(m))

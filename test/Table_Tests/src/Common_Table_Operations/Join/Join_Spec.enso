@@ -88,10 +88,14 @@ spec setup =
             r.at "Z" . to_vector . should_equal [2, 2, 3, 3, 4, 5]
             r.at "Right_Z" . to_vector . should_equal [1, 2, 1, 2, 4, 4]
 
-        Test.specify "should allow to join on equality of multiple columns and drop redundant columns" <|
+        Test.specify "should allow to join on equality of multiple columns and drop redundant columns if Inner join" <|
             conditions = [Join_Condition.Equals "Y" "Y", Join_Condition.Equals "X" "X"]
             r = t3.join t4 on=conditions |> materialize |> _.order_by ["X", "Y", "Z", "Right_Z"]
             check_xy_joined r
+
+            [Join_Kind.Full, Join_Kind.Left_Outer, Join_Kind.Right_Outer].each kind->
+                r2 = t3.join t4 join_kind=kind on=conditions
+                expect_column_names ["X", "Y", "Z", "Right_X", "Right_Y", "Right_Z"] r2
 
         Test.specify "should support same-name column join shorthand" <|
             r = t3.join t4 on=["X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right_Z"]
