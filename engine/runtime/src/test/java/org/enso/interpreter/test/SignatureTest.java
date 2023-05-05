@@ -60,4 +60,25 @@ public class SignatureTest extends TestBase {
       assertTrue("It is a syntax error exception", e.isSyntaxError());
     }
   }
+
+  @Test
+  public void wrongAscribedInConstructor() throws Exception {
+    final URI uri = new URI("memory://constructor.enso");
+    final Source src = Source.newBuilder("enso", """
+    type Neg
+      Val (a : Xyz)
+
+    neg = Neg.Val 10
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var neg = module.invokeMember("eval_expression", "neg");
+      fail("Expecting an exception from compilation, not: " + neg);
+    } catch (PolyglotException e) {
+      assertTrue("It is a syntax error exception", e.isSyntaxError());
+    }
+  }
 }
