@@ -2455,13 +2455,11 @@ impl InstanceDef {
         // This implementation is a bit complex because we do not want to clone network to the FRP
         // closure in order to avoid a memory leak.
         let network = &self.network;
-        let parent_bind = &self.parent_bind;
-        let capturing_event_fan = &self.event.capturing_fan;
-        let bubbling_event_fan = &self.event.bubbling_fan;
+        let weak = self.downgrade();
         frp::extend! { network
-            eval self.event.source ([parent_bind, capturing_event_fan, bubbling_event_fan] (event) {
-                let parent = parent_bind.parent();
-                Self::emit_event_impl(event, parent, &capturing_event_fan, &bubbling_event_fan);
+            eval self.event.source ([] (event) {
+                weak.upgrade().map(|instance| instance.emit_event_impl(event));
+                event.finish_propagation();
             });
         }
         self
@@ -2538,40 +2536,58 @@ impl InstanceDef {
         self
     }
 
-    fn emit_event_impl(
-        event: &event::SomeEvent,
-        parent: Option<Instance>,
-        capturing_event_fan: &frp::Fan,
-        bubbling_event_fan: &frp::Fan,
-    ) {
-        let rev_parent_chain = parent.map(|p| p.rev_parent_chain()).unwrap_or_default();
-        if event.captures.get() {
-            for object in &rev_parent_chain {
-                if !event.is_cancelled() {
-                    event.set_current_target(Some(object));
-                    object.event.capturing_fan.emit(&event.data);
-                } else {
-                    break;
-                }
+    fn emit_event_impl(&self, event: &event::SomeEvent) {
+        let Some((resume_phase, resume_target)) = event.begin_propagation() else { return; };
+
+        let rev_parent_chain = self.rev_parent_chain();
+        // If we are resuming previously cancelled event, find the position of the last processed
+        // target in current parent chain. The processing will continue right after it.
+        let mut resume_index = resume_target.map(|t| rev_parent_chain.iter().position(|o| o == &t));
+        if resume_phase <= event::Phase::Capturing && event.captures.get() {
+            event.enter_phase(event::Phase::Capturing);
+            // When resuming capturing phase, if the target is no longer in the parent chain, we
+            // start the capturing again from the root.
+            let resume_position = match resume_index.take() {
+                // Resumed and the last target is still in chain. Continue capturing past it.
+                // targets: a b c d | d c b a
+                // index:   0 1 2 3 | 3 2 1 0
+                // resume:      >...|........
+                Some(Some(index)) => (index + 1).min(rev_parent_chain.len()),
+                // Either starting from scratch, or resumed but the last target is no longer in
+                // chain. In that case start the capturing from the root.
+                Some(None) | None => 0,
+            };
+
+            for object in &rev_parent_chain[resume_position..] {
+                let false = event.is_cancelled() else { return };
+                event.set_current_target(Some(object));
+                object.event.capturing_fan.emit(&event.data);
             }
         }
-        if !event.is_cancelled() {
-            capturing_event_fan.emit(&event.data);
-        }
-        if !event.is_cancelled() {
-            bubbling_event_fan.emit(&event.data);
-        }
-        if event.bubbles.get() {
-            for object in rev_parent_chain.iter().rev() {
-                if !event.is_cancelled() {
-                    event.set_current_target(Some(object));
-                    object.event.bubbling_fan.emit(&event.data);
-                } else {
-                    break;
-                }
+
+        if resume_phase <= event::Phase::Bubbling && event.bubbles.get() {
+            event.enter_phase(event::Phase::Bubbling);
+            // When resuming bubbling phase, if the target is no longer in the parent chain, we
+            // end bubbling completely.
+            let resume_position = match resume_index.take() {
+                // Resumed and the last target is still in chain. Continue bubbling past it.
+                // targets: a b c d | d c b a
+                // index:   0 1 2 3 | 3 2 1 0
+                // resume:          |   >....
+                Some(Some(index)) => index.saturating_sub(1),
+                // Starting from scratch. Start bubbling from the last object in the chain.
+                None => rev_parent_chain.len(),
+                // Resumed in bubbling phase, but the last target is no longer in chain. Stop
+                // bubbling phase immediately.
+                Some(None) => 0,
+            };
+
+            for object in rev_parent_chain[..resume_position].iter().rev() {
+                let false = event.is_cancelled() else { return };
+                event.set_current_target(Some(object));
+                object.event.bubbling_fan.emit(&event.data);
             }
         }
-        event.set_current_target(None);
     }
 
     fn new_event<T>(&self, payload: T) -> event::SomeEvent
@@ -2589,6 +2605,10 @@ impl InstanceDef {
     where T: 'static {
         let event = self.new_event(payload);
         event.set_bubbling(false);
+        self.event.source.emit(event);
+    }
+
+    pub(crate) fn resume_event(&self, event: event::SomeEvent) {
         self.event.source.emit(event);
     }
 

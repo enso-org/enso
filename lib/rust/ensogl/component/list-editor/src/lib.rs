@@ -490,9 +490,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
             // Do not pass events to children, as we don't know whether we are about to drag
             // them yet.
             eval on_down_drag ([] (event) event.stop_propagation());
-            _eval <- no_drag.on_true().map3(&on_down, &target, |_, event, target| {
-                target.emit_event(event.payload.clone());
-            });
+            _eval <- no_drag.on_true().map2(&on_down, |_, event| event.resume_propagation());
 
             item_count_changed <- any_(&frp.on_item_added, &frp.on_item_removed);
             eval_ item_count_changed (model.borrow().item_count_changed());
@@ -607,12 +605,16 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
             init_no_drag <- all_with(&pos_diff, &no_drag_threshold, |p, t| p.x.abs() > *t).on_true();
             init_drag <- all_with(&pos_diff, init_drag_threshold, |p, t| p.y.abs() > *t).on_true();
+            init_any <- any(init_no_drag, init_drag);
+            click_was_handled <- bool(&on_up_cleaning_phase, &init_any).on_change();
             drag_disabled <- bool(&on_up, &init_no_drag).on_change();
+            release_without_action <- on_up.gate_not(&click_was_handled);
+            no_action <- bool(&on_up_cleaning_phase, &release_without_action).on_change();
             init_drag_not_disabled <- init_drag.gate_not(&drag_disabled);
             is_dragging <- bool(&on_up_cleaning_phase, &init_drag_not_disabled).on_change();
             drag_diff <- pos_diff.gate(&is_dragging);
             no_drag <- drag_disabled.gate_not(&is_dragging).on_change();
-
+            no_drag <- any(no_drag, no_action);
             status <- bool(&on_up_cleaning_phase, &drag_diff).on_change();
             start <- status.on_true();
             target_on_start <- target.sample(&start);

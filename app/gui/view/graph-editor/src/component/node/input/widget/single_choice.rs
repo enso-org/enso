@@ -40,6 +40,7 @@ const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
 pub mod triangle {
     use super::*;
     ensogl::shape! {
+        above = [display::shape::compound::rectangle::shape];
         alignment = left_bottom;
         (style:Style, color:Vector4) {
             let size   = Var::canvas_size();

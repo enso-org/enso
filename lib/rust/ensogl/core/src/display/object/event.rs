@@ -18,12 +18,31 @@ use crate::display::object::instance::WeakInstance;
 /// is cancelled, or that the propagation cannot be cancelled. See docs of this module to learn
 /// more.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {
+    Running(Phase),
+    RunningNonCancellable(Phase),
+    // Event has been cancelled, but the event handler is still running.
+    Cancelled(Phase),
+    // Event has been cancelled and [`InstanceDef::emit_event_impl`] function has returned.
+    Stopped(Phase),
+    Finished,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::Running(default())
+    }
+}
+
+/// Current phase of the event propagation. For cancelled events, it's the phase in which the event
+/// was cancelled.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Ord, PartialOrd)]
+pub enum Phase {
     #[default]
-    Running,
-    RunningNonCancellable,
-    Cancelled,
+    Capturing,
+    Bubbling,
 }
 
 
@@ -49,11 +68,14 @@ pub struct SomeEvent {
 impl SomeEvent {
     /// Constructor.
     pub fn new<T: 'static>(target: Option<WeakInstance>, payload: T) -> Self {
-        let event = Event::new(target, payload);
+        Self::from_event(Event::new(target, payload))
+    }
+
+    fn from_event<T: 'static>(event: Event<T>) -> Self {
         let state = event.state.clone_ref();
         let current_target = event.current_target.clone_ref();
-        let captures = Rc::new(Cell::new(true));
-        let bubbles = Rc::new(Cell::new(true));
+        let captures = event.captures.clone_ref();
+        let bubbles = event.bubbles.clone_ref();
         Self { data: frp::AnyData::new(event), state, current_target, captures, bubbles }
     }
 
@@ -64,12 +86,47 @@ impl SomeEvent {
 
     /// Check whether the event was cancelled.
     pub fn is_cancelled(&self) -> bool {
-        self.state() == State::Cancelled
+        matches!(self.state(), State::Cancelled(_) | State::Stopped(_))
     }
 
     /// Enables or disables bubbling for this event.
     pub fn set_bubbling(&self, value: bool) {
         self.bubbles.set(value);
+    }
+
+    /// Determine the phase at which the event propagation should continue. This is internal
+    /// function and should not be used directly.
+    pub(crate) fn begin_propagation(&self) -> Option<(Phase, Option<Instance>)> {
+        match self.state.get() {
+            State::Stopped(phase) => {
+                let target = self.current_target.borrow().as_ref()?.upgrade()?;
+                self.state.set(State::Running(phase));
+                Some((phase, Some(target)))
+            }
+            _ => Some((Phase::Capturing, None)),
+        }
+    }
+
+    pub(crate) fn enter_phase(&self, phase: Phase) {
+        self.state.set(match self.state.get() {
+            State::Running(_) => State::Running(phase),
+            State::RunningNonCancellable(_) => State::RunningNonCancellable(phase),
+            State::Cancelled(_) => State::Cancelled(phase),
+            State::Stopped(_) => State::Stopped(phase),
+            State::Finished => State::Finished,
+        });
+    }
+
+    /// Mark the end of the event propagation. This is internal function and should not be used
+    /// directly.
+    pub(crate) fn finish_propagation(&self) {
+        self.state.set(match self.state.get() {
+            State::Cancelled(phase) => State::Stopped(phase),
+            _ => {
+                self.set_current_target(None);
+                State::Finished
+            }
+        });
     }
 
     /// Set the current target of the event. This is internal function and should not be used
@@ -125,6 +182,8 @@ pub struct EventData<T> {
     target:         Option<WeakInstance>,
     current_target: Rc<RefCell<Option<WeakInstance>>>,
     state:          Rc<Cell<State>>,
+    captures:       Rc<Cell<bool>>,
+    bubbles:        Rc<Cell<bool>>,
 }
 
 impl<T: Debug> Debug for EventData<T> {
@@ -136,11 +195,13 @@ impl<T: Debug> Debug for EventData<T> {
     }
 }
 
-impl<T> Event<T> {
+impl<T: 'static> Event<T> {
     fn new(target: Option<WeakInstance>, payload: T) -> Self {
         let state = default();
         let current_target = Rc::new(RefCell::new(target.clone()));
-        let data = Rc::new(EventData { payload, target, current_target, state });
+        let captures = Rc::new(Cell::new(true));
+        let bubbles = Rc::new(Cell::new(true));
+        let data = Rc::new(EventData { payload, target, current_target, state, captures, bubbles });
         Self { data }
     }
 
@@ -149,12 +210,34 @@ impl<T> Event<T> {
     ///
     /// See: https://developer.mozilla.org/en-US/docs/Web/API/Event/stopPropagation.
     pub fn stop_propagation(&self) {
-        if self.state.get() == State::RunningNonCancellable {
-            warn!("Trying to cancel a non-cancellable event.");
-        } else {
-            self.state.set(State::Cancelled);
+        match self.state.get() {
+            State::Running(phase) => self.state.set(State::Cancelled(phase)),
+            State::RunningNonCancellable(_) => warn!("Trying to cancel a non-cancellable event."),
+            _ => {}
         }
     }
+
+
+    /// Emit event again with the same payload after it was cancelled. The event will start its
+    /// capturing phase handling again, starting at but not including this instance. If the passed
+    /// instance is no longer a part of the parent chain of the event's original target, the event
+    /// will start its capturing phase from scratch. If the original target no longer exists, the
+    /// event will be discarded.
+    pub fn resume_propagation(&self) {
+        match self.state.get() {
+            State::Cancelled(phase) => {
+                // When cancelled but not stopped yet, the propagation is still ongoing. We can
+                // reset the state back to running and let it continue.
+                self.state.set(State::Running(phase));
+            }
+            State::Stopped(_) =>
+                if let Some(target) = self.target() {
+                    target.resume_event(SomeEvent::from_event(self.clone()));
+                },
+            _ => warn!("Trying to resume propagation of a non-cancelled event."),
+        }
+    }
+
 
     /// A reference to the object onto which the event was dispatched.
     ///
