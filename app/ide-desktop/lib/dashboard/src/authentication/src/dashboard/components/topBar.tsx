@@ -72,7 +72,7 @@ function TopBar(props: TopBarProps) {
                             tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
                         }`}
                     >
-                        Dashboard
+                        {projectName ?? 'Dashboard'}
                     </span>
                     <div className="bg-white shadow-soft rounded-full px-1.5 py-1">
                         {svg.BARS_ICON}
