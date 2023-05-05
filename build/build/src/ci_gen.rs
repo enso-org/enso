@@ -488,7 +488,7 @@ pub fn benchmark() -> Result<Workflow> {
     );
 
     let mut benchmark_job =
-        plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime enso");
+        plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime");
     benchmark_job.timeout_minutes = Some(60 * 8);
     workflow.add_job(benchmark_job);
     Ok(workflow)
