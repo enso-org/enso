@@ -494,16 +494,20 @@ impl View {
             frp.source.searcher <+ prepare_params.map(|(pos, node_id)| {
                 Some(SearcherParams::new_for_edited_node(*node_id, *pos))
             });
+            trace graph.node_expression_edited;
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
                     let input_change = || (*node_id, expr.clone_ref(), selections.clone());
                     (searcher.as_ref()?.input == *node_id).then(input_change)
                 }
             );
+            trace searcher_input_change_opt;
             searcher_input_change <- searcher_input_change_opt.unwrap();
             input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
             input_change_delay.cancel <+ update_searcher_input_on_commit;
+            trace input_change_delay.on_expired;
+            trace update_searcher_input_on_commit;
             update_searcher_input <- any(&input_change_delay.on_expired, &update_searcher_input_on_commit);
             input_change_and_searcher <- map2(&searcher_input_change, &frp.searcher,
                 |c, s| (c.clone(), *s)
@@ -513,6 +517,7 @@ impl View {
                 let input_change = || (expr.clone_ref(), selections.clone());
                 (searcher.as_ref()?.input == *node_id).then(input_change)
             });
+            trace input_changed;
             frp.source.searcher_input_changed <+ input_changed;
 
             // === Adding Node ===

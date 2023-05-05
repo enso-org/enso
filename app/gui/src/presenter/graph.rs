@@ -592,6 +592,7 @@ impl ViewUpdate {
                     let skip_updated = change.set_node_skip(node);
                     let freeze_updated = change.set_node_freeze(node);
                     let context_switch_updated = change.set_node_context_switch(node);
+                    error!("Set node expressions: {expression:?}");
                     Some(ExpressionUpdate {
                         id,
                         expression,
@@ -716,6 +717,7 @@ impl Graph {
             set_node_visualization <= update_data.map(|update| update.set_node_visualizations());
             enable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_some().as_some(*id));
             disable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_none().as_some(*id));
+            trace update_node_expression;
             view.remove_node <+ remove_node;
             view.set_node_expression <+ update_node_expression;
             view.set_node_skip <+ set_node_skip;
@@ -731,6 +733,7 @@ impl Graph {
                 model.state.assign_node_view(*view_id)
             ));
             init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));
+            trace init_node_expression;
             view.set_node_expression <+ init_node_expression;
             view.set_node_position <+ added_node_update.filter_map(|update| Some((update.view_id?, update.position)));
             view.set_visualization <+ added_node_update.filter_map(|update| Some((update.view_id?, Some(update.visualization.clone()?))));
