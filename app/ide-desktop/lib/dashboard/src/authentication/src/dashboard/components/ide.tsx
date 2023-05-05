@@ -1,6 +1,7 @@
 /** @file Container that launches the IDE. */
 import * as react from 'react'
 
+import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as platformModule from '../../platform'
@@ -28,6 +29,7 @@ interface Props {
 function Ide(props: Props) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
+    const { accessToken } = auth.useFullUserSession()
 
     react.useEffect(() => {
         void (async () => {
@@ -81,7 +83,7 @@ function Ide(props: Props) {
                         startup: {
                             project: project.packageName,
                         },
-                    })
+                    }, accessToken)
                 }
                 if (backend.platform === platformModule.Platform.desktop) {
                     await runNewProject()

@@ -8,6 +8,7 @@ import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import * as config from '../../dashboard/src/authentication/src/config'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -24,6 +25,8 @@ const ESBUILD_EVENT_NAME = 'change'
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
+/** URL address where remote logs should be sent. */
+const REMOTE_LOG_URL = `${config.ACTIVE_CONFIG.apiUrl}/logs`
 
 // ===================
 // === Live reload ===
@@ -132,7 +135,7 @@ class Main implements AppRunner {
         this.app?.stop()
     }
 
-    async runApp(inputConfig?: StringConfig) {
+    async runApp(inputConfig?: StringConfig, accessToken?: string) {
         this.stopApp()
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
@@ -154,6 +157,8 @@ class Main implements AppRunner {
                 version: BUILD_INFO.version,
                 engineVersion: BUILD_INFO.engineVersion,
             },
+            remoteLoggerUrl: REMOTE_LOG_URL,
+            accessToken: accessToken
         })
 
         if (!this.app.initialized) {
@@ -211,12 +216,12 @@ class Main implements AppRunner {
              * appInstance was already ran. Target solution should move running appInstance
              * where it will be called only once. */
             let appInstanceRan = false
-            const onAuthenticated = () => {
+            const onAuthenticated = (accessToken?: string) => {
                 if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
                     hideAuth()
                     if (!appInstanceRan) {
                         appInstanceRan = true
-                        void this.runApp(inputConfig)
+                        void this.runApp(inputConfig, accessToken)
                     }
                 }
             }

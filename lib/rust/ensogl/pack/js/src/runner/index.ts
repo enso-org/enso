@@ -195,14 +195,20 @@ export class App {
      * (like wasm compilation) should be aborted. Currently, we initialize application fully
      * before using stop, but in future we need to support interruption feature. */
     stopped = false
+    accessToken: string | null = null
+    remoteLoggerUrl: URL | null = null
 
     constructor(opts?: {
         configOptions?: config.Options
         packageInfo?: Record<string, string>
-        config?: config.StringConfig
+        config?: config.StringConfig,
+        remoteLoggerUrl?: string,
+        accessToken?: string | undefined
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
         this.config = config.options
+        this.remoteLoggerUrl = opts?.remoteLoggerUrl ? new URL(opts.remoteLoggerUrl) : null
+        this.accessToken = opts?.accessToken ?? null
         const unrecognized = log.Task.runCollapsed('Resolving application configuration.', () => {
             const inputConfig = opts?.configOptions
             if (inputConfig != null) {
@@ -238,10 +244,25 @@ export class App {
     /** Log the message on the remote server. */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     remoteLog(message: string, data: any) {
-        // FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/359
-        // Implement remote logging. This should be done after cloud integration.
-        // Function interface is left intentionally for readability.
-        // Remove typescript error suppression after resolving fixme.
+        if (this.remoteLoggerUrl && this.accessToken) {
+            const headers: HeadersInit = new Headers();
+            headers.set("Content-Type", "application/json")
+            headers.set("Authorization", `Bearer ${this.accessToken}`)
+            fetch(this.remoteLoggerUrl, {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({
+                    message: message,
+                    metadata: data
+                })
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error while logging message: ${response.status}.`)
+                }
+            }).catch(error => {
+                logger.error(error)
+            })
+        }
     }
 
     /** Initialize the browser. Set the background color, print user-facing warnings, etc. */
@@ -279,8 +300,9 @@ export class App {
             }
         }
     }
+
     /** Sets application stop to true and calls drop method which removes all rust memory references
-     *  and calls all destructors. */
+     * and calls all destructors. */
     stop() {
         this.stopped = true
         this.wasm?.drop()
