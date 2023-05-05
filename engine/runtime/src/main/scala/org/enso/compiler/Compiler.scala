@@ -12,7 +12,8 @@ import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{
   ExportCycleException,
   ExportsResolution,
-  ImportResolver
+  ImportResolver,
+  SymbolsImportResolution
 }
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -34,7 +35,6 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 import java.util.concurrent.Future
 
@@ -54,6 +54,8 @@ class Compiler(
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
+  private val symbolImportsResolver: SymbolsImportResolution =
+    new SymbolsImportResolution(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator(builtins)
   private val irCachingEnabled = !context.isIrCachingDisabled
@@ -444,6 +446,11 @@ class Compiler(
     val requiredModules =
       try { new ExportsResolution().run(importedModules) }
       catch { case e: ExportCycleException => reportCycle(e) }
+
+    // Symbol imports resolution has to be done after the exports resolution
+    requiredModules.foreach(module =>
+      symbolImportsResolver.resolveImportSymbols(module)
+    )
 
     val parsingTasks: List[CompletableFuture[Unit]] =
       modulesImportedWithCachedBindings.map { module =>

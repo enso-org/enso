@@ -11,7 +11,6 @@ import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.{Debug, Location}
 
 import java.util.UUID
-
 import scala.annotation.unused
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
@@ -8781,6 +8780,14 @@ object IR {
         */
       case class ModuleDoesNotExist(name: String) extends Reason {
         override def message: String = s"The module $name does not exist."
+      }
+
+      case class SymbolsDoNotExist(
+        symbolNames: List[String],
+        moduleName: String
+      ) extends Reason {
+        override def message: String =
+          s"The symbols $symbolNames (modules or types) do not exist in module $moduleName."
       }
 
     }
