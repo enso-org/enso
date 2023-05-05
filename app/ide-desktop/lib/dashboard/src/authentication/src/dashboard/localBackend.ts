@@ -78,6 +78,9 @@ export class LocalBackend implements Partial<backend.Backend> {
     }
 
     async closeProject(projectId: backend.ProjectId): Promise<void> {
+        if (this.currentlyOpeningProjectId === projectId) {
+            this.currentlyOpeningProjectId = null
+        }
         await this.projectManager.closeProject({ projectId })
         this.currentlyOpenProject = null
     }
@@ -146,5 +149,15 @@ export class LocalBackend implements Partial<backend.Backend> {
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
         this.currentlyOpenProject = { id: projectId, project }
+    }
+
+    async deleteProject(projectId: backend.ProjectId): Promise<void> {
+        if (this.currentlyOpeningProjectId === projectId) {
+            this.currentlyOpeningProjectId = null
+        }
+        await this.projectManager.deleteProject({ projectId })
+        if (this.currentlyOpenProject?.id === projectId) {
+            this.currentlyOpenProject = null
+        }
     }
 }

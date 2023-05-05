@@ -852,18 +852,14 @@ function Dashboard(props: DashboardProps) {
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
                             function doDelete() {
-                                // The button is disabled when using the desktop backend,
-                                // so this condition should never be `false`.
-                                if (backend.platform === platformModule.Platform.cloud) {
-                                    setModal(() => (
-                                        <ConfirmDeleteModal
-                                            name={projectAsset.title}
-                                            assetType={projectAsset.type}
-                                            doDelete={() => backend.deleteProject(projectAsset.id)}
-                                            onSuccess={doRefresh}
-                                        />
-                                    ))
-                                }
+                                setModal(() => (
+                                    <ConfirmDeleteModal
+                                        name={projectAsset.title}
+                                        assetType={projectAsset.type}
+                                        doDelete={() => backend.deleteProject(projectAsset.id)}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
                             }
                             setModal(() => (
                                 <ContextMenu event={event}>
@@ -876,12 +872,7 @@ function Dashboard(props: DashboardProps) {
                                     <ContextMenuEntry disabled onClick={doRename}>
                                         Rename
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry
-                                        disabled={
-                                            backend.platform === platformModule.Platform.desktop
-                                        }
-                                        onClick={doDelete}
-                                    >
+                                    <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
