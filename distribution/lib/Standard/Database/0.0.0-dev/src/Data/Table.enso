@@ -23,6 +23,7 @@ import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Data.Table import print_table
@@ -1873,16 +1874,9 @@ display_dataframe df indices_count all_rows_count format_terminal =
    is, otherwise numerical suffixes are added.
 fresh_names : Vector Text -> Vector Text -> Vector Text
 fresh_names used_names preferred_names =
-   freshen currently_used name ix =
-       new_name = if ix == 0 then name else name+"_"+ix.to_text
-       case currently_used.contains new_name of
-           False -> new_name
-           True -> freshen currently_used name ix+1
-   res = preferred_names . fold [used_names, []] acc-> name->
-       used = acc.first
-       new_name = freshen used name 0
-       [used_names + [new_name], acc.second + [new_name]]
-   res.second
+   unique = Unique_Name_Strategy.new
+   unique.mark_used used_names
+   unique.make_all_unique preferred_names
 
 ## PRIVATE
 

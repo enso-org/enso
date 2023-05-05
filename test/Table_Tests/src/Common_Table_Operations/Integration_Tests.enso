@@ -37,7 +37,7 @@ spec setup =
 
             t3 = t2.aggregate [Group_By "Letter", Count]
             t4 = t3.join t1 on="Count" join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by "Letter"
-            t4.columns.map .name . should_equal ["Letter", "Count", "Right_Count", "Class"]
+            t4.columns.map .name . should_equal ["Letter", "Count", "Right Count", "Class"]
             rows = t4.rows . map .to_vector
             rows.at 0 . should_equal ["A", 4, Nothing, Nothing]
             rows.at 1 . should_equal ["B", 3, 3, "Z"]
