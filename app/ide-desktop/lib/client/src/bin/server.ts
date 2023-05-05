@@ -10,6 +10,8 @@ import createServer from 'create-servers'
 
 import * as contentConfig from 'enso-content-config'
 
+import * as paths from '../../paths'
+
 const logger = contentConfig.logger
 
 // =================
@@ -107,7 +109,10 @@ export class Server {
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
-            const resourceFile = `${this.config.dir}${resource}`
+            const resourceFile =
+                resource === '/preload.cjs.map'
+                    ? `${paths.APP_PATH}${resource}`
+                    : `${this.config.dir}${resource}`
             fs.readFile(resourceFile, (err, data) => {
                 if (err) {
                     logger.error(`Resource '${resource}' not found.`)
