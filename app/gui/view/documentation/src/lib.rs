@@ -103,13 +103,13 @@ pub struct Style {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:          DomSymbol,
-    caption_dom:        DomSymbol,
-    inner_dom:          DomSymbol,
+    outer_dom:      DomSymbol,
+    caption_dom:    DomSymbol,
+    inner_dom:      DomSymbol,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay:            overlay::View,
-    display_object:     display::object::Instance,
+    overlay:        overlay::View,
+    display_object: display::object::Instance,
 }
 
 impl Model {
