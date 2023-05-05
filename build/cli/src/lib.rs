@@ -836,6 +836,27 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .run_ok()
                 .await?;
 
+            let build_json_exists = ctx.repo_root.join("app/ide-desktop/build.json").exists();
+            let ide_artifacts_exist = ctx.repo_root.join("dist").exists();
+            if !build_json_exists || !ide_artifacts_exist {
+                let ide_cli = Cli::parse_from([
+                    "./run",
+                    "ide",
+                    "build",
+                    "--skip-version-check",
+                    "--skip-wasm-opt",
+                    "--wasm-profile=dev",
+                    "--backend-source",
+                    "release",
+                    "--backend-release",
+                    "nightly",
+                ]);
+                if let Target::Ide(ide) = ide_cli.target {
+                    ctx.handle_ide(ide).await?
+                } else {
+                    unreachable!("This command line is hard-coded to always use the IDE target.")
+                }
+            }
             prettier::check(&ctx.repo_root).await?;
             let js_modules_root = ctx.repo_root.join("app/ide-desktop");
             Npm.cmd()?.current_dir(&js_modules_root).args(["install"]).run_ok().await?;
