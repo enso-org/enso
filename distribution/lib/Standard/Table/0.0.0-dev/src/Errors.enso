@@ -12,14 +12,17 @@ polyglot java import org.enso.table.error.EmptySheetException
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
-    Error (criteria : [Text])
+    Error (criteria : [Text]) (where:Text|Nothing = Nothing)
 
     ## PRIVATE
 
        Convert a missing input error to a human-readable form.
     to_display_text : Text
     to_display_text self =
-        "The criteria "+self.criteria.to_text+" did not match any columns."
+        where = case self.where of
+            Nothing -> "."
+            location : Text -> " in "+location+"."
+        "The criteria "+self.criteria.to_text+" did not match any columns"+where
 
 type Column_Indexes_Out_Of_Range
     ## PRIVATE

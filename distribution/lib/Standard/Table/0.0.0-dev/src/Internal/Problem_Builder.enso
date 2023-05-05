@@ -8,7 +8,7 @@ from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, D
 ## PRIVATE
 type Problem_Builder
     ## PRIVATE
-    Value types_to_always_throw oob_indices missing_input_columns other
+    Value types_to_always_throw oob_indices missing_input_columns missing_input_columns_location other
 
     ## PRIVATE
     report_oob_indices self indices =
@@ -39,7 +39,7 @@ type Problem_Builder
             if vec.not_empty then
                 problems.append (problem_creator vec)
 
-        build_vector_and_append self.missing_input_columns Missing_Input_Columns.Error
+        build_vector_and_append self.missing_input_columns (Missing_Input_Columns.Error _ where=self.missing_input_columns_location)
         build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range.Error
         self.other.to_vector.each problems.append
 
@@ -91,10 +91,12 @@ type Problem_Builder
          methods regardless of the `Problem_Behavior` used. Defaults to `False`.
          Setting this to `True` is essentially a shorthand for adding these two
          problem types to `types_to_always_throw`.
+       - missing_input_columns_location: The location to add to the missing
+         input column error to make it more informative. Defaults to `Nothing`.
     new : Vector -> Boolean -> Problem_Builder
-    new types_to_always_throw=[] error_on_missing_columns=False =
+    new types_to_always_throw=[] error_on_missing_columns=False missing_input_columns_location=Nothing =
         additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Column_Indexes_Out_Of_Range, Invalid_Aggregate_Column] else []
-        Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
+        Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) missing_input_columns_location other=Vector.new_builder
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
