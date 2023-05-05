@@ -58,52 +58,40 @@ class ImportsTest extends PackageTest {
     evalTestProject("Test_Hiding_Success") shouldEqual 20
   }
 
-  "[0] Importing non-existing symbol with `import Module.Non_Existing`" should "throw exception" in {
+  "Importing non-existing symbol with `import Module.Non_Existing`" should "throw exception" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Import_Non_Existing_Simple"
     ) should have message "Compilation aborted due to errors."
     consumeOut
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
-      .head should include("The module Enso_Test.Test_Import_Non_Existing_Simple.Other_Module.Non_Existing_Symbol does not exist.")
+      .head should include(
+      "The module Enso_Test.Test_Import_Non_Existing_Simple.Other_Module.Non_Existing_Symbol does not exist."
+    )
   }
 
-  "[1] Importing non-existing symbol with `from Module import <symbol>`" should "throw exception" in {
+  "Importing non-existing symbol with `from Module import <symbol>`" should "throw exception" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Import_Non_Existing_From"
     ) should have message "Compilation aborted due to errors."
-    @unused
     val out = consumeOut
-    println("[mylog] BP")
+    out.last should include regex "The symbols .*Non_Existing_Symbol.*do not exist in module .+Other_Module"
   }
 
-  "[2] Importing non-existing symbol with `from Module import <symbol>.<nested_symbol>`" should "throw exception" in {
-    /*the[InterpreterException] thrownBy evalTestProject(
-      "Test_Import_Non_Existing_From_Nested"
-    ) should have message "Compilation aborted due to errors."*/
-    evalTestProject("Test_Import_Non_Existing_From_Nested")
-    @unused
-    val out = consumeOut
-    println("[mylog] BP")
-  }
-
-  "[3] Importing non-existing symbol with `from Module.Non_Existing import <symbol>`" should "throw exception" in {
-    /*the[InterpreterException] thrownBy evalTestProject(
-      "Test_Import_Non_Existing_From_Double_Nested"
-    ) should have message "Compilation aborted due to errors."*/
-    evalTestProject("Test_Import_Non_Existing_From_Double_Nested")
-    @unused
-    val out = consumeOut
-    println("[mylog] BP")
-  }
-
-  "[4] Importing all non-existing symbols with `from Module import all`" should "throw exception" in {
+  "Importing non-existing symbol with `from Module.Non_Existing import <symbol>`" should "throw exception" in {
     the[InterpreterException] thrownBy evalTestProject(
-      "Test_Import_Non_Existing_All"
+      "Test_Import_Non_Existing_From_Double_Nested"
     ) should have message "Compilation aborted due to errors."
-    @unused
     val out = consumeOut
-    println("[mylog] BP")
+    out.last should include regex "The module.*Other_Module.Non_Existing_Type does not exist"
+  }
+
+  "Importing mix of existing and non-existing symbols" should "throw exception" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Import_Non_Existing_Mix"
+    ) should have message "Compilation aborted due to errors."
+    val out = consumeOut
+    out.last should include regex "The symbols .*Non_Existing_Symbol.*do not exist in module .+Other_Module"
   }
 
   "Imported modules" should "be renamed with renaming imports" in {

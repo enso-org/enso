@@ -1,3 +1,0 @@
-from project.Other_Module import Non_Existing_Type.Non_Existing_Type_Nested
-
-main = 42
