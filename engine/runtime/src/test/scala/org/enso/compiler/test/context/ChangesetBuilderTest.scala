@@ -398,7 +398,7 @@ class ChangesetBuilderTest extends CompilerTest {
           |{"ide":{"node":{"ed3e40fb-d19e-4fb6-bebd-f74ee179ae08":{"position":{"vector":[52.000004,140.00055]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":null},"0d4b3071-3f7d-472a-bfa7-af118222894e":{"position":{"vector":[-100.0,-40.0]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":{"name":{"content":{"content":"JSON"}},"project":"Builtin"}},"54493640-4981-4437-ad6e-fc80ab1b581f":{"position":{"vector":[-111.0,140.00055]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":null},"c143e355-9d64-4780-b387-dd364eefa2f9":{"position":{"vector":[9.723406,95.0]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":null}},"import":{},"project":null}}
           |""".stripMargin.linesIterator.mkString("\n")
       val edit =
-        TextEdit(Range(Position(8, 88), Position(8, 88)), "Boolean.True")
+        TextEdit(Range(Position(9, 72), Position(9, 72)), " Boolean.True")
 
       val ir     = code.preprocessModule
       val atId   = "0d4b3071-3f7d-472a-bfa7-af118222894e"
