@@ -143,10 +143,11 @@ spec make_new_connection prefix persistent_connector=True =
             db_table_4 = db_table_2.join db_table_3 join_kind=Join_Kind.Left_Outer
 
             copied_table = db_table_4.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
-            copied_table.column_names . should_equal ["X", "Y", "C1", "C2", "C3"]
+            copied_table.column_names . should_equal ["X", "Y", "C1", "C2", "Right_X", "C3"]
             copied_table.at "X" . to_vector . should_equal [1, 1, 2]
             copied_table.at "C1" . to_vector . should_equal [101, 102, 203]
             copied_table.at "C2" . to_vector . should_equal ["constant_text", "constant_text", "constant_text"]
+            copied_table.at "Right_X" . to_vector . should_equal [Nothing, Nothing, 2]
             copied_table.at "C3" . to_vector . should_equal [Nothing, Nothing, 5]
 
             # We check that this is indeed querying a simple DB table and not a complex query like `db_table_4` would be,

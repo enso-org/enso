@@ -785,7 +785,9 @@ object Main {
       }
       println(s"        at <$langId> $fmtFrame")
     }
-    if (dropInitJava.isEmpty) {
+    if (exception.isSyntaxError()) {
+      // no stack
+    } else if (dropInitJava.isEmpty) {
       fullStack.foreach(printFrame)
     } else {
       dropInitJava.foreach(printFrame)
