@@ -837,7 +837,7 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .await?;
 
             let build_json_exists = ctx.repo_root.join("app/ide-desktop/build.json").exists();
-            let ide_artifacts_exist = ctx.repo_root.join("dist").exists();
+            let ide_artifacts_exist = ctx.repo_root.join("target/ensogl-pack/linked-dist").exists();
             if !build_json_exists || !ide_artifacts_exist {
                 let ide_cli = Cli::parse_from([
                     "./run",
