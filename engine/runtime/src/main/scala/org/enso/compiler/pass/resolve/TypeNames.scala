@@ -55,7 +55,11 @@ case object TypeNames extends IRPass {
     def go(ir: IR.Expression): IR.Expression = {
       doResolveType(bindingsMap, ir.mapExpressions(go))
     }
-    go(ir)
+    go(ir match {
+      case fn: IR.Function.Lambda =>
+        fn.copy(arguments = fn.arguments.map(doResolveType(bindingsMap, _)))
+      case x => x
+    })
   }
 
   private def doResolveType[T <: IR](bindingsMap: BindingsMap, ir: T): T = {
